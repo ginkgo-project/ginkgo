@@ -54,8 +54,8 @@ struct FactorizationConfigTest {
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["ValueType"] = pnode{"float"};
-        config_map["IndexType"] = pnode{"int64"};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["index_type"] = pnode{"int64"};
     }
 };
 
@@ -64,7 +64,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
                                     gko::factorization::Ic<double, int>> {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"Factorization_Ic"}}};
+        return {{"type", pnode{"factorization::Ic"}}};
     }
 
     template <typename ParamType>
@@ -98,7 +98,7 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
                                      gko::factorization::Ilu<double, int>> {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"Factorization_Ilu"}}};
+        return {{"type", pnode{"factorization::Ilu"}}};
     }
 
     template <typename ParamType>
@@ -136,7 +136,7 @@ struct Cholesky
           gko::experimental::factorization::Cholesky<double, int>> {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"Cholesky"}}};
+        return {{"type", pnode{"factorization::Cholesky"}}};
     }
 
     template <typename ParamType>
@@ -166,7 +166,10 @@ struct Cholesky
 struct Lu : FactorizationConfigTest<
                 gko::experimental::factorization::Lu<float, gko::int64>,
                 gko::experimental::factorization::Lu<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Lu"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"factorization::Lu"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -199,7 +202,10 @@ struct Lu : FactorizationConfigTest<
 struct ParIc
     : FactorizationConfigTest<gko::factorization::ParIc<float, gko::int64>,
                               gko::factorization::ParIc<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"ParIc"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"factorization::ParIc"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -234,7 +240,10 @@ struct ParIc
 struct ParIlu
     : FactorizationConfigTest<gko::factorization::ParIlu<float, gko::int64>,
                               gko::factorization::ParIlu<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"ParIlu"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"factorization::ParIlu"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -271,7 +280,10 @@ struct ParIlu
 struct ParIct
     : FactorizationConfigTest<gko::factorization::ParIct<float, gko::int64>,
                               gko::factorization::ParIct<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"ParIct"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"factorization::ParIct"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -318,7 +330,10 @@ struct ParIct
 struct ParIlut
     : FactorizationConfigTest<gko::factorization::ParIlut<float, gko::int64>,
                               gko::factorization::ParIlut<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"ParIlut"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"factorization::ParIlut"}}};
+    }
 
     template <typename ParamType>
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
@@ -369,7 +384,7 @@ protected:
 
     Factorization()
         : exec(gko::ReferenceExecutor::create()),
-          td("double", "int"),
+          td("float64", "int32"),
           sparsity(Sparsity::create(exec)),
           reg()
     {

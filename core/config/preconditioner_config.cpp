@@ -107,46 +107,37 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ic>(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
-    if (auto& obj = config.get("LSolverType")) {
-        auto str = obj.get_string();
-        if (str == "LowerTrs") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper2<solver::LowerTrs>::Configurator>(
-                config, context, updated,
-                make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
-                make_type_selector(updated.get_index_typestr(),
-                                   index_type_list()));
-        } else if (str == "Ir") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper1<solver::Ir>::Configurator>(
-                config, context, updated,
-                make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
-                make_type_selector(updated.get_index_typestr(),
-                                   index_type_list()));
-        } else if (str == "LowerIsai") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper2<preconditioner::LowerIsai>::Configurator>(
-                config, context, updated,
-                make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
-                make_type_selector(updated.get_index_typestr(),
-                                   index_type_list()));
-        } else if (str == "Gmres") {
-            return dispatch<gko::LinOpFactory,
-                            IcHelper1<solver::Gmres>::Configurator>(
-                config, context, updated,
-                make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
-                make_type_selector(updated.get_index_typestr(),
-                                   index_type_list()));
-        } else {
-            GKO_INVALID_STATE("does not have valid LSolverType");
-        }
-    };
+    std::string str("solver::LowerTrs");
+    if (auto& obj = config.get("l_solver_type")) {
+        str = obj.get_string();
+    }
+    if (str == "solver::LowerTrs") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper2<solver::LowerTrs>::Configurator>(
+            config, context, updated,
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_index_typestr(), index_type_list()));
+    } else if (str == "solver::Ir") {
+        return dispatch<gko::LinOpFactory, IcHelper1<solver::Ir>::Configurator>(
+            config, context, updated,
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_index_typestr(), index_type_list()));
+    } else if (str == "preconditioner::LowerIsai") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper2<preconditioner::LowerIsai>::Configurator>(
+            config, context, updated,
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_index_typestr(), index_type_list()));
+    } else if (str == "solver::Gmres") {
+        return dispatch<gko::LinOpFactory,
+                        IcHelper1<solver::Gmres>::Configurator>(
+            config, context, updated,
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_index_typestr(), index_type_list()));
+    } else {
+        GKO_INVALID_STATE("does not have valid LSolverType");
+    }
 }
-
 
 
 template <template <typename V> class LSolverBase,
@@ -184,45 +175,45 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
         -> deferred_factory_parameter<gko::LinOpFactory> {
         using ReverseApply = decltype(reverse_apply);
         // always use symmetric solver for USolverType
-        std::string str("LowerTrs");
-        if (auto& obj = config.get("LSolverType")) {
+        std::string str("solver::LowerTrs");
+        if (auto& obj = config.get("l_solver_type")) {
             str = obj.get_string();
         }
-        if (str == "LowerTrs") {
+        if (str == "solver::LowerTrs") {
             return dispatch<
                 gko::LinOpFactory,
                 IluHelper2<solver::LowerTrs, solver::UpperTrs,
-                          ReverseApply::value>::template Configurator>(
+                           ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
                                    value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
-        } else if (str == "Ir") {
+        } else if (str == "solver::Ir") {
             return dispatch<
                 gko::LinOpFactory,
                 IluHelper1<solver::Ir, solver::Ir,
-                          ReverseApply::value>::template Configurator>(
+                           ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
                                    value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
-        } else if (str == "LowerIsai") {
+        } else if (str == "preconditioner::LowerIsai") {
             return dispatch<
                 gko::LinOpFactory,
                 IluHelper2<preconditioner::LowerIsai, preconditioner::UpperIsai,
-                          ReverseApply::value>::template Configurator>(
+                           ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
                                    value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
-        } else if (str == "Gmres") {
+        } else if (str == "solver::Gmres") {
             return dispatch<
                 gko::LinOpFactory,
                 IluHelper1<solver::Gmres, solver::Gmres,
-                          ReverseApply::value>::template Configurator>(
+                           ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
                                    value_type_list()),
@@ -233,7 +224,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
         }
     };
     bool reverse_apply = false;
-    if (auto& obj = config.get("ReverseApply")) {
+    if (auto& obj = config.get("reverse_apply")) {
         reverse_apply = obj.get_boolean();
     }
     if (reverse_apply) {
@@ -249,7 +240,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
-    if (auto& obj = config.get("IsaiType")) {
+    if (auto& obj = config.get("isai_type")) {
         auto str = obj.get_string();
         if (str == "lower") {
             return dispatch<
