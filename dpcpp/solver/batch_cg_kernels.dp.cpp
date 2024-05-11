@@ -167,15 +167,11 @@ public:
 
         // template
         // launch_apply_kernel<StopType, subgroup_size, n_shared_total>
-        if (num_rows <= 32 && n_shared_total == 6)
+        if (num_rows <= 32 && n_shared_total == 6) {
             launch_apply_kernel<StopType, 16, 6>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
                 group_size, shared_size);
-        else if (num_rows <= 256 && n_shared_total == 6)
-            launch_apply_kernel<StopType, 32, 6>(
-                sconf, logger, prec, mat, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        else {
+        } else {
             switch (n_shared_total) {
             case 0:
                 launch_apply_kernel<StopType, 32, 0>(

@@ -144,7 +144,7 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         value_type* const workspace_data = workspace.get_data();
 
