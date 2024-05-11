@@ -12,7 +12,8 @@ public:
     using index_type = int;
 
     /**
-     * The size of the work vector required in case of dynamic allocation.
+     * The size of the work vector (in bytes) required in case of dynamic
+     * allocation.
      */
     __host__ __device__ static constexpr int dynamic_work_size(
         const int num_rows, int)

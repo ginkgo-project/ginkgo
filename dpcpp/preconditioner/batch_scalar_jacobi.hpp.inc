@@ -12,7 +12,8 @@ public:
     using index_type = int;
 
     /**
-     * The size of the work vector required in case of dynamic allocation.
+     * The size of the work vector(in bytes) required in case of dynamic
+     * allocation.
      */
     static constexpr int dynamic_work_size(const int num_rows, int)
     {
@@ -39,7 +40,7 @@ public:
         work_ = work;
         for (int tidx = item_ct1.get_local_linear_id(); tidx < mat.num_rows;
              tidx += item_ct1.get_local_range().size()) {
-            auto temp = one<ValueType>();
+            auto temp = one<value_type>();
             for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
                 const auto ind = tidx + idx * mat.stride;
                 const auto col_idx = col[ind];
@@ -48,7 +49,7 @@ public:
                 } else {
                     const bool found = (col_idx == tidx);
                     if (found) {
-                        temp = one<ValueType>() / val[ind];
+                        temp = one<value_type>() / val[ind];
                     }
                 }
             }
@@ -83,9 +84,9 @@ public:
                  j < mat.row_ptrs[irow + 1]; j += sg_size) {
                 const int found = (mat.col_idxs[j] == irow);
                 if (found) {
-                    work_[irow] = (mat.values[j] != zero<ValueType>())
-                                      ? one<ValueType>() / mat.values[j]
-                                      : one<ValueType>();
+                    work_[irow] = (mat.values[j] != zero<value_type>())
+                                      ? one<value_type>() / mat.values[j]
+                                      : one<value_type>();
                 }
             }
         }
@@ -114,9 +115,9 @@ public:
 
         for (int irow = sg_id; irow < mat.num_rows; irow += num_sg) {
             const int iz = irow * static_cast<int>(mat.stride) + irow;
-            work_[irow] = (mat.values[iz] != zero<ValueType>())
-                              ? one<ValueType>() / mat.values[iz]
-                              : one<ValueType>();
+            work_[irow] = (mat.values[iz] != zero<value_type>())
+                              ? one<value_type>() / mat.values[iz]
+                              : one<value_type>();
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
