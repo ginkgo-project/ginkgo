@@ -685,6 +685,12 @@ typename Multigrid::parameters_type Multigrid::parse(
             GKO_INVALID_STATE("Not valid cycle value");
         }
     }
+    if (auto& obj = config.get("kcycle_base")) {
+        factory.with_kcycle_base(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("kcycle_rel_tol")) {
+        factory.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
+    }
     if (auto& obj = config.get("smoother_relax")) {
         factory.with_smoother_relax(
             gko::config::get_value<std::complex<double>>(obj));
