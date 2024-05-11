@@ -175,16 +175,14 @@ __dpct_inline__ void compute_block_jacobi_kernel(
     }
 
     int perm = -1;
-    // invert
-    invert_dense_block(
-        block_size, block_row, perm,
-        item_ct1);  // invert the transpose of the dense block.
-                    // Note: Each thread of the subwarp has a row of the block
-                    // to be inverted. (local id: 0 thread has 0th row, 1st
-                    // thread has 1st row and so on..) If block_size <
-                    // subwarp_size, then threads with local id >= block_size do
-                    // not mean anything. Also, values in the block_row for
-                    // index >= block_size are meaningless
+    // invert the transpose of the dense block.
+    // Note: Each thread of the subwarp has a row of the block
+    // to be inverted. (local id: 0 thread has 0th row, 1st
+    // thread has 1st row and so on..) If block_size <
+    // subwarp_size, then threads with local id >= block_size do
+    // not mean anything. Also, values in the block_row for
+    // index >= block_size are meaningless
+    invert_dense_block(block_size, block_row, perm, item_ct1);
     sg.barrier();
 
     // write back the transpose of the transposed inverse matrix to block
