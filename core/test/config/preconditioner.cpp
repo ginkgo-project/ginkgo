@@ -34,20 +34,26 @@ struct PreconditionerConfigTest {
     using explicit_type = ExplicitType;
     using default_type = DefaultType;
     using preconditioner_config_test = PreconditionerConfigTest;
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Ic"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Ic"}}};
+    }
 };
 
 
 struct Ic : PreconditionerConfigTest<
                 ::gko::preconditioner::Ic<DummyIr, gko::int64>,
                 ::gko::preconditioner::Ic<gko::solver::LowerTrs<>, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Ic"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Ic"}}};
+    }
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["ValueType"] = pnode{"float"};
-        config_map["LSolverType"] = pnode{"Ir"};
-        config_map["IndexType"] = pnode{"int64"};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["l_solver_type"] = pnode{"solver::Ir"};
+        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -64,11 +70,12 @@ struct Ic : PreconditionerConfigTest<
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "factorization"));
         } else {
-            config_map["l_solver"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+            config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
             param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
             config_map["factorization"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
             param.with_factorization(DummyIr::build().on(exec));
         }
     }
@@ -102,14 +109,17 @@ struct Ilu
           ::gko::preconditioner::Ilu<DummyIr, DummyIr, true, gko::int64>,
           ::gko::preconditioner::Ilu<gko::solver::LowerTrs<>,
                                      gko::solver::UpperTrs<>, false, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Ilu"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Ilu"}}};
+    }
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["ValueType"] = pnode{"float"};
-        config_map["LSolverType"] = pnode{"Ir"};
-        config_map["IndexType"] = pnode{"int64"};
-        config_map["ReverseApply"] = pnode{true};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["l_solver_type"] = pnode{"solver::Ir"};
+        config_map["index_type"] = pnode{"int64"};
+        config_map["reverse_apply"] = pnode{true};
     }
 
     template <bool from_reg, typename ParamType>
@@ -130,14 +140,15 @@ struct Ilu
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "factorization"));
         } else {
-            config_map["l_solver"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+            config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
             param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
-            config_map["u_solver"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+            config_map["u_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
             param.with_u_solver(explicit_type::u_solver_type::build().on(exec));
             config_map["factorization"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
             param.with_factorization(DummyIr::build().on(exec));
         }
     }
@@ -179,14 +190,15 @@ struct Isai
                                       double, int>> {
     static pnode::map_type setup_base()
     {
-        return {{"Type", pnode{"Isai"}}, {"IsaiType", pnode{"lower"}}};
+        return {{"type", pnode{"preconditioner::Isai"}},
+                {"isai_type", pnode{"lower"}}};
     }
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["IsaiType"] = pnode{"upper"};
-        config_map["ValueType"] = pnode{"float"};
-        config_map["IndexType"] = pnode{"int64"};
+        config_map["isai_type"] = pnode{"upper"};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -208,7 +220,8 @@ struct Isai
                     reg, "solver"));
         } else {
             config_map["excess_solver_factory"] =
-                pnode{{{"Type", pnode{"Ir"}}, {"ValueType", pnode{"float"}}}};
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
             param.with_excess_solver_factory(DummyIr::build().on(exec));
         }
     }
@@ -240,12 +253,15 @@ struct Isai
 struct Jacobi
     : PreconditionerConfigTest<::gko::preconditioner::Jacobi<float, gko::int64>,
                                ::gko::preconditioner::Jacobi<double, int>> {
-    static pnode::map_type setup_base() { return {{"Type", pnode{"Jacobi"}}}; }
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Jacobi"}}};
+    }
 
     static void change_template(pnode::map_type& config_map)
     {
-        config_map["ValueType"] = pnode{"float"};
-        config_map["IndexType"] = pnode{"int64"};
+        config_map["value_type"] = pnode{"float32"};
+        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -312,7 +328,7 @@ protected:
 
     Preconditioner()
         : exec(gko::ReferenceExecutor::create()),
-          td("double", "int"),
+          td("float64", "int32"),
           solver_factory(DummyIr::build().on(exec)),
           l_solver(DummyIr::build().on(exec)),
           u_solver(DummyIr::build().on(exec)),

@@ -122,6 +122,18 @@ public:
 
     const parameters_type& get_parameters() const { return parameters_; }
 
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type. The value/index type
+     * settings are ignored and type_descriptor is for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default will directly from the specific type.
+     *
+     * @return parameters
+     */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
