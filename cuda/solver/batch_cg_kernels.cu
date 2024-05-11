@@ -63,7 +63,7 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int warp_sz = static_cast<int>(config::warp_size);
     const int min_block_size = 2 * warp_sz;
     const int device_max_threads =
-        ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
+        (std::max(num_rows, min_block_size) / warp_sz) * warp_sz;
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(&funcattr,
                           apply_kernel<StopType, 5, true, PrecType, LogType,
@@ -169,7 +169,7 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         value_type* const workspace_data = workspace.get_data();
 

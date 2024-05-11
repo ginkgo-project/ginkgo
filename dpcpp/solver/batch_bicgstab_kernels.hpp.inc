@@ -299,10 +299,6 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
-    if (stop.check_converged(norms_res_sh)) {
-        logger.log_iteration(batch_id, iter, norms_res_sh[0]);
-        return;
-    }
 
     for (; iter < max_iter; iter++) {
         if (stop.check_converged(norms_res_sh)) {
