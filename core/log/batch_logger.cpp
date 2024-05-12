@@ -39,6 +39,9 @@ log_data<ValueType>::log_data(std::shared_ptr<const Executor> exec,
                               array<unsigned char>& workspace)
     : res_norms(exec), iter_counts(exec)
 {
+    // it should at least `num * (sizeof(real_type) + sizeof(int))` with some
+    // additional buffer for alias purpose, but we simply request a large enough
+    // size here.
     const size_type reqd_workspace_size = num_batch_items * 32;
 
     if (num_batch_items > 0 && !workspace.is_owning() &&

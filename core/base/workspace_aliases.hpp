@@ -42,7 +42,7 @@ namespace detail {
 template <int num_allocs, int align_bytes = 8>
 GKO_ATTRIBUTES GKO_INLINE GKO_DEVICE_ERROR_TYPE create_workspace_aliases(
     void* workspace_ptr, size_t& num_bytes, void* (&allocations)[num_allocs],
-    size_t (&allocation_sizes)[num_allocs])
+    const size_t (&allocation_sizes)[num_allocs])
 {
     constexpr int align_mask = ~(align_bytes - 1);
 
