@@ -45,13 +45,12 @@ void compute_cumulative_block_storage(
     const IndexType* const block_pointers,
     IndexType* const blocks_cumulative_offsets)
 {
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_blocks, [=](auto id) {
             const auto bsize = block_pointers[id + 1] - block_pointers[id];
             blocks_cumulative_offsets[id] = bsize * bsize;
         });
     });
-    exec->get_queue()->wait();
     components::prefix_sum_nonnegative(exec, blocks_cumulative_offsets,
                                        num_blocks + 1);
 }
