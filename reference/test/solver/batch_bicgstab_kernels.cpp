@@ -229,7 +229,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(this->exec);
     const int num_rows = 13;
-    const size_t num_batch_items = 1;
+    const size_t num_batch_items = 2;
     const int num_rhs = 1;
     auto stencil_mat =
         gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(

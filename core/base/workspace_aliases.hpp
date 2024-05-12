@@ -31,6 +31,8 @@
 // (https://github.com/NVIDIA/cccl) (cub/detail/temporary_storage.cuh and
 // cub/temporary_storage.cuh), made available through the Apache-2.0 and BSD-3
 // licenses. See ABOUT-LICENSING.md for more details.
+// The main changes: the namespaces, the object/class
+// names and some simplifications that adhere to Ginkgo's code conventions
 
 
 namespace gko {
