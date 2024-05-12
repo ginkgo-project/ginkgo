@@ -47,8 +47,7 @@ public:
                 if (col_idx < idx) {
                     break;
                 } else {
-                    const bool found = (col_idx == tidx);
-                    if (found) {
+                    if (col_idx == tidx) {
                         temp = one<value_type>() / val[ind];
                     }
                 }

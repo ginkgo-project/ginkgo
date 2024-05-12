@@ -224,7 +224,7 @@ TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithScalarJacobi)
 TEST_F(BatchJacobi, CanSolveLargeMatrixSizeHpdSystemWithBlockJacobi)
 {
     const int num_batch_items = 12;
-    const int num_rows = 512;
+    const int num_rows = 513;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = num_rows;

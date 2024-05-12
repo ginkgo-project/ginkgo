@@ -40,27 +40,28 @@ public:
         return 0;
     }
 
-    void generate(size_type batch_id,
-                  const batch::matrix::ell::batch_item<const value_type,
-                                                       const index_type>&,
-                  value_type* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(size_type batch_id,
+                                  const batch::matrix::ell::batch_item<
+                                      const value_type, const index_type>&,
+                                  value_type* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
-    void generate(size_type batch_id,
-                  const batch::matrix::csr::batch_item<const value_type,
-                                                       const index_type>&,
-                  value_type* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(size_type batch_id,
+                                  const batch::matrix::csr::batch_item<
+                                      const value_type, const index_type>&,
+                                  value_type* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
-    void generate(size_type batch_id,
-                  const batch::matrix::dense::batch_item<const value_type>&,
-                  value_type* const, sycl::nd_item<3> item_ct1)
+    __dpct_inline__ void generate(
+        size_type batch_id,
+        const batch::matrix::dense::batch_item<const value_type>&,
+        value_type* const, sycl::nd_item<3> item_ct1)
     {
         common_generate_for_all_system_matrix_types(batch_id);
         item_ct1.barrier(sycl::access::fence_space::local_space);

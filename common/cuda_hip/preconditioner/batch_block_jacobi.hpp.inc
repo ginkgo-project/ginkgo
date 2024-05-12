@@ -79,8 +79,9 @@ public:
         if (required_subwarp_size == 1) {
             apply_helper<1>(num_rows, r, z);
         } else if (required_subwarp_size == 2) {
-            apply_helper<4>(num_rows, r,
-                            z);  // clang has issues with subwarp size 2
+            // clang (with HIP) has issues with subwarp size 2 (fails with
+            // segfault on the compiler), so we set it to 4 instead.
+            apply_helper<4>(num_rows, r, z);
         } else if (required_subwarp_size == 4) {
             apply_helper<4>(num_rows, r, z);
         } else if (required_subwarp_size == 8) {

@@ -7,9 +7,9 @@ __global__ void compute_block_storage_kernel(
     const int* const __restrict__ block_pointers,
     int* const __restrict__ blocks_cumulative_offsets)
 {
-    const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    for (int i = gid; i < num_blocks; i += blockDim.x * gridDim.x) {
+    for (int i = tid; i < num_blocks; i += blockDim.x * gridDim.x) {
         const auto bsize = block_pointers[i + 1] - block_pointers[i];
         blocks_cumulative_offsets[i] = bsize * bsize;
     }
@@ -21,9 +21,9 @@ __global__ __launch_bounds__(default_block_size) void find_row_block_map_kernel(
     const int* const __restrict__ block_pointers,
     int* const __restrict__ map_block_to_row)
 {
-    const auto gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    for (int block_idx = gid; block_idx < num_blocks;
+    for (int block_idx = tid; block_idx < num_blocks;
          block_idx += blockDim.x * gridDim.x) {
         for (int i = block_pointers[block_idx];
              i < block_pointers[block_idx + 1]; i++) {
@@ -96,6 +96,7 @@ __device__ __forceinline__ int choose_pivot(
     }
     subwarp_grp.sync();
     int my_piv_idx = subwarp_grp.thread_rank();
+#pragma unroll
     for (int a = subwarp_grp.size() / 2; a > 0; a /= 2) {
         const auto abs_ele_other = subwarp_grp.shfl_down(my_abs_ele, a);
         const int piv_idx_other = subwarp_grp.shfl_down(my_piv_idx, a);
