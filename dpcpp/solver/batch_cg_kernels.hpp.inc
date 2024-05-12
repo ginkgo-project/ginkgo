@@ -85,10 +85,13 @@ __dpct_inline__ void update_x_and_r(
                                        item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
+    if (tid == 0) {
+        alpha_shared_entry = rho_old_shared_entry / alpha_shared_entry;
+    }
+    item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     for (int li = item_ct1.get_local_linear_id(); li < num_rows;
          li += item_ct1.get_local_range().size()) {
-        const ValueType alpha = rho_old_shared_entry / alpha_shared_entry;
         x_shared_entry[li] += alpha_shared_entry * p_shared_entry[li];
         r_shared_entry[li] -= alpha_shared_entry * Ap_shared_entry[li];
     }
