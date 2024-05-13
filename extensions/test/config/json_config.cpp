@@ -14,6 +14,7 @@
 
 
 #include "core/test/utils.hpp"
+#include "extensions/test/config/file_location.hpp"
 
 
 TEST(JsonConfig, ThrowIfInvalid)
@@ -77,7 +78,8 @@ TEST(JsonConfig, ReadInput)
 
 TEST(JsonConfig, ReadInputFromFile)
 {
-    auto ptree = gko::ext::config::parse_json_file("test.json");
+    auto ptree =
+        gko::ext::config::parse_json_file(gko::ext::config::location_test_json);
 
     auto& child_array = ptree.get("array").get_array();
     auto& child_map = ptree.get("map").get_map();
