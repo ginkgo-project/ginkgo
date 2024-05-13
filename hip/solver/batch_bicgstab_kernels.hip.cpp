@@ -70,7 +70,7 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
         &max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
         exec->get_device_id()));
-    const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
+    int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
     max_threads_regs = (max_threads_regs / warp_sz) * warp_sz;
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
