@@ -8,7 +8,12 @@
 #define GKO_CORE_BASE_WORKSPACE_ALIASES_HPP_
 
 
+#include <algorithm>
+#include <cstdlib>
+
+
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 // Macros for handling different device error return types uniformly
