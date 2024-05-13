@@ -152,7 +152,8 @@ public:
                 sum += block_val * r[dense_block_col + idx_start];
             }
 
-            // reduction
+// reduction
+#pragma unroll
             for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
                 sum += subwarp_grp.shfl_down(sum, i);
             }
