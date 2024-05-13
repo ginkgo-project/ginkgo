@@ -27,8 +27,7 @@ __global__ __launch_bounds__(default_block_size) void find_row_block_map_kernel(
          block_idx += blockDim.x * gridDim.x) {
         for (int i = block_pointers[block_idx];
              i < block_pointers[block_idx + 1]; i++) {
-            map_block_to_row[i] = block_idx;  // uncoalesced
-                                              // accesses
+            map_block_to_row[i] = block_idx;  // uncoalesced accesses
         }
     }
 }
@@ -126,7 +125,10 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
         if (subwarp_grp.thread_rank() == ipiv) {
             perm = k;
         }
-        const ValueType d = subwarp_grp.shfl(block_row[k], ipiv);
+        const ValueType d =
+            (subwarp_grp.shfl(block_row[k], ipiv) == zero<ValueType>())
+                ? one<ValueType>()
+                : subwarp_grp.shfl(block_row[k], ipiv);
         // scale kth col
         block_row[k] /= -d;
         if (subwarp_grp.thread_rank() == ipiv) {

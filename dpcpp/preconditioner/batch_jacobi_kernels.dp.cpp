@@ -65,7 +65,7 @@ void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* const block_pointers,
                         IndexType* const map_block_to_row)
 {
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_blocks, [=](auto id) {
             for (int i = block_pointers[id]; i < block_pointers[id + 1]; i++)
                 map_block_to_row[i] = id;
@@ -97,7 +97,7 @@ void extract_common_blocks_pattern(
     const auto row_ptrs = first_sys_csr->get_const_row_ptrs();
     const auto col_idxs = first_sys_csr->get_const_col_idxs();
 
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1)
                              [[intel::reqd_sub_group_size(subgroup_size)]] {
@@ -143,7 +143,7 @@ void compute_block_jacobi_helper(
     dim3 block(group_size);
     dim3 grid(ceildiv(num_blocks * nbatch * subgroup_size, group_size));
 
-    (exec->get_queue())->submit([&](sycl::handler& cgh) {
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1)
                              [[intel::reqd_sub_group_size(subgroup_size)]] {
