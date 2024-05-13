@@ -15,6 +15,8 @@ convert_header () {
             fi
         elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
+        elif [ "${header_file}" = "extensions/test/config/file_location.hpp" ]; then
+            echo "#include \"${header_file}\""
 	    elif [[ "${header_file}" =~ ${jacobi_regex} ]]; then
             echo "#include \"${header_file}\""
         else
