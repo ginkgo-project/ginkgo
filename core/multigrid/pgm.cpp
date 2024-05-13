@@ -406,8 +406,8 @@ void Pgm<ValueType, IndexType>::generate()
             setup_fine_op(obj);
         } else {
             // handle other ValueTypes.
-            run<const ConvertibleTo<fst_mtx_type>,
-                const ConvertibleTo<snd_mtx_type>>(obj, convert_fine_op);
+            run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(obj,
+                                                           convert_fine_op);
         }
 
         auto distributed_setup = [&](auto matrix) {
@@ -490,8 +490,7 @@ void Pgm<ValueType, IndexType>::generate()
         };
 
         // the fine op is using csr with the current ValueType
-        run<const fst_mtx_type, const snd_mtx_type>(this->get_fine_op(),
-                                                    distributed_setup);
+        run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
     } else
 #endif  // GINKGO_BUILD_MPI
     {
