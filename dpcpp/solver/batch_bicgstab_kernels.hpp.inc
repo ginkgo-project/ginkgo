@@ -295,11 +295,11 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
                p_sh, p_hat_sh, v_sh, norms_rhs_sh[0], norms_res_sh[0],
                item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
-    int iter = 0;
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
 
+    int iter = 0;
     for (; iter < max_iter; iter++) {
         if (stop.check_converged(norms_res_sh)) {
             logger.log_iteration(batch_id, iter, norms_res_sh[0]);

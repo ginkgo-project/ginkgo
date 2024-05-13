@@ -189,17 +189,20 @@ __dpct_inline__ void apply_kernel(
                r_sh, prec_shared, z_sh, rho_old_sh[0], p_sh, norms_rhs_sh[0],
                item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
-    int iter = 0;
 
     // stopping criterion object
     StopType stop(tol, norms_rhs_sh);
-    norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
-    if (stop.check_converged(norms_res_sh)) {
-        logger.log_iteration(batch_id, iter, norms_res_sh[0]);
-        return;
-    }
 
+    int iter = 0;
     for (; iter < max_iter; iter++) {
+        if (sg.leader()) {
+            norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
+        }
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
+        if (stop.check_converged(norms_res_sh)) {
+            logger.log_iteration(batch_id, iter, norms_res_sh[0]);
+            break;
+        }
         // Ap = A * p
         simple_apply_kernel(mat_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
@@ -222,14 +225,6 @@ __dpct_inline__ void apply_kernel(
                                            item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        if (sg.leader()) {
-            norms_res_sh[0] = sqrt(abs(rho_new_sh[0]));
-        }
-        item_ct1.barrier(sycl::access::fence_space::global_and_local);
-        if (stop.check_converged(norms_res_sh)) {
-            logger.log_iteration(batch_id, iter, norms_res_sh[0]);
-            break;
-        }
 
         // beta = rho_new / rho_old
         // p = z + beta * p
