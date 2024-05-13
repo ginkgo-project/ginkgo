@@ -5,6 +5,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -15,6 +16,7 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/registry_accessor.hpp"
+#include "core/config/stop_config.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
 
@@ -22,7 +24,7 @@ namespace gko {
 namespace config {
 
 
-inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
+deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto factory = stop::Time::build();
@@ -33,7 +35,7 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_time(
 }
 
 
-inline deferred_factory_parameter<stop::CriterionFactory> configure_iter(
+deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto factory = stop::Iteration::build();
@@ -44,7 +46,7 @@ inline deferred_factory_parameter<stop::CriterionFactory> configure_iter(
 }
 
 
-stop::mode get_mode(const std::string& str)
+inline stop::mode get_mode(const std::string& str)
 {
     if (str == "absolute") {
         return stop::mode::absolute;
@@ -79,7 +81,7 @@ public:
 };
 
 
-inline deferred_factory_parameter<stop::CriterionFactory> configure_residual(
+deferred_factory_parameter<stop::CriterionFactory> configure_residual(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
@@ -111,42 +113,13 @@ public:
 };
 
 
-inline deferred_factory_parameter<stop::CriterionFactory>
-configure_implicit_residual(const pnode& config, const registry& context,
-                            const type_descriptor& td)
+deferred_factory_parameter<stop::CriterionFactory> configure_implicit_residual(
+    const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ImplicitResidualNormConfigurer>(
         config, context, updated,
         make_type_selector(updated.get_value_typestr(), value_type_list()));
-}
-
-
-template <>
-deferred_factory_parameter<const stop::CriterionFactory>
-get_factory<const stop::CriterionFactory>(const pnode& config,
-                                          const registry& context,
-                                          const type_descriptor& td)
-{
-    deferred_factory_parameter<const stop::CriterionFactory> ptr;
-    if (config.get_tag() == pnode::tag_t::string) {
-        return detail::registry_accessor::get_data<stop::CriterionFactory>(
-            context, config.get_string());
-    } else if (config.get_tag() == pnode::tag_t::map) {
-        static std::map<std::string,
-                        std::function<deferred_factory_parameter<
-                            gko::stop::CriterionFactory>(
-                            const pnode&, const registry&, type_descriptor)>>
-            criterion_map{
-                {{"stop::Time", configure_time},
-                 {"stop::Iteration", configure_iter},
-                 {"stop::ResidualNorm", configure_residual},
-                 {"stop::ImplicitResidualNorm", configure_implicit_residual}}};
-        return criterion_map.at(config.get("type").get_string())(config,
-                                                                 context, td);
-    }
-    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
-    return ptr;
 }
 
 

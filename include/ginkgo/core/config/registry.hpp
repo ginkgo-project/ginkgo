@@ -51,20 +51,20 @@ template <typename T, typename = void>
 struct base_type {};
 
 template <typename T>
-struct base_type<
-    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
+struct base_type<T, std::enable_if_t<std::is_convertible<T*, LinOp*>::value>> {
     using type = LinOp;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<
-                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
+struct base_type<
+    T, std::enable_if_t<std::is_convertible<T*, LinOpFactory*>::value>> {
     using type = LinOpFactory;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<std::is_convertible<
-                        T*, stop::CriterionFactory*>::value>::type> {
+struct base_type<
+    T,
+    std::enable_if_t<std::is_convertible<T*, stop::CriterionFactory*>::value>> {
     using type = stop::CriterionFactory;
 };
 
@@ -76,11 +76,11 @@ struct base_type<T, typename std::enable_if<std::is_convertible<
 class allowed_ptr {
 public:
     /**
-     * The constructor accept any shared pointer whose base type is LinOp,
-     * LinOpFactory, or CriterionFactory. We use template rather than
-     * constructor without template because it allows user to directly use
-     * uninitialized_list in registry constructor without wrapping allowed_ptr
-     * manually.
+     * The constructor accepts any shared pointer whose base type is LinOp,
+     * LinOpFactory, or CriterionFactory. We use a template rather than
+     * a constructor without a template because it allows the user to directly
+     * use uninitialized_list in the registry constructor without wrapping
+     * allowed_ptr manually.
      */
     template <typename Type>
     allowed_ptr(std::shared_ptr<Type> obj);
@@ -110,7 +110,12 @@ private:
 
     template <typename Type>
     struct concrete_container : generic_container {
-        concrete_container(std::shared_ptr<Type> obj) : ptr{obj} {}
+        concrete_container(std::shared_ptr<Type> obj) : ptr{obj}
+        {
+            static_assert(
+                std::is_same<Type, typename base_type<Type>::type>::value,
+                "The given type must be a base_type");
+        }
 
         std::shared_ptr<Type> ptr;
     };
@@ -151,7 +156,8 @@ inline std::shared_ptr<Type> allowed_ptr::get() const
  * This class stores additional context for creating Ginkgo objects from
  * configuration files.
  *
- * The context can contain user provided objects of the following types:
+ * The context can contain user-provided objects that derive from the following
+ * base types:
  * - LinOp
  * - LinOpFactory
  * - CriterionFactory
@@ -168,8 +174,10 @@ public:
      * registry constructor
      *
      * @param additional_map  the additional map to dispatch the class base.
-     *                        Users can extend map to fit their own
-     *                        LinOpFactory.
+     *                        Users can extend the map to fit their own
+     *                        LinOpFactory. We suggest using "usr::" as the
+     *                        prefix in the key to simply avoid conflict with
+     *                        ginkgo's map.
      */
     registry(const configuration_map& additional_map = {});
 
@@ -187,15 +195,17 @@ public:
      * }}
      * ```
      * @param additional_map  the additional map to dispatch the class base.
-     *                        Users can extend map to fit their own
-     *                        LinOpFactory.
+     *                        Users can extend the map to fit their own
+     *                        LinOpFactory. We suggest using "usr::" as the
+     *                        prefix in the key to simply avoid conflict with
+     *                        ginkgo's map.
      */
     registry(
         const std::unordered_map<std::string, detail::allowed_ptr>& stored_map,
         const configuration_map& additional_map = {});
 
     /**
-     * insert_data stores the data with the key.
+     * Store the data with the key.
      *
      * @tparam T  the type
      *
@@ -207,7 +217,7 @@ public:
 
 protected:
     /**
-     * get_data searches the key on the corresponding map.
+     * Search the key on the corresponding map.
      *
      * @tparam T  the type
      *
@@ -219,7 +229,7 @@ protected:
     std::shared_ptr<T> get_data(std::string key) const;
 
     /**
-     * get the stored build map
+     * Get the stored build map
      */
     const configuration_map& get_build_map() const { return build_map_; }
 

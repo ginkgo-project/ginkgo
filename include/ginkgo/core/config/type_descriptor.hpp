@@ -16,17 +16,18 @@ namespace config {
  * This class describes the value and index types to be used when building a
  * Ginkgo type from a configuration file.
  *
- * A type_descriptor is passed to the parse function defines which
- * template parameters, in terms of value_type and/or index_type, the created
- * object will have. For example, a CG solver created like this:
+ * A type_descriptor is passed in order to define the parse function defines
+ * which template parameters, in terms of value_type and/or index_type, the
+ * created object will have. For example, a CG solver created like this:
  * ```
  * auto cg = parse(config, context, type_descriptor("float64", "int32"));
  * ```
  * will have the value type `float64` and the index type `int32`. Any Ginkgo
- * object that does not require one of these types will just ignore it. We used
- * void type to specify no default type.
+ * object that does not require one of these types will just ignore it. The
+ * value `void` can be used to specify that no default type is provided. In this
+ * case, the configuration has to provide the necessary template types.
  *
- * If the configurations specifies one of the fields (or both):
+ * If the configuration specifies one of the fields (or both):
  * ```
  * value_type: "some_value_type"
  * index_type: "some_index_type"
@@ -65,7 +66,7 @@ private:
 
 
 /**
- * make_type_descriptor is a helper function to properly set up the descriptor
+ * A helper function to properly set up the descriptor
  * from template type directly.
  *
  * @tparam ValueType  the value type in descriptor

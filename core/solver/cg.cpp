@@ -69,12 +69,13 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     }
     if (auto& obj = config.get("criteria")) {
         params.with_criteria(
-            gko::config::get_factory_vector<const stop::CriterionFactory>(
-                obj, context, td_for_child));
+            gko::config::parse_or_get_factory_vector<
+                const stop::CriterionFactory>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("preconditioner")) {
-        params.with_preconditioner(gko::config::get_factory<const LinOpFactory>(
-            obj, context, td_for_child));
+        params.with_preconditioner(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     return params;
 }
