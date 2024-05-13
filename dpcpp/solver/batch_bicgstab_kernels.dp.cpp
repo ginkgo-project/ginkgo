@@ -129,11 +129,7 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto max_group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        int group_size =
-            device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > num_rows) {
-            group_size = get_group_size(num_rows);
-        };
+        int group_size = get_group_size(num_rows);
         group_size = std::min(
             std::max(group_size, static_cast<int>(2 * config::warp_size)),
             static_cast<int>(max_group_size));

@@ -69,7 +69,7 @@ public:
     template <typename StopType, const int subgroup_size,
               const int n_shared_total, typename PrecType, typename LogType,
               typename BatchMatrixType>
-    __dpct_inline__ void launch_apply_kernel(
+    void launch_apply_kernel(
         const gko::kernels::batch_cg::storage_config& sconf, LogType& logger,
         PrecType& prec, const BatchMatrixType mat,
         const ValueType* const __restrict__ b_values,
@@ -129,17 +129,13 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto max_group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        int group_size =
-            device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > num_rows) {
-            group_size = get_group_size(num_rows);
-        }
+        int group_size = get_group_size(num_rows);
         group_size = std::min(
             std::max(group_size, static_cast<int>(2 * config::warp_size)),
             static_cast<int>(max_group_size));
 
-        // reserve 3 for intermediate rho, norms,
-        // alpha, and for reduce_over_group
+        // reserve 3 for intermediate rho,
+        // alpha, reduce_over_group, and two norms
         // If the value available is negative, then set it to 0
         const int static_var_mem =
             (group_size + 3) * sizeof(ValueType) + 2 * sizeof(real_type);
