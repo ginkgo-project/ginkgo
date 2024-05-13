@@ -6,9 +6,6 @@
 #define GKO_CORE_MULTIGRID_PGM_KERNELS_HPP_
 
 
-#include <ginkgo/core/multigrid/pgm.hpp>
-
-
 #include <memory>
 
 

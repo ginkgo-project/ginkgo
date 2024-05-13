@@ -19,7 +19,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/multigrid/pgm.hpp>
 
 
 #include "cuda/base/thrust.cuh"
