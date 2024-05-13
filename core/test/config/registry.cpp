@@ -5,10 +5,6 @@
 #include <ginkgo/core/config/registry.hpp>
 
 
-#include <functional>
-#include <type_traits>
-
-
 #include <gtest/gtest.h>
 
 
@@ -95,13 +91,12 @@ TEST_F(Registry, SearchData)
     ASSERT_EQ(found_solver_factory, solver_factory);
     ASSERT_EQ(found_stop_factory, stop_factory);
     // get correct types
-    ASSERT_TRUE((std::is_same<decltype(found_matrix),
-                              std::shared_ptr<gko::LinOp>>::value));
-    ASSERT_TRUE((std::is_same<decltype(found_solver_factory),
-                              std::shared_ptr<gko::LinOpFactory>>::value));
-    ASSERT_TRUE(
-        (std::is_same<decltype(found_stop_factory),
-                      std::shared_ptr<gko::stop::CriterionFactory>>::value));
+    testing::StaticAssertTypeEq<decltype(found_matrix),
+                                std::shared_ptr<gko::LinOp>>();
+    testing::StaticAssertTypeEq<decltype(found_solver_factory),
+                                std::shared_ptr<gko::LinOpFactory>>();
+    testing::StaticAssertTypeEq<decltype(found_stop_factory),
+                                std::shared_ptr<gko::stop::CriterionFactory>>();
 }
 
 
@@ -124,13 +119,12 @@ TEST_F(Registry, SearchDataWithType)
     ASSERT_EQ(found_solver_factory, solver_factory);
     ASSERT_EQ(found_stop_factory, stop_factory);
     // get correct types
-    ASSERT_TRUE(
-        (std::is_same<decltype(found_matrix), std::shared_ptr<Matrix>>::value));
-    ASSERT_TRUE(
-        (std::is_same<decltype(found_solver_factory),
-                      std::shared_ptr<typename Solver::Factory>>::value));
-    ASSERT_TRUE((std::is_same<decltype(found_stop_factory),
-                              std::shared_ptr<typename Stop::Factory>>::value));
+    testing::StaticAssertTypeEq<decltype(found_matrix),
+                                std::shared_ptr<Matrix>>();
+    testing::StaticAssertTypeEq<decltype(found_solver_factory),
+                                std::shared_ptr<typename Solver::Factory>>();
+    testing::StaticAssertTypeEq<decltype(found_stop_factory),
+                                std::shared_ptr<typename Stop::Factory>>();
 }
 
 
@@ -153,13 +147,12 @@ TEST_F(Registry, BuildFromConstructor)
     ASSERT_EQ(found_solver_factory, solver_factory);
     ASSERT_EQ(found_stop_factory, stop_factory);
     // get correct types
-    ASSERT_TRUE(
-        (std::is_same<decltype(found_matrix), std::shared_ptr<Matrix>>::value));
-    ASSERT_TRUE(
-        (std::is_same<decltype(found_solver_factory),
-                      std::shared_ptr<typename Solver::Factory>>::value));
-    ASSERT_TRUE((std::is_same<decltype(found_stop_factory),
-                              std::shared_ptr<typename Stop::Factory>>::value));
+    testing::StaticAssertTypeEq<decltype(found_matrix),
+                                std::shared_ptr<Matrix>>();
+    testing::StaticAssertTypeEq<decltype(found_solver_factory),
+                                std::shared_ptr<typename Solver::Factory>>();
+    testing::StaticAssertTypeEq<decltype(found_stop_factory),
+                                std::shared_ptr<typename Stop::Factory>>();
 }
 
 

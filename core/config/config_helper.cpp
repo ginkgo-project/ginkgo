@@ -12,30 +12,54 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/registry_accessor.hpp"
-
+#include "core/config/stop_config.hpp"
 
 namespace gko {
 namespace config {
 
 
 template <>
-deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
-    const pnode& config, const registry& context, const type_descriptor& td)
+deferred_factory_parameter<const LinOpFactory>
+parse_or_get_factory<const LinOpFactory>(const pnode& config,
+                                         const registry& context,
+                                         const type_descriptor& td)
 {
-    deferred_factory_parameter<const LinOpFactory> ptr;
     if (config.get_tag() == pnode::tag_t::string) {
-        ptr = detail::registry_accessor::get_data<LinOpFactory>(
+        return detail::registry_accessor::get_data<LinOpFactory>(
             context, config.get_string());
     } else if (config.get_tag() == pnode::tag_t::map) {
-        ptr = parse(config, context, td);
+        return parse(config, context, td);
     } else {
         GKO_INVALID_STATE("The data of config is not valid.");
     }
-    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
-
-    return ptr;
 }
 
+
+template <>
+deferred_factory_parameter<const stop::CriterionFactory>
+parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
+                                                   const registry& context,
+                                                   const type_descriptor& td)
+{
+    if (config.get_tag() == pnode::tag_t::string) {
+        return detail::registry_accessor::get_data<stop::CriterionFactory>(
+            context, config.get_string());
+    } else if (config.get_tag() == pnode::tag_t::map) {
+        static std::map<std::string,
+                        std::function<deferred_factory_parameter<
+                            gko::stop::CriterionFactory>(
+                            const pnode&, const registry&, type_descriptor)>>
+            criterion_map{
+                {{"Time", configure_time},
+                 {"Iteration", configure_iter},
+                 {"ResidualNorm", configure_residual},
+                 {"ImplicitResidualNorm", configure_implicit_residual}}};
+        return criterion_map.at(config.get("type").get_string())(config,
+                                                                 context, td);
+    } else {
+        GKO_INVALID_STATE("The data of config is not valid.");
+    }
+}
 
 }  // namespace config
 }  // namespace gko

@@ -7,16 +7,11 @@
 
 
 #include <string>
-#include <type_traits>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/config/config.hpp>
-#include <ginkgo/core/config/registry.hpp>
-#include <ginkgo/core/solver/solver_base.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 
 
 namespace gko {
@@ -48,6 +43,8 @@ TYPE_STRING_OVERLOAD(std::complex<double>, "complex<float64>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float32>");
 TYPE_STRING_OVERLOAD(int32, "int32");
 TYPE_STRING_OVERLOAD(int64, "int64");
+
+#undef TYPE_STRING_OVERLOAD
 
 
 }  // namespace config

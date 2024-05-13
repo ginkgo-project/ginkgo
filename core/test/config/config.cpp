@@ -5,9 +5,6 @@
 #include <ginkgo/core/config/config.hpp>
 
 
-#include <typeinfo>
-
-
 #include <gtest/gtest.h>
 
 
@@ -38,8 +35,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          stop_config(
-              {{"type", pnode{"stop::Iteration"}}, {"max_iters", pnode{1}}})
+          stop_config({{"type", pnode{"Iteration"}}, {"max_iters", pnode{1}}})
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -139,10 +135,12 @@ TEST(GetValue, IndexType)
     ASSERT_EQ(get_value<long>(config), value);
     ASSERT_EQ(get_value<unsigned>(config), value);
     ASSERT_EQ(get_value<long long int>(config), value);
-    ASSERT_EQ(typeid(get_value<int>(config)), typeid(int));
-    ASSERT_EQ(typeid(get_value<long>(config)), typeid(long));
-    ASSERT_EQ(typeid(get_value<unsigned>(config)), typeid(unsigned));
-    ASSERT_EQ(typeid(get_value<long long int>(config)), typeid(long long int));
+    testing::StaticAssertTypeEq<decltype(get_value<int>(config)), int>();
+    testing::StaticAssertTypeEq<decltype(get_value<long>(config)), long>();
+    testing::StaticAssertTypeEq<decltype(get_value<unsigned>(config)),
+                                unsigned>();
+    testing::StaticAssertTypeEq<decltype(get_value<long long int>(config)),
+                                long long int>();
 }
 
 
@@ -153,8 +151,8 @@ TEST(GetValue, RealType)
 
     ASSERT_EQ(get_value<float>(config), value);
     ASSERT_EQ(get_value<double>(config), value);
-    ASSERT_EQ(typeid(get_value<float>(config)), typeid(float));
-    ASSERT_EQ(typeid(get_value<double>(config)), typeid(double));
+    testing::StaticAssertTypeEq<decltype(get_value<float>(config)), float>();
+    testing::StaticAssertTypeEq<decltype(get_value<double>(config)), double>();
 }
 
 
@@ -170,19 +168,23 @@ TEST(GetValue, ComplexType)
               std::complex<float>(real));
     ASSERT_EQ(get_value<std::complex<double>>(config),
               std::complex<double>(real));
-    ASSERT_EQ(typeid(get_value<std::complex<float>>(config)),
-              typeid(std::complex<float>));
-    ASSERT_EQ(typeid(get_value<std::complex<double>>(config)),
-              typeid(std::complex<double>));
+    testing::StaticAssertTypeEq<decltype(get_value<std::complex<float>>(
+                                    config)),
+                                std::complex<float>>();
+    testing::StaticAssertTypeEq<decltype(get_value<std::complex<double>>(
+                                    config)),
+                                std::complex<double>>();
     // Two value [real, imag]
     ASSERT_EQ(get_value<std::complex<float>>(array_config),
               std::complex<float>(real, imag));
     ASSERT_EQ(get_value<std::complex<double>>(array_config),
               std::complex<double>(real, imag));
-    ASSERT_EQ(typeid(get_value<std::complex<float>>(array_config)),
-              typeid(std::complex<float>));
-    ASSERT_EQ(typeid(get_value<std::complex<double>>(array_config)),
-              typeid(std::complex<double>));
+    testing::StaticAssertTypeEq<decltype(get_value<std::complex<float>>(
+                                    array_config)),
+                                std::complex<float>>();
+    testing::StaticAssertTypeEq<decltype(get_value<std::complex<double>>(
+                                    array_config)),
+                                std::complex<double>>();
 }
 
 

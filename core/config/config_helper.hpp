@@ -60,45 +60,47 @@ inline std::shared_ptr<T> get_stored_obj(const pnode& config,
 
 
 /**
- * get_factory builds the factory from config (map) or searches the pointers in
+ * Build the factory from config (map) or search the pointers in
  * the registry by string.
  */
 template <typename T>
-deferred_factory_parameter<T> get_factory(const pnode& config,
-                                          const registry& context,
-                                          const type_descriptor& td);
+deferred_factory_parameter<T> parse_or_get_factory(const pnode& config,
+                                                   const registry& context,
+                                                   const type_descriptor& td);
 
 /**
  * specialize for const LinOpFactory
  */
 template <>
-deferred_factory_parameter<const LinOpFactory> get_factory<const LinOpFactory>(
-    const pnode& config, const registry& context, const type_descriptor& td);
+deferred_factory_parameter<const LinOpFactory>
+parse_or_get_factory<const LinOpFactory>(const pnode& config,
+                                         const registry& context,
+                                         const type_descriptor& td);
 
 /**
  * specialize for const stop::CriterionFactory
  */
 template <>
 deferred_factory_parameter<const stop::CriterionFactory>
-get_factory<const stop::CriterionFactory>(const pnode& config,
-                                          const registry& context,
-                                          const type_descriptor& td);
+parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
+                                                   const registry& context,
+                                                   const type_descriptor& td);
 
 /**
- * get_factory_vector will gives a vector of factory by calling get_factory.
+ * give a vector of factory by calling parse_or_get_factory.
  */
 template <typename T>
-inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
+inline std::vector<deferred_factory_parameter<T>> parse_or_get_factory_vector(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     std::vector<deferred_factory_parameter<T>> res;
     if (config.get_tag() == pnode::tag_t::array) {
         for (const auto& it : config.get_array()) {
-            res.push_back(get_factory<T>(it, context, td));
+            res.push_back(parse_or_get_factory<T>(it, context, td));
         }
     } else {
         // only one config can be passed without array
-        res.push_back(get_factory<T>(config, context, td));
+        res.push_back(parse_or_get_factory<T>(config, context, td));
     }
 
     return res;
@@ -111,9 +113,8 @@ inline std::vector<deferred_factory_parameter<T>> get_factory_vector(
  * This is specialization for integral type
  */
 template <typename IndexType>
-inline
-    typename std::enable_if<std::is_integral<IndexType>::value, IndexType>::type
-    get_value(const pnode& config)
+inline std::enable_if_t<std::is_integral<IndexType>::value, IndexType>
+get_value(const pnode& config)
 {
     auto val = config.get_integer();
     GKO_THROW_IF_INVALID(
@@ -130,8 +131,7 @@ inline
  * This is specialization for floating point type
  */
 template <typename ValueType>
-inline typename std::enable_if<std::is_floating_point<ValueType>::value,
-                               ValueType>::type
+inline std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
 get_value(const pnode& config)
 {
     auto val = config.get_real();
@@ -149,16 +149,25 @@ get_value(const pnode& config)
  * This is specialization for complex type
  */
 template <typename ValueType>
-inline typename std::enable_if<gko::is_complex_s<ValueType>::value,
-                               ValueType>::type
+inline std::enable_if_t<gko::is_complex_s<ValueType>::value, ValueType>
 get_value(const pnode& config)
 {
     using real_type = gko::remove_complex<ValueType>;
     if (config.get_tag() == pnode::tag_t::real) {
         return static_cast<ValueType>(get_value<real_type>(config));
     } else if (config.get_tag() == pnode::tag_t::array) {
-        return ValueType{get_value<real_type>(config.get(0)),
-                         get_value<real_type>(config.get(1))};
+        real_type real(0);
+        real_type imag(0);
+        if (config.get_array().size() >= 1) {
+            real = get_value<real_type>(config.get(0));
+        }
+        if (config.get_array().size() >= 2) {
+            imag = get_value<real_type>(config.get(1));
+        }
+        GKO_THROW_IF_INVALID(
+            config.get_array().size() <= 2,
+            "complex value array expression only accept up to two elements");
+        return ValueType{real, imag};
     }
     GKO_INVALID_STATE("Can not get complex value");
 }

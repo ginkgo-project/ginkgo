@@ -5,6 +5,9 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 #include "core/config/type_descriptor_helper.hpp"
 
 
@@ -21,7 +24,9 @@ type_descriptor update_type(const pnode& config, const type_descriptor& td)
         value_typestr = obj.get_string();
     }
     if (auto& obj = config.get("index_type")) {
-        index_typestr = obj.get_string();
+        GKO_INVALID_STATE(
+            "Setting index_type in the config is not allowed. Please set the "
+            "proper index_type through type_descriptor of parse");
     }
     return type_descriptor{value_typestr, index_typestr};
 }
