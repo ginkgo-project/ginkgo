@@ -381,9 +381,22 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type. The value/index type
+     * settings are ignored and type_descriptor is for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default will directly from the specific type.
+     *
+     * @return parameters
+     */
     static parameters_type parse(const config::pnode& config,
                                  const config::registry& context,
-                                 const config::type_descriptor& td_for_child);
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<>());
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
