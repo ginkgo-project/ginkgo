@@ -21,72 +21,27 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/config/parse_macro.hpp"
 #include "core/config/solver_config.hpp"
 
 
 namespace gko {
 namespace config {
 
-// for valuetype only
-#define PARSE(_type)                                            \
-    template <>                                                 \
-    deferred_factory_parameter<gko::LinOpFactory>               \
-    parse<LinOpFactoryType::_type>(const pnode& config,         \
-                                   const registry& context,     \
-                                   const type_descriptor& td)   \
-    {                                                           \
-        auto updated = update_type(config, td);                 \
-        return dispatch<gko::LinOpFactory, gko::solver::_type>( \
-            config, context, updated,                           \
-            make_type_selector(updated.get_value_typestr(),     \
-                               value_type_list()));             \
-    }
 
-PARSE(Cg)
-PARSE(Bicg)
-PARSE(Bicgstab)
-PARSE(Cgs)
-PARSE(Fcg)
-PARSE(Ir)
-PARSE(Idr)
-PARSE(Gcr)
-PARSE(Gmres)
-PARSE(CbGmres)
-
-
-template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Direct>(
-    const pnode& config, const registry& context, const type_descriptor& td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, gko::experimental::solver::Direct>(
-        config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()),
-        make_type_selector(updated.get_index_typestr(), index_type_list()));
-}
-
-
-template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::LowerTrs>(
-    const pnode& config, const registry& context, const type_descriptor& td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, gko::solver::LowerTrs>(
-        config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()),
-        make_type_selector(updated.get_index_typestr(), index_type_list()));
-}
-
-template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::UpperTrs>(
-    const pnode& config, const registry& context, const type_descriptor& td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, gko::solver::UpperTrs>(
-        config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()),
-        make_type_selector(updated.get_index_typestr(), index_type_list()));
-}
+PARSE_VALUE_TYPE(Cg, gko::solver::Cg);
+PARSE_VALUE_TYPE(Bicg, gko::solver::Bicg);
+PARSE_VALUE_TYPE(Bicgstab, gko::solver::Bicgstab);
+PARSE_VALUE_TYPE(Cgs, gko::solver::Cgs);
+PARSE_VALUE_TYPE(Fcg, gko::solver::Fcg);
+PARSE_VALUE_TYPE(Ir, gko::solver::Ir);
+PARSE_VALUE_TYPE(Idr, gko::solver::Idr);
+PARSE_VALUE_TYPE(Gcr, gko::solver::Gcr);
+PARSE_VALUE_TYPE(Gmres, gko::solver::Gmres);
+PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
+PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
+PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
+PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
 
 
 }  // namespace config

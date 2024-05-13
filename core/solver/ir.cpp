@@ -38,12 +38,12 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     auto factory = solver::Ir<ValueType>::build();
     if (auto& obj = config.get("criteria")) {
         factory.with_criteria(
-            gko::config::build_or_get_factory_vector<
+            gko::config::parse_or_get_factory_vector<
                 const stop::CriterionFactory>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("solver")) {
         factory.with_solver(
-            gko::config::build_or_get_factory<const LinOpFactory>(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("generated_solver")) {
