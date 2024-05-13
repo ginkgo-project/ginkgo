@@ -68,8 +68,8 @@ struct SolverConfigTest {
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "linop_factory"));
         } else {
-            config_map["criteria"] = pnode{std::map<std::string, pnode>{
-                {"type", pnode{"stop::Iteration"}}}};
+            config_map["criteria"] =
+                pnode{{{"type", pnode{"stop::Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["preconditioner"] =
                 pnode{{{"type", pnode{"solver::Cg"}},
@@ -106,7 +106,7 @@ struct SolverConfigTest {
 struct Cg : SolverConfigTest<gko::solver::Cg<float>, gko::solver::Cg<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Cg"}}};
+        return {{"type", pnode{"solver::Cg"}}};
     }
 };
 
@@ -115,7 +115,7 @@ struct Cgs
     : SolverConfigTest<gko::solver::Cgs<float>, gko::solver::Cgs<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Cgs"}}};
+        return {{"type", pnode{"solver::Cgs"}}};
     }
 };
 
@@ -124,7 +124,7 @@ struct Fcg
     : SolverConfigTest<gko::solver::Fcg<float>, gko::solver::Fcg<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Fcg"}}};
+        return {{"type", pnode{"solver::Fcg"}}};
     }
 };
 
@@ -133,7 +133,7 @@ struct Bicg
     : SolverConfigTest<gko::solver::Bicg<float>, gko::solver::Bicg<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Bicg"}}};
+        return {{"type", pnode{"solver::Bicg"}}};
     }
 };
 
@@ -142,7 +142,7 @@ struct Bicgstab : SolverConfigTest<gko::solver::Bicgstab<float>,
                                    gko::solver::Bicgstab<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Bicgstab"}}};
+        return {{"type", pnode{"solver::Bicgstab"}}};
     }
 };
 
@@ -150,7 +150,7 @@ struct Bicgstab : SolverConfigTest<gko::solver::Bicgstab<float>,
 struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Ir"}}};
+        return {{"type", pnode{"solver::Ir"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -174,8 +174,8 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "linop_factory"));
         } else {
-            config_map["criteria"] = pnode{std::map<std::string, pnode>{
-                {"type", pnode{"stop::Iteration"}}}};
+            config_map["criteria"] =
+                pnode{{{"type", pnode{"stop::Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["solver"] = pnode{{{"type", pnode{"solver::Cg"}},
                                           {"value_type", pnode{"float64"}}}};
@@ -214,7 +214,7 @@ struct Idr
     : SolverConfigTest<gko::solver::Idr<float>, gko::solver::Idr<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Idr"}}};
+        return {{"type", pnode{"solver::Idr"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -252,7 +252,7 @@ struct Gcr
     : SolverConfigTest<gko::solver::Gcr<float>, gko::solver::Gcr<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Gcr"}}};
+        return {{"type", pnode{"solver::Gcr"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -281,7 +281,7 @@ struct Gmres
     : SolverConfigTest<gko::solver::Gmres<float>, gko::solver::Gmres<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Gmres"}}};
+        return {{"type", pnode{"solver::Gmres"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -313,7 +313,7 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
                                   gko::solver::CbGmres<double>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::CbGmres"}}};
+        return {{"type", pnode{"solver::CbGmres"}}};
     }
 
     template <bool from_reg, typename ParamType>
@@ -347,7 +347,7 @@ struct Direct
                        gko::experimental::solver::Direct<double, int>> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::Direct"}}};
+        return {{"type", pnode{"solver::Direct"}}};
     }
 
     static void change_template(pnode::map_type& config_map)
@@ -430,7 +430,7 @@ struct TrsHelper : SolverConfigTest<Trs<float, gko::int64>, Trs<double, int>> {
 struct LowerTrs : TrsHelper<gko::solver::LowerTrs> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::LowerTrs"}}};
+        return {{"type", pnode{"solver::LowerTrs"}}};
     }
 };
 
@@ -438,7 +438,7 @@ struct LowerTrs : TrsHelper<gko::solver::LowerTrs> {
 struct UpperTrs : TrsHelper<gko::solver::UpperTrs> {
     static pnode::map_type setup_base()
     {
-        return pnode::map_type{{"type", pnode{"solver::UpperTrs"}}};
+        return {{"type", pnode{"solver::UpperTrs"}}};
     }
 };
 

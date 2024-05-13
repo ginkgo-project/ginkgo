@@ -28,12 +28,12 @@ inline void common_solver_configure(SolverFactory& params, const pnode& config,
     }
     if (auto& obj = config.get("criteria")) {
         params.with_criteria(
-            gko::config::build_or_get_factory_vector<
+            gko::config::parse_or_get_factory_vector<
                 const stop::CriterionFactory>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("preconditioner")) {
         params.with_preconditioner(
-            gko::config::build_or_get_factory<const LinOpFactory>(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
 }

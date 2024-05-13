@@ -147,9 +147,23 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default uses the value type of this class.
+     *
+     * @return parameters
+     */
     static parameters_type parse(const config::pnode& config,
                                  const config::registry& context,
-                                 const config::type_descriptor& td_for_child);
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<ValueType>());
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;

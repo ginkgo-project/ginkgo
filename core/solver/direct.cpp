@@ -33,7 +33,7 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
     }
     if (auto& obj = config.get("factorization")) {
         factory.with_factorization(
-            gko::config::build_or_get_factory<const LinOpFactory>(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
     return factory;
