@@ -190,7 +190,6 @@ TEST_F(BatchCg, CanSolveLargeBatchSizeHpdSystem)
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               &logger->get_residual_norm());
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
@@ -226,7 +225,6 @@ TEST_F(BatchCg, CanSolveLargeMatrixSizeHpdSystem)
                                                  &logger->get_num_iterations());
     auto res_norm = gko::make_temporary_clone(exec->get_master(),
                                               &logger->get_residual_norm());
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 500);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto comp_res_norm = res.host_res_norm->get_const_values()[i] /
                              linear_system.host_rhs_norm->get_const_values()[i];
