@@ -16,6 +16,7 @@
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/config/parse_macro.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
 
@@ -287,16 +288,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
 }
 
 
-template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Jacobi>(
-    const pnode& config, const registry& context, const type_descriptor& td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, preconditioner::Jacobi>(
-        config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()),
-        make_type_selector(updated.get_index_typestr(), index_type_list()));
-}
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Jacobi, gko::preconditioner::Jacobi);
 
 
 }  // namespace config
