@@ -43,8 +43,9 @@ Ilu<LSolverType, USolverType, ReverseApply, IndexType>::parse(
                                                                  td_for_child));
     }
     if (auto& obj = config.get("factorization")) {
-        params.with_factorization(gko::config::get_factory<const LinOpFactory>(
-            obj, context, td_for_child));
+        params.with_factorization(
+            gko::config::build_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
     }
 
     return params;

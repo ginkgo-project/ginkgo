@@ -169,8 +169,6 @@ ParIlut<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    using matrix_type =
-        typename factorization::ParIlut<ValueType, IndexType>::matrix_type;
     auto params = factorization::ParIlut<ValueType, IndexType>::build();
 
     if (auto& obj = config.get("iterations")) {

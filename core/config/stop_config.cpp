@@ -55,7 +55,7 @@ inline stop::mode get_mode(const std::string& str)
     } else if (str == "rhs_norm") {
         return stop::mode::rhs_norm;
     }
-    GKO_INVALID_STATE("Not valid " + str);
+    GKO_INVALID_CONFIG_VALUE("baseline", str);
 }
 
 

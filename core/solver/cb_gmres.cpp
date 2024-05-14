@@ -185,7 +185,7 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
             } else if (str == "ireduce2") {
                 return storage_precision::ireduce2;
             }
-            GKO_INVALID_STATE("Wrong value for storage_precision");
+            GKO_INVALID_CONFIG_VALUE("storage_precision", str);
         };
         params.with_storage_precision(get_storage_precision(obj.get_string()));
     }

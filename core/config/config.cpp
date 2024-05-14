@@ -29,7 +29,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
             obj.get_string());
         return func(config, context, td);
     }
-    GKO_INVALID_STATE("Should contain type property");
+    GKO_MISS_CONFIG_ENTRY("type");
 }
 
 

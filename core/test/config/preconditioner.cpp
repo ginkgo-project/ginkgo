@@ -212,7 +212,8 @@ struct Isai
         config_map["excess_limit"] = pnode{32};
         param.with_excess_limit(32u);
         config_map["excess_solver_reduction"] = pnode{1e-4};
-        param.with_excess_solver_reduction(1e-4);
+        param.with_excess_solver_reduction(
+            gko::remove_complex<typename explicit_type::value_type>{1e-4});
         if (from_reg) {
             config_map["excess_solver_factory"] = pnode{"solver"};
             param.with_excess_solver_factory(
@@ -268,8 +269,8 @@ struct Jacobi
     static void set(pnode::map_type& config_map, ParamType& param, registry reg,
                     std::shared_ptr<const gko::Executor> exec)
     {
-        config_map["max_block_size"] = pnode{32};
-        param.with_max_block_size(32u);
+        config_map["max_block_size"] = pnode{16};
+        param.with_max_block_size(16u);
         config_map["max_block_stride"] = pnode{32u};
         param.with_max_block_stride(32u);
         config_map["skip_sorting"] = pnode{true};
@@ -280,7 +281,8 @@ struct Jacobi
             pnode{std::vector<pnode>{pnode{0}, pnode{1}}};
         param.with_storage_optimization(gko::precision_reduction(0, 1));
         config_map["accuracy"] = pnode{1e-2};
-        param.with_accuracy(1e-2);
+        param.with_accuracy(
+            gko::remove_complex<typename explicit_type::value_type>{1e-2});
     }
 
     template <bool from_reg, typename AnswerType>
@@ -302,23 +304,6 @@ struct Jacobi
         ASSERT_EQ(res_param.accuracy, ans_param.accuracy);
     }
 };
-
-
-// struct JacobiByArray : Jacobi {
-//     template <bool from_reg, typename ParamType>
-//     static void set(pnode::map_type& config_map, ParamType& param, registry
-//     reg,
-//                     std::shared_ptr<const gko::Executor> exec)
-//     {
-//         Jacobi::template set<from_reg>(config_map, param, reg, exec);
-//         using pvec = std::vector<pnode>;
-//         config_map["storage_optimization"] =
-//             pnode{pvec{pvec{{0}, {1}}, pvec{{0}, {0}}, pvec{{1}, {1}}}};
-//         using pr = gko::precision_reduction;
-//         gko::array<pr> storage(exec, {pr(0, 1), pr(0, 0), pr(1, 1)});
-//         param.with_storage_optimization(storage);
-//     }
-// };
 
 
 template <typename T>
