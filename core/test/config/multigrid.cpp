@@ -25,21 +25,20 @@
 using namespace gko::config;
 
 
-template <typename ExplicitType, typename DefaultType>
+template <typename ChangedType, typename DefaultType>
 struct MultigridLevelConfigTest {
-    using explicit_type = ExplicitType;
+    using changed_type = ChangedType;
     using default_type = DefaultType;
     using multigrid_level_config_test = MultigridLevelConfigTest;
 
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 };
 
 
-struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, gko::int64>,
+struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, int>,
                                       gko::multigrid::Pgm<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -75,37 +74,6 @@ struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, gko::int64>,
 };
 
 
-struct FixedCoarsening : MultigridLevelConfigTest<
-                             gko::multigrid::FixedCoarsening<float, gko::int64>,
-                             gko::multigrid::FixedCoarsening<double, int>> {
-    static pnode::map_type setup_base()
-    {
-        return {{"type", pnode{"multigrid::FixedCoarsening"}}};
-    }
-
-    template <typename ParamType>
-    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
-                    std::shared_ptr<const gko::Executor> exec)
-    {
-        // config_map["coarse_rows"] =
-        //     pnode{std::vector<pnode>{{2}, {3}, {5}}};
-        // param.with_coarse_rows(gko::array<gko::int64>(exec, {2, 3, 5}));
-        config_map["skip_sorting"] = pnode{true};
-        param.with_skip_sorting(true);
-    }
-
-    template <typename AnswerType>
-    static void validate(gko::LinOpFactory* result, AnswerType* answer)
-    {
-        auto res_param = gko::as<AnswerType>(result)->get_parameters();
-        auto ans_param = answer->get_parameters();
-
-        GKO_ASSERT_ARRAY_EQ(res_param.coarse_rows, ans_param.coarse_rows);
-        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-    }
-};
-
-
 template <typename T>
 class MultigridLevel : public ::testing::Test {
 protected:
@@ -121,7 +89,7 @@ protected:
 };
 
 
-using MultigridLevelTypes = ::testing::Types<::Pgm, ::FixedCoarsening>;
+using MultigridLevelTypes = ::testing::Types<::Pgm>;
 
 
 TYPED_TEST_SUITE(MultigridLevel, MultigridLevelTypes, TypenameNameGenerator);
@@ -147,7 +115,7 @@ TYPED_TEST(MultigridLevel, ExplicitTemplate)
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = Config::explicit_type::build().on(this->exec);
+    auto ans = Config::changed_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
 }
@@ -158,12 +126,12 @@ TYPED_TEST(MultigridLevel, Set)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::explicit_type::build();
-    Config::set(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_type::build();
+    Config::set(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::validate(res.get(), ans.get());
 }
@@ -234,7 +202,7 @@ struct MultigridConfig {
                     reg, "coarsest_solver"));
         } else {
             config_map["criteria"] =
-                pnode{pnode::map_type{{"type", pnode{"stop::Iteration"}}}};
+                pnode{pnode::map_type{{"type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["mg_level"] = pnode{std::vector<pnode>{
                 pnode{pnode::map_type{{"type", pnode{"multigrid::Pgm"}}}},
@@ -254,16 +222,6 @@ struct MultigridConfig {
                 pnode{pnode::map_type{{"type", pnode{"solver::Ir"}}}};
             param.with_coarsest_solver(DummySmoother::build().on(exec));
         }
-        config_map["level_selector"] = pnode{"first_for_top"};
-        param.with_level_selector(
-            [](const gko::size_type level, const gko::LinOp*) {
-                return level == 0 ? 0 : 1;
-            });
-        config_map["solver_selector"] = pnode{"first_for_top"};
-        param.with_solver_selector(
-            [](const gko::size_type level, const gko::LinOp*) {
-                return level == 0 ? 0 : 1;
-            });
     }
 
     template <bool from_reg, typename AnswerType>
@@ -319,20 +277,6 @@ struct MultigridConfig {
                           const typename DummySmoother::Factory>(
                           res_param.coarsest_solver.at(0)),
                       nullptr);
-        }
-        if (ans_param.level_selector) {
-            ASSERT_TRUE(res_param.level_selector);
-            for (gko::size_type i = 0; i < 5; i++) {
-                ASSERT_EQ(res_param.level_selector(i, nullptr),
-                          ans_param.level_selector(i, nullptr));
-            }
-        }
-        if (ans_param.solver_selector) {
-            ASSERT_TRUE(res_param.solver_selector);
-            for (gko::size_type i = 0; i < 5; i++) {
-                ASSERT_EQ(res_param.solver_selector(i, nullptr),
-                          ans_param.solver_selector(i, nullptr));
-            }
         }
     }
 };
@@ -390,12 +334,12 @@ TEST_F(MultigridT, CreateDefault)
 TEST_F(MultigridT, SetFromRegistry)
 {
     auto config_map = Config::setup_base();
-    auto param = gko::solver::Multigrid::build();
-    Config::template set<true>(config_map, param, this->reg, this->exec);
+    auto params = gko::solver::Multigrid::build();
+    Config::template set<true>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -404,12 +348,12 @@ TEST_F(MultigridT, SetFromRegistry)
 TEST_F(MultigridT, SetFromConfig)
 {
     auto config_map = Config::setup_base();
-    auto param = gko::solver::Multigrid::build();
-    Config::template set<false>(config_map, param, this->reg, this->exec);
+    auto params = gko::solver::Multigrid::build();
+    Config::template set<false>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());
 }

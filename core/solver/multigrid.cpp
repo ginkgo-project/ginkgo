@@ -30,7 +30,6 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/config/config.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -594,115 +593,95 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 }  // namespace multigrid
 
 
-std::function<size_type(const size_type, const LinOp*)> get_selector(
-    std::string key)
-{
-    static std::map<std::string,
-                    std::function<size_type(const size_type, const LinOp*)>>
-        selector_map{
-            {{"first_for_top", [](const size_type level, const LinOp*) {
-                  return (level == 0) ? 0 : 1;
-              }}}};
-    return selector_map.at(key);
-}
-
-
 typename Multigrid::parameters_type Multigrid::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = Multigrid::build();
+    auto params = Multigrid::build();
 
     if (auto& obj = config.get("criteria")) {
-        factory.with_criteria(
-            gko::config::get_factory_vector<const stop::CriterionFactory>(
+        params.with_criteria(
+            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("mg_level")) {
-        factory.with_mg_level(
-            gko::config::get_factory_vector<const gko::LinOpFactory>(
+        params.with_mg_level(
+            config::parse_or_get_factory_vector<const gko::LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("level_selector")) {
-        factory.with_level_selector(get_selector(obj.get_string()));
-    }
     if (auto& obj = config.get("pre_smoother")) {
-        factory.with_pre_smoother(
-            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
-                                                                td_for_child));
+        params.with_pre_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("post_smoother")) {
-        factory.with_post_smoother(
-            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
-                                                                td_for_child));
+        params.with_post_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("mid_smoother")) {
-        factory.with_mid_smoother(
-            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
-                                                                td_for_child));
+        params.with_mid_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("post_uses_pre")) {
-        factory.with_post_uses_pre(gko::config::get_value<bool>(obj));
+        params.with_post_uses_pre(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("mid_case")) {
         auto str = obj.get_string();
         if (str == "both") {
-            factory.with_mid_case(multigrid::mid_smooth_type::both);
+            params.with_mid_case(multigrid::mid_smooth_type::both);
         } else if (str == "post_smoother") {
-            factory.with_mid_case(multigrid::mid_smooth_type::post_smoother);
+            params.with_mid_case(multigrid::mid_smooth_type::post_smoother);
         } else if (str == "pre_smoother") {
-            factory.with_mid_case(multigrid::mid_smooth_type::pre_smoother);
+            params.with_mid_case(multigrid::mid_smooth_type::pre_smoother);
         } else if (str == "standalone") {
-            factory.with_mid_case(multigrid::mid_smooth_type::standalone);
+            params.with_mid_case(multigrid::mid_smooth_type::standalone);
         } else {
-            GKO_INVALID_STATE("Not valid mid_smooth_type value");
+            GKO_INVALID_CONFIG_VALUE("mid_smooth_type", str);
         }
     }
     if (auto& obj = config.get("max_levels")) {
-        factory.with_max_levels(gko::config::get_value<size_type>(obj));
+        params.with_max_levels(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("min_coarse_rows")) {
-        factory.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
+        params.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("coarsest_solver")) {
-        factory.with_coarsest_solver(
-            gko::config::get_factory_vector<const LinOpFactory>(obj, context,
-                                                                td_for_child));
-    }
-    if (auto& obj = config.get("solver_selector")) {
-        auto str = obj.get_string();
-        factory.with_solver_selector(get_selector(str));
+        params.with_coarsest_solver(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("cycle")) {
         auto str = obj.get_string();
         if (str == "v") {
-            factory.with_cycle(multigrid::cycle::v);
+            params.with_cycle(multigrid::cycle::v);
         } else if (str == "w") {
-            factory.with_cycle(multigrid::cycle::w);
+            params.with_cycle(multigrid::cycle::w);
         } else if (str == "f") {
-            factory.with_cycle(multigrid::cycle::f);
+            params.with_cycle(multigrid::cycle::f);
         } else {
-            GKO_INVALID_STATE("Not valid cycle value");
+            GKO_INVALID_CONFIG_VALUE("cycle", str);
         }
     }
     if (auto& obj = config.get("kcycle_base")) {
-        factory.with_kcycle_base(gko::config::get_value<size_type>(obj));
+        params.with_kcycle_base(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("kcycle_rel_tol")) {
-        factory.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
+        params.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
     }
     if (auto& obj = config.get("smoother_relax")) {
-        factory.with_smoother_relax(
+        params.with_smoother_relax(
             gko::config::get_value<std::complex<double>>(obj));
     }
     if (auto& obj = config.get("smoother_iters")) {
-        factory.with_smoother_iters(gko::config::get_value<size_type>(obj));
+        params.with_smoother_iters(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("default_initial_guess")) {
-        factory.with_default_initial_guess(
+        params.with_default_initial_guess(
             gko::config::get_value<solver::initial_guess_mode>(obj));
     }
-    return factory;
+    return params;
 }
 
 

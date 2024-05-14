@@ -141,26 +141,27 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 }  // namespace
 
 
+template <typename ValueType, typename IndexType>
 typename Pgm<ValueType, IndexType>::parameters_type
 Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
-    auto factory = Pgm<ValueType, IndexType>::build();
+    auto params = Pgm<ValueType, IndexType>::build();
     if (auto& obj = config.get("max_iterations")) {
-        factory.with_max_iterations(gko::config::get_value<unsigned>(obj));
+        params.with_max_iterations(gko::config::get_value<unsigned>(obj));
     }
     if (auto& obj = config.get("max_unassigned_ratio")) {
-        factory.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
+        params.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
     }
     if (auto& obj = config.get("deterministic")) {
-        factory.with_deterministic(gko::config::get_value<bool>(obj));
+        params.with_deterministic(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("skip_sorting")) {
-        factory.with_skip_sorting(gko::config::get_value<bool>(obj));
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
     }
 
-    return factory;
+    return params;
 }
 
 

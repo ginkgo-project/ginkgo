@@ -20,7 +20,6 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/config/config_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -36,21 +35,6 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 }  // anonymous namespace
 }  // namespace fixed_coarsening
-
-
-template <typename ValueType, typename IndexType>
-typename FixedCoarsening<ValueType, IndexType>::parameters_type
-FixedCoarsening<ValueType, IndexType>::parse(
-    const config::pnode& config, const config::registry& context,
-    const config::type_descriptor& td_for_child)
-{
-    auto factory = FixedCoarsening<ValueType, IndexType>::build();
-    // TODO: ARRAY
-    if (auto& obj = config.get("skip_sorting")) {
-        factory.with_skip_sorting(gko::config::get_value<bool>(obj));
-    }
-    return factory;
-}
 
 
 template <typename ValueType, typename IndexType>
