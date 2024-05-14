@@ -80,14 +80,8 @@
     - private_ci
     - amd-gpu
 
-.use_gko-oneapi-cpu:
-  image: ginkgohub/oneapi:2022.1
-  tags:
-    - private_ci
-    - fairrs
-
 .use_gko-oneapi-igpu:
-  image: ginkgohub/oneapi:2024.0.2.20231213
+  image: ginkgohub/oneapi:latest
   tags:
     - private_ci
     - intel-igpu
@@ -99,7 +93,7 @@
     - intel-igpu
 
 .use_gko-oneapi-dgpu:
-  image: ginkgohub/oneapi:2024.0.2.20231213
+  image: ginkgohub/oneapi:latest
   tags:
     - private_ci
     - intel-dgpu

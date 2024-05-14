@@ -572,24 +572,6 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/2022-1/cpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-cpu
-  variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "ON"
-    SYCL_DEVICE_FILTER: "*:cpu"
-    SLURM_PARTITION: "cpu"
-    SLURM_TIME: "2:00:00"
-    BUILD_HWLOC: "OFF"
-    # This job is not in exclusive mode
-
 # spack oneapi 2023.1
 build/icpx20231/igpu/release/shared:
   extends:
