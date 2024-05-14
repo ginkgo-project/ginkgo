@@ -222,9 +222,8 @@ public:
          * >= 3 and the number of rows of fine matrix > 1024, or the 2-idx
          * elements otherwise.
          *
-         * default selector:
-         *     use the first factory when mg_level size = 1
-         *     use the level as the index when mg_level size > 1
+         * default selector: use the level as the index when the level <
+         *   #mg_level and reuse the last one when the level >= #mg_level
          */
         std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
