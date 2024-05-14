@@ -140,96 +140,101 @@ void map_to_local(
 
     local_ids.resize_and_reset(global_ids.get_size());
 
-    auto map_local = [&](const auto gid, const auto range_id_hint) {
-        auto range_id = find_range(gid, partition, range_id_hint);
-        auto part_id = part_ids[range_id];
-
-        return std::make_pair(
-            part_id == rank
-                ? static_cast<LocalIndexType>(gid - range_bounds[range_id]) +
-                      range_starting_idxs[range_id]
-                : invalid_index<LocalIndexType>(),
-            range_id);
-    };
-
-    auto map_non_local = [&](const auto gid, const auto range_id_hint) {
-        auto range_id = find_range(gid, partition, range_id_hint);
-        auto part_id = part_ids[range_id];
-
-        // can't do binary search on whole remote_target_idxs array,
-        // since the array is first sorted by part-id and then by
-        // global index. As a result, the array is not sorted wrt.
-        // the global indexing. So find the part-id that corresponds
-        // to the global index first
-        auto set_id =
-            std::distance(remote_target_ids.get_const_data(),
-                          std::lower_bound(remote_target_ids.get_const_data(),
-                                           remote_target_ids.get_const_data() +
-                                               remote_target_ids.get_size(),
-                                           part_id));
-
-        if (set_id == remote_target_ids.get_size()) {
-            return std::make_pair(invalid_index<LocalIndexType>(), range_id);
-        }
-
-        auto segment = remote_global_idxs.get_segment(set_id);
-
-        // need to check if *it is actually the current global-id
-        // since the global-id might not be registered as connected
-        // to this rank
-        auto it = std::lower_bound(segment.begin, segment.end, gid);
-        return std::make_pair(it != segment.end && *it == gid
-                                  ? static_cast<LocalIndexType>(std::distance(
-                                        remote_global_idxs.flat_begin, it))
-                                  : invalid_index<LocalIndexType>(),
-                              range_id);
-    };
-
-    auto map_combined = [&, offset = partition->get_part_sizes()[rank]](
-                            const auto gid, const auto range_id_hint) {
-        auto range_id = find_range(gid, partition, range_id_hint);
-        auto part_id = part_ids[range_id];
-
-        if (part_id == rank) {
-            return map_local(gid, range_id_hint);
-        } else {
-            auto result = map_non_local(gid, range_id_hint);
-            return result.first == invalid_index<LocalIndexType>()
-                       ? result
-                       : std::make_pair(result.first + offset, result.second);
-        }
-    };
-
+    // can't extract functions to map global indices to local indices as for
+    // the reference implementation, because it resulted in internal compiler
+    // errors for intel 19.1.3
     size_type range_id = 0;
     if (is == experimental::distributed::index_space::local) {
 #pragma omp parallel for firstprivate(range_id)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
 
-            auto result = map_local(gid, range_id);
-            range_id = result.second;
+            range_id = find_range(gid, partition, range_id);
+            auto part_id = part_ids[range_id];
 
-            local_ids.get_data()[i] = result.first;
+            local_ids.get_data()[i] = part_id == rank
+                                          ? static_cast<LocalIndexType>(
+                                                gid - range_bounds[range_id]) +
+                                                range_starting_idxs[range_id]
+                                          : invalid_index<LocalIndexType>();
         }
     }
     if (is == experimental::distributed::index_space::non_local) {
 #pragma omp parallel for firstprivate(range_id)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            auto result = map_non_local(gid, range_id);
-            range_id = result.second;
 
-            local_ids.get_data()[i] = result.first;
+            range_id = find_range(gid, partition, range_id);
+            auto part_id = part_ids[range_id];
+
+            // can't do binary search on whole remote_target_idxs array,
+            // since the array is first sorted by part-id and then by
+            // global index. As a result, the array is not sorted wrt.
+            // the global indexing. So find the part-id that corresponds
+            // to the global index first
+            auto set_id = std::distance(
+                remote_target_ids.get_const_data(),
+                std::lower_bound(remote_target_ids.get_const_data(),
+                                 remote_target_ids.get_const_data() +
+                                     remote_target_ids.get_size(),
+                                 part_id));
+
+            if (set_id == remote_target_ids.get_size()) {
+                local_ids.get_data()[i] = invalid_index<LocalIndexType>();
+            } else {
+                auto segment = remote_global_idxs.get_segment(set_id);
+
+                // need to check if *it is actually the current global-id
+                // since the global-id might not be registered as connected
+                // to this rank
+                auto it = std::lower_bound(segment.begin, segment.end, gid);
+                local_ids.get_data()[i] =
+                    it != segment.end && *it == gid
+                        ? static_cast<LocalIndexType>(
+                              std::distance(remote_global_idxs.flat_begin, it))
+                        : invalid_index<LocalIndexType>();
+            }
         }
     }
     if (is == experimental::distributed::index_space::combined) {
-#pragma omp parallel for firstprivate(range_id)
+        auto offset = partition->get_part_sizes()[rank];
+#pragma omp parallel for firstprivate(range_id) default(shared)
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            auto result = map_combined(gid, range_id);
-            range_id = result.second;
+            range_id = find_range(gid, partition, range_id);
+            auto part_id = part_ids[range_id];
 
-            local_ids.get_data()[i] = result.first;
+            if (part_id == rank) {
+                // same as is local
+                local_ids.get_data()[i] =
+                    part_id == rank ? static_cast<LocalIndexType>(
+                                          gid - range_bounds[range_id]) +
+                                          range_starting_idxs[range_id]
+                                    : invalid_index<LocalIndexType>();
+            } else {
+                // same as is non_local, with additional offset
+                auto set_id = std::distance(
+                    remote_target_ids.get_const_data(),
+                    std::lower_bound(remote_target_ids.get_const_data(),
+                                     remote_target_ids.get_const_data() +
+                                         remote_target_ids.get_size(),
+                                     part_id));
+
+                if (set_id == remote_target_ids.get_size()) {
+                    local_ids.get_data()[i] = invalid_index<LocalIndexType>();
+                } else {
+                    auto segment = remote_global_idxs.get_segment(set_id);
+
+                    auto it = std::lower_bound(segment.begin, segment.end, gid);
+                    local_ids.get_data()[i] =
+                        it != segment.end && *it == gid
+                            ? static_cast<LocalIndexType>(
+                                  std::distance(remote_global_idxs.flat_begin,
+                                                it) +
+                                  offset)
+                            : invalid_index<LocalIndexType>();
+                }
+            }
         }
     }
 }
