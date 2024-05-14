@@ -880,16 +880,12 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}
 {
+    this->validate();
     if (!parameters_.level_selector) {
-        if (parameters_.mg_level.size() == 1) {
-            level_selector_ = [](const size_type, const LinOp*) {
-                return size_type{0};
-            };
-        } else if (parameters_.mg_level.size() > 1) {
-            level_selector_ = [](const size_type level, const LinOp*) {
-                return level;
-            };
-        }
+        auto num = parameters_.mg_level.size();
+        level_selector_ = [num](const size_type level, const LinOp*) {
+            return (level < num) ? level : num - 1;
+        };
     } else {
         level_selector_ = parameters_.level_selector;
     }
@@ -903,7 +899,7 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
         solver_selector_ = parameters_.solver_selector;
     }
 
-    this->validate();
+
     this->set_default_initial_guess(parameters_.default_initial_guess);
     if (this->get_system_matrix()->get_size()[0] != 0) {
         // generate on the existed matrix
