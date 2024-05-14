@@ -45,8 +45,6 @@ Cholesky<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    using sparsity_pattern_type =
-        Cholesky<ValueType, IndexType>::sparsity_pattern_type;
     auto params = Cholesky<ValueType, IndexType>::build();
     if (auto& obj = config.get("symbolic_factorization")) {
         params.with_symbolic_factorization(

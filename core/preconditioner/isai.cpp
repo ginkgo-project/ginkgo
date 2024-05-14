@@ -114,8 +114,8 @@ Isai<IsaiType, ValueType, IndexType>::parse(
     }
     if (auto& obj = config.get("excess_solver_factory")) {
         params.with_excess_solver_factory(
-            gko::config::get_factory<const LinOpFactory>(obj, context,
-                                                         td_for_child));
+            gko::config::build_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("excess_solver_reduction")) {
         params.with_excess_solver_reduction(

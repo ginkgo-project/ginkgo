@@ -71,16 +71,10 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(gko::config::get_value<bool>(obj));
     }
-    // SET_VALUE_ARRAY(factory, gko::array<IndexType>, block_pointers,
-    // config);
     // storage_optimization_type is not public. It uses precision_reduction
-    // as input. Also, it allows value and array input
-    // Each precision_reduction is created by two values.
-    // [x, y] -> one precision_reduction (value mode)
-    // [[x, y], ...] -> array mode
+    // as input. It allows value and array input, but we only support the value
+    // input [x, y] -> one precision_reduction (value mode)
     if (auto& obj = config.get("storage_optimization")) {
-        // only support value mode
-        // TODO: more than one precision_reduction -> array mode.
         params.with_storage_optimization(
             gko::config::get_value<precision_reduction>(obj));
     }

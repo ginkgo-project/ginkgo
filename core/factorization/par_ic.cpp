@@ -54,8 +54,6 @@ ParIc<ValueType, IndexType>::parse(const config::pnode& config,
                                    const config::registry& context,
                                    const config::type_descriptor& td_for_child)
 {
-    using matrix_type =
-        typename factorization::ParIc<ValueType, IndexType>::matrix_type;
     auto params = factorization::ParIc<ValueType, IndexType>::build();
 
     if (auto& obj = config.get("iterations")) {

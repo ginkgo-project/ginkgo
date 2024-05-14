@@ -45,8 +45,6 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::registry& context,
                                 const config::type_descriptor& td_for_child)
 {
-    using matrix_type =
-        typename factorization::Ic<ValueType, IndexType>::matrix_type;
     auto params = factorization::Ic<ValueType, IndexType>::build();
     if (auto& obj = config.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));

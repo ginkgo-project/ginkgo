@@ -49,8 +49,6 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::registry& context,
                                 const config::type_descriptor& td_for_child)
 {
-    using sparsity_pattern_type = typename experimental::factorization::Lu<
-        ValueType, IndexType>::sparsity_pattern_type;
     auto params =
         experimental::factorization::Lu<ValueType, IndexType>::build();
 
@@ -67,7 +65,7 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
         } else if (str == "symmetric") {
             params.with_symbolic_algorithm(symbolic_type::symmetric);
         } else {
-            GKO_INVALID_STATE("Wrong value for symbolic_type");
+            GKO_INVALID_CONFIG_VALUE("symbolic_type", str);
         }
     }
     if (auto& obj = config.get("skip_sorting")) {

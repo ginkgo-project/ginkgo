@@ -136,7 +136,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ic>(
             make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else {
-        GKO_INVALID_STATE("does not have valid LSolverType");
+        GKO_INVALID_CONFIG_VALUE("l_solver_type", str);
     }
 }
 
@@ -221,7 +221,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {
-            GKO_INVALID_STATE("does not have valid LSolverType");
+            GKO_INVALID_CONFIG_VALUE("l_solver_type", str);
         }
     };
     bool reverse_apply = false;
@@ -280,10 +280,10 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {
-            GKO_INVALID_STATE("does not have valid IsaiType");
+            GKO_INVALID_CONFIG_VALUE("isai_type", str);
         }
     } else {
-        GKO_INVALID_STATE("does not contain IsaiType");
+        GKO_MISS_CONFIG_ENTRY("isai_type");
     }
 }
 

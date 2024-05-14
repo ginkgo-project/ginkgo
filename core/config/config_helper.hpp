@@ -10,7 +10,6 @@
 #include <type_traits>
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -25,6 +24,15 @@
 
 namespace gko {
 namespace config {
+
+
+#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                           \
+    GKO_INVALID_STATE(_value + std::string(" is invalid for the entry ") + \
+                      _entry)
+
+
+#define GKO_MISS_CONFIG_ENTRY(_entry) \
+    GKO_INVALID_STATE(std::string("miss the entry ") + _entry)
 
 
 /**
@@ -257,7 +265,7 @@ get_value(const pnode& config)
     } else if (val == "provided") {
         return solver::initial_guess_mode::provided;
     }
-    GKO_INVALID_STATE("Wrong value for initial_guess_mode");
+    GKO_INVALID_CONFIG_VALUE("default_initial_guess", val);
 }
 
 
@@ -273,31 +281,6 @@ get_value(const pnode& config)
     }
     GKO_INVALID_STATE("should use size 2 array");
 }
-
-
-// template <typename T>
-// struct is_array_t : std::false_type {};
-
-// template <typename V>
-// struct is_array_t<array<V>> : std::true_type {};
-
-// template <typename ArrayType>
-// inline typename std::enable_if<is_array_t<ArrayType>::value, ArrayType>::type
-// get_value(const pnode& config, std::shared_ptr<const Executor> exec)
-// {
-//     using T = typename ArrayType::value_type;
-//     std::vector<T> res;
-//     // for loop in config
-//     if (config.get_tag() == pnode::tag_t::array) {
-//         for (const auto& it : config.get_array()) {
-//             res.push_back(get_value<T>(it));
-//         }
-//     } else {
-//         // only one config can be passed without array
-//         res.push_back(get_value<T>(config));
-//     }
-//     return ArrayType(exec, res.begin(), res.end());
-// }
 
 
 template <typename Csr>

@@ -51,8 +51,6 @@ ParIlu<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
-    using matrix_type =
-        typename factorization::ParIlu<ValueType, IndexType>::matrix_type;
     auto params = factorization::ParIlu<ValueType, IndexType>::build();
 
     if (auto& obj = config.get("iterations")) {
