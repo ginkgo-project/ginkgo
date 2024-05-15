@@ -229,9 +229,11 @@ __dpct_inline__ void apply_kernel(
         // beta = rho_new / rho_old
         // p = z + beta * p
         update_p(num_rows, rho_new_sh[0], rho_old_sh[0], z_sh, p_sh, item_ct1);
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
         if (sg.leader()) {
             rho_old_sh[0] = rho_new_sh[0];
         }
+        item_ct1.barrier(sycl::access::fence_space::global_and_local);
     }
 
     logger.log_iteration(batch_id, iter, norms_res_sh[0]);
