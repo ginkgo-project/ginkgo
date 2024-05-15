@@ -71,9 +71,8 @@ protected:
           op_{op}
     {
         auto exec = this->get_executor();
-        auto distributed_op = dynamic_cast<
-            const gko::experimental::distributed::DistributedBase*>(op_.get());
-        auto original_n = distributed_op->get_local_size()[0];
+        auto distributed_op = dynamic_cast<const dist_mtx_type*>(op_.get());
+        auto original_n = distributed_op->get_local_matrix()->get_size()[0];
         gko::size_type n = original_n - 1;
 
         auto comm = distributed_op->get_communicator();
@@ -156,11 +155,11 @@ TEST_F(Multigrid, ConstructCorrect)
               gko::dim<2>(global_n, first_n));
     ASSERT_EQ(mg_level.at(0)->get_coarse_op()->get_size(),
               gko::dim<2>(first_n));
-    ASSERT_EQ(
-        dynamic_cast<const gko::experimental::distributed::DistributedBase*>(
-            mg_level.at(0)->get_coarse_op().get())
-            ->get_local_size(),
-        gko::dim<2>(n - 1));
+    ASSERT_EQ(dynamic_cast<const dist_mtx_type*>(
+                  mg_level.at(0)->get_coarse_op().get())
+                  ->get_local_matrix()
+                  ->get_size(),
+              gko::dim<2>(n - 1));
     // next mg_level
     ASSERT_EQ(mg_level.at(1)->get_fine_op()->get_size(), gko::dim<2>(first_n));
     ASSERT_EQ(mg_level.at(1)->get_restrict_op()->get_size(),
