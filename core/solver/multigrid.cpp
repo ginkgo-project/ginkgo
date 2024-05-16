@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -99,6 +100,19 @@ void handle_list(
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&] {
         auto exec = matrix->get_executor();
+#if GINKGO_BUILD_MPI
+        if (gko::detail::is_distributed(matrix.get())) {
+            return share(build_smoother(
+                             experimental::distributed::preconditioner::Schwarz<
+                                 ValueType>::build()
+                                 .with_local_solver(
+                                     preconditioner::Jacobi<ValueType>::build()
+                                         .with_max_block_size(1u))
+                                 .on(exec),
+                             iteration, casting<ValueType>(relaxation_factor))
+                             ->generate(matrix));
+        }
+#endif
         return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
                                         .with_max_block_size(1u)
                                         .on(exec),
@@ -638,7 +652,31 @@ void Multigrid::generate()
             // default coarse grid solver, direct LU
             // TODO: maybe remove fixed index type
             auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
-                // TODO: unify when dpcpp supports direct solver
+        // TODO: unify when dpcpp supports direct solver
+#if GINKGO_BUILD_MPI
+                if (gko::detail::is_distributed(matrix.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    return solver::Gmres<value_type>::build()
+                        .with_criteria(
+                            stop::Iteration::build().with_max_iters(
+                                matrix->get_size()[0]),
+                            stop::ResidualNorm<value_type>::build()
+                                .with_reduction_factor(
+                                    std::numeric_limits<
+                                        absolute_value_type>::epsilon() *
+                                    absolute_value_type{10}))
+                        .with_krylov_dim(
+                            std::min(size_type(100), matrix->get_size()[0]))
+                        .with_preconditioner(
+                            experimental::distributed::preconditioner::Schwarz<
+                                value_type>::build()
+                                .with_local_solver(
+                                    preconditioner::Jacobi<value_type>::build()
+                                        .with_max_block_size(1u)))
+                        .on(exec)
+                        ->generate(matrix);
+                }
+#endif
                 if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     return solver::Gmres<value_type>::build()
