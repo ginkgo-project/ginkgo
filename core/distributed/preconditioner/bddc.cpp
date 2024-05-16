@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <algorithm>
 #include <ginkgo/core/distributed/preconditioner/bddc.hpp>
 
 
+#include <algorithm>
 #include <fstream>
 #include <memory>
 #include <numeric>
@@ -74,7 +74,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         partition = share(
             clone(exec, global_system_matrix_->get_row_partition().get()));
 
-    // Find owning and non wonind interface idxs, count how many are shared with each rank.
+    // Find owning and non wonind interface idxs, count how many are shared with
+    // each rank.
     std::vector<IndexType> local_idxs;
     std::map<IndexType, IndexType> global_to_local_owning;
     std::vector<IndexType> non_local_idxs;
@@ -98,7 +99,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         non_local_idxs[non_local_offsets[owner]++] = idx;
     }
 
-    // Communicate how many indices are shared between ranks, then communicate the shared indices
+    // Communicate how many indices are shared between ranks, then communicate
+    // the shared indices
     non_local_offsets[0] = 0;
     std::partial_sum(non_local_cnts.begin(), non_local_cnts.end(),
                      non_local_offsets.begin() + 1);
@@ -106,7 +108,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     comm.all_to_all(exec, non_local_cnts.data(), 1, req_sizes.data(), 1);
     comm.synchronize();
     std::vector<int> req_offsets(comm.size() + 1, 0);
-    std::partial_sum(req_sizes.begin(), req_sizes.end(), req_offsets.begin() + 1);
+    std::partial_sum(req_sizes.begin(), req_sizes.end(),
+                     req_offsets.begin() + 1);
     std::vector<IndexType> recv_buffer(req_offsets.back());
     comm.all_to_all_v(exec, non_local_idxs.data(), non_local_cnts.data(),
                       non_local_offsets.data(), recv_buffer.data(),
@@ -121,7 +124,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
             local_to_ranks[global_to_local_owning[idx]].emplace_back(i);
         }
     }
-   
+
     // Build buffer storing how many ranks each local idx is shared between
     std::vector<int> local_ranks_sizes(local_idxs.size(), 0);
     for (size_type i = 0; i < local_idxs.size(); i++) {
@@ -134,7 +137,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     // Communicate how many ranks each local idx is shared between
     std::vector<IndexType> ranks_sizes(recv_buffer.size(), 0);
     for (size_type i = 0; i < recv_buffer.size(); i++) {
-        ranks_sizes[i] = local_ranks_sizes[global_to_local_owning[recv_buffer[i]]];
+        ranks_sizes[i] =
+            local_ranks_sizes[global_to_local_owning[recv_buffer[i]]];
     }
     std::vector<IndexType> global_ranks_sizes(non_local_idxs.size(), 0);
     comm.all_to_all_v(exec, ranks_sizes.data(), req_sizes.data(),
@@ -142,15 +146,18 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                       non_local_cnts.data(), non_local_offsets.data());
     comm.synchronize();
 
-    // Build buffers to communicate which ranks each non-local idx is shared between
+    // Build buffers to communicate which ranks each non-local idx is shared
+    // between
     std::vector<int> global_ranks_recv_sizes(comm.size(), 0);
     for (size_type i = 0; i < comm.size(); i++) {
         for (size_type j = 0; j < non_local_cnts[i]; j++) {
-            global_ranks_recv_sizes[i] += global_ranks_sizes[non_local_offsets[i] + j];
+            global_ranks_recv_sizes[i] +=
+                global_ranks_sizes[non_local_offsets[i] + j];
         }
     }
     std::vector<int> global_ranks_recv_offsets(comm.size() + 1, 0);
-    std::partial_sum(global_ranks_recv_sizes.begin(), global_ranks_recv_sizes.end(),
+    std::partial_sum(global_ranks_recv_sizes.begin(),
+                     global_ranks_recv_sizes.end(),
                      global_ranks_recv_offsets.begin() + 1);
     std::vector<int> global_ranks_send_sizes(comm.size(), 0);
     for (size_type i = 0; i < comm.size(); i++) {
@@ -159,18 +166,21 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         }
     }
     std::vector<int> global_ranks_send_offsets(comm.size() + 1, 0);
-    std::partial_sum(global_ranks_send_sizes.begin(), global_ranks_send_sizes.end(),
+    std::partial_sum(global_ranks_send_sizes.begin(),
+                     global_ranks_send_sizes.end(),
                      global_ranks_send_offsets.begin() + 1);
     std::vector<IndexType> global_ranks(global_ranks_recv_offsets.back());
     std::vector<IndexType> local_ranks;
     for (size_type i = 0; i < ranks_sizes.size(); i++) {
         for (size_type j = 0; j < ranks_sizes[i]; j++) {
-            local_ranks.emplace_back(local_to_ranks[global_to_local_owning[recv_buffer[i]]][j]);
+            local_ranks.emplace_back(
+                local_to_ranks[global_to_local_owning[recv_buffer[i]]][j]);
         }
     }
     comm.all_to_all_v(exec, local_ranks.data(), global_ranks_send_sizes.data(),
                       global_ranks_send_offsets.data(), global_ranks.data(),
-                      global_ranks_recv_sizes.data(), global_ranks_recv_offsets.data());
+                      global_ranks_recv_sizes.data(),
+                      global_ranks_recv_offsets.data());
     comm.synchronize();
 
     // Here, we know for each dof which ranks they are shared between
@@ -187,7 +197,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         ranks_to_dofs.at(ranks).emplace_back(non_local_idxs[i]);
     }
 
-    // Build vector of vectors of dofs shared between sets of ranks where this rank is the minimum rank
+    // Build vector of vectors of dofs shared between sets of ranks where this
+    // rank is the minimum rank
     std::vector<std::vector<IndexType>> edge_dofs;
     std::vector<std::vector<IndexType>> corner_dofs;
     std::vector<std::vector<IndexType>> edge_ranks;
@@ -196,7 +207,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         if (pair.first[0] == rank) {
             if (pair.second.size() <= pair.first.size()) {
                 for (size_type i = 0; i < pair.second.size(); i++) {
-                    corner_dofs.emplace_back(std::vector<IndexType>{pair.second[i]});
+                    corner_dofs.emplace_back(
+                        std::vector<IndexType>{pair.second[i]});
                     corner_ranks.emplace_back(pair.first);
                 }
             } else {
@@ -254,8 +266,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         auto edge = edge_dofs[i];
         auto ranks = edge_ranks[i];
         auto esize = edge.size();
-        auto ematrix = local->create_submatrix(
-            span{start, start + esize}, span{start, start + esize});
+        auto ematrix = local->create_submatrix(span{start, start + esize},
+                                               span{start, start + esize});
         ValueType min_val = one<ValueType>();
         IndexType min_idx = -1;
         IndexType min_component = -1;
@@ -270,7 +282,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                 std::set<IndexType> work_set{};
                 std::set<IndexType> component{};
                 IndexType tag = tag_numbers[edge[j]];
-                for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1]; idx++) {
+                for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1];
+                     idx++) {
                     if (col_idxs[idx] == j) {
                         if (std::abs(vals[idx]) < std::abs(min_val)) {
                             min_val = vals[idx];
@@ -287,8 +300,10 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                     auto current = *work_set.begin();
                     work_set.erase(current);
                     component.insert(edge[current]);
-                    for (IndexType idx = row_ptrs[current]; idx < row_ptrs[current + 1]; idx++) {
-                        if (edge_map[col_idxs[idx]] == -1 && tag == tag_numbers[edge[col_idxs[idx]]]) {
+                    for (IndexType idx = row_ptrs[current];
+                         idx < row_ptrs[current + 1]; idx++) {
+                        if (edge_map[col_idxs[idx]] == -1 &&
+                            tag == tag_numbers[edge[col_idxs[idx]]]) {
                             work_set.insert(col_idxs[idx]);
                             edge_map[col_idxs[idx]] = connected_components;
                         }
@@ -310,8 +325,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
             interface_dofs.emplace_back(std::vector<IndexType>{edge[min_idx]});
             interface_dof_ranks.emplace_back(ranks);
             connected_components++;
-            auto pos = std::find(interface_dofs[min_component].begin(),
-                                    interface_dofs[min_component].end(), edge[min_idx]);
+            auto pos =
+                std::find(interface_dofs[min_component].begin(),
+                          interface_dofs[min_component].end(), edge[min_idx]);
             interface_dofs[min_component].erase(pos);
         }
         start += esize;
@@ -335,16 +351,20 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<int> interfaces_recv_offsets(comm.size() + 1, 0);
     std::partial_sum(interfaces_recv_sizes.begin(), interfaces_recv_sizes.end(),
                      interfaces_recv_offsets.begin() + 1);
-    std::vector<int> global_interface_dofs_sizes(interfaces_recv_offsets.back());
+    std::vector<int> global_interface_dofs_sizes(
+        interfaces_recv_offsets.back());
     comm.all_gather_v(exec, interface_dofs_sizes.data(), n_interfaces,
-                      global_interface_dofs_sizes.data(), interfaces_recv_sizes.data(),
+                      global_interface_dofs_sizes.data(),
+                      interfaces_recv_sizes.data(),
                       interfaces_recv_offsets.data());
     comm.synchronize();
     std::vector<int> global_total_interface_dofs(comm.size(), 0);
-    comm.all_gather(exec, &total_interface_dofs, 1, global_total_interface_dofs.data(), 1);
+    comm.all_gather(exec, &total_interface_dofs, 1,
+                    global_total_interface_dofs.data(), 1);
     comm.synchronize();
     std::vector<int> global_interface_dofs_offsets(comm.size() + 1, 0);
-    std::partial_sum(global_total_interface_dofs.begin(), global_total_interface_dofs.end(),
+    std::partial_sum(global_total_interface_dofs.begin(),
+                     global_total_interface_dofs.end(),
                      global_interface_dofs_offsets.begin() + 1);
     std::vector<IndexType> interface_dofs_send_buffer(total_interface_dofs);
     cnt = 0;
@@ -358,8 +378,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         global_interface_dofs_cnt += global_interface_dofs_sizes[i];
     }
     std::vector<IndexType> global_interface_dofs(global_interface_dofs_cnt);
-    comm.all_gather_v(exec, interface_dofs_send_buffer.data(), total_interface_dofs,
-                      global_interface_dofs.data(), global_total_interface_dofs.data(),
+    comm.all_gather_v(exec, interface_dofs_send_buffer.data(),
+                      total_interface_dofs, global_interface_dofs.data(),
+                      global_total_interface_dofs.data(),
                       global_interface_dofs_offsets.data());
     comm.synchronize();
     interface_dofs_.resize(interfaces_recv_offsets.back());
@@ -376,16 +397,20 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         interface_ranks_sizes[i] = interface_dof_ranks[i].size();
         total_interface_ranks += interface_ranks_sizes[i];
     }
-    std::vector<int> global_interface_ranks_sizes(interfaces_recv_offsets.back());
+    std::vector<int> global_interface_ranks_sizes(
+        interfaces_recv_offsets.back());
     comm.all_gather_v(exec, interface_ranks_sizes.data(), n_interfaces,
-                      global_interface_ranks_sizes.data(), interfaces_recv_sizes.data(),
+                      global_interface_ranks_sizes.data(),
+                      interfaces_recv_sizes.data(),
                       interfaces_recv_offsets.data());
     comm.synchronize();
     std::vector<int> global_total_interface_ranks(comm.size(), 0);
-    comm.all_gather(exec, &total_interface_ranks, 1, global_total_interface_ranks.data(), 1);
+    comm.all_gather(exec, &total_interface_ranks, 1,
+                    global_total_interface_ranks.data(), 1);
     comm.synchronize();
     std::vector<int> global_interface_ranks_offsets(comm.size() + 1, 0);
-    std::partial_sum(global_total_interface_ranks.begin(), global_total_interface_ranks.end(),
+    std::partial_sum(global_total_interface_ranks.begin(),
+                     global_total_interface_ranks.end(),
                      global_interface_ranks_offsets.begin() + 1);
     std::vector<IndexType> interface_ranks_send_buffer(total_interface_ranks);
     cnt = 0;
@@ -399,8 +424,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         global_interface_ranks_cnt += global_interface_ranks_sizes[i];
     }
     std::vector<IndexType> global_interface_ranks(global_interface_ranks_cnt);
-    comm.all_gather_v(exec, interface_ranks_send_buffer.data(), total_interface_ranks,
-                      global_interface_ranks.data(), global_total_interface_ranks.data(),
+    comm.all_gather_v(exec, interface_ranks_send_buffer.data(),
+                      total_interface_ranks, global_interface_ranks.data(),
+                      global_total_interface_ranks.data(),
                       global_interface_ranks_offsets.data());
     comm.synchronize();
     interface_dof_ranks_.resize(interfaces_recv_offsets.back());
@@ -418,9 +444,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<IndexType> order(idofs.size());
     std::iota(order.begin(), order.end(), 0);
     std::sort(order.begin(), order.end(),
-                [&](const IndexType& a, const IndexType& b) {
-                    return idofs[a].size() > idofs[b].size();
-                });
+              [&](const IndexType& a, const IndexType& b) {
+                  return idofs[a].size() > idofs[b].size();
+              });
     for (size_type i = 0; i < idofs.size(); i++) {
         interface_dofs_.emplace_back(idofs[order[i]]);
         interface_dof_ranks_.emplace_back(iranks[order[i]]);
@@ -476,12 +502,14 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     }
 
     /* if (comm.rank() % 2 == 0) { */
-    /*     std::ofstream out{"new_inner_" + std::to_string(comm.rank() / 2) + ".mtx"}; */
+    /*     std::ofstream out{"new_inner_" + std::to_string(comm.rank() / 2) +
+     * ".mtx"}; */
     /*     for (size_type i = 0; i < interface_dofs_.size(); i++) { */
     /*         if (interface_dof_ranks_[i].size() == 2 && */
-    /*             interface_dof_ranks_[i][0] == rank && */ 
+    /*             interface_dof_ranks_[i][0] == rank && */
     /*             interface_dof_ranks_[i][1] == rank + 1) { */
-    /*             for (size_type j = 0; j < interface_dofs_[i].size(); j++) { */
+    /*             for (size_type j = 0; j < interface_dofs_[i].size(); j++) {
+     */
     /*                 out << interface_dofs_[i][j] << std::endl; */
     /*             } */
     /*         } */
@@ -740,7 +768,8 @@ void Bddc<ValueType, IndexType>::generate()
             clone(host, global_system_matrix_->get_row_partition().get()));
     inner_idxs_ = parameters_.interior_dofs;
     if (parameters_.tag_numbers.size() == 0) {
-        tag_numbers = std::vector<IndexType>(global_system_matrix_->get_size()[0], 0);
+        tag_numbers =
+            std::vector<IndexType>(global_system_matrix_->get_size()[0], 0);
     } else {
         tag_numbers = parameters_.tag_numbers;
     }
@@ -869,7 +898,7 @@ void Bddc<ValueType, IndexType>::generate()
     for (size_type i = 0; i < n_interfaces; i++) {
         auto ranks = interface_dof_ranks_[interfaces_[i]];
         auto owner = *std::min_element(ranks.begin(), ranks.end());
-        mapping.get_data()[i] = 0;//owner;
+        mapping.get_data()[i] = 0;  // owner;
     }
     auto part =
         gko::share(gko::experimental::distributed::Partition<
@@ -917,13 +946,15 @@ void Bddc<ValueType, IndexType>::generate()
     /*     for (size_type i = 0; i < esize; i++) { */
     /*         if (edge_map[i] == -1) { */
     /*             int cc = -1; */
-    /*             for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1]; idx++) { */
+    /*             for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1];
+     * idx++) { */
     /*                 cc = std::max(cc, edge_map[col_idxs[idx]]); */
     /*             } */
     /*             if (cc == -1) { */
     /*                 cc = connected_components++; */
     /*             } */
-    /*             for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1]; idx++) { */
+    /*             for (size_type idx = row_ptrs[i]; idx < row_ptrs[i + 1];
+     * idx++) { */
     /*                 edge_map[col_idxs[idx]] = cc; */
     /*             } */
     /*             if (row_ptrs[i + 1] - row_ptrs[i] == 1) { */
@@ -972,7 +1003,8 @@ void Bddc<ValueType, IndexType>::generate()
     }
     inner_solver = share(parameters_.local_solver_factory->generate(A_ii));
     // generate cholesky of A_ii and write to file
-    /* auto fact = share(gko::experimental::factorization::Cholesky<ValueType, IndexType>::build().on(exec)->generate(A_ii)->unpack()); */
+    /* auto fact = share(gko::experimental::factorization::Cholesky<ValueType,
+     * IndexType>::build().on(exec)->generate(A_ii)->unpack()); */
     /* auto L = fact->get_lower_factor(); */
     /* auto U = fact->get_upper_factor(); */
     /* std::ofstream L_out{"LI_" + std::to_string(rank) + ".txt"}; */
@@ -1029,7 +1061,8 @@ void Bddc<ValueType, IndexType>::generate()
     e_perm = share(as<matrix_type>(e_perm_t->transpose()));
 
     edge_solver = share(parameters_.local_solver_factory->generate(A_ee));
-    /* fact = share(gko::experimental::factorization::Cholesky<ValueType, IndexType>::build().on(exec)->generate(A_ee)->unpack()); */
+    /* fact = share(gko::experimental::factorization::Cholesky<ValueType,
+     * IndexType>::build().on(exec)->generate(A_ee)->unpack()); */
     /* L = fact->get_lower_factor(); */
     /* U = fact->get_upper_factor(); */
     /* std::ofstream L_out_e{"LE_" + std::to_string(rank) + ".txt"}; */
@@ -1201,7 +1234,8 @@ void Bddc<ValueType, IndexType>::generate()
 
     if (rank == 0) {
         std::ofstream out{"coarse_matrix.mtx"};
-        gko::write(out, as<matrix_type>(global_coarse_matrix_->get_local_matrix()));
+        gko::write(out,
+                   as<matrix_type>(global_coarse_matrix_->get_local_matrix()));
     }
 
     // Set up coarse restriction operator
@@ -1266,8 +1300,10 @@ void Bddc<ValueType, IndexType>::generate()
         exec, dim<2>{n_interface_idxs, 1}, std::move(local_diag_array), 1);
 
     /* auto diag_max = std::max_element(local_diag_array.get_const_data(), */
-    /*                                  local_diag_array.get_const_data() + n_interface_idxs, */
-    /*                                  [](const ValueType& a, const ValueType& b) { */
+    /*                                  local_diag_array.get_const_data() +
+     * n_interface_idxs, */
+    /*                                  [](const ValueType& a, const ValueType&
+     * b) { */
     /*                                      return std::abs(a) < std::abs(b); */
     /*                                  }); */
     /* auto local_v = restricted_residual->clone(); */
@@ -1275,10 +1311,13 @@ void Bddc<ValueType, IndexType>::generate()
     /* local_v->fill(*diag_max); */
     /* RGT->apply(local_v, global_v); */
     /* RG->apply(global_v, local_v); */
-    /* auto local_weights = vec_type::create(exec, dim<2>{n_interface_idxs, 1}); */
+    /* auto local_weights = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
+     */
     /* local_weights->fill(*diag_max); */
-    /* auto gda = make_const_array_view(exec, n_interface_idxs, local_v->get_const_local_values()); */
-    /* auto gd  = diag_type::create_const(exec, n_interface_idxs, std::move(gda)); */
+    /* auto gda = make_const_array_view(exec, n_interface_idxs,
+     * local_v->get_const_local_values()); */
+    /* auto gd  = diag_type::create_const(exec, n_interface_idxs,
+     * std::move(gda)); */
 
     auto weights_vec = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
     global_diag->inverse_apply(local_diag_vec, weights_vec);
