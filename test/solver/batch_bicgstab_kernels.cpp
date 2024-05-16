@@ -207,7 +207,7 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
 
 TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
 {
-    const int num_batch_items = 12;
+    const int num_batch_items = 11;
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
