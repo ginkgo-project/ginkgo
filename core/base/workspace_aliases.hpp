@@ -117,6 +117,7 @@ public:
 private:
     GKO_ATTRIBUTES void set_bytes_required(std::size_t new_size)
     {
+        using std::max;
         size_ = max(size_, new_size);
     }
 
