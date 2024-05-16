@@ -256,16 +256,28 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
         auto esize = edge.size();
         auto ematrix = local->create_submatrix(
             span{start, start + esize}, span{start, start + esize});
+        ValueType min_val = one<ValueType>();
+        IndexType min_idx = -1;
+        IndexType min_component = -1;
         std::vector<int> edge_map(esize, -1);
         const auto row_ptrs = ematrix->get_const_row_ptrs();
         const auto col_idxs = ematrix->get_const_col_idxs();
+        const auto vals = ematrix->get_const_values();
         std::vector<IndexType> component_vec{};
+        int num_corners = 0;
         for (size_type j = 0; j < esize; j++) {
             if (edge_map[j] == -1) {
                 std::set<IndexType> work_set{};
                 std::set<IndexType> component{};
                 IndexType tag = tag_numbers[edge[j]];
                 for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1]; idx++) {
+                    if (col_idxs[idx] == j) {
+                        if (std::abs(vals[idx]) < std::abs(min_val)) {
+                            min_val = vals[idx];
+                            min_idx = j;
+                            min_component = connected_components;
+                        }
+                    }
                     if (tag == tag_numbers[edge[col_idxs[idx]]]) {
                         work_set.insert(col_idxs[idx]);
                         edge_map[col_idxs[idx]] = connected_components;
@@ -286,10 +298,21 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
                 for (auto const& idx : component) {
                     component_vec.emplace_back(idx);
                 }
+                if (component.size() == 1) {
+                    num_corners++;
+                }
                 interface_dofs.emplace_back(component_vec);
                 interface_dof_ranks.emplace_back(ranks);
                 connected_components++;
             }
+        }
+        if (num_corners == 0 && ranks.size() > 2) {
+            interface_dofs.emplace_back(std::vector<IndexType>{edge[min_idx]});
+            interface_dof_ranks.emplace_back(ranks);
+            connected_components++;
+            auto pos = std::find(interface_dofs[min_component].begin(),
+                                    interface_dofs[min_component].end(), edge[min_idx]);
+            interface_dofs[min_component].erase(pos);
         }
         start += esize;
     }
