@@ -26,13 +26,14 @@ namespace gko {
 namespace config {
 
 
-#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                           \
-    GKO_INVALID_STATE(_value + std::string(" is invalid for the entry ") + \
-                      _entry)
+#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                            \
+    GKO_INVALID_STATE(std::string("The value >" + _value +                  \
+                                  "< is invalid for the entry >" + _entry + \
+                                  "<"))
 
 
 #define GKO_MISS_CONFIG_ENTRY(_entry) \
-    GKO_INVALID_STATE(std::string("miss the entry ") + _entry)
+    GKO_INVALID_STATE(std::string("The entry >") + _entry + "< is missing")
 
 
 /**
@@ -104,26 +105,20 @@ deferred_factory_parameter<T> parse_or_get_factory(const pnode& config,
                                                    const type_descriptor& td);
 
 template <typename T>
-inline deferred_factory_parameter<typename T::Factory> get_specific_factory(
-    const pnode& config, const registry& context, const type_descriptor& td)
+inline deferred_factory_parameter<typename T::Factory>
+parse_or_get_specific_factory(const pnode& config, const registry& context,
+                              const type_descriptor& td)
 {
     using T_non_const = std::remove_const_t<T>;
-    // static_assert(std::is_convertible<T_non_const*, LinOpFactory*>::value,
-    //               "only LinOpFactory");
-    deferred_factory_parameter<typename T::Factory> ptr;
 
     if (config.get_tag() == pnode::tag_t::string) {
-        ptr =
-            detail::registry_accessor::get_data<typename T_non_const::Factory>(
-                context, config.get_string());
+        return detail::registry_accessor::get_data<
+            typename T_non_const::Factory>(context, config.get_string());
     } else if (config.get_tag() == pnode::tag_t::map) {
-        ptr = T_non_const::parse(config, context, td);
+        return T_non_const::parse(config, context, td);
     } else {
         GKO_INVALID_STATE("The data of config is not valid.");
     }
-    GKO_THROW_IF_INVALID(!ptr.is_empty(), "Parse get nullptr in the end");
-
-    return ptr;
 }
 
 
@@ -296,6 +291,8 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
         strategy_ptr = std::make_shared<typename Csr::merge_path>();
     } else if (str == "classical") {
         strategy_ptr = std::make_shared<typename Csr::classical>();
+    } else {
+        GKO_INVALID_CONFIG_VALUE("strategy", str);
     }
     return std::move(strategy_ptr);
 }

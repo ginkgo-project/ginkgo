@@ -94,7 +94,7 @@ public:
 
     /**
      * Create the parameters from the property_tree.
-     * Because this is directly tied to the specific type. The value/index type
+     * Because this is directly tied to the specific type, the value/index type
      * settings within config are ignored and type_descriptor is only used
      * for children objects.
      *
