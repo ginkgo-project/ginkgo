@@ -31,12 +31,12 @@ Ic<LSolverType, IndexType>::parse(const config::pnode& config,
 
     if (auto& obj = config.get("l_solver")) {
         params.with_l_solver(
-            gko::config::get_specific_factory<const LSolverType>(obj, context,
-                                                                 td_for_child));
+            gko::config::parse_or_get_specific_factory<const LSolverType>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config.get("factorization")) {
         params.with_factorization(
-            gko::config::build_or_get_factory<const LinOpFactory>(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
 

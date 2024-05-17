@@ -275,8 +275,6 @@ struct Jacobi
         param.with_max_block_stride(32u);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        // config_map["block_pointers"] = pnode{{{0}, {3}, {17}}};
-        // param.with_block_pointers(gko::array<gko::int64>(exec, {0, 3, 17}));
         config_map["storage_optimization"] =
             pnode{std::vector<pnode>{pnode{0}, pnode{1}}};
         param.with_storage_optimization(gko::precision_reduction(0, 1));
