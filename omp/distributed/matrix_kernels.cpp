@@ -56,13 +56,13 @@ void separate_local_nonlocal(
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     auto num_input = input.get_num_stored_elements();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
-    std::vector<size_type> local_entry_offsets(num_threads, 0);
-    std::vector<size_type> non_local_entry_offsets(num_threads, 0);
+    vector<size_type> local_entry_offsets(num_threads, 0, exec);
+    vector<size_type> non_local_entry_offsets(num_threads, 0, exec);
 
 #pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
-        std::vector<global_nonzero> thread_non_local_entries;
-        std::vector<local_nonzero> thread_local_entries;
+        vector<global_nonzero> thread_non_local_entries(exec);
+        vector<local_nonzero> thread_local_entries(exec);
         auto thread_id = omp_get_thread_num();
         auto thread_begin = thread_id * size_per_thread;
         auto thread_end = std::min(thread_begin + size_per_thread, num_input);

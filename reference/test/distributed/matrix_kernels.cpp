@@ -49,7 +49,31 @@ protected:
           non_local_values{ref}
     {}
 
-    void validate(
+    /**
+     * apply the `separate_local_nonlocal` kernel and validate the result
+     * against provided reference values
+     *
+     * @param size  the expected global matrix size
+     * @param row_partition  the row partition passed to the kernel
+     * @param col_partition  the column partition passed to the kernel
+     * @param input_rows  the row indices passed to the kernel
+     * @param input_cols  the column indices passed to the kernel
+     * @param input_vals  the values passed to the kernel
+     * @param local_entries  the reference local matrix data. It is provided
+     *                       as a list of tuples for each part of the row
+     *                       partition. Each tuple consists of the size of
+     *                       the local matrix, a list of row indices,
+     *                       a list of column indices, and a list of values.
+     *                       The indices are mapped to local indexing.
+     * @param non_local_entries  the reference non-local matrix data. It is
+     *                           provided as a list of tuples for each part
+     *                           of the row partition. Each tuple contains
+     *                           the size of the non-local matrix, a list of
+     *                           row indices (mapped to local indexing), a
+     *                           list of column indices (NOT mapped to local
+     *                           indexing), and a list of values.
+     */
+    void act_and_assert(
         gko::dim<2> size,
         gko::ptr_param<const gko::experimental::distributed::Partition<
             local_index_type, global_index_type>>
@@ -175,7 +199,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalEmpty)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{8, 8}, partition, partition, {}, {}, {},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 3}, I<git>{}, I<git>{}, I<vt>{}),
@@ -197,7 +221,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalSmall)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{2, 2}, partition, partition, {0, 0, 1, 1}, {0, 1, 0, 1},
         {1, 2, 3, 4},
         {std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{4}),
@@ -218,7 +242,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocal)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 6}, partition, partition, {0, 0, 1, 1, 2, 3, 4, 5},
         {0, 5, 1, 4, 3, 2, 4, 0}, {1, 2, 3, 4, 5, 6, 7, 8},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1}, I<git>{1, 0},
@@ -244,7 +268,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocal)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 6}, partition, partition, {0, 0, 1, 3, 4, 5},
         {1, 3, 5, 1, 3, 2}, {1, 2, 5, 6, 7, 8},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{}, I<git>{}, I<vt>{}),
@@ -269,7 +293,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalMixed)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 6}, partition, partition,
         // clang-format on
         {0, 0, 0, 0, 1, 1, 1, 2, 3, 3, 4, 4, 5, 5},
@@ -306,7 +330,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalEmptyWithColPartition)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{8, 8}, partition, col_partition, {}, {}, {},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 3}, I<git>{}, I<git>{}, I<vt>{}),
@@ -332,7 +356,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalSmallWithColPartition)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{2, 2}, partition, col_partition, {0, 0, 1, 1}, {0, 1, 0, 1},
         {1, 2, 3, 4},
         {std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{3}),
@@ -356,7 +380,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocalWithColPartition)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 6}, partition, col_partition, {3, 0, 5, 1, 1, 4},
         {1, 4, 5, 2, 3, 3}, {1, 2, 3, 4, 5, 6},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{1}, I<git>{1}, I<vt>{1}),
@@ -385,7 +409,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocalWithColPartition)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 6}, partition, col_partition, {2, 3, 2, 0, 5, 1, 1},
         {2, 3, 5, 0, 1, 1, 4}, {1, 2, 3, 4, 5, 6, 7},
         {std::make_tuple(gko::dim<2>{2, 2}, I<git>{}, I<git>{}, I<vt>{}),
@@ -415,24 +439,24 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalMixedWithColPartition)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(gko::dim<2>{6, 6}, partition, col_partition,
+    this->act_and_assert(gko::dim<2>{6, 6}, partition, col_partition,
         // clang-format off
                    {2, 3, 3, 0, 5, 1, 4, 2, 3, 2, 0, 0, 1, 1, 4, 4},
                    { 0,  0,  1,  5,  4,  2,  2, 3, 2, 4, 1, 2, 4, 5, 0, 5},
                    {11, 12, 13, 14, 15, 16, 17, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-                   // clang-format on
-                   {std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1, 1},
-                                    I<git>{0, 0, 1}, I<vt>{11, 12, 13}),
-                    std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1},
-                                    I<git>{1, 0}, I<vt>{14, 15}),
-                    std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1},
-                                    I<git>{0, 0}, I<vt>{16, 17})},
-                   {std::make_tuple(gko::dim<2>{2, 3}, I<git>{0, 1, 0},
-                                    I<git>{3, 2, 4}, I<vt>{1, 2, 3}),
-                    std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 0},
-                                    I<git>{1, 2}, I<vt>{4, 5}),
-                    std::make_tuple(gko::dim<2>{2, 3}, I<git>{0, 0, 1, 1},
-                                    I<git>{4, 5, 0, 5}, I<vt>{6, 7, 8, 9})});
+        // clang-format on
+        {std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1, 1}, I<git>{0, 0, 1},
+                         I<vt>{11, 12, 13}),
+         std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1}, I<git>{1, 0},
+                         I<vt>{14, 15}),
+         std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1}, I<git>{0, 0},
+                         I<vt>{16, 17})},
+        {std::make_tuple(gko::dim<2>{2, 3}, I<git>{0, 1, 0}, I<git>{3, 2, 4},
+                         I<vt>{1, 2, 3}),
+         std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 0}, I<git>{1, 2},
+                         I<vt>{4, 5}),
+         std::make_tuple(gko::dim<2>{2, 3}, I<git>{0, 0, 1, 1},
+                         I<git>{4, 5, 0, 5}, I<vt>{6, 7, 8, 9})});
 }
 
 
@@ -451,7 +475,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNonSquare)
         gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
 
-    this->validate(
+    this->act_and_assert(
         gko::dim<2>{6, 4}, partition, col_partition,
         // clang-format off
         {2, 3, 0, 1, 4, 3, 3, 0, 1, 4},

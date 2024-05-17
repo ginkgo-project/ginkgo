@@ -312,12 +312,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         make_temporary_clone(exec->get_master(), &imap.get_remote_target_ids());
     auto host_offsets = make_temporary_clone(
         exec->get_master(), &imap.get_remote_global_idxs().get_offsets());
+    auto compute_recv_sizes = [](const auto* recv_targets, size_type size,
+                                 const auto* offsets, auto& recv_sizes) {
+        for (size_type i = 0; i < size; ++i) {
+            recv_sizes[recv_targets[i]] = offsets[i + 1] - offsets[i];
+        }
+    };
     std::fill(recv_sizes_.begin(), recv_sizes_.end(), 0);
-    for (size_type i = 0; i < host_recv_targets->get_size(); ++i) {
-        recv_sizes_[host_recv_targets->get_const_data()[i]] =
-            host_offsets->get_const_data()[i + 1] -
-            host_offsets->get_const_data()[i];
-    }
+    compute_recv_sizes(host_recv_targets->get_const_data(),
+                       host_recv_targets->get_size(),
+                       host_offsets->get_const_data(), recv_sizes_);
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
                      recv_offsets_.begin() + 1);
     comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
