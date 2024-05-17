@@ -135,10 +135,10 @@ public:
             static_cast<int>(max_group_size));
 
         // reserve 3 for intermediate rho,
-        // alpha, reduce_over_group, and two norms
+        // alpha and two norms
         // If the value available is negative, then set it to 0
         const int static_var_mem =
-            (group_size + 3) * sizeof(ValueType) + 2 * sizeof(real_type);
+            3 * sizeof(ValueType) + 2 * sizeof(real_type);
         int shmem_per_blk = std::max(
             static_cast<int>(
                 device.get_info<sycl::info::device::local_mem_size>()) -
