@@ -239,8 +239,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
@@ -347,14 +346,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
-
-    return imap;
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
@@ -369,8 +365,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         partition)
@@ -383,8 +378,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-index_map<LocalIndexType, GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         partition)

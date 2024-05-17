@@ -293,7 +293,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
@@ -307,7 +307,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
@@ -329,7 +329,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
@@ -345,7 +345,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    index_map<LocalIndexType, GlobalIndexType> read_distributed(
+    void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
