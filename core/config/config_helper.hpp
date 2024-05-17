@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -140,6 +140,15 @@ deferred_factory_parameter<const stop::CriterionFactory>
 parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
                                                    const registry& context,
                                                    const type_descriptor& td);
+
+/**
+ * parse or get an std::vector of criteria.
+ * A stored single criterion will be converted to an std::vector.
+ */
+std::vector<deferred_factory_parameter<const stop::CriterionFactory>>
+parse_or_get_criteria(const pnode& config, const registry& context,
+                      const type_descriptor& td);
+
 
 /**
  * give a vector of factory by calling parse_or_get_factory.
