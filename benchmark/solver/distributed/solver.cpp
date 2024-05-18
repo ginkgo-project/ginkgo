@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
         std::to_string(FLAGS_nrhs);
     if (do_print) {
-        print_general_information(extra_information);
+        print_general_information(extra_information, exec);
     }
 
     std::set<std::string> supported_solvers = {"cg", "fcg", "cgs", "bicgstab",

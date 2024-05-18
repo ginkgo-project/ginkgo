@@ -26,9 +26,10 @@ int main(int argc, char* argv[])
     std::string extra_information = "The formats are " + FLAGS_formats +
                                     "\nThe number of right hand sides is " +
                                     std::to_string(FLAGS_nrhs);
-    print_general_information(extra_information);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
+
+    print_general_information(extra_information, exec);
 
     auto test_cases = json::parse(get_input_stream());
 
