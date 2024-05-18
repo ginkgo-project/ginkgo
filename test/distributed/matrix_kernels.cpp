@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;

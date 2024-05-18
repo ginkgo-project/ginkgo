@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/timer.hpp>
 
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Timer : public CommonTestFixture {

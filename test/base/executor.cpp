@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/executor.hpp>
 
 #include "core/test/utils/assertions.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace reference {

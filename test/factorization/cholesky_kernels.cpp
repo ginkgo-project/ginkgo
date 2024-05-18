@@ -24,7 +24,7 @@
 #include "core/test/utils/assertions.hpp"
 #include "core/utils/matrix_utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace {

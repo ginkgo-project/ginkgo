@@ -12,7 +12,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class IndexRange : public CommonTestFixture {

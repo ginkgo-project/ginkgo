@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_TEST_UTILS_MPI_EXECUTOR_HPP_
-#define GKO_TEST_UTILS_MPI_EXECUTOR_HPP_
+#ifndef GKO_TEST_UTILS_MPI_COMMON_FIXTURE_HPP_
+#define GKO_TEST_UTILS_MPI_COMMON_FIXTURE_HPP_
 
 
 #include <memory>
@@ -64,4 +64,4 @@ public:
 };
 
 
-#endif  // GKO_TEST_UTILS_MPI_EXECUTOR_HPP_
+#endif  // GKO_TEST_UTILS_MPI_COMMON_FIXTURE_HPP_
