@@ -20,4 +20,11 @@ int OmpExecutor::get_num_omp_threads()
 }
 
 
+std::string OmpExecutor::get_description() const
+{
+    return "OmpExecutor (" + std::to_string(this->get_num_omp_threads()) +
+           " threads)";
+}
+
+
 }  // namespace gko
