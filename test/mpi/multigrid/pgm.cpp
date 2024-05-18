@@ -19,7 +19,7 @@
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 #include "core/test/utils.hpp"
-#include "test/utils/mpi/executor.hpp"
+#include "test/utils/mpi/common_fixture.hpp"
 
 
 #if GINKGO_DPCPP_SINGLE_MODE

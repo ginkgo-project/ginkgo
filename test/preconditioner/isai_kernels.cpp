@@ -18,7 +18,7 @@
 
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 enum struct matrix_type { lower, upper, general, spd };

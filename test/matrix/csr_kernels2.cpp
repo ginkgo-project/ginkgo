@@ -27,7 +27,7 @@
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Csr : public CommonTestFixture {

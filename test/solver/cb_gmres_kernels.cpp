@@ -20,7 +20,7 @@
 
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class CbGmres : public CommonTestFixture {
