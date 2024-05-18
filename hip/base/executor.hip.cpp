@@ -12,6 +12,7 @@
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "hip/base/device.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/scoped_device_id.hip.hpp"
@@ -170,6 +171,14 @@ void HipExecutor::synchronize() const
 scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
+}
+
+
+std::string HipExecutor::get_description() const
+{
+    return "HipExecutor on device " + std::to_string(this->get_device_id()) +
+           " (" + gko::kernels::hip::get_device_name(this->get_device_id()) +
+           ") with host " + this->get_master()->get_description();
 }
 
 

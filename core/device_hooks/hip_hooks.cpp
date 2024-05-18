@@ -147,6 +147,9 @@ scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(hip);
 
 
+std::string HipExecutor::get_description() const GKO_NOT_COMPILED(hip);
+
+
 std::string HipError::get_error(int64)
 {
     return "ginkgo HIP module is not compiled";

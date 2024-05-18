@@ -162,6 +162,17 @@ scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
 }
 
 
+std::string DpcppExecutor::get_description() const
+{
+    return "DpcppExecutor on device " + std::to_string(this->get_device_id()) +
+           " (" +
+           this->get_queue()
+               ->get_device()
+               .get_info<sycl::info::device::name>() +
+           ") with host " + this->get_master()->get_description();
+}
+
+
 int DpcppExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();
