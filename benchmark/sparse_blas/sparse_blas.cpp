@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
     auto test_cases = json::parse(get_input_stream());
 
     std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information);
+    print_general_information(extra_information, exec);
 
     run_test_cases(SparseBlasBenchmark{}, exec,
                    get_timer(exec, FLAGS_gpu_timer), test_cases);

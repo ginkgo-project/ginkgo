@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
         std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
         std::to_string(FLAGS_nrhs);
-    print_general_information(extra_information);
 
     auto exec = get_executor(FLAGS_gpu_timer);
+    print_general_information(extra_information, exec);
 
     json test_cases;
     if (!FLAGS_overhead) {
