@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -174,7 +174,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type read_element(
         index_type krylov_vec, index_type vec_idx, index_type vec_rhs) const
     {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         // if (krylov_vec >= size_[0] || vec_idx >= get_stride()[1] ||
         //     vec_rhs >= size_[2]) {
         //     printf(
@@ -195,7 +195,7 @@ public:
 #endif
     }
 
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDACC__) || defined(__HIPCC__)
     template <int block_size>
     __device__ void compress_gpu_function(index_type krylov_vec,
                                           index_type vec_idx,
