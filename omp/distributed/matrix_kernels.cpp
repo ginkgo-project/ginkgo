@@ -24,7 +24,7 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void build_local_nonlocal(
+void separate_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
@@ -34,14 +34,9 @@ void build_local_nonlocal(
     comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
     array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
     array<LocalIndexType>& non_local_row_idxs,
-    array<LocalIndexType>& non_local_col_idxs,
-    array<ValueType>& non_local_values,
-    array<LocalIndexType>& local_gather_idxs,
-    array<comm_index_type>& recv_sizes,
-    array<GlobalIndexType>& non_local_to_global)
+    array<GlobalIndexType>& non_local_col_idxs,
+    array<ValueType>& non_local_values)
 {
-    using partition_type =
-        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
     using range_index_type = GlobalIndexType;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
     using local_nonzero = matrix_data_entry<ValueType, LocalIndexType>;
@@ -51,14 +46,9 @@ void build_local_nonlocal(
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
-    auto recv_sizes_ptr = recv_sizes.get_data();
     size_type row_range_id_hint = 0;
     size_type col_range_id_hint = 0;
-    // zero recv_sizes values
-    std::fill_n(recv_sizes_ptr, num_parts, comm_index_type{});
 
-    // store non-local columns and their range indices
-    map<GlobalIndexType, range_index_type> non_local_cols(exec);
     // store non-local entries with global column idxs
     vector<global_nonzero> non_local_entries(exec);
     vector<local_nonzero> local_entries(exec);
@@ -66,16 +56,13 @@ void build_local_nonlocal(
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     auto num_input = input.get_num_stored_elements();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
-    std::vector<size_type> local_entry_offsets(num_threads, 0);
-    std::vector<size_type> non_local_entry_offsets(num_threads, 0);
+    vector<size_type> local_entry_offsets(num_threads, 0, exec);
+    vector<size_type> non_local_entry_offsets(num_threads, 0, exec);
 
 #pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
-        std::unordered_map<GlobalIndexType, range_index_type>
-            thread_non_local_cols;
-        std::vector<global_nonzero> thread_non_local_entries;
-        std::vector<local_nonzero> thread_local_entries;
-        std::vector<comm_index_type> thread_recv_sizes;
+        vector<global_nonzero> thread_non_local_entries(exec);
+        vector<local_nonzero> thread_local_entries(exec);
         auto thread_id = omp_get_thread_num();
         auto thread_begin = thread_id * size_per_thread;
         auto thread_end = std::min(thread_begin + size_per_thread, num_input);
@@ -103,7 +90,6 @@ void build_local_nonlocal(
                     thread_local_entries.emplace_back(local_row, local_col,
                                                       value);
                 } else {
-                    thread_non_local_cols.emplace(global_col, col_range_id);
                     thread_non_local_entries.emplace_back(local_row, global_col,
                                                           value);
                 }
@@ -112,12 +98,6 @@ void build_local_nonlocal(
         local_entry_offsets[thread_id] = thread_local_entries.size();
         non_local_entry_offsets[thread_id] = thread_non_local_entries.size();
 
-#pragma omp critical
-        {
-            // collect global non-local columns
-            non_local_cols.insert(thread_non_local_cols.begin(),
-                                  thread_non_local_cols.end());
-        }
 #pragma omp barrier
 #pragma omp single
         {
@@ -158,45 +138,6 @@ void build_local_nonlocal(
         local_col_idxs.get_data()[i] = entry.column;
         local_values.get_data()[i] = entry.value;
     }
-
-    // count non-local columns per part
-    for (const auto& entry : non_local_cols) {
-        auto col_range_id = entry.second;
-        recv_sizes_ptr[col_part_ids[col_range_id]]++;
-    }
-    const auto num_non_local_cols = std::accumulate(
-        recv_sizes_ptr, recv_sizes_ptr + num_parts, size_type{});
-    components::prefix_sum_nonnegative(exec, recv_sizes_ptr, num_parts);
-
-    // collect and renumber offdiagonal columns
-    local_gather_idxs.resize_and_reset(num_non_local_cols);
-    std::unordered_map<GlobalIndexType, LocalIndexType>
-        non_local_global_to_local;
-    for (const auto& entry : non_local_cols) {
-        auto range = entry.second;
-        auto part = col_part_ids[range];
-        auto idx = recv_sizes_ptr[part];
-        local_gather_idxs.get_data()[idx] =
-            map_to_local(entry.first, col_partition, entry.second);
-        non_local_global_to_local[entry.first] = idx;
-        ++recv_sizes_ptr[part];
-    }
-
-    // build local-to-global map for non-local columns
-    non_local_to_global.resize_and_reset(num_non_local_cols);
-    std::fill_n(non_local_to_global.get_data(), non_local_to_global.get_size(),
-                invalid_index<GlobalIndexType>());
-    for (const auto& key_value : non_local_global_to_local) {
-        const auto global_idx = key_value.first;
-        const auto local_idx = key_value.second;
-        non_local_to_global.get_data()[local_idx] = global_idx;
-    }
-
-    // compute sizes from shifted offsets
-    for (size_type i = num_parts - 1; i > 0; --i) {
-        recv_sizes_ptr[i] -= recv_sizes_ptr[i - 1];
-    }
-
     // map non-local values to local column indices
     non_local_row_idxs.resize_and_reset(non_local_entries.size());
     non_local_col_idxs.resize_and_reset(non_local_entries.size());
@@ -206,14 +147,13 @@ void build_local_nonlocal(
         auto global = non_local_entries[i];
         non_local_row_idxs.get_data()[i] =
             static_cast<LocalIndexType>(global.row);
-        non_local_col_idxs.get_data()[i] =
-            non_local_global_to_local[global.column];
+        non_local_col_idxs.get_data()[i] = global.column;
         non_local_values.get_data()[i] = global.value;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix

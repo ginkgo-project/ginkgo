@@ -186,7 +186,7 @@ protected:
 
     Solver() : rand_engine(15) {}
 
-    std::unique_ptr<Part> gen_part(int size, int num_active_parts)
+    std::shared_ptr<Part> gen_part(int size, int num_active_parts)
     {
         auto mapping = gko::test::generate_random_array<
             gko::experimental::distributed::comm_index_type>(
@@ -195,12 +195,12 @@ protected:
                 gko::experimental::distributed::comm_index_type>(
                 0, num_active_parts - 1),
             rand_engine, ref);
-        return Part::build_from_mapping(ref, mapping, comm.size());
+        return gko::share(Part::build_from_mapping(ref, mapping, comm.size()));
     }
 
 
-    std::shared_ptr<Mtx> gen_mtx(const Part* part, int num_rows, int num_cols,
-                                 int min_cols, int max_cols)
+    std::shared_ptr<Mtx> gen_mtx(std::shared_ptr<const Part> part, int num_rows,
+                                 int num_cols, int min_cols, int max_cols)
     {
         auto data = gko::test::generate_random_matrix_data<value_type,
                                                            global_index_type>(
@@ -224,8 +224,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_in_vec(
-        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
-        int stride)
+        std::shared_ptr<const Part> part,
+        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[1],
                                        static_cast<gko::size_type>(nrhs)};
@@ -255,8 +255,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_out_vec(
-        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
-        int stride)
+        std::shared_ptr<const Part> part,
+        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[0],
                                        static_cast<gko::size_type>(nrhs)};
@@ -312,7 +312,8 @@ protected:
     }
 
     template <typename TestFunction>
-    void forall_matrix_scenarios(const Part* part, TestFunction fn)
+    void forall_matrix_scenarios(std::shared_ptr<const Part> part,
+                                 TestFunction fn)
     {
         auto guarded_fn = [&](auto mtx) {
             try {
@@ -352,7 +353,7 @@ protected:
 
     template <typename DistVecType = Vec, typename NonDistVecType = LocalVec,
               typename TestFunction>
-    void forall_vector_scenarios(const Part* part,
+    void forall_vector_scenarios(std::shared_ptr<const Part> part,
                                  const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
@@ -483,10 +484,10 @@ TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->forall_vector_scenarios(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b, this->tol(x));
@@ -500,10 +501,10 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 {
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->forall_vector_scenarios(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         auto alpha = this->gen_scalar();
                         auto beta = this->gen_scalar();
                         auto x_old = gko::share(gko::clone(x));
@@ -523,10 +524,10 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->template forall_vector_scenarios<MixedVec>(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b,
@@ -543,10 +544,10 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
     using MixedVec = typename TestFixture::MixedVec;
     using MixedLocalVec = typename TestFixture::MixedLocalVec;
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->template forall_vector_scenarios<MixedVec>(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         auto alpha = this->template gen_scalar<MixedLocalVec>();
                         auto beta = this->template gen_scalar<MixedLocalVec>();
                         auto x_old = gko::share(gko::clone(x));
