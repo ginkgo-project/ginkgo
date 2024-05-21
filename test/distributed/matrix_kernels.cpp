@@ -72,7 +72,7 @@ protected:
                     ref, input, row_partition.get(), col_partition.get(), part,
                     local_row_idxs, local_col_idxs, local_values,
                     non_local_row_idxs, non_local_col_idxs, non_local_values);
-            gko::kernels::EXEC_NAMESPACE::distributed_matrix::
+            gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
                 separate_local_nonlocal(
                     exec, d_input, d_row_partition.get(), d_col_partition.get(),
                     part, d_local_row_idxs, d_local_col_idxs, d_local_values,

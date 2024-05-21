@@ -46,7 +46,7 @@ move_only_type move_only_val{};
 
 namespace gko {
 namespace kernels {
-namespace EXEC_NAMESPACE {
+namespace GKO_DEVICE_NAMESPACE {
 
 
 template <>
@@ -57,7 +57,7 @@ struct to_device_type_impl<move_only_type&> {
 };
 
 
-}  // namespace EXEC_NAMESPACE
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
 
@@ -108,7 +108,7 @@ public:
 // nvcc doesn't like device lambdas declared in complex classes, move it out
 void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, size_type dim, int* data)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -129,7 +129,7 @@ TEST_F(KernelLaunch, Runs1D)
 
 void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, gko::array<int>& data)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -155,7 +155,7 @@ TEST_F(KernelLaunch, Runs1DArray)
 
 void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -193,7 +193,7 @@ TEST_F(KernelLaunch, Runs1DDense)
 
 void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, int* data)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -215,7 +215,7 @@ TEST_F(KernelLaunch, Runs2D)
 
 void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, gko::array<int>& data)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
@@ -242,7 +242,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 
 void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel_solver(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr, auto dummy) {
@@ -280,8 +280,8 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
         },
         dim<2>{4, 4}, m2->get_stride(), m1, static_cast<const Mtx*>(m1),
         m1->get_const_values(),
-        gko::kernels::EXEC_NAMESPACE::default_stride(m2),
-        gko::kernels::EXEC_NAMESPACE::row_vector(m3), m2->get_values(),
+        gko::kernels::GKO_DEVICE_NAMESPACE::default_stride(m2),
+        gko::kernels::GKO_DEVICE_NAMESPACE::row_vector(m3), m2->get_values(),
         m3->get_values(), move_only_val);
 }
 
@@ -297,7 +297,7 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
     gko::array<int64> output{exec, {-1l}};
     auto run_reduction = [&](int64 init, size_type size) {
-        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_reduction(
             exec,
             [] GKO_KERNEL(auto i, auto a, auto dummy) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
@@ -343,7 +343,7 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
     gko::array<char> temp(exec);
     for (const auto& size : sizes) {
         temp.clear();
-        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_reduction_cached(
             exec, [] GKO_KERNEL(auto i) { return i + 1; },
             [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
@@ -366,7 +366,7 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
 {
     gko::array<int64> output{exec, {-1l}};
     auto run_reduction = [&](int64 init, gko::dim<2> size) {
-        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_reduction(
             exec,
             [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
@@ -435,7 +435,7 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
     gko::array<char> temp(exec);
     for (const auto& dim : dims) {
         temp.clear();
-        gko::kernels::EXEC_NAMESPACE::run_kernel_reduction_cached(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_reduction_cached(
             exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
             [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
@@ -482,7 +482,7 @@ void run2d_row_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
                     static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
             }
 
-            gko::kernels::EXEC_NAMESPACE::run_kernel_row_reduction(
+            gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_row_reduction(
                 exec,
                 [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
@@ -527,7 +527,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             host_ref.get_data()[i] = dim[1] + i + 1;
         }
 
-        gko::kernels::EXEC_NAMESPACE::run_kernel_row_reduction_cached(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_row_reduction_cached(
             exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
             [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
@@ -576,7 +576,7 @@ void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
                     static_cast<int64>(num_rows) * (num_rows + 1) * (i + 1);
             }
 
-            gko::kernels::EXEC_NAMESPACE::run_kernel_col_reduction(
+            gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_col_reduction(
                 exec,
                 [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
@@ -620,7 +620,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             host_ref.get_data()[i] = dim[0] + i + 1;
         }
 
-        gko::kernels::EXEC_NAMESPACE::run_kernel_col_reduction_cached(
+        gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel_col_reduction_cached(
             exec, [] GKO_KERNEL(auto i, auto j) { return i + j + 2; },
             [] GKO_KERNEL(auto i, auto j) { return std::max(i, j); },
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),

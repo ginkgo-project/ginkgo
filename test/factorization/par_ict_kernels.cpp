@@ -118,7 +118,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
     gko::kernels::reference::par_ict_factorization::add_candidates(
         this->ref, mtx_llh.get(), this->mtx.get(), this->mtx_l.get(),
         res_mtx_l.get());
-    gko::kernels::EXEC_NAMESPACE::par_ict_factorization::add_candidates(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::add_candidates(
         this->exec, dmtx_llh.get(), this->dmtx.get(), this->dmtx_l.get(),
         dres_mtx_l.get());
 
@@ -140,9 +140,9 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
     gko::kernels::reference::par_ict_factorization::compute_factor(
         this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get());
     for (int i = 0; i < 20; ++i) {
-        gko::kernels::EXEC_NAMESPACE::par_ict_factorization::compute_factor(
-            this->exec, this->dmtx_ani.get(), this->dmtx_l_ani.get(),
-            dmtx_l_coo.get());
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::
+            compute_factor(this->exec, this->dmtx_ani.get(),
+                           this->dmtx_l_ani.get(), dmtx_l_coo.get());
     }
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_ani, this->dmtx_l_ani, 1e-2);
