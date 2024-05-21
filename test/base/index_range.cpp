@@ -30,7 +30,7 @@ public:
 void run_range_for(std::shared_ptr<gko::EXEC_TYPE> exec,
                    gko::array<int>& result_array)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto result, auto size) {
             for (auto i : gko::irange<int>{size}) {

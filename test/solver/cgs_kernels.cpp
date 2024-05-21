@@ -167,7 +167,7 @@ TEST_F(Cgs, CgsInitializeIsEquivalentToRef)
         ref, b.get(), r.get(), r_tld.get(), p.get(), q.get(), u.get(),
         u_hat.get(), v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
         rho_prev.get(), rho.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cgs::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::cgs::initialize(
         exec, d_b.get(), d_r.get(), d_r_tld.get(), d_p.get(), d_q.get(),
         d_u.get(), d_u_hat.get(), d_v_hat.get(), d_t.get(), d_alpha.get(),
         d_beta.get(), d_gamma.get(), d_rho_prev.get(), d_rho.get(),
@@ -197,7 +197,7 @@ TEST_F(Cgs, CgsStep1IsEquivalentToRef)
     gko::kernels::reference::cgs::step_1(ref, r.get(), u.get(), p.get(),
                                          q.get(), beta.get(), rho.get(),
                                          rho_prev.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cgs::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_1(
         exec, d_r.get(), d_u.get(), d_p.get(), d_q.get(), d_beta.get(),
         d_rho.get(), d_rho_prev.get(), d_stop_status.get());
 
@@ -214,7 +214,7 @@ TEST_F(Cgs, CgsStep2IsEquivalentToRef)
     gko::kernels::reference::cgs::step_2(ref, u.get(), v_hat.get(), q.get(),
                                          t.get(), alpha.get(), rho.get(),
                                          gamma.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cgs::step_2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_2(
         exec, d_u.get(), d_v_hat.get(), d_q.get(), d_t.get(), d_alpha.get(),
         d_rho.get(), d_gamma.get(), d_stop_status.get());
 
@@ -231,7 +231,7 @@ TEST_F(Cgs, CgsStep3IsEquivalentToRef)
     gko::kernels::reference::cgs::step_3(ref, t.get(), u_hat.get(), r.get(),
                                          x.get(), alpha.get(),
                                          stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::cgs::step_3(
+    gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_3(
         exec, d_t.get(), d_u_hat.get(), d_r.get(), d_x.get(), d_alpha.get(),
         d_stop_status.get());
 

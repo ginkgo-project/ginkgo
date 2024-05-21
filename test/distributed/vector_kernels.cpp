@@ -61,7 +61,7 @@ protected:
 
             gko::kernels::reference::distributed_vector::build_local(
                 ref, input, partition.get(), part, output.get());
-            gko::kernels::EXEC_NAMESPACE::distributed_vector::build_local(
+            gko::kernels::GKO_DEVICE_NAMESPACE::distributed_vector::build_local(
                 exec, d_input, d_partition.get(), part, d_output.get());
 
             GKO_ASSERT_MTX_NEAR(output, d_output, 0);

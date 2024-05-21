@@ -89,8 +89,8 @@ protected:
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, mtx.get(), l_row_ptrs, u_row_ptrs);
-        gko::kernels::EXEC_NAMESPACE::factorization::initialize_row_ptrs_l_u(
-            exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::
+            initialize_row_ptrs_l_u(exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
     }
 
     void initialize_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -121,7 +121,7 @@ protected:
 
         gko::kernels::reference::factorization::initialize_l_u(
             ref, mtx.get(), l.get(), u.get());
-        gko::kernels::EXEC_NAMESPACE::factorization::initialize_l_u(
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l_u(
             exec, dmtx.get(), dl.get(), du.get());
     }
 
@@ -139,7 +139,7 @@ protected:
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
             ref, iterations, coo.get(), l.get(), u_transpose_mtx.get());
-        gko::kernels::EXEC_NAMESPACE::par_ilu_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilu_factorization::
             compute_l_u_factors(exec, iterations, dcoo.get(), dl.get(),
                                 u_transpose_dmtx.get());
         auto u_lin_op = u_transpose_mtx->transpose();
@@ -160,7 +160,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), true);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
@@ -176,7 +176,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), false);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), false);
 
     ASSERT_FALSE(mtx->is_sorted_by_column_index());
@@ -193,7 +193,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), true);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());

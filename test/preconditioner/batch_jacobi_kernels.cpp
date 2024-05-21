@@ -117,7 +117,7 @@ protected:
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
                                   LogData& log_data) {
-            gko::kernels::EXEC_NAMESPACE::batch_bicgstab::apply<
+            gko::kernels::GKO_DEVICE_NAMESPACE::batch_bicgstab::apply<
                 typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
                                           log_data);
         };

@@ -50,7 +50,7 @@ TYPED_TEST(ReduceArray, EqualsReference)
 {
     gko::kernels::reference::components::reduce_add_array(this->ref, this->vals,
                                                           this->out);
-    gko::kernels::EXEC_NAMESPACE::components::reduce_add_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::reduce_add_array(
         this->exec, this->dvals, this->dout);
 
     GKO_ASSERT_ARRAY_EQ(this->out, this->dout);
