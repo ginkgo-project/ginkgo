@@ -102,15 +102,24 @@ void handle_list(
         auto exec = matrix->get_executor();
 #if GINKGO_BUILD_MPI
         if (gko::detail::is_distributed(matrix.get())) {
-            return share(build_smoother(
-                             experimental::distributed::preconditioner::Schwarz<
-                                 ValueType>::build()
-                                 .with_local_solver(
-                                     preconditioner::Jacobi<ValueType>::build()
-                                         .with_max_block_size(1u))
-                                 .on(exec),
-                             iteration, casting<ValueType>(relaxation_factor))
-                             ->generate(matrix));
+            using experimental::distributed::Matrix;
+            return run<Matrix<ValueType, int32, int32>,
+                       Matrix<ValueType, int32, int64>,
+                       Matrix<ValueType, int64, int64>>(
+                matrix, [exec, iteration, relaxation_factor](auto matrix) {
+                    using Mtx = typename decltype(matrix)::element_type;
+                    return share(
+                        build_smoother(
+                            experimental::distributed::preconditioner::Schwarz<
+                                ValueType, typename Mtx::local_index_type,
+                                typename Mtx::global_index_type>::build()
+                                .with_local_solver(
+                                    preconditioner::Jacobi<ValueType>::build()
+                                        .with_max_block_size(1u))
+                                .on(exec),
+                            iteration, casting<ValueType>(relaxation_factor))
+                            ->generate(matrix));
+                });
         }
 #endif
         return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
@@ -656,25 +665,36 @@ void Multigrid::generate()
 #if GINKGO_BUILD_MPI
                 if (gko::detail::is_distributed(matrix.get())) {
                     using absolute_value_type = remove_complex<value_type>;
-                    return solver::Gmres<value_type>::build()
-                        .with_criteria(
-                            stop::Iteration::build().with_max_iters(
-                                matrix->get_size()[0]),
-                            stop::ResidualNorm<value_type>::build()
-                                .with_reduction_factor(
-                                    std::numeric_limits<
-                                        absolute_value_type>::epsilon() *
-                                    absolute_value_type{10}))
-                        .with_krylov_dim(
-                            std::min(size_type(100), matrix->get_size()[0]))
-                        .with_preconditioner(
-                            experimental::distributed::preconditioner::Schwarz<
-                                value_type>::build()
-                                .with_local_solver(
-                                    preconditioner::Jacobi<value_type>::build()
-                                        .with_max_block_size(1u)))
-                        .on(exec)
-                        ->generate(matrix);
+                    using experimental::distributed::Matrix;
+                    return run<Matrix<value_type, int32, int32>,
+                               Matrix<value_type, int32, int64>,
+                               Matrix<value_type, int64,
+                                      int64>>(matrix, [exec](auto matrix) {
+                        using Mtx = typename decltype(matrix)::element_type;
+                        return solver::Gmres<value_type>::build()
+                            .with_criteria(
+                                stop::Iteration::build().with_max_iters(
+                                    matrix->get_size()[0]),
+                                stop::ResidualNorm<value_type>::build()
+                                    .with_reduction_factor(
+                                        std::numeric_limits<
+                                            absolute_value_type>::epsilon() *
+                                        absolute_value_type{10}))
+                            .with_krylov_dim(
+                                std::min(size_type(100), matrix->get_size()[0]))
+                            .with_preconditioner(
+                                experimental::distributed::preconditioner::
+                                    Schwarz<value_type,
+                                            typename Mtx::local_index_type,
+                                            typename Mtx::global_index_type>::
+                                        build()
+                                            .with_local_solver(
+                                                preconditioner::Jacobi<
+                                                    value_type>::build()
+                                                    .with_max_block_size(1u)))
+                            .on(exec)
+                            ->generate(matrix);
+                    });
                 }
 #endif
                 if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
