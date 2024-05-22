@@ -180,7 +180,7 @@ namespace detail {
  * @note it should only be used internally
  */
 struct MultigridState {
-    MultigridState() : nrhs{0} {}
+    MultigridState() : nrhs{static_cast<size_type>(-1)} {}
 
     /**
      * Generate the cache for later usage.
@@ -695,7 +695,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
                                               initial_guess_mode guess) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
         return;
     }
 
@@ -729,7 +729,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                                               LinOp* x,
                                               initial_guess_mode guess) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
         return;
     }
 
