@@ -6,10 +6,12 @@
 #define GKO_COMMON_CUDA_HIP_COMPONENTS_MEMORY_HPP_
 
 
-#ifdef GKO_COMPILING_HIP
-#include "hip/components/memory.hip.hpp"
-#else  // GKO_COMPILING_CUDA
+#ifdef GKO_COMPILING_CUDA
 #include "cuda/components/memory.cuh"
+#elif defined(GKO_COMPILING_HIP)
+#include "hip/components/memory.hip.hpp"
+#else
+#error "Executor definition missing"
 #endif
 
 

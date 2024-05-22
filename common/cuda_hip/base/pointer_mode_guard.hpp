@@ -6,10 +6,12 @@
 #define GKO_COMMON_CUDA_HIP_BASE_POINTER_MODE_GUARD_HPP_
 
 
-#ifdef GKO_COMPILING_HIP
-#include "hip/base/pointer_mode_guard.hip.hpp"
-#else  // GKO_COMPILING_CUDA
+#ifdef GKO_COMPILING_CUDA
 #include "cuda/base/pointer_mode_guard.hpp"
+#elif defined(GKO_COMPILING_HIP)
+#include "hip/base/pointer_mode_guard.hip.hpp"
+#else
+#error "Executor definition missing"
 #endif
 
 

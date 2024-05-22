@@ -33,7 +33,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include <common/cuda_hip/preconditioner/jacobi_advanced_apply_kernel.hpp.inc>
+#include "common/cuda_hip/preconditioner/jacobi_advanced_apply_kernels.hpp.inc"
 
 
 // clang-format off

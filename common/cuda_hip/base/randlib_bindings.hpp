@@ -6,10 +6,12 @@
 #define GKO_COMMON_CUDA_HIP_BASE_RANDLIB_BINDINGS_HPP_
 
 
-#ifdef GKO_COMPILING_HIP
-#include "hip/base/hiprand_bindings.hip.hpp"
-#else  // GKO_COMPILING_CUDA
+#ifdef GKO_COMPILING_CUDA
 #include "cuda/base/curand_bindings.hpp"
+#elif defined(GKO_COMPILING_HIP)
+#include "hip/base/hiprand_bindings.hip.hpp"
+#else
+#error "Executor definition missing"
 #endif
 
 

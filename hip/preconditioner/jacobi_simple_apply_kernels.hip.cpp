@@ -33,7 +33,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include <common/cuda_hip/preconditioner/jacobi_simple_apply_kernel.hpp.inc>
+#include "common/cuda_hip/preconditioner/jacobi_simple_apply_kernels.hpp.inc"
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,

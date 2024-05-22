@@ -6,10 +6,12 @@
 #define GKO_COMMON_CUDA_HIP_BASE_SPARSELIB_BINDINGS_HPP_
 
 
-#ifdef GKO_COMPILING_HIP
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#else  // GKO_COMPILING_CUDA
+#ifdef GKO_COMPILING_CUDA
 #include "cuda/base/cusparse_bindings.hpp"
+#elif defined(GKO_COMPILING_HIP)
+#include "hip/base/hipsparse_bindings.hip.hpp"
+#else
+#error "Executor definition missing"
 #endif
 
 
