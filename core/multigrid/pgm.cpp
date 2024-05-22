@@ -90,6 +90,12 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
+
+    if (nnz == 0) {
+        return matrix::Csr<ValueType, IndexType>::create(
+            exec, dim<2>(num_agg, non_local_num_agg));
+    }
+
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
                                 agg.get_const_data(), row_idxs.get_data()));
