@@ -882,9 +882,9 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
 {
     this->validate();
     if (!parameters_.level_selector) {
-        auto num = parameters_.mg_level.size();
-        level_selector_ = [num](const size_type level, const LinOp*) {
-            return (level < num) ? level : num - 1;
+        auto mg_level_size = parameters_.mg_level.size();
+        level_selector_ = [mg_level_size](const size_type level, const LinOp*) {
+            return (level < mg_level_size) ? level : mg_level_size - 1;
         };
     } else {
         level_selector_ = parameters_.level_selector;

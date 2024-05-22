@@ -203,9 +203,10 @@ public:
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
          * Selector function returns the element index in the vector for any
-         * given level index and the matrix of the fine level.
-         * For each level, this function is used to select the smoothers
-         * and multigrid level generation from the respective lists.
+         * given level index and the matrix of the fine level. The level 0 is
+         * the finest level and it is ascending when going to coarser levels.
+         * For each level, this function is used to select the smoothers and
+         * multigrid level generation from the respective lists.
          * For example,
          * ```
          * [](size_type level, const LinOp* fine_matrix) {
