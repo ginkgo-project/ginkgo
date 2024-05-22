@@ -65,7 +65,7 @@ public:
     using index_type = size_type;
 
     GKO_ACC_ATTRIBUTES cb_gmres(std::array<index_type, 2> stride)
-        : stride_{stride}
+        : stride_{stride[0], stride[1]}
     {}
 
     GKO_ACC_ATTRIBUTES index_type get_linear_index(index_type krylov_vec,
@@ -75,13 +75,10 @@ public:
         return vec_rhs * stride_[0] + krylov_vec * stride_[1] + vec_idx;
     }
 
-    GKO_ACC_ATTRIBUTES std::array<index_type, 2> get_stride() const
-    {
-        return stride_;
-    }
+    GKO_ACC_ATTRIBUTES const index_type* get_stride() const { return stride_; }
 
 private:
-    std::array<index_type, 2> stride_;
+    index_type stride_[2];
 };
 
 
