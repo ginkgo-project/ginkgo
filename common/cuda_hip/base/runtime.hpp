@@ -6,8 +6,12 @@
 #define GKO_COMMON_CUDA_HIP_BASE_RUNTIME_HPP_
 
 
-#ifdef GKO_COMPILING_HIP
+#ifdef GKO_COMPILING_CUDA
+// nothing needed here
+#elif defined(GKO_COMPILING_HIP)
 #include <hip/hip_runtime.h>
+#else
+#error "Executor definition missing"
 #endif
 
 

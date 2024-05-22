@@ -31,7 +31,7 @@ inline auto thrust_policy(std::shared_ptr<const CudaExecutor> exec)
 {
     return thrust::cuda::par.on(exec->get_stream());
 }
-#else
+#elif defined(GKO_COMPILING_HIP)
 inline auto thrust_policy(std::shared_ptr<const HipExecutor> exec)
 {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -40,6 +40,8 @@ inline auto thrust_policy(std::shared_ptr<const HipExecutor> exec)
     return thrust::cuda::par.on(exec->get_stream());
 #endif
 }
+#else
+#error "Executor definition missing"
 #endif
 
 

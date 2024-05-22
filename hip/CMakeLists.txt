@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
-add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_INSTANTIATE)
-add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANTIATE)
+add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_kernels.instantiate)
+add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_kernels.instantiate)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
@@ -31,30 +31,30 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ic_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
-    factorization/par_ilut_approx_filter_kernel.hip.cpp
-    factorization/par_ilut_filter_kernel.hip.cpp
+    factorization/par_ilut_approx_filter_kernels.hip.cpp
+    factorization/par_ilut_filter_kernels.hip.cpp
     factorization/par_ilut_select_common.hip.cpp
-    factorization/par_ilut_select_kernel.hip.cpp
-    factorization/par_ilut_spgeam_kernel.hip.cpp
-    factorization/par_ilut_sweep_kernel.hip.cpp
+    factorization/par_ilut_select_kernels.hip.cpp
+    factorization/par_ilut_spgeam_kernels.hip.cpp
+    factorization/par_ilut_sweep_kernels.hip.cpp
     matrix/batch_csr_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
-    ${CSR_INSTANTIATE}
+    ${CSR_kernels.instantiate}
     matrix/dense_kernels.hip.cpp
     matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
-    ${FBCSR_INSTANTIATE}
+    ${FBCSR_kernels.instantiate}
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
     multigrid/pgm_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
-    preconditioner/jacobi_advanced_apply_kernel.hip.cpp
-    preconditioner/jacobi_generate_kernel.hip.cpp
+    preconditioner/jacobi_advanced_apply_kernels.hip.cpp
+    preconditioner/jacobi_generate_kernels.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
-    preconditioner/jacobi_simple_apply_kernel.hip.cpp
+    preconditioner/jacobi_simple_apply_kernels.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     solver/batch_cg_kernels.hip.cpp
@@ -86,28 +86,28 @@ else()
 endif()
 foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
     configure_file(
-        preconditioner/jacobi_generate_instantiate.inc.hip.cpp
-        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+        preconditioner/jacobi_generate_kernels.instantiate.hip.cpp
+        preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
     configure_file(
-        preconditioner/jacobi_simple_apply_instantiate.inc.hip.cpp
-        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+        preconditioner/jacobi_simple_apply_kernels.instantiate.hip.cpp
+        preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
     configure_file(
-        preconditioner/jacobi_advanced_apply_instantiate.inc.hip.cpp
-        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.hip.cpp
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
     # The 3D indexing used in Jacobi kernel triggers an instruction selection bug in Debug builds
     # Probably the same as https://github.com/llvm/llvm-project/issues/67574
     # Fixed in ROCm 6.0 https://github.com/ROCm/llvm-project/commit/cd7f574a1fd1d3f3e8b9c1cae61fa8133a51de5f
     # and in LLVM trunk https://github.com/llvm/llvm-project/commit/cc3d2533cc2e4ea06981b86ede5087fbf801e789
     set_source_files_properties(
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
         PROPERTIES
         COMPILE_OPTIONS $<$<CONFIG:Debug>:-O2>)
     list(APPEND GINKGO_HIP_SOURCES
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
 endforeach()
 string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
 configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
