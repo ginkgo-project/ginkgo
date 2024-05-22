@@ -59,10 +59,11 @@ private:
 
 
 // Careful, this is neither row- nor column-major!
+template <typename IndexType = std::int32_t>
 struct cb_gmres {
 public:
     static constexpr int dimensionality = 3;
-    using index_type = size_type;
+    using index_type = IndexType;
 
     GKO_ACC_ATTRIBUTES cb_gmres(std::array<index_type, 2> stride)
         : stride_{stride[0], stride[1]}
@@ -88,7 +89,7 @@ private:
 template <int bits_per_value_, int max_exp_block_size_, typename ArithmeticType>
 class frsz2 {
 public:
-    using access_pattern = pattern::cb_gmres;
+    using access_pattern = pattern::cb_gmres<std::int32_t>;
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     static constexpr auto dimensionality = access_pattern::dimensionality;
     static constexpr auto bits_per_value{bits_per_value_};
