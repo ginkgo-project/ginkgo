@@ -123,7 +123,8 @@ std::vector<deferred_factory_parameter<const stop::CriterionFactory>>
 parse_or_get_criteria(const pnode& config, const registry& context,
                       const type_descriptor& td)
 {
-    if (config.get_tag() == pnode::tag_t::array) {
+    if (config.get_tag() == pnode::tag_t::array ||
+        (config.get_tag() == pnode::tag_t::map && config.get("type"))) {
         return parse_or_get_factory_vector<const stop::CriterionFactory>(
             config, context, td);
     }
