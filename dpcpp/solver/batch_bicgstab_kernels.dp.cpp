@@ -59,10 +59,10 @@ __dpct_inline__ int get_group_size(int value,
 
 
 template <typename ValueType>
-class KernelCaller {
+class kernel_caller {
 public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -129,20 +129,16 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto max_group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        int group_size =
-            device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > num_rows) {
-            group_size = get_group_size(num_rows);
-        };
+        int group_size = get_group_size(num_rows);
         group_size = std::min(
             std::max(group_size, static_cast<int>(2 * config::warp_size)),
             static_cast<int>(max_group_size));
 
         // reserve 5 for intermediate rho-s, norms,
-        // alpha, omega, temp and for reduce_over_group
+        // alpha, omega, temp
         // If the value available is negative, then set it to 0
         const int static_var_mem =
-            (group_size + 5) * sizeof(ValueType) + 2 * sizeof(real_type);
+            5 * sizeof(ValueType) + 2 * sizeof(real_type);
         int shmem_per_blk = std::max(
             static_cast<int>(
                 device.get_info<sycl::info::device::local_mem_size>()) -
@@ -167,8 +163,7 @@ public:
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
 
         // template
-        // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
-        // sg_kernel_all>
+        // launch_apply_kernel<StopType, subgroup_size, n_shared_total>
         if (num_rows <= 32 && n_shared_total == 10) {
             launch_apply_kernel<StopType, 32, 10>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
@@ -256,7 +251,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, settings), settings, mat, precond);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 

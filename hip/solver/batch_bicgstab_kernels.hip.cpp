@@ -70,7 +70,8 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
         &max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
         exec->get_device_id()));
-    const int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
+    int max_threads_regs = (max_regs_blk / num_regs_used_per_thread);
+    max_threads_regs = (max_threads_regs / warp_sz) * warp_sz;
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
     return std::max(std::min(num_warps * warp_sz, max_threads), min_block_size);
@@ -129,6 +130,7 @@ public:
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
+        GKO_ASSERT(block_size % config::warp_size == 0);
 
         // Returns amount required in bytes
         const size_t prec_size = PrecType::dynamic_work_size(
@@ -144,7 +146,7 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         value_type* const workspace_data = workspace.get_data();
 
