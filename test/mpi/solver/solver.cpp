@@ -95,6 +95,8 @@ struct SimpleSolverTest {
         ASSERT_EQ(mtx->get_preconditioner(), nullptr);
         ASSERT_EQ(mtx->get_stopping_criterion_factory(), nullptr);
     }
+
+    static bool blacklisted(const std::string& test) { return false; }
 };
 
 
@@ -133,7 +135,8 @@ struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
             .with_preconditioner(
                 gko::solver::Multigrid::build()
                     .with_mg_level(
-                        gko::multigrid::Pgm<solver_value_type>::build())
+                        gko::multigrid::Pgm<solver_value_type>::build()
+                            .with_deterministic(false))
                     .with_min_coarse_rows(
                         16u)  // necessary since the test matrices have less
                               // rows than the default value
@@ -143,6 +146,16 @@ struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
                         gko::stop::ResidualNorm<value_type>::build()
                             .with_baseline(gko::stop::mode::absolute)
                             .with_reduction_factor(2 * reduction_factor())));
+    }
+
+    static bool blacklisted(const std::string& test)
+    {
+#ifdef GKO_COMPILING_HIP
+        // SPGEAM is broken for empty matrices on rocm <= 4.5
+        return test == "some-empty-partition";
+#else
+        return false;
+#endif
     }
 };
 
@@ -348,6 +361,9 @@ protected:
         }
         {
             SCOPED_TRACE("Some empty partition");
+            if (Config::blacklisted("some-empty-partition")) {
+                return;
+            }
             guarded_fn(gen_part(50, std::max(1, comm.size() - 1)));
         }
     }
