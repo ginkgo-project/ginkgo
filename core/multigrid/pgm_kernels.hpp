@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -80,10 +81,14 @@ namespace pgm {
                             const IndexType* col_idxs, const ValueType* vals, \
                             matrix::Coo<ValueType, IndexType>* coarse_coo)
 
-#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
-    void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
-                      size_type num_res, const IndexType* orig,    \
-                      const IndexType* gather_map, IndexType* result)
+#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType, GlobalIndexType)               \
+    void gather_as_global_index(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const experimental::distributed::Partition<                            \
+            IndexType, GlobalIndexType>* partition,                            \
+        experimental::distributed::comm_index_type part_id, size_type num_res, \
+        const IndexType* orig, const IndexType* gather_map,                    \
+        GlobalIndexType* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
@@ -109,8 +114,8 @@ namespace pgm {
     GKO_DECLARE_PGM_SORT_ROW_MAJOR(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
+    template <typename IndexType, typename GlobalIndexType>        \
+    GKO_DECLARE_PGM_GATHER_INDEX(IndexType, GlobalIndexType)
 
 
 }  // namespace pgm

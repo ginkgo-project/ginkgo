@@ -195,11 +195,14 @@ protected:
 
 #if GINKGO_BUILD_MPI
     template <typename GlobalIndexType>
-    void communicate(std::shared_ptr<const experimental::distributed::Matrix<
-                         ValueType, IndexType, GlobalIndexType>>
-                         matrix,
-                     const array<IndexType>& local_agg,
-                     array<IndexType>& non_local_agg);
+    void communicate(
+        std::shared_ptr<const experimental::distributed::Matrix<
+            ValueType, IndexType, GlobalIndexType>>
+            matrix,
+        std::shared_ptr<
+            experimental::distributed::Partition<IndexType, GlobalIndexType>>
+            coarse_partition,
+        const array<IndexType>& local_agg, array<IndexType>& non_local_agg);
 #endif
 
 private:

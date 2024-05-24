@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -51,7 +52,7 @@ GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
+GKO_REGISTER_OPERATION(gather_as_global_index, pgm::gather_as_global_index);
 
 
 }  // anonymous namespace
@@ -253,6 +254,9 @@ void Pgm<ValueType, IndexType>::communicate(
     std::shared_ptr<const experimental::distributed::Matrix<
         ValueType, IndexType, GlobalIndexType>>
         matrix,
+    std::shared_ptr<
+        experimental::distributed::Partition<IndexType, GlobalIndexType>>
+        coarse_partition,
     const array<IndexType>& local_agg, array<IndexType>& non_local_agg)
 {
     auto exec = gko::as<LinOp>(matrix)->get_executor();
@@ -265,14 +269,16 @@ void Pgm<ValueType, IndexType>::communicate(
     auto total_send_size = send_offsets.back();
     auto total_recv_size = recv_offsets.back();
 
-    array<IndexType> send_agg(exec, total_send_size);
-    exec->run(pgm::make_gather_index(
-        send_agg.get_size(), local_agg.get_const_data(),
-        gather_idxs.get_const_data(), send_agg.get_data()));
+    array<GlobalIndexType> send_agg(exec, total_send_size);
+    array<GlobalIndexType> non_local_agg(exec, total_recv_size);
+    exec->run(pgm::make_gather_as_global_index(
+        coarse_partition.get(), comm.rank(), send_agg.get_size(),
+        local_agg.get_const_data(), gather_idxs.get_const_data(),
+        send_agg.get_data()));
 
     auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
-    array<IndexType> host_recv_buffer(exec->get_master());
-    array<IndexType> host_send_buffer(exec->get_master());
+    array<GlobalIndexType> host_recv_buffer(exec->get_master());
+    array<GlobalIndexType> host_send_buffer(exec->get_master());
     if (use_host_buffer) {
         host_recv_buffer.resize_and_reset(total_recv_size);
         host_send_buffer.resize_and_reset(total_send_size);
@@ -280,7 +286,7 @@ void Pgm<ValueType, IndexType>::communicate(
                                       send_agg.get_data(),
                                       host_send_buffer.get_data());
     }
-    auto type = experimental::mpi::type_impl<IndexType>::get_type();
+    auto type = experimental::mpi::type_impl<GlobalIndexType>::get_type();
 
     const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
                                           : send_agg.get_const_data();
