@@ -107,7 +107,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
@@ -135,7 +134,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      non_local_to_global_{exec},
       one_scalar_{},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
           exec, dim<2>{local_linop->get_size()[0], 0}))
@@ -160,7 +158,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      non_local_to_global_{exec},
       one_scalar_{}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
@@ -244,7 +241,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
-    result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
 
@@ -264,7 +260,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
-    result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -316,11 +311,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     auto non_local_col_idxs =
         imap_.map_to_local(global_non_local_col_idxs, index_space::non_local);
-    non_local_to_global_ =
-        make_const_array_view(
-            imap_.get_executor(), imap_.get_remote_global_idxs().get_size(),
-            imap_.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
 
     // read the local matrix data
     const auto num_local_rows =
@@ -608,7 +598,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_offsets_ = other.recv_offsets_;
         send_sizes_ = other.send_sizes_;
         recv_sizes_ = other.recv_sizes_;
-        non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
@@ -633,7 +622,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         recv_offsets_ = std::move(other.recv_offsets_);
         send_sizes_ = std::move(other.send_sizes_);
         recv_sizes_ = std::move(other.recv_sizes_);
-        non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
