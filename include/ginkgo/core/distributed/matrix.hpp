@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -587,11 +587,9 @@ public:
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        dim<2> size, std::shared_ptr<LinOp> local_linop,
-        std::shared_ptr<LinOp> non_local_linop,
-        std::vector<comm_index_type> recv_sizes,
-        std::vector<comm_index_type> recv_offsets,
-        array<local_index_type> recv_gather_idxs);
+        index_map<local_index_type, global_index_type> imap,
+        std::shared_ptr<LinOp> local_linop,
+        std::shared_ptr<LinOp> non_local_linop);
 
     /**
      * Scales the columns of the matrix by the respective entries of the vector.
@@ -625,12 +623,10 @@ protected:
                     std::shared_ptr<LinOp> local_linop);
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, dim<2> size,
+                    mpi::communicator comm,
+                    index_map<local_index_type, global_index_type> imap,
                     std::shared_ptr<LinOp> local_linop,
-                    std::shared_ptr<LinOp> non_local_linop,
-                    std::vector<comm_index_type> recv_sizes,
-                    std::vector<comm_index_type> recv_offsets,
-                    array<local_index_type> recv_gather_idxs);
+                    std::shared_ptr<LinOp> non_local_linop);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
@@ -648,6 +644,7 @@ protected:
                     LinOp* x) const override;
 
 private:
+    index_map<local_index_type, global_index_type> imap_;
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
