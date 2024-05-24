@@ -78,9 +78,8 @@ struct index_map {
      * \return  the mapped local indices. Any global index that is not in the
      *          specified index space is mapped to invalid_index.
      */
-    array<LocalIndexType> map_to_local(
-        const array<GlobalIndexType>& global_ids,
-        index_space index_space_v = index_space::combined) const;
+    array<LocalIndexType> map_to_local(const array<GlobalIndexType>& global_ids,
+                                       index_space index_space_v) const;
 
     /**
      * \brief get size of index_space::local
