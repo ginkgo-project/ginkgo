@@ -31,6 +31,62 @@ GKO_REGISTER_OPERATION(separate_local_nonlocal,
 }  // namespace matrix
 
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void initialize_communication_pattern(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    const index_map<LocalIndexType, GlobalIndexType>& imap,
+    std::vector<comm_index_type>& recv_sizes,
+    std::vector<comm_index_type>& recv_offsets,
+    std::vector<comm_index_type>& send_sizes,
+    std::vector<comm_index_type>& send_offsets,
+    array<LocalIndexType>& gather_idxs)
+{
+    // exchange step 1: determine recv_sizes, send_sizes, send_offsets
+    auto host_recv_targets =
+        make_temporary_clone(exec->get_master(), &imap.get_remote_target_ids());
+    auto host_offsets = make_temporary_clone(
+        exec->get_master(), &imap.get_remote_global_idxs().get_offsets());
+    auto compute_recv_sizes = [](const auto* recv_targets, size_type size,
+                                 const auto* offsets, auto& recv_sizes) {
+        for (size_type i = 0; i < size; ++i) {
+            recv_sizes[recv_targets[i]] = offsets[i + 1] - offsets[i];
+        }
+    };
+    std::fill(recv_sizes.begin(), recv_sizes.end(), 0);
+    compute_recv_sizes(host_recv_targets->get_const_data(),
+                       host_recv_targets->get_size(),
+                       host_offsets->get_const_data(), recv_sizes);
+    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                     recv_offsets.begin() + 1);
+    comm.all_to_all(exec, recv_sizes.data(), 1, send_sizes.data(), 1);
+    std::partial_sum(send_sizes.begin(), send_sizes.end(),
+                     send_offsets.begin() + 1);
+    send_offsets[0] = 0;
+    recv_offsets[0] = 0;
+
+    // exchange step 2: exchange gather_idxs from receivers to senders
+    auto recv_gather_idxs =
+        make_const_array_view(
+            imap.get_executor(), imap.get_non_local_size(),
+            imap.get_remote_local_idxs().get_const_flat_data())
+            .copy_to_array();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    if (use_host_buffer) {
+        recv_gather_idxs.set_executor(exec->get_master());
+        gather_idxs.clear();
+        gather_idxs.set_executor(exec->get_master());
+    }
+    gather_idxs.resize_and_reset(send_offsets.back());
+    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
+                      recv_gather_idxs.get_const_data(), recv_sizes.data(),
+                      recv_offsets.data(), gather_idxs.get_data(),
+                      send_sizes.data(), send_offsets.data());
+    if (use_host_buffer) {
+        gather_idxs.set_executor(exec);
+    }
+}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
@@ -47,6 +103,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     ptr_param<const LinOp> non_local_matrix_template)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
+      imap_(exec),
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
@@ -73,6 +130,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<LinOp> local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
+      imap_(exec),
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
@@ -91,13 +149,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
-    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
-    std::vector<comm_index_type> recv_sizes,
-    std::vector<comm_index_type> recv_offsets,
-    array<local_index_type> recv_gather_idxs)
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    index_map<LocalIndexType, GlobalIndexType> imap,
+    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
+      imap_(std::move(imap)),
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
@@ -106,39 +163,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{}
 {
-    this->set_size(size);
+    this->set_size({imap_.get_global_size(), imap_.get_global_size()});
     local_mtx_ = std::move(local_linop);
     non_local_mtx_ = std::move(non_local_linop);
-    recv_offsets_ = std::move(recv_offsets);
-    recv_sizes_ = std::move(recv_sizes);
-    // build send information from recv copy
-    // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
-                     recv_offsets_.begin() + 1);
-    comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
-    std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
-                     send_offsets_.begin() + 1);
-    send_offsets_[0] = 0;
-    recv_offsets_[0] = 0;
-
-    // exchange step 2: exchange gather_idxs from receivers to senders
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-    if (use_host_buffer) {
-        recv_gather_idxs.set_executor(exec->get_master());
-        gather_idxs_.clear();
-        gather_idxs_.set_executor(exec->get_master());
-    }
-    gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                      recv_offsets_.data(), gather_idxs_.get_data(),
-                      send_sizes_.data(), send_offsets_.data());
-    if (use_host_buffer) {
-        gather_idxs_.set_executor(exec);
-    }
-
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
+
+    initialize_communication_pattern(
+        this->get_executor(), this->get_communicator(), imap_, recv_sizes_,
+        recv_offsets_, send_sizes_, send_offsets_, gather_idxs_);
 }
 
 
@@ -186,15 +219,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
-    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
-    std::vector<comm_index_type> recv_sizes,
-    std::vector<comm_index_type> recv_offsets,
-    array<local_index_type> recv_gather_idxs)
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    index_map<LocalIndexType, GlobalIndexType> imap,
+    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
 {
-    return std::unique_ptr<Matrix>{new Matrix{
-        exec, comm, size, local_linop, non_local_linop, std::move(recv_sizes),
-        std::move(recv_offsets), std::move(recv_gather_idxs)}};
+    return std::unique_ptr<Matrix>{
+        new Matrix{std::move(exec), comm, std::move(imap),
+                   std::move(local_linop), std::move(non_local_linop)}};
 }
 
 
@@ -207,6 +238,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_);
     result->non_local_mtx_->copy_from(this->non_local_mtx_);
+    result->imap_ = this->imap_;
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
@@ -226,6 +258,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_);
     result->non_local_mtx_->move_from(this->non_local_mtx_);
+    result->imap_ = std::move(this->imap_);
     result->gather_idxs_ = std::move(this->gather_idxs_);
     result->send_offsets_ = std::move(this->send_offsets_);
     result->recv_offsets_ = std::move(this->recv_offsets_);
@@ -252,7 +285,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
-    result->non_local_to_global_ = this->non_local_to_global_;
+    result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
 
@@ -271,7 +304,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
-    result->non_local_to_global_ = std::move(this->non_local_to_global_);
+    result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -330,15 +363,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         local_part, local_row_idxs, local_col_idxs, local_values,
         non_local_row_idxs, global_non_local_col_idxs, non_local_values));
 
-    auto imap = index_map<local_index_type, global_index_type>(
+    imap_ = index_map<local_index_type, global_index_type>(
         exec, col_partition, comm.rank(), global_non_local_col_idxs);
 
     auto non_local_col_idxs =
-        imap.map_to_local(global_non_local_col_idxs, index_space::non_local);
+        imap_.map_to_local(global_non_local_col_idxs, index_space::non_local);
     non_local_to_global_ =
         make_const_array_view(
-            imap.get_executor(), imap.get_remote_global_idxs().get_size(),
-            imap.get_remote_global_idxs().get_const_flat_data())
+            imap_.get_executor(), imap_.get_remote_global_idxs().get_size(),
+            imap_.get_remote_global_idxs().get_const_flat_data())
             .copy_to_array();
 
     // read the local matrix data
@@ -350,7 +383,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
         std::move(local_col_idxs), std::move(local_values)};
     device_matrix_data<value_type, local_index_type> non_local_data{
-        exec, dim<2>{num_local_rows, imap.get_remote_global_idxs().get_size()},
+        exec, dim<2>{num_local_rows, imap_.get_remote_global_idxs().get_size()},
         std::move(non_local_row_idxs), std::move(non_local_col_idxs),
         std::move(non_local_values)};
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
@@ -358,48 +391,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
         ->read(std::move(non_local_data));
 
-    // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    auto host_recv_targets =
-        make_temporary_clone(exec->get_master(), &imap.get_remote_target_ids());
-    auto host_offsets = make_temporary_clone(
-        exec->get_master(), &imap.get_remote_global_idxs().get_offsets());
-    auto compute_recv_sizes = [](const auto* recv_targets, size_type size,
-                                 const auto* offsets, auto& recv_sizes) {
-        for (size_type i = 0; i < size; ++i) {
-            recv_sizes[recv_targets[i]] = offsets[i + 1] - offsets[i];
-        }
-    };
-    std::fill(recv_sizes_.begin(), recv_sizes_.end(), 0);
-    compute_recv_sizes(host_recv_targets->get_const_data(),
-                       host_recv_targets->get_size(),
-                       host_offsets->get_const_data(), recv_sizes_);
-    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
-                     recv_offsets_.begin() + 1);
-    comm.all_to_all(exec, recv_sizes_.data(), 1, send_sizes_.data(), 1);
-    std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
-                     send_offsets_.begin() + 1);
-    send_offsets_[0] = 0;
-    recv_offsets_[0] = 0;
-
-    // exchange step 2: exchange gather_idxs from receivers to senders
-    auto recv_gather_idxs =
-        make_const_array_view(
-            imap.get_executor(), imap.get_non_local_size(),
-            imap.get_remote_local_idxs().get_const_flat_data())
-            .copy_to_array();
-    if (use_host_buffer) {
-        recv_gather_idxs.set_executor(exec->get_master());
-        gather_idxs_.clear();
-        gather_idxs_.set_executor(exec->get_master());
-    }
-    gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
-                      recv_offsets_.data(), gather_idxs_.get_data(),
-                      send_sizes_.data(), send_offsets_.data());
-    if (use_host_buffer) {
-        gather_idxs_.set_executor(exec);
-    }
+    initialize_communication_pattern(exec, comm, imap_, recv_sizes_,
+                                     recv_offsets_, send_sizes_, send_offsets_,
+                                     gather_idxs_);
 }
 
 
@@ -633,7 +627,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      imap_(other.get_executor())
 {
     *this = other;
 }
@@ -644,7 +639,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      imap_(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -661,6 +657,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         this->set_size(other.get_size());
         local_mtx_->copy_from(other.local_mtx_);
         non_local_mtx_->copy_from(other.non_local_mtx_);
+        imap_ = other.imap_;
         gather_idxs_ = other.gather_idxs_;
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
@@ -685,6 +682,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         other.set_size({});
         local_mtx_->move_from(other.local_mtx_);
         non_local_mtx_->move_from(other.non_local_mtx_);
+        imap_ = std::move(other.imap_);
         gather_idxs_ = std::move(other.gather_idxs_);
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);
