@@ -203,9 +203,10 @@ public:
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
          * Selector function returns the element index in the vector for any
-         * given level index and the matrix of the fine level.
-         * For each level, this function is used to select the smoothers
-         * and multigrid level generation from the respective lists.
+         * given level index and the matrix of the fine level. The level 0 is
+         * the finest level and it is ascending when going to coarser levels.
+         * For each level, this function is used to select the smoothers and
+         * multigrid level generation from the respective lists.
          * For example,
          * ```
          * [](size_type level, const LinOp* fine_matrix) {
@@ -222,9 +223,8 @@ public:
          * >= 3 and the number of rows of fine matrix > 1024, or the 2-idx
          * elements otherwise.
          *
-         * default selector:
-         *     use the first factory when mg_level size = 1
-         *     use the level as the index when mg_level size > 1
+         * default selector: use the level as the index when the level <
+         *   #mg_level and reuse the last one when the level >= #mg_level
          */
         std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
