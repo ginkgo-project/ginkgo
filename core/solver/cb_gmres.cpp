@@ -165,7 +165,7 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto factory = solver::CbGmres<ValueType>::build();
-    common_solver_configure(factory, config, context, td_for_child);
+    common_solver_parse(factory, config, context, td_for_child);
     if (auto& obj = config.get("krylov_dim")) {
         factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }

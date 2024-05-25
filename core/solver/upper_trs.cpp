@@ -15,6 +15,7 @@
 
 
 #include "core/config/config_helper.hpp"
+#include "core/config/trisolver_config.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 
 
@@ -40,26 +41,9 @@ UpperTrs<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = UpperTrs<ValueType, IndexType>::build();
-    // duplicate?
-    if (auto& obj = config.get("num_rhs")) {
-        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
-    }
-    if (auto& obj = config.get("unit_diagonal")) {
-        factory.with_unit_diagonal(gko::config::get_value<bool>(obj));
-    }
-    if (auto& obj = config.get("algorithm")) {
-        using gko::solver::trisolve_algorithm;
-        auto str = obj.get_string();
-        if (str == "sparselib") {
-            factory.with_algorithm(trisolve_algorithm::sparselib);
-        } else if (str == "syncfree") {
-            factory.with_algorithm(trisolve_algorithm::syncfree);
-        } else {
-            GKO_INVALID_STATE("Wrong value for algorithm");
-        }
-    }
-    return factory;
+    auto param = UpperTrs<ValueType, IndexType>::build();
+    common_trisolver_parse(param, config, context, td_for_child);
+    return param;
 }
 
 

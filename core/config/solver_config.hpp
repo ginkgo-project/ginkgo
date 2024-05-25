@@ -17,10 +17,10 @@ namespace gko {
 namespace config {
 
 
-template <typename SolverFactory>
-inline void common_solver_configure(SolverFactory& params, const pnode& config,
-                                    const registry& context,
-                                    type_descriptor td_for_child)
+template <typename SolverParam>
+inline void common_solver_parse(SolverParam& params, const pnode& config,
+                                const registry& context,
+                                type_descriptor td_for_child)
 {
     if (auto& obj = config.get("generated_preconditioner")) {
         params.with_generated_preconditioner(

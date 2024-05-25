@@ -29,19 +29,19 @@ namespace gko {
 namespace config {
 
 
-PARSE_VALUE_TYPE(Cg, gko::solver::Cg);
-PARSE_VALUE_TYPE(Bicg, gko::solver::Bicg);
-PARSE_VALUE_TYPE(Bicgstab, gko::solver::Bicgstab);
-PARSE_VALUE_TYPE(Cgs, gko::solver::Cgs);
-PARSE_VALUE_TYPE(Fcg, gko::solver::Fcg);
-PARSE_VALUE_TYPE(Ir, gko::solver::Ir);
-PARSE_VALUE_TYPE(Idr, gko::solver::Idr);
-PARSE_VALUE_TYPE(Gcr, gko::solver::Gcr);
-PARSE_VALUE_TYPE(Gmres, gko::solver::Gmres);
-PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
-PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
-PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
-PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
+GKO_PARSE_VALUE_TYPE(Cg, gko::solver::Cg);
+GKO_PARSE_VALUE_TYPE(Bicg, gko::solver::Bicg);
+GKO_PARSE_VALUE_TYPE(Bicgstab, gko::solver::Bicgstab);
+GKO_PARSE_VALUE_TYPE(Cgs, gko::solver::Cgs);
+GKO_PARSE_VALUE_TYPE(Fcg, gko::solver::Fcg);
+GKO_PARSE_VALUE_TYPE(Ir, gko::solver::Ir);
+GKO_PARSE_VALUE_TYPE(Idr, gko::solver::Idr);
+GKO_PARSE_VALUE_TYPE(Gcr, gko::solver::Gcr);
+GKO_PARSE_VALUE_TYPE(Gmres, gko::solver::Gmres);
+GKO_PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
 
 
 }  // namespace config
