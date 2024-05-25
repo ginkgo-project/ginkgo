@@ -29,9 +29,9 @@ using namespace gko::config;
 using DummyIr = gko::solver::Ir<float>;
 
 
-template <typename ExplicitType, typename DefaultType>
+template <typename ChangedType, typename DefaultType>
 struct PreconditionerConfigTest {
-    using explicit_type = ExplicitType;
+    using changed_type = ChangedType;
     using default_type = DefaultType;
     using preconditioner_config_test = PreconditionerConfigTest;
     static pnode::map_type setup_base()
@@ -42,7 +42,7 @@ struct PreconditionerConfigTest {
 
 
 struct Ic : PreconditionerConfigTest<
-                ::gko::preconditioner::Ic<DummyIr, gko::int64>,
+                ::gko::preconditioner::Ic<DummyIr, int>,
                 ::gko::preconditioner::Ic<gko::solver::LowerTrs<>, int>> {
     static pnode::map_type setup_base()
     {
@@ -53,7 +53,6 @@ struct Ic : PreconditionerConfigTest<
     {
         config_map["value_type"] = pnode{"float32"};
         config_map["l_solver_type"] = pnode{"solver::Ir"};
-        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -63,7 +62,7 @@ struct Ic : PreconditionerConfigTest<
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
             param.with_l_solver(detail::registry_accessor::get_data<
-                                typename explicit_type::l_solver_type::Factory>(
+                                typename changed_type::l_solver_type::Factory>(
                 reg, "l_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
@@ -72,7 +71,7 @@ struct Ic : PreconditionerConfigTest<
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
+            param.with_l_solver(changed_type::l_solver_type::build().on(exec));
             config_map["factorization"] =
                 pnode{{{"type", pnode{"solver::Ir"}},
                        {"value_type", pnode{"float32"}}}};
@@ -106,7 +105,7 @@ struct Ic : PreconditionerConfigTest<
 
 struct Ilu
     : PreconditionerConfigTest<
-          ::gko::preconditioner::Ilu<DummyIr, DummyIr, true, gko::int64>,
+          ::gko::preconditioner::Ilu<DummyIr, DummyIr, true, int>,
           ::gko::preconditioner::Ilu<gko::solver::LowerTrs<>,
                                      gko::solver::UpperTrs<>, false, int>> {
     static pnode::map_type setup_base()
@@ -118,7 +117,6 @@ struct Ilu
     {
         config_map["value_type"] = pnode{"float32"};
         config_map["l_solver_type"] = pnode{"solver::Ir"};
-        config_map["index_type"] = pnode{"int64"};
         config_map["reverse_apply"] = pnode{true};
     }
 
@@ -129,11 +127,11 @@ struct Ilu
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
             param.with_l_solver(detail::registry_accessor::get_data<
-                                typename explicit_type::l_solver_type::Factory>(
+                                typename changed_type::l_solver_type::Factory>(
                 reg, "l_solver"));
             config_map["u_solver"] = pnode{"u_solver"};
             param.with_u_solver(detail::registry_accessor::get_data<
-                                typename explicit_type::u_solver_type::Factory>(
+                                typename changed_type::u_solver_type::Factory>(
                 reg, "u_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
@@ -142,10 +140,10 @@ struct Ilu
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_l_solver(explicit_type::l_solver_type::build().on(exec));
+            param.with_l_solver(changed_type::l_solver_type::build().on(exec));
             config_map["u_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_u_solver(explicit_type::u_solver_type::build().on(exec));
+            param.with_u_solver(changed_type::u_solver_type::build().on(exec));
             config_map["factorization"] =
                 pnode{{{"type", pnode{"solver::Ir"}},
                        {"value_type", pnode{"float32"}}}};
@@ -185,7 +183,7 @@ struct Ilu
 struct Isai
     : PreconditionerConfigTest<
           ::gko::preconditioner::Isai<gko::preconditioner::isai_type::upper,
-                                      float, gko::int64>,
+                                      float, int>,
           ::gko::preconditioner::Isai<gko::preconditioner::isai_type::lower,
                                       double, int>> {
     static pnode::map_type setup_base()
@@ -198,7 +196,6 @@ struct Isai
     {
         config_map["isai_type"] = pnode{"upper"};
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -213,7 +210,7 @@ struct Isai
         param.with_excess_limit(32u);
         config_map["excess_solver_reduction"] = pnode{1e-4};
         param.with_excess_solver_reduction(
-            gko::remove_complex<typename explicit_type::value_type>{1e-4});
+            gko::remove_complex<typename changed_type::value_type>{1e-4});
         if (from_reg) {
             config_map["excess_solver_factory"] = pnode{"solver"};
             param.with_excess_solver_factory(
@@ -252,7 +249,7 @@ struct Isai
 
 
 struct Jacobi
-    : PreconditionerConfigTest<::gko::preconditioner::Jacobi<float, gko::int64>,
+    : PreconditionerConfigTest<::gko::preconditioner::Jacobi<float, int>,
                                ::gko::preconditioner::Jacobi<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -262,7 +259,6 @@ struct Jacobi
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -280,7 +276,7 @@ struct Jacobi
         param.with_storage_optimization(gko::precision_reduction(0, 1));
         config_map["accuracy"] = pnode{1e-2};
         param.with_accuracy(
-            gko::remove_complex<typename explicit_type::value_type>{1e-2});
+            gko::remove_complex<typename changed_type::value_type>{1e-2});
     }
 
     template <bool from_reg, typename AnswerType>
@@ -360,7 +356,7 @@ TYPED_TEST(Preconditioner, ExplicitTemplate)
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = Config::explicit_type::build().on(this->exec);
+    auto ans = Config::changed_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -371,12 +367,12 @@ TYPED_TEST(Preconditioner, SetFromRegistry)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::explicit_type::build();
-    Config::template set<true>(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_type::build();
+    Config::template set<true>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -387,12 +383,12 @@ TYPED_TEST(Preconditioner, SetFromConfig)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::explicit_type::build();
-    Config::template set<false>(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_type::build();
+    Config::template set<false>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());
 }
