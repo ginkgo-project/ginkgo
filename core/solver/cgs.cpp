@@ -41,9 +41,9 @@ typename Cgs<ValueType>::parameters_type Cgs<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Cgs<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
-    return factory;
+    auto params = solver::Cgs<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    return params;
 }
 
 

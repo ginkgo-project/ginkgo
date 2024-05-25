@@ -40,9 +40,9 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Cg<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
-    return factory;
+    auto params = solver::Cg<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    return params;
 }
 
 

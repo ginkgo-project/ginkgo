@@ -341,7 +341,7 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
 
 
 struct Direct
-    : SolverConfigTest<gko::experimental::solver::Direct<float, gko::int64>,
+    : SolverConfigTest<gko::experimental::solver::Direct<float, int>,
                        gko::experimental::solver::Direct<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -351,7 +351,6 @@ struct Direct
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -393,11 +392,10 @@ struct Direct
 
 
 template <template <class, class> class Trs>
-struct TrsHelper : SolverConfigTest<Trs<float, gko::int64>, Trs<double, int>> {
+struct TrsHelper : SolverConfigTest<Trs<float, int>, Trs<double, int>> {
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -507,12 +505,12 @@ TYPED_TEST(Solver, SetFromRegistry)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::changed_solver_type::build();
-    Config::template set<true>(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_solver_type::build();
+    Config::template set<true>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -523,12 +521,12 @@ TYPED_TEST(Solver, SetFromConfig)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::changed_solver_type::build();
-    Config::template set<false>(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_solver_type::build();
+    Config::template set<false>(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::template validate<false>(res.get(), ans.get());
 }

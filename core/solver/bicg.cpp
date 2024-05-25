@@ -38,9 +38,9 @@ typename Bicg<ValueType>::parameters_type Bicg<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Bicg<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
-    return factory;
+    auto params = solver::Bicg<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    return params;
 }
 
 

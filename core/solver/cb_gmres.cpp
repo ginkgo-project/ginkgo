@@ -164,10 +164,10 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::CbGmres<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
+    auto params = solver::CbGmres<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
     if (auto& obj = config.get("krylov_dim")) {
-        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("storage_precision")) {
         auto get_storage_precision = [](std::string str) {
@@ -187,9 +187,9 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
             }
             GKO_INVALID_STATE("Wrong value for storage_precision");
         };
-        factory.with_storage_precision(get_storage_precision(obj.get_string()));
+        params.with_storage_precision(get_storage_precision(obj.get_string()));
     }
-    return factory;
+    return params;
 }
 
 

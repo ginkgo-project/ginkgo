@@ -41,9 +41,9 @@ LowerTrs<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto param = LowerTrs<ValueType, IndexType>::build();
-    common_trisolver_parse(param, config, context, td_for_child);
-    return param;
+    auto params = LowerTrs<ValueType, IndexType>::build();
+    common_trisolver_parse(params, config, context, td_for_child);
+    return params;
 }
 
 

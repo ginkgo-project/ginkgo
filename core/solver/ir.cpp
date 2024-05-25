@@ -35,29 +35,29 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Ir<ValueType>::build();
+    auto params = solver::Ir<ValueType>::build();
     if (auto& obj = config.get("criteria")) {
-        factory.with_criteria(
+        params.with_criteria(
             gko::config::parse_or_get_factory_vector<
                 const stop::CriterionFactory>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("solver")) {
-        factory.with_solver(
+        params.with_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("generated_solver")) {
-        factory.with_generated_solver(
+        params.with_generated_solver(
             gko::config::get_stored_obj<const LinOp>(obj, context));
     }
     if (auto& obj = config.get("relaxation_factor")) {
-        factory.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
+        params.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
     }
     if (auto& obj = config.get("default_initial_guess")) {
-        factory.with_default_initial_guess(
+        params.with_default_initial_guess(
             gko::config::get_value<solver::initial_guess_mode>(obj));
     }
-    return factory;
+    return params;
 }
 
 
