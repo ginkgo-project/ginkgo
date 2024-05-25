@@ -42,12 +42,12 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Gcr<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
+    auto params = solver::Gcr<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
     if (auto& obj = config.get("krylov_dim")) {
-        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
-    return factory;
+    return params;
 }
 
 

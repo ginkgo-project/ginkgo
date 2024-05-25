@@ -41,22 +41,22 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Idr<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
+    auto params = solver::Idr<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
     if (auto& obj = config.get("subspace_dim")) {
-        factory.with_subspace_dim(gko::config::get_value<size_type>(obj));
+        params.with_subspace_dim(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("kappa")) {
-        factory.with_kappa(
+        params.with_kappa(
             gko::config::get_value<remove_complex<ValueType>>(obj));
     }
     if (auto& obj = config.get("deterministic")) {
-        factory.with_deterministic(gko::config::get_value<bool>(obj));
+        params.with_deterministic(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("complex_subspace")) {
-        factory.with_complex_subspace(gko::config::get_value<bool>(obj));
+        params.with_complex_subspace(gko::config::get_value<bool>(obj));
     }
-    return factory;
+    return params;
 }
 
 

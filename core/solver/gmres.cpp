@@ -46,15 +46,15 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto factory = solver::Gmres<ValueType>::build();
-    common_solver_parse(factory, config, context, td_for_child);
+    auto params = solver::Gmres<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
     if (auto& obj = config.get("krylov_dim")) {
-        factory.with_krylov_dim(gko::config::get_value<size_type>(obj));
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("flexible")) {
-        factory.with_flexible(gko::config::get_value<bool>(obj));
+        params.with_flexible(gko::config::get_value<bool>(obj));
     }
-    return factory;
+    return params;
 }
 
 

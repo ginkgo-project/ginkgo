@@ -27,16 +27,16 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
-    auto factory = Direct<ValueType, IndexType>::build();
+    auto params = Direct<ValueType, IndexType>::build();
     if (auto& obj = config.get("num_rhs")) {
-        factory.with_num_rhs(gko::config::get_value<size_type>(obj));
+        params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config.get("factorization")) {
-        factory.with_factorization(
+        params.with_factorization(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    return factory;
+    return params;
 }
 
 
