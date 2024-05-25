@@ -176,6 +176,12 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
         -> deferred_factory_parameter<gko::LinOpFactory> {
         using ReverseApply = decltype(reverse_apply);
         // always use symmetric solver for USolverType
+        if (config.get("u_solver_type")) {
+            GKO_INVALID_STATE(
+                "preconditioner::Ilu only allows l_solver_type. The "
+                "u_solver_type automatically uses the transposed type of "
+                "l_solver_type.");
+        }
         std::string str("solver::LowerTrs");
         if (auto& obj = config.get("l_solver_type")) {
             str = obj.get_string();
