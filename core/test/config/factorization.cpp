@@ -31,7 +31,7 @@
 using namespace gko::config;
 
 
-using Sparsity = gko::matrix::SparsityCsr<float, gko::int64>;
+using Sparsity = gko::matrix::SparsityCsr<float, int>;
 
 
 template <typename StrategyType>
@@ -46,21 +46,20 @@ inline void check_strategy(std::shared_ptr<StrategyType>& res,
 }
 
 
-template <typename ExplicitType, typename DefaultType>
+template <typename ChangedType, typename DefaultType>
 struct FactorizationConfigTest {
-    using explicit_type = ExplicitType;
+    using changed_type = ChangedType;
     using default_type = DefaultType;
     using factorization_config_test = FactorizationConfigTest;
 
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["index_type"] = pnode{"int64"};
     }
 };
 
 
-struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
+struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
                                     gko::factorization::Ic<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -74,7 +73,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["both_factors"] = pnode{false};
@@ -94,7 +93,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, gko::int64>,
 };
 
 
-struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
+struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
                                      gko::factorization::Ilu<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -108,11 +107,11 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["u_strategy"] = pnode{"sparselib"};
         param.with_u_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
@@ -130,10 +129,9 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, gko::int64>,
 };
 
 
-struct Cholesky
-    : FactorizationConfigTest<
-          gko::experimental::factorization::Cholesky<float, gko::int64>,
-          gko::experimental::factorization::Cholesky<double, int>> {
+struct Cholesky : FactorizationConfigTest<
+                      gko::experimental::factorization::Cholesky<float, int>,
+                      gko::experimental::factorization::Cholesky<double, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"factorization::Cholesky"}}};
@@ -164,7 +162,7 @@ struct Cholesky
 
 
 struct Lu : FactorizationConfigTest<
-                gko::experimental::factorization::Lu<float, gko::int64>,
+                gko::experimental::factorization::Lu<float, int>,
                 gko::experimental::factorization::Lu<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -199,9 +197,8 @@ struct Lu : FactorizationConfigTest<
 };
 
 
-struct ParIc
-    : FactorizationConfigTest<gko::factorization::ParIc<float, gko::int64>,
-                              gko::factorization::ParIc<double, int>> {
+struct ParIc : FactorizationConfigTest<gko::factorization::ParIc<float, int>,
+                                       gko::factorization::ParIc<double, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"factorization::ParIc"}}};
@@ -218,7 +215,7 @@ struct ParIc
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
     }
@@ -238,7 +235,7 @@ struct ParIc
 
 
 struct ParIlu
-    : FactorizationConfigTest<gko::factorization::ParIlu<float, gko::int64>,
+    : FactorizationConfigTest<gko::factorization::ParIlu<float, int>,
                               gko::factorization::ParIlu<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -256,11 +253,11 @@ struct ParIlu
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["u_strategy"] = pnode{"sparselib"};
         param.with_u_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -278,7 +275,7 @@ struct ParIlu
 
 
 struct ParIct
-    : FactorizationConfigTest<gko::factorization::ParIct<float, gko::int64>,
+    : FactorizationConfigTest<gko::factorization::ParIct<float, int>,
                               gko::factorization::ParIct<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -296,7 +293,7 @@ struct ParIct
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -306,7 +303,7 @@ struct ParIct
         config_map["lt_strategy"] = pnode{"sparselib"};
         param.with_lt_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -328,7 +325,7 @@ struct ParIct
 
 
 struct ParIlut
-    : FactorizationConfigTest<gko::factorization::ParIlut<float, gko::int64>,
+    : FactorizationConfigTest<gko::factorization::ParIlut<float, int>,
                               gko::factorization::ParIlut<double, int>> {
     static pnode::map_type setup_base()
     {
@@ -346,7 +343,7 @@ struct ParIlut
         config_map["l_strategy"] = pnode{"sparselib"};
         param.with_l_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -356,7 +353,7 @@ struct ParIlut
         config_map["u_strategy"] = pnode{"sparselib"};
         param.with_u_strategy(
             std::make_shared<
-                typename gko::matrix::Csr<float, gko::int64>::sparselib>());
+                typename gko::matrix::Csr<float, int>::sparselib>());
     }
 
     template <typename AnswerType>
@@ -426,7 +423,7 @@ TYPED_TEST(Factorization, ExplicitTemplate)
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = Config::explicit_type::build().on(this->exec);
+    auto ans = Config::changed_type::build().on(this->exec);
 
     Config::validate(res.get(), ans.get());
 }
@@ -437,12 +434,12 @@ TYPED_TEST(Factorization, Set)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::explicit_type::build();
-    Config::set(config_map, param, this->reg, this->exec);
+    auto params = Config::changed_type::build();
+    Config::set(config_map, params, this->reg, this->exec);
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = param.on(this->exec);
+    auto ans = params.on(this->exec);
 
     Config::validate(res.get(), ans.get());
 }
