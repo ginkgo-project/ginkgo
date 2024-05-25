@@ -17,7 +17,7 @@
 
 
 // for value_type only
-#define PARSE_VALUE_TYPE(_type, _configurator)                                \
+#define GKO_PARSE_VALUE_TYPE(_type, _configurator)                            \
     template <>                                                               \
     deferred_factory_parameter<gko::LinOpFactory>                             \
     parse<gko::config::LinOpFactoryType::_type>(                              \
@@ -37,7 +37,7 @@
 
 
 // for value_type and index_type
-#define PARSE_VALUE_AND_INDEX_TYPE(_type, _configurator)                      \
+#define GKO_PARSE_VALUE_AND_INDEX_TYPE(_type, _configurator)                  \
     template <>                                                               \
     deferred_factory_parameter<gko::LinOpFactory>                             \
     parse<gko::config::LinOpFactoryType::_type>(                              \

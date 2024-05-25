@@ -107,7 +107,7 @@ deferred_factory_parameter<ReturnType> dispatch(
 using value_type_list =
     syn::type_list<double, float, std::complex<double>, std::complex<float>>;
 
-using index_type_list = syn::type_list<gko::int32, gko::int64>;
+using index_type_list = syn::type_list<int32, int64>;
 
 }  // namespace config
 }  // namespace gko

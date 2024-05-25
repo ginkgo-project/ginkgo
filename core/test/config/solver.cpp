@@ -38,10 +38,10 @@ using DummySolver = gko::solver::Cg<double>;
 using DummyStop = gko::stop::Iteration;
 
 
-template <typename SolverType, typename DefaultType>
+template <typename ChangedSolverType, typename DefaultSolverType>
 struct SolverConfigTest {
-    using solver_type = SolverType;
-    using default_type = DefaultType;
+    using changed_solver_type = ChangedSolverType;
+    using default_solver_type = DefaultSolverType;
     using solver_config_test = SolverConfigTest;
 
     static pnode::map_type setup_base() { return pnode::map_type{}; }
@@ -68,8 +68,7 @@ struct SolverConfigTest {
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "linop_factory"));
         } else {
-            config_map["criteria"] =
-                pnode{{{"type", pnode{"stop::Iteration"}}}};
+            config_map["criteria"] = pnode{{{"type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["preconditioner"] =
                 pnode{{{"type", pnode{"solver::Cg"}},
@@ -174,8 +173,7 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "linop_factory"));
         } else {
-            config_map["criteria"] =
-                pnode{{{"type", pnode{"stop::Iteration"}}}};
+            config_map["criteria"] = pnode{{{"type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
             config_map["solver"] = pnode{{{"type", pnode{"solver::Cg"}},
                                           {"value_type", pnode{"float64"}}}};
@@ -484,7 +482,7 @@ TYPED_TEST(Solver, CreateDefault)
     auto config = pnode(Config::setup_base());
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = Config::default_type::build().on(this->exec);
+    auto ans = Config::default_solver_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -498,7 +496,7 @@ TYPED_TEST(Solver, ExplicitTemplate)
     auto config = pnode(config_map);
 
     auto res = parse(config, this->reg, this->td).on(this->exec);
-    auto ans = Config::solver_type::build().on(this->exec);
+    auto ans = Config::changed_solver_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
 }
@@ -509,7 +507,7 @@ TYPED_TEST(Solver, SetFromRegistry)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::solver_type::build();
+    auto param = Config::changed_solver_type::build();
     Config::template set<true>(config_map, param, this->reg, this->exec);
     auto config = pnode(config_map);
 
@@ -525,7 +523,7 @@ TYPED_TEST(Solver, SetFromConfig)
     using Config = typename TestFixture::Config;
     auto config_map = Config::setup_base();
     Config::change_template(config_map);
-    auto param = Config::solver_type::build();
+    auto param = Config::changed_solver_type::build();
     Config::template set<false>(config_map, param, this->reg, this->exec);
     auto config = pnode(config_map);
 
