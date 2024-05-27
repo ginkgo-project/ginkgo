@@ -25,7 +25,7 @@ namespace config {
  * A pnode can either be empty, hold a value (a string, integer, real, or bool),
  * contain an array of pnode., or contain a mapping between strings and pnodes.
  */
-class pnode {
+class pnode final {
 public:
     using key_type = std::string;
     using map_type = std::map<key_type, pnode>;
