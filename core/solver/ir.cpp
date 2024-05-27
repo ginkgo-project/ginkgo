@@ -10,6 +10,7 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -27,6 +28,37 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 }  // anonymous namespace
 }  // namespace ir
+
+
+template <typename ValueType>
+typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::Ir<ValueType>::build();
+    if (auto& obj = config.get("criteria")) {
+        params.with_criteria(
+            gko::config::parse_or_get_factory_vector<
+                const stop::CriterionFactory>(obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("solver")) {
+        params.with_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("generated_solver")) {
+        params.with_generated_solver(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config.get("relaxation_factor")) {
+        params.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        params.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType>

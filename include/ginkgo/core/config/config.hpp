@@ -20,6 +20,7 @@
 namespace gko {
 namespace config {
 
+
 class registry;
 
 

@@ -23,6 +23,7 @@ target_sources(ginkgo
     config/config_helper.cpp
     config/property_tree.cpp
     config/registry.cpp
+    config/solver_config.cpp
     config/stop_config.cpp
     config/type_descriptor.cpp
     distributed/index_map.cpp

@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -34,6 +35,20 @@ GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 
 }  // anonymous namespace
 }  // namespace gcr
+
+
+template <typename ValueType>
+typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::Gcr<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    if (auto& obj = config.get("krylov_dim")) {
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType>

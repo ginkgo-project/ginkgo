@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
@@ -38,6 +39,23 @@ GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
 
 }  // anonymous namespace
 }  // namespace gmres
+
+
+template <typename ValueType>
+typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::Gmres<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    if (auto& obj = config.get("krylov_dim")) {
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("flexible")) {
+        params.with_flexible(gko::config::get_value<bool>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType>

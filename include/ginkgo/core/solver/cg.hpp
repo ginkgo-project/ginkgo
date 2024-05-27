@@ -78,13 +78,14 @@ public:
 
     /**
      * Create the parameters from the property_tree.
-     * Because this is directly tied to the specific type. The value/index type
-     * settings are ignored and type_descriptor is for children objects.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children configs.
      *
      * @param config  the property tree for setting
      * @param context  the registry
-     * @param td_for_child  the type descriptor for children objects. The
-     *                      default will directly from the specific type.
+     * @param td_for_child  the type descriptor for children configs. The
+     *                      default uses the value type of this class.
      *
      * @return parameters
      */

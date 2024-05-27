@@ -12,36 +12,15 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/config/config.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
 
 
-#include "core/config/config_helper.hpp"
-#include "core/config/dispatch.hpp"
-#include "core/config/type_descriptor_helper.hpp"
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
-namespace config {
-
-
-template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Cg>(
-    const pnode& config, const registry& context, const type_descriptor& td)
-{
-    auto updated = update_type(config, td);
-    return dispatch<gko::LinOpFactory, gko::solver::Cg>(
-        config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()));
-}
-
-
-}  // namespace config
-
-
 namespace solver {
 namespace cg {
 namespace {
@@ -62,21 +41,7 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Cg<ValueType>::build();
-    // The following will be moved to the common solver function in another pr
-    if (auto& obj = config.get("generated_preconditioner")) {
-        params.with_generated_preconditioner(
-            gko::config::get_stored_obj<const LinOp>(obj, context));
-    }
-    if (auto& obj = config.get("criteria")) {
-        params.with_criteria(
-            gko::config::parse_or_get_factory_vector<
-                const stop::CriterionFactory>(obj, context, td_for_child));
-    }
-    if (auto& obj = config.get("preconditioner")) {
-        params.with_preconditioner(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
-    }
+    common_solver_parse(params, config, context, td_for_child);
     return params;
 }
 

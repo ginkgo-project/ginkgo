@@ -27,22 +27,22 @@ namespace config {
 deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
-    auto factory = stop::Time::build();
+    auto params = stop::Time::build();
     if (auto& obj = config.get("time_limit")) {
-        factory.with_time_limit(gko::config::get_value<long long int>(obj));
+        params.with_time_limit(gko::config::get_value<long long int>(obj));
     }
-    return factory;
+    return params;
 }
 
 
 deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
-    auto factory = stop::Iteration::build();
+    auto params = stop::Iteration::build();
     if (auto& obj = config.get("max_iters")) {
-        factory.with_max_iters(gko::config::get_value<size_type>(obj));
+        params.with_max_iters(gko::config::get_value<size_type>(obj));
     }
-    return factory;
+    return params;
 }
 
 

@@ -18,7 +18,19 @@ namespace config {
 
 configuration_map generate_config_map()
 {
-    return {{"solver::Cg", parse<LinOpFactoryType::Cg>}};
+    return {{"solver::Cg", parse<LinOpFactoryType::Cg>},
+            {"solver::Bicg", parse<LinOpFactoryType::Bicg>},
+            {"solver::Bicgstab", parse<LinOpFactoryType::Bicgstab>},
+            {"solver::Fcg", parse<LinOpFactoryType::Fcg>},
+            {"solver::Cgs", parse<LinOpFactoryType::Cgs>},
+            {"solver::Ir", parse<LinOpFactoryType::Ir>},
+            {"solver::Idr", parse<LinOpFactoryType::Idr>},
+            {"solver::Gcr", parse<LinOpFactoryType::Gcr>},
+            {"solver::Gmres", parse<LinOpFactoryType::Gmres>},
+            {"solver::CbGmres", parse<LinOpFactoryType::CbGmres>},
+            {"solver::Direct", parse<LinOpFactoryType::Direct>},
+            {"solver::LowerTrs", parse<LinOpFactoryType::LowerTrs>},
+            {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>}};
 }
 
 
