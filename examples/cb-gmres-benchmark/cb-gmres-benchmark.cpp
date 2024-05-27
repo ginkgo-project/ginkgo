@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -187,6 +187,114 @@ private:
     mutable std::vector<RealValueType> residual_norm_history_;
 };
 
+// A logger that accumulates the time of all operations. For each operation type
+// (allocations, free, copy, internal operations i.e. kernels), the timing is
+// taken before and after. This can create significant overhead since to ensure
+// proper timings, calls to `synchronize` are required.
+struct OperationLogger : gko::log::Logger {
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type&) const override
+    {
+        this->start_operation(exec, "allocate");
+    }
+
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type&,
+                                 const gko::uintptr&) const override
+    {
+        this->end_operation(exec, "allocate");
+    }
+
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr&) const override
+    {
+        this->start_operation(exec, "free");
+    }
+
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr&) const override
+    {
+        this->end_operation(exec, "free");
+    }
+
+    void on_copy_started(const gko::Executor* from, const gko::Executor* to,
+                         const gko::uintptr&, const gko::uintptr&,
+                         const gko::size_type&) const override
+    {
+        from->synchronize();
+        this->start_operation(to, "copy");
+    }
+
+    void on_copy_completed(const gko::Executor* from, const gko::Executor* to,
+                           const gko::uintptr&, const gko::uintptr&,
+                           const gko::size_type&) const override
+    {
+        from->synchronize();
+        this->end_operation(to, "copy");
+    }
+
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
+    {
+        this->start_operation(exec, op->get_name());
+    }
+
+    void on_operation_completed(const gko::Executor* exec,
+                                const gko::Operation* op) const override
+    {
+        this->end_operation(exec, op->get_name());
+    }
+
+    void write_data(std::ostream& ostream)
+    {
+        for (const auto& entry : total) {
+            ostream << "\t" << entry.first.c_str() << ": "
+                    << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                           entry.second)
+                           .count()
+                    << std::endl;
+        }
+    }
+
+    void reset()
+    {
+        start.clear();
+        total.clear();
+        nested.clear();
+    }
+
+private:
+    // Helper which synchronizes and starts the time before every operation.
+    void start_operation(const gko::Executor* exec,
+                         const std::string& name) const
+    {
+        nested.emplace_back(0);
+        exec->synchronize();
+        start[name] = std::chrono::steady_clock::now();
+    }
+
+    // Helper to compute the end time and store the operation's time at its
+    // end. Also time nested operations.
+    void end_operation(const gko::Executor* exec, const std::string& name) const
+    {
+        exec->synchronize();
+        const auto end = std::chrono::steady_clock::now();
+        const auto diff = end - start[name];
+        // make sure timings for nested operations are not counted twice
+        total[name] += diff - nested.back();
+        nested.pop_back();
+        if (nested.size() > 0) {
+            nested.back() += diff;
+        }
+    }
+
+    mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
+    mutable std::map<std::string, std::chrono::steady_clock::duration> total;
+    // the position i of this vector holds the total time spend on child
+    // operations on nesting level i
+    mutable std::vector<std::chrono::steady_clock::duration> nested;
+};
+
 
 template <typename ValueType, typename IndexType = int>
 class Benchmark {
@@ -197,7 +305,7 @@ private:
     static constexpr int repeats{1};
 
 public:
-    Benchmark(std::shared_ptr<const gko::Executor> exec,
+    Benchmark(std::shared_ptr<gko::Executor> exec,
               std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> mtx,
               std::unique_ptr<Vector> init_x, std::unique_ptr<Vector> rhs)
         : exec_{std::move(exec)},
@@ -262,6 +370,12 @@ public:
         // Generate the actual solver from the factory and the matrix.
         auto solver = solver_gen->generate(mtx_);
 
+        // Set operation_logger_ to nullptr to disable logging
+        if (operation_logger_) {
+            exec_->add_logger(operation_logger_);
+        }
+
+
         for (int i = 0; i < repeats; ++i) {
             // No need to copy it in the first iteration
             if (i != 0) {
@@ -277,6 +391,10 @@ public:
             exec_->synchronize();
             auto tac = std::chrono::steady_clock::now();
             duration += std::chrono::duration<double>(tac - tic).count();
+        }
+        iter_stop->remove_logger(convergence_history_logger_);
+        if (operation_logger_) {
+            exec_->remove_logger(operation_logger_);
         }
 
         result.iters = convergence_history_logger_->get_num_iterations();
@@ -305,9 +423,12 @@ private:
     {
         x_->copy_from(init_x_.get());
         convergence_history_logger_->reset();
+        if (operation_logger_) {
+            operation_logger_->reset();
+        }
     }
 
-    std::shared_ptr<const gko::Executor> exec_;
+    std::shared_ptr<gko::Executor> exec_;
     std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>> mtx_;
     std::unique_ptr<const Vector> init_x_;
     std::unique_ptr<const Vector> rhs_;
@@ -320,6 +441,7 @@ private:
     RealValueType res_norm_value_;
     std::shared_ptr<ConvergenceHistoryLogger<ValueType>>
         convergence_history_logger_;
+    std::shared_ptr<OperationLogger> operation_logger_;
 };
 
 
@@ -338,13 +460,12 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                 return gko::CudaExecutor::create(0,
+                                                  gko::OmpExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
              }},
             {"dpcpp",
              [] {
@@ -457,7 +578,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             {"rel_res_norm", result.res_norm / rhs_norm},
             {"res_norm_history", *result.residual_norm_history},
         };
-        //  TODO Add the actual bit_rate and settings information
+        //  The actual settings information needs to be added afterwards
         return json_result;
     };
 
