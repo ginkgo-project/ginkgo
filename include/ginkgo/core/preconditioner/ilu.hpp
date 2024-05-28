@@ -22,7 +22,7 @@
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/parse_limit.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
@@ -40,10 +40,10 @@ namespace detail {
 template <typename LSolverType, typename USolverType>
 constexpr bool support_ilu_parse =
     std::is_same<typename USolverType::transposed_type, LSolverType>::value &&
-    (is_instance_of<LSolverType, solver::LowerTrs>::value ||
-     is_instance_of<LSolverType, solver::Ir>::value ||
-     is_instance_of<LSolverType, solver::Gmres>::value ||
-     is_instance_of<LSolverType, preconditioner::LowerIsai>::value);
+    (is_instantiation_of<LSolverType, solver::LowerTrs>::value ||
+     is_instantiation_of<LSolverType, solver::Ir>::value ||
+     is_instantiation_of<LSolverType, solver::Gmres>::value ||
+     is_instantiation_of<LSolverType, preconditioner::LowerIsai>::value);
 
 
 template <typename Ilu,
@@ -254,6 +254,10 @@ public:
      *                      default uses the value/index type of this class.
      *
      * @return parameters
+     *
+     * @note only support the following pairs for <l_solver, u_solver>:
+     *       <Ir, Ir>, <Gmres, Gmres>, <LowerTrs, UpperTrs>,
+     *       and <LowerIsai, UpperIsai>
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,

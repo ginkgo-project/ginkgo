@@ -32,7 +32,7 @@ namespace config {
                                   "<"))
 
 
-#define GKO_MISS_CONFIG_ENTRY(_entry) \
+#define GKO_MISSING_CONFIG_ENTRY(_entry) \
     GKO_INVALID_STATE(std::string("The entry >") + _entry + "< is missing")
 
 
@@ -294,7 +294,7 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
     } else {
         GKO_INVALID_CONFIG_VALUE("strategy", str);
     }
-    return std::move(strategy_ptr);
+    return strategy_ptr;
 }
 
 

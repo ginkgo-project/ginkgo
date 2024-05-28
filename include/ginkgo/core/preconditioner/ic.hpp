@@ -22,7 +22,7 @@
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/parse_limit.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
@@ -39,10 +39,10 @@ namespace detail {
 
 template <typename Type>
 constexpr bool support_ic_parse =
-    is_instance_of<Type, solver::LowerTrs>::value ||
-    is_instance_of<Type, solver::Ir>::value ||
-    is_instance_of<Type, solver::Gmres>::value ||
-    is_instance_of<Type, preconditioner::LowerIsai>::value;
+    is_instantiation_of<Type, solver::LowerTrs>::value ||
+    is_instantiation_of<Type, solver::Ir>::value ||
+    is_instantiation_of<Type, solver::Gmres>::value ||
+    is_instantiation_of<Type, preconditioner::LowerIsai>::value;
 
 
 template <
@@ -208,6 +208,9 @@ public:
      *                      default uses the value/index type of this class.
      *
      * @return parameters
+     *
+     * @note only support the following for l_solver:
+     *       Ir, Gmres, LowerTrs, and LowerIsai
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,

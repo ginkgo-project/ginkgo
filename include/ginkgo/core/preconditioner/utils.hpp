@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_PARSE_LIMIT_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_PARSE_LIMIT_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_UTILS_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_UTILS_HPP_
 
 
 #include <type_traits>
@@ -19,14 +19,14 @@ namespace detail {
 
 // true_type if ExplicitType is an instantiation of TemplateType.
 template <typename ExplicitType, template <typename...> class TemplateType>
-struct is_instance_of : std::false_type {};
+struct is_instantiation_of : std::false_type {};
 
 template <template <typename...> class Type, typename... Param>
-struct is_instance_of<Type<Param...>, Type> : std::true_type {};
+struct is_instantiation_of<Type<Param...>, Type> : std::true_type {};
 
 // LowerIsai will be treated as Isai<...> so it does not match LowerIsai<...>
 template <typename ValueType, typename IndexType>
-struct is_instance_of<LowerIsai<ValueType, IndexType>, LowerIsai>
+struct is_instantiation_of<LowerIsai<ValueType, IndexType>, LowerIsai>
     : std::true_type {};
 
 
@@ -34,4 +34,4 @@ struct is_instance_of<LowerIsai<ValueType, IndexType>, LowerIsai>
 }  // namespace preconditioner
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_PARSE_LIMIT_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_UTILS_HPP_

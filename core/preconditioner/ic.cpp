@@ -9,7 +9,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/parse_limit.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 
