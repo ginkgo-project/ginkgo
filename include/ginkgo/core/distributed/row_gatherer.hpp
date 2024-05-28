@@ -98,6 +98,13 @@ public:
     get_collective_communicator() const;
 
     /**
+     * Read access to the (local) rows indices
+     *
+     * @return  the (local) row indices that are gathered
+     */
+    const LocalIndexType* get_const_row_idxs() const;
+
+    /**
      * Creates a distributed::RowGatherer from a given collective communicator
      * and index map.
      *
