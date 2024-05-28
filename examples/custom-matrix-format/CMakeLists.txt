@@ -12,7 +12,7 @@ if(NOT (GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP))
         "This example needs Ginkgo built with CUDA and OpenMP support")
 endif()
 
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 add_executable(custom-matrix-format custom-matrix-format.cpp stencil_kernel.cu)

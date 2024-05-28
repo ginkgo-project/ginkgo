@@ -17,33 +17,6 @@
     - cpu
     - amdci
 
-.use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019:
-  image: ginkgohub/cpu:mvapich2-gnu5-llvm39-intel2019
-  tags:
-    - private_ci
-    - cpu
-    - controller
-
-.use_gko-cuda101-openmpi-gnu8-llvm7-intel2019:
-  image: ginkgohub/cuda:101-openmpi-gnu8-llvm7-intel2019
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda101-openmpi-gnu8-llvm13-intel2019:
-  image: ginkgohub/cuda:101-openmpi-gnu8-llvm13-intel2019
-  tags:
-    - private_ci
-    - nvidia-gpu
-
-.use_gko-cuda102-nompi-gnu8-llvm8-intel2019:
-  image: ginkgohub/cuda:102-nompi-gnu8-llvm8-intel2019
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
 .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020:
   image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
   tags:

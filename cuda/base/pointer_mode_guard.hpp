@@ -15,7 +15,6 @@
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
@@ -37,6 +36,7 @@ public:
     pointer_mode_guard(cublasHandle_t& handle)
     {
         l_handle = &handle;
+        uncaught_exceptions_ = std::uncaught_exceptions();
         GKO_ASSERT_NO_CUBLAS_ERRORS(
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
     }
@@ -52,7 +52,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (xstd::uncaught_exception()) {
+        if (std::uncaught_exception() > uncaught_exceptions_) {
             cublasSetPointerMode(*l_handle, CUBLAS_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_CUBLAS_ERRORS(
@@ -61,6 +61,7 @@ public:
     }
 
 private:
+    int uncaught_exceptions_;
     cublasHandle_t* l_handle;
 };
 
@@ -84,6 +85,7 @@ public:
     pointer_mode_guard(cusparseHandle_t handle)
     {
         l_handle = handle;
+        uncaught_exceptions_ = std::uncaught_exceptions();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
     }
@@ -99,7 +101,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (xstd::uncaught_exception()) {
+        if (std::uncaught_exceptions() > uncaught_exceptions_) {
             cusparseSetPointerMode(l_handle, CUSPARSE_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -108,6 +110,7 @@ public:
     }
 
 private:
+    int uncaught_exceptions_;
     cusparseHandle_t l_handle;
 };
 

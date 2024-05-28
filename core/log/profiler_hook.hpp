@@ -9,6 +9,9 @@
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 
+#include <optional>
+
+
 namespace gko {
 namespace log {
 
@@ -135,14 +138,12 @@ public:
     profiling_scope_guard(const char* name)
     {
         auto functions = log::create_vtune_fns();
-        guard_ = std::make_unique<log::profiling_scope_guard>(
-            name, log::profile_event_category::internal,
-            std::move(functions.first), std::move(functions.second));
+        guard_.emplace(name, log::profile_event_category::internal,
+                       std::move(functions.first), std::move(functions.second));
     }
 
 private:
-    // TODO17: use std::optional
-    std::unique_ptr<log::profiling_scope_guard> guard_;
+    std::optional<log::profiling_scope_guard> guard_;
 };
 
 

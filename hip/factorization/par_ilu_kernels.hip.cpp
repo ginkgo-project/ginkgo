@@ -8,7 +8,6 @@
 #include <hip/hip_runtime.h>
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 
 
