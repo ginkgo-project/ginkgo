@@ -166,6 +166,13 @@ RowGatherer<LocalIndexType>::RowGatherer(
 
 
 template <typename LocalIndexType>
+const LocalIndexType* RowGatherer<LocalIndexType>::get_const_row_idxs() const
+{
+    return send_idxs_.get_const_data();
+}
+
+
+template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                          mpi::communicator comm)
     : EnableLinOp<RowGatherer>(exec),
