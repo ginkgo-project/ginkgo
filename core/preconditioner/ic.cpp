@@ -9,6 +9,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/core/preconditioner/parse_limit.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 
@@ -19,20 +20,21 @@
 
 namespace gko {
 namespace preconditioner {
+namespace detail {
 
 
-template <typename LSolverType, typename IndexType>
-typename Ic<LSolverType, IndexType>::parameters_type
-Ic<LSolverType, IndexType>::parse(const config::pnode& config,
-                                  const config::registry& context,
-                                  const config::type_descriptor& td_for_child)
+template <typename Ic,
+          std::enable_if_t<support_ic_parse<typename Ic::l_solver_type>>*>
+typename Ic::parameters_type ic_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
 {
-    auto params = preconditioner::Ic<LSolverType, IndexType>::build();
+    auto params = Ic::build();
 
     if (auto& obj = config.get("l_solver")) {
         params.with_l_solver(
-            gko::config::parse_or_get_specific_factory<const LSolverType>(
-                obj, context, td_for_child));
+            gko::config::parse_or_get_specific_factory<
+                const typename Ic::l_solver_type>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("factorization")) {
         params.with_factorization(
@@ -43,22 +45,36 @@ Ic<LSolverType, IndexType>::parse(const config::pnode& config,
     return params;
 }
 
-#define GKO_DECLARE_LOWERTRS_IC(ValueType, IndexType) \
-    class Ic<solver::LowerTrs<ValueType, IndexType>, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERTRS_IC);
 
-#define GKO_DECLARE_IR_IC(ValueType, IndexType) \
-    class Ic<solver::Ir<ValueType>, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_IC);
+#define GKO_DECLARE_LOWERTRS_IC_PARSE(ValueType, IndexType)          \
+    typename Ic<solver::LowerTrs<ValueType, IndexType>,              \
+                IndexType>::parameters_type                          \
+    ic_parse<Ic<solver::LowerTrs<ValueType, IndexType>, IndexType>>( \
+        const config::pnode&, const config::registry&,               \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERTRS_IC_PARSE);
 
-#define GKO_DECLARE_GMRES_IC(ValueType, IndexType) \
-    class Ic<solver::Gmres<ValueType>, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_IC);
+#define GKO_DECLARE_IR_IC_PARSE(ValueType, IndexType)              \
+    typename Ic<solver::Ir<ValueType>, IndexType>::parameters_type \
+    ic_parse<Ic<solver::Ir<ValueType>, IndexType>>(                \
+        const config::pnode&, const config::registry&,             \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_IC_PARSE);
 
-#define GKO_DECLARE_LOWERISAI_IC(ValueType, IndexType) \
-    class Ic<preconditioner::LowerIsai<ValueType, IndexType>, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERISAI_IC);
+#define GKO_DECLARE_GMRES_IC_PARSE(ValueType, IndexType)              \
+    typename Ic<solver::Gmres<ValueType>, IndexType>::parameters_type \
+    ic_parse<Ic<solver::Gmres<ValueType>, IndexType>>(                \
+        const config::pnode&, const config::registry&,                \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_IC_PARSE);
 
+#define GKO_DECLARE_LOWERISAI_IC_PARSE(ValueType, IndexType)                 \
+    typename Ic<LowerIsai<ValueType, IndexType>, IndexType>::parameters_type \
+    ic_parse<Ic<LowerIsai<ValueType, IndexType>, IndexType>>(                \
+        const config::pnode&, const config::registry&,                       \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERISAI_IC_PARSE);
 
+}  // namespace detail
 }  // namespace preconditioner
 }  // namespace gko

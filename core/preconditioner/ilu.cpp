@@ -20,27 +20,27 @@
 
 namespace gko {
 namespace preconditioner {
+namespace detail {
 
 
-template <typename LSolverType, typename USolverType, bool ReverseApply,
-          typename IndexType>
-typename Ilu<LSolverType, USolverType, ReverseApply, IndexType>::parameters_type
-Ilu<LSolverType, USolverType, ReverseApply, IndexType>::parse(
+template <typename Ilu,
+          std::enable_if_t<support_ilu_parse<typename Ilu::l_solver_type,
+                                             typename Ilu::u_solver_type>>*>
+typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto params = preconditioner::Ilu<LSolverType, USolverType, ReverseApply,
-                                      IndexType>::build();
+    auto params = Ilu::build();
 
     if (auto& obj = config.get("l_solver")) {
         params.with_l_solver(
-            gko::config::parse_or_get_specific_factory<const LSolverType>(
-                obj, context, td_for_child));
+            gko::config::parse_or_get_specific_factory<
+                const typename Ilu::l_solver_type>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("u_solver")) {
         params.with_u_solver(
-            gko::config::parse_or_get_specific_factory<const USolverType>(
-                obj, context, td_for_child));
+            gko::config::parse_or_get_specific_factory<
+                const typename Ilu::u_solver_type>(obj, context, td_for_child));
     }
     if (auto& obj = config.get("factorization")) {
         params.with_factorization(
@@ -51,36 +51,83 @@ Ilu<LSolverType, USolverType, ReverseApply, IndexType>::parse(
     return params;
 }
 
-#define GKO_DECLARE_TRS_ILU(ValueType, IndexType)                       \
-    class Ilu<solver::LowerTrs<ValueType, IndexType>,                   \
-              solver::UpperTrs<ValueType, IndexType>, true, IndexType>; \
-    template class Ilu<solver::LowerTrs<ValueType, IndexType>,          \
-                       solver::UpperTrs<ValueType, IndexType>, false,   \
-                       IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_ILU);
 
-#define GKO_DECLARE_IR_ILU(ValueType, IndexType)                              \
-    class Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, true, IndexType>; \
-    template class Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, false,   \
-                       IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_ILU);
+#define GKO_DECLARE_TRS_ILU_FALSE_PARSE(ValueType, IndexType)                 \
+    typename Ilu<solver::LowerTrs<ValueType, IndexType>,                      \
+                 solver::UpperTrs<ValueType, IndexType>, false,               \
+                 IndexType>::parameters_type                                  \
+    ilu_parse<Ilu<solver::LowerTrs<ValueType, IndexType>,                     \
+                  solver::UpperTrs<ValueType, IndexType>, false, IndexType>>( \
+        const config::pnode&, const config::registry&,                        \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_ILU_FALSE_PARSE);
 
-#define GKO_DECLARE_GMRES_ILU(ValueType, IndexType)                        \
-    class Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, true,    \
-              IndexType>;                                                  \
-    template class Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, \
-                       false, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_ILU);
+#define GKO_DECLARE_TRS_ILU_TRUE_PARSE(ValueType, IndexType)                 \
+    typename Ilu<solver::LowerTrs<ValueType, IndexType>,                     \
+                 solver::UpperTrs<ValueType, IndexType>, true,               \
+                 IndexType>::parameters_type                                 \
+    ilu_parse<Ilu<solver::LowerTrs<ValueType, IndexType>,                    \
+                  solver::UpperTrs<ValueType, IndexType>, true, IndexType>>( \
+        const config::pnode&, const config::registry&,                       \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_ILU_TRUE_PARSE);
 
-#define GKO_DECLARE_ISAI_ILU(ValueType, IndexType)                             \
-    class Ilu<preconditioner::LowerIsai<ValueType, IndexType>,                 \
-              preconditioner::UpperIsai<ValueType, IndexType>, true,           \
-              IndexType>;                                                      \
-    template class Ilu<preconditioner::LowerIsai<ValueType, IndexType>,        \
-                       preconditioner::UpperIsai<ValueType, IndexType>, false, \
-                       IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_ILU);
+#define GKO_DECLARE_GMRES_ILU_FALSE_PARSE(ValueType, IndexType)              \
+    typename Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, false,  \
+                 IndexType>::parameters_type                                 \
+    ilu_parse<Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, false, \
+                  IndexType>>(const config::pnode&, const config::registry&, \
+                              const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_GMRES_ILU_FALSE_PARSE);
+
+#define GKO_DECLARE_GMRES_ILU_TRUE_PARSE(ValueType, IndexType)               \
+    typename Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, true,   \
+                 IndexType>::parameters_type                                 \
+    ilu_parse<Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, true,  \
+                  IndexType>>(const config::pnode&, const config::registry&, \
+                              const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_ILU_TRUE_PARSE);
+
+#define GKO_DECLARE_IR_ILU_FALSE_PARSE(ValueType, IndexType)                  \
+    typename Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, false,         \
+                 IndexType>::parameters_type                                  \
+    ilu_parse<                                                                \
+        Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, false, IndexType>>( \
+        const config::pnode&, const config::registry&,                        \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_ILU_FALSE_PARSE);
+
+#define GKO_DECLARE_IR_ILU_TRUE_PARSE(ValueType, IndexType)                  \
+    typename Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, true,         \
+                 IndexType>::parameters_type                                 \
+    ilu_parse<                                                               \
+        Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, true, IndexType>>( \
+        const config::pnode&, const config::registry&,                       \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_ILU_TRUE_PARSE);
+
+#define GKO_DECLARE_ISAI_ILU_FALSE_PARSE(ValueType, IndexType)         \
+    typename Ilu<LowerIsai<ValueType, IndexType>,                      \
+                 UpperIsai<ValueType, IndexType>, false,               \
+                 IndexType>::parameters_type                           \
+    ilu_parse<Ilu<LowerIsai<ValueType, IndexType>,                     \
+                  UpperIsai<ValueType, IndexType>, false, IndexType>>( \
+        const config::pnode&, const config::registry&,                 \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_ILU_FALSE_PARSE);
+
+#define GKO_DECLARE_ISAI_ILU_TRUE_PARSE(ValueType, IndexType)         \
+    typename Ilu<LowerIsai<ValueType, IndexType>,                     \
+                 UpperIsai<ValueType, IndexType>, true,               \
+                 IndexType>::parameters_type                          \
+    ilu_parse<Ilu<LowerIsai<ValueType, IndexType>,                    \
+                  UpperIsai<ValueType, IndexType>, true, IndexType>>( \
+        const config::pnode&, const config::registry&,                \
+        const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_ILU_TRUE_PARSE);
 
 
+}  // namespace detail
 }  // namespace preconditioner
 }  // namespace gko
