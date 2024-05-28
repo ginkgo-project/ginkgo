@@ -117,6 +117,7 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
 
 #include <ginkgo/core/reorder/amd.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>

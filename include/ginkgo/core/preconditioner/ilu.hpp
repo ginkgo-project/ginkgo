@@ -17,8 +17,14 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -28,6 +34,39 @@
 
 namespace gko {
 namespace preconditioner {
+namespace detail {
+
+
+template <typename LSolverType, typename USolverType>
+constexpr bool support_ilu_parse =
+    std::is_same<typename USolverType::transposed_type, LSolverType>::value &&
+    (is_instantiation_of<LSolverType, solver::LowerTrs>::value ||
+     is_instantiation_of<LSolverType, solver::Ir>::value ||
+     is_instantiation_of<LSolverType, solver::Gmres>::value ||
+     is_instantiation_of<LSolverType, preconditioner::LowerIsai>::value);
+
+
+template <typename Ilu,
+          std::enable_if_t<!support_ilu_parse<typename Ilu::l_solver_type,
+                                              typename Ilu::u_solver_type>>* =
+              nullptr>
+typename Ilu::parameters_type ilu_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    GKO_INVALID_STATE(
+        "preconditioner::Ilu only supports limited type for parse.");
+}
+
+template <
+    typename Ilu,
+    std::enable_if_t<support_ilu_parse<typename Ilu::l_solver_type,
+                                       typename Ilu::u_solver_type>>* = nullptr>
+typename Ilu::parameters_type ilu_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child);
+
+}  // namespace detail
 
 
 /**
@@ -202,6 +241,31 @@ public:
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default uses the value/index type of this class.
+     *
+     * @return parameters
+     *
+     * @note only support the following pairs for <l_solver, u_solver>:
+     *       <Ir, Ir>, <Gmres, Gmres>, <LowerTrs, UpperTrs>,
+     *       and <LowerIsai, UpperIsai>
+     */
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<value_type, index_type>())
+    {
+        return detail::ilu_parse<Ilu>(config, context, td_for_child);
+    }
 
     /**
      * Returns the solver which is used for the provided L matrix.

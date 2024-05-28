@@ -187,13 +187,6 @@ public:
      * @param stored_map  the map stores the shared pointer of users' objects.
      *                    It can hold any type whose base type is
      *                    LinOp/LinOpFactory/CriterionFactory.
-     * For example,
-     * ```
-     * {{
-     *   {"csr", csr_shared_ptr},
-     *   {"cg", cg_shared_ptr}
-     * }}
-     * ```
      * @param additional_map  the additional map to dispatch the class base.
      *                        Users can extend the map to fit their own
      *                        LinOpFactory. We suggest using "usr::" as the

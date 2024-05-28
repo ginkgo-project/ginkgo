@@ -8,10 +8,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
@@ -34,6 +37,25 @@ GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename Cholesky<ValueType, IndexType>::parameters_type
+Cholesky<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = Cholesky<ValueType, IndexType>::build();
+    if (auto& obj = config.get("symbolic_factorization")) {
+        params.with_symbolic_factorization(
+            config::get_stored_obj<const sparsity_pattern_type>(obj, context));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

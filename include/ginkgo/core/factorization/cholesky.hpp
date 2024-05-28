@@ -8,6 +8,8 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -76,6 +78,11 @@ public:
     const parameters_type& get_parameters() { return parameters_; }
 
     /**
+     * @copydoc get_parameters
+     */
+    const parameters_type& get_parameters() const { return parameters_; }
+
+    /**
      * @copydoc LinOpFactory::generate
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Factorization instead of a generic LinOp, which would need
@@ -87,6 +94,24 @@ public:
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default uses the value/index type of this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
     explicit Cholesky(std::shared_ptr<const Executor> exec,

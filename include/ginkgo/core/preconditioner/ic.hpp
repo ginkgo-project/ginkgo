@@ -17,8 +17,14 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -28,7 +34,37 @@
 
 namespace gko {
 namespace preconditioner {
+namespace detail {
 
+
+template <typename Type>
+constexpr bool support_ic_parse =
+    is_instantiation_of<Type, solver::LowerTrs>::value ||
+    is_instantiation_of<Type, solver::Ir>::value ||
+    is_instantiation_of<Type, solver::Gmres>::value ||
+    is_instantiation_of<Type, preconditioner::LowerIsai>::value;
+
+
+template <
+    typename Ic,
+    std::enable_if_t<!support_ic_parse<typename Ic::l_solver_type>>* = nullptr>
+typename Ic::parameters_type ic_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    GKO_INVALID_STATE(
+        "preconditioner::Ic only supports limited type for parse.");
+}
+
+template <
+    typename Ic,
+    std::enable_if_t<support_ic_parse<typename Ic::l_solver_type>>* = nullptr>
+typename Ic::parameters_type ic_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child);
+
+
+}  // namespace detail
 
 /**
  * The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$
@@ -159,6 +195,30 @@ public:
 
     GKO_ENABLE_LIN_OP_FACTORY(Ic, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default uses the value/index type of this class.
+     *
+     * @return parameters
+     *
+     * @note only support the following for l_solver:
+     *       Ir, Gmres, LowerTrs, and LowerIsai
+     */
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<value_type, index_type>())
+    {
+        return detail::ic_parse<Ic>(config, context, td_for_child);
+    }
 
     /**
      * Returns the solver which is used for the provided L matrix.

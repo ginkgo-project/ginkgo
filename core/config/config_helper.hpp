@@ -26,6 +26,16 @@ namespace gko {
 namespace config {
 
 
+#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                            \
+    GKO_INVALID_STATE(std::string("The value >" + _value +                  \
+                                  "< is invalid for the entry >" + _entry + \
+                                  "<"))
+
+
+#define GKO_MISSING_CONFIG_ENTRY(_entry) \
+    GKO_INVALID_STATE(std::string("The entry >") + _entry + "< is missing")
+
+
 /**
  * LinOpFactoryType enum is to avoid forward declaration, linopfactory header,
  * two template versions of parse
@@ -43,7 +53,19 @@ enum class LinOpFactoryType : int {
     CbGmres,
     Direct,
     LowerTrs,
-    UpperTrs
+    UpperTrs,
+    Factorization_Ic,
+    Factorization_Ilu,
+    Cholesky,
+    Lu,
+    ParIc,
+    ParIct,
+    ParIlu,
+    ParIlut,
+    Ic,
+    Ilu,
+    Isai,
+    Jacobi
 };
 
 
@@ -82,14 +104,30 @@ deferred_factory_parameter<T> parse_or_get_factory(const pnode& config,
                                                    const registry& context,
                                                    const type_descriptor& td);
 
-/**
- * specialize for const LinOpFactory
- */
+template <typename T>
+inline deferred_factory_parameter<typename T::Factory>
+parse_or_get_specific_factory(const pnode& config, const registry& context,
+                              const type_descriptor& td)
+{
+    using T_non_const = std::remove_const_t<T>;
+
+    if (config.get_tag() == pnode::tag_t::string) {
+        return detail::registry_accessor::get_data<
+            typename T_non_const::Factory>(context, config.get_string());
+    } else if (config.get_tag() == pnode::tag_t::map) {
+        return T_non_const::parse(config, context, td);
+    } else {
+        GKO_INVALID_STATE("The data of config is not valid.");
+    }
+}
+
+
 template <>
 deferred_factory_parameter<const LinOpFactory>
 parse_or_get_factory<const LinOpFactory>(const pnode& config,
                                          const registry& context,
                                          const type_descriptor& td);
+
 
 /**
  * specialize for const stop::CriterionFactory
@@ -222,7 +260,41 @@ get_value(const pnode& config)
     } else if (val == "provided") {
         return solver::initial_guess_mode::provided;
     }
-    GKO_INVALID_STATE("Wrong value for initial_guess_mode");
+    GKO_INVALID_CONFIG_VALUE("default_initial_guess", val);
+}
+
+
+template <typename Type>
+inline typename std::enable_if<std::is_same<Type, precision_reduction>::value,
+                               Type>::type
+get_value(const pnode& config)
+{
+    using T = typename Type::storage_type;
+    if (config.get_tag() == pnode::tag_t::array &&
+        config.get_array().size() == 2) {
+        return Type(get_value<T>(config.get(0)), get_value<T>(config.get(1)));
+    }
+    GKO_INVALID_STATE("should use size 2 array");
+}
+
+
+template <typename Csr>
+inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
+    const pnode& config)
+{
+    auto str = config.get_string();
+    std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
+    // automatical and load_balance requires the executor
+    if (str == "sparselib" || str == "cusparse") {
+        strategy_ptr = std::make_shared<typename Csr::sparselib>();
+    } else if (str == "merge_path") {
+        strategy_ptr = std::make_shared<typename Csr::merge_path>();
+    } else if (str == "classical") {
+        strategy_ptr = std::make_shared<typename Csr::classical>();
+    } else {
+        GKO_INVALID_CONFIG_VALUE("strategy", str);
+    }
+    return strategy_ptr;
 }
 
 

@@ -14,12 +14,16 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -49,6 +53,38 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 }  // anonymous namespace
 }  // namespace jacobi
 
+
+template <typename ValueType, typename IndexType>
+typename Jacobi<ValueType, IndexType>::parameters_type
+Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
+                                    const config::registry& context,
+                                    const config::type_descriptor& td_for_child)
+{
+    auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("max_block_size")) {
+        params.with_max_block_size(gko::config::get_value<uint32>(obj));
+    }
+    if (auto& obj = config.get("max_block_stride")) {
+        params.with_max_block_stride(gko::config::get_value<uint32>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+    // storage_optimization_type is not public. It uses precision_reduction
+    // as input. It allows value and array input, but we only support the value
+    // input [x, y] -> one precision_reduction (value mode)
+    if (auto& obj = config.get("storage_optimization")) {
+        params.with_storage_optimization(
+            gko::config::get_value<precision_reduction>(obj));
+    }
+    if (auto& obj = config.get("accuracy")) {
+        params.with_accuracy(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
+
+    return params;
+}
 
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(

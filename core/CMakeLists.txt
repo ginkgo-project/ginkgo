@@ -21,6 +21,8 @@ target_sources(ginkgo
     base/version.cpp
     config/config.cpp
     config/config_helper.cpp
+    config/factorization_config.cpp
+    config/preconditioner_config.cpp
     config/property_tree.cpp
     config/registry.cpp
     config/solver_config.cpp
@@ -71,6 +73,8 @@ target_sources(ginkgo
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/batch_jacobi.cpp
+    preconditioner/ic.cpp
+    preconditioner/ilu.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
