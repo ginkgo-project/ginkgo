@@ -95,6 +95,9 @@ public:
                            void* recv_buffer,
                            MPI_Datatype recv_type) const override;
 
+    std::unique_ptr<collective_communicator> create_with_same_type(
+        communicator base,
+        const distributed::index_map_variant& imap) const override;
     /**
      * Creates the inverse neighborhood_communicator by switching sources
      * and destinations.

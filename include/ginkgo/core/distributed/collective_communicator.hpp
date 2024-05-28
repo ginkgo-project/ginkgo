@@ -12,6 +12,7 @@
 #if GINKGO_BUILD_MPI
 
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/distributed/index_map_fwd.hpp>
 
 
 namespace gko {
@@ -28,10 +29,14 @@ class collective_communicator {
 public:
     virtual ~collective_communicator() = default;
 
-    explicit collective_communicator(communicator base) : base_(std::move(base))
+    explicit collective_communicator(communicator base = MPI_COMM_NULL)
+        : base_(std::move(base))
     {}
 
-    const communicator& get_base_communicator() const { return base_; }
+    [[nodiscard]] const communicator& get_base_communicator() const
+    {
+        return base_;
+    }
 
     /**
      * Non-blocking all-to-all communication.
@@ -65,6 +70,17 @@ public:
                                    MPI_Datatype send_type, void* recv_buffer,
                                    MPI_Datatype recv_type) const = 0;
 
+    /**
+     * Creates a new collective_communicator with the same dynamic type.
+     *
+     * @param base  The base communicator
+     * @param imap  The index_map that defines the communication pattern
+     *
+     * @return  a collective_communicator with the same dynamic type
+     */
+    [[nodiscard]] virtual std::unique_ptr<collective_communicator>
+    create_with_same_type(communicator base,
+                          const distributed::index_map_variant& imap) const = 0;
 
     /**
      * Creates a collective_communicator with the inverse communication pattern
@@ -73,7 +89,8 @@ public:
      * @return  a collective_communicator with the inverse communication
      * pattern.
      */
-    virtual std::unique_ptr<collective_communicator> create_inverse() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<collective_communicator>
+    create_inverse() const = 0;
 
     /**
      * Get the total number of received elements this communication patterns
@@ -81,7 +98,7 @@ public:
      *
      * @return  number of received elements.
      */
-    virtual comm_index_type get_recv_size() const = 0;
+    [[nodiscard]] virtual comm_index_type get_recv_size() const = 0;
 
     /**
      * Get the total number of sent elements this communication patterns
@@ -89,7 +106,7 @@ public:
      *
      * @return  number of sent elements.
      */
-    virtual comm_index_type get_send_size() const = 0;
+    [[nodiscard]] virtual comm_index_type get_send_size() const = 0;
 
 private:
     communicator base_;

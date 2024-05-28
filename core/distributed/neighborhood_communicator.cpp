@@ -166,6 +166,19 @@ request neighborhood_communicator::i_all_to_all_v(
 }
 
 
+std::unique_ptr<collective_communicator>
+neighborhood_communicator::create_with_same_type(
+    communicator base, const distributed::index_map_variant& imap) const
+{
+    return std::visit(
+        [base](const auto& imap) {
+            return std::unique_ptr<collective_communicator>(
+                new neighborhood_communicator(base, imap));
+        },
+        imap);
+}
+
+
 template <typename LocalIndexType, typename GlobalIndexType>
 neighborhood_communicator::neighborhood_communicator(
     communicator base,
