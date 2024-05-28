@@ -78,6 +78,11 @@ public:
     const parameters_type& get_parameters() { return parameters_; }
 
     /**
+     * @copydoc get_parameters
+     */
+    const parameters_type& get_parameters() const { return parameters_; }
+
+    /**
      * @copydoc LinOpFactory::generate
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Factorization instead of a generic LinOp, which would need
@@ -89,8 +94,6 @@ public:
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
-
-    const parameters_type& get_parameters() const { return parameters_; }
 
     /**
      * Create the parameters from the property_tree.

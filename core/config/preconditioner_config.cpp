@@ -289,7 +289,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
             GKO_INVALID_CONFIG_VALUE("isai_type", str);
         }
     } else {
-        GKO_MISS_CONFIG_ENTRY("isai_type");
+        GKO_MISSING_CONFIG_ENTRY("isai_type");
     }
 }
 
