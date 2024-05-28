@@ -19,6 +19,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
@@ -26,6 +27,7 @@
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
@@ -93,6 +95,8 @@ struct SimpleSolverTest {
         ASSERT_EQ(mtx->get_preconditioner(), nullptr);
         ASSERT_EQ(mtx->get_stopping_criterion_factory(), nullptr);
     }
+
+    static bool blacklisted(const std::string& test) { return false; }
 };
 
 
@@ -102,6 +106,56 @@ struct Cg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
     {
         // make sure the matrix is well-conditioned
         gko::utils::make_hpd(data, 1.5);
+    }
+};
+
+
+struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
+    static void preprocess(
+        gko::matrix_data<value_type, global_index_type>& data)
+    {
+        // the MG preconditioner doesn's seem to be able to handle
+        // random HPD matrices well, so replace it with a 3-pt stencil matrix
+        data.nonzeros.clear();
+        for (int i = 0; i < data.size[0]; ++i) {
+            if (i > 0) {
+                data.nonzeros.emplace_back(i, i - 1, value_type(-1));
+            }
+            data.nonzeros.emplace_back(i, i, value_type(2));
+            if (i < data.size[0] - 1) {
+                data.nonzeros.emplace_back(i, i + 1, value_type(-1));
+            }
+        }
+    }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return SimpleSolverTest<gko::solver::Cg<solver_value_type>>::build(exec)
+            .with_preconditioner(
+                gko::solver::Multigrid::build()
+                    .with_mg_level(
+                        gko::multigrid::Pgm<solver_value_type>::build()
+                            .with_deterministic(false))
+                    .with_min_coarse_rows(
+                        16u)  // necessary since the test matrices have less
+                              // rows than the default value
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(
+                            iteration_count()),
+                        gko::stop::ResidualNorm<value_type>::build()
+                            .with_baseline(gko::stop::mode::absolute)
+                            .with_reduction_factor(2 * reduction_factor())));
+    }
+
+    static bool blacklisted(const std::string& test)
+    {
+#ifdef GKO_COMPILING_HIP
+        // SPGEAM is broken for empty matrices on rocm <= 4.5
+        return test == "some-empty-partition";
+#else
+        return false;
+#endif
     }
 };
 
@@ -307,6 +361,9 @@ protected:
         }
         {
             SCOPED_TRACE("Some empty partition");
+            if (Config::blacklisted("some-empty-partition")) {
+                return;
+            }
             guarded_fn(gen_part(50, std::max(1, comm.size() - 1)));
         }
     }
@@ -475,8 +532,9 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>,
-                                     Gcr<100u>, Gmres<10u>, Gmres<100u>>;
+using SolverTypes =
+    ::testing::Types<Cg, CgWithMg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>, Gcr<100u>,
+                     Gmres<10u>, Gmres<100u>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 

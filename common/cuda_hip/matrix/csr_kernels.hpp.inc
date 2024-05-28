@@ -1298,7 +1298,7 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
-    auto nnz_per_row = total_nnz / a->get_size()[0];
+    auto nnz_per_row = a->get_size()[0] ? total_nnz / a->get_size()[0] : 0;
     select_spgeam(
         spgeam_kernels(),
         [&](int compiled_subwarp_size) {

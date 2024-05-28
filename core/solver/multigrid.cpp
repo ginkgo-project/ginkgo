@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -99,6 +100,28 @@ void handle_list(
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&] {
         auto exec = matrix->get_executor();
+#if GINKGO_BUILD_MPI
+        if (gko::detail::is_distributed(matrix.get())) {
+            using experimental::distributed::Matrix;
+            return run<Matrix<ValueType, int32, int32>,
+                       Matrix<ValueType, int32, int64>,
+                       Matrix<ValueType, int64, int64>>(
+                matrix, [exec, iteration, relaxation_factor](auto matrix) {
+                    using Mtx = typename decltype(matrix)::element_type;
+                    return share(
+                        build_smoother(
+                            experimental::distributed::preconditioner::Schwarz<
+                                ValueType, typename Mtx::local_index_type,
+                                typename Mtx::global_index_type>::build()
+                                .with_local_solver(
+                                    preconditioner::Jacobi<ValueType>::build()
+                                        .with_max_block_size(1u))
+                                .on(exec),
+                            iteration, casting<ValueType>(relaxation_factor))
+                            ->generate(matrix));
+                });
+        }
+#endif
         return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
                                         .with_max_block_size(1u)
                                         .on(exec),
@@ -180,7 +203,7 @@ namespace detail {
  * @note it should only be used internally
  */
 struct MultigridState {
-    MultigridState() : nrhs{0} {}
+    MultigridState() : nrhs{static_cast<size_type>(-1)} {}
 
     /**
      * Generate the cache for later usage.
@@ -638,7 +661,42 @@ void Multigrid::generate()
             // default coarse grid solver, direct LU
             // TODO: maybe remove fixed index type
             auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
-                // TODO: unify when dpcpp supports direct solver
+        // TODO: unify when dpcpp supports direct solver
+#if GINKGO_BUILD_MPI
+                if (gko::detail::is_distributed(matrix.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    using experimental::distributed::Matrix;
+                    return run<Matrix<value_type, int32, int32>,
+                               Matrix<value_type, int32, int64>,
+                               Matrix<value_type, int64,
+                                      int64>>(matrix, [exec](auto matrix) {
+                        using Mtx = typename decltype(matrix)::element_type;
+                        return solver::Gmres<value_type>::build()
+                            .with_criteria(
+                                stop::Iteration::build().with_max_iters(
+                                    matrix->get_size()[0]),
+                                stop::ResidualNorm<value_type>::build()
+                                    .with_reduction_factor(
+                                        std::numeric_limits<
+                                            absolute_value_type>::epsilon() *
+                                        absolute_value_type{10}))
+                            .with_krylov_dim(
+                                std::min(size_type(100), matrix->get_size()[0]))
+                            .with_preconditioner(
+                                experimental::distributed::preconditioner::
+                                    Schwarz<value_type,
+                                            typename Mtx::local_index_type,
+                                            typename Mtx::global_index_type>::
+                                        build()
+                                            .with_local_solver(
+                                                preconditioner::Jacobi<
+                                                    value_type>::build()
+                                                    .with_max_block_size(1u)))
+                            .on(exec)
+                            ->generate(matrix);
+                    });
+                }
+#endif
                 if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     return solver::Gmres<value_type>::build()
@@ -695,7 +753,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
                                               initial_guess_mode guess) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
         return;
     }
 
@@ -729,7 +787,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                                               LinOp* x,
                                               initial_guess_mode guess) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
         return;
     }
 
