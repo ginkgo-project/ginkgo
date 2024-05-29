@@ -51,7 +51,8 @@ class pnode;
  *    template parameter `template<typename/specific_type... key> class`, then
  *    the configuration allows `"<key>": value`  to the template parameter. The
  *    supported values of the template parameter depend on the context. For
- *    index and value types, these are listed under 4.
+ *    index and value types, these are listed under 4. Currently, we do not
+ *    support gko::array parameter.
  * 4. Values for template parameters are represented with strings. The following
  *    datatypes, with postfix to indicate their size, are supported: int32,
  *    int64, float32, float64, complex<float32>, complex<float64>.
