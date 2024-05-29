@@ -102,7 +102,7 @@ struct solver_result {
     double bit_rate;
     T init_res_norm;
     T res_norm;
-    const std::vector<T>* residual_norm_history;
+    std::vector<T> residual_norm_history;
 };
 
 
@@ -166,9 +166,19 @@ public:
 
     std::size_t get_num_iterations() const { return num_iterations_; }
 
-    const std::vector<RealValueType>& get_residual_norm_history() const
+    std::vector<RealValueType> get_residual_norm_history_copy() const
     {
         return residual_norm_history_;
+    }
+
+    const std::vector<RealValueType>& get_residual_norm_history()
+    {
+        return residual_norm_history_;
+    }
+
+    std::vector<RealValueType> extract_residual_norm_history()
+    {
+        return std::move(residual_norm_history_);
     }
 
 protected:
@@ -402,7 +412,7 @@ public:
         result.bit_rate = solver->get_average_bit_rate();
         result.res_norm = this->compute_residual_norm();
         result.residual_norm_history =
-            &convergence_history_logger_->get_residual_norm_history();
+            convergence_history_logger_->extract_residual_norm_history();
         return result;
     }
 
@@ -566,7 +576,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     const auto get_result_json =
         [rhs_norm = b_object.get_rhs_norm()](
             const std::string& bench_name,
-            const solver_result<RealValueType>& result) -> nlohmann::json {
+            solver_result<RealValueType>&& result) -> nlohmann::json {
         nlohmann::json json_result = {
             {"name", bench_name},
             {"settings", nlohmann::json::object()},
@@ -576,7 +586,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             {"init_res_norm", result.init_res_norm},
             {"final_res_norm", result.res_norm},
             {"rel_res_norm", result.res_norm / rhs_norm},
-            {"res_norm_history", *result.residual_norm_history},
+            {"res_norm_history", std::move(result.residual_norm_history)},
         };
         //  The actual settings information needs to be added afterwards
         return json_result;
