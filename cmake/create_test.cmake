@@ -91,13 +91,21 @@ function(ginkgo_add_test test_name test_target_name)
     endif()
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_binary_name})
     if (add_test_MPI_SIZE)
-        add_test(NAME ${REL_BINARY_DIR}/${test_binary_name}
-                 COMMAND
-                     ${MPIEXEC_EXECUTABLE}
-                     ${MPIEXEC_NUMPROC_FLAG}
-                     ${add_test_MPI_SIZE}
-                     "$<TARGET_FILE:${test_target_name}>"
-                 WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
+        if (add_test_MPI_SIZE LESS_EQUAL MPIEXEC_MAX_NUMPROCS)
+            add_test(NAME ${REL_BINARY_DIR}/${test_binary_name}
+                     COMMAND
+                         ${MPIEXEC_EXECUTABLE}
+                         ${MPIEXEC_NUMPROC_FLAG}
+                         ${add_test_MPI_SIZE}
+                         "$<TARGET_FILE:${test_target_name}>"
+                     WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
+        else()
+            message(
+                    WARNING
+                        "Disabling test: ${test_target_name}. Only ${MPIEXEC_MAX_NUMPROCS} "
+                        "MPI processes available but ${add_test_MPI_SIZE} processes required."
+                   )
+        endif()
     else()
         add_test(NAME ${REL_BINARY_DIR}/${test_binary_name}
                  COMMAND ${test_target_name}
