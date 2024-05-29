@@ -1,6 +1,13 @@
 add_subdirectory(device_hooks) # placeholders for disabled modules
 
 add_library(ginkgo "")
+set(config_source 
+    config/factorization_config.cpp
+    config/multigrid_config.cpp
+    config/preconditioner_config.cpp
+    config/registry.cpp
+    config/solver_config.cpp
+)
 target_sources(ginkgo
     PRIVATE
     base/array.cpp
@@ -21,12 +28,7 @@ target_sources(ginkgo
     base/version.cpp
     config/config.cpp
     config/config_helper.cpp
-    config/factorization_config.cpp
-    config/preconditioner_config.cpp
     config/property_tree.cpp
-    config/registry.cpp
-    config/multigrid_config.cpp
-    config/solver_config.cpp
     config/stop_config.cpp
     config/type_descriptor.cpp
     distributed/index_map.cpp
@@ -125,6 +127,19 @@ if(GINKGO_BUILD_MPI)
         distributed/preconditioner/schwarz.cpp)
 endif()
 
+if(MSVC AND BUILD_SHARED_LIBS)
+    add_library(ginkgo_config "")
+    target_sources(ginkgo_config PRIVATE ${config_source})
+    ginkgo_compile_features(ginkgo_config)
+    ginkgo_default_includes(ginkgo_config)
+    ginkgo_install_library(ginkgo_config)
+    if(GINKGO_CHECK_CIRCULAR_DEPS)
+        ginkgo_check_headers(ginkgo_config "")
+    endif()
+else() 
+    target_sources(ginkgo PRIVATE ${config_source})
+endif()
+
 ginkgo_compile_features(ginkgo)
 
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
@@ -132,6 +147,9 @@ ginkgo_compile_features(ginkgo)
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+if(MSVC AND BUILD_SHARED_LIBS)
+    target_link_libraries(ginkgo_config PUBLIC ginkgo)
+endif()
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
 endif()
