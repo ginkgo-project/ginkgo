@@ -23,10 +23,11 @@ namespace batch_preconditioner {
 /**
  * BlockJacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType = int>
+template <typename ValueType>
 class BlockJacobi final {
 public:
     using value_type = ValueType;
+    using index_type = int;
 
     /**
      *
@@ -56,30 +57,31 @@ public:
     }
 
     void generate(size_type batch_id,
-                  const gko::batch::matrix::ell::batch_item<const ValueType,
-                                                            const IndexType>&,
-                  ValueType* const)
+                  const gko::batch::matrix::ell::batch_item<const value_type,
+                                                            const index_type>&,
+                  value_type* const)
     {
         common_generate(batch_id);
     }
 
     void generate(size_type batch_id,
-                  const gko::batch::matrix::csr::batch_item<const ValueType,
-                                                            const IndexType>&,
-                  ValueType* const)
+                  const gko::batch::matrix::csr::batch_item<const value_type,
+                                                            const index_type>&,
+                  value_type* const)
     {
         common_generate(batch_id);
     }
 
-    void generate(size_type batch_id,
-                  const gko::batch::matrix::dense::batch_item<const ValueType>&,
-                  ValueType* const)
+    void generate(
+        size_type batch_id,
+        const gko::batch::matrix::dense::batch_item<const value_type>&,
+        value_type* const)
     {
         common_generate(batch_id);
     }
 
-    void apply(const gko::batch::multi_vector::batch_item<const ValueType>& r,
-               const gko::batch::multi_vector::batch_item<ValueType>& z) const
+    void apply(const gko::batch::multi_vector::batch_item<const value_type>& r,
+               const gko::batch::multi_vector::batch_item<value_type>& z) const
     {
         // Structure-aware SpMV
         for (int bidx = 0; bidx < num_blocks_; bidx++) {
@@ -93,7 +95,7 @@ public:
                 detail::batch_jacobi::get_stride(bidx, block_ptrs_arr_);
 
             for (int row = row_st; row < row_end; row++) {
-                ValueType sum = zero<ValueType>();
+                value_type sum = zero<value_type>();
                 for (int col = 0; col < bsize; col++) {
                     const auto val =
                         blocks_arr_entry_[offset + (row - row_st) * stride +

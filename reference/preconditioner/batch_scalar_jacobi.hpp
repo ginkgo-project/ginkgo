@@ -19,9 +19,12 @@ namespace batch_preconditioner {
 /**
  * (Scalar) Jacobi preconditioner for batch solvers.
  */
-template <typename ValueType, typename IndexType = int>
+template <typename ValueType>
 class ScalarJacobi final {
 public:
+    using value_type = ValueType;
+    using index_type = int;
+
     /**
      * The size of the work vector required in case of dynamic allocation.
      */
@@ -41,17 +44,17 @@ public:
      */
     void generate(size_type,
                   const gko::batch::matrix::ell::batch_item<
-                      const ValueType, const IndexType>& mat,
-                  ValueType* const work)
+                      const value_type, const index_type>& mat,
+                  value_type* const work)
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
-            work_[i] = one<ValueType>();
+            work_[i] = one<value_type>();
             for (int j = 0; j < mat.num_stored_elems_per_row; j++) {
                 const auto idx = i + j * mat.stride;
                 if (mat.col_idxs[idx] == i) {
-                    if (mat.values[idx] != zero<ValueType>()) {
-                        work_[i] = one<ValueType>() / mat.values[idx];
+                    if (mat.values[idx] != zero<value_type>()) {
+                        work_[i] = one<value_type>() / mat.values[idx];
                     }
                     break;
                 }
@@ -70,16 +73,16 @@ public:
      */
     void generate(size_type,
                   const gko::batch::matrix::csr::batch_item<
-                      const ValueType, const IndexType>& mat,
-                  ValueType* const work)
+                      const value_type, const index_type>& mat,
+                  value_type* const work)
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
-            work_[i] = one<ValueType>();
+            work_[i] = one<value_type>();
             for (int j = mat.row_ptrs[i]; j < mat.row_ptrs[i + 1]; j++) {
                 if (mat.col_idxs[j] == i) {
-                    if (mat.values[j] != zero<ValueType>()) {
-                        work_[i] = one<ValueType>() / mat.values[j];
+                    if (mat.values[j] != zero<value_type>()) {
+                        work_[i] = one<value_type>() / mat.values[j];
                     }
                     break;
                 }
@@ -98,20 +101,20 @@ public:
      */
     void generate(
         size_type,
-        const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-        ValueType* const work)
+        const gko::batch::matrix::dense::batch_item<const value_type>& mat,
+        value_type* const work)
     {
         work_ = work;
         for (int i = 0; i < mat.num_rows; i++) {
-            work_[i] = one<ValueType>() /
-                       (mat.values[i * mat.stride + i] == zero<ValueType>()
-                            ? one<ValueType>()
+            work_[i] = one<value_type>() /
+                       (mat.values[i * mat.stride + i] == zero<value_type>()
+                            ? one<value_type>()
                             : mat.values[i * mat.stride + i]);
         }
     }
 
-    void apply(const gko::batch::multi_vector::batch_item<const ValueType>& r,
-               const gko::batch::multi_vector::batch_item<ValueType>& z) const
+    void apply(const gko::batch::multi_vector::batch_item<const value_type>& r,
+               const gko::batch::multi_vector::batch_item<value_type>& z) const
     {
         for (int i = 0; i < r.num_rows; i++) {
             for (int j = 0; j < r.num_rhs; j++) {
@@ -122,7 +125,7 @@ public:
     }
 
 private:
-    ValueType* work_ = nullptr;
+    value_type* work_ = nullptr;
 };
 
 
