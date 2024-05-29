@@ -103,6 +103,7 @@ struct solver_result {
     T init_res_norm;
     T res_norm;
     std::vector<T> residual_norm_history;
+    std::map<std::string, double> operation_timings;
 };
 
 
@@ -266,6 +267,15 @@ struct OperationLogger : gko::log::Logger {
         }
     }
 
+    std::map<std::string, double> get_duration_map_s() const
+    {
+        std::map<std::string, double> result;
+        for (auto&& entry : total) {
+            result.insert({entry.first, entry.second.count()});
+        }
+        return result;
+    }
+
     void reset()
     {
         start.clear();
@@ -299,10 +309,10 @@ private:
     }
 
     mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
-    mutable std::map<std::string, std::chrono::steady_clock::duration> total;
+    mutable std::map<std::string, std::chrono::duration<double>> total;
     // the position i of this vector holds the total time spend on child
     // operations on nesting level i
-    mutable std::vector<std::chrono::steady_clock::duration> nested;
+    mutable std::vector<std::chrono::duration<double>> nested;
 };
 
 
@@ -329,8 +339,10 @@ public:
           residual_{Vector::create(exec_, rhs_->get_size())},
           res_norm_{gko::initialize<NormVector>({0.0}, exec_)},
           convergence_history_logger_{
-              ConvergenceHistoryLogger<ValueType>::create()}
+              ConvergenceHistoryLogger<ValueType>::create()},
+          operation_logger_{nullptr}
     {
+        operation_logger_ = std::make_shared<OperationLogger>();
         x_->copy_from(init_x_.get());
         rhs_->compute_norm2(res_norm_);
         rhs_norm_ = exec_->copy_val_to_host(res_norm_->get_const_values());
@@ -403,9 +415,6 @@ public:
             duration += std::chrono::duration<double>(tac - tic).count();
         }
         iter_stop->remove_logger(convergence_history_logger_);
-        if (operation_logger_) {
-            exec_->remove_logger(operation_logger_);
-        }
 
         result.iters = convergence_history_logger_->get_num_iterations();
         result.time_s = duration / static_cast<double>(repeats);
@@ -413,6 +422,10 @@ public:
         result.res_norm = this->compute_residual_norm();
         result.residual_norm_history =
             convergence_history_logger_->extract_residual_norm_history();
+        if (operation_logger_) {
+            result.operation_timings = operation_logger_->get_duration_map_s();
+            exec_->remove_logger(operation_logger_);
+        }
         return result;
     }
 
@@ -588,7 +601,11 @@ void run_benchmarks(const user_launch_parameter& launch_param)
             {"rel_res_norm", result.res_norm / rhs_norm},
             {"res_norm_history", std::move(result.residual_norm_history)},
         };
-        //  The actual settings information needs to be added afterwards
+        if (result.operation_timings.size() > 0) {
+            json_result["operations"] = result.operation_timings;
+        }
+        //  The actual settings information (the JSON file used for the
+        //  compression) needs to be added afterwards
         return json_result;
     };
 
