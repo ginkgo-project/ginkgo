@@ -71,6 +71,12 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(gko::config::get_value<bool>(obj));
     }
+    // No array support
+    if (config.get("block_pointers")) {
+        GKO_INVALID_STATE(
+            "preconditioner::Jacobi does not support block_pointers in file "
+            "config.");
+    }
     // storage_optimization_type is not public. It uses precision_reduction
     // as input. It allows value and array input, but we only support the value
     // input [x, y] -> one precision_reduction (value mode)

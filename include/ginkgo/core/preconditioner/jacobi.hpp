@@ -513,6 +513,9 @@ public:
      *                      default uses the value/index type of this class.
      *
      * @return parameters
+     *
+     * @note Jacobi does not support block_pointers and storage_optimization
+     *       array.
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
