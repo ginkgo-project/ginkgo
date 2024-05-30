@@ -393,6 +393,8 @@ public:
      * @param td_for_child  the type descriptor for children configs
      *
      * @return parameters
+     *
+     * @note Multigrid does not support the selector option in file config
      */
     static parameters_type parse(const config::pnode& config,
                                  const config::registry& context,

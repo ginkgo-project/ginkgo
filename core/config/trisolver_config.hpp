@@ -37,7 +37,7 @@ inline void common_trisolver_parse(SolverParam& params, const pnode& config,
         } else if (str == "syncfree") {
             params.with_algorithm(trisolve_algorithm::syncfree);
         } else {
-            GKO_INVALID_STATE("Wrong value for algorithm");
+            GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
     }
 }

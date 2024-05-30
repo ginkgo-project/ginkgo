@@ -30,7 +30,7 @@ parse_or_get_factory<const LinOpFactory>(const pnode& config,
     } else if (config.get_tag() == pnode::tag_t::map) {
         return parse(config, context, td);
     } else {
-        GKO_INVALID_STATE("The data of config is not valid.");
+        GKO_INVALID_STATE("The type of config is not valid.");
     }
 }
 
@@ -57,7 +57,7 @@ parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
         return criterion_map.at(config.get("type").get_string())(config,
                                                                  context, td);
     } else {
-        GKO_INVALID_STATE("The data of config is not valid.");
+        GKO_INVALID_STATE("The type of config is not valid.");
     }
 }
 
