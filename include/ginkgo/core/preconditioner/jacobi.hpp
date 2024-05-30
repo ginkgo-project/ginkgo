@@ -505,14 +505,17 @@ public:
      * Create the parameters from the property_tree.
      * Because this is directly tied to the specific type, the value/index type
      * settings within config are ignored and type_descriptor is only used
-     * for children objects.
+     * for children configs.
      *
      * @param config  the property tree for setting
      * @param context  the registry
-     * @param td_for_child  the type descriptor for children objects. The
+     * @param td_for_child  the type descriptor for children configs. The
      *                      default uses the value/index type of this class.
      *
      * @return parameters
+     *
+     * @note Jacobi does not support block_pointers and storage_optimization
+     *       array.
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,

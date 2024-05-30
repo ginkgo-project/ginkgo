@@ -16,6 +16,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 
@@ -42,6 +43,16 @@ GKO_PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
+
+
+template <>
+deferred_factory_parameter<gko::LinOpFactory>
+parse<LinOpFactoryType::Multigrid>(const pnode& config, const registry& context,
+                                   const gko::config::type_descriptor& td)
+{
+    auto updated = update_type(config, td);
+    return solver::Multigrid::parse(config, context, updated);
+}
 
 
 }  // namespace config

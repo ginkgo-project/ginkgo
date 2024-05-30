@@ -65,7 +65,9 @@ enum class LinOpFactoryType : int {
     Ic,
     Ilu,
     Isai,
-    Jacobi
+    Jacobi,
+    Multigrid,
+    Pgm
 };
 
 
@@ -117,7 +119,7 @@ parse_or_get_specific_factory(const pnode& config, const registry& context,
     } else if (config.get_tag() == pnode::tag_t::map) {
         return T_non_const::parse(config, context, td);
     } else {
-        GKO_INVALID_STATE("The data of config is not valid.");
+        GKO_INVALID_STATE("The type of config is not valid.");
     }
 }
 

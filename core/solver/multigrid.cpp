@@ -30,6 +30,7 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
@@ -590,6 +591,98 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 
 }  // namespace detail
 }  // namespace multigrid
+
+
+typename Multigrid::parameters_type Multigrid::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = Multigrid::build();
+
+    if (auto& obj = config.get("criteria")) {
+        params.with_criteria(
+            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("mg_level")) {
+        params.with_mg_level(
+            config::parse_or_get_factory_vector<const gko::LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("pre_smoother")) {
+        params.with_pre_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("post_smoother")) {
+        params.with_post_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("mid_smoother")) {
+        params.with_mid_smoother(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("post_uses_pre")) {
+        params.with_post_uses_pre(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("mid_case")) {
+        auto str = obj.get_string();
+        if (str == "both") {
+            params.with_mid_case(multigrid::mid_smooth_type::both);
+        } else if (str == "post_smoother") {
+            params.with_mid_case(multigrid::mid_smooth_type::post_smoother);
+        } else if (str == "pre_smoother") {
+            params.with_mid_case(multigrid::mid_smooth_type::pre_smoother);
+        } else if (str == "standalone") {
+            params.with_mid_case(multigrid::mid_smooth_type::standalone);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("mid_smooth_type", str);
+        }
+    }
+    if (auto& obj = config.get("max_levels")) {
+        params.with_max_levels(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("min_coarse_rows")) {
+        params.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("coarsest_solver")) {
+        params.with_coarsest_solver(
+            config::parse_or_get_factory_vector<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("cycle")) {
+        auto str = obj.get_string();
+        if (str == "v") {
+            params.with_cycle(multigrid::cycle::v);
+        } else if (str == "w") {
+            params.with_cycle(multigrid::cycle::w);
+        } else if (str == "f") {
+            params.with_cycle(multigrid::cycle::f);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("cycle", str);
+        }
+    }
+    if (auto& obj = config.get("kcycle_base")) {
+        params.with_kcycle_base(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("kcycle_rel_tol")) {
+        params.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
+    }
+    if (auto& obj = config.get("smoother_relax")) {
+        params.with_smoother_relax(
+            gko::config::get_value<std::complex<double>>(obj));
+    }
+    if (auto& obj = config.get("smoother_iters")) {
+        params.with_smoother_iters(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        params.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
+    return params;
+}
 
 
 void Multigrid::generate()

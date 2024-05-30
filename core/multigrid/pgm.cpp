@@ -28,6 +28,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 
@@ -138,6 +139,30 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename Pgm<ValueType, IndexType>::parameters_type
+Pgm<ValueType, IndexType>::parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child)
+{
+    auto params = Pgm<ValueType, IndexType>::build();
+    if (auto& obj = config.get("max_iterations")) {
+        params.with_max_iterations(gko::config::get_value<unsigned>(obj));
+    }
+    if (auto& obj = config.get("max_unassigned_ratio")) {
+        params.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
+    }
+    if (auto& obj = config.get("deterministic")) {
+        params.with_deterministic(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>
