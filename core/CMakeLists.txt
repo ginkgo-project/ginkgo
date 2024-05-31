@@ -52,6 +52,7 @@ target_sources(ginkgo
     log/tau.cpp
     log/vtune.cpp
     log/record.cpp
+    log/solver_debug.cpp
     log/stream.cpp
     matrix/batch_csr.cpp
     matrix/batch_dense.cpp
