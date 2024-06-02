@@ -12,6 +12,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -19,6 +21,7 @@
 #include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -158,6 +161,39 @@ struct ParIlutState {
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename ParIlut<ValueType, IndexType>::parameters_type
+ParIlut<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = factorization::ParIlut<ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("iterations")) {
+        params.with_iterations(config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("approximate_select")) {
+        params.with_approximate_select(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("deterministic_sample")) {
+        params.with_deterministic_sample(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("fill_in_limit")) {
+        params.with_fill_in_limit(config::get_value<double>(obj));
+    }
+    if (auto& obj = config.get("l_strategy")) {
+        params.with_l_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    if (auto& obj = config.get("u_strategy")) {
+        params.with_u_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

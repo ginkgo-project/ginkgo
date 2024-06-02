@@ -491,6 +491,10 @@ template <typename ValueType>
         return fail;
     }
 
+    if (first.get_executor() == nullptr && second.get_executor() == nullptr) {
+        // both are empty
+        return ::testing::AssertionSuccess();
+    }
     auto exec = first.get_executor()->get_master();
     array<ValueType> first_array(exec, first);
     array<ValueType> second_array(exec, second);
@@ -521,6 +525,42 @@ template <typename ValueType>
             if (context_end < num_elems1) {
                 fail << "...\n";
             }
+            return fail;
+        }
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
+
+template <typename ValueType>
+::testing::AssertionResult array_near_impl(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const array<ValueType>& first,
+    const array<ValueType>& second, double tolerance)
+{
+    const auto num_elems1 = first.get_size();
+    const auto num_elems2 = second.get_size();
+    if (num_elems1 != num_elems2) {
+        auto fail = ::testing::AssertionFailure();
+        fail << "Array " << first_expression << " contains " << num_elems1
+             << ", while " << second_expression << " contains " << num_elems2
+             << " elements!\n";
+        return fail;
+    }
+
+    auto exec = first.get_executor()->get_master();
+    array<ValueType> first_array(exec, first);
+    array<ValueType> second_array(exec, second);
+    for (size_type i = 0; i < num_elems1; ++i) {
+        double err = std::abs(second_array.get_const_data()[i] -
+                              first_array.get_const_data()[i]);
+        if (err > tolerance) {
+            auto fail = ::testing::AssertionFailure();
+            fail << "Array " << first_expression << " is different from "
+                 << second_expression << " at index " << i
+                 << " with relative error: " << err << ", expected "
+                 << tolerance_expression << " (which is " << tolerance << ")\n";
             return fail;
         }
     }
@@ -819,6 +859,56 @@ template <typename ValueType>
                                     second);
 }
 
+
+/**
+ * This is a gtest predicate which checks if two arrays are near each other.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2.
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT2` as follows:
+ * ```
+ * // Check if array1 is equal to array2
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::array_equal, array1, array2);
+ * ```
+ *
+ * @see GKO_ASSERT_ARRAY_NEAR
+ */
+template <typename ValueType>
+::testing::AssertionResult array_near(const std::string& first_expression,
+                                      const std::string& second_expression,
+                                      const std::string& tolerance_expression,
+                                      const array<ValueType>& first,
+                                      const array<ValueType>& second,
+                                      double tolerance)
+{
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first, second,
+                                   tolerance);
+}
+
+
+/**
+ * array_nearoverload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
+ * `second`
+ *
+ * @copydoc array_near
+ */
+template <typename ValueType>
+::testing::AssertionResult array_near(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression,
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second, double tolerance)
+{
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first.copy_to_array(),
+                                   second.copy_to_array(), tolerance);
+}
+
+
 /**
  * array_equal overload: where `first` is a const_array_view.
  * It creates a array copy of the const_array_view and then compare `first` and
@@ -870,6 +960,7 @@ template <typename ValueType>
                                     first.copy_to_array(),
                                     second.copy_to_array());
 }
+
 
 /** array_equal overloads where one side is an initializer list .*/
 template <typename ValueType>
@@ -1243,6 +1334,36 @@ T* plain_ptr(T* ptr)
     {                                                                      \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \
+    }
+
+
+/**
+ * Checks if two `gko::array`s are near each other.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2 within a tolerance.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::array_equal().
+ *
+ * @param _array1  first array
+ * @param _array2  second array
+ * @param _tol  tolerance
+ **/
+#define GKO_ASSERT_ARRAY_NEAR(_array1, _array2, _tol)                     \
+    {                                                                     \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
+                            _array2, _tol);                               \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_ARRAY_EQ
+ **/
+#define GKO_EXPECT_ARRAY_NEAR(_array1, _array2, _tol)                     \
+    {                                                                     \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
+                            _array2, _tol);                               \
     }
 
 

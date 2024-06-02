@@ -601,8 +601,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     std::sort(entries, entries + nnz,
               [&](entry a, entry b) { return to_block(a) < to_block(b); });
     // set row pointers by jumps in block row index
-    gko::vector<IndexType> col_idx_vec{{exec}};
-    gko::vector<ValueType> value_vec{{exec}};
+    gko::vector<IndexType> col_idx_vec{exec};
+    gko::vector<ValueType> value_vec{exec};
     int64 block_row = -1;
     int64 block_col = -1;
     for (size_type i = 0; i < nnz; i++) {
@@ -1367,6 +1367,7 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
@@ -1386,8 +1387,12 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                 row_desc[row], local_storage, local_cols);
         }
         if (!done) {
-            csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                  local_storage, local_cols);
+            if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
+                                      local_storage, local_cols);
+            } else {
+                row_desc[row] = static_cast<int64>(sparsity_type::none);
+            }
         }
     }
 }

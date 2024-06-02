@@ -88,8 +88,7 @@ void set_gmem_stride_bytes(storage_config& sconf,
         gmem_stride += prec_storage_bytes;
     }
     // align global memory chunks
-    sconf.gmem_stride_bytes =
-        gmem_stride > 0 ? ceildiv(gmem_stride, align_bytes) * align_bytes : 0;
+    sconf.gmem_stride_bytes = ceildiv(gmem_stride, align_bytes) * align_bytes;
 }
 
 
@@ -134,8 +133,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
     const int num_main_vecs = 9;
-    const int prec_storage =
-        Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
+    const int prec_storage = Prectype::dynamic_work_size(num_rows, num_nz);
     int rem_shared = available_shared_mem;
     // Set default values. Initially all vecs are in global memory.
     // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}

@@ -1,4 +1,4 @@
-prefix=@GINKGO_PKG_INSTALL_PREFIX@
+prefix=${pcfiledir}/../..
 libdir=${prefix}/@GINKGO_INSTALL_LIBDIR@
 includedir=${prefix}/@GINKGO_INSTALL_INCLUDEDIR@
 

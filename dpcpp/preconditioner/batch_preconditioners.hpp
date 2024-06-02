@@ -6,10 +6,8 @@
 #define GKO_DPCPP_PRECONDITIONER_BATCH_PRECONDITIONERS_HPP_
 
 
-#include <ginkgo/core/matrix/batch_identity.hpp>
-
-
 #include "core/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
 
 
 namespace gko {
@@ -18,7 +16,9 @@ namespace dpcpp {
 namespace batch_preconditioner {
 
 
+#include "dpcpp/preconditioner/batch_block_jacobi.hpp.inc"
 #include "dpcpp/preconditioner/batch_identity.hpp.inc"
+#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp.inc"
 
 
 }  // namespace batch_preconditioner

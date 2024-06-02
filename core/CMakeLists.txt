@@ -16,9 +16,21 @@ target_sources(ginkgo
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/segmented_array.cpp
     base/timer.cpp
     base/version.cpp
     c_api.cpp
+    config/config.cpp
+    config/config_helper.cpp
+    config/factorization_config.cpp
+    config/preconditioner_config.cpp
+    config/property_tree.cpp
+    config/registry.cpp
+    config/multigrid_config.cpp
+    config/solver_config.cpp
+    config/stop_config.cpp
+    config/type_descriptor.cpp
+    distributed/index_map.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
@@ -62,6 +74,9 @@ target_sources(ginkgo
     matrix/sparsity_csr.cpp
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
+    preconditioner/batch_jacobi.cpp
+    preconditioner/ic.cpp
+    preconditioner/ilu.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
@@ -69,6 +84,7 @@ target_sources(ginkgo
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
     solver/batch_bicgstab.cpp
+    solver/batch_cg.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
@@ -117,10 +133,6 @@ ginkgo_compile_features(ginkgo)
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-
-# The PAPI dependency needs to be exposed to the user.
-set(GKO_RPATH_ADDITIONS "")
-
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
 endif()
@@ -141,14 +153,8 @@ if(GINKGO_BUILD_MPI)
     target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
-# Since we have a public dependency on HIP, this dependency appears
-# here as well
-if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
-endif()
-
 ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
+ginkgo_install_library(ginkgo)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo "")

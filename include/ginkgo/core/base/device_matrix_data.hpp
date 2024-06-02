@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 
 
 namespace gko {
@@ -291,34 +292,13 @@ struct temporary_clone_helper<const device_matrix_data<ValueType, IndexType>> {
 };
 
 
-// specialization for non-constant device_matrix_data, copying back via
-// assignment
 template <typename ValueType, typename IndexType>
-class copy_back_deleter<device_matrix_data<ValueType, IndexType>> {
+class copy_back_deleter<device_matrix_data<ValueType, IndexType>>
+    : public copy_back_deleter_from_assignment<
+          device_matrix_data<ValueType, IndexType>> {
 public:
-    using pointer = device_matrix_data<ValueType, IndexType>*;
-
-    /**
-     * Creates a new deleter object.
-     *
-     * @param original  the origin object where the data will be copied before
-     *                  deletion
-     */
-    copy_back_deleter(pointer original) : original_{original} {}
-
-    /**
-     * Copies back the pointed-to object to the original and deletes it.
-     *
-     * @param ptr  pointer to the object to be copied back and deleted
-     */
-    void operator()(pointer ptr) const
-    {
-        *original_ = *ptr;
-        delete ptr;
-    }
-
-private:
-    pointer original_;
+    using copy_back_deleter_from_assignment<device_matrix_data<
+        ValueType, IndexType>>::copy_back_deleter_from_assignment;
 };
 
 

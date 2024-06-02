@@ -14,7 +14,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/multigrid/pgm.hpp>
 
 
 #include "core/base/iterator_factory.hpp"

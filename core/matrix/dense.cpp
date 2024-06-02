@@ -1522,9 +1522,7 @@ template <typename ValueType, typename Function>
 void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    using fst_type = matrix::Dense<ValueType>;
-    using snd_type = matrix::Dense<next_precision<ValueType>>;
-    run<fst_type*, snd_type*>(out, fn);
+    run<matrix::Dense, ValueType, next_precision<ValueType>>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif

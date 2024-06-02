@@ -2,7 +2,7 @@
 FILE(GLOB _ginkgo_examples
     ${PROJECT_SOURCE_DIR}/examples/*
     )
-LIST(REMOVE_ITEM _ginkgo_examples "${PROJECT_SOURCE_DIR}/examples/CMakeLists.txt" "${PROJECT_SOURCE_DIR}/examples/build-setup.sh")
+LIST(REMOVE_ITEM _ginkgo_examples "${PROJECT_SOURCE_DIR}/examples/CMakeLists.txt" "${PROJECT_SOURCE_DIR}/examples/build-setup.sh" "${PROJECT_SOURCE_DIR}/examples/compare-output.py")
 
 ADD_CUSTOM_TARGET(examples)
 

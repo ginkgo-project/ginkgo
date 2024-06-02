@@ -14,6 +14,7 @@
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
@@ -31,6 +32,7 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
+    using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
@@ -56,7 +58,6 @@ protected:
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};
-
         solver_factory =
             solver_type::build()
                 .with_max_iterations(max_iters)
@@ -206,7 +207,7 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
 
 TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
 {
-    const int num_batch_items = 12;
+    const int num_batch_items = 11;
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;

@@ -264,8 +264,10 @@ void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
                 if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
                     bitmap_storage <= hashmap_storage) {
                     storage_offsets[row] = bitmap_storage;
-                } else {
+                } else if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
                     storage_offsets[row] = hashmap_storage;
+                } else {
+                    storage_offsets[row] = 0;
                 }
             }
         },

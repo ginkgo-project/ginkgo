@@ -14,6 +14,8 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/config/config_helper.hpp"
+#include "core/config/trisolver_config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
 
 
@@ -31,6 +33,18 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 }  // anonymous namespace
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+typename LowerTrs<ValueType, IndexType>::parameters_type
+LowerTrs<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = LowerTrs<ValueType, IndexType>::build();
+    common_trisolver_parse(params, config, context, td_for_child);
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

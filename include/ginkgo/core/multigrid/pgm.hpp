@@ -13,9 +13,14 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
+
 
 namespace gko {
 namespace multigrid {
@@ -127,6 +132,24 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children configs.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children configs. The
+     *                      default uses the value/index type of this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -160,6 +183,25 @@ protected:
     }
 
     void generate();
+
+    /**
+     * This function generates the local matrix coarsening operators.
+     *
+     * @return a tuple with prolongation, coarse, and restriction linop
+     */
+    std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
+               std::shared_ptr<LinOp>>
+    generate_local(
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
+
+#if GINKGO_BUILD_MPI
+    template <typename GlobalIndexType>
+    void communicate(std::shared_ptr<const experimental::distributed::Matrix<
+                         ValueType, IndexType, GlobalIndexType>>
+                         matrix,
+                     const array<IndexType>& local_agg,
+                     array<IndexType>& non_local_agg);
+#endif
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

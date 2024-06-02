@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
+
 namespace gko {
 namespace multigrid {
 

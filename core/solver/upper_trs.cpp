@@ -14,6 +14,8 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/config/config_helper.hpp"
+#include "core/config/trisolver_config.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 
 
@@ -31,6 +33,18 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 }  // anonymous namespace
 }  // namespace upper_trs
+
+
+template <typename ValueType, typename IndexType>
+typename UpperTrs<ValueType, IndexType>::parameters_type
+UpperTrs<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = UpperTrs<ValueType, IndexType>::build();
+    common_trisolver_parse(params, config, context, td_for_child);
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -32,6 +33,17 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // anonymous namespace
 }  // namespace cg
+
+
+template <typename ValueType>
+typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::Cg<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    return params;
+}
 
 
 template <typename ValueType>

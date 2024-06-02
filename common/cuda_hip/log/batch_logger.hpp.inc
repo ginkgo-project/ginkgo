@@ -9,8 +9,10 @@ template <typename RealType>
 class SimpleFinalLogger final {
 public:
     using real_type = RealType;
+    using idx_type = int;
 
-    SimpleFinalLogger(real_type* const batch_residuals, int* const batch_iters)
+    SimpleFinalLogger(real_type* const batch_residuals,
+                      idx_type* const batch_iters)
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
     {}
 
@@ -24,5 +26,5 @@ public:
 
 private:
     real_type* const final_residuals_;
-    int* const final_iters_;
+    idx_type* const final_iters_;
 };

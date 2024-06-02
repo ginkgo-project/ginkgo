@@ -13,9 +13,31 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/config/config_helper.hpp"
+
+
 namespace gko {
 namespace experimental {
 namespace solver {
+
+
+template <typename ValueType, typename IndexType>
+typename Direct<ValueType, IndexType>::parameters_type
+Direct<ValueType, IndexType>::parse(const config::pnode& config,
+                                    const config::registry& context,
+                                    const config::type_descriptor& td_for_child)
+{
+    auto params = Direct<ValueType, IndexType>::build();
+    if (auto& obj = config.get("num_rhs")) {
+        params.with_num_rhs(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("factorization")) {
+        params.with_factorization(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

@@ -36,8 +36,11 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
     auto vals_it = as_device_type(vals);
-    auto key_it =
-        thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
+    // this const_cast is necessary as a workaround for CCCL bug
+    // https://github.com/NVIDIA/cccl/issues/1527
+    // shipped with CUDA 12.4
+    auto key_it = thrust::make_zip_iterator(thrust::make_tuple(
+        const_cast<IndexType*>(row_idxs), const_cast<IndexType*>(col_idxs)));
 
     auto coarse_vals_it = as_device_type(coarse_coo->get_values());
     auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(

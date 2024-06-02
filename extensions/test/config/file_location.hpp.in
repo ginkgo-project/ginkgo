@@ -1,0 +1,23 @@
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#ifndef GKO_EXTENSIONS_TEST_CONFIG_FILE_LOCATION_HPP_
+#define GKO_EXTENSIONS_TEST_CONFIG_FILE_LOCATION_HPP_
+
+
+namespace gko {
+namespace ext {
+namespace config {
+
+
+const char* location_test_json =
+    "@Ginkgo_BINARY_DIR@/extensions/test/config/test.json";
+
+
+}  // namespace config
+}  // namespace ext
+}  // namespace gko
+
+
+#endif  // GKO_EXTENSIONS_TEST_CONFIG_FILE_LOCATION_HPP_
