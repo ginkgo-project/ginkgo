@@ -20,6 +20,7 @@
 
 
 #include "core/base/extended_float.hpp"
+#include "core/config/solver_config.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
 
@@ -156,6 +157,40 @@ struct helper<std::complex<T>> {
         }
     }
 };
+
+
+template <typename ValueType>
+typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::CbGmres<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    if (auto& obj = config.get("krylov_dim")) {
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("storage_precision")) {
+        auto get_storage_precision = [](std::string str) {
+            using gko::solver::cb_gmres::storage_precision;
+            if (str == "keep") {
+                return storage_precision::keep;
+            } else if (str == "reduce1") {
+                return storage_precision::reduce1;
+            } else if (str == "reduce2") {
+                return storage_precision::reduce2;
+            } else if (str == "integer") {
+                return storage_precision::integer;
+            } else if (str == "ireduce1") {
+                return storage_precision::ireduce1;
+            } else if (str == "ireduce2") {
+                return storage_precision::ireduce2;
+            }
+            GKO_INVALID_CONFIG_VALUE("storage_precision", str);
+        };
+        params.with_storage_precision(get_storage_precision(obj.get_string()));
+    }
+    return params;
+}
 
 
 template <typename ValueType>

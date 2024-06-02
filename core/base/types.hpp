@@ -99,7 +99,7 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
  * F is one-to-one function if $0 <= x_i < 2^{b_i}$ for all i.
  * For any encoded result R, we can use the following to get the decoded series.
  * for i = k to 0;
- *   $x_i = R % b_i$;
+ *   $x_i = R \% b_i$;
  *   $R = R / bi$;
  * endfor;
  * For any R in the range $[0, 2^{B_0})$, we have X such that $F(X) = R$.

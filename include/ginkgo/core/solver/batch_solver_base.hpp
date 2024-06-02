@@ -289,8 +289,11 @@ protected:
             auto id = Identity::create(exec, system_matrix->get_size());
             preconditioner_ = std::move(id);
         }
-        const size_type workspace_size = system_matrix->get_num_batch_items() *
-                                         (sizeof(real_type) + sizeof(int));
+        // We use a workspace here to store the logger data (iteration count
+        // and solver residual), and require a minimum size of
+        // `sizeof(real_type)+ sizeof(int)`
+        const size_type workspace_size =
+            system_matrix->get_num_batch_items() * 32;
         workspace_.set_executor(exec);
         workspace_.resize_and_reset(workspace_size);
     }

@@ -13,6 +13,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -23,6 +25,8 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
@@ -90,6 +94,35 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
     return {std::move(tmp)};
 }
 
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+typename Isai<IsaiType, ValueType, IndexType>::parameters_type
+Isai<IsaiType, ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("sparsity_power")) {
+        params.with_sparsity_power(gko::config::get_value<int>(obj));
+    }
+    if (auto& obj = config.get("excess_limit")) {
+        params.with_excess_limit(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("excess_solver_factory")) {
+        params.with_excess_solver_factory(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("excess_solver_reduction")) {
+        params.with_excess_solver_reduction(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
+    return params;
+}
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
@@ -195,7 +228,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
-            std::shared_ptr<LinOpFactory> excess_solver_factory;
+            std::shared_ptr<const LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;
                 excess_solution->copy_from(excess_rhs);

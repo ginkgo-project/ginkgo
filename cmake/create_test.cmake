@@ -1,7 +1,7 @@
 set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_TYPE")
 set(gko_test_single_args "MPI_SIZE;EXECUTABLE_NAME;${gko_test_resource_args}")
 set(gko_test_multi_args "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
-set(gko_test_option_args "NO_RESOURCES")
+set(gko_test_option_args "NO_RESOURCES;NO_GTEST_MAIN")
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
@@ -14,7 +14,7 @@ endfunction()
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
-    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_args}")
+    cmake_parse_arguments(PARSE_ARGV 1 set_properties "${gko_test_option_args}" "${gko_test_single_args}" "${gko_test_multi_args}")
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
     endif()
@@ -27,12 +27,18 @@ function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
     if(GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries(${test_target_name} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
-    if(set_properties_MPI_SIZE)
-        target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main_mpi${test_library_suffix})
-    else()
-        target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main${test_library_suffix})
+    if(NOT set_properties_NO_GTEST_MAIN)
+        if(set_properties_MPI_SIZE)
+            target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main_mpi${test_library_suffix})
+        else()
+            target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main${test_library_suffix})
+        endif()
     endif()
     target_compile_features(${test_target_name} PUBLIC cxx_std_14)
+    # we set these properties regardless of the enabled backends,
+    # because unknown properties are ignored
+    set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 14)
+    set_target_properties(${test_target_name} PROPERTIES CUDA_STANDARD 14)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})
     target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
@@ -104,7 +110,7 @@ function(ginkgo_add_test test_name test_target_name)
     if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
         set(test_preload $<TARGET_FILE:identify_stream_usage_cuda>:${test_preload})
     endif()
-    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
+    if (GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM_AMD)
         set(test_preload $<TARGET_FILE:identify_stream_usage_hip>:${test_preload})
     endif()
     if(test_preload)
@@ -167,55 +173,14 @@ endfunction(ginkgo_create_cuda_test_internal)
 ## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
-    ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} "" ${ARGN})
+    ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_hip_test)
 
 ## Internal function allowing separate filename, test name and test target name.
-function(ginkgo_create_hip_test_internal test_name filename test_target_name additional_flags)
-    set_source_files_properties(${filename} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-    set(GINKGO_TEST_HIP_DEFINES -DGKO_COMPILING_HIP ${additional_flags})
-    if (GINKGO_FAST_TESTS)
-        list(APPEND GINKGO_TEST_HIP_DEFINES -DGINKGO_FAST_TESTS)
-    endif()
-    if (GINKGO_TEST_NONDEFAULT_STREAM)
-        list(APPEND GINKGO_TEST_HIP_DEFINES -DGKO_TEST_NONDEFAULT_STREAM)
-    endif()
-
-    # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here
-    # creates a redefinition of all flags. This creates some issues with `nvcc`,
-    # but `clang` seems fine with the redefinitions.
-    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-        hip_add_executable(${test_target_name} ${filename}
-            # If `FindHIP.cmake`, namely `HIP_PARSE_HIPCC_OPTIONS` macro and
-            # call gets fixed, uncomment this.
-            HIPCC_OPTIONS ${GINKGO_TEST_HIP_DEFINES} # ${GINKGO_HIPCC_OPTIONS}
-            # NVCC_OPTIONS  ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_NVCC_OPTIONS}
-            # CLANG_OPTIONS ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_CLANG_OPTIONS}
-            --expt-relaxed-constexpr --expt-extended-lambda
-            )
-    else() # hcc/clang
-        hip_add_executable(${test_target_name} ${filename}
-            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} ${GINKGO_TEST_HIP_DEFINES}
-            NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
-            CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
-            )
-    endif()
-
-    # Let's use a normal compiler for linking
-    set_target_properties(${test_target_name} PROPERTIES LINKER_LANGUAGE CXX)
-
-    target_include_directories(${test_target_name}
-        PRIVATE
-        # Only `math` requires it so far, but it's much easier
-        # to put these this way.
-        ${GINKGO_HIP_THRUST_PATH}
-        # Only `exception_helpers` requires these so far, but it's much easier
-        # to put these this way.
-        ${HIPBLAS_INCLUDE_DIRS}
-        ${HIPFFT_INCLUDE_DIRS}
-        ${hiprand_INCLUDE_DIRS}
-        ${HIPSPARSE_INCLUDE_DIRS}
-        )
+function(ginkgo_create_hip_test_internal test_name filename test_target_name)
+    set_source_files_properties(${filename} PROPERTIES LANGUAGE HIP)
+    add_executable(${test_target_name} ${filename})
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_HIP)
     ginkgo_set_test_target_properties(${test_target_name} "_hip" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE hipgpu)
 endfunction(ginkgo_create_hip_test_internal)
@@ -317,7 +282,8 @@ function(ginkgo_create_common_device_test test_name)
     if(GINKGO_BUILD_HIP)
         # need to make a separate file for this, since we can't set conflicting properties on the same file
         configure_file(${test_name}.cpp ${test_name}.hip.cpp COPYONLY)
-        ginkgo_create_hip_test_internal(${test_name}_hip ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp ${test_target_name}_hip "-std=c++14;-DEXEC_TYPE=HipExecutor;-DEXEC_NAMESPACE=hip" ${ARGN})
+        ginkgo_create_hip_test_internal(${test_name}_hip ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp ${test_target_name}_hip ${ARGN})
+        target_compile_definitions(${test_target_name}_hip PRIVATE EXEC_TYPE=HipExecutor EXEC_NAMESPACE=hip)
     endif()
 endfunction(ginkgo_create_common_device_test)
 

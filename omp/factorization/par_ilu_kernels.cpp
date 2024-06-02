@@ -32,7 +32,7 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
                          matrix::Csr<ValueType, IndexType>* u_factor)
 {
     // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
-    // experiements indicate this works well for many problems.
+    // experiments indicate this works well for many problems.
     iterations = (iterations == 0) ? 3 : iterations;
     const auto col_idxs = system_matrix->get_const_col_idxs();
     const auto row_idxs = system_matrix->get_const_row_idxs();

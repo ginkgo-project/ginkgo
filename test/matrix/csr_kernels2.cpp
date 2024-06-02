@@ -607,6 +607,23 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, AdvancedApplyZeroToIdentityMatrixIsEquivalentToRef)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto a = Mtx::create(ref);
+    auto b = Mtx::create(ref);
+    auto da = gko::clone(exec, a);
+    auto db = gko::clone(exec, b);
+    auto id = gko::matrix::Identity<Mtx::value_type>::create(ref);
+    auto did = gko::matrix::Identity<Mtx::value_type>::create(exec);
+
+    a->apply(alpha, id, beta, b);
+    da->apply(dalpha, did, dbeta, db);
+
+    GKO_ASSERT_MTX_NEAR(b, db, 0);
+}
+
+
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();

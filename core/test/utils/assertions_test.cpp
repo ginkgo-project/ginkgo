@@ -175,4 +175,50 @@ TEST(BiggestValueType, WithBothComplex)
 }
 
 
+class ArraysNear : public ::testing::Test {
+protected:
+    using ValueArray = gko::array<double>;
+
+    ArraysNear()
+        : exec(gko::ReferenceExecutor::create()),
+          arr1(exec, {1.0, 2.0, 3.0, 4.2}),
+          arr2(exec, {1.0, 2.0, 3.0, 4.2}),
+          arr3(exec, {1.0, 2.0, 3.00001, 4.2}),
+          arr4(exec, {1.0, 2.0, 3.0, 4.3})
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    ValueArray arr1;
+    ValueArray arr2;
+    ValueArray arr3;
+    ValueArray arr4;
+};
+
+
+TEST_F(ArraysNear, SucceedsIfEqual)
+{
+    ASSERT_PRED_FORMAT3(gko::test::assertions::array_near, arr1, arr2, 0.0);
+}
+
+
+TEST_F(ArraysNear, FailsIfDifferent)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::array_near, arr1, arr4, 0.0);
+}
+
+
+TEST_F(ArraysNear, SucceedsIfClose)
+{
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::array_near, arr1, arr3, 0.0);
+    ASSERT_PRED_FORMAT3(gko::test::assertions::array_near, arr1, arr3, 0.0001);
+}
+
+
+TEST_F(ArraysNear, CanUseShortNotation)
+{
+    GKO_EXPECT_ARRAY_NEAR(arr1, arr2, 0.0);
+    GKO_ASSERT_ARRAY_NEAR(arr1, arr3, 0.001);
+}
+
+
 }  // namespace

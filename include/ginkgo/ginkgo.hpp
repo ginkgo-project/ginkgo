@@ -42,6 +42,7 @@
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/stream.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
@@ -52,7 +53,13 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
 
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
+
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -105,10 +112,12 @@
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/utils.hpp>
 
 #include <ginkgo/core/reorder/amd.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
@@ -118,6 +127,7 @@
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_cg.hpp>
 #include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>

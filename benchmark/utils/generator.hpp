@@ -223,9 +223,11 @@ struct DistributedDefaultSystemGenerator {
         const gko::matrix_data<value_type, index_type>& data,
         json* spmv_case = nullptr) const
     {
-        auto part = gko::experimental::distributed::
-            Partition<itype, global_itype>::build_from_global_size_uniform(
-                exec, comm.size(), static_cast<global_itype>(data.size[0]));
+        auto part = gko::share(
+            gko::experimental::distributed::Partition<itype, global_itype>::
+                build_from_global_size_uniform(
+                    exec, comm.size(),
+                    static_cast<global_itype>(data.size[0])));
         auto formats = split(format_name, '-');
         if (formats.size() != 2) {
             throw std::runtime_error{"Invalid distributed format specifier " +

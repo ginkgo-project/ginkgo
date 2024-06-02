@@ -149,6 +149,9 @@ TYPED_TEST(Fft, ApplyStrided1DInverseIsEqualToReference)
 
 TYPED_TEST(Fft, Apply2DIsEqualToReference)
 {
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "rocFFT 5.1 has a bug related to 2D FFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->fft2->apply(this->data, this->out);
@@ -160,6 +163,9 @@ TYPED_TEST(Fft, Apply2DIsEqualToReference)
 
 TYPED_TEST(Fft, ApplyStrided2DIsEqualToReference)
 {
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "rocFFT 5.1 has a bug related to 2D FFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->fft2->apply(this->data_strided, this->out_strided);
@@ -171,6 +177,9 @@ TYPED_TEST(Fft, ApplyStrided2DIsEqualToReference)
 
 TYPED_TEST(Fft, Apply2DInverseIsEqualToReference)
 {
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "rocFFT 5.1 has a bug related to 2D FFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->ifft2->apply(this->data, this->out);
@@ -182,6 +191,9 @@ TYPED_TEST(Fft, Apply2DInverseIsEqualToReference)
 
 TYPED_TEST(Fft, ApplyStrided2DInverseIsEqualToReference)
 {
+#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+    GTEST_SKIP() << "rocFFT 5.1 has a bug related to 2D FFT";
+#endif
     using T = typename TestFixture::value_type;
 
     this->ifft2->apply(this->data_strided, this->out_strided);

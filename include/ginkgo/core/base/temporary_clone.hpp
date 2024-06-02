@@ -77,6 +77,36 @@ private:
 };
 
 
+// specialization for copy back via assignment
+template <typename T>
+class copy_back_deleter_from_assignment {
+public:
+    using pointer = T*;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @param original  the origin object where the data will be copied before
+     *                  deletion
+     */
+    copy_back_deleter_from_assignment(pointer original) : original_{original} {}
+
+    /**
+     * Copies back the pointed-to object to the original and deletes it.
+     *
+     * @param ptr  pointer to the object to be copied back and deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        *original_ = *ptr;
+        delete ptr;
+    }
+
+private:
+    pointer original_;
+};
+
+
 template <typename T>
 struct temporary_clone_helper {
     static std::unique_ptr<T> create(std::shared_ptr<const Executor> exec,

@@ -4,7 +4,10 @@ extend-exclude = ["third_party/*", "*.svg"]
 [default.extend-words]
 dout = "dout"
 nd = "nd"
+ans = "ans"
 tht = "tht"
+thr = "thr"
+iy = "iy"
 automatical = "automatical"
 strat = "strat"
 entrie = "entrie"

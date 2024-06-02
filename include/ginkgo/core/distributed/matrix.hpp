@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
 
 
@@ -24,6 +25,16 @@ namespace matrix {
 
 template <typename ValueType, typename IndexType>
 class Csr;
+
+
+}
+
+
+namespace multigrid {
+
+
+template <typename ValueType, typename IndexType>
+class Pgm;
 
 
 }
@@ -242,6 +253,7 @@ class Matrix
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
+    friend class multigrid::Pgm<ValueType, LocalIndexType>;
 
 public:
     using value_type = ValueType;
@@ -278,10 +290,12 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
+     *
+     * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -295,7 +309,7 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
 
     /**
@@ -312,12 +326,14 @@ public:
      * @param data  The device_matrix_data structure.
      * @param row_partition  The global row partition.
      * @param col_partition  The global col partition.
+     *
+     * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -331,9 +347,9 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
-        ptr_param<const Partition<local_index_type, global_index_type>>
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition);
 
     /**
@@ -386,6 +402,7 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
+
     /**
      * Creates an empty distributed matrix.
      *
@@ -516,6 +533,48 @@ public:
         ptr_param<const LinOp> local_matrix_template,
         ptr_param<const LinOp> non_local_matrix_template);
 
+    /**
+     * Creates a local-only distributed matrix with existent LinOp
+     *
+     * @note It use the input to build up the distributed matrix
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param size  the global size
+     * @param local_linop  the local linop
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
+                                          mpi::communicator comm, dim<2> size,
+                                          std::shared_ptr<LinOp> local_linop);
+
+    /**
+     * Creates distributed matrix with existent local and non-local LinOp and
+     * the corresponding mapping to collect the non-local data from the other
+     * ranks.
+     *
+     * @note It use the input to build up the distributed matrix
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param size  the global size
+     * @param local_linop  the local linop
+     * @param non_local_linop  the non-local linop
+     * @param recv_sizes  the size of non-local receiver
+     * @param recv_offset  the offset of non-local receiver
+     * @param recv_gather_idxs  the gathering index of non-local receiver
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> size, std::shared_ptr<LinOp> local_linop,
+        std::shared_ptr<LinOp> non_local_linop,
+        std::vector<comm_index_type> recv_sizes,
+        std::vector<comm_index_type> recv_offsets,
+        array<local_index_type> recv_gather_idxs);
+
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm);
@@ -524,6 +583,18 @@ protected:
                     mpi::communicator comm,
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
+
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop);
+
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, dim<2> size,
+                    std::shared_ptr<LinOp> local_linop,
+                    std::shared_ptr<LinOp> non_local_linop,
+                    std::vector<comm_index_type> recv_sizes,
+                    std::vector<comm_index_type> recv_offsets,
+                    array<local_index_type> recv_gather_idxs);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared

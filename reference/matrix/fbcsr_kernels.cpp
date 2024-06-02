@@ -144,8 +144,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                    std::make_tuple(b.row / block_size, b.column / block_size);
         });
     auto row_ptrs_ptr = row_ptrs.get_data();
-    gko::vector<IndexType> col_idx_vec{{exec}};
-    gko::vector<ValueType> value_vec{{exec}};
+    gko::vector<IndexType> col_idx_vec{exec};
+    gko::vector<ValueType> value_vec{exec};
     int64 block_row = -1;
     int64 block_col = -1;
     for (size_type i = 0; i < in_nnz; i++) {

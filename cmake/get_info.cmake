@@ -54,7 +54,7 @@ FUNCTION(ginkgo_print_flags log_type var_name)
         set(str_value "${${var_string}}")
     endif()
     string(SUBSTRING "
---        ${var_string}:                                                        " 0 55 upd_string)
+--        ${var_string}:                                                        " 0 60 upd_string)
     string(APPEND upd_string "${str_value}")
     FILE(APPEND ${log_type} ${upd_string})
 ENDFUNCTION()
@@ -62,7 +62,7 @@ ENDFUNCTION()
 function(ginkgo_print_variable log_type var_name)
     string(SUBSTRING
         "
---        ${var_name}:                                                          " 0 55 upd_string)
+--        ${var_name}:                                                          " 0 60 upd_string)
     if(${var_name} STREQUAL "")
         set(str_value "<empty>")
     else()
@@ -76,7 +76,7 @@ endfunction()
 function(ginkgo_print_env_variable log_type var_name)
     string(SUBSTRING
         "
---        ${var_name}:                                                          " 0 55 upd_string)
+--        ${var_name}:                                                          " 0 60 upd_string)
     if(DEFINED ENV{${var_name}})
         set(str_value "$ENV{${var_name}}")
     else()
@@ -114,13 +114,13 @@ foreach(log_type ${log_types})
         "PROJECT_SOURCE_DIR;PROJECT_BINARY_DIR")
     string(SUBSTRING
         "
---        CMAKE_CXX_COMPILER:                                                   " 0 55 print_string)
+--        CMAKE_CXX_COMPILER:                                                   " 0 60 print_string)
     set(str2 "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} on platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
     string(APPEND print_string "${str2}")
     FILE(APPEND ${${log_type}} "${print_string}")
     string(SUBSTRING
         "
---                                                                              " 0 55 print_string)
+--                                                                              " 0 60 print_string)
     set(str2 "${CMAKE_CXX_COMPILER}")
     string(APPEND print_string "${str2}")
     FILE(APPEND ${${log_type}} "${print_string}")
@@ -197,7 +197,6 @@ if(TARGET PAPI::PAPI)
     ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
     ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
 endif()
-
 ginkgo_print_variable(${minimal_log} "GINKGO_BUILD_HWLOC")
 ginkgo_print_variable(${detailed_log} "GINKGO_BUILD_HWLOC")
 if(TARGET hwloc)
@@ -205,6 +204,10 @@ if(TARGET hwloc)
     ginkgo_print_variable(${detailed_log} "HWLOC_LIBRARIES")
     ginkgo_print_variable(${detailed_log} "HWLOC_INCLUDE_DIRS")
 endif()
+ginkgo_print_module_footer(${detailed_log} "")
+
+ginkgo_print_generic_header(${detailed_log} "  Extensions:")
+ginkgo_print_variable(${detailed_log} "GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT")
 
 _minimal(
     "

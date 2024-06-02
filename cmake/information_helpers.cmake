@@ -76,7 +76,9 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                 # Populate the compiler options and definitions if needed
                 get_target_property(GINKGO_LIBS_INTERFACE_DEFS "${_lib}" INTERFACE_COMPILE_DEFINITIONS)
                 if (GINKGO_LIBS_INTERFACE_DEFS)
-                    list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "${GINKGO_LIBS_INTERFACE_DEFS}")
+                    foreach(def IN LISTS GINKGO_LIBS_INTERFACE_DEFS)
+                        list(APPEND GINKGO_INTERFACE_CFLAGS_FOUND "-D${def}")
+                    endforeach()
                 endif()
                 unset(GINKGO_LIBS_INTERFACE_DEFS)
 

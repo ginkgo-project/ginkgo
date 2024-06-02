@@ -68,8 +68,7 @@ public:
             gko::kernels::batch_bicgstab::local_memory_requirement<ValueType>(
                 num_rows, num_rhs) +
             PrecType::dynamic_work_size(num_rows,
-                                        mat.get_single_item_num_nnz()) *
-                sizeof(ValueType);
+                                        mat.get_single_item_num_nnz());
         array<unsigned char> local_space(exec_, local_size_bytes);
 
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {

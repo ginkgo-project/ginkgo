@@ -10,8 +10,12 @@
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/base/dispatch_helper.hpp"
 
 
 namespace gko {
@@ -138,6 +142,32 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
         }
     }
 }
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Specialization of run for distributed matrices.
+ */
+template <typename T, typename F, typename... Args>
+auto run_matrix(T* linop, F&& f, Args&&... args)
+{
+    using namespace gko::experimental::distributed;
+    return run<Matrix<double, int32, int32>, Matrix<double, int32, int64>,
+               Matrix<double, int64, int64>, Matrix<float, int32, int32>,
+               Matrix<float, int32, int64>, Matrix<float, int64, int64>,
+               Matrix<std::complex<double>, int32, int32>,
+               Matrix<std::complex<double>, int32, int64>,
+               Matrix<std::complex<double>, int64, int64>,
+               Matrix<std::complex<float>, int32, int32>,
+               Matrix<std::complex<float>, int32, int64>,
+               Matrix<std::complex<float>, int64, int64>>(
+        linop, std::forward<F>(f), std::forward<Args>(args)...);
+}
+
+
+#endif
 
 
 /**

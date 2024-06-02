@@ -16,6 +16,7 @@
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/index_map_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
@@ -45,10 +46,12 @@
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -250,6 +253,16 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES);
 }  // namespace partition_helpers
 
 
+namespace index_map {
+
+
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
+
+
+}  // namespace index_map
+
+
 namespace distributed_vector {
 
 
@@ -262,7 +275,7 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 namespace distributed_matrix {
 
 
-GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix
@@ -412,6 +425,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
 
 
 }  // namespace batch_bicgstab
+
+
+namespace batch_cg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
+
+
+}  // namespace batch_cg
 
 
 namespace cg {
@@ -762,6 +784,20 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 }  // namespace sellp
 
 
+namespace batch_jacobi {
+
+
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP);
+GKO_STUB_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
+
+
+}  // namespace batch_jacobi
+
+
 namespace jacobi {
 
 
@@ -922,6 +958,7 @@ GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm

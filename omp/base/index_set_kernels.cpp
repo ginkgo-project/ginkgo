@@ -135,9 +135,8 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
             continue;
         }
         const auto bucket = std::distance(
-            subset_begin + 1,
-            std::upper_bound(subset_begin + 1, subset_begin + num_subsets + 1,
-                             index));
+            subset_end,
+            std::upper_bound(subset_end, subset_end + num_subsets, index));
         if (index >= subset_end[bucket] || index < subset_begin[bucket]) {
             local_indices[i] = invalid_index<IndexType>();
         } else {

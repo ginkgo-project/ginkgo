@@ -19,7 +19,6 @@ __dpct_inline__ void initialize(
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
     const auto group_size = item_ct1.get_local_range().size();
-    const auto group = item_ct1.get_group();
 
     rho_old = one<ValueType>();
     omega = one<ValueType>();

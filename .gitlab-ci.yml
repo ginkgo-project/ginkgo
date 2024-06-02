@@ -106,7 +106,6 @@ build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_HWLOC: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -124,10 +123,8 @@ build/cuda101/openmpi/gcc/all/debug/shared:
     BUILD_CUDA: "ON"
     BUILD_MPI: "ON"
     MPI_AS_ROOT: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_PAPI_SDE: "ON"
-    RUN_EXAMPLES: "ON"
     CUDA_ARCH: 35
 
 build/cuda101/nompi/clang/all/release/static:
@@ -140,7 +137,6 @@ build/cuda101/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -191,7 +187,6 @@ build/cuda102/nompi/gcc/all/debug/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_HWLOC: "OFF"
@@ -208,7 +203,6 @@ build/cuda102/nompi/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
@@ -262,8 +256,6 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
     SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
-  # FIXME: current slurm always reports failure even if all tests are passed.
-  allow_failure: yes
   needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
 
@@ -296,8 +288,6 @@ test/cuda110/nompi/clang/cuda/release/static:
     SLURM_GRES: "gpu:4"
     SLURM_TIME: "01:30:00"
   dependencies: null
-  # FIXME: current slurm always reports failure even if all tests are passed.
-  allow_failure: yes
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
 
@@ -332,8 +322,6 @@ test/cuda110/nompi/intel/cuda/debug/static:
     SLURM_GRES: "gpu:4"
     SLURM_TIME: "02:00:00"
   dependencies: null
-  # FIXME: current slurm always reports failure even if all tests are passed.
-  allow_failure: yes
   needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
 
@@ -404,7 +392,6 @@ build/amd/nompi/gcc/rocm45/release/shared:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     NONDEFAULT_STREAM: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
     BUILD_HWLOC: "OFF"
 
@@ -418,7 +405,6 @@ build/amd/nompi/clang/rocm45/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
@@ -432,48 +418,44 @@ build/amd/nompi/clang/rocm45/debug/shared:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
 
-# ROCm 5.0.2 and friends
-build/amd/nompi/gcc/rocm502/debug/static:
+# ROCm 5.1.4 and friends
+build/amd/nompi/gcc/rocm514/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
 
-build/amd/nompi/clang/rocm502/release/shared:
+build/amd/nompi/clang/rocm514/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # without omp
-build/amd/nompi/gcc/rocm502_wo_omp/release/shared:
+build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-rocm502-nompi-gnu11-llvm11
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "OFF"
     BUILD_MPI: "OFF"
     BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # no cuda but latest gcc and clang
@@ -523,6 +505,21 @@ build/nocuda/openmpi/clang/omp/debug/static:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
+
+build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
+    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
+    # The tests are prohibitively slow in Debug
+    BUILD_TYPE: "Release"
 
 # nocuda with the oldest supported compiler
 build/nocuda/nompi/gcc/omp/release/static:
@@ -575,39 +572,21 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
-build/dpcpp/2022-1/cpu/release/shared:
+# spack oneapi 2023.1
+build/icpx20231/igpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-oneapi-cpu
+    - .use_gko-oneapi20231-igpu
   variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "ON"
-    SYCL_DEVICE_FILTER: "*:cpu"
-    SLURM_PARTITION: "cpu"
-    SLURM_TIME: "2:00:00"
-    BUILD_HWLOC: "OFF"
-    # This job is not in exclusive mode
-
-# It gives two available backends of GPU on tests
-build/dpcpp/igpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-igpu
-  variables:
-    CXX_COMPILER: "dpcpp"
+    CXX_COMPILER: "icpx"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "*:gpu"
+    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
     BUILD_HWLOC: "OFF"
 
 # TODO: Enable when debug shared library size issues are fixed
@@ -627,7 +606,7 @@ build/dpcpp/igpu/release/shared:
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
-build/dpcpp/dgpu/release/static:
+build/icpx/igpu/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -643,36 +622,6 @@ build/dpcpp/dgpu/release/static:
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
 
-build/dpcpp/level_zero_dgpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-dgpu
-  variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-    BUILD_HWLOC: "OFF"
-
-build/icpx/level_zero_dgpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi-dgpu
-  variables:
-    CXX_COMPILER: "icpx"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-    BUILD_HWLOC: "OFF"
-
 # Job with important warnings as error
 warnings:
   stage: code_quality
@@ -684,7 +633,6 @@ warnings:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic;-pedantic-errors"
   allow_failure: yes
 
@@ -699,7 +647,6 @@ no-circular-deps:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   allow_failure: no
 
@@ -727,7 +674,6 @@ clang-tidy:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   allow_failure: yes
 

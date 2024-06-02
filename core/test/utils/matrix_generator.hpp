@@ -107,7 +107,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
             size_type(0),
             std::min(static_cast<size_type>(nonzero_dist(engine)), num_cols));
         std::uniform_int_distribution<IndexType> col_dist{
-            0, static_cast<IndexType>(num_cols) - 1};
+            0, std::max(static_cast<IndexType>(num_cols) - 1, IndexType{})};
         if (nnz_in_row > num_cols / 2) {
             present_cols.assign(num_cols, true);
             // remove num_cols - nnz_in_row entries from present_cols
@@ -324,7 +324,9 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
         // randomly generate number of nonzeros in this row
         const auto min_col = lower_triangular ? 0 : row;
         const auto max_col =
-            lower_triangular ? row : static_cast<IndexType>(size) - 1;
+            lower_triangular
+                ? row
+                : std::max(static_cast<IndexType>(size) - 1, IndexType{});
         const auto max_row_nnz = max_col - min_col + 1;
         const auto nnz_in_row = std::max(
             size_type(0), std::min(static_cast<size_type>(nonzero_dist(engine)),

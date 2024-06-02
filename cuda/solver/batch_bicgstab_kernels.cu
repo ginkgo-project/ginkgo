@@ -157,10 +157,8 @@ public:
                 exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
 
-        const size_t prec_size =
-            PrecType::dynamic_work_size(padded_num_rows,
-                                        mat.get_single_item_num_nnz()) *
-            sizeof(value_type);
+        const size_t prec_size = PrecType::dynamic_work_size(
+            padded_num_rows, mat.get_single_item_num_nnz());
         const auto sconf =
             gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
                                                                  value_type>(
@@ -172,7 +170,7 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         value_type* const workspace_data = workspace.get_data();
 
