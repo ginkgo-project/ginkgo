@@ -200,6 +200,9 @@ mpi::request sparse_communicator::communicate_impl_(
     mpi::contiguous_type type(local_vector->get_size()[1],
                               mpi::type_impl<ValueType>::get_type());
     mpi::request req;
+
+    if (send_sizes_.size() == 0 ) return req;
+
     MPI_Ineighbor_alltoallv(send_ptr, send_sizes_.data(), send_offsets_.data(),
                             type.get(), recv_ptr, recv_sizes_.data(),
                             recv_offsets_.data(), type.get(), comm, req.get());
