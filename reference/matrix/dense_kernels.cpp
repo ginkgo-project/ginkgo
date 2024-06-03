@@ -371,10 +371,14 @@ void compute_mean(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType>* x,
                   matrix::Dense<ValueType>* result, array<char>&)
 {
+    GKO_ASSERT_EQ(result->get_size()[0], 1);
+
     using ValueType_nc = gko::remove_complex<ValueType>;
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
     }
+
+    if (x->get_size()[0] == 0) return;
 
     for (size_type i = 0; i < x->get_size()[1]; ++i) {
         for (size_type j = 0; j < x->get_size()[0]; ++j) {
