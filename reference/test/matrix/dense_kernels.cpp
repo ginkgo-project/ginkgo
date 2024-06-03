@@ -695,6 +695,14 @@ TYPED_TEST(Dense, ComputesMean)
     GKO_EXPECT_NEAR(result->at(0, 2), T{1.0}, r<T>::value * 10);
 }
 
+TYPED_TEST(Dense, ComputesMeanFailsOnZeroRowResults)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto result = Mtx::create(this->exec, gko::dim<2>{0, 1});
+
+    ASSERT_THROW(this->mtx4->compute_mean(result), gko::ValueMismatch);
+}
 
 TYPED_TEST(Dense, ComputesMeanFailsOnWrongResultSize)
 {
