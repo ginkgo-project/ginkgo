@@ -27,6 +27,7 @@
 #include "core/base/extended_float.hpp"
 #include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
+#include "core/test/utils/distribution.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/value_generator.hpp"
 
@@ -164,7 +165,9 @@ using ComplexValueIndexTypes =
     ::testing::Types<OPTIONAL(std::tuple < std::complex<gko::half>) gko::int32>,
       std::tuple<std::complex<float>, gko::int32>,
       OPTIONAL(std::tuple<std::complex<gko::half>, gko::int64>)
-              std::tuple<std::complex<float>, gko::int64>> ;
+              std::tuple < std::complex<float>,
+      gko::int64 >>
+    ;
 #else
     ::testing::Types<OPTIONAL(std::tuple<std::complex<gko::half>, gko::int32>)
                          std::tuple<std::complex<float>, gko::int32>,
