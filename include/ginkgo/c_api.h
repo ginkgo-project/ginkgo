@@ -6,6 +6,7 @@
 #ifndef C_API_H
 #define C_API_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,7 +23,6 @@ enum _GKO_DATATYPE_CONST {
     GKO_COMPLEX_FLOAT = 5,
     GKO_COMPLEX_DOUBLE = 6,
 };
-
 
 /* ----------------------------------------------------------------------
  * MACROS for generating structs for wrapping
@@ -385,6 +385,7 @@ enum _GKO_DATATYPE_CONST {
         mat_st_ptr->mat->apply(alpha->mat, x->mat, beta->mat, y->mat);         \
     }
 
+
 /**
  * @brief A build instruction for declaring gko::matrix::Csr<Tv,Ti> in the C API
  * header file
@@ -487,6 +488,7 @@ struct gko_executor_st;
  */
 typedef struct gko_executor_st* gko_executor;
 
+
 /**
  * @brief Deallocates memory for an executor on targeted device.
  *
@@ -496,10 +498,30 @@ typedef struct gko_executor_st* gko_executor;
 void ginkgo_executor_delete(gko_executor exec_st_ptr);
 
 gko_executor ginkgo_executor_omp_create();
-gko_executor ginkgo_executor_cuda_create();
-// gko_executor ginkgo_executor_hip_create();
-// gko_executor ginkgo_executor_dpcpp_create();
 gko_executor ginkgo_executor_reference_create();
+gko_executor ginkgo_executor_cuda_create(size_t device_id);
+gko_executor ginkgo_executor_hip_create(size_t device_id);
+gko_executor ginkgo_executor_dpcpp_create(size_t device_id);
+size_t ginkgo_executor_cuda_get_num_devices();
+size_t ginkgo_executor_hip_get_num_devices();
+size_t ginkgo_executor_dpcpp_get_num_devices();
+gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
+bool ginkgo_executor_memory_accessible(gko_executor exec_st_ptr,
+                                       gko_executor other_exec_st_ptr);
+
+// FIXME: new!
+void ginkgo_executor_synchronize(gko_executor exec_st_ptr);
+size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
+size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_num_multiprocessor(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_num_warps_per_sm(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_num_warps(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_warp_size(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_major_version(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_minor_version(gko_executor exec_st_ptr);
+// size_t ginkgo_executor_gpu_get_closest_numa(gko_executor exec_st_ptr);
+
 
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
@@ -540,19 +562,8 @@ DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
 
 
 /* ----------------------------------------------------------------------
- * Library functions for iterative solvers in GINKGO
+ * Library functions for deferred factory parameters in GINKGO
  * ---------------------------------------------------------------------- */
-struct gko_linop_st;
-typedef struct gko_linop_st* gko_linop;
-
-void ginkgo_linop_delete(gko_linop linop_st_ptr);
-
-void ginkgo_linop_apply(gko_linop solver, gko_linop b_st_ptr,
-                        gko_linop x_st_ptr);
-
-gko_linop ginkgo_linop_cg_f64_create(gko_executor exec_st_ptr,
-                                     gko_linop A_st_ptr, double reduction,
-                                     int maxiter);
 
 /**
  * @brief Struct containing the shared pointer to a ginkgo deferred factory
@@ -578,13 +589,51 @@ typedef struct gko_deferred_factory_parameter_st*
 void ginkgo_deferred_factory_parameter_delete(
     gko_deferred_factory_parameter deferred_fac_param_st_ptr);
 
+struct gko_linop_st;
+typedef struct gko_linop_st* gko_linop;
+void ginkgo_linop_delete(gko_linop linop_st_ptr);
+void ginkgo_linop_apply(gko_linop solver, gko_linop b_st_ptr,
+                        gko_linop x_st_ptr);
+
+gko_deferred_factory_parameter ginkgo_preconditioner_none_create();
 gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
     int blocksize);
+gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
+    gko_deferred_factory_parameter dfp_st_ptr);
 
+
+// Factorization
+gko_deferred_factory_parameter ginkgo_factorization_parilu_f64_i32_create(
+    int iteration, bool skip_sorting
+    //,
+    // bool approximate_select,
+    // double fill_in_limit,
+    // gko_linop l_strategy_st_ptr,
+    // gko_linop r_strategy_st_ptr,
+);
+
+/* ----------------------------------------------------------------------
+ * Library functions for iterative solvers in GINKGO
+ * ---------------------------------------------------------------------- */
 gko_linop ginkgo_linop_cg_preconditioned_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
 
+gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
+
+gko_linop ginkgo_linop_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                                 gko_linop A_st_ptr);
+
+gko_linop ginkgo_linop_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                                gko_linop A_st_ptr);
+
+gko_linop ginkgo_linop_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
+                                                gko_linop A_st_ptr);
+
+gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
+                                                gko_linop A_st_ptr);
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
  * ---------------------------------------------------------------------- */
