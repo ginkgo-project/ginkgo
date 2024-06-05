@@ -124,28 +124,28 @@ of values, but variants with `single` and `complex` (single and double) value
 types are also available. Here is a non exhaustive list of the available
 benchmarks:
 
-+ `blas/blas` : supports benchmarking many of Ginkgo's BLAS operations: dot
-  products, axpy, copy, etc.
-+ `conversion/conversion` : conversion between matrix formats.
-+ `matrix_generator/matrix_generator` : mostly allows generating block diagonal
-  matrices (to benchmark the block-jacobi preconditioner).
-+ `matrix_statistics/matrix_statistics` : computes size and other matrix
-  statistics (such as variance, load imbalance, ...).
-+ `preconditioner/preconditioner` : benchmarks most Ginkgo preconditioner.
-+ `solver/solver` : benchmark most of Ginkgo's solver.
-  spmv benchmark.
-+ `sparse_blas/sparse_blas` : benchmarks Sparse BLAS operations, such as SpGEMM,
-  SpGEAM, transpose.
-+ `spmv/spmv` : benchmarks Ginkgo's matrix formats (Sparse-Matrix Vector
-  product).
++ `blas/blas`: supports benchmarking many of Ginkgo's BLAS operations: dot
+    products, axpy, copy, etc.
++ `conversion/conversion`: conversion between matrix formats.
++ `matrix_generator/matrix_generator`: mostly allows generating block diagonal
+    matrices (to benchmark the block-jacobi preconditioner).
++ `matrix_statistics/matrix_statistics`: computes size and other matrix
+    statistics (such as variance, load imbalance, ...).
++ `preconditioner/preconditioner`: benchmarks most Ginkgo preconditioner.
++ `solver/solver`: benchmark most of Ginkgo's solvers in a non distributed
+    setting.
++ `sparse_blas/sparse_blas`: benchmarks Sparse BLAS operations, such as SpGEMM,
+    SpGEAM, transpose.
++ `spmv/spmv`: benchmarks Ginkgo's matrix formats (Sparse-Matrix Vector
+    product).
 
 
 Optionally when compiling with MPI support:
 + `blas/distributed/multi_vector`: measures BLAS performance on (distributed)
-  multi-vectors.
+    multi-vectors.
 + `solver/distributed/solver`: distributed solver benchmarks.
 + `spmv/distributed/spmv`: distributed matrix Sparse-Matrix Vector (SpMV)
-  product benchmark.
+    product benchmark.
 
 
 All benchmarks require input data as in a `JSON` format. The json file has to
@@ -171,13 +171,13 @@ After writing the necessary data in a JSON file, the benchmark can be called by
 passing in the input via stdin, i.e.
 
 ```
-solver < input.json
+./solver < input.json
 ```
 
 The output of our benchmarks is again JSON, and it is printed to stdout, while our status messages are printed to stderr. So, the output can be stored with
 
 ```
-solver < input.json > output.json
+./solver < input.json > output.json
 ```
 
 Note that in most cases, the JSON output by our benchmarks is compatible with
@@ -391,8 +391,8 @@ The supported environment variables are described in the following list:
     solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`
     generates a random vector as the initial guess.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran. This
-  generally provides extra, verbose information at the cost of one or more extra
-  benchmark run. It can be either `0` (off) or `1` (on).
+    generally provides extra, verbose information at the cost of one or more
+    extra benchmark runs. It can be either `0` (off) or `1` (on).
 * `GPU_TIMER={true, false}` - If set to `true`, use the gpu timer, which is
     valid for cuda/hip executor, to measure the timing. Default is `false`.
 * `SOLVERS_JACOBI_MAX_BS` - sets the maximum block size for the Jacobi
