@@ -17,7 +17,11 @@ utility](https://github.com/ginkgo-project/ssget) has to be installed on the
 system. The purpose of this file is to explain in detail the capacities of this
 benchmarking suite as well as how to properly setup everything.
 
-There are two ways to benchmark `ginkgo`. When compiling the benchmark suite, executables are generated for collecting matrix statistics, running sparse-matrix vector product, solvers (possibly distributed) benchmarks. Another way to run benchmarks is through the convenience script `run_all_benchmarks.sh`, but not all features are exposed through this tool!
+There are two ways to benchmark Ginkgo. When compiling the benchmark suite,
+executables are generated for collecting matrix statistics, running
+sparse-matrix vector product, solvers (possibly distributed) benchmarks. Another
+way to run benchmarks is through the convenience script `run_all_benchmarks.sh`,
+but not all features are exposed through this tool!
 
 Here is a short description of the content of this file:
 1. Ginkgo setup and best practice guidelines
@@ -114,8 +118,8 @@ done
 ```
 
 ### 3: Running benchmarks manually
-When compiling `ginkgo` with the flag `-DGINKGO_BUILD_BENCHMARKS=on`, a suite of
-executables will be generated depending on the `CMake` configuration. These
+When compiling Ginkgo with the flag `-DGINKGO_BUILD_BENCHMARKS=ON`, a suite of
+executables will be generated depending on the CMake configuration. These
 executables are the backbone of the benchmarking suite. Note that all of these
 executables describe the available options and the required input format when
 running them with the `--help` option. All executables have multiple variants
@@ -165,7 +169,10 @@ case, and many other benchmarks the following minimal input should be provided:
 ```
 The files have to be in matrix market format.
 
-Some benchmarks require some extra fields. For example the solver benchmarks requires the field `"optimal": {"spmv": "matrix format (such as csr)"}`. This is automatically populated when running the `spmv` benchmark which finds the optimal (fastest) format among all requested formats.
+Some benchmarks require some extra fields. For example the solver benchmarks
+requires the field `"optimal": {"spmv": "matrix format (such as csr)"}`. This is
+automatically populated when running the `spmv` benchmark which finds the
+optimal (fastest) format among all requested formats.
 
 After writing the necessary data in a JSON file, the benchmark can be called by
 passing in the input via stdin, i.e.
@@ -174,7 +181,8 @@ passing in the input via stdin, i.e.
 ./solver < input.json
 ```
 
-The output of our benchmarks is again JSON, and it is printed to stdout, while our status messages are printed to stderr. So, the output can be stored with
+The output of our benchmarks is again JSON, and it is printed to stdout, while
+our status messages are printed to stderr. So, the output can be stored with
 
 ```
 ./solver < input.json > output.json
@@ -312,10 +320,10 @@ log the time taken by all operations. These features are also available in the
 to analyze Ginkgo's performance.
 
 These features are implemented thanks to the loggers located in the file
-`${ginkgo_src_dir}/benchmark/utils/loggers.hpp`. Ginkgo possesses hooks at all important code
-location points which can be inspected thanks to the logger. In this fashion, it
-is easy to use these loggers also for tracking memory allocation sizes and other
-important library aspects.
+`${ginkgo_src_dir}/benchmark/utils/loggers.hpp`. Ginkgo possesses hooks at all
+important code location points which can be inspected thanks to the logger. In
+this fashion, it is easy to use these loggers also for tracking memory
+allocation sizes and other important library aspects.
 
 ### 7: Available benchmark options
 
