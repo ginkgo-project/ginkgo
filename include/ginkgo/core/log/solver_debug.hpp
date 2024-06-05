@@ -7,6 +7,7 @@
 
 
 #include <iosfwd>
+#include <memory>
 
 
 #include <ginkgo/config.hpp>
