@@ -213,6 +213,21 @@ get_value(const pnode& config)
     return static_cast<ValueType>(val);
 }
 
+
+template <typename ValueType>
+inline std::enable_if_t<std::is_same<ValueType, half>::value, ValueType>
+get_value(const pnode& config)
+{
+    auto val = config.get_real();
+    // the max, min of floating point only consider positive value.
+    GKO_THROW_IF_INVALID(
+        val <= std::numeric_limits<ValueType>::max() &&
+            val >= -std::numeric_limits<ValueType>::max(),
+        "the config value is out of the range of the require type.");
+    return static_cast<ValueType>(val);
+}
+
+
 /**
  * get_value gets the corresponding type value from config.
  *
