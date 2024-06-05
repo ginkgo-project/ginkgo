@@ -81,52 +81,97 @@ struct gcc_atomic_intrinsic_type_map<double> {
 #endif
 
 
+template <int memorder, int scope, typename ValueType>
+struct memory_operation {
+    /**
+     * Loads a value from memory using an atomic operation.
+     *
+     * @tparam memorder  The GCC memory ordering type
+     * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to
+     * use for this atomic operation.
+     * @tparam scope  The visibility of this operation, i.e. which threads may
+     * have written to this memory location before. HIP_SCOPE_GPU means that we
+     * want to observe writes from all threads on this device,
+     * HIP_SCOPE_THREADBLOCK means we want to observe only writes from within
+     * the same threadblock.
+     */
+    static __device__ __forceinline__ ValueType load(const ValueType* ptr)
+    {
+        using atomic_type =
+            typename gcc_atomic_intrinsic_type_map<ValueType>::type;
+        static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
+        static_assert(alignof(atomic_type) == alignof(ValueType),
+                      "invalid map");
+        auto cast_value = HIP_ATOMIC_LOAD(
+            reinterpret_cast<const atomic_type*>(ptr), memorder, scope);
+        ValueType result{};
+        std::memcpy(&result, &cast_value, sizeof(ValueType));
+        return result;
+    }
+
+    /**
+     * Stores a value to memory using an atomic operation.
+     *
+     * @tparam memorder  The GCC memory ordering type
+     * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to
+     * use for this atomic operation.
+     * @tparam scope  The visibility of this operation, i.e. which threads may
+     * observe the write to this memory location. HIP_SCOPE_GPU means that we
+     * want to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK
+     * means we want only threads within the same threadblock to observe it.
+     */
+    static __device__ __forceinline__ void store(ValueType* ptr,
+                                                 ValueType value)
+    {
+        using atomic_type =
+            typename gcc_atomic_intrinsic_type_map<ValueType>::type;
+        static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
+        static_assert(alignof(atomic_type) == alignof(ValueType),
+                      "invalid map");
+        atomic_type cast_value{};
+        std::memcpy(&cast_value, &value, sizeof(ValueType));
+        HIP_ATOMIC_STORE(reinterpret_cast<atomic_type*>(ptr), cast_value,
+                         memorder, scope);
+    }
+};
+
+
 /**
- * Loads a value from memory using an atomic operation.
+ * Support for the above atomic operations seems to be not available or
+ * at least not documented for __half
  *
- * @tparam memorder  The GCC memory ordering type
- * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
- * for this atomic operation.
- * @tparam scope  The visibility of this operation, i.e. which threads may have
- * written to this memory location before. HIP_SCOPE_GPU means that we want to
- * observe writes from all threads on this device, HIP_SCOPE_THREADBLOCK means
- * we want to observe only writes from within the same threadblock.
+ * @todo: use memory model as above when available
  */
+template <int memorder, int scope>
+struct memory_operation<memorder, scope, __half> {
+    static __device__ __forceinline__ __half load(const __half* ptr)
+    {
+        const volatile __half* val = ptr;
+        auto result = *val;
+        __threadfence();
+        return result;
+    }
+
+    static __device__ __forceinline__ void store(__half* ptr, __half value)
+    {
+        __threadfence();
+        volatile __half* val = ptr;
+        *val = value;
+    }
+};
+
+
 template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
 {
-    using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
-    static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
-    static_assert(alignof(atomic_type) == alignof(ValueType), "invalid map");
-    auto cast_value = HIP_ATOMIC_LOAD(reinterpret_cast<const atomic_type*>(ptr),
-                                      memorder, scope);
-    ValueType result{};
-    std::memcpy(&result, &cast_value, sizeof(ValueType));
-    return result;
+    return memory_operation<memorder, scope, ValueType>::load(ptr);
 }
 
 
-/**
- * Stores a value to memory using an atomic operation.
- *
- * @tparam memorder  The GCC memory ordering type
- * (https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html) to use
- * for this atomic operation.
- * @tparam scope  The visibility of this operation, i.e. which threads may
- * observe the write to this memory location. HIP_SCOPE_GPU means that we want
- * to all threads on this device to observe it, HIP_SCOPE_THREADBLOCK means we
- * want only threads within the same threadblock to observe it.
- */
 template <int memorder, int scope, typename ValueType>
 __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
 {
-    using atomic_type = typename gcc_atomic_intrinsic_type_map<ValueType>::type;
-    static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
-    static_assert(alignof(atomic_type) == alignof(ValueType), "invalid map");
-    atomic_type cast_value{};
-    std::memcpy(&cast_value, &value, sizeof(ValueType));
-    HIP_ATOMIC_STORE(reinterpret_cast<atomic_type*>(ptr), cast_value, memorder,
-                     scope);
+    memory_operation<memorder, scope, ValueType>::store(ptr, value);
 }
 
 
