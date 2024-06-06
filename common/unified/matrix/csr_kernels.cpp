@@ -330,8 +330,8 @@ void row_wise_sum_impl(std::shared_ptr<const DefaultExecutor> exec,
                 sum_ptr[row] += closure_(value_ptr[k]);
             }
         },
-        sum.get_num_elems(), orig->get_const_row_ptrs(),
-        orig->get_const_values(), sum.get_data(), closure);
+        sum.get_size(), orig->get_const_row_ptrs(), orig->get_const_values(),
+        sum.get_data(), closure);
 };
 
 
@@ -343,9 +343,9 @@ void row_wise_sum(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto sum_ptr) {
-            sum_ptr[row] = zero<ValueType>();
+            sum_ptr[row] = zero<device_type<ValueType>>();
         },
-        sum.get_num_elems(), sum.get_data());
+        sum.get_size(), sum.get_data());
 
     if (absolute) {
         row_wise_sum_impl(exec, orig, sum,
