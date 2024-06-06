@@ -52,27 +52,27 @@ protected:
         mtx1 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(10, mtx_size[1]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(0, mtx_size[1]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_square = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[0],
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
         dmtx1 = gko::clone(exec, mtx1);
         dmtx2 = gko::clone(exec, mtx2);

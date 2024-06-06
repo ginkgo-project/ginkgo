@@ -41,7 +41,7 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted;
 
-    std::normal_distribution<> distb;
+    gko::test::normal_distribution<> distb;
     std::default_random_engine engine;
 
     value_type get_random_value()

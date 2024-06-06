@@ -38,14 +38,14 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<Mtx> gen_u_mtx(int size)
     {
         return gko::test::generate_random_upper_triangular_matrix<Mtx>(
             size, false, std::uniform_int_distribution<>(size, size),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(int m, int n)

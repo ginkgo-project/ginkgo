@@ -40,7 +40,7 @@ protected:
         if (condition_numbers.size() == 0) {
             mtx = gko::test::generate_random_matrix<Mtx>(
                 dim, dim, std::uniform_int_distribution<>(min_nnz, max_nnz),
-                std::normal_distribution<>(0.0, 1.0), engine, ref);
+                gko::test::normal_distribution<>(0.0, 1.0), engine, ref);
         } else {
             std::vector<mtx_data> blocks;
             for (gko::size_type i = 0; i < block_pointers.size() - 1; ++i) {
@@ -48,7 +48,8 @@ protected:
                     begin(block_pointers)[i + 1] - begin(block_pointers)[i];
                 const auto cond = begin(condition_numbers)[i];
                 blocks.push_back(mtx_data::cond(
-                    size, cond, std::normal_distribution<>(-1, 1), engine));
+                    size, cond, gko::test::normal_distribution<>(-1, 1),
+                    engine));
             }
             mtx = Mtx::create(ref);
             mtx->read(mtx_data::diag(begin(blocks), end(blocks)));
@@ -92,11 +93,11 @@ protected:
         }
         b = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine, ref);
+            gko::test::normal_distribution<>(0.0, 1.0), engine, ref);
         d_b = gko::clone(exec, b);
         x = gko::test::generate_random_matrix<Vec>(
             dim, num_rhs, std::uniform_int_distribution<>(num_rhs, num_rhs),
-            std::normal_distribution<>(0.0, 1.0), engine, ref);
+            gko::test::normal_distribution<>(0.0, 1.0), engine, ref);
         d_x = gko::clone(exec, x);
     }
 
@@ -413,7 +414,7 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
     auto dense_data =
         gko::test::generate_random_matrix_data<value_type, index_type>(
             dim, dim, std::uniform_int_distribution<>(1, dim),
-            std::normal_distribution<>(1.0, 2.0), engine);
+            gko::test::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
@@ -421,7 +422,7 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
     smtx->copy_from(dense_smtx);
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref));
+        gko::test::normal_distribution<>(0.0, 1.0), engine, ref));
     auto sx = Vec::create(ref, sb->get_size());
 
     auto d_smtx = gko::share(Mtx::create(exec));
@@ -465,7 +466,7 @@ TEST_F(Jacobi, ScalarLinearCombinationApplyEquivalentToRef)
     auto dense_data =
         gko::test::generate_random_matrix_data<value_type, index_type>(
             dim, dim, std::uniform_int_distribution<>(1, dim),
-            std::normal_distribution<>(1.0, 2.0), engine);
+            gko::test::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
@@ -473,12 +474,12 @@ TEST_F(Jacobi, ScalarLinearCombinationApplyEquivalentToRef)
     smtx->copy_from(dense_smtx);
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
-        4));
+        gko::test::normal_distribution<>(0.0, 1.0), engine, ref,
+        gko::dim<2>(dim, 3), 4));
     auto sx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, 3, std::uniform_int_distribution<>(1, 1),
-        std::normal_distribution<>(0.0, 1.0), engine, ref, gko::dim<2>(dim, 3),
-        4));
+        gko::test::normal_distribution<>(0.0, 1.0), engine, ref,
+        gko::dim<2>(dim, 3), 4));
 
     auto d_smtx = gko::share(gko::clone(exec, smtx));
     auto d_sb = gko::share(gko::clone(exec, sb));

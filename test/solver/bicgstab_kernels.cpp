@@ -35,7 +35,7 @@ protected:
     {
         auto data = gko::matrix_data<value_type, index_type>(
             gko::dim<2>{123, 123},
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
         gko::utils::make_diag_dominant(data);
         mtx = Mtx::create(ref, data.size, 125);
         mtx->read(data);
@@ -63,7 +63,8 @@ protected:
         auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine,
+            ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
         result->copy_from(tmp_mtx);
         return result;

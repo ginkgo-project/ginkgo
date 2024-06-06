@@ -38,7 +38,8 @@ protected:
         auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine,
+            ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
         result->copy_from(tmp_mtx);
         return result;
@@ -172,8 +173,8 @@ TEST_F(Fcg, FcgStep2IsEquivalentToRef)
 TEST_F(Fcg, ApplyIsEquivalentToRef)
 {
     auto data = gko::matrix_data<value_type, index_type>(
-        gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
-        rand_engine);
+        gko::dim<2>{50, 50},
+        gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
     gko::utils::make_hpd(data, 1.5);
     auto mtx = Mtx::create(ref, data.size, 53);
     mtx->read(data);

@@ -466,7 +466,7 @@ public:
                                                            global_index_type>(
             size[0], size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(),
             engine);
         dense_x->read(md_x);
         auto tmp_x = dist_vec_type::create(ref, comm);
@@ -477,7 +477,7 @@ public:
                                                            global_index_type>(
             size[0], size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(),
             engine);
         dense_y->read(md_y);
         auto tmp_y = dist_vec_type::create(ref, comm);
@@ -766,7 +766,7 @@ public:
             local_size[0], local_size[1],
             std::uniform_int_distribution<gko::size_type>(local_size[1],
                                                           local_size[1]),
-            std::normal_distribution<>(), engine, exec);
+            gko::test::normal_distribution<>(), engine, exec);
         dist = DistVectorType::create(exec, comm, size, gko::clone(local));
     }
 
@@ -778,7 +778,7 @@ public:
         alpha = gko::test::generate_random_matrix<dense_type>(
             1, size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<>(), engine, exec);
+            gko::test::normal_distribution<>(), engine, exec);
     }
 
     void init_complex_vectors()
@@ -972,7 +972,7 @@ TYPED_TEST(VectorLocalOps, FillSameAsLocal)
 {
     using value_type = typename TestFixture::value_type;
     auto value = gko::test::detail::get_rand_value<value_type>(
-        std::normal_distribution<>(), this->engine);
+        gko::test::normal_distribution<>(), this->engine);
     this->init_vectors();
 
     this->x->fill(value);

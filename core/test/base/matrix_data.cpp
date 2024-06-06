@@ -11,6 +11,9 @@
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
@@ -54,7 +57,7 @@ TEST(MatrixData, InitializesWithRandomValues)
     using nnz = gko::matrix_data<double, int>::nonzero_type;
 
     gko::matrix_data<double, int> m(
-        gko::dim<2>{2, 3}, std::uniform_real_distribution<double>(-1, 1),
+        gko::dim<2>{2, 3}, gko::test::uniform_real_distribution<double>(-1, 1),
         std::default_random_engine(19));
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
@@ -232,9 +235,9 @@ TEST(MatrixData, InitializesDiagonalWithConditionNumber)
 {
     using data = gko::matrix_data<double, int>;
 
-    const auto m =
-        data::cond(3, 100.0, std::uniform_real_distribution<double>(-1, 1),
-                   std::default_random_engine(42), 0);
+    const auto m = data::cond(
+        3, 100.0, gko::test::uniform_real_distribution<double>(-1, 1),
+        std::default_random_engine(42), 0);
 
     ASSERT_EQ(m.size, gko::dim<2>(3, 3));
     ASSERT_NEAR(m.nonzeros[0].value / m.nonzeros[2].value, 100.0, 1e-16);

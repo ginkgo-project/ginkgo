@@ -70,7 +70,7 @@ protected:
           dense_ifft3(Vec::create(exec, gko::dim<2>{n, n}))
     {
         std::uniform_int_distribution<gko::size_type> nz_dist(nrhs - 2, nrhs);
-        std::uniform_real_distribution<gko::remove_complex<value_type>>
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>
             val_dist(-1, 1);
         amplitude = gko::test::generate_random_matrix<Vec>(n, nrhs, nz_dist,
                                                            val_dist, rng, exec);

@@ -40,7 +40,7 @@ protected:
     {
         data = gko::test::generate_random_matrix<Vec>(
             n, cols, std::uniform_int_distribution<>(1, cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         ddata = Vec::create(exec);
         ddata->copy_from(this->data);
         data_strided = data->create_submatrix({0, n}, {0, subcols});

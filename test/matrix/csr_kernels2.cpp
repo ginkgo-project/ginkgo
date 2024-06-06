@@ -62,7 +62,8 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine,
+            ref);
     }
 
     template <typename MtxType>
@@ -159,7 +160,7 @@ protected:
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         std::vector<value_type> scale(mtx->get_size()[0]);
         std::vector<value_type> scale2(mtx->get_size()[1]);
-        std::uniform_real_distribution<value_type> dist(1, 2);
+        gko::test::uniform_real_distribution<value_type> dist(1, 2);
         auto gen = [&] { return dist(rng); };
         std::generate(scale.begin(), scale.end(), gen);
         std::generate(scale2.begin(), scale2.end(), gen);

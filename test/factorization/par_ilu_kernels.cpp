@@ -63,7 +63,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(0, num_cols - 1),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,

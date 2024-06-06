@@ -136,7 +136,8 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
         this->engine, this->ref);
 
     auto partition = gko::experimental::distributed::Partition<
@@ -171,7 +172,8 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
                                            static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
         this->engine, this->ref);
 
     auto partition = gko::experimental::distributed::Partition<
@@ -245,7 +247,8 @@ TYPED_TEST(Matrix, BuildsLocalSmallWithColPartitionIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
         this->engine, this->ref);
 
     auto row_partition = gko::experimental::distributed::Partition<
@@ -295,7 +298,8 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols),
                                            static_cast<int>(num_cols)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
         this->engine, this->ref);
 
     auto row_partition = gko::experimental::distributed::Partition<

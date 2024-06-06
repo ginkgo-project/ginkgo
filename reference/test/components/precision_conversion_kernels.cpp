@@ -34,7 +34,7 @@ protected:
           expected_double(ref, 1)
     {
         auto maxval = 1e10f;
-        std::uniform_real_distribution<float> dist(-maxval, maxval);
+        gko::test::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
             vals.get_data()[i] = dist(rand);
             cvals.get_data()[i] = {dist(rand), dist(rand)};

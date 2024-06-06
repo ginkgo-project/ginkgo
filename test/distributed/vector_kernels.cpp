@@ -133,14 +133,13 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
         std::uniform_int_distribution<
             gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
         this->engine, this->ref);
-    auto input =
-        generate_random_matrix_data_array<value_type, global_index_type>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<int>(0,
-                                               static_cast<int>(num_cols - 1)),
-            std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
-                                                                            1),
-            this->engine, this->ref);
+    auto input = generate_random_matrix_data_array<value_type,
+                                                   global_index_type>(
+        num_rows, num_cols,
+        std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
+        this->engine, this->ref);
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
@@ -168,14 +167,13 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
         std::uniform_int_distribution<
             gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
         this->engine, this->ref);
-    auto input =
-        generate_random_matrix_data_array<value_type, global_index_type>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<int>(0,
-                                               static_cast<int>(num_cols - 1)),
-            std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
-                                                                            1),
-            this->engine, this->ref);
+    auto input = generate_random_matrix_data_array<value_type,
+                                                   global_index_type>(
+        num_rows, num_cols,
+        std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 1),
+        this->engine, this->ref);
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,

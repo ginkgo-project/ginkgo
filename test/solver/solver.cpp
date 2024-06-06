@@ -542,7 +542,7 @@ protected:
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 num_rows, num_cols,
                 std::uniform_int_distribution<>(min_cols, max_cols),
-                std::normal_distribution<>(0.0, 1.0), rand_engine);
+                gko::test::normal_distribution<>(0.0, 1.0), rand_engine);
         Config::preprocess(data);
         auto mtx = Mtx::create(ref);
         mtx->read(data);
@@ -552,7 +552,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
+        return {size, gko::test::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename VecType = Vec, typename MtxOrSolver>
@@ -570,12 +570,13 @@ protected:
     template <typename VecType = Vec>
     test_pair<VecType> gen_scalar()
     {
-        return {gko::initialize<VecType>(
-                    {gko::test::detail::get_rand_value<
-                        typename VecType::value_type>(
-                        std::normal_distribution<>(0.0, 1.0), rand_engine)},
-                    ref),
-                exec};
+        return {
+            gko::initialize<VecType>(
+                {gko::test::detail::get_rand_value<
+                    typename VecType::value_type>(
+                    gko::test::normal_distribution<>(0.0, 1.0), rand_engine)},
+                ref),
+            exec};
     }
 
     template <typename VecType = Vec, typename MtxOrSolver>
