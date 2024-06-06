@@ -9,7 +9,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
     size_type m, size_type n, size_type stride, ValueType* __restrict__ array)
 {
-    const auto tidx = thread::get_thread_id_flat();
+    const auto tidx = thread::get_thread_id_flat<int>();
     if (tidx < n) {
         auto pos = tidx;
         for (size_type k = 0; k < m; ++k) {
@@ -27,7 +27,7 @@ __global__ __launch_bounds__(block_size) void restart_1_kernel(
     Accessor3d krylov_bases, ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_nc)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
@@ -62,7 +62,7 @@ __global__ __launch_bounds__(block_size) void restart_2_kernel(
     ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
     size_type* __restrict__ final_iter_nums)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
@@ -91,7 +91,7 @@ __global__ __launch_bounds__(block_size) void restart_f_1_kernel(
     ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_nc)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto krylov_stride = krylov_bases.get_stride();
     // krylov indices
     const auto rhs = global_id / krylov_stride[0];
@@ -126,7 +126,7 @@ __global__ __launch_bounds__(block_size) void restart_f_2_kernel(
     FrszCompressor krylov_bases, ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, size_type* __restrict__ final_iter_nums)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto krylov_stride = krylov_bases.get_stride();
     const auto row_idx = global_id % krylov_stride[1];
     const auto col_idx = global_id / krylov_stride[1];
@@ -154,7 +154,7 @@ __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kern
     size_type* __restrict__ final_iter_nums,
     const stopping_status* __restrict__ stop_status, size_type total_number)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     if (global_id < total_number) {
         final_iter_nums[global_id] += !stop_status[global_id].has_stopped();
     }
@@ -556,7 +556,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
 
@@ -564,7 +564,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         auto local_res = next_krylov_basis[next_krylov_idx];
-        for (size_type k = 0; k < num_iters; ++k) {
+        for (int k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
             local_res -= hessenberg_iter[hessenberg_idx] *
@@ -585,7 +585,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_f_kernel(
     const ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
 
@@ -593,7 +593,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_f_kernel(
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         auto local_res = next_krylov_basis[next_krylov_idx];
-        for (size_type k = 0; k < num_iters; ++k) {
+        for (int k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
             local_res -= hessenberg_iter[hessenberg_idx] *
@@ -615,7 +615,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
     size_type stride_buffer, const stopping_status* __restrict__ stop_status,
     const stopping_status* __restrict__ reorth_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
 
@@ -624,7 +624,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
         !reorth_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         auto local_res = next_krylov_basis[next_krylov_idx];
-        for (size_type k = 0; k < num_iters; ++k) {
+        for (int k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             local_res -=
@@ -650,7 +650,7 @@ __launch_bounds__(block_size) void update_next_krylov_and_add_f_kernel(
     size_type stride_buffer, const stopping_status* __restrict__ stop_status,
     const stopping_status* __restrict__ reorth_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
 
@@ -659,7 +659,7 @@ __launch_bounds__(block_size) void update_next_krylov_and_add_f_kernel(
         !reorth_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         auto local_res = next_krylov_basis[next_krylov_idx];
-        for (size_type k = 0; k < num_iters; ++k) {
+        for (int k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             local_res -= buffer_iter[buffer_idx] *
@@ -684,7 +684,7 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     size_type* __restrict__ num_reorth)
 {
     const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
-    const auto col_idx = thread::get_thread_id_flat();
+    const auto col_idx = thread::get_thread_id_flat<size_type>();
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
@@ -719,7 +719,7 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_f(
     size_type* __restrict__ num_reorth)
 {
     const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
-    const auto col_idx = thread::get_thread_id_flat();
+    const auto col_idx = thread::get_thread_id_flat<size_type>();
 
     if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
         const auto num0 = (sqrt(eta_squared * arnoldi_norm[col_idx]));
@@ -746,7 +746,7 @@ __global__ __launch_bounds__(block_size) void set_scalar_kernel(
 {
     static_assert(!is_complex_s<RealValueType>::value,
                   "ValueType must not be complex!");
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
@@ -778,7 +778,7 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
     const auto hessenberg =
@@ -808,7 +808,7 @@ __launch_bounds__(block_size) void update_krylov_next_krylov_f_kernel(
     size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto dividing_stride = krylov_bases.get_stride()[1];
     const auto col_idx = global_id / dividing_stride;
     const auto row_idx = global_id % dividing_stride;
@@ -843,7 +843,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type stride_preconditioner,
     const size_type* __restrict__ final_iter_nums)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_id = global_id / stride_preconditioner;
     const auto col_id = global_id % stride_preconditioner;
 
@@ -867,7 +867,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_f_kernel(
     size_type stride_preconditioner,
     const size_type* __restrict__ final_iter_nums)
 {
-    const auto global_id = thread::get_thread_id_flat();
+    const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_id = global_id / stride_preconditioner;
     const auto col_id = global_id % stride_preconditioner;
 
