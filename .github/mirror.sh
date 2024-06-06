@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-BRANCH_NAME=${BRANCH_NAME##*/}
-
 git remote add fork "git@github.com:${GITHUB_REPO}.git"
 git remote add gitlab "git@gitlab.com:ginkgo-project/ginkgo-public-ci.git"
 
