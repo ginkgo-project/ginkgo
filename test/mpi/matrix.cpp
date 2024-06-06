@@ -529,8 +529,8 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        ? gko::remove_complex<T>(0)
+                        : gko::remove_complex<T>(r<OtherT>::value);
 
     this->dist_mat->convert_to(tmp);
     tmp->convert_to(res);
@@ -556,8 +556,8 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     auto clone_dist_mat = gko::clone(this->dist_mat);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        ? gko::remove_complex<T>(0)
+                        : gko::remove_complex<T>(r<OtherT>::value);
 
     this->dist_mat->move_to(tmp);
     tmp->convert_to(res);
