@@ -6,9 +6,12 @@
 #define GKO_PUBLIC_CORE_SOLVER_CB_GMRES_HPP_
 
 
+#include <chrono>   // for internal profiler
 #include <climits>  // For CHAR_BIT
 #include <functional>
+#include <map>  // for internal profiler
 #include <memory>
+#include <string>  // for internal profiler
 #include <vector>
 
 
@@ -163,10 +166,11 @@ public:
                                                                 nullptr);
 
         /**
-         * The bits-per-value parameter of the FRSZ2 compressor if
-         * `storage_precision` is set to `use_frsz2`.
+         * Map between the name of kernels and their summed up duration
+         * throughout the solve. If none is provided, no logging takes place.
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(bits_per_value, 32);
+        std::shared_ptr<std::map<std::string, std::chrono::duration<double>>>
+            GKO_FACTORY_PARAMETER_SCALAR(detail_operation_logger, nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);

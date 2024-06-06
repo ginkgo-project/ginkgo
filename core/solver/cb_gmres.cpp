@@ -759,24 +759,24 @@ void CbGmres<ValueType>::apply_dense_impl(
                     residual_norm.get(), residual_norm_collection.get(),
                     krylov_bases_range, hessenberg_iter.get(),
                     buffer_iter.get(), arnoldi_norm.get(), restart_iter,
-                    &final_iter_nums, &stop_status, &reorth_status,
-                    &num_reorth));
+                    &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
+                    this->parameters_.detail_operation_logger.get()));
             } else if (which_frsz2 == 21) {
                 run_f_helper.arnoldi_f(
                     next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                     residual_norm.get(), residual_norm_collection.get(),
                     krylov_bases_frsz2_21, hessenberg_iter.get(),
                     buffer_iter.get(), arnoldi_norm.get(), restart_iter,
-                    &final_iter_nums, &stop_status, &reorth_status,
-                    &num_reorth);
+                    &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
+                    this->parameters_.detail_operation_logger.get());
             } else if (which_frsz2 == 32) {
                 run_f_helper.arnoldi_f(
                     next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
                     residual_norm.get(), residual_norm_collection.get(),
                     krylov_bases_frsz2_32, hessenberg_iter.get(),
                     buffer_iter.get(), arnoldi_norm.get(), restart_iter,
-                    &final_iter_nums, &stop_status, &reorth_status,
-                    &num_reorth);
+                    &final_iter_nums, &stop_status, &reorth_status, &num_reorth,
+                    this->parameters_.detail_operation_logger.get());
             } else {
                 GKO_NOT_IMPLEMENTED;
             }

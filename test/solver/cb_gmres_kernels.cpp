@@ -254,14 +254,14 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
         residual_norm.get(), residual_norm_collection.get(),
         range_helper.get_range(), hessenberg_iter.get(), buffer_iter.get(),
         arnoldi_norm.get(), iter, final_iter_nums.get(), stop_status.get(),
-        reorth_status.get(), num_reorth.get());
+        reorth_status.get(), num_reorth.get(), nullptr);
     gko::kernels::EXEC_NAMESPACE::cb_gmres::arnoldi(
         exec, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_range_helper.get_range(), d_hessenberg_iter.get(),
         d_buffer_iter.get(), d_arnoldi_norm.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get(), d_reorth_status.get(),
-        d_num_reorth.get());
+        d_num_reorth.get(), nullptr);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis,

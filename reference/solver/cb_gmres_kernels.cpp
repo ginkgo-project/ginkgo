@@ -381,7 +381,8 @@ void arnoldi(std::shared_ptr<const ReferenceExecutor> exec,
              matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status, array<stopping_status>*,
-             array<size_type>*)
+             array<size_type>*,
+             std::map<std::string, std::chrono::duration<double>>*)
 {
     static_assert(
         std::is_same<ValueType,
@@ -452,7 +453,8 @@ void arnoldi_f(std::shared_ptr<const ReferenceExecutor> exec,
                matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                size_type iter, array<size_type>* final_iter_nums,
                const array<stopping_status>* stop_status,
-               array<stopping_status>*, array<size_type>*)
+               array<stopping_status>*, array<size_type>*,
+               std::map<std::string, std::chrono::duration<double>>*)
 {
     GKO_NOT_IMPLEMENTED;
 }

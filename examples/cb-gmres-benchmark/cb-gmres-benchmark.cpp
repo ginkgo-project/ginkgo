@@ -322,6 +322,8 @@ private:
     using RealValueType = gko::remove_complex<ValueType>;
     using Vector = gko::matrix::Dense<ValueType>;
     using NormVector = gko::matrix::Dense<RealValueType>;
+    using DetailLoggerType =
+        std::map<std::string, std::chrono::duration<double>>;
     static constexpr int repeats{1};
 
 public:
@@ -340,9 +342,13 @@ public:
           res_norm_{gko::initialize<NormVector>({0.0}, exec_)},
           convergence_history_logger_{
               ConvergenceHistoryLogger<ValueType>::create()},
-          operation_logger_{nullptr}
+          operation_logger_{nullptr},
+          detail_logger_{nullptr}
     {
         operation_logger_ = std::make_shared<OperationLogger>();
+        if (operation_logger_) {
+            detail_logger_ = std::make_shared<DetailLoggerType>();
+        }
         x_->copy_from(init_x_.get());
         rhs_->compute_norm2(res_norm_);
         rhs_norm_ = exec_->copy_val_to_host(res_norm_->get_const_values());
@@ -387,6 +393,7 @@ public:
                               .with_storage_precision(s_s.storage_prec)
                               .with_generated_preconditioner(s_s.precond)
                               .with_init_compressor(s_s.init_compressor)
+                              .with_detail_operation_logger(detail_logger_)
                               .on(exec_);
 
         // Generate the actual solver from the factory and the matrix.
@@ -403,6 +410,7 @@ public:
             if (i != 0) {
                 x_->copy_from(init_x_.get());
                 convergence_history_logger_.reset();
+                detail_logger_->clear();
             }
             // Make sure all previous executor operations have finished before
             // starting the time
@@ -425,6 +433,10 @@ public:
         if (operation_logger_) {
             result.operation_timings = operation_logger_->get_duration_map_s();
             exec_->remove_logger(operation_logger_);
+            for (auto&& entry : *detail_logger_) {
+                result.operation_timings.insert(
+                    {entry.first, entry.second.count()});
+            }
         }
         return result;
     }
@@ -449,6 +461,7 @@ private:
         if (operation_logger_) {
             operation_logger_->reset();
         }
+        detail_logger_->clear();
     }
 
     std::shared_ptr<gko::Executor> exec_;
@@ -465,6 +478,7 @@ private:
     std::shared_ptr<ConvergenceHistoryLogger<ValueType>>
         convergence_history_logger_;
     std::shared_ptr<OperationLogger> operation_logger_;
+    std::shared_ptr<DetailLoggerType> detail_logger_;
 };
 
 

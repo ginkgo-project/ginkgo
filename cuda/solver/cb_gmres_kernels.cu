@@ -22,6 +22,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
+#include "core/utils/kernel_stopwatch.hpp"  // Added for detail logging
 #include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -168,16 +169,17 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
-void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
-                        matrix::Dense<ValueType>* next_krylov_basis,
-                        Accessor3dim krylov_bases,
-                        matrix::Dense<ValueType>* hessenberg_iter,
-                        matrix::Dense<ValueType>* buffer_iter,
-                        matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
-                        size_type iter, const stopping_status* stop_status,
-                        stopping_status* reorth_status,
-                        array<size_type>* num_reorth)
+void finish_arnoldi_CGS(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::Dense<ValueType>* next_krylov_basis, Accessor3dim krylov_bases,
+    matrix::Dense<ValueType>* hessenberg_iter,
+    matrix::Dense<ValueType>* buffer_iter,
+    matrix::Dense<remove_complex<ValueType>>* arnoldi_norm, size_type iter,
+    const stopping_status* stop_status, stopping_status* reorth_status,
+    array<size_type>* num_reorth,
+    std::map<std::string, std::chrono::duration<double>>* logger)
 {
+    kernel_stopwatch ks(exec.get(), logger);
     const auto dim_size = next_krylov_basis->get_size();
     if (dim_size[1] == 0) {
         return;
@@ -223,6 +225,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
     } else {
+        ks.start();
         singledot_kernel<singledot_block_size>
             <<<grid_size_iters_single, block_size_iters_single, 0,
                exec->get_stream()>>>(
@@ -231,10 +234,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 stride_next_krylov, acc::as_cuda_range(krylov_bases),
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
+        ks.stop("arnoldi::singledot_kernel");
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
     // end
+    ks.start();
     update_next_krylov_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
@@ -243,6 +248,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             acc::as_cuda_range(krylov_bases),
             as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
+    ks.stop("arnoldi::update_next_krylov_kernel");
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -286,6 +292,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
         } else {
+            ks.start();
             singledot_kernel<singledot_block_size>
                 <<<grid_size_iters_single, block_size_iters_single, 0,
                    exec->get_stream()>>>(
@@ -294,10 +301,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                     stride_next_krylov, acc::as_cuda_range(krylov_bases),
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
+            ks.stop("arnoldi::singledot_kernel");
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
+        ks.start();
         update_next_krylov_and_add_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
@@ -308,6 +317,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 stride_hessenberg,
                 as_device_type(buffer_iter->get_const_values()), stride_buffer,
                 as_device_type(stop_status), as_device_type(reorth_status));
+        ks.stop("arnoldi::update_next_krylov_and_add_kernel");
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -341,6 +351,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
         num_reorth_host = get_element(*num_reorth, 0);
     }
 
+    ks.start();
     update_krylov_next_krylov_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
@@ -349,6 +360,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             acc::as_cuda_range(krylov_bases),
             as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
+    ks.stop("arnoldi::update_krylov_next_krylov_kernel");
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
@@ -397,20 +409,26 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status,
              array<stopping_status>* reorth_status,
-             array<size_type>* num_reorth)
+             array<size_type>* num_reorth,
+             std::map<std::string, std::chrono::duration<double>>* logger)
 {
+    kernel_stopwatch ks(exec.get(), logger);
+    ks.start();
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
             ceildiv(final_iter_nums->get_size(), default_block_size)),
         default_block_size, 0, exec->get_stream()>>>(
         as_device_type(final_iter_nums->get_data()),
         stop_status->get_const_data(), final_iter_nums->get_size());
+    ks.stop("arnoldi::increase_final_iteration_numbers_kernel");
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),
-                       num_reorth);
+                       num_reorth, logger);
+    ks.start();
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
+    ks.stop("arnoldi::givens_rotation_kernel");
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
@@ -555,8 +573,10 @@ void finish_arnoldi_CGS_f(
     matrix::Dense<ValueType>* buffer_iter,
     matrix::Dense<remove_complex<ValueType>>* arnoldi_norm, size_type iter,
     const stopping_status* stop_status, stopping_status* reorth_status,
-    array<size_type>* num_reorth)
+    array<size_type>* num_reorth,
+    std::map<std::string, std::chrono::duration<double>>* logger)
 {
+    kernel_stopwatch ks(exec.get(), logger);
     constexpr bool use_scalar = false;
     // TODO: Increase this as well
     constexpr auto write_krylov_bases_block_size =
@@ -601,6 +621,7 @@ void finish_arnoldi_CGS_f(
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
     } else {
+        ks.start();
         singledot_f_kernel<singledot_block_size>
             <<<grid_size_iters_single, block_size_iters_single, 0,
                exec->get_stream()>>>(
@@ -609,10 +630,12 @@ void finish_arnoldi_CGS_f(
                 stride_next_krylov, krylov_bases,
                 as_device_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_device_type(stop_status));
+        ks.stop("arnoldi::singledot_kernel");
     }
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
     // end
+    ks.start();
     update_next_krylov_f_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
@@ -620,6 +643,7 @@ void finish_arnoldi_CGS_f(
             as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
             krylov_bases, as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
+    ks.stop("arnoldi::update_next_krylov_kernel");
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -658,6 +682,7 @@ void finish_arnoldi_CGS_f(
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
         } else {
+            ks.start();
             singledot_f_kernel<singledot_block_size>
                 <<<grid_size_iters_single, block_size_iters_single, 0,
                    exec->get_stream()>>>(
@@ -666,10 +691,12 @@ void finish_arnoldi_CGS_f(
                     stride_next_krylov, krylov_bases,
                     as_device_type(buffer_iter->get_values()), stride_buffer,
                     as_device_type(stop_status));
+            ks.stop("arnoldi::singledot_kernel");
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
+        ks.start();
         update_next_krylov_and_add_f_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
@@ -680,6 +707,7 @@ void finish_arnoldi_CGS_f(
                 stride_hessenberg,
                 as_device_type(buffer_iter->get_const_values()), stride_buffer,
                 as_device_type(stop_status), as_device_type(reorth_status));
+        ks.stop("arnoldi::update_next_krylov_and_add_kernel");
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -707,6 +735,7 @@ void finish_arnoldi_CGS_f(
         num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
     }
 
+    ks.start();
     update_krylov_next_krylov_f_kernel<write_krylov_bases_block_size>
         <<<ceildiv(dim_size[1] * krylov_bases.get_stride()[1],
                    write_krylov_bases_block_size),
@@ -715,6 +744,7 @@ void finish_arnoldi_CGS_f(
             as_device_type(next_krylov_basis->get_values()), stride_next_krylov,
             krylov_bases, as_device_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_device_type(stop_status));
+    ks.stop("arnoldi::update_krylov_next_krylov_kernel");
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
@@ -734,20 +764,26 @@ void arnoldi_f(std::shared_ptr<const DefaultExecutor> exec,
                size_type iter, array<size_type>* final_iter_nums,
                const array<stopping_status>* stop_status,
                array<stopping_status>* reorth_status,
-               array<size_type>* num_reorth)
+               array<size_type>* num_reorth,
+               std::map<std::string, std::chrono::duration<double>>* logger)
 {
+    kernel_stopwatch ks(exec.get(), logger);
+    ks.start();
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
             ceildiv(final_iter_nums->get_size(), default_block_size)),
         default_block_size, 0, exec->get_stream()>>>(
         as_device_type(final_iter_nums->get_data()),
         stop_status->get_const_data(), final_iter_nums->get_size());
+    ks.stop("arnoldi::increase_final_iteration_numbers_kernel");
     finish_arnoldi_CGS_f(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                          buffer_iter, arnoldi_norm, iter,
                          stop_status->get_const_data(),
-                         reorth_status->get_data(), num_reorth);
+                         reorth_status->get_data(), num_reorth, logger);
+    ks.start();
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
+    ks.stop("arnoldi::givens_rotation_kernel");
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_F_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_F_KERNEL);

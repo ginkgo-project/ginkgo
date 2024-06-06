@@ -1224,7 +1224,8 @@ void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status,
              array<stopping_status>* reorth_status,
-             array<size_type>* num_reorth)
+             array<size_type>* num_reorth,
+             std::map<std::string, std::chrono::duration<double>>*)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -1350,7 +1351,8 @@ void arnoldi_f(std::shared_ptr<const DefaultExecutor> exec,
                matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                size_type iter, array<size_type>* final_iter_nums,
                const array<stopping_status>* stop_status,
-               array<stopping_status>*, array<size_type>*)
+               array<stopping_status>*, array<size_type>*,
+               std::map<std::string, std::chrono::duration<double>>*)
 {
     GKO_NOT_IMPLEMENTED;
 }

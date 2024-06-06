@@ -13,6 +13,11 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <chrono>  // added for logging
+#include <map>     // added for logging
+#include <string>  // added for logging
+
+
 #include "accessor/frsz2.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
@@ -148,7 +153,8 @@ namespace kernels {
         matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter,  \
         array<size_type>* final_iter_nums,                                    \
         const array<stopping_status>* stop_status,                            \
-        array<stopping_status>* reorth_status, array<size_type>* num_reorth)
+        array<stopping_status>* reorth_status, array<size_type>* num_reorth,  \
+        std::map<std::string, std::chrono::duration<double>>* logger)
 
 #define GKO_DECLARE_CB_GMRES_ARNOLDI_F_KERNEL(_type1, _frsz2)                 \
     void arnoldi_f(                                                           \
@@ -162,7 +168,8 @@ namespace kernels {
         matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter,  \
         array<size_type>* final_iter_nums,                                    \
         const array<stopping_status>* stop_status,                            \
-        array<stopping_status>* reorth_status, array<size_type>* num_reorth)
+        array<stopping_status>* reorth_status, array<size_type>* num_reorth,  \
+        std::map<std::string, std::chrono::duration<double>>* logger)
 
 
 #define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(_type1, _range)             \

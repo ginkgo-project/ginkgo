@@ -427,7 +427,8 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
              matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status, array<stopping_status>*,
-             array<size_type>*)
+             array<size_type>*,
+             std::map<std::string, std::chrono::duration<double>>*)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < final_iter_nums->get_size(); ++i) {
@@ -495,7 +496,8 @@ void arnoldi_f(std::shared_ptr<const OmpExecutor> exec,
                matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                size_type iter, array<size_type>* final_iter_nums,
                const array<stopping_status>* stop_status,
-               array<stopping_status>*, array<size_type>*)
+               array<stopping_status>*, array<size_type>*,
+               std::map<std::string, std::chrono::duration<double>>*)
 {
     GKO_NOT_IMPLEMENTED;
 }
