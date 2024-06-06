@@ -121,12 +121,12 @@ struct uniform_real_distribution<gko::half> {
 }  // namespace detail
 
 
-template <typename ValueType>
+template <typename ValueType = double>
 using normal_distribution =
     typename detail::normal_distribution<ValueType>::type;
 
 
-template <typename ValueType>
+template <typename ValueType = double>
 using uniform_real_distribution =
     typename detail::uniform_real_distribution<ValueType>::type;
 

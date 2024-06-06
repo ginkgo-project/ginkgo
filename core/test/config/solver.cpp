@@ -57,16 +57,17 @@ struct SolverConfigTest {
     {
         config_map["generated_preconditioner"] = pnode{"linop"};
         param.with_generated_preconditioner(
-            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+            gko::config::detail::registry_accessor::get_data<gko::LinOp>(
+                reg, "linop"));
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
-                detail::registry_accessor::get_data<
+                gko::config::detail::registry_accessor::get_data<
                     gko::stop::CriterionFactory>(reg, "criterion_factory"));
             config_map["preconditioner"] = pnode{"linop_factory"};
             param.with_preconditioner(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "linop_factory"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "linop_factory"));
         } else {
             config_map["criteria"] = pnode{{{"type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
@@ -158,7 +159,8 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
     {
         config_map["generated_solver"] = pnode{"linop"};
         param.with_generated_solver(
-            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+            gko::config::detail::registry_accessor::get_data<gko::LinOp>(
+                reg, "linop"));
         config_map["relaxation_factor"] = pnode{1.2};
         param.with_relaxation_factor(decltype(param.relaxation_factor){1.2});
         config_map["default_initial_guess"] = pnode{"zero"};
@@ -166,12 +168,11 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
-                detail::registry_accessor::get_data<
+                gko::config::detail::registry_accessor::get_data<
                     gko::stop::CriterionFactory>(reg, "criterion_factory"));
             config_map["solver"] = pnode{"linop_factory"};
-            param.with_solver(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "linop_factory"));
+            param.with_solver(gko::config::detail::registry_accessor::get_data<
+                              gko::LinOpFactory>(reg, "linop_factory"));
         } else {
             config_map["criteria"] = pnode{{{"type", pnode{"Iteration"}}}};
             param.with_criteria(DummyStop::build().on(exec));
@@ -362,8 +363,8 @@ struct Direct
         if (from_reg) {
             config_map["factorization"] = pnode{"linop_factory"};
             param.with_factorization(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "linop_factory"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "linop_factory"));
         } else {
             config_map["factorization"] =
                 pnode{{{"type", pnode{"solver::Cg"}},

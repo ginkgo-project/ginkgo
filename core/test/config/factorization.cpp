@@ -143,7 +143,8 @@ struct Cholesky : FactorizationConfigTest<
     {
         config_map["symbolic_factorization"] = pnode{"sparsity"};
         param.with_symbolic_factorization(
-            detail::registry_accessor::get_data<Sparsity>(reg, "sparsity"));
+            gko::config::detail::registry_accessor::get_data<Sparsity>(
+                reg, "sparsity"));
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
     }
@@ -175,7 +176,8 @@ struct Lu : FactorizationConfigTest<
     {
         config_map["symbolic_factorization"] = pnode{"sparsity"};
         param.with_symbolic_factorization(
-            detail::registry_accessor::get_data<Sparsity>(reg, "sparsity"));
+            gko::config::detail::registry_accessor::get_data<Sparsity>(
+                reg, "sparsity"));
         config_map["symbolic_algorithm"] = pnode{"near_symmetric"};
         param.with_symbolic_algorithm(
             gko::experimental::factorization::symbolic_type::near_symmetric);

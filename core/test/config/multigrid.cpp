@@ -175,31 +175,31 @@ struct MultigridConfig {
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
-                detail::registry_accessor::get_data<
+                gko::config::detail::registry_accessor::get_data<
                     gko::stop::CriterionFactory>(reg, "criterion_factory"));
             config_map["mg_level"] = pnode{
                 pnode::array_type{pnode{"mg_level_0"}, pnode{"mg_level_1"}}};
             param.with_mg_level(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "mg_level_0"),
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "mg_level_1"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "mg_level_0"),
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "mg_level_1"));
             config_map["pre_smoother"] = pnode{"pre_smoother"};
             param.with_pre_smoother(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "pre_smoother"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "pre_smoother"));
             config_map["post_smoother"] = pnode{"post_smoother"};
             param.with_post_smoother(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "post_smoother"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "post_smoother"));
             config_map["mid_smoother"] = pnode{"mid_smoother"};
             param.with_mid_smoother(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "mid_smoother"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "mid_smoother"));
             config_map["coarsest_solver"] = pnode{"coarsest_solver"};
             param.with_coarsest_solver(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "coarsest_solver"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "coarsest_solver"));
         } else {
             config_map["criteria"] =
                 pnode{pnode::map_type{{"type", pnode{"Iteration"}}}};
