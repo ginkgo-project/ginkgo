@@ -121,56 +121,120 @@ size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr)
 
 //---------------------------- GPU -----------------------------
 // Get the number of multiprocessor of this executor.
-// size_t ginkgo_executor_gpu_get_num_multiprocessor(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_num_multiprocessor();
-// }
+size_t ginkgo_executor_gpu_get_num_multiprocessor(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_num_multiprocessor();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_num_multiprocessor();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the device id of the device associated to this executor.
-// size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_device_id();
-// }
+// Get the device id of the device associated to this executor.
+size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_device_id();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_device_id();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the number of warps per SM of this executor.
-// size_t ginkgo_executor_gpu_get_num_warps_per_sm(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_num_warps_per_sm();
-// }
+// Get the number of warps per SM of this executor.
+size_t ginkgo_executor_gpu_get_num_warps_per_sm(gko_executor exec_st_ptr)
+{
+    // return exec_st_ptr->shared_ptr->get_num_warps_per_sm();
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_device_id();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_device_id();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the number of warps of this executor.
-// size_t ginkgo_executor_gpu_get_num_warps(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_num_warps();
-// }
+// Get the number of warps of this executor.
+size_t ginkgo_executor_gpu_get_num_warps(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_num_warps();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_num_warps();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the warp size of this executor.
-// size_t ginkgo_executor_gpu_get_warp_size(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_warp_size();
-// }
+// Get the warp size of this executor.
+size_t ginkgo_executor_gpu_get_warp_size(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_warp_size();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_warp_size();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the major version of compute capability.
-// size_t ginkgo_executor_gpu_get_major_version(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_major_version();
-// }
+// Get the major version of compute capability.
+size_t ginkgo_executor_gpu_get_major_version(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_major_version();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_major_version();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the minor version of compute capability.
-// size_t ginkgo_executor_gpu_get_minor_version(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_minor_version();
-// }
+// Get the minor version of compute capability.
+size_t ginkgo_executor_gpu_get_minor_version(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_minor_version();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_minor_version();
+    } else {
+        return 0;
+    }
+}
 
-// // Get the closest NUMA node.
-// size_t ginkgo_executor_gpu_get_closest_numa(gko_executor exec_st_ptr)
-// {
-//     return exec_st_ptr->shared_ptr->get_closest_numa();
-// }
+// Get the closest NUMA node.
+size_t ginkgo_executor_gpu_get_closest_numa(gko_executor exec_st_ptr)
+{
+    if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
+            exec_st_ptr->shared_ptr)) {
+        return cuda_exec->get_closest_numa();
+    } else if (auto hip_exec = std::dynamic_pointer_cast<gko::HipExecutor>(
+                   exec_st_ptr->shared_ptr)) {
+        return hip_exec->get_closest_numa();
+    } else {
+        return 0;
+    }
+}
 
-//
 // int* ginkgo_executor_get_closest_pus(gko_executor exec_st_ptr){
-//     return exec_st_ptr->shared_ptr->get_closest_pus();
+//     // return exec_st_ptr->shared_ptr->get_closest_pus();
 // }
 
 // CUDA
@@ -201,17 +265,17 @@ size_t ginkgo_executor_hip_get_num_devices()
     return gko::HipExecutor::get_num_devices();
 }
 
-// DPCPP/SYCL
-gko_executor ginkgo_executor_dpcpp_create(size_t device_id)
-{
-    return new gko_executor_st{gko::DpcppExecutor::create(
-        device_id, gko::ReferenceExecutor::create())};
-}
+// // DPCPP/SYCL
+// gko_executor ginkgo_executor_dpcpp_create(size_t device_id)
+// {
+//     return new gko_executor_st{gko::DpcppExecutor::create(
+//         device_id, gko::ReferenceExecutor::create())};
+// }
 
-size_t ginkgo_executor_dpcpp_get_num_devices()
-{
-    return gko::DpcppExecutor::get_num_devices("gpu");
-}
+// size_t ginkgo_executor_dpcpp_get_num_devices()
+// {
+//     return gko::DpcppExecutor::get_num_devices("gpu");
+// }
 
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
