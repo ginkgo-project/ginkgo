@@ -79,7 +79,7 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, exec);
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine, exec);
     }
 };
 

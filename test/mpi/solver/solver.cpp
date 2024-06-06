@@ -260,7 +260,7 @@ protected:
                                                            global_index_type>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_cols, max_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine);
         Config::preprocess(data);
         auto dist_mtx = Mtx::create(ref, comm);
         dist_mtx->read_distributed(data, part);
@@ -270,7 +270,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
+        return {size, gko::test::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename DistVecType = Vec>
@@ -297,7 +297,7 @@ protected:
     {
         return gko::share(gko::initialize<VecType>(
             {gko::test::detail::get_rand_value<typename VecType::value_type>(
-                std::normal_distribution<>(0.0, 1.0), rand_engine)},
+                gko::test::normal_distribution<>(0.0, 1.0), rand_engine)},
             exec));
     }
 

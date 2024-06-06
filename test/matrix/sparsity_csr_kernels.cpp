@@ -39,7 +39,8 @@ protected:
         auto data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 100, 100, std::uniform_int_distribution<index_type>(1, 10),
-                std::uniform_real_distribution<value_type>(0.0, 1.0), rng);
+                gko::test::uniform_real_distribution<value_type>(0.0, 1.0),
+                rng);
         // make sure the matrix contains a few diagonal entries
         for (int i = 0; i < 10; i++) {
             data.nonzeros.emplace_back(i * 3, i * 3, 0.0);

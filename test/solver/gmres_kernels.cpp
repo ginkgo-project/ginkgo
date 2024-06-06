@@ -62,7 +62,8 @@ protected:
         return gko::test::generate_random_matrix<Dense<ValueType>>(
             num_rows, num_cols,
             std::uniform_int_distribution<IndexType>(num_cols, num_cols),
-            std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<ValueType>(-1.0, 1.0), rand_engine,
+            ref);
     }
 
     void initialize_data(int nrhs = 43)

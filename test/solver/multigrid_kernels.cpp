@@ -33,7 +33,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()

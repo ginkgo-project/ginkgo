@@ -31,25 +31,25 @@ protected:
     MatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix<mtx_type>(
-              500, 100, std::normal_distribution<>(50, 5),
-              std::normal_distribution<>(20.0, 5.0),
+              500, 100, gko::test::normal_distribution<>(50, 5),
+              gko::test::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           dense_mtx(gko::test::generate_random_dense_matrix<value_type>(
-              500, 100, std::normal_distribution<>(20.0, 5.0),
+              500, 100, gko::test::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(41), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
-              4, true, std::normal_distribution<>(50, 5),
-              std::normal_distribution<>(20.0, 5.0),
+              4, true, gko::test::normal_distribution<>(50, 5),
+              gko::test::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           u_mtx(gko::test::generate_random_upper_triangular_matrix<mtx_type>(
-              4, true, std::normal_distribution<>(50, 5),
-              std::normal_distribution<>(20.0, 5.0),
+              4, true, gko::test::normal_distribution<>(50, 5),
+              gko::test::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           lower_bandwidth(2),
           upper_bandwidth(3),
           band_mtx(gko::test::generate_random_band_matrix<mtx_type>(
               100, lower_bandwidth, upper_bandwidth,
-              std::normal_distribution<>(20.0, 5.0),
+              gko::test::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           nnz_per_row_sample(500, 0),
           values_sample(0),
@@ -252,7 +252,7 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 {
     using T = typename TestFixture::value_type;
     using Dense = typename TestFixture::mtx_type;
-    auto dist = std::normal_distribution<>(0, 1);
+    auto dist = gko::test::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto diag = gko::test::detail::get_rand_value<T>(dist, engine);
@@ -276,7 +276,7 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
 {
     using T = typename TestFixture::value_type;
     using Dense = typename TestFixture::mtx_type;
-    auto dist = std::normal_distribution<>(0, 1);
+    auto dist = gko::test::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto upper = gko::test::detail::get_rand_value<T>(dist, engine);

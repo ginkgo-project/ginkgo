@@ -118,8 +118,8 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
 {
     using RT = gko::remove_complex<T>;
     std::default_random_engine engine(39);
-    std::normal_distribution<typename gko::detail::arth_type<RT>::type> dist(
-        0.0, 5.0);
+    gko::test::normal_distribution<typename gko::detail::arth_type<RT>::type>
+        dist(0.0, 5.0);
     std::uniform_int_distribution<> nnzdist(1, nrhs);
     return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
         nrows, nrhs, nnzdist, dist, engine, exec);

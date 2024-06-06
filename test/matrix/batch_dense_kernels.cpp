@@ -41,7 +41,7 @@ protected:
         return gko::test::generate_random_batch_matrix<BMtxType>(
             num_batch_items, num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(gko::size_type num_rows,
@@ -59,10 +59,10 @@ protected:
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
         row_scale = gko::test::generate_random_array<value_type>(
-            num_rows * batch_size, std::normal_distribution<>(2.0, 0.5),
+            num_rows * batch_size, gko::test::normal_distribution<>(2.0, 0.5),
             rand_engine, ref);
         col_scale = gko::test::generate_random_array<value_type>(
-            num_cols * batch_size, std::normal_distribution<>(4.0, 0.5),
+            num_cols * batch_size, gko::test::normal_distribution<>(4.0, 0.5),
             rand_engine, ref);
         drow_scale = gko::array<value_type>(exec, row_scale);
         dcol_scale = gko::array<value_type>(exec, col_scale);

@@ -47,14 +47,15 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(0.0, 1.0), rand_engine,
+            ref);
     }
 
     std::unique_ptr<Diag> gen_diag(int size)
     {
         auto diag = Diag::create(ref, size);
         auto vals = diag->get_values();
-        auto value_dist = std::normal_distribution<value_type>(0.0, 1.0);
+        auto value_dist = gko::test::normal_distribution<value_type>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
             vals[i] = gko::test::detail::get_rand_value<ValueType>(value_dist,
                                                                    rand_engine);
@@ -66,7 +67,7 @@ protected:
     {
         auto cdiag = ComplexDiag::create(ref, size);
         auto vals = cdiag->get_values();
-        auto value_dist = std::normal_distribution<value_type>(0.0, 1.0);
+        auto value_dist = gko::test::normal_distribution<value_type>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
             vals[i] = ComplexValueType{
                 gko::test::detail::get_rand_value<ComplexValueType>(

@@ -30,7 +30,7 @@ protected:
         std::shuffle(tmp2.begin(), tmp2.end(), rand_engine);
         std::vector<value_type> scale(tmp.size());
         std::vector<value_type> scale2(tmp2.size());
-        std::uniform_real_distribution<value_type> dist(1, 2);
+        gko::test::uniform_real_distribution<value_type> dist(1, 2);
         auto gen = [&] { return dist(rand_engine); };
         std::generate(scale.begin(), scale.end(), gen);
         std::generate(scale2.begin(), scale2.end(), gen);
@@ -44,13 +44,13 @@ protected:
 
         mtx = gko::test::generate_random_matrix<Mtx>(
             tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                -1.0, 1.0),
             rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Mtx>(
             tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                -1.0, 1.0),
             rand_engine, ref);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-3.0}, ref);

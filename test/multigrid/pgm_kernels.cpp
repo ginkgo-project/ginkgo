@@ -47,7 +47,8 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine,
+            ref);
     }
 
     gko::array<index_type> gen_array(gko::size_type num, index_type min_val,
@@ -98,7 +99,8 @@ protected:
         auto weight_data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 m, m, std::uniform_int_distribution<>(m, m),
-                std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+                gko::test::normal_distribution<value_type>(-1.0, 1.0),
+                rand_engine);
         gko::utils::make_symmetric(weight_data);
         gko::utils::make_diag_dominant(weight_data);
         weight_csr = Csr::create(ref);
@@ -110,7 +112,8 @@ protected:
         auto system_data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 m, m, std::uniform_int_distribution<>(m, m),
-                std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+                gko::test::normal_distribution<value_type>(-1.0, 1.0),
+                rand_engine);
         gko::utils::make_hpd(system_data);
         system_mtx = Csr::create(ref);
         system_mtx->read(system_data);

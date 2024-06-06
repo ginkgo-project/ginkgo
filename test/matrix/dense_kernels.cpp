@@ -56,7 +56,8 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                0.0, 1.0),
             rand_engine, ref);
     }
 
@@ -67,8 +68,8 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                -1.0, 1.0),
             rand_engine, ref);
     }
 
@@ -125,7 +126,7 @@ protected:
         std::vector<value_type> scale_factors(tmp.size());
         std::vector<value_type> scale_factors2(tmp2.size());
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
-        std::uniform_real_distribution<value_type> scale_dist{1, 2};
+        gko::test::uniform_real_distribution<value_type> scale_dist{1, 2};
         for (auto& i : tmp3) {
             i = row_dist(rng);
         }
@@ -2028,7 +2029,8 @@ TEST_F(Dense, ComputesSqrt)
 {
     auto mtx = gko::test::generate_random_matrix<NormVector>(
         1, 7, std::uniform_int_distribution<int>(7, 7),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 10),
+        gko::test::uniform_real_distribution<gko::remove_complex<value_type>>(
+            0, 10),
         rand_engine, ref);
     auto dmtx = gko::clone(exec, mtx);
 

@@ -38,7 +38,7 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data()
@@ -94,8 +94,8 @@ public:
         auto data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 628, 923, std::uniform_int_distribution<index_type>(10, 300),
-                std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                          1.0),
+                gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                    -1.0, 1.0),
                 rand_engine);
         // create a few empty rows
         data.nonzeros.erase(
