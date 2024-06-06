@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Ginkgo LANGUAGES CXX VERSION 1.8.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES CXX VERSION 1.9.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 if(Ginkgo_VERSION_TAG STREQUAL "master")
