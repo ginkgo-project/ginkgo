@@ -15,5 +15,5 @@ jobs:
         run: cp --preserve .github/mirror.sh /tmp && /tmp/mirror.sh
         env:
           BOT_KEY: ${{ secrets.GITLAB_MIRROR_PRIV_KEY }}
-          BRANCH_NAME: ${{ github.ref }}
+          BRANCH_NAME: ${{ github.ref_name }}
           GITHUB_REPO: ${{ github.repository }}
