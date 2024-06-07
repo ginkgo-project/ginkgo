@@ -10,7 +10,6 @@
 #include <memory>
 
 
-#include <ginkgo/config.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -25,52 +24,45 @@ namespace log {
  */
 class SolverDebug : public Logger {
 public:
-    /* Internal solver events */
-    void on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                const LinOp* x) const override;
-
-    void on_iteration_complete(
-        const LinOp* solver, const LinOp* right_hand_side,
-        const LinOp* solution, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm,
-        const array<stopping_status>* status, bool stopped) const override;
-
-    GKO_DEPRECATED(
-        "Please use the version with the additional stopping "
-        "information.")
-    void on_iteration_complete(const LinOp* solver,
-                               const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* solution,
-                               const LinOp* residual_norm) const override;
-
-    GKO_DEPRECATED(
-        "Please use the version with the additional stopping "
-        "information.")
-    void on_iteration_complete(
-        const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override;
-
     /**
      * Creates a logger printing the value for all scalar values in the solver
-     * after each iteration.
+     * after each iteration in an ASCII table.
      *
      * @param output  the stream to write the output to.
      * @param precision  the number of digits of precision to print
      * @param column_width  the number of characters an output column is wide
      */
-    static std::shared_ptr<SolverDebug> create(std::ostream& output,
-                                               int precision = 6,
-                                               int column_width = 12);
+    static std::shared_ptr<SolverDebug> create_scalar_table(
+        std::ostream& output, int precision = 6, int column_width = 12);
 
-private:
-    SolverDebug(std::ostream& output, int precision, int column_width);
 
-    std::ostream* output_;
-    int precision_;
-    int column_width_;
+    /**
+     * Creates a logger printing the value for all scalar values in the solver
+     * after each iteration in a CSV table.
+     *
+     * @param output  the stream to write the output to.
+     * @param precision  the number of digits of precision to print
+     * @param column_width  the number of characters an output column is wide
+     */
+    static std::shared_ptr<SolverDebug> create_scalar_csv(std::ostream& output,
+                                                          int precision = 6,
+                                                          char separator = ',');
+
+
+    /**
+     * Creates a logger storing all vectors and scalar values in the solver
+     * after each iteration on disk.
+     *
+     * @param output  the path and file name prefix used to generate the output
+     *                file names.
+     * @param precision  the number of digits of precision to print when
+     *                   outputting matrices in text format
+     * @param binary  if true, write data in Ginkgo's own binary format
+     *                (lossless), if false write data in the MatrixMarket format
+     *                (potentially lossy)
+     */
+    static std::shared_ptr<SolverDebug> create_vector_storage(
+        std::string output_file_prefix = "solver_", bool binary = false);
 };
 
 
