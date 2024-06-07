@@ -508,20 +508,30 @@ size_t ginkgo_executor_dpcpp_get_num_devices();
 gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
 bool ginkgo_executor_memory_accessible(gko_executor exec_st_ptr,
                                        gko_executor other_exec_st_ptr);
-
-// FIXME: new!
 void ginkgo_executor_synchronize(gko_executor exec_st_ptr);
+
+// CPU
 size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
 size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_num_multiprocessor(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_num_warps_per_sm(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_num_warps(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_warp_size(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_major_version(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_minor_version(gko_executor exec_st_ptr);
-size_t ginkgo_executor_gpu_get_closest_numa(gko_executor exec_st_ptr);
 
+// CUDA/HIP
+size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
+    gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_device_id(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
+    gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
+
+// DPCPP
+size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
+    gko_executor exec_st_ptr);
+size_t ginkgo_executor_gpu_item_get_num_computing_units(
+    gko_executor exec_st_ptr);
 
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
