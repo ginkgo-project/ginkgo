@@ -87,7 +87,7 @@ following:
 
 ### Windows
 
-*   _cmake 3.13+_
+*   _cmake 3.16+_
 *   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.5+_
     *   _Microsoft Visual Studio : VS 2019+_

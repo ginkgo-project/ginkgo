@@ -11,6 +11,127 @@ git log --first-parent
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
 
+## Version 1.8.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.8.0. This
+release brings new features such as:
+- A brand new file-based configuration for Ginkgo objects: you can now construct
+  Ginkgo objects (solvers, preconditioners, ...) from a JSON configuration file.
+  This simplifies interfacing to Ginkgo as well as exploring different settings
+  to solve a problem.
+- Expand the batched feature set with: the Batched CSR Matrix format, batched CG
+  solver, batched (Block-)Jacobi preconditioner, usage example and other
+  features such as scaling,
+- New Distributed Multigrid and the PGM coarsening method,
+- New CUDA and HIP kernels for Reverse Cuthill McKee (RCM) reordering
+- Better Ginkgo and Kokkos interaction thanks to a mapping from simple Ginkgo
+  types to native Kokkos types
+
+and more!
+
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
+
+Supported systems and requirements:
++ For all platforms, CMake 3.16+
++ C++14 compliant compiler
++ Linux and macOS
+  + GCC: 5.5+
+  + clang: 3.9+
+  + Intel compiler: 2019+
+  + Apple Clang: 14.0 is tested. Earlier versions might also work.
+  + NVHPC: 22.7+
+  + Cray Compiler: 14.0.1+
+  + CUDA module: CMake 3.18+, and CUDA 10.1+ or NVHPC 22.7+
+  + HIP module: CMake 3.21+, and ROCm 4.5+
+  + DPC++ module: Intel oneAPI 2023.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + MPI: standard version 3.1+, ideally GPU Aware, for best performance
++ Windows
+  + MinGW: GCC 5.5+
+  + Microsoft Visual Studio: VS 2019+
+  + CUDA module: CUDA 10.1+, Microsoft Visual Studio
+  + OpenMP module: MinGW.
+
+### Version support changes
++ The Ginkgo license header now uses the SPDX format. [#1404](https://github.com/ginkgo-project/ginkgo/pull/1404)
++ Ginkgo changes the oneapi support to 2023.1+ [#1396](https://github.com/ginkgo-project/ginkgo/pull/1396)
++ Ginkgo's HIP backend now requires CMake 3.21 [#1334](https://github.com/ginkgo-project/ginkgo/pull/1334)
+
+### Interface changes
+
++ The `gko::dim` single-parameter constructor is now `explicit` to avoid accidental conversion from integers [#1474](https://github.com/ginkgo-project/ginkgo/pull/1474)
++ The CMake option `GINKGO_BUILD_HWLOC` is now set to `OFF` by default, and if it is set to `ON`, then `HWLOC` is required to be available [#1513](https://github.com/ginkgo-project/ginkgo/pull/1513).
+
+### Behavior changes
+
++ `gko::write_raw` now defaults to writing sparse output unless otherwise specified [#1533](https://github.com/ginkgo-project/ginkgo/pull/1533)
++ Ginkgo now adheres to the `--prefix` option for `cmake --install`, instead of overwriting it [#1534](https://github.com/ginkgo-project/ginkgo/pull/1534)
+
+### Deprecations
+
++ `array::get_num_elems()` has been renamed to `get_size()` [#1400](https://github.com/ginkgo-project/ginkgo/pull/1400)
++ `matrix_data::ensure_row_major_order()` has been renamed to `sort_row_major()` [#1400](https://github.com/ginkgo-project/ginkgo/pull/1400)
++ `device_matrix_data::get_num_elems()` has been renamed to `get_num_stored_elements()` [#1400](https://github.com/ginkgo-project/ginkgo/pull/1400)
++ The CMake parameter `GINKGO_COMPILER_FLAGS` has been superseded by `CMAKE_CXX_FLAGS`, and `GINKGO_CUDA_COMPILER_FLAGS` has been superseded by `CMAKE_CUDA_FLAGS` [#1535](https://github.com/ginkgo-project/ginkgo/pull/1535)
++ The `std::initializer_list` overloads of matrix `create` methods and constructors are deprecated in favor of explicit `array` parameters [#1433](https://github.com/ginkgo-project/ginkgo/pull/1433)
+
+### Summary of previous deprecations
++ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface.
++ The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`.
++ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`.
++ The Permutation class' `permute_mask` functionality.
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc).
++ `gko::lend()` is not necessary anymore.
++ The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
++ The PolymorphicObject's move-semantic `copy_from` variant
++ The templated `SolverBase` class.
++ The class `MachineTopology` is deprecated in favor of `machine_topology`.
++ Logger constructors and create functions with the `executor` parameter.
++ The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
++ Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
++ The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
+
+### Added features
++ Add a batched CG solver [#1598](https://github.com/ginkgo-project/ginkgo/pull/1598), [#1609](https://github.com/ginkgo-project/ginkgo/pull/1609)
++ Add a batched Jacobi (scalar/block) preconditioner, [#1542](https://github.com/ginkgo-project/ginkgo/pull/1542), [#1600](https://github.com/ginkgo-project/ginkgo/pull/1600)
++ Add an example for batched iterative solver [#1553](https://github.com/ginkgo-project/ginkgo/pull/1553)
++ Add `add_scaled_identity` and `scale_add` for batch matrix formats. [#1528](https://github.com/ginkgo-project/ginkgo/pull/1528)
++ Add scaling for batch objects (matrix formats and multi-vectors). [#1527](https://github.com/ginkgo-project/ginkgo/pull/1527)
++ Add a `batch::Csr` matrix format class and core and support for batched spmv kernels on CUDA, HIP and SYCL. [#1450](https://github.com/ginkgo-project/ginkgo/pull/1450)
++ Add a script for comparing benchmark JSON outputs [#1467](https://github.com/ginkgo-project/ginkgo/pull/1467)
++ Add an example for reordered preconditioned linear solver [#1465](https://github.com/ginkgo-project/ginkgo/pull/1465)
++ Add single-value access functions `load_value` and `store_value` to `array` [#1485](https://github.com/ginkgo-project/ginkgo/pull/1485)
++ Add the `BlockOperator` format to represent block-matrices [#1435](https://github.com/ginkgo-project/ginkgo/pull/1435)
++ Add CUDA and HIP kernels for Reverse Cuthill McKee (RCM) reordering [#1503](https://github.com/ginkgo-project/ginkgo/pull/1503)
++ Add FileConfig [#1389](https://github.com/ginkgo-project/ginkgo/pull/1389), [#1392](https://github.com/ginkgo-project/ginkgo/pull/1392), [#1395](https://github.com/ginkgo-project/ginkgo/pull/1395), [#1479](https://github.com/ginkgo-project/ginkgo/pull/1479), [#1480](https://github.com/ginkgo-project/ginkgo/pull/1480), [#1607](https://github.com/ginkgo-project/ginkgo/pull/1607)
++ Add Distributed Multigrid [#1269](https://github.com/ginkgo-project/ginkgo/pull/1269) and coarsening method PGM [#1403](https://github.com/ginkgo-project/ginkgo/pull/1403)
++ Add a mapping from simple Ginkgo types to native Kokkos types [#1358](https://github.com/ginkgo-project/ginkgo/pull/1358)
++ Add a segmented array class [#1545](https://github.com/ginkgo-project/ginkgo/pull/1545)
++ Add a class for mapping between global and local indexing [#1543](https://github.com/ginkgo-project/ginkgo/pull/1543)
+
+### Improvements
+
++ Ginkgo installation now has separate `Ginkgo_Runtime` and `Ginkgo_Development` components for easier packaging [#1502](https://github.com/ginkgo-project/ginkgo/pull/1502)
++ The HIP backend now supports complex number operations for sparse matrices based on hipSPARSE [#1538](https://github.com/ginkgo-project/ginkgo/pull/1538)
++ The `create` functions are now documented explicitly instead of using the `EnableCreateMethod` mixin [#1433](https://github.com/ginkgo-project/ginkgo/pull/1433)
++ The `solver` benchmark now supports Ginkgo's binary format for right-hand side vector inputs [#1584](https://github.com/ginkgo-project/ginkgo/pull/1584)
++ The build system now uses native HIP support for CMake, which also provides support for ROCm 6.0 [#1334](https://github.com/ginkgo-project/ginkgo/pull/1334)
++ The Multigrid solver generated from `distributed::Matrix` will use a global scalar Jacobi smoother and a GMRES solver as coarse grid solver [#1612](https://github.com/ginkgo-project/ginkgo/pull/1612)
+
+### Fixes
+
++ Compilation with libc++ was fixed [#1463](https://github.com/ginkgo-project/ginkgo/pull/1463)
++ Fix the `__cplusplus` by `_MSVC_LANG` in MSVC [#1496](https://github.com/ginkgo-project/ginkgo/pull/1496)
++ `Coo::read(const T&)` and `Csr::read(const T&)` will no longer overwrite the locally stored arrays and instead copy directly into them [#1476](https://github.com/ginkgo-project/ginkgo/pull/1476)
++ Fix the interaction of `ProfilerHook::create(_nested)_summary`, executors and GPU timers, which lead to the summary not being printed [#1509](https://github.com/ginkgo-project/ginkgo/pull/1509)
++ Fix compilation in environments where `CPATH` contains the current working directory [#1531](https://github.com/ginkgo-project/ginkgo/pull/1531)
++ Fix read from matrix-market files with CR line endings [#1557](https://github.com/ginkgo-project/ginkgo/pull/1557)
++ Fix undefined behavior that shows up with libstdc++ debug builds [#1176](https://github.com/ginkgo-project/ginkgo/pull/1176)
++ Fix for CUDA 12.4 bug and METIS detection [#1569](https://github.com/ginkgo-project/ginkgo/pull/1569)
++ Fix the pkgconfig installation with DESTDIR [#1597](https://github.com/ginkgo-project/ginkgo/pull/1597)
++ Fix various issues causing build or test failures [#1619](https://github.com/ginkgo-project/ginkgo/pull/1619)
+
 ## Version 1.7.0
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.7.0. This release brings new features such as:
