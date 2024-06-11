@@ -66,6 +66,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     one_scalar_->fill(one<value_type>());
 }
 
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
@@ -235,6 +236,30 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const device_matrix_data<value_type, local_index_type>& local_data,
+    const device_matrix_data<value_type, local_index_type>& non_local_data
+    )
+{
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    // this is a partition of the column space
+    GKO_ASSERT_EQUAL_ROWS(local_data.get_size(), non_local_data.get_size());
+
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(local_mtx_)
+        ->read(std::move(local_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(non_local_mtx_)
+        ->read(std::move(non_local_data));
+
+    auto num_rows = local_mtx_->get_size()[0];
+    auto num_cols = local_mtx_->get_size()[1];
+    comm.all_reduce(exec, &num_rows, 1, MPI_SUM);
+    comm.all_reduce(exec, &num_cols, 1, MPI_SUM);
+    this->set_size({num_rows, num_cols});
 }
 
 
