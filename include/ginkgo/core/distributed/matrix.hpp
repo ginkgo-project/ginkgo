@@ -298,7 +298,7 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
 
-     /**
+    /**
      * Reads a matrix that is split into local data that only operates on local
      * DOFs and non_local_data that needs input from non-local DOFs.
      *
@@ -313,9 +313,7 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, local_index_type>& local_data,
-        const device_matrix_data<value_type, local_index_type>& non_local_data
-        );
-
+        const device_matrix_data<value_type, local_index_type>& non_local_data);
 
 
     /**
@@ -608,9 +606,8 @@ protected:
                     mpi::communicator comm, dim<2> size,
                     std::shared_ptr<LinOp> local_linop);
 
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    pi::communicator comm, dim<2> size,
-                    std::shared_ptr<LinOp> local_linop,
+    explicit Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+                    dim<2> size, std::shared_ptr<LinOp> local_linop,
                     std::shared_ptr<LinOp> non_local_linop,
                     std::vector<comm_index_type> recv_sizes,
                     std::vector<comm_index_type> recv_offsets,
