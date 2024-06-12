@@ -314,13 +314,11 @@ public:
     void read_distributed(
         const device_matrix_data<value_type, local_index_type>& local_data,
         const device_matrix_data<value_type, local_index_type>& non_local_data,
-        std::vector<comm_index_type> send_offsets,
-        std::vector<comm_index_type> send_sizes,
-        std::vector<comm_index_type> recv_offsets,
-        std::vector<comm_index_type> recv_sizes,
-        array<local_index_type> gather_idxs,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+        const std::vector<comm_index_type>& send_offsets,
+        const std::vector<comm_index_type>& send_sizes,
+        const std::vector<comm_index_type>& recv_offsets,
+        const std::vector<comm_index_type>& recv_sizes,
+        const array<local_index_type>& gather_idxs);
 
 
     /**
