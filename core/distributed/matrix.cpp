@@ -243,7 +243,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, local_index_type>& local_data,
     const device_matrix_data<value_type, local_index_type>& non_local_data
-    )
+        std::vector<comm_index_type>
+            send_offsets,
+    std::vector<comm_index_type> send_sizes,
+    std::vector<comm_index_type> recv_offsets,
+    std::vector<comm_index_type> recv_sizes,
+    array<local_index_type> gather_idxs,
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        partition)
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -260,6 +267,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     comm.all_reduce(exec, &num_rows, 1, MPI_SUM);
     comm.all_reduce(exec, &num_cols, 1, MPI_SUM);
     this->set_size({num_rows, num_cols});
+
+    send_offsets_ = send_offsets;
+    send_sizes_ = send_sizes;
+    recv_offsets_ = recv_offsets;
+    recv_sizes_ = recv_sizes;
+    gather_idxs_ = gather_idxs;
 }
 
 
