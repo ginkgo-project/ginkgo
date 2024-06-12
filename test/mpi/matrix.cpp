@@ -156,6 +156,54 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 }
 
 
+TYPED_TEST(MatrixCreation, ReadsDistributedLocalAndNonLocalData)
+{
+    // 0-2 2-4 4-5
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using comm_index_type = gko::experimental::distributed::comm_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+
+    this->dist_mat->read_distributed(this->mat_input, this->row_part);
+
+    auto exec = this->dist_mat->get_executor();
+    auto comm = this->dist_mat->get_communicator();
+
+    gko::matrix_data<value_type, local_index_type> local_host_matrix;
+    gko::as<csr>(this->dist_mat->get_local_matrix())->write(local_host_matrix);
+    auto local_matrix =
+        gko::device_matrix_data<value_type, local_index_type>::create_from_host(
+            exec, local_host_matrix);
+
+    gko::matrix_data<value_type, local_index_type> non_local_host_matrix;
+    gko::as<csr>(this->dist_mat->get_non_local_matrix())
+        ->write(non_local_host_matrix);
+    auto non_local_matrix =
+        gko::device_matrix_data<value_type, local_index_type>::create_from_host(
+            exec, non_local_host_matrix);
+
+    // offsets and sizes and gather_idxs are only used during apply
+    // thus we use dummies here
+    std::vector<comm_index_type> send_offsets{};
+    std::vector<comm_index_type> recv_offsets{};
+    std::vector<comm_index_type> send_sizes{};
+    std::vector<comm_index_type> recv_sizes{};
+    gko::array<local_index_type> gather_idxs(exec);
+
+    auto dist_mat_b = dist_mtx_type::create(exec, comm);
+
+    dist_mat_b->read_distributed(local_matrix, non_local_matrix, send_offsets,
+                                 send_sizes, recv_offsets, recv_sizes,
+                                 gather_idxs);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        gko::as<csr>(dist_mat_b->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        gko::as<csr>(dist_mat_b->get_local_matrix()), 0);
+}
+
+
 TYPED_TEST(MatrixCreation, BuildOnlyLocal)
 {
     using value_type = typename TestFixture::value_type;

@@ -240,6 +240,40 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const device_matrix_data<value_type, local_index_type>& local_data,
+    const device_matrix_data<value_type, local_index_type>& non_local_data,
+    const std::vector<comm_index_type>& send_offsets,
+    const std::vector<comm_index_type>& send_sizes,
+    const std::vector<comm_index_type>& recv_offsets,
+    const std::vector<comm_index_type>& recv_sizes,
+    const array<local_index_type>& gather_idxs)
+{
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+
+    GKO_ASSERT_EQUAL_ROWS(local_data.get_size(), non_local_data.get_size());
+
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(local_mtx_)
+        ->read(std::move(local_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(non_local_mtx_)
+        ->read(std::move(non_local_data));
+
+    auto num_rows = local_mtx_->get_size()[0];
+    auto num_cols = local_mtx_->get_size()[1];
+    comm.all_reduce(exec, &num_rows, 1, MPI_SUM);
+    comm.all_reduce(exec, &num_cols, 1, MPI_SUM);
+    this->set_size({num_rows, num_cols});
+
+    send_offsets_ = send_offsets;
+    send_sizes_ = send_sizes;
+    recv_offsets_ = recv_offsets;
+    recv_sizes_ = recv_sizes;
+    gather_idxs_ = gather_idxs;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
