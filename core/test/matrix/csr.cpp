@@ -1,39 +1,14 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/device_matrix_data.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -239,6 +214,44 @@ TYPED_TEST(Csr, CanBeReadFromMatrixData)
 }
 
 
+TYPED_TEST(Csr, CanBeReadFromMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_EQ(col_idxs.get_data(), m->get_col_idxs());
+    ASSERT_EQ(values.get_data(), m->get_values());
+}
+
+
+TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 1);
+    auto values = gko::array<value_type>(this->exec, 1);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+
+    ASSERT_THROW(m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}}}),
+                 gko::NotSupported);
+}
+
+
 TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -255,6 +268,140 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     m->read(data);
 
     this->assert_equal_to_original_mtx(m);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromDeviceMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(device_data);
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(device_data.get_num_stored_elements(),
+              m->get_num_stored_elements());
+    ASSERT_EQ(device_data.get_size(), m->get_size());
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(device_data);
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_EQ(col_idxs.get_data(), m->get_col_idxs());
+    ASSERT_EQ(values.get_data(), m->get_values());
+}
+
+
+TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 1);
+    auto values = gko::array<value_type>(this->exec, 1);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    ASSERT_THROW(m->read(device_data), gko::OutOfBoundsError);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto m = Mtx::create(this->exec,
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+
+    m->read(std::move(device_data));
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(device_data.get_size(), gko::dim<2>{});
+    ASSERT_EQ(device_data.get_num_stored_elements(), 0);
+}
+
+
+TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixDataIntoViews)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.fill(0);
+    col_idxs.fill(0);
+    values.fill(gko::zero<value_type>());
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
+    data.set_value(0, 0, 1.0);
+    data.set_value(0, 1, 3.0);
+    data.set_value(0, 2, 2.0);
+    data.set_value(1, 1, 5.0);
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, data.get_ordered_data());
+    auto orig_col_idxs = device_data.get_col_idxs();
+    auto orig_values = device_data.get_values();
+
+    m->read(std::move(device_data));
+
+    this->assert_equal_to_original_mtx(m);
+    ASSERT_EQ(row_ptrs.get_data(), m->get_row_ptrs());
+    ASSERT_EQ(orig_col_idxs, m->get_col_idxs());
+    ASSERT_EQ(orig_values, m->get_values());
 }
 
 

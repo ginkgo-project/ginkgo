@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_BASE_DIM_HPP_
 #define GKO_PUBLIC_CORE_BASE_DIM_HPP_
@@ -59,11 +31,16 @@ struct dim {
     using dimension_type = DimensionType;
 
     /**
+     * Creates a dimension object with all dimensions set to zero.
+     */
+    constexpr GKO_ATTRIBUTES dim() : dim{dimension_type{}} {}
+
+    /**
      * Creates a dimension object with all dimensions set to the same value.
      *
      * @param size  the size of each dimension
      */
-    constexpr GKO_ATTRIBUTES dim(const dimension_type& size = dimension_type{})
+    explicit constexpr GKO_ATTRIBUTES dim(const dimension_type& size)
         : first_{size}, rest_{size}
     {}
 
@@ -80,7 +57,8 @@ struct dim {
      * @param first  first dimension
      * @param rest  other dimensions
      */
-    template <typename... Rest>
+    template <typename... Rest, std::enable_if_t<sizeof...(Rest) ==
+                                                 Dimensionality - 1>* = nullptr>
     constexpr GKO_ATTRIBUTES dim(const dimension_type& first,
                                  const Rest&... rest)
         : first_{first}, rest_{static_cast<dimension_type>(rest)...}
@@ -141,6 +119,19 @@ struct dim {
     friend constexpr GKO_ATTRIBUTES bool operator==(const dim& x, const dim& y)
     {
         return x.first_ == y.first_ && x.rest_ == y.rest_;
+    }
+
+    /**
+     * Checks if two dim objects are not equal.
+     *
+     * @param x  first object
+     * @param y  second object
+     *
+     * @return false if and only if all dimensions of both objects are equal.
+     */
+    friend constexpr GKO_ATTRIBUTES bool operator!=(const dim& x, const dim& y)
+    {
+        return !(x == y);
     }
 
     /**
@@ -223,6 +214,11 @@ struct dim<1u, DimensionType> {
         return x.first_ == y.first_;
     }
 
+    friend constexpr GKO_ATTRIBUTES bool operator!=(const dim& x, const dim& y)
+    {
+        return !(x == y);
+    }
+
     friend constexpr GKO_ATTRIBUTES dim operator*(const dim& x, const dim& y)
     {
         return dim(x.first_ * y.first_);
@@ -241,26 +237,6 @@ private:
 
     dimension_type first_;
 };
-
-
-/**
- * Checks if two dim objects are different.
- *
- * @tparam Dimensionality  number of dimensions of the dim objects
- * @tparam DimensionType  datatype used to represent each dimension
- *
- * @param x  first object
- * @param y  second object
- *
- * @return `!(x == y)`
- */
-template <size_type Dimensionality, typename DimensionType>
-constexpr GKO_ATTRIBUTES GKO_INLINE bool operator!=(
-    const dim<Dimensionality, DimensionType>& x,
-    const dim<Dimensionality, DimensionType>& y)
-{
-    return !(x == y);
-}
 
 
 /**

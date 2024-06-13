@@ -1,10 +1,26 @@
 add_subdirectory(device_hooks) # placeholders for disabled modules
 
-add_library(ginkgo "")
-target_sources(ginkgo
+set(config_source 
+    config/factorization_config.cpp
+    config/multigrid_config.cpp
+    config/preconditioner_config.cpp
+    config/registry.cpp
+    config/solver_config.cpp
+)
+# MSVC: To solve LNK1189, we separate the library as a workaround
+# To make ginkgo still be the major library, we make the original to ginkgo_core in MSVC/shared
+# TODO: should think another way to solve it like dllexport or def file
+set(ginkgo_core "ginkgo")
+if(MSVC AND BUILD_SHARED_LIBS)
+    set(ginkgo_core "ginkgo_core")
+endif()
+
+add_library(${ginkgo_core} "")
+target_sources(${ginkgo_core}
     PRIVATE
     base/array.cpp
     base/batch_multi_vector.cpp
+    base/block_operator.cpp
     base/combination.cpp
     base/composition.cpp
     base/dense_cache.cpp
@@ -15,8 +31,15 @@ target_sources(ginkgo
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/segmented_array.cpp
     base/timer.cpp
     base/version.cpp
+    config/config.cpp
+    config/config_helper.cpp
+    config/property_tree.cpp
+    config/stop_config.cpp
+    config/type_descriptor.cpp
+    distributed/index_map.cpp
     distributed/partition.cpp
     factorization/cholesky.cpp
     factorization/elimination_forest.cpp
@@ -40,6 +63,7 @@ target_sources(ginkgo
     log/vtune.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/batch_csr.cpp
     matrix/batch_dense.cpp
     matrix/batch_ell.cpp
     matrix/batch_identity.cpp
@@ -59,6 +83,9 @@ target_sources(ginkgo
     matrix/sparsity_csr.cpp
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
+    preconditioner/batch_jacobi.cpp
+    preconditioner/ic.cpp
+    preconditioner/ilu.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/amd.cpp
@@ -66,6 +93,7 @@ target_sources(ginkgo
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
     solver/batch_bicgstab.cpp
+    solver/batch_cg.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
     solver/cb_gmres.cpp
@@ -90,15 +118,15 @@ target_sources(ginkgo
     )
 
 if(GINKGO_HAVE_PAPI_SDE)
-    target_sources(ginkgo PRIVATE log/papi.cpp)
+    target_sources(${ginkgo_core} PRIVATE log/papi.cpp)
 endif()
 
 if(GINKGO_HAVE_METIS)
-    target_sources(ginkgo PRIVATE reorder/nested_dissection.cpp)
+    target_sources(${ginkgo_core} PRIVATE reorder/nested_dissection.cpp)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    target_sources(ginkgo
+    target_sources(${ginkgo_core}
         PRIVATE
         mpi/exception.cpp
         distributed/matrix.cpp
@@ -107,52 +135,66 @@ if(GINKGO_BUILD_MPI)
         distributed/preconditioner/schwarz.cpp)
 endif()
 
-ginkgo_compile_features(ginkgo)
+# MSVC/shared: make ginkgo be the major library
+if(MSVC AND BUILD_SHARED_LIBS)
+    add_library(ginkgo "")
+    target_sources(ginkgo PRIVATE ${config_source})
+    ginkgo_compile_features(ginkgo)
+    ginkgo_default_includes(ginkgo)
+    ginkgo_install_library(ginkgo)
+    if(GINKGO_CHECK_CIRCULAR_DEPS)
+        ginkgo_check_headers(ginkgo "")
+    endif()
+else() 
+    target_sources(${ginkgo_core} PRIVATE ${config_source})
+endif()
 
-target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
+ginkgo_compile_features(${ginkgo_core})
 
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-target_link_libraries(ginkgo
+if(MSVC AND BUILD_SHARED_LIBS)
+    target_link_libraries(ginkgo PUBLIC ${ginkgo_core})
+endif()
+target_link_libraries(${ginkgo_core}
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-
-# The PAPI dependency needs to be exposed to the user.
-set(GKO_RPATH_ADDITIONS "")
-
 if(GINKGO_HAVE_PAPI_SDE)
-    target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
+    target_link_libraries(${ginkgo_core} PUBLIC PAPI::PAPI_SDE)
 endif()
 
 if(GINKGO_HAVE_TAU)
-    target_link_libraries(ginkgo PRIVATE perfstubs)
+    target_link_libraries(${ginkgo_core} PRIVATE perfstubs)
 endif()
 
 if(GINKGO_HAVE_VTUNE)
-    target_link_libraries(ginkgo PRIVATE VTune::ITT)
+    target_link_libraries(${ginkgo_core} PRIVATE VTune::ITT)
 endif()
 
 if(GINKGO_HAVE_METIS)
-    target_link_libraries(ginkgo PRIVATE METIS::METIS)
+    target_link_libraries(${ginkgo_core} PRIVATE METIS::METIS)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
+    target_link_libraries(${ginkgo_core} PUBLIC MPI::MPI_CXX)
 endif()
 
-# Since we have a public dependency on HIP, this dependency appears
-# here as well
-if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-    list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
-endif()
-
-ginkgo_default_includes(ginkgo)
-ginkgo_install_library(ginkgo "${GKO_RPATH_ADDITIONS}")
+ginkgo_default_includes(${ginkgo_core})
+ginkgo_install_library(${ginkgo_core})
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo "")
+    ginkgo_check_headers(${ginkgo_core} "")
 endif()
 
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
+endif()
+
+if(GINKGO_DEVEL_TOOLS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_SHARED_LIBS)
+    # Copy pretty-printer next to library
+    add_custom_command(TARGET ${ginkgo_core} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy
+        "${Ginkgo_SOURCE_DIR}/dev_tools/scripts/gdb-ginkgo.py"
+        "$<TARGET_FILE:ginkgo>-gdb.py"
+        COMMENT "Copying pretty-printer to output directory")
 endif()

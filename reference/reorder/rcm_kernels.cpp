@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/reorder/rcm_kernels.hpp"
 
@@ -63,20 +35,6 @@ namespace reference {
  * @ingroup reorder
  */
 namespace rcm {
-
-
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const ReferenceExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
 /**
@@ -222,15 +180,20 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
  * Computes a RCM reordering using a naive sequential algorithm.
  */
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
-                     const IndexType num_vertices,
-                     const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     const IndexType* const degrees,
-                     IndexType* const permutation,
-                     IndexType* const inv_permutation,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs,
+                         IndexType* const permutation,
+                         IndexType* const inv_permutation,
+                         const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Storing vertices left to proceess.
     array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
@@ -277,7 +240,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
         }
 
         // Sort all just-added neighbors by degree.
-        std::sort(
+        std::stable_sort(
             linear_queue_p + prev_head_offset, linear_queue_p + head_offset,
             [&](IndexType i, IndexType j) { return degrees[i] < degrees[j]; });
 
@@ -292,7 +255,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm

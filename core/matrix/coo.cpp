@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/coo.hpp>
 
@@ -47,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -71,10 +44,127 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
+GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Coo<ValueType, IndexType>> Coo<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_nonzeros)
+{
+    return std::unique_ptr<Coo>{new Coo{exec, size, num_nonzeros}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Coo<ValueType, IndexType>> Coo<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    array<index_type> row_idxs)
+{
+    return std::unique_ptr<Coo>{new Coo{exec, size, std::move(values),
+                                        std::move(col_idxs),
+                                        std::move(row_idxs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Coo<ValueType, IndexType>>
+Coo<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_idxs)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return create(exec, size, gko::detail::array_const_cast(std::move(values)),
+                  gko::detail::array_const_cast(std::move(col_idxs)),
+                  gko::detail::array_const_cast(std::move(row_idxs)));
+}
+
+
+template <typename ValueType, typename IndexType>
+Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, size_type num_nonzeros)
+    : EnableLinOp<Coo>(exec, size),
+      values_(exec, num_nonzeros),
+      col_idxs_(exec, num_nonzeros),
+      row_idxs_(exec, num_nonzeros)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, array<value_type> values,
+                               array<index_type> col_idxs,
+                               array<index_type> row_idxs)
+    : EnableLinOp<Coo>(exec, size),
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)},
+      row_idxs_{exec, std::move(row_idxs)}
+{
+    GKO_ASSERT_EQ(values_.get_size(), col_idxs_.get_size());
+    GKO_ASSERT_EQ(values_.get_size(), row_idxs_.get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> x)
+{
+    this->validate_application_parameters(b.get(), x.get());
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x) const
+{
+    this->validate_application_parameters(b.get(), x.get());
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                         ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> x)
+{
+    this->validate_application_parameters(b.get(), x.get());
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                      make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
+
+
+template <typename ValueType, typename IndexType>
+const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                               ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x) const
+{
+    this->validate_application_parameters(b.get(), x.get());
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    this->apply2_impl(make_temporary_clone(exec, alpha).get(),
+                      make_temporary_clone(exec, b).get(),
+                      make_temporary_clone(exec, x).get());
+    return this;
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -208,15 +298,39 @@ void Coo<ValueType, IndexType>::resize(dim<2> new_size, size_type nnz)
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+    auto size = data.size;
+    auto exec = this->get_executor();
+    this->set_size(size);
+    this->row_idxs_.resize_and_reset(data.nonzeros.size());
+    this->col_idxs_.resize_and_reset(data.nonzeros.size());
+    this->values_.resize_and_reset(data.nonzeros.size());
+    device_mat_data view{exec, size, this->row_idxs_.as_view(),
+                         this->col_idxs_.as_view(), this->values_.as_view()};
+    const auto host_data =
+        make_array_view(exec->get_master(), data.nonzeros.size(),
+                        const_cast<matrix_data_entry<ValueType, IndexType>*>(
+                            data.nonzeros.data()));
+    exec->run(
+        coo::make_aos_to_soa(*make_temporary_clone(exec, &host_data), view));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    // make a copy, read the data in
-    this->read(device_mat_data{this->get_executor(), data});
+    this->set_size(data.get_size());
+    // copy the arrays from device matrix data into the arrays of
+    // this. Compared to the read(device_mat_data&&) version, the internal
+    // arrays keep their current ownership status
+    this->values_ = make_const_array_view(data.get_executor(),
+                                          data.get_num_stored_elements(),
+                                          data.get_const_values());
+    this->col_idxs_ = make_const_array_view(data.get_executor(),
+                                            data.get_num_stored_elements(),
+                                            data.get_const_col_idxs());
+    this->row_idxs_ = make_const_array_view(data.get_executor(),
+                                            data.get_num_stored_elements(),
+                                            data.get_const_row_idxs());
 }
 
 

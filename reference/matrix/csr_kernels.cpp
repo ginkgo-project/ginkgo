@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/csr_kernels.hpp"
 
@@ -59,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_accessor_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "core/matrix/csr_lookup.hpp"
 #include "reference/components/csr_spgeam.hpp"
 
 
@@ -509,8 +482,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     std::sort(entries, entries + nnz,
               [&](entry a, entry b) { return to_block(a) < to_block(b); });
     // set row pointers by jumps in block row index
-    gko::vector<IndexType> col_idx_vec{{exec}};
-    gko::vector<ValueType> value_vec{{exec}};
+    gko::vector<IndexType> col_idx_vec{exec};
+    gko::vector<ValueType> value_vec{exec};
     int64 block_row = -1;
     int64 block_col = -1;
     for (size_type i = 0; i < nnz; i++) {
@@ -534,7 +507,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
         value_vec[value_vec.size() - bs * bs + local_row + local_col * bs] =
             entry.value;
     }
-    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+    while (block_row < static_cast<int64>(row_ptrs.get_size() - 1)) {
         // we finished row block_row, so store its end pointer
         out_row_ptrs[block_row + 1] = col_idx_vec.size();
         ++block_row;
@@ -1325,8 +1298,10 @@ void build_lookup_offsets(std::shared_ptr<const ReferenceExecutor> exec,
             if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
                 bitmap_storage <= hashmap_storage) {
                 storage_offsets[row] = bitmap_storage;
-            } else {
+            } else if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
                 storage_offsets[row] = hashmap_storage;
+            } else {
+                storage_offsets[row] = 0;
             }
         }
     }
@@ -1425,6 +1400,7 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_len = row_ptrs[row + 1] - row_begin;
@@ -1443,8 +1419,12 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
                 row_desc[row], local_storage, local_cols);
         }
         if (!done) {
-            csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                  local_storage, local_cols);
+            if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
+                                      local_storage, local_cols);
+            } else {
+                row_desc[row] = static_cast<int64>(sparsity_type::none);
+            }
         }
     }
 }

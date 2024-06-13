@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -42,6 +14,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
@@ -154,14 +127,82 @@ SparsityCsr<ValueType, IndexType>::SparsityCsr(
 
 
 template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_nonzeros)
+    : EnableLinOp<SparsityCsr>(exec, size),
+      col_idxs_(exec, num_nonzeros),
+      row_ptrs_(exec, size[0] + 1),
+      value_(exec, {one<ValueType>()})
+{
+    row_ptrs_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<index_type> col_idxs, array<index_type> row_ptrs, value_type value)
+    : EnableLinOp<SparsityCsr>(exec, size),
+      col_idxs_{exec, std::move(col_idxs)},
+      row_ptrs_{exec, std::move(row_ptrs)},
+      value_{exec, {value}}
+{
+    GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
+    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+{
+    auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
+    this->copy_from(tmp_);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          const dim<2>& size,
+                                          size_type num_nonzeros)
+{
+    return std::unique_ptr<SparsityCsr>{
+        new SparsityCsr{exec, size, num_nonzeros}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          const dim<2>& size,
+                                          array<index_type> col_idxs,
+                                          array<index_type> row_ptrs,
+                                          value_type value)
+{
+    return std::unique_ptr<SparsityCsr>{new SparsityCsr{
+        exec, size, std::move(col_idxs), std::move(row_ptrs), value}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          std::shared_ptr<const LinOp> matrix)
+{
+    return std::unique_ptr<SparsityCsr>{new SparsityCsr{exec, matrix}};
+}
+
+
+template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     result->row_ptrs_ = this->row_ptrs_;
     result->col_idxs_ = this->col_idxs_;
     result->values_.resize_and_reset(this->get_num_nonzeros());
-    result->values_.fill(
-        this->get_executor()->copy_val_to_host(this->get_const_value()));
+    result->values_.fill(get_element(this->value_, 0));
     result->set_size(this->get_size());
     result->make_srow();
 }
@@ -215,8 +256,8 @@ void SparsityCsr<ValueType, IndexType>::read(device_mat_data&& data)
     const auto row_idxs = std::move(arrays.row_idxs);
     auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
     exec->run(sparsity_csr::make_convert_idxs_to_ptrs(
-        local_row_idxs->get_const_data(), local_row_idxs->get_num_elems(),
-        size[0], this->get_row_ptrs()));
+        local_row_idxs->get_const_data(), local_row_idxs->get_size(), size[0],
+        this->get_row_ptrs()));
 }
 
 
@@ -274,8 +315,8 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
     array<IndexType> diag_prefix_sum{exec, num_rows + 1};
     exec->run(sparsity_csr::make_diagonal_element_prefix_sum(
         this, diag_prefix_sum.get_data()));
-    const auto num_diagonal_elements = static_cast<size_type>(
-        exec->copy_val_to_host(diag_prefix_sum.get_const_data() + num_rows));
+    const auto num_diagonal_elements =
+        static_cast<size_type>(get_element(diag_prefix_sum, num_rows));
     auto adj_mat =
         SparsityCsr::create(exec, this->get_size(),
                             this->get_num_nonzeros() - num_diagonal_elements);

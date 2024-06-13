@@ -6,9 +6,8 @@ Use the standard CMake build procedure:
 
 ```sh
 mkdir build; cd build
-cmake -G "Unix Makefiles" [OPTIONS] .. && make
+cmake [OPTIONS] .. && cmake --build .
 ```
-Use `cmake --build .` in some systems like MinGW or Microsoft Visual Studio which do not use `make`.
 
 For Microsoft Visual Studio, use `cmake --build . --config <build_type>` to decide the build type. The possible options are `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel`.
 
@@ -16,7 +15,7 @@ Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
-    (requires clang-format, will also download git-cmake-format),
+    (requires pre-commit, will also download the clang-format pre-commit hook),
     default is `OFF`. The default behavior installs a pre-commit hook, which
     disables git commits.  If it is set to `ON`, a new pre-commit hook for
     formatting will be installed (enabling commits again). In both cases the
@@ -46,15 +45,15 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_SYCL={ON, OFF}` builds optimized SYCL versions of the
     kernels (requires `CMAKE_CXX_COMPILER` to be set to the `dpcpp` or `icpx` compiler).
     The default is `ON` if `CMAKE_CXX_COMPILER` is a SYCL compiler, `OFF`
-    otherwise.
+    otherwise. Due to some differences in IEEE 754 floating point numberhandling in the Intel
+    SYCL compilers, Ginkgo tests may fail unless compiled with
+    `-DCMAKE_CXX_FLAGS=-ffp-model=precise`
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
     (requires HIP), default is `ON` if an installation of HIP could be detected,
     `OFF` otherwise.
-*   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
-    passed to hipcc for the `hcc` HIP backend. The default is none (auto).
-*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. If system HWLOC
-    is not found, Ginkgo will try to build it. Default is `ON` on Linux. Ginkgo
-    does not support HWLOC on Windows/MacOS, so the default is `OFF` on Windows/MacOS.
+*   `-DCMAKE_HIP_ARCHITECTURES="gpuarch1;gpuarch2"` the AMDGPU targets to be passed to the compiler.
+    If empty, compiler chooses based on the available GPUs.
+*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. Default is `OFF`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -63,8 +62,6 @@ Ginkgo adds the following additional switches to control what is being built:
     documentation from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_DEV={ON, OFF}` generates the developer version of
     Ginkgo's documentation. The default is `OFF`.
-*   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
-    CMake package registry. The default is `OFF`.
 *   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
     programming issues. The path can be manually controlled with the CMake
     variable `-DGINKGO_CLANG_TIDY_PATH=<path>`. The default is `OFF`.
@@ -122,10 +119,15 @@ Ginkgo adds the following additional switches to control what is being built:
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
 
+Additionally, the following CMake options have effect on the build process:
+
+*  `-DCMAKE_EXPORT_PACKAGE_REGISTRY={ON,OFF}` if set to `ON` the build directory will
+   be stored in the current user's CMake package registry.
+
 For example, to build everything (in debug mode), use:
 
 ```cmake
-cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
+cmake .. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
     -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
 cmake --build Debug
@@ -179,22 +181,13 @@ imposed by the `HIP` tool suite. The variables are the following:
 
 
 #### HIP platform detection of AMD and NVIDIA
-By default, Ginkgo uses the output of `/opt/rocm/hip/bin/hipconfig --platform`
-to select the backend. The accepted values are either `hcc` (`amd` with ROCM >=
-4.1) or `nvcc` (`nvidia` with ROCM >= 4.1). When on an AMD or NVIDIA system,
-this should output the correct platform by default. When on a system without
-GPUs, this should output `hcc` by default. To change this value, export the
-environment variable `HIP_PLATFORM` like so:
+Ginkgo relies on CMake to decide which compiler to use for HIP.
+To choose `nvcc` instead of the default ROCm `clang++`, set the corresponding
+environment variable:
 ```bash
-export HIP_PLATFORM=nvcc # or nvidia for ROCM >= 4.1
+export HIPCXX=nvcc
 ```
-
-#### Setting platform specific compilation flags
-Platform specific compilation flags can be given through the following CMake
-variables:
-+ `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
-+ `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
-+ `-DGINKGO_HIP_CLANG_COMPILER_FLAGS=`: compilation flags given to AMD clang compiler.
+Note that this option is currently not being tested in our CI pipelines.
 
 
 ### Third party libraries and packages
@@ -207,9 +200,6 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
   [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
   [nlohmann-json](https://github.com/nlohmann/json);
-+ GINKGO_DEVEL_TOOLS=ON:
-  [git-cmake-format](https://github.com/gflegar/git-cmake-format) is our CMake
-  helper for code formatting.
 + GINKGO_BUILD_HWLOC=ON:
   [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
   and devices.
@@ -221,6 +211,11 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_DOC=ON:
   [doxygen](https://www.doxygen.nl/) is required to build the documentation and
   additionally [graphviz](https://graphviz.org/) is required to build the class hierarchy graphs.
++ [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/overview) is required
+  when using the `NestedDissection` reordering functionality.
+  If METIS is not found, the functionality is disabled.
++ [PAPI](https://icl.utk.edu/papi/) (>= 7.1.0) is required when using the `Papi` logger.
+  If PAPI is not found, the functionality is disabled.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/multigrid/pgm.hpp>
 
@@ -234,8 +206,7 @@ TYPED_TEST(Pgm, CanBeCopied)
     auto copy_coarse = copy->get_coarse_op();
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    this->assert_same_agg(copy_agg, this->agg.get_data(),
-                          this->agg.get_num_elems());
+    this->assert_same_agg(copy_agg, this->agg.get_data(), this->agg.get_size());
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
@@ -252,8 +223,7 @@ TYPED_TEST(Pgm, CanBeMoved)
     auto copy_coarse = copy->get_coarse_op();
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    this->assert_same_agg(copy_agg, this->agg.get_data(),
-                          this->agg.get_num_elems());
+    this->assert_same_agg(copy_agg, this->agg.get_data(), this->agg.get_size());
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
 }
 
@@ -269,7 +239,7 @@ TYPED_TEST(Pgm, CanBeCloned)
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
     this->assert_same_agg(clone_agg, this->agg.get_data(),
-                          this->agg.get_num_elems());
+                          this->agg.get_size());
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
 }
 
@@ -355,6 +325,34 @@ TYPED_TEST(Pgm, Renumber)
     ASSERT_EQ(agg_val[2], 0);
     ASSERT_EQ(agg_val[3], 1);
     ASSERT_EQ(agg_val[4], 2);
+}
+
+
+TYPED_TEST(Pgm, GatherIndex)
+{
+    using index_type = typename TestFixture::index_type;
+    gko::size_type num = 5;
+    gko::array<index_type> result(this->exec, num);
+    gko::array<index_type> map(this->exec, num);
+    gko::array<index_type> orig(this->exec, 3);
+    orig.get_data()[0] = 1;
+    orig.get_data()[1] = 2;
+    orig.get_data()[2] = 3;
+    map.get_data()[0] = 1;
+    map.get_data()[1] = 2;
+    map.get_data()[2] = 0;
+    map.get_data()[3] = 2;
+    map.get_data()[4] = 0;
+
+    gko::kernels::reference::pgm::gather_index(
+        this->exec, num, orig.get_const_data(), map.get_const_data(),
+        result.get_data());
+
+    ASSERT_EQ(result.get_const_data()[0], 2);
+    ASSERT_EQ(result.get_const_data()[1], 3);
+    ASSERT_EQ(result.get_const_data()[2], 1);
+    ASSERT_EQ(result.get_const_data()[3], 3);
+    ASSERT_EQ(result.get_const_data()[4], 1);
 }
 
 
@@ -548,12 +546,14 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
      *  0 -3  0  5  0
      *  0 -2 -2  0  5
      */
-    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5};
-    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
-    auto mtx_row_ptrs = {0, 3, 7, 10, 12, 15};
-    auto matrix = gko::share(
-        Mtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
-                    std::move(mtx_col_idxs), std::move(mtx_row_ptrs)));
+    auto matrix = gko::share(Mtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
     // 0-2-4, 1-3
     prolong_op->read(

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/reorder/mc64.hpp>
 
@@ -211,10 +183,10 @@ void shortest_augmenting_path(
     std::vector<IndexType>& q_j, ValueType tolerance)
 {
     constexpr auto inf = std::numeric_limits<ValueType>::infinity();
-    const auto nnz = row_ptrs[num_rows];
     auto weights = weights_array.get_data();
     auto dual_u = dual_u_array.get_data();
     auto distance = distance_array.get_data();
+    auto num_rows_s = static_cast<IndexType>(num_rows);
 
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
@@ -277,7 +249,7 @@ void shortest_augmenting_path(
             } else {
                 distance[col] = dnew;
                 parents[col] = row;
-                generation[col] = num_rows + root;
+                generation[col] = num_rows_s + root;
                 if (dnew < lsp) {
                     lsp = dnew;
                 }
@@ -292,9 +264,9 @@ void shortest_augmenting_path(
         const auto col = col_idxs[idx];
         const auto dist = distance[col];
         const auto gen = generation[col];
-        if (dist < lsap && gen == num_rows + root) {
+        if (dist < lsap && gen == num_rows_s + root) {
             if (abs(dist - lsp) < tolerance) {
-                generation[col] = -num_rows - root;
+                generation[col] = -num_rows_s - root;
                 q_j.push_back(col);
             } else {
                 generation[col] = root;
@@ -329,7 +301,9 @@ void shortest_augmenting_path(
                 // If col is already marked because it previously was in q_j
                 // we have to disregard it.
                 queue.pop_min();
-                col = queue.min_node();
+                if (!queue.empty()) {
+                    col = queue.min_node();
+                }
             }
             if (queue.empty()) {
                 break;
@@ -369,14 +343,14 @@ void shortest_augmenting_path(
                     parents[col] = row;
                 } else {
                     if ((gen != root || dnew < distance[col]) &&
-                        gen != -num_rows - root) {
+                        gen != -num_rows_s - root) {
                         distance[col] = dnew;
                         parents[col] = row;
                         if (abs(dnew - lsp) < tolerance) {
                             // dnew is the shortest currently possible distance,
                             // so col can be put into q_j and be marked
                             // accordingly.
-                            generation[col] = -num_rows - root;
+                            generation[col] = -num_rows_s - root;
                             q_j.push_back(col);
                         } else if (gen != root) {
                             // col was not encountered before.

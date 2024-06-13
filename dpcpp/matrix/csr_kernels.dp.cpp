@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/csr_kernels.hpp"
 
@@ -50,6 +22,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -481,10 +454,8 @@ void abstract_merge_path_spmv(
     IndexType* row_out, typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(
-                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
+            sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
@@ -535,10 +506,8 @@ void abstract_merge_path_spmv(
     typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            shared_row_ptrs_acc_ct1(
-                sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
+            sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
@@ -575,13 +544,10 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
             tmp_val_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -620,13 +586,10 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<uninitialized_array<arithmetic_type, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
-                       sycl::access::target::local>
+        sycl::local_accessor<
+            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
             tmp_val_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -830,9 +793,7 @@ void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     const IndexType* col_idxs, IndexType num_rows, bool* flag)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<bool, 0, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            sh_flag_acc_ct1(cgh);
+        sycl::local_accessor<bool, 0> sh_flag_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -2657,7 +2618,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = exec->copy_val_to_host(is_sorted_device);
+    *is_sorted = get_element(is_sorted_device_array, 0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2702,7 +2663,7 @@ void check_diagonal_entries_exist(
             num_blocks, default_block_size, 0, exec->get_queue(), num_diag,
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             has_diags.get_data());
-        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
+        has_all_diags = get_element(has_diags, 0);
     } else {
         has_all_diags = true;
     }
@@ -2826,6 +2787,7 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
+    using matrix::csr::sparsity_type;
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -2847,8 +2809,13 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
                     row_desc[row], local_storage, local_cols);
             }
             if (!done) {
-                csr_lookup_build_hash(row_len, available_storage, row_desc[row],
-                                      local_storage, local_cols);
+                if (csr_lookup_allowed(allowed, sparsity_type::hash)) {
+                    csr_lookup_build_hash(row_len, available_storage,
+                                          row_desc[row], local_storage,
+                                          local_cols);
+                } else {
+                    row_desc[row] = static_cast<int64>(sparsity_type::none);
+                }
             }
         });
     });

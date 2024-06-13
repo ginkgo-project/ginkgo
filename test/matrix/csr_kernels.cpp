@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/csr_kernels.hpp"
 
@@ -47,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
@@ -134,7 +107,7 @@ public:
             data.nonzeros.emplace_back(221, i + 100, 1.0);
             data.nonzeros.emplace_back(421, i * 3 + 100, 2.0);
         }
-        data.ensure_row_major_order();
+        data.sort_row_major();
         // initialize the matrices
         mtx = Mtx::create(ref);
         mtx->read(data);
@@ -215,7 +188,7 @@ void assert_lookup_correct(std::shared_ptr<const gko::EXEC_TYPE> exec,
         },
         num_rows, num_cols, row_ptrs, col_idxs, storage_offsets, storage,
         row_descs, correct);
-    ASSERT_TRUE(exec->copy_val_to_host(correct.get_const_data()));
+    ASSERT_TRUE(get_element(correct, 0));
 }
 
 
@@ -236,7 +209,8 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
     for (auto allowed :
          {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
           sparsity_type::bitmap | sparsity_type::hash,
-          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash,
+          sparsity_type::none}) {
         // check that storage offsets are calculated correctly
         // otherwise things might crash
         gko::kernels::reference::csr::build_lookup_offsets(

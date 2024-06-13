@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 
@@ -128,6 +100,20 @@ MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const batch_dim<2>& size,
+                                    array<value_type> values)
+    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
+      batch_size_(size),
+      values_{exec, std::move(values)}
+{
+    // Ensure that the values array has the correct size
+    auto num_elems = compute_num_elems(size);
+    GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_size() + 1);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<MultiVector<ValueType>>
 MultiVector<ValueType>::create_with_config_of(
     ptr_param<const MultiVector> other)
@@ -137,6 +123,24 @@ MultiVector<ValueType>::create_with_config_of(
     // CUDA 10.1.
     // Otherwise, it results in a compile error.
     return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{new MultiVector{exec, size}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    array<value_type> values)
+{
+    return std::unique_ptr<MultiVector<ValueType>>{
+        new MultiVector{exec, size, std::move(values)}};
 }
 
 
@@ -156,7 +160,7 @@ MultiVector<ValueType>::create_const(
 template <typename ValueType>
 void MultiVector<ValueType>::fill(ValueType value)
 {
-    GKO_ASSERT(this->values_.get_num_elems() > 0);
+    GKO_ASSERT(this->values_.get_size() > 0);
     this->values_.fill(value);
 }
 
@@ -182,11 +186,15 @@ void MultiVector<ValueType>::scale(
     ptr_param<const MultiVector<ValueType>> alpha)
 {
     GKO_ASSERT_EQ(alpha->get_num_batch_items(), this->get_num_batch_items());
-    GKO_ASSERT_EQUAL_ROWS(alpha->get_common_size(), dim<2>(1, 1));
     if (alpha->get_common_size()[1] != 1) {
         // different alpha for each column
         GKO_ASSERT_EQUAL_COLS(this->get_common_size(),
                               alpha->get_common_size());
+    }
+    // element wise scaling requires same size
+    if (alpha->get_common_size()[0] != 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(this->get_common_size(),
+                                    alpha->get_common_size());
     }
     auto exec = this->get_executor();
     exec->run(multi_vector::make_scale(make_temporary_clone(exec, alpha).get(),

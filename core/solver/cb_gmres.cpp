@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
@@ -48,6 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/config/solver_config.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
 
@@ -187,6 +160,40 @@ struct helper<std::complex<T>> {
 
 
 template <typename ValueType>
+typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::CbGmres<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    if (auto& obj = config.get("krylov_dim")) {
+        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("storage_precision")) {
+        auto get_storage_precision = [](std::string str) {
+            using gko::solver::cb_gmres::storage_precision;
+            if (str == "keep") {
+                return storage_precision::keep;
+            } else if (str == "reduce1") {
+                return storage_precision::reduce1;
+            } else if (str == "reduce2") {
+                return storage_precision::reduce2;
+            } else if (str == "integer") {
+                return storage_precision::integer;
+            } else if (str == "ireduce1") {
+                return storage_precision::ireduce1;
+            } else if (str == "ireduce2") {
+                return storage_precision::ireduce2;
+            }
+            GKO_INVALID_CONFIG_VALUE("storage_precision", str);
+        };
+        params.with_storage_precision(get_storage_precision(obj.get_string()));
+    }
+    return params;
+}
+
+
+template <typename ValueType>
 void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (!this->get_system_matrix()) {
@@ -307,7 +314,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         array<bool> fully_converged_rhs(exec->get_master(), num_rhs);
         array<stopping_status> host_stop_status(
             this->get_executor()->get_master(), stop_status);
-        for (size_type i = 0; i < stop_encountered_rhs.get_num_elems(); ++i) {
+        for (size_type i = 0; i < stop_encountered_rhs.get_size(); ++i) {
             stop_encountered_rhs.get_data()[i] = false;
             fully_converged_rhs.get_data()[i] = false;
         }
@@ -346,7 +353,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                 if (one_changed || all_changed) {
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
-                    for (size_type i = 0; i < host_stop_status.get_num_elems();
+                    for (size_type i = 0; i < host_stop_status.get_size();
                          ++i) {
                         auto local_status = host_stop_status.get_data() + i;
                         // Ignore all actually converged ones!
@@ -378,8 +385,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                     forced_iterations = 0;
 
                 } else {
-                    for (size_type i = 0;
-                         i < stop_encountered_rhs.get_num_elems(); ++i) {
+                    for (size_type i = 0; i < stop_encountered_rhs.get_size();
+                         ++i) {
                         stop_encountered_rhs.get_data()[i] = false;
                     }
                 }

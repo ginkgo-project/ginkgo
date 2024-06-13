@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
@@ -46,6 +18,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
@@ -299,7 +272,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
             stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
             as_device_type(stop_status), as_device_type(reorth_status),
             as_device_type(num_reorth->get_data()));
-    num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+    num_reorth_host = get_element(*num_reorth, 0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
@@ -365,7 +338,7 @@ void finish_arnoldi_CGS(std::shared_ptr<const DefaultExecutor> exec,
                 stride_hessenberg, iter + 1, acc::as_cuda_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth->get_data());
-        num_reorth_host = exec->copy_val_to_host(num_reorth->get_const_data());
+        num_reorth_host = get_element(*num_reorth, 0);
     }
 
     update_krylov_next_krylov_kernel<default_block_size>
@@ -428,10 +401,10 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
+            ceildiv(final_iter_nums->get_size(), default_block_size)),
         default_block_size, 0, exec->get_stream()>>>(
         as_device_type(final_iter_nums->get_data()),
-        stop_status->get_const_data(), final_iter_nums->get_num_elems());
+        stop_status->get_const_data(), final_iter_nums->get_size());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),

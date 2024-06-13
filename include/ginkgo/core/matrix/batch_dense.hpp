@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
@@ -75,9 +47,7 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
-                    public EnableCreateMethod<Dense<ValueType>>,
                     public ConvertibleTo<Dense<next_precision<ValueType>>> {
-    friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<next_precision<ValueType>>;
@@ -240,7 +210,62 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
+    }
+
+    /**
+     * Returns the number of stored elements in each batch item.
+     *
+     * @return the number of stored elements per batch item.
+     */
+    size_type get_num_elements_per_item() const noexcept
+    {
+        return this->get_num_stored_elements() / this->get_num_batch_items();
+    }
+
+    /**
+     * Creates an uninitialized Dense matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+    /**
+     * Creates a Dense matrix from an already allocated (and initialized)
+     * array.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  sizes of the batch matrices in a batch_dim object
+     * @param values  array of matrix values
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
+                                         const batch_dim<2>& size,
+                                         array<value_type> values);
+
+    /**
+     * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
+     * const batch_dim<2>&, array<value_type>)
+     */
+    template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an"
+        "initializer list")
+    static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        std::initializer_list<InputValueType> values)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)});
     }
 
     /**
@@ -254,8 +279,10 @@ public:
      * @return A smart pointer to the constant matrix wrapping the input
      * array (if it resides on the same executor as the matrix) or a copy of the
      * array on the correct executor.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<const Dense<value_type>> create_const(
+    static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -300,6 +327,37 @@ public:
                        ptr_param<const MultiVector<value_type>> beta,
                        ptr_param<MultiVector<value_type>> x) const;
 
+    /**
+     * Performs in-place row and column scaling for this matrix.
+     *
+     * @param row_scale  the row scalars
+     * @param col_scale  the column scalars
+     */
+    void scale(const array<value_type>& row_scale,
+               const array<value_type>& col_scale);
+
+    /**
+     * Performs the operation this = alpha*this + b.
+     *
+     * @param alpha the scalar to multiply this matrix
+     * @param b  the matrix to add
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void scale_add(ptr_param<const MultiVector<value_type>> alpha,
+                   ptr_param<const batch::matrix::Dense<value_type>> b);
+
+    /**
+     * Performs the operation this = alpha*I + beta*this.
+     *
+     * @param alpha the scalar for identity
+     * @param beta  the scalar to multiply this matrix
+     *
+     * @note Performs the operation in-place for this batch matrix
+     */
+    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
+                             ptr_param<const MultiVector<value_type>> beta);
+
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
     {
@@ -307,39 +365,11 @@ private:
                size.get_common_size()[1];
     }
 
-    /**
-     * Creates an uninitialized Dense matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     */
     Dense(std::shared_ptr<const Executor> exec,
           const batch_dim<2>& size = batch_dim<2>{});
 
-    /**
-     * Creates a Dense matrix from an already allocated (and initialized)
-     * array.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  sizes of the batch matrices in a batch_dim object
-     * @param values  array of matrix values
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename ValuesArray>
     Dense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-          ValuesArray&& values)
-        : EnableBatchLinOp<Dense>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)}
-    {
-        // Ensure that the values array has the correct size
-        auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
-    }
+          array<value_type> values);
 
     void apply_impl(const MultiVector<value_type>* b,
                     MultiVector<value_type>* x) const;

@@ -1,40 +1,13 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/partition_helpers_kernels.hpp"
 
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 
 
 namespace gko {
@@ -49,7 +22,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
                               bool& result)
 {
     array<uint32> result_uint32{exec, 1};
-    auto num_ranges = range_start_ends.get_num_elems() / 2;
+    auto num_ranges = range_start_ends.get_size() / 2;
     // need additional guard because DPCPP doesn't return the initial value for
     // empty inputs
     if (num_ranges > 1) {
@@ -64,8 +37,7 @@ void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto x) { return x; }, static_cast<uint32>(true),
             result_uint32.get_data(), num_ranges - 1,
             range_start_ends.get_const_data() + 1);
-        result =
-            static_cast<bool>(exec->copy_val_to_host(result_uint32.get_data()));
+        result = static_cast<bool>(get_element(result_uint32, 0));
     } else {
         result = true;
     }
@@ -88,7 +60,7 @@ void compress_ranges(std::shared_ptr<const DefaultExecutor> exec,
             }
             offsets[i + 1] = start_ends[2 * i + 1];
         },
-        range_offsets.get_num_elems() - 1, range_start_ends.get_const_data(),
+        range_offsets.get_size() - 1, range_start_ends.get_const_data(),
         range_offsets.get_data());
 }
 

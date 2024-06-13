@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_BATCH_IDENTITY_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_BATCH_IDENTITY_HPP_
@@ -57,15 +29,10 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
-                       public EnableCreateMethod<Identity<ValueType>> {
-    friend class EnableCreateMethod<Identity>;
+class Identity final : public EnableBatchLinOp<Identity<ValueType>> {
     friend class EnablePolymorphicObject<Identity, BatchLinOp>;
 
 public:
-    using EnableBatchLinOp<Identity>::convert_to;
-    using EnableBatchLinOp<Identity>::move_to;
-
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = gko::matrix::Identity<ValueType>;
@@ -112,14 +79,19 @@ public:
                           ptr_param<const MultiVector<value_type>> b,
                           ptr_param<const MultiVector<value_type>> beta,
                           ptr_param<MultiVector<value_type>> x) const;
-
-private:
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the batch matrices in a batch_dim object
+     *
+     * @return A smart pointer to the newly created matrix.
      */
+    static std::unique_ptr<Identity> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+private:
     Identity(std::shared_ptr<const Executor> exec,
              const batch_dim<2>& size = batch_dim<2>{});
 

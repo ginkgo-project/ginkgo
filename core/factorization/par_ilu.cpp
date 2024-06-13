@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
@@ -40,10 +12,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/array_access.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -67,6 +43,30 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 
 }  // anonymous namespace
 }  // namespace par_ilu_factorization
+
+
+template <typename ValueType, typename IndexType>
+typename ParIlu<ValueType, IndexType>::parameters_type
+ParIlu<ValueType, IndexType>::parse(const config::pnode& config,
+                                    const config::registry& context,
+                                    const config::type_descriptor& td_for_child)
+{
+    auto params = factorization::ParIlu<ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("iterations")) {
+        params.with_iterations(config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("l_strategy")) {
+        params.with_l_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    if (auto& obj = config.get("u_strategy")) {
+        params.with_u_strategy(config::get_strategy<matrix_type>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -105,10 +105,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
-    auto l_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(l_row_ptrs.get_data() + number_rows));
-    auto u_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(u_row_ptrs.get_data() + number_rows));
+    auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
+    auto u_nnz = static_cast<size_type>(get_element(u_row_ptrs, number_rows));
 
     // Since `row_ptrs` of L and U is already created, the matrix can be
     // directly created with it

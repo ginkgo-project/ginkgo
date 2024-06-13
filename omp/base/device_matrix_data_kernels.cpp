@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
@@ -55,7 +27,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
                   array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     const auto num_threads = omp_get_max_threads();
     const auto per_thread = static_cast<size_type>(ceildiv(size, num_threads));
     vector<size_type> partial_counts(num_threads, {exec});
@@ -109,11 +81,11 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
                     size_type num_rows, array<ValueType>& values,
                     array<IndexType>& row_idxs, array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     array<int64> row_ptrs_array{exec, num_rows + 1};
     array<int64> out_row_ptrs_array{exec, num_rows + 1};
     components::convert_idxs_to_ptrs(exec, row_idxs.get_const_data(),
-                                     row_idxs.get_num_elems(), num_rows,
+                                     row_idxs.get_size(), num_rows,
                                      row_ptrs_array.get_data());
     const auto row_ptrs = row_ptrs_array.get_const_data();
     const auto out_row_ptrs = out_row_ptrs_array.get_data();
@@ -166,10 +138,10 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
-                                                       data.get_num_elems()};
+    array<matrix_data_entry<ValueType, IndexType>> tmp{
+        exec, data.get_num_stored_elements()};
     soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
+    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);
 }
 

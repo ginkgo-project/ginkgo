@@ -25,14 +25,9 @@ endfunction()
 
 function(ginkgo_benchmark_hipsparse_linops type def)
     add_library(hipsparse_linops_${type} utils/hip_linops.hip.cpp)
+    set_source_files_properties(utils/hip_linops.hip.cpp PROPERTIES LANGUAGE HIP)
     target_compile_definitions(hipsparse_linops_${type} PUBLIC ${def})
-    EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
-    set_target_properties(hipsparse_linops_${type} PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
-    # use Thrust C++ device just for compilation, we don't use thrust::complex in the benchmarks
-    target_compile_definitions(hipsparse_linops_${type} PUBLIC -DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
-    target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE
-        ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
-        ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
+    target_include_directories(hipsparse_linops_${type} SYSTEM PRIVATE ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
     target_link_libraries(hipsparse_linops_${type} Ginkgo::ginkgo ${HIPSPARSE_LIBRARIES})
 endfunction()
 
@@ -76,7 +71,6 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
         target_link_libraries(${name} mpi_timer)
     endif()
     target_compile_definitions("${name}" PRIVATE "${macro_def}")
-    target_compile_options("${name}" PRIVATE ${GINKGO_COMPILER_FLAGS})
     ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if (GINKGO_BUILD_CUDA)
@@ -127,10 +121,8 @@ if (GINKGO_BUILD_HIP)
     ginkgo_benchmark_hipsparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_hipsparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
     ginkgo_benchmark_hipsparse_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    set_source_files_properties(utils/hip_timer.hip.cpp PROPERTIES LANGUAGE HIP)
     add_library(hip_timer utils/hip_timer.hip.cpp)
-    EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
-    set_target_properties(hip_timer PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
-    target_include_directories(hip_timer SYSTEM PRIVATE ${HSA_HEADER} ${HIP_INCLUDE_DIRS})
     target_link_libraries(hip_timer ginkgo)
 endif()
 

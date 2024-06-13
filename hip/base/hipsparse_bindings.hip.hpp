@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_HIP_BASE_HIPSPARSE_BINDINGS_HIP_HPP_
 #define GKO_HIP_BASE_HIPSPARSE_BINDINGS_HIP_HPP_
@@ -85,6 +57,11 @@ struct is_supported<float, int32> : std::true_type {};
 template <>
 struct is_supported<double, int32> : std::true_type {};
 
+template <>
+struct is_supported<std::complex<float>, int32> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<double>, int32> : std::true_type {};
 
 #define GKO_BIND_HIPSPARSE32_SPMV(ValueType, HipsparseName)                  \
     inline void spmv(hipsparseHandle_t handle, hipsparseOperation_t transA,  \
@@ -116,8 +93,12 @@ struct is_supported<double, int32> : std::true_type {};
 
 GKO_BIND_HIPSPARSE32_SPMV(float, hipsparseScsrmv);
 GKO_BIND_HIPSPARSE32_SPMV(double, hipsparseDcsrmv);
+GKO_BIND_HIPSPARSE32_SPMV(std::complex<float>, hipsparseCcsrmv);
+GKO_BIND_HIPSPARSE32_SPMV(std::complex<double>, hipsparseZcsrmv);
 GKO_BIND_HIPSPARSE64_SPMV(float, hipsparseScsrmv);
 GKO_BIND_HIPSPARSE64_SPMV(double, hipsparseDcsrmv);
+GKO_BIND_HIPSPARSE64_SPMV(std::complex<float>, hipsparseCcsrmv);
+GKO_BIND_HIPSPARSE64_SPMV(std::complex<double>, hipsparseZcsrmv);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_SPMV(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -160,8 +141,12 @@ GKO_BIND_HIPSPARSE64_SPMV(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE32_SPMM(float, hipsparseScsrmm);
 GKO_BIND_HIPSPARSE32_SPMM(double, hipsparseDcsrmm);
+GKO_BIND_HIPSPARSE32_SPMM(std::complex<float>, hipsparseCcsrmm);
+GKO_BIND_HIPSPARSE32_SPMM(std::complex<double>, hipsparseZcsrmm);
 GKO_BIND_HIPSPARSE64_SPMM(float, hipsparseScsrmm);
 GKO_BIND_HIPSPARSE64_SPMM(double, hipsparseDcsrmm);
+GKO_BIND_HIPSPARSE64_SPMM(std::complex<float>, hipsparseCcsrmm);
+GKO_BIND_HIPSPARSE64_SPMM(std::complex<double>, hipsparseZcsrmm);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_SPMM(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -188,6 +173,8 @@ GKO_BIND_HIPSPARSE64_SPMM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE32_SPMV(float, hipsparseShybmv);
 GKO_BIND_HIPSPARSE32_SPMV(double, hipsparseDhybmv);
+GKO_BIND_HIPSPARSE32_SPMV(std::complex<float>, hipsparseChybmv);
+GKO_BIND_HIPSPARSE32_SPMV(std::complex<double>, hipsparseZhybmv);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_SPMV(ValueType, detail::not_implemented);
 
@@ -397,8 +384,12 @@ GKO_BIND_HIPSPARSE64_CSR2HYB(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE_TRANSPOSE32(float, hipsparseScsr2csc);
 GKO_BIND_HIPSPARSE_TRANSPOSE32(double, hipsparseDcsr2csc);
+GKO_BIND_HIPSPARSE_TRANSPOSE32(std::complex<float>, hipsparseCcsr2csc);
+GKO_BIND_HIPSPARSE_TRANSPOSE32(std::complex<double>, hipsparseZcsr2csc);
 GKO_BIND_HIPSPARSE_TRANSPOSE64(float, hipsparseScsr2csc);
 GKO_BIND_HIPSPARSE_TRANSPOSE64(double, hipsparseDcsr2csc);
+GKO_BIND_HIPSPARSE_TRANSPOSE64(std::complex<float>, hipsparseCcsr2csc);
+GKO_BIND_HIPSPARSE_TRANSPOSE64(std::complex<double>, hipsparseZcsr2csc);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE_TRANSPOSE32(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -430,8 +421,12 @@ GKO_BIND_HIPSPARSE_TRANSPOSE64(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE32(float, hipsparseScsr2csc);
 GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE32(double, hipsparseDcsr2csc);
+GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE32(std::complex<float>, hipsparseCcsr2csc);
+GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE32(std::complex<double>, hipsparseZcsr2csc);
 GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(float, hipsparseScsr2csc);
 GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(double, hipsparseDcsr2csc);
+GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(std::complex<float>, hipsparseCcsr2csc);
+GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(std::complex<double>, hipsparseZcsr2csc);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE32(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -471,8 +466,16 @@ GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(float, hipsparseScsrsv2_bufferSize);
 GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(double, hipsparseDcsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(std::complex<float>,
+                                       hipsparseCcsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(std::complex<double>,
+                                       hipsparseZcsrsv2_bufferSize);
 GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(float, hipsparseScsrsv2_bufferSize);
 GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(double, hipsparseDcsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(std::complex<float>,
+                                       hipsparseCcsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(std::complex<double>,
+                                       hipsparseZcsrsv2_bufferSize);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -511,8 +514,16 @@ GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(float, hipsparseScsrsv2_analysis);
 GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(double, hipsparseDcsrsv2_analysis);
+GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(std::complex<float>,
+                                     hipsparseCcsrsv2_analysis);
+GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(std::complex<double>,
+                                     hipsparseZcsrsv2_analysis);
 GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(float, hipsparseScsrsv2_analysis);
 GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(double, hipsparseDcsrsv2_analysis);
+GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(std::complex<float>,
+                                     hipsparseCcsrsv2_analysis);
+GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(std::complex<double>,
+                                     hipsparseZcsrsv2_analysis);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
 template <typename ValueType>
@@ -553,8 +564,12 @@ GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(float, hipsparseScsrsv2_solve);
 GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(double, hipsparseDcsrsv2_solve);
+GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(std::complex<float>, hipsparseCcsrsv2_solve);
+GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(std::complex<double>, hipsparseZcsrsv2_solve);
 GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(float, hipsparseScsrsv2_solve);
 GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(double, hipsparseDcsrsv2_solve);
+GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(std::complex<float>, hipsparseCcsrsv2_solve);
+GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(std::complex<double>, hipsparseZcsrsv2_solve);
 template <typename ValueType>
 GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(ValueType, detail::not_implemented);
 template <typename ValueType>

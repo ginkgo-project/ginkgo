@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -44,6 +16,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/index_map_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
@@ -57,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
@@ -72,10 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
+#include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -277,6 +253,16 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES);
 }  // namespace partition_helpers
 
 
+namespace index_map {
+
+
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_BUILD_MAPPING);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
+
+
+}  // namespace index_map
+
+
 namespace distributed_vector {
 
 
@@ -289,7 +275,7 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 namespace distributed_matrix {
 
 
-GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix
@@ -309,11 +295,26 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 }  // namespace batch_multi_vector
 
 
+namespace batch_csr {
+
+
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_SCALE_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
+}  // namespace batch_csr
+
+
 namespace batch_dense {
 
 
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace batch_dense
@@ -324,6 +325,8 @@ namespace batch_ell {
 
 GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_SIMPLE_APPLY_KERNEL);
 GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_ADVANCED_APPLY_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_SCALE_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace batch_ell
@@ -422,6 +425,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
 
 
 }  // namespace batch_bicgstab
+
+
+namespace batch_cg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
+
+
+}  // namespace batch_cg
 
 
 namespace cg {
@@ -772,6 +784,20 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 }  // namespace sellp
 
 
+namespace batch_jacobi {
+
+
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_CUMULATIVE_BLOCK_STORAGE);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_BATCH_BLOCK_JACOBI_FIND_ROW_BLOCK_MAP);
+GKO_STUB_VALUE_AND_INT32_TYPE(
+    GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
+GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
+
+
+}  // namespace batch_jacobi
+
+
 namespace jacobi {
 
 
@@ -911,8 +937,7 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(
 namespace rcm {
 
 
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm
@@ -933,6 +958,7 @@ GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm

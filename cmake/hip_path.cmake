@@ -7,11 +7,6 @@ if(NOT DEFINED HIP_PATH)
     endif()
 endif()
 
-find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
-if(GINKGO_HIPCONFIG_PATH)
-    message(STATUS "Found hipconfig: ${GINKGO_HIPCONFIG_PATH}")
-endif()
-
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
 # updated everything to use NVIDIA/AMD in ROCM 4.1
 set(GINKGO_HIP_PLATFORM_NVCC 0)

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
@@ -68,6 +40,7 @@ namespace batch_bicgstab {
 
 
 #include "dpcpp/base/batch_multi_vector_kernels.hpp.inc"
+#include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
 #include "dpcpp/solver/batch_bicgstab_kernels.hpp.inc"
@@ -86,10 +59,10 @@ __dpct_inline__ int get_group_size(int value,
 
 
 template <typename ValueType>
-class KernelCaller {
+class kernel_caller {
 public:
-    KernelCaller(std::shared_ptr<const DefaultExecutor> exec,
-                 const settings<remove_complex<ValueType>> settings)
+    kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -156,20 +129,16 @@ public:
         auto device = exec_->get_queue()->get_device();
         auto max_group_size =
             device.get_info<sycl::info::device::max_work_group_size>();
-        int group_size =
-            device.get_info<sycl::info::device::max_work_group_size>();
-        if (group_size > num_rows) {
-            group_size = get_group_size(num_rows);
-        };
+        int group_size = get_group_size(num_rows);
         group_size = std::min(
             std::max(group_size, static_cast<int>(2 * config::warp_size)),
             static_cast<int>(max_group_size));
 
         // reserve 5 for intermediate rho-s, norms,
-        // alpha, omega, temp and for reduce_over_group
+        // alpha, omega, temp
         // If the value available is negative, then set it to 0
         const int static_var_mem =
-            (group_size + 5) * sizeof(ValueType) + 2 * sizeof(real_type);
+            5 * sizeof(ValueType) + 2 * sizeof(real_type);
         int shmem_per_blk = std::max(
             static_cast<int>(
                 device.get_info<sycl::info::device::local_mem_size>()) -
@@ -194,8 +163,7 @@ public:
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
 
         // template
-        // launch_apply_kernel<StopType, subgroup_size, n_shared_total,
-        // sg_kernel_all>
+        // launch_apply_kernel<StopType, subgroup_size, n_shared_total>
         if (num_rows <= 32 && n_shared_total == 10) {
             launch_apply_kernel<StopType, 32, 10>(
                 sconf, logger, prec, mat, b.values, x.values, workspace_data,
@@ -283,7 +251,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, settings), settings, mat, precond);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_REDUCTION_HPP_
 #error \
@@ -69,8 +41,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, num_partials>, 0>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
@@ -118,8 +89,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     constexpr auto wg_size = DeviceConfig::block_size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, num_partials>, 0>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
@@ -175,7 +145,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -222,7 +192,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -369,8 +339,7 @@ void generic_kernel_col_reduction_2d_small(
     constexpr auto subgroups_per_workgroup = wg_size / sg_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = subgroups_per_workgroup * ssg_size;
-    sycl::accessor<uninitialized_array<ValueType, shared_storage>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, shared_storage>, 0>
         block_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
     cgh.parallel_for(
@@ -442,8 +411,7 @@ void generic_kernel_col_reduction_2d_blocked(
     constexpr auto sg_size = cfg::subgroup_size;
     const auto range =
         sycl_nd_range(dim3(row_blocks, col_blocks), dim3(wg_size));
-    sycl::accessor<uninitialized_array<ValueType, wg_size>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
+    sycl::local_accessor<uninitialized_array<ValueType, wg_size>, 0>
         block_partial_acc(cgh);
     cgh.parallel_for(
         range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
@@ -526,7 +494,7 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
         });
     } else {
         const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
@@ -572,7 +540,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         generic_kernel_row_reduction_2d<cfg, sg_size>(
@@ -645,7 +613,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
             });
         } else {
             const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-            if (tmp.get_num_elems() < required_storage) {
+            if (tmp.get_size() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }
             queue->submit([&](sycl::handler& cgh) {

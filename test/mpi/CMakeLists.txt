@@ -4,3 +4,4 @@ ginkgo_create_common_and_reference_test(vector MPI_SIZE 3)
 
 add_subdirectory(preconditioner)
 add_subdirectory(solver)
+add_subdirectory(multigrid)

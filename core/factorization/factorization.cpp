@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/factorization/factorization.hpp>
 
@@ -38,6 +10,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 
 
@@ -77,10 +50,10 @@ Factorization<ValueType, IndexType>::unpack() const
         const auto mtx = this->get_combined();
         exec->run(make_initialize_row_ptrs_l_u(mtx.get(), l_row_ptrs.get_data(),
                                                u_row_ptrs.get_data()));
-        const auto l_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
-        const auto u_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(u_row_ptrs.get_const_data() + size[0]));
+        const auto l_nnz =
+            static_cast<size_type>(get_element(l_row_ptrs, size[0]));
+        const auto u_nnz =
+            static_cast<size_type>(get_element(u_row_ptrs, size[0]));
         // create matrices
         auto l_mtx = matrix_type::create(
             exec, size, array<value_type>{exec, l_nnz},
@@ -98,8 +71,8 @@ Factorization<ValueType, IndexType>::unpack() const
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         const auto mtx = this->get_combined();
         exec->run(make_initialize_row_ptrs_l(mtx.get(), l_row_ptrs.get_data()));
-        const auto l_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(l_row_ptrs.get_const_data() + size[0]));
+        const auto l_nnz =
+            static_cast<size_type>(get_element(l_row_ptrs, size[0]));
         // create matrices
         auto l_mtx = matrix_type::create(
             exec, size, array<value_type>{exec, l_nnz},

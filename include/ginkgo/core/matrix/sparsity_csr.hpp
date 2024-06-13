@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_SPARSITY_CSR_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_SPARSITY_CSR_HPP_
@@ -77,15 +49,12 @@ class Fbcsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparsityCsr
-    : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
-      public EnableCreateMethod<SparsityCsr<ValueType, IndexType>>,
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<Dense<ValueType>>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType>,
-      public Transposable {
-    friend class EnableCreateMethod<SparsityCsr>;
+class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
+                    public ConvertibleTo<Csr<ValueType, IndexType>>,
+                    public ConvertibleTo<Dense<ValueType>>,
+                    public ReadableFromMatrixData<ValueType, IndexType>,
+                    public WritableToMatrixData<ValueType, IndexType>,
+                    public Transposable {
     friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -206,16 +175,77 @@ public:
         return value_.get_const_data();
     }
 
-
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_nonzeros() const noexcept
+    size_type get_num_nonzeros() const noexcept { return col_idxs_.get_size(); }
+
+    /**
+     * Creates an uninitialized SparsityCsr matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of nonzeros
+     */
+    static std::unique_ptr<SparsityCsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+        size_type num_nonzeros = {});
+
+    /**
+     * Creates a SparsityCsr matrix from already allocated (and initialized) row
+     * pointer and column index arrays.
+     *
+     * @tparam ColIdxsArray  type of `col_idxs` array
+     * @tparam RowPtrsArray  type of `row_ptrs` array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param col_idxs  array of column indexes
+     * @param row_ptrs  array of row pointers
+     * @param value  value stored. (same value for all matrix elements)
+     *
+     * @note If one of `row_ptrs` or `col_idxs` is not an rvalue, not
+     *       an array of IndexType and IndexType respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     */
+    static std::unique_ptr<SparsityCsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> col_idxs, array<index_type> row_ptrs,
+        value_type value = one<ValueType>());
+
+    /**
+     * @copydoc std::unique_ptr<SparsityCsr> create(std::shared_ptr<const
+     * Executor>, const dim<2>&, array<index_type>, array<index_type>,
+     * value_type)
+     */
+    template <typename ColIndexType, typename RowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
+    static std::unique_ptr<SparsityCsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::initializer_list<ColIndexType> col_idxs,
+        std::initializer_list<RowPtrType> row_ptrs,
+        value_type value = one<ValueType>())
     {
-        return col_idxs_.get_num_elems();
+        return create(exec, size, array<index_type>{exec, std::move(col_idxs)},
+                      array<index_type>{exec, std::move(row_ptrs)}, value);
     }
+
+    /**
+     * Creates a Sparsity matrix from an existing matrix. Uses the
+     * `copy_and_convert_to` functionality.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param matrix The input matrix
+     */
+    static std::unique_ptr<SparsityCsr> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const LinOp> matrix);
 
     /**
      * Creates a constant (immutable) SparsityCsr matrix from constant arrays.
@@ -270,68 +300,15 @@ public:
     SparsityCsr(SparsityCsr&&);
 
 protected:
-    /**
-     * Creates an uninitialized SparsityCsr matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
-     */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
-        : EnableLinOp<SparsityCsr>(exec, size),
-          col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1),
-          value_(exec, {one<ValueType>()})
-    {
-        row_ptrs_.fill(0);
-    }
+                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {});
 
-    /**
-     * Creates a SparsityCsr matrix from already allocated (and initialized) row
-     * pointer and column index arrays.
-     *
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowPtrsArray  type of `row_ptrs` array
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
-     * @param value  value stored. (same value for all matrix elements)
-     *
-     * @note If one of `row_ptrs` or `col_idxs` is not an rvalue, not
-     *       an array of IndexType and IndexType respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
-     *       matrix.
-     */
-    template <typename ColIdxsArray, typename RowPtrsArray>
     SparsityCsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
-                value_type value = one<ValueType>())
-        : EnableLinOp<SparsityCsr>(exec, size),
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
-          value_{exec, {value}}
-    {
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
-    }
+                array<index_type> col_idxs, array<index_type> row_ptrs,
+                value_type value = one<ValueType>());
 
-    /**
-     * Creates a Sparsity matrix from an existing matrix. Uses the
-     * `copy_and_convert_to` functionality.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param matrix The input matrix
-     */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                std::shared_ptr<const LinOp> matrix)
-        : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
-    {
-        auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
-        this->copy_from(tmp_);
-    }
+                std::shared_ptr<const LinOp> matrix);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

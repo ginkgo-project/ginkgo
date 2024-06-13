@@ -1,0 +1,15 @@
+// SPDX-FileCopyrightText: 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#ifndef GINKGO_INCLUDE_GINKGO_EXTENSIONS_KOKKOS_CONFIG_HPP_IN
+#define GINKGO_INCLUDE_GINKGO_EXTENSIONS_KOKKOS_CONFIG_HPP_IN
+
+
+/* Do we need to check the type alignment in the Kokkos type maps? */
+// clang-format off
+#cmakedefine01 GINKGO_EXTENSION_KOKKOS_CHECK_TYPE_ALIGNMENT
+// clang-format on
+
+
+#endif  // GINKGO_INCLUDE_GINKGO_EXTENSIONS_KOKKOS_CONFIG_HPP_IN

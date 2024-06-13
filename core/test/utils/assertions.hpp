@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
 #define GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
@@ -509,8 +481,8 @@ template <typename ValueType>
     const std::string& first_expression, const std::string& second_expression,
     const array<ValueType>& first, const array<ValueType>& second)
 {
-    const auto num_elems1 = first.get_num_elems();
-    const auto num_elems2 = second.get_num_elems();
+    const auto num_elems1 = first.get_size();
+    const auto num_elems2 = second.get_size();
     if (num_elems1 != num_elems2) {
         auto fail = ::testing::AssertionFailure();
         fail << "Array " << first_expression << " contains " << num_elems1
@@ -519,6 +491,10 @@ template <typename ValueType>
         return fail;
     }
 
+    if (first.get_executor() == nullptr && second.get_executor() == nullptr) {
+        // both are empty
+        return ::testing::AssertionSuccess();
+    }
     auto exec = first.get_executor()->get_master();
     array<ValueType> first_array(exec, first);
     array<ValueType> second_array(exec, second);
@@ -549,6 +525,42 @@ template <typename ValueType>
             if (context_end < num_elems1) {
                 fail << "...\n";
             }
+            return fail;
+        }
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
+
+template <typename ValueType>
+::testing::AssertionResult array_near_impl(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression, const array<ValueType>& first,
+    const array<ValueType>& second, double tolerance)
+{
+    const auto num_elems1 = first.get_size();
+    const auto num_elems2 = second.get_size();
+    if (num_elems1 != num_elems2) {
+        auto fail = ::testing::AssertionFailure();
+        fail << "Array " << first_expression << " contains " << num_elems1
+             << ", while " << second_expression << " contains " << num_elems2
+             << " elements!\n";
+        return fail;
+    }
+
+    auto exec = first.get_executor()->get_master();
+    array<ValueType> first_array(exec, first);
+    array<ValueType> second_array(exec, second);
+    for (size_type i = 0; i < num_elems1; ++i) {
+        double err = std::abs(second_array.get_const_data()[i] -
+                              first_array.get_const_data()[i]);
+        if (err > tolerance) {
+            auto fail = ::testing::AssertionFailure();
+            fail << "Array " << first_expression << " is different from "
+                 << second_expression << " at index " << i
+                 << " with relative error: " << err << ", expected "
+                 << tolerance_expression << " (which is " << tolerance << ")\n";
             return fail;
         }
     }
@@ -733,8 +745,8 @@ template <typename Mat1, typename Mat2>
     }
 
     for (size_type b = 0; b < first_data.size(); ++b) {
-        first_data[b].ensure_row_major_order();
-        second_data[b].ensure_row_major_order();
+        first_data[b].sort_row_major();
+        second_data[b].sort_row_major();
     }
 
     return detail::batch_matrices_near_impl(
@@ -798,8 +810,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.ensure_row_major_order();
-    second_data.ensure_row_major_order();
+    first_data.sort_row_major();
+    second_data.sort_row_major();
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
@@ -846,6 +858,56 @@ template <typename ValueType>
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second);
 }
+
+
+/**
+ * This is a gtest predicate which checks if two arrays are near each other.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2.
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT2` as follows:
+ * ```
+ * // Check if array1 is equal to array2
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::array_equal, array1, array2);
+ * ```
+ *
+ * @see GKO_ASSERT_ARRAY_NEAR
+ */
+template <typename ValueType>
+::testing::AssertionResult array_near(const std::string& first_expression,
+                                      const std::string& second_expression,
+                                      const std::string& tolerance_expression,
+                                      const array<ValueType>& first,
+                                      const array<ValueType>& second,
+                                      double tolerance)
+{
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first, second,
+                                   tolerance);
+}
+
+
+/**
+ * array_nearoverload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
+ * `second`
+ *
+ * @copydoc array_near
+ */
+template <typename ValueType>
+::testing::AssertionResult array_near(
+    const std::string& first_expression, const std::string& second_expression,
+    const std::string& tolerance_expression,
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second, double tolerance)
+{
+    return detail::array_near_impl(first_expression, second_expression,
+                                   tolerance_expression, first.copy_to_array(),
+                                   second.copy_to_array(), tolerance);
+}
+
 
 /**
  * array_equal overload: where `first` is a const_array_view.
@@ -898,6 +960,7 @@ template <typename ValueType>
                                     first.copy_to_array(),
                                     second.copy_to_array());
 }
+
 
 /** array_equal overloads where one side is an initializer list .*/
 template <typename ValueType>
@@ -982,8 +1045,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.ensure_row_major_order();
-    second_data.ensure_row_major_order();
+    first_data.sort_row_major();
+    second_data.sort_row_major();
     // make sure if we write data to disk, it only contains ones.
     for (auto& entry : first_data.nonzeros) {
         entry.value = one<typename LinOp1::value_type>();
@@ -1271,6 +1334,36 @@ T* plain_ptr(T* ptr)
     {                                                                      \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \
+    }
+
+
+/**
+ * Checks if two `gko::array`s are near each other.
+ *
+ * Each value of _array1 is tested against the corresponding value in
+ * _array2 within a tolerance.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::array_equal().
+ *
+ * @param _array1  first array
+ * @param _array2  second array
+ * @param _tol  tolerance
+ **/
+#define GKO_ASSERT_ARRAY_NEAR(_array1, _array2, _tol)                     \
+    {                                                                     \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
+                            _array2, _tol);                               \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_ARRAY_EQ
+ **/
+#define GKO_EXPECT_ARRAY_NEAR(_array1, _array2, _tol)                     \
+    {                                                                     \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
+                            _array2, _tol);                               \
     }
 
 

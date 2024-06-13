@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_FFT_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_FFT_HPP_
@@ -71,14 +43,12 @@ namespace matrix {
  * @ingroup LinOp
  */
 class Fft : public EnableLinOp<Fft>,
-            public EnableCreateMethod<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
             public WritableToMatrixData<std::complex<float>, int64>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
     friend class EnablePolymorphicObject<Fft, LinOp>;
-    friend class EnableCreateMethod<Fft>;
 
 public:
     using EnableLinOp<Fft>::convert_to;
@@ -104,26 +74,30 @@ public:
 
     bool is_inverse() const;
 
-protected:
     /**
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    explicit Fft(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft>(exec), buffer_{exec}, inverse_{}
-    {}
+    static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of the matrix
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Fft(std::shared_ptr<const Executor> exec, size_type size,
-        bool inverse = false)
-        : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
-    {}
+    static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec,
+                                       size_type size = 0,
+                                       bool inverse = false);
+
+protected:
+    Fft(std::shared_ptr<const Executor> exec, size_type size = 0,
+        bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -167,14 +141,12 @@ private:
  * @ingroup LinOp
  */
 class Fft2 : public EnableLinOp<Fft2>,
-             public EnableCreateMethod<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
     friend class EnablePolymorphicObject<Fft2, LinOp>;
-    friend class EnableCreateMethod<Fft2>;
 
 public:
     using EnableLinOp<Fft2>::convert_to;
@@ -200,24 +172,24 @@ public:
 
     bool is_inverse() const;
 
-protected:
     /**
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    explicit Fft2(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft2>(exec), buffer_{exec}, fft_size_{}, inverse_{}
-    {}
+    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of both FFT dimensions
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Fft2(std::shared_ptr<const Executor> exec, size_type size)
-        : Fft2{exec, size, size}
-    {}
+    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
+                                        size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -225,14 +197,16 @@ protected:
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Fft2(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         bool inverse = false)
-        : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
-          buffer_{exec},
-          fft_size_{size1, size2},
-          inverse_{inverse}
-    {}
+    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
+                                        size_type size1, size_type size2,
+                                        bool inverse = false);
+
+protected:
+    Fft2(std::shared_ptr<const Executor> exec, size_type size1 = 0,
+         size_type size2 = 0, bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -279,14 +253,12 @@ private:
  * @ingroup LinOp
  */
 class Fft3 : public EnableLinOp<Fft3>,
-             public EnableCreateMethod<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
     friend class EnablePolymorphicObject<Fft3, LinOp>;
-    friend class EnableCreateMethod<Fft3>;
 
 public:
     using EnableLinOp<Fft3>::convert_to;
@@ -312,24 +284,24 @@ public:
 
     bool is_inverse() const;
 
-protected:
     /**
      * Creates an empty Fourier matrix.
      *
      * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    explicit Fft3(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft3>(exec), buffer_{exec}, fft_size_{}, inverse_{}
-    {}
+    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of all FFT dimensions
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Fft3(std::shared_ptr<const Executor> exec, size_type size)
-        : Fft3{exec, size, size, size}
-    {}
+    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
+                                        size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -338,14 +310,16 @@ protected:
      * @param size2  size of the second FFT dimension
      * @param size3  size of the third FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
+     *
+     * @return A smart pointer to the newly created matrix.
      */
-    Fft3(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         size_type size3, bool inverse = false)
-        : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
-          buffer_{exec},
-          fft_size_{size1, size2, size3},
-          inverse_{inverse}
-    {}
+    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
+                                        size_type size1, size_type size2,
+                                        size_type size3, bool inverse = false);
+
+protected:
+    Fft3(std::shared_ptr<const Executor> exec, size_type size1 = 0,
+         size_type size2 = 0, size_type size3 = 0, bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

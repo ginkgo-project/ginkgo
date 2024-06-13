@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 template <typename ValueType>
 __dpct_inline__ void simple_apply_kernel(
@@ -89,6 +61,82 @@ __dpct_inline__ void advanced_apply_kernel(
 
         if (subgroup.get_local_id() == 0) {
             x[row] = temp + beta * x[row];
+        }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void scale_kernel(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    gko::batch::matrix::dense::batch_item<ValueType>& mat,
+    sycl::nd_item<3>& item_ct1)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroup = subgroup.get_group_range().size();
+
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
+        const ValueType row_scalar = row_scale[row];
+        for (int col = subgroup.get_local_id(); col < mat.num_cols;
+             col += subgroup_size) {
+            mat.values[row * mat.stride + col] *= row_scalar * col_scale[col];
+        }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void scale_add_kernel(
+    const ValueType alpha,
+    const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::dense::batch_item<ValueType>& in_out,
+    sycl::nd_item<3>& item_ct1)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroup = subgroup.get_group_range().size();
+
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
+        for (int col = subgroup.get_local_id(); col < mat.num_cols;
+             col += subgroup_size) {
+            in_out.values[row * in_out.stride + col] =
+                alpha * in_out.values[row * in_out.stride + col] +
+                mat.values[row * mat.stride + col];
+        }
+    }
+}
+
+
+template <typename ValueType>
+__dpct_inline__ void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::dense::batch_item<ValueType>& mat,
+    sycl::nd_item<3>& item_ct1)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto subg =
+        group::tiled_partition<tile_size>(group::this_thread_block(item_ct1));
+    const auto subgroup = static_cast<sycl::sub_group>(subg);
+    const int subgroup_id = subgroup.get_group_id();
+    const int subgroup_size = subgroup.get_local_range().size();
+    const int num_subgroup = subgroup.get_group_range().size();
+
+    for (int row = subgroup_id; row < mat.num_rows; row += num_subgroup) {
+        for (int col = subgroup.get_local_id(); col < mat.num_cols;
+             col += subgroup_size) {
+            mat.values[row * mat.stride + col] *= beta;
+            if (row == col) {
+                mat.values[row * mat.stride + col] += alpha;
+            }
         }
     }
 }

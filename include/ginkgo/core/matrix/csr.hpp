@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_CSR_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_CSR_HPP_
@@ -127,7 +99,6 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
-            public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
@@ -144,7 +115,6 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
-    friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -271,7 +241,7 @@ public:
                 row_ptrs_host = mtx_row_ptrs;
                 row_ptrs = row_ptrs_host.get_const_data();
             }
-            auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            auto num_rows = mtx_row_ptrs.get_size() - 1;
             max_length_per_row_ = 0;
             for (size_type i = 0; i < num_rows; i++) {
                 max_length_per_row_ = std::max(max_length_per_row_,
@@ -437,7 +407,7 @@ public:
         void process(const array<index_type>& mtx_row_ptrs,
                      array<index_type>* mtx_srow) override
         {
-            auto nwarps = mtx_srow->get_num_elems();
+            auto nwarps = mtx_srow->get_size();
 
             if (nwarps > 0) {
                 auto host_srow_exec = mtx_srow->get_executor()->get_master();
@@ -465,7 +435,7 @@ public:
                 for (size_type i = 0; i < nwarps; i++) {
                     srow[i] = 0;
                 }
-                const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+                const auto num_rows = mtx_row_ptrs.get_size() - 1;
                 const auto num_elems = row_ptrs[num_rows];
                 const auto bucket_divider =
                     num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
@@ -652,7 +622,7 @@ public:
                 row_ptrs_host = mtx_row_ptrs;
                 row_ptrs = row_ptrs_host.get_const_data();
             }
-            const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            const auto num_rows = mtx_row_ptrs.get_size() - 1;
             if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
                                              cuda_strategy_, strategy_name_);
@@ -953,7 +923,7 @@ public:
      */
     size_type get_num_srow_elements() const noexcept
     {
-        return srow_.get_num_elems();
+        return srow_.get_size();
     }
 
     /**
@@ -963,7 +933,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /** Returns the strategy
@@ -1013,6 +983,78 @@ public:
     }
 
     /**
+     * Creates an uninitialized CSR matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param strategy  the strategy of CSR
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
+                                       std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * Creates an uninitialized CSR matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of nonzeros
+     * @param strategy  the strategy of CSR, or the default strategy if set to
+     *                  nullptr
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy = nullptr);
+
+    /**
+     * Creates a CSR matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param values  array of matrix values
+     * @param col_idxs  array of column indexes
+     * @param row_ptrs  array of row pointers
+     * @param strategy  the strategy the matrix uses for SpMV operations
+     *
+     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
+     *       an array of IndexType, IndexType and ValueType, respectively, or
+     *       is on the wrong executor, an internal copy of that array will be
+     *       created, and the original array data will not be used in the
+     *       matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_ptrs,
+        std::shared_ptr<strategy_type> strategy = nullptr);
+
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, array<index_type>)
+     */
+    template <typename InputValueType, typename InputColumnIndexType,
+              typename InputRowPtrType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing "
+        "initializer lists")
+    static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::initializer_list<InputValueType> values,
+        std::initializer_list<InputColumnIndexType> col_idxs,
+        std::initializer_list<InputRowPtrType> row_ptrs)
+    {
+        return create(exec, size, array<value_type>{exec, std::move(values)},
+                      array<index_type>{exec, std::move(col_idxs)},
+                      array<index_type>{exec, std::move(row_ptrs)});
+    }
+
+    /**
      * Creates a constant (immutable) Csr matrix from a set of constant arrays.
      *
      * @param exec  the executor to create the matrix on
@@ -1024,35 +1066,15 @@ public:
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
+     *
+     * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Csr>(new Csr{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
-    }
-
-    /**
-     * This is version of create_const with a default strategy.
-     */
-    static std::unique_ptr<const Csr> create_const(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<ValueType>&& values,
-        gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_ptrs)
-    {
-        return Csr::create_const(exec, size, std::move(values),
-                                 std::move(col_idxs), std::move(row_ptrs),
-                                 Csr::make_default_strategy(exec));
-    }
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     /**
      * Creates a submatrix from this Csr matrix given row and column index_set
@@ -1109,108 +1131,14 @@ public:
     Csr(Csr&&);
 
 protected:
-    /**
-     * Creates an uninitialized CSR matrix of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param strategy  the strategy of CSR
-     */
-    Csr(std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy)
-        : Csr(std::move(exec), dim<2>{}, {}, std::move(strategy))
-    {}
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
-    /**
-     * Creates an uninitialized CSR matrix of the specified size with a user
-     * chosen strategy.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
-     * @param strategy  the strategy of CSR
-     */
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_nonzeros, std::shared_ptr<strategy_type> strategy)
-        : EnableLinOp<Csr>(exec, size),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1),
-          srow_(exec, strategy->clac_size(num_nonzeros)),
-          strategy_(strategy->copy())
-    {
-        row_ptrs_.fill(0);
-        this->make_srow();
-    }
-
-    /**
-     * Creates an uninitialized CSR matrix of the specified size with a
-     * default strategy.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_nonzeros  number of nonzeros
-     */
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {})
-        : Csr{exec, size, num_nonzeros, Csr::make_default_strategy(exec)}
-    {}
-
-    /**
-     * Creates a CSR matrix from already allocated (and initialized) row
-     * pointer, column index and value arrays.
-     *
-     * @tparam ValuesArray  type of `values` array
-     * @tparam ColIdxsArray  type of `col_idxs` array
-     * @tparam RowPtrsArray  type of `row_ptrs` array
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
-     * @param col_idxs  array of column indexes
-     * @param row_ptrs  array of row pointers
-     * @param strategy  the strategy the matrix uses for SpMV operations
-     *
-     * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
-     *       an array of IndexType, IndexType and ValueType, respectively, or
-     *       is on the wrong executor, an internal copy of that array will be
-     *       created, and the original array data will not be used in the
-     *       matrix.
-     */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowPtrsArray>
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy)
-        : EnableLinOp<Csr>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
-          srow_(exec),
-          strategy_(strategy->copy())
-    {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
-        this->make_srow();
-    }
-
-    /**
-     * Creates a CSR matrix from already allocated (and initialized) row
-     * pointer, column index and value arrays.
-     *
-     * @note This is the same as the previous constructor but with a default
-     *       strategy.
-     */
-    template <typename ValuesArray, typename ColIdxsArray,
-              typename RowPtrsArray>
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs)
-        : Csr{exec,
-              size,
-              std::forward<ValuesArray>(values),
-              std::forward<ColIdxsArray>(col_idxs),
-              std::forward<RowPtrsArray>(row_ptrs),
-              Csr::make_default_strategy(exec)}
-    {}
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_ptrs,
+        std::shared_ptr<strategy_type> strategy = nullptr);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -1344,7 +1272,7 @@ protected:
      */
     void make_srow()
     {
-        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
+        srow_.resize_and_reset(strategy_->clac_size(values_.get_size()));
         strategy_->process(row_ptrs_, &srow_);
     }
 
@@ -1365,11 +1293,11 @@ protected:
     virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
+    std::shared_ptr<strategy_type> strategy_;
     array<value_type> values_;
     array<index_type> col_idxs_;
     array<index_type> row_ptrs_;
     array<index_type> srow_;
-    std::shared_ptr<strategy_type> strategy_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };

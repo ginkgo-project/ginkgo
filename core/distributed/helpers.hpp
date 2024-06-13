@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_DISTRIBUTED_HELPERS_HPP_
 #define GKO_CORE_DISTRIBUTED_HELPERS_HPP_
@@ -38,8 +10,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/base/dispatch_helper.hpp"
 
 
 namespace gko {
@@ -166,6 +142,32 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
         }
     }
 }
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Specialization of run for distributed matrices.
+ */
+template <typename T, typename F, typename... Args>
+auto run_matrix(T* linop, F&& f, Args&&... args)
+{
+    using namespace gko::experimental::distributed;
+    return run<Matrix<double, int32, int32>, Matrix<double, int32, int64>,
+               Matrix<double, int64, int64>, Matrix<float, int32, int32>,
+               Matrix<float, int32, int64>, Matrix<float, int64, int64>,
+               Matrix<std::complex<double>, int32, int32>,
+               Matrix<std::complex<double>, int32, int64>,
+               Matrix<std::complex<double>, int64, int64>,
+               Matrix<std::complex<float>, int32, int32>,
+               Matrix<std::complex<float>, int32, int64>,
+               Matrix<std::complex<float>, int64, int64>>(
+        linop, std::forward<F>(f), std::forward<Args>(args)...);
+}
+
+
+#endif
 
 
 /**

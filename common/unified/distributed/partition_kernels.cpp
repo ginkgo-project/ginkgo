@@ -1,40 +1,13 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/partition_kernels.hpp"
 
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -57,9 +30,9 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
             auto prev_part = i == 0 ? comm_index_type{-1} : mapping[i - 1];
             return cur_part != prev_part ? 1 : 0;
         },
-        GKO_KERNEL_REDUCE_SUM(size_type), result.get_data(),
-        mapping.get_num_elems(), mapping);
-    num_ranges = exec->copy_val_to_host(result.get_const_data());
+        GKO_KERNEL_REDUCE_SUM(size_type), result.get_data(), mapping.get_size(),
+        mapping);
+    num_ranges = get_element(result, 0);
 }
 
 
@@ -80,8 +53,8 @@ void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
             bounds[i + 1] = ranges[i + 1];
             ids[i] = uses_mapping ? mapping[i] : i;
         },
-        ranges.get_num_elems() - 1, ranges, part_id_mapping, range_bounds,
-        part_ids, part_id_mapping.get_num_elems() > 0);
+        ranges.get_size() - 1, ranges, part_id_mapping, range_bounds, part_ids,
+        part_id_mapping.get_size() > 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_CONTIGUOUS);
@@ -93,7 +66,7 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                         GlobalIndexType* range_bounds,
                         comm_index_type* part_ids)
 {
-    array<size_type> range_starting_index{exec, mapping.get_num_elems() + 1};
+    array<size_type> range_starting_index{exec, mapping.get_size() + 1};
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto mapping, auto range_starting_index) {
@@ -102,9 +75,9 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
             const auto cur_part = mapping[i];
             range_starting_index[i] = cur_part != prev_part ? 1 : 0;
         },
-        mapping.get_num_elems(), mapping, range_starting_index);
+        mapping.get_size(), mapping, range_starting_index);
     components::prefix_sum_nonnegative(exec, range_starting_index.get_data(),
-                                       mapping.get_num_elems() + 1);
+                                       mapping.get_size() + 1);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto size, auto mapping,
@@ -122,7 +95,7 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
         },
-        mapping.get_num_elems() + 1, mapping.get_num_elems(), mapping,
+        mapping.get_size() + 1, mapping.get_size(), mapping,
         range_starting_index, range_bounds, part_ids);
 }
 
@@ -142,9 +115,9 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto size_per_part, auto rest, auto ranges) {
             ranges[i] = size_per_part + (i < rest ? 1 : 0);
         },
-        ranges.get_num_elems() - 1, size_per_part, rest, ranges.get_data());
+        ranges.get_size() - 1, size_per_part, rest, ranges.get_data());
     components::prefix_sum_nonnegative(exec, ranges.get_data(),
-                                       ranges.get_num_elems());
+                                       ranges.get_size());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_GLOBAL_SIZE);
@@ -172,8 +145,7 @@ void has_ordered_parts(
         },
         [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
         result_uint32.get_data(), num_ranges - 1, part_ids);
-    *result = static_cast<bool>(
-        exec->copy_val_to_host(result_uint32.get_const_data()));
+    *result = static_cast<bool>(get_element(result_uint32, 0));
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(

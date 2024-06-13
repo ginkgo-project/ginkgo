@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
@@ -65,6 +37,11 @@ public:
 
     explicit CustomLinOp(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<CustomLinOp>(exec)
+    {}
+
+    explicit CustomLinOp(std::shared_ptr<const gko::Executor> exec,
+                         gko::dim<2> size)
+        : gko::EnableLinOp<CustomLinOp>(exec, size)
     {}
 
 protected:
@@ -275,6 +252,37 @@ TYPED_TEST(MatrixBuilder, BuildWithCustomLinOp)
     ASSERT_NO_THROW(gko::as<custom_type>(mat->get_local_matrix()));
     this->expected_interface_no_throw(mat, gko::with_matrix_type<CustomLinOp>(),
                                       gko::with_matrix_type<CustomLinOp>());
+}
+
+
+TYPED_TEST(MatrixBuilder, BuildLocalOnly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::local_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using custom_type = CustomLinOp<value_type, index_type>;
+    using empty_non_local_type = gko::matrix::Coo<value_type, index_type>;
+    auto local_n = this->comm.rank() + 1;
+    // global_size = 1 + 2 + ... + num_rank
+    auto global_n = ((1 + this->comm.size()) * this->comm.size()) / 2;
+    auto a =
+        dist_vec_type::create(this->ref, this->comm, gko::dim<2>(global_n, 1),
+                              gko::dim<2>(local_n, 1));
+    auto b =
+        dist_vec_type::create(this->ref, this->comm, gko::dim<2>(global_n, 1),
+                              gko::dim<2>(local_n, 1));
+
+    auto mat = dist_mtx_type::create(
+        this->ref, this->comm, gko::dim<2>(global_n, global_n),
+        custom_type::create(this->ref, gko::dim<2>(local_n, local_n)));
+
+    ASSERT_NO_THROW(gko::as<custom_type>(mat->get_local_matrix()));
+    ASSERT_NE(mat->get_non_local_matrix(), nullptr);
+    ASSERT_NO_THROW(gko::as<empty_non_local_type>(mat->get_non_local_matrix()));
+    GKO_ASSERT_EQUAL_DIMENSIONS(mat->get_local_matrix()->get_size(),
+                                gko::dim<2>(local_n, local_n));
+    ASSERT_NO_THROW(mat->apply(a, b));
 }
 
 

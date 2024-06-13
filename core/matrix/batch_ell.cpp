@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
@@ -47,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -58,6 +31,10 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, batch_ell::simple_apply);
 GKO_REGISTER_OPERATION(advanced_apply, batch_ell::advanced_apply);
+GKO_REGISTER_OPERATION(scale, batch_ell::scale);
+GKO_REGISTER_OPERATION(check_diagonal_entries,
+                       csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_ell::add_scaled_identity);
 
 
 }  // namespace
@@ -101,6 +78,26 @@ Ell<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    const IndexType num_elems_per_row)
+{
+    return std::unique_ptr<Ell>{new Ell{exec, size, num_elems_per_row}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Ell<ValueType, IndexType>> Ell<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+    const IndexType num_elems_per_row, array<value_type> values,
+    array<index_type> col_idxs)
+{
+    return std::unique_ptr<Ell>{new Ell{
+        exec, size, num_elems_per_row, std::move(values), std::move(col_idxs)}};
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<const Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_const(
     std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
@@ -127,6 +124,25 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
       values_(exec, compute_num_elems(size, num_elems_per_row_)),
       col_idxs_(exec, this->get_common_size()[0] * num_elems_per_row_)
 {}
+
+
+template <typename ValueType, typename IndexType>
+Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
+                               const batch_dim<2>& size,
+                               const IndexType num_elems_per_row,
+                               array<value_type> values,
+                               array<index_type> col_idxs)
+    : EnableBatchLinOp<Ell>(exec, size),
+      num_elems_per_row_{num_elems_per_row},
+      values_{exec, std::move(values)},
+      col_idxs_{exec, std::move(col_idxs)}
+{
+    // Ensure that the value and col_idxs arrays have the correct size
+    auto num_elems = this->get_common_size()[0] * num_elems_per_row *
+                     this->get_num_batch_items();
+    GKO_ASSERT_EQ(num_elems, values_.get_size());
+    GKO_ASSERT_EQ(this->get_num_elements_per_item(), col_idxs_.get_size());
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -207,6 +223,47 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector<ValueType>* alpha,
 {
     this->get_executor()->run(
         ell::make_advanced_apply(alpha, this, b, beta, x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::scale(const array<ValueType>& row_scale,
+                                      const array<ValueType>& col_scale)
+{
+    GKO_ASSERT_EQ(col_scale.get_size(),
+                  (this->get_common_size()[1] * this->get_num_batch_items()));
+    GKO_ASSERT_EQ(row_scale.get_size(),
+                  (this->get_common_size()[0] * this->get_num_batch_items()));
+    auto exec = this->get_executor();
+    exec->run(ell::make_scale(make_temporary_clone(exec, &col_scale).get(),
+                              make_temporary_clone(exec, &row_scale).get(),
+                              this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::add_scaled_identity(
+    ptr_param<const MultiVector<ValueType>> alpha,
+    ptr_param<const MultiVector<ValueType>> beta)
+{
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(alpha, beta);
+    GKO_ASSERT_BATCH_EQUAL_NUM_ITEMS(this, beta);
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha->get_common_size(), gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(beta->get_common_size(), gko::dim<2>(1, 1));
+    auto exec = this->get_executor();
+
+    auto csr_mat = gko::matrix::Csr<ValueType, IndexType>::create(exec);
+    this->create_const_view_for_item(0)->convert_to(csr_mat);
+
+    bool has_all_diags{false};
+    exec->run(ell::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    if (!has_all_diags) {
+        GKO_UNSUPPORTED_MATRIX_PROPERTY(
+            "The matrix is missing one or more diagonal entries!");
+    }
+    exec->run(ell::make_add_scaled_identity(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, beta).get(), this));
 }
 
 

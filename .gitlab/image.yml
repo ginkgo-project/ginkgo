@@ -74,20 +74,20 @@
     - private_ci
     - amd-gpu
 
-.use_gko-rocm502-nompi-gnu11-llvm11:
-  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
+.use_gko-rocm514-nompi-gnu11-llvm11:
+  image: ginkgohub/rocm:514-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amd-gpu
 
-.use_gko-oneapi-cpu:
-  image: ginkgohub/oneapi:2022.1
-  tags:
-    - private_ci
-    - fairrs
-
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest
+  tags:
+    - private_ci
+    - intel-igpu
+
+.use_gko-oneapi20231-igpu:
+  image: ginkgohub/spack-oneapi:20231-openmpi
   tags:
     - private_ci
     - intel-igpu

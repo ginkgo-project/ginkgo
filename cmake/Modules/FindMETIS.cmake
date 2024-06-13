@@ -45,16 +45,24 @@ if (METIS_INCLUDE_DIR)
     string(REGEX REPLACE "^#define[\t ]+METIS_VER_MINOR[\t ]+([0-9]+).*" "\\1" METIS_VERSION_MINOR "${metis_version_str_minor}")
     set(METIS_VERSION ${METIS_VERSION_MAJOR}.${METIS_VERSION_MINOR})
     find_library(METIS_LIBRARY ${METIS_LIB_NAME} HINTS ${METIS_DIR} ENV METIS_DIR PATH_SUFFIXES lib lib64)
+    if (METIS_VERSION VERSION_GREATER_EQUAL 5.0)
+        find_library(METIS_GKLIB_LIBRARY GKlib HINTS ${METIS_DIR} ENV METIS_DIR PATH_SUFFIXES lib lib64)
+    else()
+        # set it to a non-empty value to satisfy find_package_handle_standard_args
+        set(METIS_GKLIB_LIBRARY libGKlib.so)
+    endif()
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(METIS REQUIRED_VARS METIS_LIBRARY METIS_INCLUDE_DIR VERSION_VAR METIS_VERSION)
+find_package_handle_standard_args(METIS REQUIRED_VARS METIS_LIBRARY METIS_GKLIB_LIBRARY METIS_INCLUDE_DIR VERSION_VAR METIS_VERSION)
 
 if(METIS_FOUND)
     set(METIS_LIBRARIES ${METIS_LIBRARY})
+    set(METIS_GKLIB_LIBRARIES ${METIS_GKLIB_LIBRARY})
     set(METIS_INCLUDE_DIRS ${METIS_INCLUDE_DIR})
     unset(METIS_LIBRARY)
     unset(METIS_INCLUDE_DIR)
+    unset(METIS_GKLIB_LIBRARY)
 
     if(NOT TARGET METIS::METIS)
         add_library(METIS::METIS UNKNOWN IMPORTED)
@@ -63,5 +71,13 @@ if(METIS_FOUND)
         set_target_properties(METIS::METIS PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             IMPORTED_LOCATION "${METIS_LIBRARIES}")
+        if (METIS_VERSION VERSION_GREATER_EQUAL 5.0)
+            add_library(METIS::GKlib UNKNOWN IMPORTED)
+            set_target_properties(METIS::GKlib PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                IMPORTED_LOCATION "${METIS_GKLIB_LIBRARIES}")
+            set_target_properties(METIS::METIS PROPERTIES
+                IMPORTED_LINK_INTERFACE_LIBRARIES METIS::GKlib)
+        endif()
     endif()
 endif()

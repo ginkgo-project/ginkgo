@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "common/unified/base/kernel_launch.hpp"
 
@@ -48,6 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
+#include "core/base/array_access.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -139,7 +112,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, size_type dim, int* data)
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    run1d(exec, zero_array.get_num_elems(), zero_array.get_data());
+    run1d(exec, zero_array.get_size(), zero_array.get_data());
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -160,7 +133,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::array<int>& data)
                 d[i] = 0;
             }
         },
-        data.get_num_elems(), data, data.get_const_data(), move_only_val);
+        data.get_size(), data, data.get_const_data(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs1DArray)
@@ -324,7 +297,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         size_type{100000}, output, move_only_val);
 
     // 2 * sum i=0...99999 (i+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10000100000LL);
+    ASSERT_EQ(get_element(output, 0), 10000100000LL);
 
     gko::kernels::cuda::run_kernel_reduction(
         exec,
@@ -346,7 +319,7 @@ void run1d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         int64{}, output.get_data(), size_type{100}, output, move_only_val);
 
     // 2 * sum i=0...99 (i+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10100LL);
+    ASSERT_EQ(get_element(output, 0), 10100LL);
 }
 
 TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
@@ -378,7 +351,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         move_only_val);
 
     // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 10110100000LL);
+    ASSERT_EQ(get_element(output, 0), 10110100000LL);
 
     gko::kernels::cuda::run_kernel_reduction(
         exec,
@@ -401,7 +374,7 @@ void run2d_reduction(std::shared_ptr<gko::CudaExecutor> exec)
         int64{}, output.get_data(), gko::dim<2>{10, 10}, output, move_only_val);
 
     // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-    ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), 12100LL);
+    ASSERT_EQ(get_element(output, 0), 12100LL);
 }
 
 TEST_F(KernelLaunch, Reduction2D) { run2d_reduction(exec); }

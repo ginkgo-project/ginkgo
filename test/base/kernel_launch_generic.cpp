@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "common/unified/base/kernel_launch.hpp"
 
@@ -49,6 +21,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
+#include "core/base/array_access.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
@@ -148,7 +121,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, size_type dim, int* data)
 
 TEST_F(KernelLaunch, Runs1D)
 {
-    run1d(exec, zero_array.get_num_elems(), zero_array.get_data());
+    run1d(exec, zero_array.get_size(), zero_array.get_data());
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -169,7 +142,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, gko::array<int>& data)
                 d[i] = 0;
             }
         },
-        data.get_num_elems(), data, data.get_const_data(), move_only_val);
+        data.get_size(), data, data.get_const_data(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs1DArray)
@@ -341,15 +314,14 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Size 0");
         run_reduction(int64{0}, size_type{0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(get_element(output, 0), int64{0});
     }
 
     {
         SCOPED_TRACE("Size 100000");
         run_reduction(int64{0}, size_type{100000});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10000100000});
+        ASSERT_EQ(get_element(output, 0), int64{10000100000});
     }
 
     {
@@ -357,8 +329,7 @@ void run1d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, size_type{100});
 
         // 2 * sum i=0...99 (i+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10100});
+        ASSERT_EQ(get_element(output, 0), int64{10100});
     }
 }
 
@@ -378,11 +349,10 @@ void run1d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
             size, temp);
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  static_cast<int64>(size));
+        ASSERT_EQ(get_element(output, 0), static_cast<int64>(size));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), size * sizeof(int64));
+        ASSERT_LE(temp.get_size(), size * sizeof(int64));
     }
 }
 
@@ -421,21 +391,21 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         SCOPED_TRACE("Dim 0x0");
         run_reduction(int64{0}, gko::dim<2>{0, 0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(get_element(output, 0), int64{0});
     }
 
     {
         SCOPED_TRACE("Dim 0x10");
         run_reduction(int64{0}, gko::dim<2>{0, 10});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(get_element(output, 0), int64{0});
     }
 
     {
         SCOPED_TRACE("Dim 10x0");
         run_reduction(int64{0}, gko::dim<2>{10, 0});
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()), int64{0});
+        ASSERT_EQ(get_element(output, 0), int64{0});
     }
 
     {
@@ -443,8 +413,7 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, gko::dim<2>{1000, 100});
 
         // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{10110100000});
+        ASSERT_EQ(get_element(output, 0), int64{10110100000});
     }
 
     {
@@ -452,8 +421,7 @@ void run2d_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         run_reduction(int64{0}, gko::dim<2>{10, 10});
 
         // 4 * sum i=0...9 sum j=0...9 of (i+1)*(j+1)
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  int64{12100});
+        ASSERT_EQ(get_element(output, 0), int64{12100});
     }
 }
 
@@ -473,11 +441,10 @@ void run2d_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             [] GKO_KERNEL(auto j) { return j; }, int64{}, output.get_data(),
             dim, temp);
 
-        ASSERT_EQ(exec->copy_val_to_host(output.get_const_data()),
-                  static_cast<int64>(dim[0] + dim[1]));
+        ASSERT_EQ(get_element(output, 0), static_cast<int64>(dim[0] + dim[1]));
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -556,7 +523,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         gko::array<int64> host_ref{exec->get_master(), dim[0]};
         gko::array<int64> output{exec, host_ref};
         temp.clear();
-        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+        for (int64 i = 0; i < host_ref.get_size(); ++i) {
             host_ref.get_data()[i] = dim[1] + i + 1;
         }
 
@@ -569,7 +536,7 @@ void run2d_row_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
         // The temporary storage (used for partial sums) must be smaller than
         // the input array
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 
@@ -649,7 +616,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
         gko::array<int64> host_ref{exec->get_master(), dim[1]};
         gko::array<int64> output{exec, host_ref};
         temp.clear();
-        for (int64 i = 0; i < host_ref.get_num_elems(); ++i) {
+        for (int64 i = 0; i < host_ref.get_size(); ++i) {
             host_ref.get_data()[i] = dim[0] + i + 1;
         }
 
@@ -660,7 +627,7 @@ void run2d_col_reduction_cached(std::shared_ptr<gko::EXEC_TYPE> exec,
             dim, temp);
 
         GKO_ASSERT_ARRAY_EQ(host_ref, output);
-        ASSERT_LE(temp.get_num_elems(), dim[0] * dim[1] * sizeof(int64));
+        ASSERT_LE(temp.get_size(), dim[0] * dim[1] * sizeof(int64));
     }
 }
 

@@ -1,46 +1,18 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
-
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
 template <size_type block_size, typename ValueType>
-void initialize_kernel(
-    size_type num_rows, size_type num_cols, size_type krylov_dim,
-    const ValueType *__restrict__ b, size_type stride_b,
-    ValueType *__restrict__ residual, size_type stride_residual,
-    ValueType *__restrict__ givens_sin, size_type stride_sin,
-    ValueType *__restrict__ givens_cos, size_type stride_cos,
-    stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+void initialize_kernel(size_type num_rows, size_type num_cols,
+                       size_type krylov_dim, const ValueType* __restrict__ b,
+                       size_type stride_b, ValueType* __restrict__ residual,
+                       size_type stride_residual,
+                       ValueType* __restrict__ givens_sin, size_type stride_sin,
+                       ValueType* __restrict__ givens_cos, size_type stride_cos,
+                       stopping_status* __restrict__ stop_status,
+                       sycl::nd_item<3> item_ct1)
 {
     const auto global_id = thread::get_thread_id_flat(item_ct1);
 
@@ -67,15 +39,15 @@ void initialize_kernel(
 
 template <size_type block_size, typename ValueType>
 void initialize_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                         sycl::queue *queue, size_type num_rows,
-                         size_type num_cols, size_type krylov_dim,
-                         const ValueType *b, size_type stride_b,
-                         ValueType *residual, size_type stride_residual,
-                         ValueType *givens_sin, size_type stride_sin,
-                         ValueType *givens_cos, size_type stride_cos,
-                         stopping_status *stop_status)
+                       sycl::queue* queue, size_type num_rows,
+                       size_type num_cols, size_type krylov_dim,
+                       const ValueType* b, size_type stride_b,
+                       ValueType* residual, size_type stride_residual,
+                       ValueType* givens_sin, size_type stride_sin,
+                       ValueType* givens_cos, size_type stride_cos,
+                       stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 initialize_kernel<block_size>(
@@ -89,12 +61,12 @@ void initialize_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <typename ValueType>
 void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
-                                  size_type iter, const ValueType &this_hess,
-                                  const ValueType &next_hess,
-                                  ValueType *givens_sin, size_type stride_sin,
-                                  ValueType *givens_cos, size_type stride_cos,
-                                  ValueType &register_sin,
-                                  ValueType &register_cos)
+                                  size_type iter, const ValueType& this_hess,
+                                  const ValueType& next_hess,
+                                  ValueType* givens_sin, size_type stride_sin,
+                                  ValueType* givens_cos, size_type stride_cos,
+                                  ValueType& register_sin,
+                                  ValueType& register_cos)
 {
     if (is_zero(this_hess)) {
         register_cos = zero<ValueType>();
@@ -117,10 +89,10 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
 template <typename ValueType>
 void calculate_residual_norm_kernel(size_type col_idx, size_type num_cols,
                                     size_type iter,
-                                    const ValueType &register_sin,
-                                    const ValueType &register_cos,
-                                    remove_complex<ValueType> *residual_norm,
-                                    ValueType *residual_norm_collection,
+                                    const ValueType& register_sin,
+                                    const ValueType& register_cos,
+                                    remove_complex<ValueType>* residual_norm,
+                                    ValueType* residual_norm_collection,
                                     size_type stride_residual_norm_collection)
 {
     const auto this_rnc =
@@ -140,13 +112,13 @@ void calculate_residual_norm_kernel(size_type col_idx, size_type num_cols,
 template <size_type block_size, typename ValueType>
 void givens_rotation_kernel(
     size_type num_rows, size_type num_cols, size_type iter,
-    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    ValueType *__restrict__ givens_sin, size_type stride_sin,
-    ValueType *__restrict__ givens_cos, size_type stride_cos,
-    remove_complex<ValueType> *__restrict__ residual_norm,
-    ValueType *__restrict__ residual_norm_collection,
+    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+    ValueType* __restrict__ givens_sin, size_type stride_sin,
+    ValueType* __restrict__ givens_cos, size_type stride_cos,
+    remove_complex<ValueType>* __restrict__ residual_norm,
+    ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const stopping_status *__restrict__ stop_status, sycl::nd_item<3> item_ct1)
+    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1)
 {
     const auto col_idx = thread::get_thread_id_flat(item_ct1);
 
@@ -195,18 +167,18 @@ void givens_rotation_kernel(
 
 template <size_type block_size, typename ValueType>
 void givens_rotation_kernel(dim3 grid, dim3 block,
-                            size_type dynamic_shared_memory, sycl::queue *queue,
+                            size_type dynamic_shared_memory, sycl::queue* queue,
                             size_type num_rows, size_type num_cols,
-                            size_type iter, ValueType *hessenberg_iter,
-                            size_type stride_hessenberg, ValueType *givens_sin,
-                            size_type stride_sin, ValueType *givens_cos,
+                            size_type iter, ValueType* hessenberg_iter,
+                            size_type stride_hessenberg, ValueType* givens_sin,
+                            size_type stride_sin, ValueType* givens_cos,
                             size_type stride_cos,
-                            remove_complex<ValueType> *residual_norm,
-                            ValueType *residual_norm_collection,
+                            remove_complex<ValueType>* residual_norm,
+                            ValueType* residual_norm_collection,
                             size_type stride_residual_norm_collection,
-                            const stopping_status *stop_status)
+                            const stopping_status* stop_status)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 givens_rotation_kernel<block_size>(
@@ -223,11 +195,11 @@ void givens_rotation_kernel(dim3 grid, dim3 block,
 template <size_type block_size, typename ValueType>
 void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
-    const ValueType *__restrict__ residual_norm_collection,
+    const ValueType* __restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ hessenberg, size_type stride_hessenberg,
-    ValueType *__restrict__ y, size_type stride_y,
-    const size_type *__restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
+    const ValueType* __restrict__ hessenberg, size_type stride_hessenberg,
+    ValueType* __restrict__ y, size_type stride_y,
+    const size_type* __restrict__ final_iter_nums, sycl::nd_item<3> item_ct1)
 {
     const auto col_idx = thread::get_thread_id_flat(item_ct1);
 
@@ -253,14 +225,14 @@ void solve_upper_triangular_kernel(
 
 template <size_type block_size, typename ValueType>
 void solve_upper_triangular_kernel(
-    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue *queue,
+    dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     size_type num_cols, size_type num_rhs,
-    const ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection, const ValueType *hessenberg,
-    size_type stride_hessenberg, ValueType *y, size_type stride_y,
-    const size_type *final_iter_nums)
+    const ValueType* residual_norm_collection,
+    size_type stride_residual_norm_collection, const ValueType* hessenberg,
+    size_type stride_hessenberg, ValueType* y, size_type stride_y,
+    const size_type* final_iter_nums)
 {
-    queue->submit([&](sycl::handler &cgh) {
+    queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 solve_upper_triangular_kernel<block_size>(

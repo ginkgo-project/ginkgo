@@ -31,6 +31,21 @@ test_framework.compare_output(
     expected_stderr="preconditioner.matrix.stderr",
 )
 
+# set preconditioner works
+test_framework.compare_output(
+    [
+        "-preconditioners",
+        "jacobi",
+        "-jacobi_max_block_size",
+        "32",
+        "-jacobi_storage",
+        "0,0",
+        "-input",
+        '[{"size": 100, "stencil": "7pt"}]'],
+    expected_stdout="preconditioner.precond.stdout",
+    expected_stderr="preconditioner.precond.stderr",
+)
+
 # profiler annotations
 test_framework.compare_output(
     [

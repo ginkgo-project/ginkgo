@@ -10,6 +10,7 @@ target_sources(ginkgo_omp
     base/scoped_device_id.cpp
     base/version.cpp
     components/prefix_sum_kernels.cpp
+    distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
@@ -23,6 +24,7 @@ target_sources(ginkgo_omp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
+    matrix/batch_csr_kernels.cpp
     matrix/batch_dense_kernels.cpp
     matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
@@ -35,10 +37,12 @@ target_sources(ginkgo_omp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
+    preconditioner/batch_jacobi_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/batch_bicgstab_kernels.cpp
+    solver/batch_cg_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/lower_trs_kernels.cpp
@@ -77,7 +81,6 @@ target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 # and the compiler is unhappy with the quotation marks.
 separate_arguments(OpenMP_SEP_FLAGS NATIVE_COMMAND "${OpenMP_CXX_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_SEP_FLAGS}")
-target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_cuda)

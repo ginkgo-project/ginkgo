@@ -18,6 +18,7 @@ target_sources(ginkgo_dpcpp
     base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
+    distributed/index_map_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_helpers_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
@@ -36,6 +37,7 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
+    matrix/batch_csr_kernels.dp.cpp
     matrix/batch_dense_kernels.dp.cpp
     matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
@@ -48,6 +50,7 @@ target_sources(ginkgo_dpcpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp
     multigrid/pgm_kernels.dp.cpp
+    preconditioner/batch_jacobi_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_advanced_apply_kernel.dp.cpp
     preconditioner/jacobi_generate_kernel.dp.cpp
@@ -55,6 +58,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
+    solver/batch_cg_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
@@ -97,7 +101,6 @@ target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 # If we would like to use SOURCES, please use the new files copied from GKO_UNIFIED_COMMON_SOURCES.
 # Otherwise, the source's properties will be changed by add_sycl_to_target
 gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
-target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)

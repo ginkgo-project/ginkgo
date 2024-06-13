@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_ROW_GATHERER_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_ROW_GATHERER_HPP_
@@ -69,9 +41,7 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class RowGatherer : public EnableLinOp<RowGatherer<IndexType>>,
-                    public EnableCreateMethod<RowGatherer<IndexType>> {
-    friend class EnableCreateMethod<RowGatherer>;
+class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {
     friend class EnablePolymorphicObject<RowGatherer, LinOp>;
 
 public:
@@ -97,6 +67,35 @@ public:
     }
 
     /**
+     * Creates uninitialized RowGatherer arrays of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the RowGatherable matrix
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {});
+
+    /**
+     * Creates a RowGatherer matrix from an already allocated (and initialized)
+     * row gathering array
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the rowgatherer array.
+     * @param row_idxs array of rowgatherer array
+     *
+     * @note If `row_idxs` is not an rvalue, not an array of
+     * IndexType, or is on the wrong executor, an internal copy will be created,
+     * and the original array data will not be used in the matrix.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<index_type> row_idxs);
+
+    /**
      * Creates a constant (immutable) RowGatherer matrix from a constant array.
      *
      * @param exec  the executor to create the matrix on
@@ -108,56 +107,13 @@ public:
      */
     static std::unique_ptr<const RowGatherer> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<IndexType>&& row_idxs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const RowGatherer>(new RowGatherer{
-            exec, size, gko::detail::array_const_cast(std::move(row_idxs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
-    /**
-     * Creates an uninitialized RowGatherer arrays on the specified executor.
-     *
-     * @param exec  Executor associated to the LinOp
-     */
-    RowGatherer(std::shared_ptr<const Executor> exec)
-        : RowGatherer(std::move(exec), dim<2>{})
-    {}
+    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
-    /**
-     * Creates uninitialized RowGatherer arrays of the specified size.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the RowGatherable matrix
-     */
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size)
-        : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
-    {}
-
-    /**
-     * Creates a RowGatherer matrix from an already allocated (and initialized)
-     * row gathering array
-     *
-     * @tparam IndicesArray  type of array of indices
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the rowgatherer array.
-     * @param row_idxs array of rowgatherer array
-     *
-     * @note If `row_idxs` is not an rvalue, not an array of
-     * IndexType, or is on the wrong executor, an internal copy will be created,
-     * and the original array data will not be used in the matrix.
-     */
-    template <typename IndicesArray>
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& row_idxs)
-        : EnableLinOp<RowGatherer>(exec, size),
-          row_idxs_{exec, std::forward<IndicesArray>(row_idxs)}
-    {
-        GKO_ASSERT_EQ(size[0], row_idxs_.get_num_elems());
-    }
+                array<index_type> row_idxs);
 
     void apply_impl(const LinOp* in, LinOp* out) const override;
 

@@ -15,6 +15,8 @@ convert_header () {
             fi
         elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
+        elif [ "${header_file}" = "extensions/test/config/file_location.hpp" ]; then
+            echo "#include \"${header_file}\""
 	    elif [[ "${header_file}" =~ ${jacobi_regex} ]]; then
             echo "#include \"${header_file}\""
         else
@@ -183,205 +185,209 @@ if ! head -n -1 .dummy_file &> /dev/null; then
 fi
 rm .dummy_file
 
-if [ -z "$1" ]; then
-    echo "Usage: $0 path/to/file"
-    exit 1
-fi
+for current_file in $@; do
+    if [ -z "${current_file}" ]; then
+        echo "Usage: $0 path/to/fileA path/to/fileB ..."
+        exit 1
+    fi
 
-if [ ! -f "$1" ]; then
-    echo "${1} does not exist or it is not a file."
-    exit 1
-fi
+    if [ ! -f "${current_file}" ]; then
+        echo "${current_file} does not exist or it is not a file."
+        exit 1
+    fi
 
-GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
+    GINKGO_LICENSE_BEGIN="// SPDX-FileCopyrightText:"
+    GINKGO_LICENSE_END="// SPDX-License-Identifier:"
 
-CONTENT="content.cpp" # Store the residual part (start from namespace)
-BEFORE="before.cpp" # Store the main header and the #ifdef/#define of header file
-HAS_HIP_RUNTIME="false"
-DURING_LICENSE="false"
-INCLUDE_REGEX="^#include.*"
-INCLUDE_INC="\.inc"
-MAIN_PART_MATCH=""
+    CONTENT="content.cpp" # Store the residual part (start from namespace)
+    BEFORE="before.cpp" # Store the main header and the #ifdef/#define of header file
+    HAS_HIP_RUNTIME="false"
+    DURING_LICENSE="false"
+    INCLUDE_REGEX="^#include.*"
+    INCLUDE_INC="\.inc"
+    MAIN_PART_MATCH=""
 
-# FORCE_TOP_ON/OFF is only valid before other #include
-FORCE_TOP_ON="// force-top: on"
-FORCE_TOP_OFF="// force-top: off"
-FORCE_TOP="force_top"
-DURING_FORCE_TOP="false"
+    # FORCE_TOP_ON/OFF is only valid before other #include
+    FORCE_TOP_ON="// force-top: on"
+    FORCE_TOP_OFF="// force-top: off"
+    FORCE_TOP="force_top"
+    DURING_FORCE_TOP="false"
 
-get_include_regex "$1" MAIN_PART_MATCH
-HEADER_DEF=$(get_header_def "$1")
+    get_include_regex "${current_file}" MAIN_PART_MATCH
+    HEADER_DEF=$(get_header_def "${current_file}")
 
-IFNDEF=""
-DEFINE=""
-IFNDEF_REGEX="^#ifndef GKO_"
-DEFINE_REGEX="^#define GKO_"
-HEADER_REGEX="\.(hpp|cuh)"
-SKIP="true"
-START_BLOCK_REX="^(#if| *\/\*)"
-END_BLOCK_REX="^#endif|\*\/$"
-ENDIF_REX="^#endif"
-IN_BLOCK=0
-KEEP_LINES=0
-LAST_NONEMPTY=""
-ALARM=""
-COMMENT_REGEX="^ *\/\/"
-CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_REGEX}"
+    IFNDEF=""
+    DEFINE=""
+    IFNDEF_REGEX="^#ifndef GKO_"
+    DEFINE_REGEX="^#define GKO_"
+    HEADER_REGEX="\.(hpp|cuh)"
+    SKIP="true"
+    START_BLOCK_REX="^(#if| *\/\*)"
+    END_BLOCK_REX="^#endif|\*\/$"
+    ENDIF_REX="^#endif"
+    IN_BLOCK=0
+    KEEP_LINES=0
+    LAST_NONEMPTY=""
+    ALARM=""
+    COMMENT_REGEX="^ *\/\/"
+    CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_REGEX}"
 
-# This part capture the main header and give the possible fail arrangement information
-while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
-        DURING_LICENSE="true"
-        if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
-            DURING_LICENSE="false"
-            SKIP="true"
+    # This part capture the main header and give the possible fail arrangement information
+    while IFS='' read -r line || [ -n "$line" ]; do
+        if [[ "${line}" =~ ${GINKGO_LICENSE_BEGIN}  ]] || [ "${DURING_LICENSE}" = "true" ]; then
+            DURING_LICENSE="true"
+            if [[ "${line}" =~ ${GINKGO_LICENSE_END} ]]; then
+                DURING_LICENSE="false"
+                SKIP="true"
+            fi
+        elif [ "${SKIP}" = "true" ] && ([ "$line" = "${FORCE_TOP_ON}" ] || [ "${DURING_FORCE_TOP}" = "true" ]); then
+            DURING_FORCE_TOP="true"
+            if [ "$line" = "${FORCE_TOP_OFF}" ]; then
+                DURING_FORCE_TOP="false"
+            fi
+            if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
+                line="$(convert_header "${line}")"
+            fi
+            echo "$line" >> "${FORCE_TOP}"
+        elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
+        # Ignore all empty lines between LICENSE and Header
+            :
+        else
+            if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
+                line="$(convert_header "${line}")"
+            fi
+            if [ -z "${line}" ]; then
+                KEEP_LINES=$((KEEP_LINES+1))
+            else
+                LAST_NONEMPTY="${line}"
+                KEEP_LINES=0
+            fi
+            if [[ "${current_file}" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${IFNDEF_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -z "${DEFINE}" ]; then
+                IFNDEF="${line}"
+            elif [[ "${current_file}" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -n "${IFNDEF}" ]; then
+                DEFINE="${line}"
+            elif [ -z "${MAIN_PART_MATCH}" ] || [[ ! "${line}" =~ ${MAIN_PART_MATCH} ]] || [[ "${IN_BLOCK}" -gt 0 ]]; then
+                echo "${line}" >> "${CONTENT}"
+                SKIP="false"
+                if [[ "${line}" =~ $START_BLOCK_REX ]]; then
+                    # keep everything in #if block and /* block
+                    IN_BLOCK=$((IN_BLOCK+1))
+                    if [ -z "${ALARM}" ]; then
+                        ALARM="set"
+                    fi
+                fi
+                if [[ "${IN_BLOCK}" = "0" ]] && [ -n "${line}" ] && [[ ! "${line}" =~ ${CONSIDER_REGEX} ]]; then
+                    if [ "${ALARM}" = "set" ]; then
+                        ALARM="true"
+                    elif [ -z "${ALARM}" ]; then
+                        ALARM="false"
+                    fi
+                fi
+                if [[ "${line}" =~ $END_BLOCK_REX ]]; then
+                    IN_BLOCK=$((IN_BLOCK-1))
+                fi
+            else
+                echo "${line}" >> ${BEFORE}
+            fi
         fi
-    elif [ "${SKIP}" = "true" ] && ([ "$line" = "${FORCE_TOP_ON}" ] || [ "${DURING_FORCE_TOP}" = "true" ]); then
-        DURING_FORCE_TOP="true"
-        if [ "$line" = "${FORCE_TOP_OFF}" ]; then
-            DURING_FORCE_TOP="false"
-        fi
-        if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header "${line}")"
-        fi
-        echo "$line" >> "${FORCE_TOP}"
-    elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
-    # Ignore all empty lines between LICENSE and Header
+    done < "${current_file}"
+    if [ "${ALARM}" = "true" ]; then
+        echo "Warning ${current_file}: sorting is probably incorrect"
+    fi
+
+    # Write license
+    CURRENT_YEAR=$(date +%Y)
+    echo "${GINKGO_LICENSE_BEGIN} 2017 - ${CURRENT_YEAR} The Ginkgo authors" > "${current_file}"
+    echo "//" >> "${current_file}"
+    echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "${current_file}"
+    echo "" >> "${current_file}"
+
+    # Write the definition of header according to path
+    if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
+        IFNDEF="#ifndef ${HEADER_DEF}"
+        DEFINE="#define ${HEADER_DEF}"
+    elif [ -z "${IFNDEF}" ] && [ -z "${DEFINE}" ]; then
         :
     else
-        if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header "${line}")"
-        fi
-        if [ -z "${line}" ]; then
-            KEEP_LINES=$((KEEP_LINES+1))
-        else
-            LAST_NONEMPTY="${line}"
-            KEEP_LINES=0
-        fi
-        if [[ "$1" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${IFNDEF_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -z "${DEFINE}" ]; then
-            IFNDEF="${line}"
-        elif [[ "$1" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -n "${IFNDEF}" ]; then
-            DEFINE="${line}"
-        elif [ -z "${MAIN_PART_MATCH}" ] || [[ ! "${line}" =~ ${MAIN_PART_MATCH} ]] || [[ "${IN_BLOCK}" -gt 0 ]]; then
-            echo "${line}" >> "${CONTENT}"
-            SKIP="false"
-            if [[ "${line}" =~ $START_BLOCK_REX ]]; then
-                # keep everything in #if block and /* block
-                IN_BLOCK=$((IN_BLOCK+1))
-                if [ -z "${ALARM}" ]; then
-                    ALARM="set"
-                fi
-            fi
-            if [[ "${IN_BLOCK}" = "0" ]] && [ -n "${line}" ] && [[ ! "${line}" =~ ${CONSIDER_REGEX} ]]; then
-                if [ "${ALARM}" = "set" ]; then
-                    ALARM="true"
-                elif [ -z "${ALARM}" ]; then
-                    ALARM="false"
-                fi
-            fi
-            if [[ "${line}" =~ $END_BLOCK_REX ]]; then
-                IN_BLOCK=$((IN_BLOCK-1))
-            fi
-        else
-            echo "${line}" >> ${BEFORE}
-        fi
+        echo "Warning ${current_file}: only #ifndef GKO_ or #define GKO_ is in the header"
     fi
-done < "$1"
-if [ "${ALARM}" = "true" ]; then
-    echo "Warning $1: sorting is probably incorrect"
-fi
-
-# Write license
-echo "/*${GINKGO_LICENSE_BEACON}" > "$1"
-cat LICENSE >> "$1"
-echo "${GINKGO_LICENSE_BEACON}*/" >> "$1"
-echo "" >> "$1"
-
-# Write the definition of header according to path
-if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
-    IFNDEF="#ifndef ${HEADER_DEF}"
-    DEFINE="#define ${HEADER_DEF}"
-elif [ -z "${IFNDEF}" ] && [ -z "${DEFINE}" ]; then
-    :
-else
-    echo "Warning $1: only #ifndef GKO_ or #define GKO_ is in the header"
-fi
-if [ -n "${IFNDEF}" ]; then
-    echo "${IFNDEF}" >> "$1"
-fi
-if [ -n "${DEFINE}" ]; then
-    echo "${DEFINE}" >> "$1"
-    echo "" >> "$1"
-    echo "" >> "$1"
-fi
-
-# Write the force-top header
-if [ -f "${FORCE_TOP}" ]; then
-    cat "${FORCE_TOP}" >> "$1"
-    echo "" >> "$1"
-    echo "" >> "$1"
-    rm "${FORCE_TOP}"
-fi
-
-# Write the main header and give warnning if there are multiple matches
-if [ -f "${BEFORE}" ]; then
-    # sort or remove the duplication
-    "${CLANG_FORMAT}" -i -style=file ${BEFORE}
-    if [ "$(wc -l < ${BEFORE})" -gt "1" ]; then
-        echo "Warning $1: there are multiple main header matchings"
+    if [ -n "${IFNDEF}" ]; then
+        echo "${IFNDEF}" >> "${current_file}"
     fi
-    cat ${BEFORE} >> "$1"
+    if [ -n "${DEFINE}" ]; then
+        echo "${DEFINE}" >> "${current_file}"
+        echo "" >> "${current_file}"
+        echo "" >> "${current_file}"
+    fi
+
+    # Write the force-top header
+    if [ -f "${FORCE_TOP}" ]; then
+        cat "${FORCE_TOP}" >> "${current_file}"
+        echo "" >> "${current_file}"
+        echo "" >> "${current_file}"
+        rm "${FORCE_TOP}"
+    fi
+
+    # Write the main header and give warnning if there are multiple matches
+    if [ -f "${BEFORE}" ]; then
+        # sort or remove the duplication
+        "${CLANG_FORMAT}" -i -style=file ${BEFORE}
+        if [ "$(wc -l < ${BEFORE})" -gt "1" ]; then
+            echo "Warning ${current_file}: there are multiple main header matchings"
+        fi
+        cat ${BEFORE} >> "${current_file}"
+        if [ -f "${CONTENT}" ]; then
+            echo "" >> "${current_file}"
+            echo "" >> "${current_file}"
+        fi
+        rm "${BEFORE}"
+    fi
+
+    # Arrange the remain files and give
     if [ -f "${CONTENT}" ]; then
-        echo "" >> "$1"
-        echo "" >> "$1"
-    fi
-    rm "${BEFORE}"
-fi
-
-# Arrange the remain files and give
-if [ -f "${CONTENT}" ]; then
-    add_regroup
-    head -n -${KEEP_LINES} ${CONTENT} >> temp
-    if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
-        # Ignore the last line #endif
-        if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
-            head -n -1 temp > ${CONTENT}
-            echo "#endif  // $HEADER_DEF" >> ${CONTENT}
-        else
-            echo "Warning $1: Found the begin header_def but did not find the end of header_def"
-            cat temp > ${CONTENT}
-        fi
-    else
-        cat temp > "${CONTENT}"
-    fi
-    "${CLANG_FORMAT}" -i -style=file "${CONTENT}"
-    rm temp
-    remove_regroup
-    PREV_INC=0
-    IN_IF="false"
-    SKIP="true"
-    while IFS='' read -r line; do
-        # Skip the empty line in the beginning
-        if [ "${SKIP}" = "true" ] && [[ -z "${line}" ]]; then
-            continue
-        else
-            SKIP="false"
-        fi
-        # Insert content with correct number empty lines
-        if [[ ${line} =~ ${INCLUDE_REGEX} ]] && [[ ! ${line} =~ ${INCLUDE_INC} ]]; then
-            if [[ ${PREV_INC} == 1 ]]; then
-                echo "" >> "$1"
-            fi
-            PREV_INC=0
-        else
-            if [ -z "${line}" ]; then
-                PREV_INC=$((PREV_INC+1))
+        add_regroup
+        head -n -${KEEP_LINES} ${CONTENT} >> temp
+        if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
+            # Ignore the last line #endif
+            if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
+                head -n -1 temp > ${CONTENT}
+                echo "#endif  // $HEADER_DEF" >> ${CONTENT}
             else
-                # To keep the original lines
-                PREV_INC=-3
+                echo "Warning ${current_file}: Found the begin header_def but did not find the end of header_def"
+                cat temp > ${CONTENT}
             fi
+        else
+            cat temp > "${CONTENT}"
         fi
-        echo "${line}" >> "$1"
-    done < "${CONTENT}"
-    rm "${CONTENT}"
-fi
+        "${CLANG_FORMAT}" -i -style=file "${CONTENT}"
+        rm temp
+        remove_regroup
+        PREV_INC=0
+        IN_IF="false"
+        SKIP="true"
+        while IFS='' read -r line; do
+            # Skip the empty line in the beginning
+            if [ "${SKIP}" = "true" ] && [[ -z "${line}" ]]; then
+                continue
+            else
+                SKIP="false"
+            fi
+            # Insert content with correct number empty lines
+            if [[ ${line} =~ ${INCLUDE_REGEX} ]] && [[ ! ${line} =~ ${INCLUDE_INC} ]]; then
+                if [[ ${PREV_INC} == 1 ]]; then
+                    echo "" >> "${current_file}"
+                fi
+                PREV_INC=0
+            else
+                if [ -z "${line}" ]; then
+                    PREV_INC=$((PREV_INC+1))
+                else
+                    # To keep the original lines
+                    PREV_INC=-3
+                fi
+            fi
+            echo "${line}" >> "${current_file}"
+        done < "${CONTENT}"
+        rm "${CONTENT}"
+    fi
+done

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 template <typename ValueType, typename IndexType>
 inline void simple_apply_kernel(
@@ -73,6 +45,47 @@ inline void advanced_apply_kernel(
                 for (int j = 0; j < b.num_rhs; ++j) {
                     c.values[row * c.stride + j] +=
                         alpha * val * b.values[col * b.stride + j];
+                }
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void scale(
+    const ValueType* const col_scale, const ValueType* const row_scale,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        const ValueType r_scalar = row_scale[row];
+        for (auto k = 0; k < mat.num_stored_elems_per_row; ++k) {
+            auto col_idx = mat.col_idxs[row + mat.stride * k];
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                mat.values[row + mat.stride * k] *=
+                    r_scalar * col_scale[col_idx];
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+inline void add_scaled_identity_kernel(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+{
+    for (int row = 0; row < mat.num_rows; row++) {
+        for (int k = 0; k < mat.num_stored_elems_per_row; k++) {
+            mat.values[row + k * mat.stride] *= beta;
+            auto col_idx = mat.col_idxs[row + mat.stride * k];
+            if (col_idx == invalid_index<IndexType>()) {
+                break;
+            } else {
+                if (row == col_idx) {
+                    mat.values[row + k * mat.stride] += alpha;
                 }
             }
         }

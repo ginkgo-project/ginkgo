@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/base/array.hpp>
 
@@ -36,6 +8,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
@@ -90,14 +63,14 @@ template <typename ValueType>
 void array<ValueType>::fill(const ValueType value)
 {
     this->get_executor()->run(array_kernels::make_fill_array(
-        this->get_data(), this->get_num_elems(), value));
+        this->get_data(), this->get_size(), value));
 }
 
 
 template <typename ValueType>
 void reduce_add(const array<ValueType>& input_arr, array<ValueType>& result)
 {
-    GKO_ASSERT(result.get_num_elems() == 1);
+    GKO_ASSERT(result.get_size() == 1);
     auto exec = input_arr.get_executor();
     exec->run(array_kernels::make_reduce_add_array(input_arr, result));
 }
@@ -111,7 +84,7 @@ ValueType reduce_add(const array<ValueType>& input_arr,
     auto value = array<ValueType>(exec, 1);
     value.fill(ValueType{0});
     exec->run(array_kernels::make_reduce_add_array(input_arr, value));
-    return init_value + exec->copy_val_to_host(value.get_data());
+    return init_value + get_element(value, 0);
 }
 
 

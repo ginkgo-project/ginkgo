@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
@@ -87,8 +59,8 @@ protected:
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
             std::normal_distribution<storage_type>(-1.0, 1.0), rand_engine,
             ref);
-        std::copy_n(temp_krylov_bases->get_const_values(),
-                    bases.get_num_elems(), bases.get_data());
+        std::copy_n(temp_krylov_bases->get_const_values(), bases.get_size(),
+                    bases.get_data());
         // Only useful when the Accessor actually has a scale
         auto range = helper.get_range();
         auto dist = std::normal_distribution<value_type>(-1, 1);
@@ -129,20 +101,20 @@ protected:
         givens_cos = gen_mtx(default_krylov_dim_mixed, n);
         stop_status =
             std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
+        for (size_t i = 0; i < stop_status->get_size(); ++i) {
             stop_status->get_data()[i].reset();
         }
         reorth_status =
             std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < reorth_status->get_num_elems(); ++i) {
+        for (size_t i = 0; i < reorth_status->get_size(); ++i) {
             reorth_status->get_data()[i].reset();
         }
         final_iter_nums = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
+        for (size_t i = 0; i < final_iter_nums->get_size(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
         num_reorth = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < num_reorth->get_num_elems(); ++i) {
+        for (size_t i = 0; i < num_reorth->get_size(); ++i) {
             num_reorth->get_data()[i] = 5;
         }
 
@@ -179,7 +151,7 @@ protected:
         d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
         using std::abs;
-        for (gko::size_type i = 0; i < krylov_bases.get_num_elems(); ++i) {
+        for (gko::size_type i = 0; i < krylov_bases.get_size(); ++i) {
             const auto ref_value = krylov_bases.get_const_data()[i];
             const auto dev_value = d_to_host.get_const_data()[i];
             ASSERT_LE(abs(dev_value - ref_value), tolerance);

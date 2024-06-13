@@ -196,6 +196,7 @@ class GkoArrayPrinter:
 
     def __init__(self, val):
         self.val = val
+        self.size = int(self.val['size_'])
         self.execname = str(
             self.val['exec_']['_M_ptr']
             .dereference()
@@ -206,12 +207,12 @@ class GkoArrayPrinter:
     def children(self):
         return self._iterator(self.execname,
                               self.pointer,
-                              self.val['num_elems_'])
+                              self.size)
 
     def to_string(self):
         return ('{} of length {} on {} ({})'
                 .format(str(self.val.type),
-                        int(self.val['num_elems_']),
+                        self.size,
                         self.execname,
                         self.pointer))
 
@@ -223,7 +224,7 @@ def lookup_type(val):
     if not str(val.type.unqualified()).startswith('gko::'):
         return None
     suffix = str(val.type.unqualified())[5:]
-    if suffix.startswith('array'):
+    if suffix.startswith('array<') and val.type.code == gdb.TYPE_CODE_STRUCT:
         return GkoArrayPrinter(val)
     return None
 

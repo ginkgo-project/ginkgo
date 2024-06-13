@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/dense_kernels.hpp"
 
@@ -635,7 +607,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
         exec, dx.get(), dnnz_per_row.get_data());
 
     auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
-    for (gko::size_type i = 0; i < nnz_per_row.get_num_elems(); i++) {
+    for (gko::size_type i = 0; i < nnz_per_row.get_size(); i++) {
         ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
     }
 }
@@ -1232,7 +1204,7 @@ TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = Mtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
     auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
@@ -1252,7 +1224,7 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
     // test make_temporary_clone and non-default stride
     auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
@@ -1273,7 +1245,7 @@ TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = MixedMtx::create(ref, gather_size);
     // test make_temporary_clone and non-default stride
     auto dr_gather =
@@ -1294,7 +1266,7 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
     auto sub_x = x->create_submatrix(row_span, col_span);
     auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
+        gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
     // test make_temporary_clone and non-default stride
     auto dr_gather =

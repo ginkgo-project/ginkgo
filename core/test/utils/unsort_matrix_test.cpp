@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/test/utils/unsort_matrix.hpp"
 
@@ -81,18 +53,20 @@ protected:
      */
     std::unique_ptr<Csr> get_sorted_csr()
     {
-        return Csr::create(exec, gko::dim<2>{5, 5},
-                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
-                           I<index_type>{0, 2, 2, 6, 7, 10});
+        return Csr::create(
+            exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{exec, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+            gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3, 2, 2, 3, 4}},
+            gko::array<index_type>{exec, {0, 2, 2, 6, 7, 10}});
     }
 
     std::unique_ptr<Coo> get_sorted_coo()
     {
-        return Coo::create(exec, gko::dim<2>{5, 5},
-                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-                           I<index_type>{0, 1, 0, 1, 2, 3, 2, 2, 3, 4},
-                           I<index_type>{0, 0, 2, 2, 2, 2, 3, 4, 4, 4});
+        return Coo::create(
+            exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{exec, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+            gko::array<index_type>{exec, {0, 1, 0, 1, 2, 3, 2, 2, 3, 4}},
+            gko::array<index_type>{exec, {0, 0, 2, 2, 2, 2, 3, 4, 4, 4}});
     }
 
     bool is_coo_matrix_sorted(gko::ptr_param<Coo> mtx)

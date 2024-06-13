@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/batch_dense_kernels.hpp"
 
@@ -48,6 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 #include "test/utils/executor.hpp"
@@ -71,17 +44,28 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(gko::size_type num_rows, gko::size_type num_vecs = 1)
+    void set_up_apply_data(gko::size_type num_rows,
+                           gko::size_type num_cols = 32,
+                           gko::size_type num_vecs = 1)
     {
-        const gko::size_type num_cols = 32;
         mat = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
+        mat2 = gen_mtx<BMtx>(batch_size, num_rows, num_cols);
         y = gen_mtx<BMVec>(batch_size, num_cols, num_vecs);
         alpha = gen_mtx<BMVec>(batch_size, 1, 1);
         beta = gen_mtx<BMVec>(batch_size, 1, 1);
         dmat = gko::clone(exec, mat);
+        dmat2 = gko::clone(exec, mat2);
         dy = gko::clone(exec, y);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
+        row_scale = gko::test::generate_random_array<value_type>(
+            num_rows * batch_size, std::normal_distribution<>(2.0, 0.5),
+            rand_engine, ref);
+        col_scale = gko::test::generate_random_array<value_type>(
+            num_cols * batch_size, std::normal_distribution<>(4.0, 0.5),
+            rand_engine, ref);
+        drow_scale = gko::array<value_type>(exec, row_scale);
+        dcol_scale = gko::array<value_type>(exec, col_scale);
         expected = BMVec::create(
             ref,
             gko::batch_dim<2>(batch_size, gko::dim<2>{num_rows, num_vecs}));
@@ -93,15 +77,21 @@ protected:
 
     const gko::size_type batch_size = 11;
     std::unique_ptr<BMtx> mat;
+    std::unique_ptr<BMtx> mat2;
     std::unique_ptr<BMVec> y;
     std::unique_ptr<BMVec> alpha;
     std::unique_ptr<BMVec> beta;
     std::unique_ptr<BMVec> expected;
     std::unique_ptr<BMVec> dresult;
     std::unique_ptr<BMtx> dmat;
+    std::unique_ptr<BMtx> dmat2;
     std::unique_ptr<BMVec> dy;
     std::unique_ptr<BMVec> dalpha;
     std::unique_ptr<BMVec> dbeta;
+    gko::array<value_type> row_scale;
+    gko::array<value_type> col_scale;
+    gko::array<value_type> drow_scale;
+    gko::array<value_type> dcol_scale;
 };
 
 
@@ -135,4 +125,48 @@ TEST_F(Dense, SingleVectorAdvancedApplyIsEquivalentToRef)
     dmat->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
+}
+
+
+TEST_F(Dense, TwoSidedScaleIsEquivalentToRef)
+{
+    set_up_apply_data(257);
+
+    mat->scale(row_scale, col_scale);
+    dmat->scale(drow_scale, dcol_scale);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, ScaleAddIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->scale_add(alpha, mat2);
+    dmat->scale_add(dalpha, dmat2);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityIsEquivalentToRef)
+{
+    set_up_apply_data(42, 42, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityRectMatIsEquivalentToRef)
+{
+    set_up_apply_data(42, 40, 15);
+
+    mat->add_scaled_identity(alpha, beta);
+    dmat->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dmat, mat, r<value_type>::value);
 }

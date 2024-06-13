@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
@@ -53,7 +25,7 @@ void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
                 const device_matrix_data<ValueType, IndexType>& in,
                 array<matrix_data_entry<ValueType, IndexType>>& out)
 {
-    for (size_type i = 0; i < in.get_num_elems(); i++) {
+    for (size_type i = 0; i < in.get_num_stored_elements(); i++) {
         out.get_data()[i] = {in.get_const_row_idxs()[i],
                              in.get_const_col_idxs()[i],
                              in.get_const_values()[i]};
@@ -69,7 +41,7 @@ void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
                 const array<matrix_data_entry<ValueType, IndexType>>& in,
                 device_matrix_data<ValueType, IndexType>& out)
 {
-    for (size_type i = 0; i < in.get_num_elems(); i++) {
+    for (size_type i = 0; i < in.get_size(); i++) {
         const auto entry = in.get_const_data()[i];
         out.get_row_idxs()[i] = entry.row;
         out.get_col_idxs()[i] = entry.column;
@@ -86,7 +58,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
                   array<IndexType>& col_idxs)
 {
-    auto size = values.get_num_elems();
+    auto size = values.get_size();
     auto nnz = static_cast<size_type>(
         std::count_if(values.get_const_data(), values.get_const_data() + size,
                       is_nonzero<ValueType>));
@@ -120,7 +92,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
 {
     auto row = invalid_index<IndexType>();
     auto col = invalid_index<IndexType>();
-    const auto size = values.get_num_elems();
+    const auto size = values.get_size();
     size_type count_unique{};
     for (size_type i = 0; i < size; i++) {
         const auto new_row = row_idxs.get_const_data()[i];
@@ -166,10 +138,10 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
-                                                       data.get_num_elems()};
+    array<matrix_data_entry<ValueType, IndexType>> tmp{
+        exec, data.get_num_stored_elements()};
     soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
+    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
     aos_to_soa(exec, tmp, data);
 }
 

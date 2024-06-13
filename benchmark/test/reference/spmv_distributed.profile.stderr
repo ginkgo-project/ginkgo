@@ -1,5 +1,3 @@
-This is Ginkgo 1.7.0 (master)
-    running with core module 1.7.0 (master)
 Running on reference(0)
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
@@ -106,8 +104,34 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin distributed_matrix::build_local_nonlocal
-DEBUG: end   distributed_matrix::build_local_nonlocal
+DEBUG: begin distributed_matrix::separate_local_nonlocal
+DEBUG: end   distributed_matrix::separate_local_nonlocal
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin index_map::build_mapping
+DEBUG: end   index_map::build_mapping
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::prefix_sum_nonnegative
+DEBUG: end   components::prefix_sum_nonnegative
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::prefix_sum_nonnegative
+DEBUG: end   components::prefix_sum_nonnegative
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin index_map::map_to_local
+DEBUG: end   index_map::map_to_local
+DEBUG: begin copy
+DEBUG: end   copy
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin copy

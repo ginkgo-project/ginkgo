@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/sellp.hpp>
 
@@ -43,6 +15,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -133,6 +106,53 @@ Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
 
 
 template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type total_cols)
+    : Sellp(std::move(exec), size, default_slice_size, default_stride_factor,
+            total_cols)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type slice_size,
+                                   size_type stride_factor,
+                                   size_type total_cols)
+    : EnableLinOp<Sellp>(exec, size),
+      values_(exec, slice_size * total_cols),
+      col_idxs_(exec, slice_size * total_cols),
+      slice_lengths_(exec, ceildiv(size[0], slice_size)),
+      slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
+      slice_size_(slice_size),
+      stride_factor_(stride_factor)
+{
+    slice_sets_.fill(0);
+    slice_lengths_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Sellp<ValueType, IndexType>>
+Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type total_cols)
+{
+    return std::unique_ptr<Sellp>{new Sellp{exec, size, total_cols}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Sellp<ValueType, IndexType>>
+Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type slice_size,
+                                    size_type stride_factor,
+                                    size_type total_cols)
+{
+    return std::unique_ptr<Sellp>{
+        new Sellp{exec, size, slice_size, stride_factor, total_cols}};
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
@@ -209,8 +229,8 @@ void Sellp<ValueType, IndexType>::convert_to(
             this, tmp->row_ptrs_.get_data()));
         exec->run(sellp::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                      num_rows + 1));
-        const auto nnz = static_cast<size_type>(
-            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        const auto nnz =
+            static_cast<size_type>(get_element(tmp->row_ptrs_, num_rows));
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
@@ -237,14 +257,14 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     this->set_size(size);
     array<int64> row_ptrs{exec, size[0] + 1};
     auto local_data = make_temporary_clone(exec, &data);
-    exec->run(sellp::make_convert_idxs_to_ptrs(local_data->get_const_row_idxs(),
-                                               local_data->get_num_elems(),
-                                               size[0], row_ptrs.get_data()));
+    exec->run(sellp::make_convert_idxs_to_ptrs(
+        local_data->get_const_row_idxs(), local_data->get_num_stored_elements(),
+        size[0], row_ptrs.get_data()));
     exec->run(sellp::make_compute_slice_sets(
         row_ptrs, this->get_slice_size(), this->get_stride_factor(),
         slice_sets_.get_data(), slice_lengths_.get_data()));
-    const auto total_cols = exec->copy_val_to_host(
-        slice_sets_.get_data() + slice_sets_.get_num_elems() - 1);
+    const auto total_cols =
+        get_element(slice_sets_, slice_sets_.get_size() - 1);
     values_.resize_and_reset(total_cols * slice_size_);
     col_idxs_.resize_and_reset(total_cols * slice_size_);
     exec->run(sellp::make_fill_in_matrix_data(*local_data,

@@ -1,42 +1,20 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 #define GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 
 
 #include <ginkgo/core/base/batch_lin_op.hpp>
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -133,7 +111,9 @@ using DeviceValueType = ValueType;
 #include "reference/base/batch_struct.hpp"
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_block_jacobi.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_scalar_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 
@@ -247,11 +227,38 @@ public:
     {
         if (!precond_ ||
             dynamic_cast<const matrix::Identity<value_type>*>(precond_)) {
-            dispatch_on_stop<
-                device::batch_preconditioner::Identity<device_value_type>>(
+            dispatch_on_stop(
                 logger, mat_item,
                 device::batch_preconditioner::Identity<device_value_type>(),
                 b_item, x_item);
+        } else if (auto prec = dynamic_cast<
+                       const batch::preconditioner::Jacobi<value_type>*>(
+                       precond_)) {
+            const auto max_block_size = prec->get_max_block_size();
+            if (max_block_size == 1) {
+                dispatch_on_stop(logger, mat_item,
+                                 device::batch_preconditioner::ScalarJacobi<
+                                     device_value_type>(),
+                                 b_item, x_item);
+            } else {
+                const auto num_blocks = prec->get_num_blocks();
+                const auto block_ptrs_arr = prec->get_const_block_pointers();
+                const auto row_block_map_arr =
+                    prec->get_const_map_block_to_row();
+                const auto blocks_arr =
+                    reinterpret_cast<DeviceValueType<const ValueType*>>(
+                        prec->get_const_blocks());
+                const auto blocks_cumul_storage =
+                    prec->get_const_blocks_cumulative_offsets();
+
+                dispatch_on_stop(
+                    logger, mat_item,
+                    device::batch_preconditioner::BlockJacobi<
+                        device_value_type>(max_block_size, num_blocks,
+                                           blocks_cumul_storage, blocks_arr,
+                                           block_ptrs_arr, row_block_map_arr),
+                    b_item, x_item);
+            }
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -287,6 +294,10 @@ public:
         } else if (auto batch_mat =
                        dynamic_cast<const batch::matrix::Dense<ValueType>*>(
                            mat_)) {
+            auto mat_item = device::get_batch_struct(batch_mat);
+            dispatch_on_logger(mat_item, b_item, x_item, log_data);
+        } else if (auto batch_mat = dynamic_cast<
+                       const batch::matrix::Csr<ValueType, int32>*>(mat_)) {
             auto mat_item = device::get_batch_struct(batch_mat);
             dispatch_on_logger(mat_item, b_item, x_item, log_data);
         } else {

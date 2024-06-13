@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
 #include <memory>
@@ -47,6 +19,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
@@ -54,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
@@ -121,6 +95,8 @@ struct SimpleSolverTest {
         ASSERT_EQ(mtx->get_preconditioner(), nullptr);
         ASSERT_EQ(mtx->get_stopping_criterion_factory(), nullptr);
     }
+
+    static bool blacklisted(const std::string& test) { return false; }
 };
 
 
@@ -130,6 +106,56 @@ struct Cg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
     {
         // make sure the matrix is well-conditioned
         gko::utils::make_hpd(data, 1.5);
+    }
+};
+
+
+struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
+    static void preprocess(
+        gko::matrix_data<value_type, global_index_type>& data)
+    {
+        // the MG preconditioner doesn's seem to be able to handle
+        // random HPD matrices well, so replace it with a 3-pt stencil matrix
+        data.nonzeros.clear();
+        for (int i = 0; i < data.size[0]; ++i) {
+            if (i > 0) {
+                data.nonzeros.emplace_back(i, i - 1, value_type(-1));
+            }
+            data.nonzeros.emplace_back(i, i, value_type(2));
+            if (i < data.size[0] - 1) {
+                data.nonzeros.emplace_back(i, i + 1, value_type(-1));
+            }
+        }
+    }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return SimpleSolverTest<gko::solver::Cg<solver_value_type>>::build(exec)
+            .with_preconditioner(
+                gko::solver::Multigrid::build()
+                    .with_mg_level(
+                        gko::multigrid::Pgm<solver_value_type>::build()
+                            .with_deterministic(false))
+                    .with_min_coarse_rows(
+                        16u)  // necessary since the test matrices have less
+                              // rows than the default value
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(
+                            iteration_count()),
+                        gko::stop::ResidualNorm<value_type>::build()
+                            .with_baseline(gko::stop::mode::absolute)
+                            .with_reduction_factor(2 * reduction_factor())));
+    }
+
+    static bool blacklisted(const std::string& test)
+    {
+#ifdef GKO_COMPILING_HIP
+        // SPGEAM is broken for empty matrices on rocm <= 4.5
+        return test == "some-empty-partition";
+#else
+        return false;
+#endif
     }
 };
 
@@ -214,7 +240,7 @@ protected:
 
     Solver() : rand_engine(15) {}
 
-    std::unique_ptr<Part> gen_part(int size, int num_active_parts)
+    std::shared_ptr<Part> gen_part(int size, int num_active_parts)
     {
         auto mapping = gko::test::generate_random_array<
             gko::experimental::distributed::comm_index_type>(
@@ -223,12 +249,12 @@ protected:
                 gko::experimental::distributed::comm_index_type>(
                 0, num_active_parts - 1),
             rand_engine, ref);
-        return Part::build_from_mapping(ref, mapping, comm.size());
+        return gko::share(Part::build_from_mapping(ref, mapping, comm.size()));
     }
 
 
-    std::shared_ptr<Mtx> gen_mtx(const Part* part, int num_rows, int num_cols,
-                                 int min_cols, int max_cols)
+    std::shared_ptr<Mtx> gen_mtx(std::shared_ptr<const Part> part, int num_rows,
+                                 int num_cols, int min_cols, int max_cols)
     {
         auto data = gko::test::generate_random_matrix_data<value_type,
                                                            global_index_type>(
@@ -252,8 +278,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_in_vec(
-        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
-        int stride)
+        std::shared_ptr<const Part> part,
+        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[1],
                                        static_cast<gko::size_type>(nrhs)};
@@ -283,8 +309,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_out_vec(
-        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
-        int stride)
+        std::shared_ptr<const Part> part,
+        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[0],
                                        static_cast<gko::size_type>(nrhs)};
@@ -335,12 +361,16 @@ protected:
         }
         {
             SCOPED_TRACE("Some empty partition");
+            if (Config::blacklisted("some-empty-partition")) {
+                return;
+            }
             guarded_fn(gen_part(50, std::max(1, comm.size() - 1)));
         }
     }
 
     template <typename TestFunction>
-    void forall_matrix_scenarios(const Part* part, TestFunction fn)
+    void forall_matrix_scenarios(std::shared_ptr<const Part> part,
+                                 TestFunction fn)
     {
         auto guarded_fn = [&](auto mtx) {
             try {
@@ -380,7 +410,7 @@ protected:
 
     template <typename DistVecType = Vec, typename NonDistVecType = LocalVec,
               typename TestFunction>
-    void forall_vector_scenarios(const Part* part,
+    void forall_vector_scenarios(std::shared_ptr<const Part> part,
                                  const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
@@ -502,8 +532,9 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-using SolverTypes = ::testing::Types<Cg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>,
-                                     Gcr<100u>, Gmres<10u>, Gmres<100u>>;
+using SolverTypes =
+    ::testing::Types<Cg, CgWithMg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>, Gcr<100u>,
+                     Gmres<10u>, Gmres<100u>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
@@ -511,10 +542,10 @@ TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->forall_vector_scenarios(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b, this->tol(x));
@@ -528,10 +559,10 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 {
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->forall_vector_scenarios(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         auto alpha = this->gen_scalar();
                         auto beta = this->gen_scalar();
                         auto x_old = gko::share(gko::clone(x));
@@ -551,10 +582,10 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->template forall_vector_scenarios<MixedVec>(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         solver->apply(b, x);
 
                         this->assert_residual_near(mtx, x, b,
@@ -571,10 +602,10 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
     using MixedVec = typename TestFixture::MixedVec;
     using MixedLocalVec = typename TestFixture::MixedLocalVec;
     this->forall_partition_scenarios([&](auto part) {
-        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+        this->forall_matrix_scenarios(part, [&](auto mtx) {
             this->forall_solver_scenarios(mtx, [&](auto solver) {
                 this->template forall_vector_scenarios<MixedVec>(
-                    part.get(), solver, [&](auto b, auto x) {
+                    part, solver, [&](auto b, auto x) {
                         auto alpha = this->template gen_scalar<MixedLocalVec>();
                         auto beta = this->template gen_scalar<MixedLocalVec>();
                         auto x_old = gko::share(gko::clone(x));

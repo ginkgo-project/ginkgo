@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
@@ -222,9 +194,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
     using Csr = typename TestFixture::Csr;
     auto expected_mtx =
         Csr::create(this->ref, this->empty_csr->get_size(),
-                    std::initializer_list<value_type>{0., 0., 0.},
-                    std::initializer_list<index_type>{0, 1, 2},
-                    std::initializer_list<index_type>{0, 1, 2, 3});
+                    gko::array<value_type>{this->ref, {0., 0., 0.}},
+                    gko::array<index_type>{this->ref, {0, 1, 2}},
+                    gko::array<index_type>{this->ref, {0, 1, 2, 3}});
     auto empty_mtx = this->empty_csr->clone();
 
     gko::kernels::reference::factorization::add_diagonal_elements(
@@ -237,15 +209,16 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
 {
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
     using Csr = typename TestFixture::Csr;
     auto matrix = gko::initialize<Csr>(
         {{0., 0., 0.}, {1., 0., 0.}, {1., 1., 1.}, {1., 1., 1.}}, this->ref);
-    auto exp_values = {0., 1., 0., 1., 1., 1., 1., 1., 1.};
-    auto exp_col_idxs = {0, 0, 1, 0, 1, 2, 0, 1, 2};
-    auto exp_row_ptrs = {0, 1, 3, 6, 9};
-    auto expected_mtx =
-        Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+    auto expected_mtx = Csr::create(
+        this->ref, matrix->get_size(),
+        gko::array<value_type>{this->ref, {0., 1., 0., 1., 1., 1., 1., 1., 1.}},
+        gko::array<index_type>{this->ref, {0, 0, 1, 0, 1, 2, 0, 1, 2}},
+        gko::array<index_type>{this->ref, {0, 1, 3, 6, 9}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, matrix.get(), true);
@@ -257,14 +230,15 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
 {
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
     using Csr = typename TestFixture::Csr;
     auto matrix = gko::initialize<Csr>({{1., 0., 0.}, {1., 0., 0.}}, this->ref);
-    auto exp_values = {1., 1., 0.};
-    auto exp_col_idxs = {0, 0, 1};
-    auto exp_row_ptrs = {0, 1, 3};
     auto expected_mtx =
-        Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+        Csr::create(this->ref, matrix->get_size(),
+                    gko::array<value_type>{this->ref, {1., 1., 0.}},
+                    gko::array<index_type>{this->ref, {0, 0, 1}},
+                    gko::array<index_type>{this->ref, {0, 1, 3}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, matrix.get(), true);
@@ -276,6 +250,8 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
 {
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
     using Csr = typename TestFixture::Csr;
     auto size = gko::dim<2>{3, 3};
     /* matrix:
@@ -283,17 +259,16 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
     1 0 3
     1 2 0
     */
-    auto mtx_values = {3., 2., 1., 3., 1., 2., 1.};
-    auto mtx_col_idxs = {2, 1, 0, 2, 0, 1, 0};
-    auto mtx_row_ptrs = {0, 3, 5, 7};
-    auto matrix = Csr::create(this->ref, size, std::move(mtx_values),
-                              std::move(mtx_col_idxs), std::move(mtx_row_ptrs));
-    auto exp_values = {1., 2., 3., 1., 0., 3., 1., 2., 0.};
-    auto exp_col_idxs = {0, 1, 2, 0, 1, 2, 0, 1, 2};
-    auto exp_row_ptrs = {0, 3, 6, 9};
-    auto expected_mtx =
-        Csr::create(this->ref, size, std::move(exp_values),
-                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+    auto matrix = Csr::create(
+        this->ref, size,
+        gko::array<value_type>{this->ref, {3., 2., 1., 3., 1., 2., 1.}},
+        gko::array<index_type>{this->ref, {2, 1, 0, 2, 0, 1, 0}},
+        gko::array<index_type>{this->ref, {0, 3, 5, 7}});
+    auto expected_mtx = Csr::create(
+        this->ref, size,
+        gko::array<value_type>{this->ref, {1., 2., 3., 1., 0., 3., 1., 2., 0.}},
+        gko::array<index_type>{this->ref, {0, 1, 2, 0, 1, 2, 0, 1, 2}},
+        gko::array<index_type>{this->ref, {0, 3, 6, 9}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, matrix.get(), false);

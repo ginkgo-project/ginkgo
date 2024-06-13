@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
@@ -42,6 +14,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
@@ -59,6 +32,7 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
     using Mtx = gko::batch::matrix::Dense<value_type>;
+    using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
     using RealMVec = gko::batch::MultiVector<real_type>;
@@ -84,7 +58,6 @@ protected:
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};
-
         solver_factory =
             solver_type::build()
                 .with_max_iterations(max_iters)
@@ -109,8 +82,9 @@ TEST_F(BatchBicgstab, SolvesStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -132,8 +106,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsResidual)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 100;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -155,8 +130,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerLogsIterations)
     const int num_rows = 33;
     const int num_rhs = 1;
     const int ref_iters = 5;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, 0, ref_iters);
 
     auto res = gko::test::solve_linear_system(exec, solve_lambda,
@@ -176,8 +152,9 @@ TEST_F(BatchBicgstab, CanSolve3ptStencilSystem)
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = 500;
-    auto mat = gko::share(gko::test::generate_3pt_stencil_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows));
+    auto mat =
+        gko::share(gko::test::generate_3pt_stencil_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
 
@@ -200,8 +177,9 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
     const real_type tol = 1e-5;
     const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
-    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows, true));
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows, true));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);
@@ -229,14 +207,15 @@ TEST_F(BatchBicgstab, CanSolveLargeBatchSizeHpdSystem)
 
 TEST_F(BatchBicgstab, CanSolveLargeMatrixSizeHpdSystem)
 {
-    const int num_batch_items = 12;
+    const int num_batch_items = 11;
     const int num_rows = 1025;
     const int num_rhs = 1;
     const real_type tol = 1e-5;
     const int max_iters = num_rows * 2;
     std::shared_ptr<Logger> logger = Logger::create();
-    auto mat = gko::share(gko::test::generate_diag_dominant_batch_matrix<Mtx>(
-        exec, num_batch_items, num_rows, true));
+    auto mat =
+        gko::share(gko::test::generate_diag_dominant_batch_matrix<const Mtx>(
+            exec, num_batch_items, num_rows, true));
     auto linear_system = setup_linsys_and_solver(mat, num_rhs, tol, max_iters);
     auto solver = gko::share(solver_factory->generate(linear_system.matrix));
     solver->add_logger(logger);

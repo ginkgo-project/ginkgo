@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/fbcsr_kernels.hpp"
 
@@ -162,9 +134,9 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          array<IndexType>& col_idxs, array<ValueType>& values)
 {
     array<matrix_data_entry<ValueType, IndexType>> block_ordered{
-        exec, data.get_num_elems()};
+        exec, data.get_num_stored_elements()};
     components::soa_to_aos(exec, data, block_ordered);
-    const auto in_nnz = data.get_num_elems();
+    const auto in_nnz = data.get_num_stored_elements();
     auto block_ordered_ptr = block_ordered.get_data();
     std::sort(
         block_ordered_ptr, block_ordered_ptr + in_nnz,
@@ -173,8 +145,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                    std::make_tuple(b.row / block_size, b.column / block_size);
         });
     auto row_ptrs_ptr = row_ptrs.get_data();
-    gko::vector<IndexType> col_idx_vec{{exec}};
-    gko::vector<ValueType> value_vec{{exec}};
+    gko::vector<IndexType> col_idx_vec{exec};
+    gko::vector<ValueType> value_vec{exec};
     int64 block_row = -1;
     int64 block_col = -1;
     for (size_type i = 0; i < in_nnz; i++) {
@@ -198,7 +170,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         value_vec[value_vec.size() - block_size * block_size + local_row +
                   local_col * block_size] = entry.value;
     }
-    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+    while (block_row < static_cast<int64>(row_ptrs.get_size() - 1)) {
         // we finished row block_row, so store its end pointer
         row_ptrs_ptr[block_row + 1] = col_idx_vec.size();
         ++block_row;

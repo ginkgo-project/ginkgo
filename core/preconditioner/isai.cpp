@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/preconditioner/isai.hpp>
 
@@ -41,6 +13,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -49,7 +23,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
@@ -119,6 +96,35 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
+typename Isai<IsaiType, ValueType, IndexType>::parameters_type
+Isai<IsaiType, ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("sparsity_power")) {
+        params.with_sparsity_power(gko::config::get_value<int>(obj));
+    }
+    if (auto& obj = config.get("excess_limit")) {
+        params.with_excess_limit(gko::config::get_value<size_type>(obj));
+    }
+    if (auto& obj = config.get("excess_solver_factory")) {
+        params.with_excess_solver_factory(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("excess_solver_reduction")) {
+        params.with_excess_solver_reduction(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
+    return params;
+}
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
     IndexType excess_limit, remove_complex<ValueType> excess_solver_reduction)
@@ -145,8 +151,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             to_invert.get(), inverted_row_ptrs.get_data()));
 
         // Get nnz from device memory
-        auto inverted_nnz = static_cast<size_type>(
-            exec->copy_val_to_host(inverted_row_ptrs.get_data() + num_rows));
+        auto inverted_nnz =
+            static_cast<size_type>(get_element(inverted_row_ptrs, num_rows));
 
         // Init arrays
         array<IndexType> inverted_col_idxs{exec, inverted_nnz};
@@ -222,7 +228,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
-            std::shared_ptr<LinOpFactory> excess_solver_factory;
+            std::shared_ptr<const LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;
                 excess_solution->copy_from(excess_rhs);

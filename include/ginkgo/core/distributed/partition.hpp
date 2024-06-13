@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HPP_
 #define GKO_PUBLIC_CORE_DISTRIBUTED_PARTITION_HPP_
@@ -104,20 +76,16 @@ namespace distributed {
  * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Partition
-    : public EnablePolymorphicObject<
-          Partition<LocalIndexType, GlobalIndexType>>,
-      public EnablePolymorphicAssignment<
-          Partition<LocalIndexType, GlobalIndexType>>,
-      public EnableCreateMethod<Partition<LocalIndexType, GlobalIndexType>> {
-    friend class EnableCreateMethod<Partition>;
+class Partition : public EnablePolymorphicObject<
+                      Partition<LocalIndexType, GlobalIndexType>>,
+                  public EnablePolymorphicAssignment<
+                      Partition<LocalIndexType, GlobalIndexType>> {
     friend class EnablePolymorphicObject<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
 
 public:
-    using EnableCreateMethod<Partition>::create;
     using EnablePolymorphicAssignment<Partition>::convert_to;
     using EnablePolymorphicAssignment<Partition>::move_to;
 
@@ -139,7 +107,7 @@ public:
      */
     size_type get_num_ranges() const noexcept
     {
-        return offsets_.get_num_elems() - 1;
+        return offsets_.get_size() - 1;
     }
 
     /**
@@ -220,11 +188,7 @@ public:
      *
      * @return  size of part.
      */
-    local_index_type get_part_size(comm_index_type part) const
-    {
-        return this->get_executor()->copy_val_to_host(
-            part_sizes_.get_const_data() + part);
-    }
+    local_index_type get_part_size(comm_index_type part) const;
 
     /**
      * Checks if each part has no more than one contiguous range.
@@ -289,26 +253,12 @@ public:
         global_index_type global_size);
 
 private:
-    /**
-     * Creates a partition stored on the given executor with the given number of
-     * consecutive ranges and parts.
-     */
     Partition(std::shared_ptr<const Executor> exec,
-              comm_index_type num_parts = 0, size_type num_ranges = 0)
-        : EnablePolymorphicObject<Partition>{exec},
-          num_parts_{num_parts},
-          num_empty_parts_{0},
-          size_{0},
-          offsets_{exec, num_ranges + 1},
-          starting_indices_{exec, num_ranges},
-          part_sizes_{exec, static_cast<size_type>(num_parts)},
-          part_ids_{exec, num_ranges}
-    {
-        offsets_.fill(0);
-        starting_indices_.fill(0);
-        part_sizes_.fill(0);
-        part_ids_.fill(0);
-    }
+              comm_index_type num_parts = 0, size_type num_ranges = 0);
+
+    static std::unique_ptr<Partition> create(
+        std::shared_ptr<const Executor> exec, comm_index_type num_parts = 0,
+        size_type num_ranges = 0);
 
     /**
      * Finalizes the construction in the create_* methods, by computing the

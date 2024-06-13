@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
@@ -42,12 +14,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -77,6 +53,44 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 }  // anonymous namespace
 }  // namespace jacobi
 
+
+template <typename ValueType, typename IndexType>
+typename Jacobi<ValueType, IndexType>::parameters_type
+Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
+                                    const config::registry& context,
+                                    const config::type_descriptor& td_for_child)
+{
+    auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
+
+    if (auto& obj = config.get("max_block_size")) {
+        params.with_max_block_size(gko::config::get_value<uint32>(obj));
+    }
+    if (auto& obj = config.get("max_block_stride")) {
+        params.with_max_block_stride(gko::config::get_value<uint32>(obj));
+    }
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    }
+    // No array support
+    if (config.get("block_pointers")) {
+        GKO_INVALID_STATE(
+            "preconditioner::Jacobi does not support block_pointers in file "
+            "config.");
+    }
+    // storage_optimization_type is not public. It uses precision_reduction
+    // as input. It allows value and array input, but we only support the value
+    // input [x, y] -> one precision_reduction (value mode)
+    if (auto& obj = config.get("storage_optimization")) {
+        params.with_storage_optimization(
+            gko::config::get_value<precision_reduction>(obj));
+    }
+    if (auto& obj = config.get("accuracy")) {
+        params.with_accuracy(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
+
+    return params;
+}
 
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
@@ -249,7 +263,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -275,7 +289,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
-    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->blocks_.resize_and_reset(blocks_.get_size());
     res->conditioning_ = conditioning_;
     res->parameters_ = parameters_;
     if (parameters_.max_block_size == 1) {
@@ -327,7 +341,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         auto temp =
             make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
                             diag_vt->get_values());
-        this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
+        this->blocks_ = array<ValueType>(exec, temp.get_size());
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
@@ -348,7 +362,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
                     gko::array<precision_reduction>(exec, {all_block_opt});
             }
             array<precision_reduction> tmp(
-                exec, parameters_.block_pointers.get_num_elems() - 1);
+                exec, parameters_.block_pointers.get_size() - 1);
             exec->run(jacobi::make_initialize_precisions(precisions, tmp));
             precisions = std::move(tmp);
             conditioning_.resize_and_reset(num_blocks_);

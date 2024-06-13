@@ -1,0 +1,7 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+
+This uses an RCM reordering on an input matrix to construct
+a ParILU preconditioned solver and solve a linear system.

@@ -28,24 +28,25 @@ jobs:
 
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: configure
       run: |
-        spack load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
-        spack find --loaded
+        source /etc/profile
+        module load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
         mkdir build
         cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DGINKGO_COMPILER_FLAGS="-ffp-model=precise" -DCMAKE_CXX_COMPILER=${{ matrix.config.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_DPCPP_SINGLE_MODE=ON
+        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DCMAKE_CXX_FLAGS="-Wpedantic -ffp-model=precise" -DCMAKE_CXX_COMPILER=${{ matrix.config.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_MPI=OFF -DGINKGO_DPCPP_SINGLE_MODE=ON
         make -j8
         ONEAPI_DEVICE_SELECTOR=level_zero:gpu ctest -j10 --output-on-failure
 
     - name: install
       run: |
-        spack load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
+        source /etc/profile
+        module load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
         cd build
-        SYCL_DEVICE_FILTER=level_zero make install
+        SYCL_DEVICE_FILTER=level_zero:gpu make install
         export GINKGO_PATH="$(pwd)/install_ginkgo/lib"
         export LIBRARY_PATH=${GINKGO_PATH}:$LIBRARY_PATH
         export LD_LIBRARY_PATH=${GINKGO_PATH}:$LD_LIBRARY_PATH
-        SYCL_DEVICE_FILTER=level_zero make test_install
+        SYCL_DEVICE_FILTER=level_zero:gpu make test_install

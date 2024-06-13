@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/factorization/symbolic.hpp"
 
@@ -41,6 +13,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
@@ -86,8 +59,8 @@ void symbolic_cholesky(
     array<IndexType> tmp{exec};
     exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
-    const auto factor_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows));
+    const auto factor_nnz =
+        static_cast<size_type>(get_element(row_ptrs, num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
@@ -137,7 +110,7 @@ void symbolic_lu_near_symm(
         // compute A + A^T symbolically
         const auto scalar = gko::initialize<scalar_type>({one<float>()}, exec);
         const auto symm_mtx = as<float_matrix_type>(float_mtx->transpose());
-        const auto id = id_type::create(exec, size);
+        const auto id = id_type::create(exec, size[0]);
         float_mtx->apply(scalar, id, scalar, symm_mtx);
         // compute Cholesky factorization
         std::unique_ptr<elimination_forest<IndexType>> forest;
@@ -153,8 +126,8 @@ void symbolic_lu_near_symm(
     exec->run(make_build_lookup_offsets(
         symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
         size[0], allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size = static_cast<size_type>(
-        exec->copy_val_to_host(storage_offsets.get_const_data() + size[0]));
+    const auto storage_size =
+        static_cast<size_type>(get_element(storage_offsets, size[0]));
     array<int32> storage{exec, storage_size};
     exec->run(make_build_lookup(
         symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
@@ -170,8 +143,8 @@ void symbolic_lu_near_symm(
     // build row pointers from nnz
     exec->run(
         make_prefix_sum_nonnegative(factor_row_ptrs.get_data(), size[0] + 1));
-    const auto factor_nnz = static_cast<size_type>(
-        exec->copy_val_to_host(factor_row_ptrs.get_const_data() + size[0]));
+    const auto factor_nnz =
+        static_cast<size_type>(get_element(factor_row_ptrs, size[0]));
     // copy over nonzero columns
     array<IndexType> factor_cols{exec, factor_nnz};
     exec->run(make_symbolic_factorize_simple_finalize(symm_factors.get(),

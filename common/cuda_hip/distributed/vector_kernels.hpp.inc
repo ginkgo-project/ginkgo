@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local(
@@ -44,12 +16,12 @@ void build_local(
     const auto* part_ids = partition->get_part_ids();
     const auto num_ranges = partition->get_num_ranges();
 
-    array<size_type> range_id{exec, input.get_num_elems()};
-    thrust::upper_bound(thrust_policy(exec), range_bounds + 1,
-                        range_bounds + num_ranges + 1,
-                        input.get_const_row_idxs(),
-                        input.get_const_row_idxs() + input.get_num_elems(),
-                        range_id.get_data(), thrust::less<GlobalIndexType>());
+    array<size_type> range_id{exec, input.get_num_stored_elements()};
+    thrust::upper_bound(
+        thrust_policy(exec), range_bounds + 1, range_bounds + num_ranges + 1,
+        input.get_const_row_idxs(),
+        input.get_const_row_idxs() + input.get_num_stored_elements(),
+        range_id.get_data(), thrust::less<GlobalIndexType>());
 
     // write values with local rows into the local matrix at the correct index
     // this needs the following iterators:
@@ -85,10 +57,10 @@ void build_local(
         [part_ids, local_part] __host__ __device__(const size_type rid) {
             return part_ids[rid] == local_part;
         };
-    thrust::scatter_if(thrust_policy(exec), input.get_const_values(),
-                       input.get_const_values() + input.get_num_elems(),
-                       flat_idx_it, range_id.get_data(),
-                       local_mtx->get_values(), is_local_row);
+    thrust::scatter_if(
+        thrust_policy(exec), input.get_const_values(),
+        input.get_const_values() + input.get_num_stored_elements(), flat_idx_it,
+        range_id.get_data(), local_mtx->get_values(), is_local_row);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(

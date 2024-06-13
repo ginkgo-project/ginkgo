@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_BASE_BATCH_MULTI_VECTOR_HPP_
 #define GKO_PUBLIC_CORE_BASE_BATCH_MULTI_VECTOR_HPP_
@@ -81,9 +53,7 @@ template <typename ValueType = default_precision>
 class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
-      public EnableCreateMethod<MultiVector<ValueType>>,
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
-    friend class EnableCreateMethod<MultiVector>;
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<next_precision<ValueType>>;
@@ -212,7 +182,7 @@ public:
      */
     size_type get_num_stored_elements() const noexcept
     {
-        return values_.get_num_elems();
+        return values_.get_size();
     }
 
     /**
@@ -287,10 +257,13 @@ public:
      * @param alpha  the scalar
      *
      * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
-     *      (all batches) is scaled by alpha. If it is a MultiVector row
-     *      vector of values, then i-th column of the vector is scaled with the
-     *      i-th element of alpha (the number of columns of alpha has to match
-     *      the number of columns of the multi-vector).
+     *      (all batches) is scaled by alpha.
+     *      If it is a MultiVector row vector of values, then i-th column of the
+     *      vector is scaled with the i-th element of alpha (the number of
+     *      columns of alpha has to match the number of columns of the
+     *      multi-vector).
+     *      If it is a MultiVector of the same size as this, then an element
+     *      wise scaling is performed.
      */
     void scale(ptr_param<const MultiVector<ValueType>> alpha);
 
@@ -344,6 +317,50 @@ public:
         ptr_param<MultiVector<remove_complex<ValueType>>> result) const;
 
     /**
+     * Creates an uninitialized multi-vector of the specified
+     * size.
+     *
+     * @param exec  Executor associated to the vector
+     * @param size  size of the batch multi vector
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec,
+        const batch_dim<2>& size = batch_dim<2>{});
+
+    /**
+     * Creates a MultiVector from an already allocated (and
+     * initialized) array.
+     *
+     * @param exec  Executor associated to the vector
+     * @param size  sizes of the batch matrices in a batch_dim object
+     * @param values  array of values
+     *
+     * @note If `values` is not an rvalue, not an array of ValueType, or is on
+     *       the wrong executor, an internal copy will be created, and the
+     *       original array data will not be used in the vector.
+     */
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        array<value_type> values);
+
+    /**
+     * @copydoc std::unique_ptr<MultiVector> create(std::shared_ptr<const
+     * Executor>, const batch_dim<2>&, array<value_type>)
+     */
+    template <typename InputValueType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array argument instead of passing an "
+        "initializer list")
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        std::initializer_list<InputValueType> values)
+    {
+        return create(exec, size, array<index_type>{exec, std::move(values)});
+    }
+
+    /**
      * Creates a constant (immutable) batch multi-vector from a constant
      * array.
      *
@@ -356,7 +373,7 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const MultiVector<ValueType>> create_const(
+    static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -382,41 +399,11 @@ protected:
      */
     void set_size(const batch_dim<2>& value) noexcept;
 
-    /**
-     * Creates an uninitialized multi-vector of the specified
-     * size.
-     *
-     * @param exec  Executor associated to the vector
-     * @param size  size of the batch multi vector
-     */
     MultiVector(std::shared_ptr<const Executor> exec,
                 const batch_dim<2>& size = batch_dim<2>{});
 
-    /**
-     * Creates a MultiVector from an already allocated (and
-     * initialized) array.
-     *
-     * @tparam ValuesArray  type of array of values
-     *
-     * @param exec  Executor associated to the vector
-     * @param size  sizes of the batch matrices in a batch_dim object
-     * @param values  array of values
-     *
-     * @note If `values` is not an rvalue, not an array of ValueType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the vector.
-     */
-    template <typename ValuesArray>
     MultiVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-                ValuesArray&& values)
-        : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
-          batch_size_(size),
-          values_{exec, std::forward<ValuesArray>(values)}
-    {
-        // Ensure that the values array has the correct size
-        auto num_elems = compute_num_elems(size);
-        GKO_ENSURE_IN_BOUNDS(num_elems, values_.get_num_elems() + 1);
-    }
+                array<value_type> values);
 
     /**
      * Creates a MultiVector with the same configuration as the

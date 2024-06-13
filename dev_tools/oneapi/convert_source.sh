@@ -167,8 +167,10 @@ fi
 rm "${OUTPUT_FILE}"
 echo "#define GET_QUEUE 0" >> "${OUTPUT_FILE}"
 # add empty ginkgo license such that format_header recognize some header before header def macro
-echo "/*${GINKGO_LICENSE_BEACON}" >> "${OUTPUT_FILE}"
-echo "${GINKGO_LICENSE_BEACON}*/" >> "${OUTPUT_FILE}"
+CURRENT_YEAR=$(date +%Y)
+echo "${GINKGO_LICENSE_BEGIN} 2017-${CURRENT_YEAR} The Ginkgo authors" >> "${OUTPUT_FILE}"
+echo "//" >> "${OUTPUT_FILE}"
+echo "${GINKGO_LICENSE_END} BSD-3-Clause" >> "${OUTPUT_FILE}"
 rm "${GLOBAL_FILE}"
 rm "${EMBED_FILE}"
 

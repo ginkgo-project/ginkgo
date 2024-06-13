@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/reorder/rcm_kernels.hpp"
 
@@ -81,20 +53,6 @@ namespace rcm {
 // No equivalent instruction.
 #define GKO_MM_PAUSE()
 #endif  // defined __x86_64__
-
-template <typename IndexType>
-void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
-                         const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         IndexType* const degrees)
-{
-#pragma omp parallel for
-    for (IndexType i = 0; i < num_vertices; ++i) {
-        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
 // This constant controls how many nodes can be dequeued from the
@@ -187,7 +145,7 @@ struct UbfsLinearQueue {
                     break;
                 }
 
-                // No measureable effect on performance.
+                // No measurable effect on performance.
                 GKO_MM_PAUSE();
             }
 
@@ -400,7 +358,7 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
     // Implement this through a tie-max reduction. First reduce local ...
     const int32 num_threads = omp_get_max_threads();
     const auto initial_value =
-        std::make_pair(std::make_pair(levels[0], degrees[0]), 0);
+        std::make_pair(std::make_pair(levels[start], degrees[start]), start);
     vector<contending> local_contenders(num_threads, initial_value, exec);
 
 #pragma omp parallel num_threads(num_threads)
@@ -410,9 +368,10 @@ std::pair<IndexType, IndexType> rls_contender_and_height(
 
 #pragma omp for schedule(static)
         for (IndexType i = 1; i < num_vertices; ++i) {
-            if (std::tie(levels[i], degrees[i]) >
-                std::tie(local_contender.first.first,
-                         local_contender.first.second)) {
+            // choose maximum level and minimum degree
+            if (levels[i] != std::numeric_limits<IndexType>::max() &&
+                std::tie(levels[i], local_contender.first.second) >
+                    std::tie(local_contender.first.first, degrees[i])) {
                 local_contender.first = std::make_pair(levels[i], degrees[i]);
                 local_contender.second = i;
             }
@@ -715,7 +674,7 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
 
                 // Sort neighbours. Can not be more than there are nodes.
                 const IndexType size = valid_neighbours.size();
-                sort_small(&valid_neighbours[0], size,
+                sort_small(valid_neighbours.data(), size,
                            [&](IndexType l, IndexType r) {
                                return degrees[l] < degrees[r];
                            });
@@ -785,14 +744,20 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
  * Computes a rcm permutation, employing the parallel unordered rcm algorithm.
  */
 template <typename IndexType>
-void get_permutation(std::shared_ptr<const OmpExecutor> exec,
-                     const IndexType num_vertices,
-                     const IndexType* const row_ptrs,
-                     const IndexType* const col_idxs,
-                     const IndexType* const degrees, IndexType* const perm,
-                     IndexType* const inv_perm,
-                     const gko::reorder::starting_strategy strategy)
+void compute_permutation(std::shared_ptr<const OmpExecutor> exec,
+                         const IndexType num_vertices,
+                         const IndexType* const row_ptrs,
+                         const IndexType* const col_idxs, IndexType* const perm,
+                         IndexType* const inv_perm,
+                         const gko::reorder::starting_strategy strategy)
 {
+    // compute node degrees
+    array<IndexType> degree_array{exec, static_cast<size_type>(num_vertices)};
+    const auto degrees = degree_array.get_data();
+#pragma omp parallel for
+    for (IndexType i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
     // Initialize the perm to all "signal value".
     std::fill(perm, perm + num_vertices, perm_untouched);
 
@@ -866,7 +831,7 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm

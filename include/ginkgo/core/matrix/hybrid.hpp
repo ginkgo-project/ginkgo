@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MATRIX_HYBRID_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_HYBRID_HPP_
@@ -70,7 +42,6 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
     : public EnableLinOp<Hybrid<ValueType, IndexType>>,
-      public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -79,7 +50,6 @@ class Hybrid
       public WritableToMatrixData<ValueType, IndexType>,
       public EnableAbsoluteComputation<
           remove_complex<Hybrid<ValueType, IndexType>>> {
-    friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
@@ -143,7 +113,7 @@ public:
                                    size_type* coo_nnz)
         {
             array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
-                                         row_nnz.get_num_elems());
+                                         row_nnz.get_size());
             ref_row_nnz = row_nnz;
             ell_num_stored_elements_per_row_ =
                 this->compute_ell_num_stored_elements_per_row(&ref_row_nnz);
@@ -192,7 +162,7 @@ public:
         {
             size_type coo_nnz = 0;
             auto row_nnz_val = row_nnz.get_const_data();
-            for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
+            for (size_type i = 0; i < row_nnz.get_size(); i++) {
                 if (row_nnz_val[i] > ell_num_stored_elements_per_row_) {
                     coo_nnz +=
                         row_nnz_val[i] - ell_num_stored_elements_per_row_;
@@ -263,7 +233,7 @@ public:
             array<size_type>* row_nnz) const override
         {
             auto row_nnz_val = row_nnz->get_data();
-            auto num_rows = row_nnz->get_num_elems();
+            auto num_rows = row_nnz->get_size();
             if (num_rows == 0) {
                 return 0;
             }
@@ -304,7 +274,7 @@ public:
         size_type compute_ell_num_stored_elements_per_row(
             array<size_type>* row_nnz) const override
         {
-            auto num_rows = row_nnz->get_num_elems();
+            auto num_rows = row_nnz->get_size();
             auto ell_cols =
                 strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
             return std::min(ell_cols,
@@ -640,6 +610,92 @@ public:
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
     /**
+     * Creates an uninitialized Hybrid matrix of specified method.
+     *    (ell_num_stored_elements_per_row is set to the number of cols of the
+     * matrix. ell_stride is set to the number of rows of the matrix.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Hybrid> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<strategy_type> strategy =
+            std::make_shared<automatic>());
+
+    /**
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
+     *    (ell_num_stored_elements_per_row is set to the number of cols of the
+     * matrix. ell_stride is set to the number of rows of the matrix.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Hybrid> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        std::shared_ptr<strategy_type> strategy =
+            std::make_shared<automatic>());
+
+    /**
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
+     *    (ell_stride is set to the number of rows of the matrix.)
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_stored_elements_per_row   the number of stroed elements per
+     *                                      row
+     * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Hybrid> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_stored_elements_per_row,
+        std::shared_ptr<strategy_type> strategy =
+            std::make_shared<automatic>());
+
+    /**
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
+     * @param stride  stride of the rows
+     * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Hybrid> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_stored_elements_per_row, size_type stride,
+        std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * Creates an uninitialized Hybrid matrix of the specified size and method.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_stored_elements_per_row   the number of stored elements per
+     *                                      row
+     * @param stride  stride of the rows
+     * @param num_nonzeros  number of nonzeros
+     * @param strategy  strategy of deciding the Hybrid config
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Hybrid> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_stored_elements_per_row, size_type stride,
+        size_type num_nonzeros = {},
+        std::shared_ptr<strategy_type> strategy =
+            std::make_shared<automatic>());
+
+    /**
      * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
      * Ell and Coo matrices.
      */
@@ -666,92 +722,11 @@ public:
     Hybrid(Hybrid&&);
 
 protected:
-    /**
-     * Creates an uninitialized Hybrid matrix of specified method.
-     *    (ell_num_stored_elements_per_row is set to the number of cols of the
-     * matrix. ell_stride is set to the number of rows of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param strategy  strategy of deciding the Hybrid config
-     */
-    Hybrid(
-        std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
-    {}
-
-    /**
-     * Creates an uninitialized Hybrid matrix of the specified size and method.
-     *    (ell_num_stored_elements_per_row is set to the number of cols of the
-     * matrix. ell_stride is set to the number of rows of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param strategy  strategy of deciding the Hybrid config
-     */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, size[1], std::move(strategy))
-    {}
-
-    /**
-     * Creates an uninitialized Hybrid matrix of the specified size and method.
-     *    (ell_stride is set to the number of rows of the matrix.)
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stroed elements per
-     *                                      row
-     * @param strategy  strategy of deciding the Hybrid config
-     */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0],
-                 {}, std::move(strategy))
-    {}
-
-    /**
-     * Creates an uninitialized Hybrid matrix of the specified size and method.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     * @param stride  stride of the rows
-     * @param strategy  strategy of deciding the Hybrid config
-     */
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
-           size_type num_stored_elements_per_row, size_type stride,
-           std::shared_ptr<strategy_type> strategy)
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
-                 std::move(strategy))
-    {}
-
-    /**
-     * Creates an uninitialized Hybrid matrix of the specified size and method.
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stored elements per
-     *                                      row
-     * @param stride  stride of the rows
-     * @param num_nonzeros  number of nonzeros
-     * @param strategy  strategy of deciding the Hybrid config
-     */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride,
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : EnableLinOp<Hybrid>(exec, size),
-          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
-                                stride)),
-          coo_(coo_type::create(exec, size, num_nonzeros)),
-          strategy_(std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+           size_type num_stored_elements_per_row = 0, size_type stride = 0,
+           size_type num_nonzeros = 0,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Resizes the matrix to the given dimensions and storage sizes.

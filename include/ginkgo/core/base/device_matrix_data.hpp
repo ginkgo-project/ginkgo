@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_BASE_DEVICE_MATRIX_DATA_HPP_
 #define GKO_PUBLIC_CORE_BASE_DEVICE_MATRIX_DATA_HPP_
@@ -39,6 +11,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 
 
 namespace gko {
@@ -98,19 +71,28 @@ public:
      * @param col_idxs  the array containing the matrix column indices
      * @param row_idxs  the array containing the matrix row indices
      */
-    template <typename ValueArray, typename RowIndexArray,
-              typename ColIndexArray>
     device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
-                       RowIndexArray&& row_idxs, ColIndexArray&& col_idxs,
-                       ValueArray&& values)
-        : size_{size},
-          row_idxs_{exec, std::forward<RowIndexArray>(row_idxs)},
-          col_idxs_{exec, std::forward<ColIndexArray>(col_idxs)},
-          values_{exec, std::forward<ValueArray>(values)}
-    {
-        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-    }
+                       array<index_type> row_idxs, array<index_type> col_idxs,
+                       array<value_type> values);
+
+    /**
+     * @copydoc device_matrix_data(std::shared_ptr<const Executor>, dim<2>,
+     * array<index_type>, array<index_type>, array<value_type>)
+     */
+    template <typename InputValueType, typename RowIndexType,
+              typename ColIndexType>
+    GKO_DEPRECATED(
+        "explicitly construct the gko::array arguments instead of passing "
+        "initializer lists")
+    device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
+                       std::initializer_list<RowIndexType> row_idxs,
+                       std::initializer_list<ColIndexType> col_idxs,
+                       std::initializer_list<InputValueType> values)
+        : device_matrix_data{exec, size,
+                             array<index_type>{exec, std::move(row_idxs)},
+                             array<index_type>{exec, std::move(col_idxs)},
+                             array<value_type>{exec, std::move(values)}}
+    {}
 
     /**
      * Copies the device_matrix_data entries to the host to return a regular
@@ -175,7 +157,15 @@ public:
      *
      * @return the number of stored elements of the matrix.
      */
-    size_type get_num_elems() const { return values_.get_num_elems(); }
+    GKO_DEPRECATED("use get_num_stored_elements()")
+    size_type get_num_elems() const { return get_num_stored_elements(); }
+
+    /**
+     * Returns the number of stored elements of the matrix.
+     *
+     * @return the number of stored elements of the matrix.
+     */
+    size_type get_num_stored_elements() const { return values_.get_size(); }
 
     /**
      * Returns a pointer to the row index array
@@ -284,7 +274,8 @@ struct temporary_clone_helper<device_matrix_data<ValueType, IndexType>> {
                 std::move(exec), *ptr);
         } else {
             return std::make_unique<device_matrix_data<ValueType, IndexType>>(
-                std::move(exec), ptr->get_size(), ptr->get_num_elems());
+                std::move(exec), ptr->get_size(),
+                ptr->get_num_stored_elements());
         }
     }
 };
@@ -301,34 +292,13 @@ struct temporary_clone_helper<const device_matrix_data<ValueType, IndexType>> {
 };
 
 
-// specialization for non-constant device_matrix_data, copying back via
-// assignment
 template <typename ValueType, typename IndexType>
-class copy_back_deleter<device_matrix_data<ValueType, IndexType>> {
+class copy_back_deleter<device_matrix_data<ValueType, IndexType>>
+    : public copy_back_deleter_from_assignment<
+          device_matrix_data<ValueType, IndexType>> {
 public:
-    using pointer = device_matrix_data<ValueType, IndexType>*;
-
-    /**
-     * Creates a new deleter object.
-     *
-     * @param original  the origin object where the data will be copied before
-     *                  deletion
-     */
-    copy_back_deleter(pointer original) : original_{original} {}
-
-    /**
-     * Copies back the pointed-to object to the original and deletes it.
-     *
-     * @param ptr  pointer to the object to be copied back and deleted
-     */
-    void operator()(pointer ptr) const
-    {
-        *original_ = *ptr;
-        delete ptr;
-    }
-
-private:
-    pointer original_;
+    using copy_back_deleter_from_assignment<device_matrix_data<
+        ValueType, IndexType>>::copy_back_deleter_from_assignment;
 };
 
 

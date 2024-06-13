@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/base/mtx_io.hpp>
 
@@ -98,7 +70,7 @@ public:
         std::istringstream dimensions_stream(parsed_header.dimensions_line);
         auto data = parsed_header.layout->read_data(
             dimensions_stream, is, parsed_header.entry, parsed_header.modifier);
-        data.ensure_row_major_order();
+        data.sort_row_major();
         return data;
     }
 
@@ -707,9 +679,9 @@ private:
 
         std::smatch match{};
         GKO_CHECK_MATCH(
-            regex_match(
+            regex_search(
                 description_line, match,
-                std::regex("%%matrixmarket matrix "
+                std::regex("^%%matrixmarket matrix "
                            "(coordinate|array) "
                            "(real|integer|complex|pattern) "
                            "(general|symmetric|skew-symmetric|hermitian)")),
@@ -721,7 +693,9 @@ private:
             "    <LAYOUT-TYPE>     is one of: coordinate, array\n"
             "    <VALUE-TYPE>      is one of: real, integer, complex, pattern\n"
             "    <LAYOUT-MODIFIER> is one of: general, symmetric, "
-            "skew-symmetric, hermitian\n");
+            "skew-symmetric, hermitian\n"
+            "Found the following header instead: " +
+                description_line);
 
         data.layout = layout_map.at(match[1]);
         data.entry = format_map.at(match[2]);
@@ -868,7 +842,7 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
         result.nonzeros[i].column = column;
     }
     // sort the entries
-    result.ensure_row_major_order();
+    result.sort_row_major();
     return result;
 }
 

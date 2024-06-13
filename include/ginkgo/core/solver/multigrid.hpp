@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
 #define GKO_PUBLIC_CORE_SOLVER_MULTIGRID_HPP_
@@ -47,6 +19,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -231,9 +206,10 @@ public:
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
          * Selector function returns the element index in the vector for any
-         * given level index and the matrix of the fine level.
-         * For each level, this function is used to select the smoothers
-         * and multigrid level generation from the respective lists.
+         * given level index and the matrix of the fine level. The level 0 is
+         * the finest level and it is ascending when going to coarser levels.
+         * For each level, this function is used to select the smoothers and
+         * multigrid level generation from the respective lists.
          * For example,
          * ```
          * [](size_type level, const LinOp* fine_matrix) {
@@ -250,9 +226,8 @@ public:
          * >= 3 and the number of rows of fine matrix > 1024, or the 2-idx
          * elements otherwise.
          *
-         * default selector:
-         *     use the first factory when mg_level size = 1
-         *     use the level as the index when mg_level size > 1
+         * default selector: use the level as the index when the level <
+         *   #mg_level and reuse the last one when the level >= #mg_level
          */
         std::function<size_type(const size_type, const LinOp*)>
             GKO_FACTORY_PARAMETER_SCALAR(level_selector, nullptr);
@@ -406,6 +381,25 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children configs.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children configs
+     *
+     * @return parameters
+     *
+     * @note Multigrid does not support the selector option in file config
+     */
+    static parameters_type parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<>());
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;

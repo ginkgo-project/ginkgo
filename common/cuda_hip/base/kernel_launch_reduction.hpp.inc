@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
@@ -130,7 +102,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
         ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         const auto required_storage = sizeof(ValueType) * num_blocks;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         generic_kernel_reduction_1d<<<num_blocks, block_size, 0,
@@ -171,7 +143,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                         exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         const auto required_storage = sizeof(ValueType) * num_blocks;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         generic_kernel_reduction_2d<<<num_blocks, block_size, 0,
@@ -395,7 +367,7 @@ void run_generic_col_reduction_small(
                 as_device_type(result), args...);
     } else {
         const auto required_storage = sizeof(ValueType) * num_blocks * cols;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         generic_kernel_col_reduction_2d_small<subwarp_size>
@@ -441,7 +413,7 @@ void run_kernel_row_reduction_cached(
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
-        if (tmp.get_num_elems() < required_storage) {
+        if (tmp.get_size() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
         const auto num_blocks =
@@ -512,7 +484,7 @@ void run_kernel_col_reduction_cached(
                 as_device_type(result), map_to_device(args)...);
         } else {
             const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-            if (tmp.get_num_elems() < required_storage) {
+            if (tmp.get_size() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }
             // no need to guard this kernel, as cols > warp_size, row_blocks > 1

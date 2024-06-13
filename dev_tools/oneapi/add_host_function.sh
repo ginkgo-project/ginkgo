@@ -67,7 +67,7 @@ SCOPE_END=".*\}.*"
 CHECK_GLOBAL_KEYWORD=".*${GLOBAL_KEYWORD}.*"
 FUNCTION_HANDLE=""
 DURING_FUNCNAME="false"
-ANAYSIS_FUNC=" *(template *<(.*)>)?.* (.*)\((.*)\)"
+ANALYSIS_FUNC=" *(template *<(.*)>)?.* (.*)\((.*)\)"
 START_BLOCK_REX="^( *\/\*| *\/\/)"
 END_BLOCK_REX="\*\/$| *\/\/"
 IN_BLOCK=0
@@ -80,9 +80,9 @@ SKIP="false"
 
 rm "${MAP_FILE}"
 while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${EXTRACT_KERNEL}" = "false" ] && ([ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] ||  [ "${DURING_LICENSE}" = "true" ]); then
+    if [ "${EXTRACT_KERNEL}" = "false" ] && ([[ "${line}" =~ {GINKGO_LICENSE_BEGIN} ]] ||  [ "${DURING_LICENSE}" = "true" ]); then
         DURING_LICENSE="true"
-        if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
+        if [[ "${line}" =~ ${GINKGO_LICENSE_END} ]]; then
             DURING_LICENSE="false"
             SKIP="true"
         fi
@@ -147,7 +147,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
                 # remove additional space
                 FUNCTION_HANDLE=$(echo "${FUNCTION_HANDLE}" | sed -E 's/ +/ /g;')
 
-                if [[ "${FUNCTION_HANDLE}" =~ $ANAYSIS_FUNC ]]; then
+                if [[ "${FUNCTION_HANDLE}" =~ $ANALYSIS_FUNC ]]; then
                     TEMPLATE="${BASH_REMATCH[1]}"
                     TEMPLATE_CONTENT="${BASH_REMATCH[2]}"
                     NAME="${BASH_REMATCH[3]}"

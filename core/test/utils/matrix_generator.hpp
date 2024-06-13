@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_TEST_UTILS_MATRIX_GENERATOR_HPP_
 #define GKO_CORE_TEST_UTILS_MATRIX_GENERATOR_HPP_
@@ -86,14 +58,14 @@ matrix_data<ValueType, IndexType> fill_random_matrix_data(
     auto host_row_indices = make_temporary_clone(host_exec, &row_indices);
     auto host_col_indices = make_temporary_clone(host_exec, &col_indices);
 
-    for (int nnz = 0; nnz < row_indices.get_num_elems(); ++nnz) {
+    for (int nnz = 0; nnz < row_indices.get_size(); ++nnz) {
         data.nonzeros.emplace_back(
             host_row_indices->get_const_data()[nnz],
             host_col_indices->get_const_data()[nnz],
             detail::get_rand_value<ValueType>(value_dist, engine));
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -135,7 +107,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
             size_type(0),
             std::min(static_cast<size_type>(nonzero_dist(engine)), num_cols));
         std::uniform_int_distribution<IndexType> col_dist{
-            0, static_cast<IndexType>(num_cols) - 1};
+            0, std::max(static_cast<IndexType>(num_cols) - 1, IndexType{})};
         if (nnz_in_row > num_cols / 2) {
             present_cols.assign(num_cols, true);
             // remove num_cols - nnz_in_row entries from present_cols
@@ -171,7 +143,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 
@@ -232,8 +204,8 @@ std::unique_ptr<MatrixType> fill_random_matrix(
     using value_type = typename MatrixType::value_type;
     using index_type = IndexType;
 
-    GKO_ASSERT(row_idxs.get_num_elems() == col_idxs.get_num_elems());
-    GKO_ASSERT(row_idxs.get_num_elems() <= (num_rows * num_cols));
+    GKO_ASSERT(row_idxs.get_size() == col_idxs.get_size());
+    GKO_ASSERT(row_idxs.get_size() <= (num_rows * num_cols));
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     result->read(fill_random_matrix_data<value_type, index_type>(
         num_rows, num_cols, row_idxs, col_idxs,
@@ -352,7 +324,9 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
         // randomly generate number of nonzeros in this row
         const auto min_col = lower_triangular ? 0 : row;
         const auto max_col =
-            lower_triangular ? row : static_cast<IndexType>(size) - 1;
+            lower_triangular
+                ? row
+                : std::max(static_cast<IndexType>(size) - 1, IndexType{});
         const auto max_row_nnz = max_col - min_col + 1;
         const auto nnz_in_row = std::max(
             size_type(0), std::min(static_cast<size_type>(nonzero_dist(engine)),
@@ -406,7 +380,7 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
         }
     }
 
-    data.ensure_row_major_order();
+    data.sort_row_major();
     return data;
 }
 

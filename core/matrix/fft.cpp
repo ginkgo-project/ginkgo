@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/fft.hpp>
 
@@ -211,6 +183,24 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
 }
 
 
+Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
+    : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
+{}
+
+
+std::unique_ptr<Fft> Fft::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft>{new Fft{exec}};
+}
+
+
+std::unique_ptr<Fft> Fft::create(std::shared_ptr<const Executor> exec,
+                                 size_type size, bool inverse)
+{
+    return std::unique_ptr<Fft>{new Fft{exec, size, inverse}};
+}
+
+
 std::unique_ptr<LinOp> Fft2::transpose() const
 {
     return Fft2::create(this->get_executor(), fft_size_[0], fft_size_[1],
@@ -286,6 +276,36 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         dense_x->add_scaled(alpha, clone_x);
     }
 }
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec}};
+}
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
+                                   size_type size)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec, size}};
+}
+
+
+std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
+                                   size_type size1, size_type size2,
+                                   bool inverse)
+{
+    return std::unique_ptr<Fft2>{new Fft2{exec, size1, size2, inverse}};
+}
+
+
+Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, bool inverse)
+    : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
+      buffer_{exec},
+      fft_size_{size1, size2},
+      inverse_{inverse}
+{}
 
 
 std::unique_ptr<LinOp> Fft3::transpose() const
@@ -369,6 +389,36 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         dense_x->add_scaled(alpha, clone_x);
     }
 }
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec}};
+}
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
+                                   size_type size)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec, size}};
+}
+
+
+std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
+                                   size_type size1, size_type size2,
+                                   size_type size3, bool inverse)
+{
+    return std::unique_ptr<Fft3>{new Fft3{exec, size1, size2, size3, inverse}};
+}
+
+
+Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, size_type size3, bool inverse)
+    : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
+      buffer_{exec},
+      fft_size_{size1, size2, size3},
+      inverse_{inverse}
+{}
 
 
 }  // namespace matrix

@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_BASE_MATRIX_DATA_HPP_
 #define GKO_PUBLIC_CORE_BASE_MATRIX_DATA_HPP_
@@ -260,7 +232,7 @@ struct matrix_data {
                 }
             }
         }
-        this->ensure_row_major_order();
+        this->sort_row_major();
     }
 
     /**
@@ -484,12 +456,20 @@ struct matrix_data {
     /**
      * Sorts the nonzero vector so the values follow row-major order.
      */
-    void ensure_row_major_order()
+    void sort_row_major()
     {
         std::sort(
             begin(nonzeros), end(nonzeros), [](nonzero_type x, nonzero_type y) {
                 return std::tie(x.row, x.column) < std::tie(y.row, y.column);
             });
+    }
+
+    /**
+     * Sorts the nonzero vector so the values follow row-major order.
+     */
+    GKO_DEPRECATED("Use sort_row_major() instead") void ensure_row_major_order()
+    {
+        this->sort_row_major();
     }
 
     /**
@@ -509,7 +489,7 @@ struct matrix_data {
      */
     void sum_duplicates()
     {
-        ensure_row_major_order();
+        this->sort_row_major();
         std::vector<nonzero_type> new_nonzeros;
         if (!nonzeros.empty()) {
             new_nonzeros.emplace_back(nonzeros.front().row,

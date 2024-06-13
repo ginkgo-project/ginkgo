@@ -1,35 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
-
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 template <typename ValueType>
 __device__ __forceinline__ void simple_apply(
@@ -160,5 +131,115 @@ __global__ __launch_bounds__(
         const auto beta_b = gko::batch::extract_batch_item(beta, batch_id);
         advanced_apply(alpha_b.values[0], mat_b, b_b.values, beta_b.values[0],
                        x_b.values);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void scale(const int num_rows, const int stride,
+                                      const int num_cols,
+                                      const ValueType* const col_scale,
+                                      const ValueType* const row_scale,
+                                      ValueType* const mat)
+{
+    for (int iz = threadIdx.x; iz < num_rows * num_cols; iz += blockDim.x) {
+        const int row = iz / stride;
+        const int col = iz % stride;
+        mat[row * stride + col] *= col_scale[col] * row_scale[row];
+    }
+}
+
+
+template <typename ValueType>
+__global__ void scale_kernel(
+    const ValueType* const __restrict__ col_scale_vals,
+    const ValueType* const __restrict__ row_scale_vals,
+    const gko::batch::matrix::dense::uniform_batch<ValueType> mat)
+{
+    const int num_rows = mat.num_rows;
+    const int stride = mat.stride;
+    const int num_cols = mat.num_cols;
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
+        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        scale(num_rows, stride, num_cols, col_scale_b, row_scale_b,
+              mat_b.values);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void scale_add(
+    const ValueType alpha,
+    const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
+    const gko::batch::matrix::dense::batch_item<ValueType>& in_out)
+{
+    // TODO: add stride support
+    for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
+         iz += blockDim.x) {
+        const int row = iz / mat.num_cols;
+        const int col = iz % mat.num_cols;
+        in_out.values[row * in_out.stride + col] =
+            alpha * in_out.values[row * in_out.stride + col] +
+            mat.values[row * mat.stride + col];
+    }
+}
+
+
+template <typename ValueType>
+__global__ void scale_add_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::matrix::dense::uniform_batch<const ValueType> mat,
+    const gko::batch::matrix::dense::uniform_batch<ValueType> in_out)
+{
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto in_out_b =
+            gko::batch::matrix::extract_batch_item(in_out, batch_id);
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        scale_add(alpha_b.values[0], mat_b, in_out_b);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void add_scaled_identity(
+    const ValueType alpha, const ValueType beta,
+    const gko::batch::matrix::dense::batch_item<ValueType>& mat)
+{
+    // TODO: add stride support
+    for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
+         iz += blockDim.x) {
+        const int row = iz / mat.num_cols;
+        const int col = iz % mat.num_cols;
+        mat.values[row * mat.stride + col] *= beta;
+        if (row == col) {
+            mat.values[row * mat.stride + col] += alpha;
+        }
+    }
+}
+
+
+template <typename ValueType>
+__global__ void add_scaled_identity_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
+    const gko::batch::matrix::dense::uniform_batch<ValueType> mat)
+{
+    const size_type num_batch_items = mat.num_batch_items;
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
+         batch_id += gridDim.x) {
+        const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
+        const auto beta_b = gko::batch::extract_batch_item(beta, batch_id);
+        const auto mat_b =
+            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
     }
 }

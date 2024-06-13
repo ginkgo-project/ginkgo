@@ -1,34 +1,6 @@
-/*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2023, the Ginkgo authors
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************<GINKGO LICENSE>*******************************/
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
@@ -192,6 +164,100 @@ TYPED_TEST(Ell, ConstAppliesLinearCombinationToBatchMultiVector)
     auto res = gko::batch::unbatch<gko::batch::MultiVector<T>>(this->x_0.get());
     GKO_ASSERT_MTX_NEAR(res[0].get(), this->x_00.get(), r<T>::value);
     GKO_ASSERT_MTX_NEAR(res[1].get(), this->x_01.get(), r<T>::value);
+}
+
+
+TYPED_TEST(Ell, CanTwoSidedScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, 3 * 2);
+    auto row_scale = gko::array<value_type>(this->exec, 2 * 2);
+    col_scale.fill(2);
+    row_scale.fill(3);
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{6.0, -6.0, 9.0}, {-12.0, 12.0, 18.0}},
+                                      {{6.0, -12.0, -3.0}, {6.0, -15.0, 24.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Ell, CanTwoSidedScaleWithDifferentValues)
+{
+    using value_type = typename TestFixture::value_type;
+    using BMtx = typename TestFixture::BMtx;
+    auto col_scale = gko::array<value_type>(this->exec, {1, 2, 1, 2, 2, 3});
+    auto row_scale = gko::array<value_type>(this->exec, {2, 4, 3, 1});
+
+    this->mtx_0->scale(row_scale, col_scale);
+
+    auto scaled_mtx_0 =
+        gko::batch::initialize<BMtx>({{{2.0, -4.0, 3.0}, {-8.0, 16.0, 12.0}},
+                                      {{6.0, -12.0, -4.5}, {2.0, -5.0, 12.0}}},
+                                     this->exec);
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx_0.get(), scaled_mtx_0.get(), 0.);
+}
+
+
+TYPED_TEST(Ell, CanAddScaledIdentity)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{1.0, 2.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{2.0, -2.0, 0.0}, {0.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec, 2);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat = gko::batch::initialize<BMtx>(
+        {{{5.0, 6.0, 0.0}, {0.0, 5.0, 3.0}, {0.0, 3.0, 5.0}},
+         {{-5.0, 4.0, 0.0}, {0.0, 1.0, -4.0}, {0.0, -4.0, -3.0}}},
+        this->exec, 2);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Ell, CanAddScaledIdentityForRectangular)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat =
+        gko::batch::initialize<BMtx>({{{1.0, 2.0, 0.0}, {0.0, 1.0, 1.0}},
+                                      {{2.0, -2.0, 0.0}, {0.0, -1.0, 2.0}}},
+                                     this->exec, 2);
+
+    mat->add_scaled_identity(alpha, beta);
+
+    auto result_mat =
+        gko::batch::initialize<BMtx>({{{5.0, 6.0, 0.0}, {0.0, 5.0, 3.0}},
+                                      {{-5.0, 4.0, 0.0}, {0.0, 1.0, -4.0}}},
+                                     this->exec, 2);
+    GKO_ASSERT_BATCH_MTX_NEAR(mat.get(), result_mat.get(), 0.);
+}
+
+
+TYPED_TEST(Ell, AddScaledIdentityFailsOnMatrixWithoutDiagonal)
+{
+    using BMtx = typename TestFixture::BMtx;
+    using BMVec = typename TestFixture::BMVec;
+    auto alpha = gko::batch::initialize<BMVec>({{2.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<BMVec>({{3.0}, {-2.0}}, this->exec);
+    auto mat = gko::batch::initialize<BMtx>(
+        {{{0.0, 2.0, 1.0}, {0.0, 1.0, 1.0}, {0.0, 1.0, 1.0}},
+         {{0.0, -2.0, 2.0}, {0.0, -1.0, 2.0}, {0.0, 2.0, 1.0}}},
+        this->exec, 2);
+
+    ASSERT_THROW(mat->add_scaled_identity(alpha, beta),
+                 gko::UnsupportedMatrixProperty);
 }
 
 
