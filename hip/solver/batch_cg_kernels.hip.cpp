@@ -147,7 +147,7 @@ public:
         auto workspace = gko::array<hip_value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(hip_value_type));
-        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(hip_value_type) == 0);
 
         hip_value_type* const workspace_data = workspace.get_data();
 
