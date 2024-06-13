@@ -172,7 +172,11 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 void CudaExecutor::synchronize() const
 {
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamSynchronize(this->get_stream()));
+    cudaEvent_t event;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&event));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(event, this->get_stream()));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamWaitEvent(this->get_stream(), event));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
 }
 
 
