@@ -7,7 +7,8 @@ repos:
     exclude: |
       (?x)^(
         third_party/SuiteSparse/AMD/.*|
-        third_party/identify_stream_usage/.*
+        third_party/identify_stream_usage/.*|
+        include/ginkgo/ginkgo.hpp
       )
 - repo: local
   hooks:

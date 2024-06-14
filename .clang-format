@@ -58,7 +58,30 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
-IncludeIsMainRegex: '([-_](test|unittest))?$'
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:    '^<oneapi/dpl.*'  # needs to be on top
+    Priority: -2
+  - Regex:    '<[^.]+>'  # standard library
+    Priority: 1
+  - Regex:    '(^<(hip/hip_runtime|cuda(_runtime)?)\.h)|common/cuda_hip/base/runtime\.hpp$'
+    Priority: 2
+    SortPriority: 2
+  - Regex:    '^<(omp|cu|hip|oneapi|thrust|CL/|cooperative|mpi|nvToolsExt).*'
+    Priority: 2
+    SortPriority: 3
+  - Regex:    '^<(nlohmann|gflags|gtest|sde_lib|papi).*'
+    Priority: 4
+  - Regex:    '<ginkgo/ginkgo.hpp>'
+    Priority: 6
+  - Regex:    '^<ginkgo/.*'
+    Priority: 7
+  - Regex:    '^<.*'  # other library includes
+    Priority: 5
+  - Regex:    '^.*'
+    Priority: 8
+IncludeIsMainRegex: '(_(stub|kernels|kernels2|test))?$'
+IncludeIsMainSourceRegex: '\.cu$|_kernels\.hpp$|\.dp\.cpp$'
 IndentCaseLabels: false
 IndentWidth:     4
 IndentWrappedFunctionNames: false
