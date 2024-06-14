@@ -33,6 +33,7 @@ html_static_path = ['_static']
 
 myst_enable_extensions = [
     "amsmath",
+    "colon_fence",
     "dollarmath",
     "linkify",
     "replacements",

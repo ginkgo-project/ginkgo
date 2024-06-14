@@ -6,9 +6,36 @@
 Welcome to Ginkgo's documentation!
 ==================================
 
+.. attention::
+
+   what wording to use?
+
+   - backend vs module
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: User Guide:
+
+   user-guide/getting-started
+   user-guide/build-install
+   user-guide/executors
+   user-guide/arrays
+   user-guide/vectors
+   user-guide/matrices
+   user-guide/linear-solvers
+   user-guide/linear-operators
+   user-guide/logging
+   user-guide/object-configuration
+   user-guide/extensions
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Architecture:
+
+   architecture/overview
+   architecture/adding-kernels
 
 
 
