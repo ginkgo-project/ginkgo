@@ -1,0 +1,87 @@
+[
+    {
+        "filename": "Mat1.mtx",
+        "problem": {
+            "id": 1421,
+            "group": "AMD",
+            "name": "Mat1",
+            "rows": 1585478,
+            "cols": 1585478,
+            "nonzeros": 7660826,
+            "real": true,
+            "binary": false,
+            "2d3d": false,
+            "posdef": true,
+            "psym": 1,
+            "nsym": 1,
+            "kind": "circuit simulation problem",
+            "columns": 1585478,
+            "row_distribution": {
+                "min": 2,
+                "q1": 5.0,
+                "median": 5.0,
+                "q3": 5.0,
+                "max": 6,
+                "mean": 4.831871523918969,
+                "variance": 0.4120113939641734,
+                "skewness": -0.7514079487508694,
+                "kurtosis": 4.28282640007319,
+                "hyperskewness": -6.6135071757493339,
+                "hyperflatness": 27.278212633379785
+            },
+            "col_distribution": {
+                "min": 2,
+                "q1": 5.0,
+                "median": 5.0,
+                "q3": 5.0,
+                "max": 6,
+                "mean": 4.831871523918969,
+                "variance": 0.4120113939641734,
+                "skewness": -0.7514079487508694,
+                "kurtosis": 4.28282640007319,
+                "hyperskewness": -6.6135071757493339,
+                "hyperflatness": 27.278212633379785
+            }
+        },
+        "spmv": {
+            "csr": {
+                "storage": 98271828,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.00002,
+                "repetitions": 10,
+                "completed": true
+            },
+            "coo": {
+                "storage": 122573216,
+                "max_relative_norm2": 0.0,
+                "time": 0.003,
+                "repetitions": 10,
+                "completed": true
+            },
+            "ell": {
+                "storage": 114154416,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0016,
+                "repetitions": 10,
+                "completed": true
+            },
+            "hybrid": {
+                "storage": 97557560,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0027,
+                "repetitions": 10,
+                "completed": true
+            },
+            "sellp": {
+                "storage": 94528616,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0008,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "optimal": {
+            "spmv": "csr"
+        }
+    }
+]
