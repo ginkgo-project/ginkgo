@@ -4,6 +4,7 @@
 
 #include "ginkgo/core/config/registry.hpp"
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 
@@ -16,7 +17,9 @@ namespace config {
 
 configuration_map generate_config_map()
 {
-    return {{"solver::Cg", parse<LinOpFactoryType::Cg>},
+    return
+    {
+        {"solver::Cg", parse<LinOpFactoryType::Cg>},
             {"solver::Bicg", parse<LinOpFactoryType::Bicg>},
             {"solver::Bicgstab", parse<LinOpFactoryType::Bicgstab>},
             {"solver::Fcg", parse<LinOpFactoryType::Fcg>},
@@ -42,7 +45,13 @@ configuration_map generate_config_map()
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
             {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
-            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>}};
+            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
+#if GINKGO_BUILD_MPI
+        {
+            "preconditioner::Schwarz", parse<LinOpFactoryType::Schwarz>
+        }
+#endif
+    };
 }
 
 

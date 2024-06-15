@@ -12,11 +12,15 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
 
 
@@ -24,6 +28,28 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 namespace preconditioner {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+typename Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parameters_type
+Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = Schwarz<ValueType, LocalIndexType, GlobalIndexType>::build();
+
+    if (auto& obj = config.get("generated_local_solver")) {
+        params.with_generated_local_solver(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config.get("local_solver")) {
+        params.with_local_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
