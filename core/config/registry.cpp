@@ -42,7 +42,8 @@ configuration_map generate_config_map()
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
             {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
-            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>}};
+            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
+            {"preconditioner::Schwarz", parse<LinOpFactoryType::Schwarz>}};
 }
 
 

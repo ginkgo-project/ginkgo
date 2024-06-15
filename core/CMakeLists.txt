@@ -6,6 +6,7 @@ set(config_source
     config/preconditioner_config.cpp
     config/registry.cpp
     config/solver_config.cpp
+    config/schwarz_config.cpp
 )
 # MSVC: To solve LNK1189, we separate the library as a workaround
 # To make ginkgo still be the major library, we make the original to ginkgo_core in MSVC/shared
