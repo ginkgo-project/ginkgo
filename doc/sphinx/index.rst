@@ -28,6 +28,7 @@ Welcome to Ginkgo's documentation!
    user-guide/logging
    user-guide/object-configuration
    user-guide/extensions
+   user-guide/mixed-precision
 
 
 .. toctree::
