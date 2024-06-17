@@ -14,7 +14,7 @@ release = '1.9.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser']
+extensions = ['myst_parser', 'breathe']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -34,8 +34,17 @@ html_static_path = ['_static']
 myst_enable_extensions = [
     "amsmath",
     "colon_fence",
+    "deflist",
     "dollarmath",
     "linkify",
     "replacements",
     "smartquotes"
 ]
+
+
+# -- breathe configuration ---------------------------------------------------
+# https://breathe.readthedocs.io/en/latest/quickstart.html
+
+breathe_projects = {"ginkgo": "/home/marcel/projects/working-trees/ginkgo/user-guide/cmake-build-debug/doc/doxygen/usr/xml"}
+breathe_default_project = "ginkgo"
+breathe_default_members = ("members-only", "outline")
