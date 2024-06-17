@@ -9,7 +9,7 @@ cmake --build <path-to-build-directory>
 cmake --install <path-to-build-directory>
 ```
 
-Ginkgo requires both CMake 3.16+ and a C++17 compiler to be available.
+Ginkgo requires both **CMake 3.16+** and a **C++17 compiler** to be available.
 Each backend might have additional requirements.
 A full list of the requirements can be found in [](build-install.system-requirements.md).
 
@@ -65,7 +65,7 @@ target_link_libraries(target Ginkgo::ginkgo)
 ```
 
 If Ginkgo can't be found by CMake, either add the install directory to the CMake option `CMAKE_PREFIX_PATH`,
-or passing `Ginkgo_ROOT=<install-directory>` to the CMake configuration of the consumer library.
+or passing `-DGinkgo_ROOT=<install-directory>` to the CMake configuration of the consumer library.
 The default install directory is system dependent.
 To explicitly set this directory either provide a prefix path to the install step:
 
