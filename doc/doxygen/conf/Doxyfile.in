@@ -12,7 +12,7 @@ INPUT                  =
 
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @PROJECT_BINARY_DIR@/doc/examples
+EXAMPLE_PATH           = @PROJECT_BINARY_DIR@/doc/doxygen/examples
 RECURSIVE              = YES
 EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
@@ -91,7 +91,7 @@ DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
 GENERATE_LEGEND        = YES
 HAVE_DOT               = YES
-DOTFILE_DIRS           = @DIR_BASE@/doc/headers
+DOTFILE_DIRS           = @DIR_BASE@/doc/doxygen/headers
 TEMPLATE_RELATIONS     = YES
 INCLUDE_GRAPH          = YES
 INCLUDED_BY_GRAPH      = YES
