@@ -14,9 +14,9 @@ import subprocess, os
 # Doxygen
 subprocess.call('doxygen Doxyfile.in', shell=True)
 
-project = 'NeoFOAM'
-copyright = '2024, NeoFOAM authors'
-author = 'NeoFOAM authors'
+project = 'Ginkgo'
+copyright = '2024, Ginkgo authors'
+author = 'Ginkgo authors'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -43,7 +43,7 @@ highlight_language = 'c++'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
+# html_theme = 'furo'
 html_theme_options = {
     'canonical_url': '',
     'analytics_id': '',  #  Provided by Google in your dashboard
@@ -61,8 +61,8 @@ html_theme_options = {
 html_static_path = ['_static']
 
 breathe_projects = {
-    "NeoFOAM": "_build/xml/"
+    "Ginkgo": "_build/xml/"
 }
-html_baseurl = "https://exasim-project.com/NeoFOAM/"
-breathe_default_project = "NeoFOAM"
+html_baseurl = "https://greole.github.io/ginkgo"
+breathe_default_project = "Ginkgo"
 breathe_default_members = ('members', 'undoc-members')
