@@ -1,0 +1,34 @@
+name: Build documentation
+
+on:
+ pull_request:
+    branches:
+      - main
+    types: [closed, synchronize, opened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Requirements
+      run: sudo apt install doxygen python3-sphinx
+        && pip3 install furo
+        && pip3 install breathe
+        && pip3 install sphinx-sitemap
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Build docs
+      run: |
+        sphinx-build -b html ./doc-sphinx ./docs_build/
+        cd docs_build
+        touch .nojekyll
+    - name: Deploy Test Build
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: docs_build
+        target-folder: test_build
+    - name: Deploy Build
+      if: ${{ github.event.pull_request.merged }}
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: docs_build
