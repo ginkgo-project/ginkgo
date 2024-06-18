@@ -20,12 +20,12 @@ Welcome to Ginkgo's documentation!
    user-guide/getting-started
    user-guide/build-install
    user-guide/executors
-   user-guide/arrays
    user-guide/vectors
    user-guide/matrices
    user-guide/linear-solvers
-   user-guide/linear-operators
    user-guide/logging
+   Arrays <user-guide/arrays>
+   user-guide/linear-operators
    user-guide/object-configuration
    user-guide/extensions
    user-guide/mixed-precision

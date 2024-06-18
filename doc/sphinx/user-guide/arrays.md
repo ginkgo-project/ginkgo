@@ -1,4 +1,4 @@
-# Arrays
+# `gko::array`
 
 The basic container for contiguous storage is the `array<T>` class.
 It is templated by the storage type.
@@ -14,7 +14,7 @@ The restrictions will be noted below.
 Wrongful usage will only be caught at link-time, where the error might be similar to: `undefined reference to gko::array<T>::fill(T)`.
 :::
 
-## Construction
+## Creating
 
 An array is constructed from an `Executor` and the number of stored objects:
 
@@ -56,6 +56,9 @@ gko::array<double> e(exec);
 The first array `d` stores zero elements, and it is not associated with any executor.
 The second array `e` also stores zero elements, but it is associated with the executor `exec`.
 The difference between both is mostly relevant for [copy and move operations](#copy-move).
+
+It is also possible to create an array that doesn't allocate data, and instead takes existing data as input.
+More details are in [](arrays.ownership.md).
 
 ## Using
 
@@ -155,51 +158,21 @@ gko::array<double> a(omp_exec, {1.0, 2.0, 3.0});
 a.set_executor(hip_exec);  //< the values [1.0, 2.0, 3.0] are now in GPU memory
 ```
 
-(ownership)=
-## Ownership
-
-The class supports two modes of ownership over the stored data.
-Ownership of the data is defined here as being responsible for freeing the data when it's not used anymore.
-Usually, the array owns it's data, meaning the array will free the data, once the array itself is freed.
-But it is also possible to create arrays, which do not own their data.
-This allows data that is managed outside to be used within Ginkgo.
-Non-owning arrays are called views in Ginkgo.
-
-A non-owning array can be created with the helper function `make_array_view<T>(std::shared_ptr<const Executor> exec, size_type size, T* data)`.
-The memory `data` is *required* to be accessible by the executor `exec`.
-Also, the size must be less or equal to the number of elements allocated at `data`.
-
-```c++
-std::shared_ptr<const Executor> exec = ...;
-gko::size_type size = ...;
-double* data = ...;  //< has to be accessible by exec
-gko::array<double> view = gko::make_array_view(exec, size, data);
-```
-
-The above function only works with pointers to mutable data.
-If a view on const data needs to be created, then the function `make_const_array_view` has to be used.
-This will create an 'array-like' view object, which can then either copied into a mutable array, or passed into Ginkgo functions that can handle this type.
-Typically this will be `create_const` functions which the Ginkgo matrix types provide.
-
-```c++
-std::shared_ptr<const Executor> exec = ...;
-gko::size_type size = ...;
-const double* data = ...;
-auto view = gko::make_const_array_view(exec, size, data);  //< the returned type is an implementation detail 
-                                                           //< and should not be relied upon
-```
-
-The owning status of an
-
-Certain functionality will not be available for non-owning arrays.
-The `reset_and_resize` function will throw, if the new size is different from the current size.
-
-
-
 (copy-move)=
 ## Copy & Move
+
+
+It is important to note that a copy or move assignment will **never** change the executor of either array.
+This allows an convenient approach to cross-device memory movement.
 
 - executor conservation
 - cross executor copy/move
 - view behavior
 - const views
+
+
+:::{toctree}
+:hidden:
+
+arrays.ownership.md
+:::
