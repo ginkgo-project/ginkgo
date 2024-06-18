@@ -4,7 +4,7 @@
 
 // Copyright (c) 2017-2023, the Ginkgo authors
 #include <../include/ginkgo/c_api.h>
-#include <cstring>  // std::strcpy
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -30,6 +30,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
+
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
