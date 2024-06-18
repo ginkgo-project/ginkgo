@@ -584,6 +584,30 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1)
 }
 
 
+TYPED_TEST(Gmres, SolvesBigDenseSystem1WithMultipleRhs)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = typename TestFixture::value_type;
+    auto solver = this->gmres_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{72748.36, 727483.6}, I<T>{297469.88, 2974698.8},
+         I<T>{347229.24, 3472292.4}, I<T>{36290.66, 362906.6},
+         I<T>{82958.82, 829588.2}, I<T>{-80192.15, -801921.5}},
+        this->exec);
+    auto x = Mtx::create(this->exec, b->get_size());
+    x->fill(0.0);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x,
+                        l(I<I<T>>{I<T>{52.7, 527.0}, I<T>{85.4, 854.0},
+                                  I<T>{134.2, 1342.0}, I<T>{-250.0, -2500.0},
+                                  I<T>{-16.8, -168.0}, I<T>{35.3, 353.0}}),
+                        r<value_type>::value * 1e3);
+}
+
+
 TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
