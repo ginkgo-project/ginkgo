@@ -633,7 +633,7 @@ warnings:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    CXX_FLAGS: "-Werror=pedantic;-pedantic-errors"
+    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core
@@ -699,6 +699,11 @@ sonarqube_cov_:
     - .quick_test_short_lived_condition
     - .before_script_template
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+  tags:
+    - private_ci
+    - controller
+    - cpu
+    - nla-gpu
   script:
     - PR_ID=$(curl -s "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
       | jq '.items[0].number')
@@ -730,6 +735,11 @@ sonarqube_cov:
     - .deploy_condition
     - .before_script_template
     - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+  tags:
+    - private_ci
+    - controller
+    - cpu
+    - nla-gpu
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
