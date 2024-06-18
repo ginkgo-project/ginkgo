@@ -6,6 +6,7 @@
 #ifndef C_API_H
 #define C_API_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,7 +23,6 @@ enum _GKO_DATATYPE_CONST {
     GKO_COMPLEX_FLOAT = 5,
     GKO_COMPLEX_DOUBLE = 6,
 };
-
 
 /* ----------------------------------------------------------------------
  * MACROS for generating structs for wrapping
@@ -385,6 +385,7 @@ enum _GKO_DATATYPE_CONST {
         mat_st_ptr->mat->apply(alpha->mat, x->mat, beta->mat, y->mat);         \
     }
 
+
 /**
  * @brief A build instruction for declaring gko::matrix::Csr<Tv,Ti> in the C API
  * header file
@@ -433,6 +434,16 @@ extern "C" {
 void c_char_ptr_free(char* ptr);
 
 /* ----------------------------------------------------------------------
+ * Library functions for retrieving configuration information in GINKGO
+ * ---------------------------------------------------------------------- */
+/**
+ * @brief This function is a wrapper for obtaining the version of the ginkgo
+ * library
+ *
+ */
+void ginkgo_version_get();
+
+/* ----------------------------------------------------------------------
  * Library functions for some basic types in GINKGO
  * ---------------------------------------------------------------------- */
 /**
@@ -470,11 +481,9 @@ size_t ginkgo_dim2_rows_get(gko_dim2_st dim);
  */
 size_t ginkgo_dim2_cols_get(gko_dim2_st dim);
 
-
 /* ----------------------------------------------------------------------
- * Library functions and structs for creating executors in GINKGO
+ * Library functions for executors (Creation, Getters) in GINKGO
  * ---------------------------------------------------------------------- */
-
 /**
  * @brief Struct containing the shared pointer to a ginkgo executor
  *
@@ -495,14 +504,224 @@ typedef struct gko_executor_st* gko_executor;
  */
 void ginkgo_executor_delete(gko_executor exec_st_ptr);
 
+/**
+ * @brief Returns the master OmpExecutor of this Executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the current executor
+ * @return gko_executor Raw pointer to the shared pointer of the master executor
+ */
+gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
+
+/**
+ * @brief Verifies whether the executors share the same memory.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the current executor
+ * @param other_exec_st_ptr Raw pointer to the shared pointer of the other
+ * executor
+ */
+bool ginkgo_executor_memory_accessible(gko_executor exec_st_ptr,
+                                       gko_executor other_exec_st_ptr);
+
+/**
+ * @brief Synchronize the operations launched on the executor with its master.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the current executor
+ */
+void ginkgo_executor_synchronize(gko_executor exec_st_ptr);
+
+//---------------------------- CPU -----------------------------
+/**
+ * @brief Create an OMP executor
+ *
+ * @return gko_executor Raw pointer to the shared pointer of the OMP executor
+ * created
+ */
 gko_executor ginkgo_executor_omp_create();
+
+/**
+ * @brief Create a reference executor
+ *
+ * @return gko_executor Raw pointer to the shared pointer of the reference
+ * executor created
+ */
 gko_executor ginkgo_executor_reference_create();
-gko_executor ginkgo_executor_cuda_create(size_t device_id);
-gko_executor ginkgo_executor_hip_create(size_t device_id);
-gko_executor ginkgo_executor_dpcpp_create(size_t device_id);
+
+/**
+ * @brief Get the number of cores of the CPU associated to this executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ * @return size_t No. of cores
+ */
+size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of threads per core of the CPU associated to this
+ * executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ * @return size_t No. of threads per core
+ */
+size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
+
+//---------------------------- GPU -----------------------------
+/**
+ * @brief Get the device id of the device associated to this executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ * @return size_t Device id
+ */
+size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
+
+// CUDA/HIP
+/**
+ * @brief Create a CUDA executor
+ *
+ * @param device_id Device id
+ * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ * @return gko_executor Raw pointer to the shared pointer of the CUDA executor
+ * created
+ */
+gko_executor ginkgo_executor_cuda_create(size_t device_id,
+                                         gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of devices of this CUDA executor.
+ *
+ * @return size_t No. of devices
+ */
 size_t ginkgo_executor_cuda_get_num_devices();
+
+/**
+ * @brief Create a HIP executor
+ *
+ * @param device_id Device id
+ * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ * @return gko_executor Raw pointer to the shared pointer of the HIP executor
+ * created
+ */
+gko_executor ginkgo_executor_hip_create(size_t device_id,
+                                        gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of devices of this HIP executor.
+ *
+ * @return size_t No. of devices
+ */
 size_t ginkgo_executor_hip_get_num_devices();
+
+/**
+ * @brief Get the number of multiprocessors of this thread-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t No. multiprocessors
+ */
+size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
+    gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of warps per SM of this thread-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t No. of warps per SM
+ */
+size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
+    gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of warps of this thread-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t No. of warps
+ */
+size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the warp size of this thread-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t The warp size of this executor
+ */
+size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the major version of compute capability.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t The major version of compute capability
+ */
+size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the minor version of compute capability.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t The minor version of compute capability
+ */
+size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the closest NUMA node.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
+ * executor
+ * @return size_t No. of the closest NUMA node
+ */
+size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
+
+// DPCPP
+
+/**
+ * @brief Create a DPCPP executor
+ *
+ * @param device_id Device id
+ * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ * @return gko_executor Raw pointer to the shared pointer of the DPCPP executor
+ * created
+ */
+gko_executor ginkgo_executor_dpcpp_create(size_t device_id,
+                                          gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of devices of this DPCPP executor.
+ *
+ * @return size_t No. of devices
+ */
 size_t ginkgo_executor_dpcpp_get_num_devices();
+
+/**
+ * @brief Get the number of subgroups of this item-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
+ * executor
+ * @return size_t No. of subgroups
+ */
+size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of workgroups of this item-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
+ * executor
+ * @return size_t No. of workgroups
+ */
+size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
+    gko_executor exec_st_ptr);
+
+/**
+ * @brief Get the number of computing units of this item-based executor.
+ *
+ * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
+ * executor
+ * @return size_t No. of computing units
+ */
+size_t ginkgo_executor_gpu_item_get_num_computing_units(
+    gko_executor exec_st_ptr);
 
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
@@ -512,40 +731,21 @@ DECLARE_ARRAY_OVERLOAD(int, int, i32)
 DECLARE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
 DECLARE_ARRAY_OVERLOAD(float, float, f32)
 DECLARE_ARRAY_OVERLOAD(double, double, f64)
-// DECLARE_ARRAY_OVERLOAD(float complex, std::complex<float>, cf32)
-// DECLARE_ARRAY_OVERLOAD(double complex, std::complex<double>, cf64)
-
 
 /* ----------------------------------------------------------------------
  * Library functions for creating matrices and matrix operations in GINKGO
  * ---------------------------------------------------------------------- */
 DECLARE_DENSE_OVERLOAD(float, float, f32)
 DECLARE_DENSE_OVERLOAD(double, double, f64)
-// DECLARE_DENSE_OVERLOAD(float _Complex, std::complex<float>, cf32)
-// DECLARE_DENSE_OVERLOAD(double _Complex, std::complex<double>, cf64)
-// DECLARE_DENSE_OVERLOAD(int16_t, std::int16_t, i16)
-// DECLARE_DENSE_OVERLOAD(int, int, i32)
-// DECLARE_DENSE_OVERLOAD(int64_t, std::int64_t, i64)
 
 DECLARE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
 DECLARE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
 DECLARE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
 DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
-// DECLARE_CSR_OVERLOAD(double, int16_t, double, std::int16_t, f64_i16, f64)
-// DECLARE_CSR_OVERLOAD(float _Complex, int, std::complex<float>, int,
-// cf32_i32); DECLARE_CSR_OVERLOAD(double _Complex, int, std::complex<double>,
-// int, cf64_i32)
-
-
-/* ----------------------------------------------------------------------
- * Library functions for BLAS linop in GINKGO
- * ---------------------------------------------------------------------- */
-
 
 /* ----------------------------------------------------------------------
  * Library functions for deferred factory parameters in GINKGO
  * ---------------------------------------------------------------------- */
-
 /**
  * @brief Struct containing the shared pointer to a ginkgo deferred factory
  * parameter
@@ -556,46 +756,73 @@ struct gko_deferred_factory_parameter_st;
 /**
  * @brief Type of the pointer to the wrapped `gko_deferred_factory_parameter_st`
  * struct
- *
  */
 typedef struct gko_deferred_factory_parameter_st*
     gko_deferred_factory_parameter;
 
 /**
- * @brief Deallocates memory for the parameter used for preconditioner
+ * @brief Deallocates memory for a ginkgo deferred factory parameter object.
  *
- * @param deferred_fac_param_st_ptr Raw pointer to the shared pointer of the
- * preconditioner parameter object to be deleted
+ * @param dfp_st_ptr Raw pointer to the shared pointer of the deferred factory
+ * parameter object to be deleted
  */
 void ginkgo_deferred_factory_parameter_delete(
-    gko_deferred_factory_parameter deferred_fac_param_st_ptr);
+    gko_deferred_factory_parameter dfp_st_ptr);
 
-struct gko_linop_st;
-typedef struct gko_linop_st* gko_linop;
-void ginkgo_linop_delete(gko_linop linop_st_ptr);
-void ginkgo_linop_apply(gko_linop solver, gko_linop b_st_ptr,
-                        gko_linop x_st_ptr);
-
+//-------------------- Preconditioner -----------------------------
+/**
+ * @brief Create a deferred factory parameter for an empty preconditioner
+ *
+ * @return gko_deferred_factory_parameter Raw pointer to the shared pointer of
+ * the none preconditioner created
+ */
 gko_deferred_factory_parameter ginkgo_preconditioner_none_create();
+
 gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
     int blocksize);
 gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
     gko_deferred_factory_parameter dfp_st_ptr);
 
-
-// Factorization
+//-------------------- Factorization ------------------------------
 gko_deferred_factory_parameter ginkgo_factorization_parilu_f64_i32_create(
-    int iteration, bool skip_sorting
-    //,
-    // bool approximate_select,
-    // double fill_in_limit,
-    // gko_linop l_strategy_st_ptr,
-    // gko_linop r_strategy_st_ptr,
-);
+    int iteration, bool skip_sorting);
 
 /* ----------------------------------------------------------------------
- * Library functions for iterative solvers in GINKGO
+ * Library functions for LinOp objects in GINKGO
  * ---------------------------------------------------------------------- */
+/**
+ * @brief Struct containing the shared pointer to a ginkgo LinOp object
+ *
+ */
+struct gko_linop_st;
+
+/**
+ * @brief Type of the pointer to the wrapped `gko_linop_st` struct
+ *
+ */
+typedef struct gko_linop_st* gko_linop;
+
+/**
+ * @brief Deallocates memory for a ginkgo LinOp object.
+ *
+ * @param linop_st_ptr Raw pointer to the shared pointer of the LinOp object to
+ * be deleted
+ */
+void ginkgo_linop_delete(gko_linop linop_st_ptr);
+
+/**
+ * @brief Applies a linear operator to a vector (or a sequence of vectors).
+ *
+ * @param A_st_ptr Raw pointer to the shared pointer of the LinOp object
+ * @param b_st_ptr Raw pointer to the shared pointer of the input vector(s) on
+ * which the operator is applied
+ * @param x_st_ptr Raw pointer to the shared pointer of the output vector where
+ * the result is stored
+ */
+void ginkgo_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
+                        gko_linop x_st_ptr);
+
+//-------------------- Iterative solvers -----------------------------
 gko_linop ginkgo_linop_cg_preconditioned_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
@@ -604,27 +831,21 @@ gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
 
+//-------------------- Direct solvers -----------------------------
 gko_linop ginkgo_linop_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
                                                  gko_linop A_st_ptr);
 
 gko_linop ginkgo_linop_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
                                                 gko_linop A_st_ptr);
 
+gko_linop ginkgo_linop_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
+                                                gko_linop A_st_ptr);
 
-/* ----------------------------------------------------------------------
- * Library functions for retrieving configuration information in GINKGO
- * ---------------------------------------------------------------------- */
-
-/**
- * @brief This function is a wrapper for obtaining the version of the ginkgo
- * library
- *
- */
-void ginkgo_version_get();
-
+gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
+                                                gko_linop A_st_ptr);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* language linkage */
 
 #endif /* C_API_H */
