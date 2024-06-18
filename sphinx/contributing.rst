@@ -1,5 +1,0 @@
-Contributing
-^^^^^^^^^^^^
-
-Building the Documentation
-""""""""""""""""""""""""""

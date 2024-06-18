@@ -16,16 +16,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Install Requirements
-      run: sudo apt install doxygen python3-sphinx
-        && pip3 install furo
-        && pip3 install breathe
-        && pip3 install sphinx-sitemap
     - name: Checkout repo
       uses: actions/checkout@v4
+    - name: Install Requirements
+      run: |
+        pip install -r ./doc/sphinx/requirements.txt
     - name: Build docs
       run: |
-        sphinx-build -b html ./sphinx ./docs_build/
+        sphinx-build -b html ./doc/sphinx ./docs_build/
         cd docs_build
         touch .nojekyll
     - name: Deploy Test Build
