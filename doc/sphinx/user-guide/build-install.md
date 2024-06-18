@@ -11,7 +11,7 @@ cmake --install <path-to-build-directory>
 
 Ginkgo requires both **CMake 3.16+** and a **C++17 compiler** to be available.
 Each backend might have additional requirements.
-A full list of the requirements can be found in [](build-install.system-requirements.md).
+A full list of the requirements can be found in [](build-install/system-requirements.md).
 
 ## Selecting Backends
 
@@ -51,7 +51,7 @@ If using the SYCL backend, the `CMAKE_CXX_COMPILER` option must be set to a SYCL
 ## Configuration Options
 
 Ginkgo has more options than the backend selection to configure its build.
-The full list of options is available in [](build-install.cmake-options.md)
+The full list of options is available in [](build-install/cmake-options.md)
 
 
 ## Linking Ginkgo
@@ -83,16 +83,16 @@ cmake -DCMAKE_INSTALL_PREFIX=<custom-install-directory> -S <source-directory> -B
 
 Details on more advanced topics can be found here:
 
-- [](build-install.tpl.md)
-- [](build-install.hip.md)
-- [](build-install.windows.md)
+- [](build-install/tpl.md)
+- [](build-install/hip.md)
+- [](build-install/windows.md)
 
 ```{toctree}
 :hidden:
 
-build-install.system-requirements
-build-install.cmake-options
-build-install.tpl
-build-install.hip
-build-install.windows
+build-install/system-requirements
+build-install/cmake-options
+build-install/tpl
+build-install/hip
+build-install/windows
 ```

@@ -37,6 +37,7 @@ Welcome to Ginkgo's documentation!
 
    architecture/overview
    architecture/adding-kernels
+   architecture/lifetime
 
 
 

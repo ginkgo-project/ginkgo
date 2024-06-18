@@ -58,7 +58,7 @@ The second array `e` also stores zero elements, but it is associated with the ex
 The difference between both is mostly relevant for [copy and move operations](#copy-move).
 
 It is also possible to create an array that doesn't allocate data, and instead takes existing data as input.
-More details are in [](arrays.ownership.md).
+More details are in [](arrays/ownership.md).
 
 ## Using
 
@@ -174,5 +174,5 @@ This allows an convenient approach to cross-device memory movement.
 :::{toctree}
 :hidden:
 
-arrays.ownership.md
+arrays/ownership
 :::
