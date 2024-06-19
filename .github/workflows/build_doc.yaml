@@ -10,7 +10,7 @@ on:
     types: [closed, synchronize, opened]
  push:
     tags:
-       - 'v*'
+       - v*
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
         folder: docs_build
         target-folder: Build_PR_${{ env.PR_NUMBER }}
     - name: Deploy Build
-      if: github.ref_type == 'tag'
+      if: ${{ github.ref_type == 'tag'}}
       uses: JamesIves/github-pages-deploy-action@v4
       with:
         folder: docs_build
