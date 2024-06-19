@@ -39,3 +39,9 @@ jobs:
       with:
         folder: docs_build
         target-folder: ${{ github.ref_name }}
+    - name: Deploy Build
+      if: ${{ github.event.pull_request.merged }}
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: docs_build
+        target-folder: latest
