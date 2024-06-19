@@ -7,6 +7,8 @@ Objects of type `gko::matrix::Dense<T>` are managed through smart pointers.
 These behave like 'normal' pointers, except that they automatically manage the lifetime of the object.
 For more details on how Ginkgo uses smart pointers please refer to [](lifetime).
 
+- row-major storage format
+
 
 ## Creating
 
@@ -32,7 +34,7 @@ For more details on how Ginkgo uses smart pointers please refer to [](lifetime).
 
 ## IO
 
-- read/write from/to matrix data
+- read/write from/to matrix data [](matrices/matrix_data.md)
 - mtx format for multiple columns is a single list, which has all entries in column major order
 
 ## Permutation
@@ -44,6 +46,6 @@ For more details on how Ginkgo uses smart pointers please refer to [](lifetime).
 :::{toctree}
 :hidden:
 
-vectors/distributed
+vectors/dim
 vectors/user-data
 :::

@@ -1,7 +1,7 @@
 # Getting Started
 
 
-
+- package manager
 
 
 ## Backends
@@ -31,7 +31,7 @@ SYCL
 : A GPU backend that runs on a single Intel GPU.
 
 Multiple backends can be used at the same time.
-Which backends can be used only depends on the system, see [](build-install.system-requirements.md) for more details.
+Which backends can be used only depends on the system, see [](build-install/system-requirements.md) for more details.
 
 The particular backend Ginkgo code runs on is chosen at runtime through an implementation of the `Executor` interface.
 

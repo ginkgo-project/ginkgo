@@ -8,15 +8,15 @@
 - each range belongs to a part, i.e. process
 
 
-# Creating
+## Creating
 
 - partition can't be changed after created
 
-## Helper Functions
+### Helper Functions
 
 - create from local sizes/ranges
 
-# Accessing 
+## Accessing 
 
 - only const accessors
 - scalar query functions

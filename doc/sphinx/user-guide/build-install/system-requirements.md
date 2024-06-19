@@ -70,7 +70,7 @@ The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_
 
 In these environments, two problems can be encountered, the solution for which is described in the
-[windows section in INSTALL.md](build-install.windows.md):
+[windows section in INSTALL.md](windows.md):
 * `ld: error: export ordinal too large` needs the compilation flag `-O1`
 * `cc1plus.exe: out of memory allocating 65536 bytes` requires a modification of the environment
 

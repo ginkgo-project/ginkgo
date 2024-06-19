@@ -11,7 +11,7 @@
     - partition is not stored!
     - only check if local + global sizes are compatible
 - from local vectors
-- ref [](mpi-communicator.md)
+- ref [](communicator.md)
 
 ## Accessing Local Data
 
@@ -19,7 +19,7 @@
 
 - operations typical of elements of vector spaces
 - norms
-- transpose
+  - blocking collective comm
 
 ## Conversions
 
@@ -29,10 +29,4 @@
 
 ## IO
 
-- read/write from/to matrix data
-
-## Permutation
-
-## Gathering Rows
-
-## Submatrices
+- read from matrix data
