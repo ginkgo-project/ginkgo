@@ -8,8 +8,9 @@ on:
       - main
       - develop
     types: [closed, synchronize, opened]
- tags:
-   - 'v*'
+ push:
+    tags:
+       - 'v*'
 
 jobs:
   build:
