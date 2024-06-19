@@ -35,6 +35,9 @@ namespace {
     }
 
 
+constexpr auto max_streamsize = std::numeric_limits<std::streamsize>::max();
+
+
 /**
  * The mtx_io class provides the functionality of reading and writing matrix
  * market format files.
@@ -514,6 +517,8 @@ private:
                 GKO_CHECK_STREAM(content, "error when reading matrix entry " +
                                               std::to_string(i));
                 modifier->insert_entry(row - 1, col - 1, entry, data);
+                content.ignore(max_streamsize,
+                               '\n');  // discards rest of the line
             }
             return data;
         }
@@ -582,6 +587,8 @@ private:
                                          std::to_string(row) + " ," +
                                          std::to_string(col));
                     modifier->insert_entry(row, col, entry, data);
+                    content.ignore(max_streamsize,
+                                   '\n');  // discards rest of the line
                 }
             }
             return data;
