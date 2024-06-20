@@ -164,6 +164,41 @@ enum class log_type { simple_convergence_completion };
 }  // namespace log
 
 
+#define GKO_BATCH_INSTANTIATE_STOP(macro, ...)                          \
+    macro(__VA_ARGS__,                                                  \
+          ::gko::batch::solver::device::batch_stop::SimpleAbsResidual); \
+    template macro(                                                     \
+        __VA_ARGS__,                                                    \
+        ::gko::batch::solver::device::batch_stop::SimpleRelResidual)
+
+#define GKO_BATCH_INSTANTIATE_PRECONDITIONER(macro, ...)                   \
+    GKO_BATCH_INSTANTIATE_STOP(                                            \
+        macro, __VA_ARGS__,                                                \
+        ::gko::batch::solver::device::batch_preconditioner::Identity);     \
+    template GKO_BATCH_INSTANTIATE_STOP(                                   \
+        macro, __VA_ARGS__,                                                \
+        ::gko::batch::solver::device::batch_preconditioner::ScalarJacobi); \
+    template GKO_BATCH_INSTANTIATE_STOP(                                   \
+        macro, __VA_ARGS__,                                                \
+        ::gko::batch::solver::device::batch_preconditioner::BlockJacobi)
+
+#define GKO_BATCH_INSTANTIATE_LOGGER(macro, ...) \
+    GKO_BATCH_INSTANTIATE_PRECONDITIONER(        \
+        macro, __VA_ARGS__,                      \
+        ::gko::batch::solver::device::batch_log::SimpleFinalLogger)
+
+#define GKO_BATCH_INSTANTIATE_MATRIX(macro, ...)                     \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,                 \
+                                 batch::matrix::ell::uniform_batch); \
+    template GKO_BATCH_INSTANTIATE_LOGGER(                           \
+        macro, __VA_ARGS__, batch::matrix::dense::uniform_batch);    \
+    template GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,        \
+                                          batch::matrix::csr::uniform_batch)
+
+#define GKO_BATCH_INSTANTIATE(macro, ...) \
+    GKO_BATCH_INSTANTIATE_MATRIX(macro, __VA_ARGS__)
+
+
 /**
  * Handles dispatching to the correct instantiation of a batched solver
  * depending on runtime parameters.
