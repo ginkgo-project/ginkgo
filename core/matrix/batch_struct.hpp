@@ -22,7 +22,7 @@ namespace csr {
 /**
  * Encapsulates one matrix from a batch of csr matrices.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = const int32>
 struct batch_item {
     using value_type = ValueType;
     using index_type = IndexType;
@@ -44,7 +44,7 @@ struct batch_item {
 /**
  * A 'simple' structure to store a global uniform batch of csr matrices.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = const int32>
 struct uniform_batch {
     using value_type = ValueType;
     using index_type = IndexType;
@@ -119,7 +119,7 @@ namespace ell {
 /**
  * Encapsulates one matrix from a batch of ell matrices.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = const int32>
 struct batch_item {
     using value_type = ValueType;
     using index_type = IndexType;
@@ -141,7 +141,7 @@ struct batch_item {
 /**
  * A 'simple' structure to store a global uniform batch of ell matrices.
  */
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType = const int32>
 struct uniform_batch {
     using value_type = ValueType;
     using index_type = IndexType;
