@@ -705,7 +705,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     }
     nlohmann::json global_output = {{"settings", global_settings},
                                     {"results", results}};
-    std::cout << global_output.dump();
+    std::cout << global_output.dump(2);
 }
 
 
