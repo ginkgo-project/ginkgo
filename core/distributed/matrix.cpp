@@ -242,8 +242,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, local_index_type>& local_data,
-    const device_matrix_data<value_type, local_index_type>&
-        non_local_data const const std::vector<comm_index_type>& send_offsets,
+    const device_matrix_data<value_type, local_index_type>& non_local_data,
+    const std::vector<comm_index_type>& send_offsets,
     const std::vector<comm_index_type>& send_sizes,
     const std::vector<comm_index_type>& recv_offsets,
     const std::vector<comm_index_type>& recv_sizes,
