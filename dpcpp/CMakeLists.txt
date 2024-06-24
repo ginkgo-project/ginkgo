@@ -126,7 +126,7 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp "GKO_COMPILING_DPCPP;GKO_GKO_DEVICE_NAMESPACE=dpcpp")
+    ginkgo_check_headers(ginkgo_dpcpp "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp")
 endif()
 
 if(GINKGO_BUILD_TESTS)
