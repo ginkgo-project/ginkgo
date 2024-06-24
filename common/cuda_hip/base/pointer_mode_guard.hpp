@@ -6,7 +6,7 @@
 #define GKO_COMMON_CUDA_HIP_BASE_POINTER_MODE_GUARD_HPP_
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/pointer_mode_guard.hpp"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/pointer_mode_guard.hip.hpp"

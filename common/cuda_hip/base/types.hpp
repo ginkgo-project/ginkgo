@@ -6,7 +6,7 @@
 #define GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/types.hpp"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/types.hip.hpp"

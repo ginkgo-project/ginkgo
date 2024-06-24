@@ -6,7 +6,7 @@
 #define GKO_COMMON_CUDA_HIP_COMPONENTS_MEMORY_HPP_
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 #include "cuda/components/memory.cuh"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/components/memory.hip.hpp"

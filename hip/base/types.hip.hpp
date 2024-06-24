@@ -432,8 +432,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr
 }
 
 
-using gpuComplex = hipComplex;
-using gpuDoubleComplex = hipDoubleComplex;
+using deviceComplex = hipComplex;
+using deviceDoubleComplex = hipDoubleComplex;
 
 
 }  // namespace hip

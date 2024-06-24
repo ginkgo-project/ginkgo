@@ -6,7 +6,7 @@
 #define GKO_COMMON_CUDA_HIP_BASE_BLAS_BINDINGS_HPP_
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/cublas_bindings.hpp"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/base/hipblas_bindings.hip.hpp"
