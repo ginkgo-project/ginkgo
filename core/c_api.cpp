@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Copyright (c) 2017-2023, the Ginkgo authors
 #include <../include/ginkgo/c_api.h>
 #include <cstring>
 #include <fstream>
