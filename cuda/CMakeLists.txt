@@ -4,6 +4,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(. matrix/csr_kernels.instantiate.cu CSR_INSTANTIATE)
 add_instantiation_files(. matrix/fbcsr_kernels.instantiate.cu FBCSR_INSTANTIATE)
 add_instantiation_files(. solver/batch_bicgstab_kernels_launch.instantiate.cu BATCH_BICGSTAB_INSTANTIATE)
+add_instantiation_files(. solver/batch_cg_kernels_launch.instantiate.cu BATCH_CG_INSTANTIATE)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
@@ -63,6 +64,7 @@ target_sources(ginkgo_cuda
     solver/batch_bicgstab_kernels.cu
     ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.cu
+    ${BACTH_CG_INSTANTIATE}
     solver/cb_gmres_kernels.cu
     solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
