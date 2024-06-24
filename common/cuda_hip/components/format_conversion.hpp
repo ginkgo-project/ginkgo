@@ -6,7 +6,7 @@
 #define GKO_COMMON_CUDA_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 #include "cuda/components/format_conversion.cuh"
 #elif defined(GKO_COMPILING_HIP)
 #include "hip/components/format_conversion.hip.hpp"

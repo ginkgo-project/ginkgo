@@ -26,7 +26,7 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
-#ifdef GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 inline auto thrust_policy(std::shared_ptr<const CudaExecutor> exec)
 {
     return thrust::cuda::par.on(exec->get_stream());
