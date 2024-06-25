@@ -88,6 +88,7 @@ target_sources(${ginkgo_core}
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/batch_jacobi.cpp
+        preconditioner/sor.cpp
     preconditioner/ic.cpp
     preconditioner/ilu.cpp
     preconditioner/isai.cpp
