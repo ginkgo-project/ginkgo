@@ -171,6 +171,15 @@ public:
          */
         std::shared_ptr<std::map<std::string, std::chrono::duration<double>>>
             GKO_FACTORY_PARAMETER_SCALAR(detail_operation_logger, nullptr);
+
+        /**
+         * Map between the iteration count and the last krylov_basis before a
+         * restart. Will only be populated if no compression on the basis was
+         * performed.
+         */
+        std::shared_ptr<
+            std::map<int, std::unique_ptr<matrix::Dense<ValueType>>>>
+            GKO_FACTORY_PARAMETER_SCALAR(krylov_basis_log, nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);

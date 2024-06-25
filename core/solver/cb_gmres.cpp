@@ -401,6 +401,38 @@ void print_krylov_vectors(Range&& curr, size_type num_vecs, size_type iteration)
 }
 
 
+template <typename ValueType, typename StorageType>
+struct krylov_basis_helper {
+    static std::unique_ptr<matrix::Dense<ValueType>> extract(
+        gko::cb_gmres::Range3dHelper<ValueType, StorageType>&, bool)
+    {
+        return nullptr;
+    }
+};
+
+
+template <typename ValueType>
+struct krylov_basis_helper<ValueType, ValueType> {
+    static std::unique_ptr<matrix::Dense<ValueType>> extract(
+        gko::cb_gmres::Range3dHelper<ValueType, ValueType>& helper,
+        bool do_store)
+    {
+        std::unique_ptr<matrix::Dense<ValueType>> krylov_basis{nullptr};
+        if (do_store && helper.get_range().length(2) == 1) {
+            const auto& range = helper.get_range();
+            const auto source_exec = helper.get_bases().get_executor();
+            const auto dest_exec = source_exec->get_master();
+            krylov_basis = matrix::Dense<ValueType>::create(
+                dest_exec, dim<2>{range.length(0), range.length(1)});
+            dest_exec->copy_from(source_exec, helper.get_bases().get_size(),
+                                 helper.get_bases().get_const_data(),
+                                 krylov_basis->get_values());
+        }
+        return krylov_basis;
+    }
+};
+
+
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
     const matrix::Dense<ValueType>* dense_b,
@@ -450,6 +482,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             static_cast<acc::size_type>(krylov_bases_dim[1]),
             static_cast<acc::size_type>(krylov_bases_dim[2])};
         if (which_frsz2 == 21) {
+            helper.get_bases().clear();
             compressed_storage.resize_and_reset(
                 Frsz2Compressor21::memory_requirement(krylov_bases_dim_a));
             this->average_bit_rate_ =
@@ -457,6 +490,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                 (krylov_bases_dim[0] * krylov_bases_dim[1] *
                  krylov_bases_dim[2]);
         } else if (which_frsz2 == 32) {
+            helper.get_bases().clear();
             compressed_storage.resize_and_reset(
                 Frsz2Compressor32::memory_requirement(krylov_bases_dim_a));
             this->average_bit_rate_ =
@@ -673,6 +707,14 @@ void CbGmres<ValueType>::apply_dense_impl(
 
                 // print_krylov_vectors(krylov_bases_range, restart_iter + 1,
                 //                     total_iter);
+                auto krylov_basis_as_mtx =
+                    krylov_basis_helper<ValueType, storage_type>::extract(
+                        helper, which_frsz2 == 0 && !use_pressio);
+                // Only write log if both the log and the matrix actually exists
+                if (this->parameters_.krylov_basis_log && krylov_basis_as_mtx) {
+                    this->parameters_.krylov_basis_log->operator[](total_iter) =
+                        std::move(krylov_basis_as_mtx);
+                }
                 if (which_frsz2 == 0) {
                     exec->run(cb_gmres::make_solve_krylov(
                         residual_norm_collection.get(),
