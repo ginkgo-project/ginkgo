@@ -139,7 +139,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv_mp(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -213,7 +213,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -288,7 +288,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmm(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -376,7 +376,7 @@ protected:
         gko::size_type buffer_size = 0;
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
-        auto handle = this->get_gpu_exec()->get_cusparse_handle();
+        auto handle = this->get_gpu_exec()->get_sparselib_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
         // temporarily.
@@ -465,7 +465,7 @@ public:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::csr2hyb(
-            this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
+            this->get_gpu_exec()->get_sparselib_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
             t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
             Threshold, Partition);
@@ -496,7 +496,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
             &scalars.get_const_data()[1], dx);
     }
@@ -555,13 +555,13 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
 
     gko::size_type buffer_size = 0;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
-        gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
+        gpu_exec->get_sparselib_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
         &buffer_size));
     gko::array<char> buffer_array(gpu_exec, buffer_size);
     auto dbuffer = buffer_array.get_data();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
-        gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
+        gpu_exec->get_sparselib_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg, dbuffer));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx));
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));

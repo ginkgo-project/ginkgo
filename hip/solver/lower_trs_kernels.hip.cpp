@@ -8,7 +8,6 @@
 #include <memory>
 
 
-#include "common/cuda_hip/base/runtime.hpp"
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -21,6 +20,7 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "hip/base/math.hip.hpp"
