@@ -968,7 +968,7 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
         // init identity permutation
         array<IndexType> permutation_array(exec, nnz);
         auto permutation = permutation_array.get_data();
-        sparselib::create_identity_permutation(handle, nnz, permutation);
+        components::fill_seq_array(exec, permutation, nnz);
 
         // allocate buffer
         size_type buffer_size{};
