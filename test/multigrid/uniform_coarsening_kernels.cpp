@@ -101,13 +101,17 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
     auto c_rows = gko::array<index_type>(ref, m);
     c_rows.fill(-gko::one<index_type>());
     auto d_c_rows = gko::array<index_type>(exec, c_rows);
+    auto gsize = gko::multigrid::structured_grid(1, {c_rows.get_size(), 1, 1});
 
     {
         gko::size_type coarse_skip = 2;
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-            ref, coarse_skip, &c_rows);
+            ref, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+            &c_rows);
         gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
-            fill_incremental_indices(exec, coarse_skip, &d_c_rows);
+            fill_incremental_indices(
+                exec, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+                &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
     {
@@ -115,9 +119,12 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
         c_rows.fill(-gko::one<index_type>());
         d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-            ref, coarse_skip, &c_rows);
+            ref, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+            &c_rows);
         gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
-            fill_incremental_indices(exec, coarse_skip, &d_c_rows);
+            fill_incremental_indices(
+                exec, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+                &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
     {
@@ -125,9 +132,12 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
         c_rows.fill(-gko::one<index_type>());
         d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-            ref, coarse_skip, &c_rows);
+            ref, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+            &c_rows);
         gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
-            fill_incremental_indices(exec, coarse_skip, &d_c_rows);
+            fill_incremental_indices(
+                exec, gsize, gko::multigrid::coarse_spacing(coarse_skip, 1, 1),
+                &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
 }
@@ -156,16 +166,17 @@ TEST_F(UniformCoarsening, FillRestrictOpIsEquivalentToRef)
 
 TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRef)
 {
-    gko::size_type coarse_skip = 2;
+    int coarse_skip = 2;
+    using MgLevel = gko::multigrid::UniformCoarsening<value_type, int>;
     initialize_data(coarse_skip);
     auto mg_level_factory =
-        gko::multigrid::UniformCoarsening<value_type, int>::build()
-            .with_coarse_skip(static_cast<unsigned>(coarse_skip))
+        MgLevel::build()
+            .with_spacing(gko::multigrid::coarse_spacing(coarse_skip, 1, 1))
             .with_skip_sorting(true)
             .on(ref);
     auto d_mg_level_factory =
-        gko::multigrid::UniformCoarsening<value_type, int>::build()
-            .with_coarse_skip(static_cast<unsigned>(coarse_skip))
+        MgLevel::build()
+            .with_spacing(gko::multigrid::coarse_spacing(coarse_skip, 1, 1))
             .with_skip_sorting(true)
             .on(exec);
 

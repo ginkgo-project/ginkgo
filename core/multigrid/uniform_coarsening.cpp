@@ -41,6 +41,28 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 }  // namespace uniform_coarsening
 
 
+namespace detail {
+
+
+int compute_coarse_dim(const int fine_num_rows,
+                       const gko::multigrid::structured_grid& grid,
+                       const gko::multigrid::coarse_spacing& spacings)
+{
+    int coarse_dim = fine_num_rows;
+
+    if (grid.dim == 1) {
+        coarse_dim = (fine_num_rows + spacings.x - 1) / spacings.x;
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    return coarse_dim;
+}
+
+
+}  // namespace detail
+
+
 template <typename ValueType, typename IndexType>
 void UniformCoarsening<ValueType, IndexType>::generate()
 {
@@ -67,13 +89,17 @@ void UniformCoarsening<ValueType, IndexType>::generate()
     coarse_rows_ = array<IndexType>(exec, num_rows);
     coarse_rows_.fill(-one<IndexType>());
 
+    // Reset to a 1D grid, in case the input grid size is invalid.
+    if (!parameters_.grid.is_valid()) {
+        parameters_.grid = structured_grid(1, {num_rows, 1, 1});
+    }
+
     // Fill with incremental local indices.
     exec->run(uniform_coarsening::make_fill_incremental_indices(
-        parameters_.coarse_skip, &coarse_rows_));
+        parameters_.grid, parameters_.spacing, &coarse_rows_));
 
-    gko::dim<2>::dimension_type coarse_dim =
-        (coarse_rows_.get_size() + parameters_.coarse_skip - 1) /
-        parameters_.coarse_skip;
+    gko::dim<2>::dimension_type coarse_dim = detail::compute_coarse_dim(
+        num_rows, parameters_.grid, parameters_.spacing);
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim,

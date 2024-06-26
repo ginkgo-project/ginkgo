@@ -33,8 +33,10 @@ protected:
     UniformCoarseningFactory()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening1_factory(
-              MgLevel::build().with_coarse_skip(4u).with_skip_sorting(true).on(
-                  exec))
+              MgLevel::build()
+                  .with_spacing(gko::multigrid::coarse_spacing(2, 2, 4))
+                  .with_skip_sorting(true)
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -56,15 +58,18 @@ TYPED_TEST(UniformCoarseningFactory, DefaultSetting)
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
 
-    ASSERT_EQ(factory->get_parameters().coarse_skip, 2u);
+    ASSERT_EQ(factory->get_parameters().spacing.x, 2);
+    ASSERT_EQ(factory->get_parameters().spacing.y, 1);
+    ASSERT_EQ(factory->get_parameters().spacing.z, 1);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
 }
 
 
 TYPED_TEST(UniformCoarseningFactory, SetNumJumps)
 {
-    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().coarse_skip,
-              4u);
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().spacing.x, 2);
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().spacing.y, 2);
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().spacing.z, 4);
 }
 
 

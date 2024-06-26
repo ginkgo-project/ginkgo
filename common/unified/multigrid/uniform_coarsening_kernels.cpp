@@ -6,6 +6,7 @@
 
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 
 #include "common/unified/base/kernel_launch.hpp"
@@ -47,10 +48,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
-                              size_type coarse_skip,
+                              const gko::multigrid::structured_grid grid,
+                              const gko::multigrid::coarse_spacing spacings,
                               array<IndexType>* coarse_rows)
 {
     IndexType num_elems = coarse_rows->get_size();
+    auto coarse_skip = spacings.x;
     run_kernel(
         exec,
         [] GKO_KERNEL(auto tidx, auto coarse_skip, auto coarse_data,

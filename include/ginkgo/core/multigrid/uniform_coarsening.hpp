@@ -21,6 +21,29 @@ namespace gko {
 namespace multigrid {
 
 
+struct structured_grid {
+    int dim = 1;
+    std::tuple<int, int, int> size;
+
+    structured_grid(int d, std::tuple<int, int, int> sz) : dim(d), size(sz){};
+
+    bool is_valid()
+    {
+        return (std::get<0>(size) > 0) && (std::get<1>(size) > 0) &&
+               (std::get<2>(size) > 0);
+    }
+};
+
+
+struct coarse_spacing {
+    int x = 2;
+    int y = 1;
+    int z = 1;
+
+    coarse_spacing(int x_, int y_, int z_) : x(x_), y(y_), z(z_){};
+};
+
+
 /**
  * UniformCoarsening is a simple coarse grid generation algorithm. It
  * selects the coarse matrix from the fine matrix by constant jumps that can be
@@ -77,9 +100,20 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The number of rows to skip for the coarse matrix generation
+         * The structured grid. The dimension of the grid and the size of the
+         * grid can be specified. See @structured_grid
+         *
+         * The default used is a 1D grid of the size of the number of rows of
+         * the matrix.
          */
-        unsigned GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2u);
+        structured_grid GKO_FACTORY_PARAMETER_SCALAR(
+            grid, structured_grid(1, {-1, -1, -1}));
+
+        /**
+         * The spacing in the x, y and z dimensions, as a tuple
+         */
+        coarse_spacing GKO_FACTORY_PARAMETER_SCALAR(spacing,
+                                                    coarse_spacing(2, 1, 1));
 
         /**
          * The `system_matrix`, which will be given to this factory, must be

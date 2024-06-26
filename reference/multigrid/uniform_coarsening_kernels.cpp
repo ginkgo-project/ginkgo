@@ -57,9 +57,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
-                              size_type coarse_skip,
+                              const gko::multigrid::structured_grid grid,
+                              const gko::multigrid::coarse_spacing spacings,
                               array<IndexType>* coarse_rows)
 {
+    auto coarse_skip = spacings.x;
     for (IndexType i = 0; i < coarse_rows->get_size(); i += coarse_skip) {
         coarse_rows->get_data()[i] = i / coarse_skip;
     }

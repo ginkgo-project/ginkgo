@@ -49,8 +49,10 @@ protected:
     UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening_factory(
-              MgLevel::build().with_coarse_skip(2u).with_skip_sorting(true).on(
-                  exec)),
+              MgLevel::build()
+                  .with_spacing(gko::multigrid::coarse_spacing(2, 1, 1))
+                  .with_skip_sorting(true)
+                  .on(exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
                I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
@@ -279,23 +281,25 @@ TYPED_TEST(UniformCoarsening, FillIncrementalIndicesWorks)
     auto c_rows = gko::array<index_type>(this->exec, 10);
     c_rows.fill(-gko::one<index_type>());
 
+    auto gsize = gko::multigrid::structured_grid(1, {10, 1, 1});
+
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 2, &c_rows);
+        this->exec, gsize, gko::multigrid::coarse_spacing(2, 1, 1), &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c2_rows);
 
     c_rows.fill(-gko::one<index_type>());
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 3, &c_rows);
+        this->exec, gsize, gko::multigrid::coarse_spacing(3, 1, 1), &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c3_rows);
 
     c_rows.fill(-gko::one<index_type>());
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 4, &c_rows);
+        this->exec, gsize, gko::multigrid::coarse_spacing(4, 1, 1), &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c4_rows);
 
     c_rows.fill(-gko::one<index_type>());
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 5, &c_rows);
+        this->exec, gsize, gko::multigrid::coarse_spacing(5, 1, 1), &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c5_rows);
 }
 
@@ -412,7 +416,10 @@ TYPED_TEST(UniformCoarsening, GenerateMgLevelOnUnsortedMatrix)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto mglevel_sort = MgLevel::build().with_coarse_skip(2u).on(this->exec);
+    auto mglevel_sort =
+        MgLevel::build()
+            .with_spacing(gko::multigrid::coarse_spacing(2, 1, 1))
+            .on(this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0
      * -3  5  0 -2 -1
