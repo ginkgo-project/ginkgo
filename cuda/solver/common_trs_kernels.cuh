@@ -66,7 +66,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
                     size_type num_rhs, bool is_upper, bool unit_diag)
-        : handle{exec->get_cusparse_handle()},
+        : handle{exec->get_sparselib_handle()},
           spsm_descr{},
           descr_a{},
           num_rhs{num_rhs},
@@ -189,7 +189,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                     const matrix::Csr<ValueType, IndexType>* matrix,
                     size_type num_rhs, bool is_upper, bool unit_diag)
         : exec{exec},
-          handle{exec->get_cusparse_handle()},
+          handle{exec->get_sparselib_handle()},
           algorithm{},
           solve_info{},
           policy{},

@@ -126,7 +126,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -201,7 +201,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmm(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -269,7 +269,7 @@ public:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::csr2hyb(
-            this->get_gpu_exec()->get_hipsparse_handle(), this->get_size()[0],
+            this->get_gpu_exec()->get_sparselib_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
             t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
             Threshold, Partition);
@@ -300,7 +300,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
             &scalars.get_const_data()[1], dx);
     }

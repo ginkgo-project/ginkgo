@@ -16,7 +16,6 @@
 #include <hip/hip_fp16.h>
 
 
-#include "common/cuda_hip/base/runtime.hpp"
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else
@@ -26,6 +25,9 @@
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
+
+
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 namespace gko {
