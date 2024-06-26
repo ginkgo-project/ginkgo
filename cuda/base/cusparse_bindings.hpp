@@ -940,6 +940,7 @@ inline void destroy(csrsm2Info_t info)
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11031)
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 inline csrilu02Info_t create_ilu0_info()
 {
     csrilu02Info_t info{};
@@ -966,6 +967,7 @@ inline void destroy_ic0_info(csric02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
 }
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 #if (defined(CUDA_VERSION) && (CUDA_VERSION < 11031))
@@ -1175,19 +1177,6 @@ void spsm_solve(cusparseHandle_t handle, cusparseOperation_t op_a,
 
 
 template <typename IndexType>
-void create_identity_permutation(cusparseHandle_t handle, IndexType size,
-                                 IndexType* permutation) GKO_NOT_IMPLEMENTED;
-
-template <>
-inline void create_identity_permutation<int32>(cusparseHandle_t handle,
-                                               int32 size, int32* permutation)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateIdentityPermutation(handle, size, permutation));
-}
-
-
-template <typename IndexType>
 void csrsort_buffer_size(cusparseHandle_t handle, IndexType m, IndexType n,
                          IndexType nnz, const IndexType* row_ptrs,
                          const IndexType* col_idxs,
@@ -1264,6 +1253,7 @@ inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,
 #endif
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 template <typename ValueType, typename IndexType>
 void ilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
                       const cusparseMatDescr_t descr, const ValueType* vals,
@@ -1458,6 +1448,7 @@ GKO_BIND_CUSPARSE_IC0(float, cusparseScsric02);
 GKO_BIND_CUSPARSE_IC0(double, cusparseDcsric02);
 GKO_BIND_CUSPARSE_IC0(std::complex<float>, cusparseCcsric02);
 GKO_BIND_CUSPARSE_IC0(std::complex<double>, cusparseZcsric02);
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 #undef GKO_BIND_CUSPARSE_IC0
 
