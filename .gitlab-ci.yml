@@ -625,6 +625,8 @@ build/icpx/igpu/release/static:
 # windows jobs: Release shared
 # Note that this is using Powershell, not bash
 build/windows/release/shared:
+  extends:
+    - .quick_test_condition
   stage: build
   script:
     - if (Test-Path build) { rm -r -fo build }
@@ -642,6 +644,8 @@ build/windows/release/shared:
 
 # CUDA
 build/windows-cuda/release/shared:
+  extends:
+    - .quick_test_condition
   stage: build
   script:
     - if (Test-Path build) { rm -r -fo build }
