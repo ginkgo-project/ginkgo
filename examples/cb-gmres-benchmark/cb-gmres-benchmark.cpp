@@ -15,6 +15,9 @@
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
+#include <libpressio_ext/cpp/json.h>
+#include <libpressio_ext/cpp/libpressio.h>
+#include <libpressio_meta.h>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -22,9 +25,6 @@
 #include <vector>
 
 
-#include <libpressio_ext/cpp/json.h>
-#include <libpressio_ext/cpp/libpressio.h>
-#include <libpressio_meta.h>
 #include <nlohmann/json.hpp>
 
 
@@ -93,17 +93,6 @@ struct solver_settings {
     gko::solver::cb_gmres::storage_precision storage_prec;
     std::shared_ptr<const gko::LinOp> precond;
     std::function<void(void*)> init_compressor;
-};
-
-template <typename T>
-struct solver_result {
-    unsigned iters;
-    double time_s;
-    double bit_rate;
-    T init_res_norm;
-    T res_norm;
-    std::vector<T> residual_norm_history;
-    std::map<std::string, double> operation_timings;
 };
 
 
@@ -361,15 +350,16 @@ public:
     // result of the solve will be written to x.
     // Note: Finish processing the residual_norm_history before the destructor
     //       of this object is called! Otherwise, you read undefined memory!
-    solver_result<RealValueType> benchmark_solver(solver_settings s_s)
+    nlohmann::json benchmark_solver(solver_settings s_s)
     {
         double duration{0};
-        solver_result<RealValueType> result{};
+        auto krylov_basis_log = std::make_shared<
+            std::map<int, std::unique_ptr<gko::matrix::Dense<ValueType>>>>();
 
         this->reset();
 
         // Reset x to the initial guess
-        result.init_res_norm = this->compute_residual_norm();
+        const auto init_res_norm = this->compute_residual_norm();
 
         auto iter_stop = gko::share(gko::stop::Iteration::build()
                                         .with_max_iters(s_s.stop_iter)
@@ -394,6 +384,7 @@ public:
                               .with_generated_preconditioner(s_s.precond)
                               .with_init_compressor(s_s.init_compressor)
                               .with_detail_operation_logger(detail_logger_)
+                              .with_krylov_basis_log(krylov_basis_log)
                               .on(exec_);
 
         // Generate the actual solver from the factory and the matrix.
@@ -408,6 +399,7 @@ public:
         for (int i = 0; i < repeats; ++i) {
             // No need to copy it in the first iteration
             if (i != 0) {
+                krylov_basis_log->clear();
                 x_->copy_from(init_x_.get());
                 convergence_history_logger_.reset();
                 detail_logger_->clear();
@@ -424,21 +416,48 @@ public:
         }
         iter_stop->remove_logger(convergence_history_logger_);
 
-        result.iters = convergence_history_logger_->get_num_iterations();
-        result.time_s = duration / static_cast<double>(repeats);
-        result.bit_rate = solver->get_average_bit_rate();
-        result.res_norm = this->compute_residual_norm();
-        result.residual_norm_history =
-            convergence_history_logger_->extract_residual_norm_history();
+        std::map<std::string, double> operation_timings;
+
         if (operation_logger_) {
-            result.operation_timings = operation_logger_->get_duration_map_s();
+            operation_timings = operation_logger_->get_duration_map_s();
             exec_->remove_logger(operation_logger_);
             for (auto&& entry : *detail_logger_) {
-                result.operation_timings.insert(
-                    {entry.first, entry.second.count()});
+                operation_timings.insert({entry.first, entry.second.count()});
             }
         }
-        return result;
+        const auto residual_norm = this->compute_residual_norm();
+        nlohmann::json json_result = {
+            {"bit_rate", solver->get_average_bit_rate()},
+            {"time_s", duration / static_cast<double>(repeats)},
+            {"iterations", convergence_history_logger_->get_num_iterations()},
+            {"init_res_norm", init_res_norm},
+            {"final_res_norm", residual_norm},
+            {"rel_res_norm", residual_norm / get_rhs_norm()},
+            {"res_norm_history",
+             convergence_history_logger_->extract_residual_norm_history()},
+        };
+        if (operation_timings.size() > 0) {
+            json_result["operations"] = operation_timings;
+        }
+        if (krylov_basis_log && krylov_basis_log->size() > 0) {
+            int last_iteration = 0;
+            for (auto&& entry : *krylov_basis_log) {
+                last_iteration = std::max(entry.first, last_iteration);
+            }
+            if (last_iteration > 0) {
+                nlohmann::json last_basis_json = nlohmann::json::array();
+                const auto& basis =
+                    krylov_basis_log->operator[](last_iteration);
+                const auto stride = basis->get_stride();
+                for (int i = 0; i < basis->get_size()[0]; ++i) {
+                    const auto start = basis->get_const_values() + i * stride;
+                    last_basis_json.push_back(std::vector<ValueType>(
+                        start, start + basis->get_size()[1]));
+                }
+                json_result["last_krylov_basis"] = last_basis_json;
+            }
+        }
+        return json_result;
     }
 
     RealValueType get_rhs_norm() const { return rhs_norm_; }
@@ -601,23 +620,10 @@ void run_benchmarks(const user_launch_parameter& launch_param)
 
 
     const auto get_result_json =
-        [rhs_norm = b_object.get_rhs_norm()](
-            const std::string& bench_name,
-            solver_result<RealValueType>&& result) -> nlohmann::json {
-        nlohmann::json json_result = {
-            {"name", bench_name},
-            {"settings", nlohmann::json::object()},
-            {"bit_rate", result.bit_rate},
-            {"time_s", result.time_s},
-            {"iterations", result.iters},
-            {"init_res_norm", result.init_res_norm},
-            {"final_res_norm", result.res_norm},
-            {"rel_res_norm", result.res_norm / rhs_norm},
-            {"res_norm_history", std::move(result.residual_norm_history)},
-        };
-        if (result.operation_timings.size() > 0) {
-            json_result["operations"] = result.operation_timings;
-        }
+        [](const std::string& bench_name,
+           nlohmann::json&& json_result) -> nlohmann::json {
+        json_result["name"] = bench_name;
+        json_result["settings"] = nlohmann::json::object();
         //  The actual settings information (the JSON file used for the
         //  compression) needs to be added afterwards
         return json_result;
@@ -705,7 +711,7 @@ void run_benchmarks(const user_launch_parameter& launch_param)
     }
     nlohmann::json global_output = {{"settings", global_settings},
                                     {"results", results}};
-    std::cout << global_output.dump(2);
+    std::cout << global_output.dump();
 }
 
 
