@@ -22,7 +22,7 @@ DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
               "Supported values are: none, jacobi, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
-              "parilut-isai, ic-isai, ilu-isai, overhead");
+              "parilut-isai, ic-isai, ilu-isai, sor, overhead");
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
@@ -48,6 +48,12 @@ DEFINE_double(jacobi_accuracy, 1e-1,
 
 DEFINE_uint32(jacobi_max_block_size, 32,
               "Maximal block size of the block-Jacobi preconditioner");
+
+DEFINE_double(sor_relaxation_factor, 1.0,
+              "The relaxation factor for the SOR preconditioner");
+
+DEFINE_bool(sor_symmetric, false,
+            "Apply the SOR preconditioner symmetrically, i.e. use SSOR");
 
 
 // parses the Jacobi storage optimization command line argument
@@ -290,6 +296,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::SpdIsai<etype, itype>::build()
                  .with_sparsity_power(FLAGS_isai_power)
+                 .on(exec);
+         }},
+        {"sor",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::Sor<etype, itype>::build()
+                 .with_relaxation_factor(
+                     static_cast<gko::remove_complex<etype>>(
+                         FLAGS_sor_relaxation_factor))
+                 .with_symmetric(FLAGS_sor_symmetric)
                  .on(exec);
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
