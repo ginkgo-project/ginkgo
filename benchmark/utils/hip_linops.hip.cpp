@@ -143,7 +143,7 @@ protected:
         : gko::EnableLinOp<HipsparseCsr, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -219,7 +219,7 @@ protected:
         : gko::EnableLinOp<HipsparseCsrmm, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -312,7 +312,7 @@ protected:
     HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
                     const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipsparseHybrid, HipsparseBase>(exec, size),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateHybMat(&hyb_));
