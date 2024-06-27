@@ -102,14 +102,14 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             reinterpret_cast<ValueType*>(0xDEAF0));
 
         auto work_size = sparselib::spsm_buffer_size(
-            handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, one<ValueType>(), descr_a,
+            handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
+            SPARSELIB_OPERATION_NON_TRANSPOSE, one<ValueType>(), descr_a,
             descr_b, descr_c, CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr);
 
         work.resize_and_reset(work_size);
 
-        sparselib::spsm_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                 CUSPARSE_OPERATION_NON_TRANSPOSE,
+        sparselib::spsm_analysis(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
+                                 SPARSELIB_OPERATION_NON_TRANSPOSE,
                                  one<ValueType>(), descr_a, descr_b, descr_c,
                                  CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr,
                                  work.get_data());
@@ -141,8 +141,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         auto descr_c = sparselib::create_dnmat(
             output->get_size(), output->get_stride(), output->get_values());
 
-        sparselib::spsm_solve(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                              CUSPARSE_OPERATION_NON_TRANSPOSE,
+        sparselib::spsm_solve(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
+                              SPARSELIB_OPERATION_NON_TRANSPOSE,
                               one<ValueType>(), descr_a, descr_b, descr_c,
                               CUSPARSE_SPSM_ALG_DEFAULT, spsm_descr);
 
@@ -215,8 +215,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         size_type work_size{};
 
         sparselib::buffer_size_ext(
-            handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
+            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
             matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
@@ -226,8 +226,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         work.resize_and_reset(work_size);
 
         sparselib::csrsm2_analysis(
-            handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
+            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
             matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
@@ -253,8 +253,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         sparselib::pointer_mode_guard pm_guard(handle);
         dense::copy(exec, input, output);
         sparselib::csrsm2_solve(
-            handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0],
+            handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
+            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0],
             output->get_stride(), matrix->get_num_stored_elements(),
             one<ValueType>(), factor_descr, matrix->get_const_values(),
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),

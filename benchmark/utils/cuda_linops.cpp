@@ -156,7 +156,7 @@ protected:
         : gko::EnableLinOp<CusparseCsrmp, CusparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -230,7 +230,7 @@ protected:
         : gko::EnableLinOp<CusparseCsr, CusparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -306,7 +306,7 @@ protected:
         : gko::EnableLinOp<CusparseCsrmm, CusparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -407,7 +407,7 @@ protected:
         : gko::EnableLinOp<CusparseCsrEx, CusparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE),
           buffer_(exec)
     {
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
@@ -508,7 +508,7 @@ protected:
     CusparseHybrid(std::shared_ptr<const gko::Executor> exec,
                    const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CusparseHybrid, CusparseBase>(exec, size),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
@@ -654,7 +654,7 @@ protected:
         : gko::EnableLinOp<CusparseGenericCsr, CusparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -745,7 +745,7 @@ protected:
                        const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CusparseGenericCoo, CusparseBase>(exec, size),
           coo_(std::move(coo::create(exec))),
-          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:

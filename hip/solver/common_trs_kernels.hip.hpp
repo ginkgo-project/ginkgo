@@ -125,7 +125,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
             {
                 sparselib::pointer_mode_guard pm_guard(handle);
                 sparselib::csrsv2_buffer_size(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
                     matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
@@ -140,7 +140,7 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                     exec->alloc<void*>(hip_solve_struct->factor_work_size);
 
                 sparselib::csrsv2_analysis(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
                     matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
@@ -180,7 +180,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                 sparselib::pointer_mode_guard pm_guard(handle);
                 if (b->get_stride() == 1) {
                     sparselib::csrsv2_solve(
-                        handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                        handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0],
                         matrix->get_num_stored_elements(), &one,
                         hip_solve_struct->factor_descr,
@@ -195,7 +195,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                     dense::transpose(exec, x, trans_x);
                     for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
                         sparselib::csrsv2_solve(
-                            handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                            handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                             matrix->get_size()[0],
                             matrix->get_num_stored_elements(), &one,
                             hip_solve_struct->factor_descr,
