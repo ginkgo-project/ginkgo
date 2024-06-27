@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.21)
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(. matrix/csr_kernels.instantiate.hip.cpp CSR_INSTANTIATE)
 add_instantiation_files(. matrix/fbcsr_kernels.instantiate.hip.cpp FBCSR_INSTANTIATE)
+add_instantiation_files(. solver/batch_bicgstab_kernels_launch.instantiate.hip.cpp BATCH_BICGSTAB_INSTANTIATE)
+add_instantiation_files(. solver/batch_cg_kernels_launch.instantiate.hip.cpp BATCH_CG_INSTANTIATE)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
@@ -57,7 +59,9 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
+    ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.hip.cpp
+    ${BATCH_CG_INSTANTIATE}
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
