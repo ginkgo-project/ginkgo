@@ -4,7 +4,6 @@
 
 #include "core/preconditioner/sor_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
