@@ -72,7 +72,7 @@ TEST_F(Executor, RunsCorrectOperation)
 
     exec->run(ExampleOperation(value));
 
-    ASSERT_EQ(EXEC_NAMESPACE::value, value);
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
 
 
@@ -104,7 +104,7 @@ TEST_F(Executor, RunsCorrectLambdaOperation)
 
     exec->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
-    ASSERT_EQ(EXEC_NAMESPACE::value, value);
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
 
 

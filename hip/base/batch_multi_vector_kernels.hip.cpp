@@ -5,7 +5,6 @@
 #include "core/base/batch_multi_vector_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
@@ -14,13 +13,14 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
+#include "common/cuda_hip/base/blas_bindings.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/batch_struct.hpp"
 #include "hip/base/batch_struct.hip.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipblas_bindings.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"

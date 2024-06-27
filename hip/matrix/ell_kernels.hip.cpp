@@ -8,9 +8,6 @@
 #include <array>
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -18,19 +15,20 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "accessor/hip_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
@@ -133,20 +131,21 @@ void abstract_spmv(syn::value_list<int, info>,
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_hip_range(a_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(a_vals),
                     a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_hip_range(b_vals),
+                    num_stored_elements_per_row, acc::as_device_range(b_vals),
                     as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
+        const auto alpha_val = acc::range<a_accessor>(
+            std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         if (grid_size.x > 0 && grid_size.y > 0) {
-            const auto alpha_val = acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->get_const_values());
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_hip_range(alpha_val),
-                    acc::as_hip_range(a_vals), a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_hip_range(b_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(alpha_val),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                    stride, num_stored_elements_per_row,
+                    acc::as_device_range(b_vals),
                     as_device_type(beta->get_const_values()),
                     as_device_type(c->get_values()), c->get_stride());
         }
@@ -215,7 +214,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the hip kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
@@ -249,7 +248,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the hip kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */

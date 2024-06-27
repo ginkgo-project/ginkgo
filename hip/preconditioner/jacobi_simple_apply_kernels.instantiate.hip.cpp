@@ -8,14 +8,14 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/warp_blas.hip.hpp"
 #include "hip/preconditioner/jacobi_common.hip.hpp"
@@ -32,7 +32,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include "common/cuda_hip/preconditioner/jacobi_simple_apply_kernel.hpp.inc"
+#include "common/cuda_hip/preconditioner/jacobi_simple_apply_kernels.hpp.inc"
 
 
 // clang-format off

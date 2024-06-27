@@ -1600,14 +1600,29 @@ public:
      *
      * @return  the cublas handle (cublasContext*) for this executor
      */
-    cublasContext* get_cublas_handle() const { return cublas_handle_.get(); }
+    GKO_DEPRECATED("use get_blas_handle() instead")
+    cublasContext* get_cublas_handle() const { return get_blas_handle(); }
+
+    /**
+     * @copydoc get_cublas_handle()
+     */
+    cublasContext* get_blas_handle() const { return cublas_handle_.get(); }
 
     /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
      */
+    GKO_DEPRECATED("use get_sparselib_handle() instead")
     cusparseContext* get_cusparse_handle() const
+    {
+        return get_sparselib_handle();
+    }
+
+    /**
+     * @copydoc get_cusparse_handle()
+     */
+    cusparseContext* get_sparselib_handle() const
     {
         return cusparse_handle_.get();
     }
@@ -1805,14 +1820,29 @@ public:
      *
      * @return  the hipblas handle (hipblasContext*) for this executor
      */
-    hipblasContext* get_hipblas_handle() const { return hipblas_handle_.get(); }
+    GKO_DEPRECATED("use get_blas_handle() instead")
+    hipblasContext* get_hipblas_handle() const { return get_blas_handle(); }
+
+    /**
+     * @copydoc get_hipblas_handle()
+     */
+    hipblasContext* get_blas_handle() const { return hipblas_handle_.get(); }
 
     /**
      * Get the hipsparse handle for this executor
      *
      * @return the hipsparse handle (hipsparseContext*) for this executor
      */
+    GKO_DEPRECATED("use get_sparselib_handle() instead")
     hipsparseContext* get_hipsparse_handle() const
+    {
+        return get_sparselib_handle();
+    }
+
+    /**
+     * @copydoc get_hipsparse_handle()
+     */
+    hipsparseContext* get_sparselib_handle() const
     {
         return hipsparse_handle_.get();
     }

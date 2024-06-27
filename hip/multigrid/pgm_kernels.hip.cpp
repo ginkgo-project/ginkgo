@@ -19,8 +19,8 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {

@@ -17,9 +17,9 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 
-#include "cuda/base/cusparse_bindings.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/solver/common_trs_kernels.cuh"
 
 

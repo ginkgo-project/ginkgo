@@ -13,20 +13,21 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/atomic.cuh"
-#include "cuda/components/intrinsics.cuh"
-#include "cuda/components/prefix_sum.cuh"
-#include "cuda/components/searching.cuh"
-#include "cuda/components/sorting.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/factorization/par_ilut_select_common.cuh"
+#include "hip/base/math.hip.hpp"
+#include "hip/components/atomic.hip.hpp"
+#include "hip/components/intrinsics.hip.hpp"
+#include "hip/components/prefix_sum.hip.hpp"
+#include "hip/components/searching.hip.hpp"
+#include "hip/components/sorting.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -147,7 +148,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
     kernel::basecase_select<<<1, kernel::basecase_block_size, 0,
                               exec->get_stream()>>>(
-        as_cuda_type(tmp22), bucket.size, rank, as_cuda_type(out_ptr));
+        as_device_type(tmp22), bucket.size, rank, as_device_type(out_ptr));
     threshold = exec->copy_val_to_host(out_ptr);
 }
 
@@ -156,6 +157,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

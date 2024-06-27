@@ -13,7 +13,7 @@
 #include <cuda.h>
 
 
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 
 
 namespace gko {

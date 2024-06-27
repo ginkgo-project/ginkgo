@@ -12,10 +12,11 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 

@@ -20,7 +20,7 @@
 #include <ginkgo/core/base/memory.hpp>
 
 
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/scoped_device_id.hpp"

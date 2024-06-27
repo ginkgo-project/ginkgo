@@ -8,7 +8,6 @@
 #include <string>
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>
@@ -21,6 +20,9 @@
 
 
 #include <ginkgo/core/base/types.hpp>
+
+
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 namespace gko {

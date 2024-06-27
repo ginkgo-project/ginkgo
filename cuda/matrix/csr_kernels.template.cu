@@ -27,7 +27,13 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "accessor/cuda_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -38,15 +44,9 @@
 #include "core/matrix/csr_lookup.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/format_conversion.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/prefix_sum.cuh"
@@ -133,10 +133,11 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
@@ -144,7 +145,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
-                    acc::as_cuda_range(c_vals));
+                    acc::as_device_range(c_vals));
 
         } else if (alpha != nullptr && beta != nullptr) {
             if (grid_num > 0) {
@@ -152,12 +153,12 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
                         as_device_type(alpha->get_const_values()),
-                        acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        acc::as_cuda_range(b_vals),
+                        acc::as_device_range(b_vals),
                         as_device_type(beta->get_const_values()),
-                        acc::as_cuda_range(c_vals),
+                        acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
@@ -166,7 +167,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
                     as_device_type(alpha->get_const_values()),
-                    acc::as_cuda_range(c_vals));
+                    acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -245,21 +246,21 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], acc::as_cuda_range(a_vals),
+                    a->get_size()[0], acc::as_device_range(a_vals),
                     a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
                     a->get_size()[0], as_device_type(alpha->get_const_values()),
-                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    acc::as_cuda_range(b_vals),
+                    acc::as_device_range(b_vals),
                     as_device_type(beta->get_const_values()),
-                    acc::as_cuda_range(c_vals));
+                    acc::as_device_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -301,20 +302,20 @@ void load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_device_type(alpha->get_const_values()),
-                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
-                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
             }
         }
     }
@@ -329,55 +330,55 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                                 const ValueType* beta,
                                 matrix::Dense<ValueType>* c)
 {
-    auto handle = exec->get_cusparse_handle();
+    auto handle = exec->get_sparselib_handle();
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-    if (!cusparse::is_supported<ValueType, IndexType>::value ||
+    if (!sparselib::is_supported<ValueType, IndexType>::value ||
         b->get_stride() != 1 || c->get_stride() != 1 || b->get_size()[0] == 0 ||
         c->get_size()[0] == 0) {
         return false;
     }
 
-    auto descr = cusparse::create_mat_descr();
+    auto descr = sparselib::create_mat_descr();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
-                   a->get_size()[1], a->get_num_stored_elements(), alpha, descr,
-                   a->get_const_values(), row_ptrs, col_idxs,
-                   b->get_const_values(), beta, c->get_values());
+    sparselib::spmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                    a->get_size()[1], a->get_num_stored_elements(), alpha,
+                    descr, a->get_const_values(), row_ptrs, col_idxs,
+                    b->get_const_values(), beta, c->get_values());
 
-    cusparse::destroy(descr);
+    sparselib::destroy(descr);
 #else  // CUDA_VERSION >= 11000
     // workaround for a division by zero in cuSPARSE 11.?
     if (a->get_size()[1] == 0) {
         return false;
     }
-    cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    cusparseOperation_t trans = SPARSELIB_OPERATION_NON_TRANSPOSE;
     auto row_ptrs = const_cast<IndexType*>(a->get_const_row_ptrs());
     auto col_idxs = const_cast<IndexType*>(a->get_const_col_idxs());
     auto values = const_cast<ValueType*>(a->get_const_values());
-    auto mat = cusparse::create_csr(a->get_size()[0], a->get_size()[1],
-                                    a->get_num_stored_elements(), row_ptrs,
-                                    col_idxs, values);
+    auto mat = sparselib::create_csr(a->get_size()[0], a->get_size()[1],
+                                     a->get_num_stored_elements(), row_ptrs,
+                                     col_idxs, values);
     auto b_val = const_cast<ValueType*>(b->get_const_values());
     auto c_val = c->get_values();
     if (b->get_stride() == 1 && c->get_stride() == 1) {
-        auto vecb = cusparse::create_dnvec(b->get_size()[0], b_val);
-        auto vecc = cusparse::create_dnvec(c->get_size()[0], c_val);
+        auto vecb = sparselib::create_dnvec(b->get_size()[0], b_val);
+        auto vecc = sparselib::create_dnvec(c->get_size()[0], c_val);
 #if CUDA_VERSION >= 11021
         constexpr auto alg = CUSPARSE_SPMV_CSR_ALG1;
 #else
         constexpr auto alg = CUSPARSE_CSRMV_ALG1;
 #endif
         size_type buffer_size = 0;
-        cusparse::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
-                                             beta, vecc, alg, &buffer_size);
+        sparselib::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
+                                              beta, vecc, alg, &buffer_size);
 
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::spmv<ValueType>(handle, trans, alpha, mat, vecb, beta, vecc,
-                                  alg, buffer);
-        cusparse::destroy(vecb);
-        cusparse::destroy(vecc);
+        sparselib::spmv<ValueType>(handle, trans, alpha, mat, vecb, beta, vecc,
+                                   alg, buffer);
+        sparselib::destroy(vecb);
+        sparselib::destroy(vecc);
     } else {
 #if CUDA_VERSION >= 11060
         if (b->get_size()[1] == 1) {
@@ -388,22 +389,22 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
 #endif  // CUDA_VERSION >= 11060
         cusparseSpMMAlg_t alg = CUSPARSE_SPMM_CSR_ALG2;
         auto vecb =
-            cusparse::create_dnmat(b->get_size(), b->get_stride(), b_val);
+            sparselib::create_dnmat(b->get_size(), b->get_stride(), b_val);
         auto vecc =
-            cusparse::create_dnmat(c->get_size(), c->get_stride(), c_val);
+            sparselib::create_dnmat(c->get_size(), c->get_stride(), c_val);
         size_type buffer_size = 0;
-        cusparse::spmm_buffersize<ValueType>(handle, trans, trans, alpha, mat,
-                                             vecb, beta, vecc, alg,
-                                             &buffer_size);
+        sparselib::spmm_buffersize<ValueType>(handle, trans, trans, alpha, mat,
+                                              vecb, beta, vecc, alg,
+                                              &buffer_size);
 
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::spmm<ValueType>(handle, trans, trans, alpha, mat, vecb, beta,
-                                  vecc, alg, buffer);
-        cusparse::destroy(vecb);
-        cusparse::destroy(vecc);
+        sparselib::spmm<ValueType>(handle, trans, trans, alpha, mat, vecb, beta,
+                                   vecc, alg, buffer);
+        sparselib::destroy(vecb);
+        sparselib::destroy(vecc);
     }
-    cusparse::destroy(mat);
+    sparselib::destroy(mat);
 #endif
     return true;
 }
@@ -437,8 +438,8 @@ bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
         return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
                                           beta->get_const_values(), c);
     } else {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
+        auto handle = exec->get_sparselib_handle();
+        sparselib::pointer_mode_guard pm_guard(handle);
         const auto valpha = one<ValueType>();
         const auto vbeta = zero<ValueType>();
         return try_general_sparselib_spmv(exec, &valpha, a, b, &vbeta, c);
@@ -583,8 +584,8 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_col_idxs = b->get_const_col_idxs();
     auto c_row_ptrs = c->get_row_ptrs();
 
-    auto handle = exec->get_cusparse_handle();
-    cusparse::pointer_mode_guard pm_guard(handle);
+    auto handle = exec->get_sparselib_handle();
+    sparselib::pointer_mode_guard pm_guard(handle);
 
     auto alpha = one<ValueType>();
     auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
@@ -600,18 +601,18 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto& c_vals_array = c_builder.get_value_array();
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-    if (!cusparse::is_supported<ValueType, IndexType>::value) {
+    if (!sparselib::is_supported<ValueType, IndexType>::value) {
         GKO_NOT_IMPLEMENTED;
     }
 
-    auto a_descr = cusparse::create_mat_descr();
-    auto b_descr = cusparse::create_mat_descr();
-    auto c_descr = cusparse::create_mat_descr();
-    auto d_descr = cusparse::create_mat_descr();
-    auto info = cusparse::create_spgemm_info();
+    auto a_descr = sparselib::create_mat_descr();
+    auto b_descr = sparselib::create_mat_descr();
+    auto c_descr = sparselib::create_mat_descr();
+    auto d_descr = sparselib::create_mat_descr();
+    auto info = sparselib::create_spgemm_info();
     // allocate buffer
     size_type buffer_size{};
-    cusparse::spgemm_buffer_size(
+    sparselib::spgemm_buffer_size(
         handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
         b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
         null_index, null_index, info, buffer_size);
@@ -620,74 +621,75 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
 
     // count nnz
     IndexType c_nnz{};
-    cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                         a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                         d_descr, zero_nnz, null_index, null_index, c_descr,
-                         c_row_ptrs, &c_nnz, info, buffer);
+    sparselib::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                          a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+                          d_descr, zero_nnz, null_index, null_index, c_descr,
+                          c_row_ptrs, &c_nnz, info, buffer);
 
     // accumulate non-zeros
     c_col_idxs_array.resize_and_reset(c_nnz);
     c_vals_array.resize_and_reset(c_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
-    cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-                     a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals, b_row_ptrs,
-                     b_col_idxs, null_value, d_descr, zero_nnz, null_value,
-                     null_index, null_index, c_descr, c_vals, c_row_ptrs,
-                     c_col_idxs, info, buffer);
+    sparselib::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+                      a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                      b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
+                      null_value, null_index, null_index, c_descr, c_vals,
+                      c_row_ptrs, c_col_idxs, info, buffer);
 
-    cusparse::destroy(info);
-    cusparse::destroy(d_descr);
-    cusparse::destroy(c_descr);
-    cusparse::destroy(b_descr);
-    cusparse::destroy(a_descr);
+    sparselib::destroy(info);
+    sparselib::destroy(d_descr);
+    sparselib::destroy(c_descr);
+    sparselib::destroy(b_descr);
+    sparselib::destroy(a_descr);
 
 #else   // CUDA_VERSION >= 11000
     const auto beta = zero<ValueType>();
-    auto spgemm_descr = cusparse::create_spgemm_descr();
-    auto a_descr = cusparse::create_csr(
+    auto spgemm_descr = sparselib::create_spgemm_descr();
+    auto a_descr = sparselib::create_csr(
         m, k, a_nnz, const_cast<IndexType*>(a_row_ptrs),
         const_cast<IndexType*>(a_col_idxs), const_cast<ValueType*>(a_vals));
-    auto b_descr = cusparse::create_csr(
+    auto b_descr = sparselib::create_csr(
         k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
         const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
-    auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index, null_index,
-                                        null_value);
+    auto c_descr = sparselib::create_csr(m, n, zero_nnz, null_index, null_index,
+                                         null_value);
 
     // estimate work
     size_type buffer1_size{};
-    cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
-                                     c_descr, spgemm_descr, buffer1_size,
-                                     nullptr);
+    sparselib::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
+                                      c_descr, spgemm_descr, buffer1_size,
+                                      nullptr);
     array<char> buffer1{exec, buffer1_size};
-    cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
-                                     c_descr, spgemm_descr, buffer1_size,
-                                     buffer1.get_data());
+    sparselib::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
+                                      c_descr, spgemm_descr, buffer1_size,
+                                      buffer1.get_data());
 
     // compute spgemm
     size_type buffer2_size{};
-    cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                             spgemm_descr, buffer1.get_data(), buffer2_size,
-                             nullptr);
+    sparselib::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
+                              spgemm_descr, buffer1.get_data(), buffer2_size,
+                              nullptr);
     array<char> buffer2{exec, buffer2_size};
-    cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                             spgemm_descr, buffer1.get_data(), buffer2_size,
-                             buffer2.get_data());
+    sparselib::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
+                              spgemm_descr, buffer1.get_data(), buffer2_size,
+                              buffer2.get_data());
 
     // copy data to result
-    auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
+    auto c_nnz = sparselib::sparse_matrix_nnz(c_descr);
     c_col_idxs_array.resize_and_reset(c_nnz);
     c_vals_array.resize_and_reset(c_nnz);
-    cusparse::csr_set_pointers(c_descr, c_row_ptrs, c_col_idxs_array.get_data(),
-                               c_vals_array.get_data());
+    sparselib::csr_set_pointers(c_descr, c_row_ptrs,
+                                c_col_idxs_array.get_data(),
+                                c_vals_array.get_data());
 
-    cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
-                          spgemm_descr);
+    sparselib::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
+                           spgemm_descr);
 
-    cusparse::destroy(c_descr);
-    cusparse::destroy(b_descr);
-    cusparse::destroy(a_descr);
-    cusparse::destroy(spgemm_descr);
+    sparselib::destroy(c_descr);
+    sparselib::destroy(b_descr);
+    sparselib::destroy(a_descr);
+    sparselib::destroy(spgemm_descr);
 #endif  // CUDA_VERSION >= 11000
 }
 
@@ -701,8 +703,8 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* d,
                      matrix::Csr<ValueType, IndexType>* c)
 {
-    auto handle = exec->get_cusparse_handle();
-    cusparse::pointer_mode_guard pm_guard(handle);
+    auto handle = exec->get_sparselib_handle();
+    sparselib::pointer_mode_guard pm_guard(handle);
 
     auto valpha = exec->copy_val_to_host(alpha->get_const_values());
     auto a_nnz = IndexType(a->get_num_stored_elements());
@@ -724,102 +726,102 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-    if (!cusparse::is_supported<ValueType, IndexType>::value) {
+    if (!sparselib::is_supported<ValueType, IndexType>::value) {
         GKO_NOT_IMPLEMENTED;
     }
 
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
     auto& c_col_idxs_array = c_builder.get_col_idx_array();
     auto& c_vals_array = c_builder.get_value_array();
-    auto a_descr = cusparse::create_mat_descr();
-    auto b_descr = cusparse::create_mat_descr();
-    auto c_descr = cusparse::create_mat_descr();
-    auto d_descr = cusparse::create_mat_descr();
-    auto info = cusparse::create_spgemm_info();
+    auto a_descr = sparselib::create_mat_descr();
+    auto b_descr = sparselib::create_mat_descr();
+    auto c_descr = sparselib::create_mat_descr();
+    auto d_descr = sparselib::create_mat_descr();
+    auto info = sparselib::create_spgemm_info();
     // allocate buffer
     size_type buffer_size{};
-    cusparse::spgemm_buffer_size(handle, m, n, k, &valpha, a_descr, a_nnz,
-                                 a_row_ptrs, a_col_idxs, b_descr, b_nnz,
-                                 b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
-                                 d_row_ptrs, d_col_idxs, info, buffer_size);
+    sparselib::spgemm_buffer_size(
+        handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+        b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
+        d_row_ptrs, d_col_idxs, info, buffer_size);
     array<char> buffer_array(exec, buffer_size);
     auto buffer = buffer_array.get_data();
 
     // count nnz
     IndexType c_nnz{};
-    cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                         a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                         d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
-                         c_row_ptrs, &c_nnz, info, buffer);
+    sparselib::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                          a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+                          d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
+                          c_row_ptrs, &c_nnz, info, buffer);
 
     // accumulate non-zeros
     c_col_idxs_array.resize_and_reset(c_nnz);
     c_vals_array.resize_and_reset(c_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
-    cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
-                     a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals, b_row_ptrs,
-                     b_col_idxs, &vbeta, d_descr, d_nnz, d_vals, d_row_ptrs,
-                     d_col_idxs, c_descr, c_vals, c_row_ptrs, c_col_idxs, info,
-                     buffer);
+    sparselib::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
+                      a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                      b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
+                      d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
+                      c_col_idxs, info, buffer);
 
-    cusparse::destroy(info);
-    cusparse::destroy(d_descr);
-    cusparse::destroy(c_descr);
-    cusparse::destroy(b_descr);
-    cusparse::destroy(a_descr);
+    sparselib::destroy(info);
+    sparselib::destroy(d_descr);
+    sparselib::destroy(c_descr);
+    sparselib::destroy(b_descr);
+    sparselib::destroy(a_descr);
 #else   // CUDA_VERSION >= 11000
     auto null_value = static_cast<ValueType*>(nullptr);
     auto null_index = static_cast<IndexType*>(nullptr);
     auto one_val = one<ValueType>();
     auto zero_val = zero<ValueType>();
     auto zero_nnz = IndexType{};
-    auto spgemm_descr = cusparse::create_spgemm_descr();
-    auto a_descr = cusparse::create_csr(
+    auto spgemm_descr = sparselib::create_spgemm_descr();
+    auto a_descr = sparselib::create_csr(
         m, k, a_nnz, const_cast<IndexType*>(a_row_ptrs),
         const_cast<IndexType*>(a_col_idxs), const_cast<ValueType*>(a_vals));
-    auto b_descr = cusparse::create_csr(
+    auto b_descr = sparselib::create_csr(
         k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
         const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
-    auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index, null_index,
-                                        null_value);
+    auto c_descr = sparselib::create_csr(m, n, zero_nnz, null_index, null_index,
+                                         null_value);
 
     // estimate work
     size_type buffer1_size{};
-    cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                     &zero_val, c_descr, spgemm_descr,
-                                     buffer1_size, nullptr);
+    sparselib::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
+                                      &zero_val, c_descr, spgemm_descr,
+                                      buffer1_size, nullptr);
     array<char> buffer1{exec, buffer1_size};
-    cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                     &zero_val, c_descr, spgemm_descr,
-                                     buffer1_size, buffer1.get_data());
+    sparselib::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
+                                      &zero_val, c_descr, spgemm_descr,
+                                      buffer1_size, buffer1.get_data());
 
     // compute spgemm
     size_type buffer2_size{};
-    cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                             c_descr, spgemm_descr, buffer1.get_data(),
-                             buffer2_size, nullptr);
+    sparselib::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
+                              c_descr, spgemm_descr, buffer1.get_data(),
+                              buffer2_size, nullptr);
     array<char> buffer2{exec, buffer2_size};
-    cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                             c_descr, spgemm_descr, buffer1.get_data(),
-                             buffer2_size, buffer2.get_data());
+    sparselib::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
+                              c_descr, spgemm_descr, buffer1.get_data(),
+                              buffer2_size, buffer2.get_data());
 
     // write result to temporary storage
-    auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
+    auto c_tmp_nnz = sparselib::sparse_matrix_nnz(c_descr);
     array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
     array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
     array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
-    cusparse::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
-                               c_tmp_col_idxs_array.get_data(),
-                               c_tmp_vals_array.get_data());
+    sparselib::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
+                                c_tmp_col_idxs_array.get_data(),
+                                c_tmp_vals_array.get_data());
 
-    cusparse::spgemm_copy(handle, &one_val, a_descr, b_descr, &zero_val,
-                          c_descr, spgemm_descr);
+    sparselib::spgemm_copy(handle, &one_val, a_descr, b_descr, &zero_val,
+                           c_descr, spgemm_descr);
 
-    cusparse::destroy(c_descr);
-    cusparse::destroy(b_descr);
-    cusparse::destroy(a_descr);
-    cusparse::destroy(spgemm_descr);
+    sparselib::destroy(c_descr);
+    sparselib::destroy(b_descr);
+    sparselib::destroy(a_descr);
+    sparselib::destroy(spgemm_descr);
 
     auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
     auto nnz_per_row = spgeam_total_nnz / m;
@@ -846,13 +848,13 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
     if (orig->get_size()[0] == 0) {
         return;
     }
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -864,8 +866,8 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose_buffersize(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -873,8 +875,8 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
             idxBase, alg, &buffer_size);
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -898,13 +900,13 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     const auto block_size = default_block_size;
     const auto grid_size =
         ceildiv(trans->get_num_stored_elements(), block_size);
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -916,8 +918,8 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
         cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
-        cusparse::transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose_buffersize(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -925,8 +927,8 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
             idxBase, alg, &buffer_size);
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::transpose(
-            exec->get_cusparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -948,9 +950,9 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        auto descr = cusparse::create_mat_descr();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
+        auto descr = sparselib::create_mat_descr();
         auto m = IndexType(to_sort->get_size()[0]);
         auto n = IndexType(to_sort->get_size()[1]);
         auto nnz = IndexType(to_sort->get_num_stored_elements());
@@ -966,30 +968,30 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
         // init identity permutation
         array<IndexType> permutation_array(exec, nnz);
         auto permutation = permutation_array.get_data();
-        cusparse::create_identity_permutation(handle, nnz, permutation);
+        components::fill_seq_array(exec, permutation, nnz);
 
         // allocate buffer
         size_type buffer_size{};
-        cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
-                                      buffer_size);
+        sparselib::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
+                                       buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
 
         // sort column indices
-        cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
-                          permutation, buffer);
+        sparselib::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
+                           permutation, buffer);
 
         // sort values
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
+        sparselib::gather(handle, nnz, tmp_vals, vals, permutation);
 #else  // CUDA_VERSION >= 11000
-        auto val_vec = cusparse::create_spvec(nnz, nnz, permutation, vals);
+        auto val_vec = sparselib::create_spvec(nnz, nnz, permutation, vals);
         auto tmp_vec =
-            cusparse::create_dnvec(nnz, const_cast<ValueType*>(tmp_vals));
-        cusparse::gather(handle, tmp_vec, val_vec);
+            sparselib::create_dnvec(nnz, const_cast<ValueType*>(tmp_vals));
+        sparselib::gather(handle, tmp_vec, val_vec);
 #endif
 
-        cusparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         fallback_sort(exec, to_sort);
     }

@@ -12,23 +12,24 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/intrinsics.cuh"
-#include "cuda/components/merging.cuh"
-#include "cuda/components/prefix_sum.cuh"
-#include "cuda/components/searching.cuh"
-#include "cuda/components/thread_ids.cuh"
+#include "hip/base/math.hip.hpp"
+#include "hip/components/intrinsics.hip.hpp"
+#include "hip/components/merging.hip.hpp"
+#include "hip/components/prefix_sum.hip.hpp"
+#include "hip/components/searching.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -80,8 +81,8 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_vals = u->get_const_values();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
-    // count non-zeros per row
     if (num_blocks > 0) {
+        // count non-zeros per row
         kernel::tri_spgeam_nnz<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 lu_row_ptrs, lu_col_idxs, a_row_ptrs, a_col_idxs,
@@ -105,8 +106,8 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_new_col_idxs = u_new->get_col_idxs();
     auto u_new_vals = u_new->get_values();
 
-    // fill columns and values
     if (num_blocks > 0) {
+        // fill columns and values
         kernel::tri_spgeam_init<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 lu_row_ptrs, lu_col_idxs, as_device_type(lu_vals), a_row_ptrs,
@@ -153,6 +154,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

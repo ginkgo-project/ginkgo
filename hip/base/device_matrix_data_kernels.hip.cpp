@@ -14,8 +14,8 @@
 #include <thrust/tuple.h>
 
 
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {

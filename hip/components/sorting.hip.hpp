@@ -6,8 +6,8 @@
 #define GKO_HIP_COMPONENTS_SORTING_HIP_HPP_
 
 
-#include "hip/base/config.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 
 namespace gko {

@@ -15,19 +15,20 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "accessor/cuda_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/format_conversion.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 
@@ -97,9 +98,9 @@ void abstract_spmv(syn::value_list<int, info>,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto nrows = a->get_size()[0];
     const auto stride = a->get_stride();
@@ -114,11 +115,11 @@ void abstract_spmv(syn::value_list<int, info>,
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
 
-    const auto a_vals = gko::acc::range<a_accessor>(
+    const auto a_vals = acc::range<a_accessor>(
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
             num_stored_elements_per_row * stride)}},
         a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
+    const auto b_vals = acc::range<b_accessor>(
         std::array<acc::size_type, 2>{
             {static_cast<acc::size_type>(b->get_size()[0]),
              static_cast<acc::size_type>(b->get_size()[1])}},
@@ -130,20 +131,21 @@ void abstract_spmv(syn::value_list<int, info>,
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_cuda_range(a_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(a_vals),
                     a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_cuda_range(b_vals),
+                    num_stored_elements_per_row, acc::as_device_range(b_vals),
                     as_device_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
-        const auto alpha_val = gko::acc::range<a_accessor>(
+        const auto alpha_val = acc::range<a_accessor>(
             std::array<acc::size_type, 1>{1}, alpha->get_const_values());
         if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    nrows, num_worker_per_row, acc::as_cuda_range(alpha_val),
-                    acc::as_cuda_range(a_vals), a->get_const_col_idxs(), stride,
-                    num_stored_elements_per_row, acc::as_cuda_range(b_vals),
+                    nrows, num_worker_per_row, acc::as_device_range(alpha_val),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                    stride, num_stored_elements_per_row,
+                    acc::as_device_range(b_vals),
                     as_device_type(beta->get_const_values()),
                     as_device_type(c->get_values()), c->get_stride());
         }
@@ -212,7 +214,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the cuda kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
@@ -246,7 +248,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     const int num_worker_per_row = std::get<2>(data);
 
     /**
-     * info is the parameter for selecting the cuda kernel.
+     * info is the parameter for selecting the device kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */

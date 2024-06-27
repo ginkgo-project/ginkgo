@@ -4,7 +4,7 @@
 
 // force-top: on
 // prevent compilation failure related to disappearing assert(...) statements
-#include <hip/hip_runtime.h>
+#include "common/cuda_hip/base/runtime.hpp"
 // force-top: off
 
 

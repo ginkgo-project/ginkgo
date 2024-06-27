@@ -6,8 +6,8 @@
 #define GKO_CUDA_COMPONENTS_SORTING_CUH_
 
 
-#include "cuda/base/config.hpp"
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 
 namespace gko {

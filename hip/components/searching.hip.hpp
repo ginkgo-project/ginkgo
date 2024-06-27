@@ -6,7 +6,7 @@
 #define GKO_HIP_COMPONENTS_SEARCHING_HIP_HPP_
 
 
-#include "hip/base/config.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 
 

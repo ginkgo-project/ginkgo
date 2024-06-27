@@ -24,6 +24,13 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/cuda_hip/base/blas_bindings.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/block_sizes.hpp"
@@ -33,16 +40,10 @@
 #include "core/matrix/csr_lookup.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/cusparse_block_bindings.hpp"
 #include "cuda/base/math.hpp"
-#include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/thrust.cuh"
-#include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/merging.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
@@ -72,6 +73,7 @@ constexpr int default_block_size{512};
 
 namespace {
 
+
 template <typename ValueType>
 void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
                      const size_type nrows, const size_type ncols,
@@ -81,20 +83,21 @@ void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
     if (nrows == 0) {
         return;
     }
-    if (cublas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
+    if (blas::is_supported<ValueType>::value) {
+        auto handle = exec->get_blas_handle();
         {
-            cublas::pointer_mode_guard pm_guard(handle);
+            blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, nrows, ncols, &alpha,
-                         orig, orig_stride, &beta, trans, trans_stride, trans,
-                         trans_stride);
+            blas::geam(handle, BLAS_OP_T, BLAS_OP_N, nrows, ncols, &alpha, orig,
+                       orig_stride, &beta, trans, trans_stride, trans,
+                       trans_stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
 }
+
 
 }  // namespace
 
@@ -114,12 +117,12 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         dense::fill(exec, c, zero<ValueType>());
         return;
     }
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
+        sparselib::pointer_mode_guard pm_guard(handle);
         const auto alpha = one<ValueType>();
         const auto beta = zero<ValueType>();
-        auto descr = cusparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
         const auto values = a->get_const_values();
@@ -133,21 +136,21 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
-                            nnzb, &alpha, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), &beta, c->get_values());
+            sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
+                             nnzb, &alpha, descr, values, row_ptrs, col_idxs,
+                             bs, b->get_const_values(), &beta, c->get_values());
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
-            cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                            CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
-                            &alpha, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), in_stride, &beta,
-                            trans_c.get_data(), trans_stride);
+            sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
+                             SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
+                             &alpha, descr, values, row_ptrs, col_idxs, bs,
+                             b->get_const_values(), in_stride, &beta,
+                             trans_c.get_data(), trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
                             out_stride, c->get_values());
         }
-        cusparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -171,11 +174,11 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         dense::scale(exec, beta, c);
         return;
     }
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
         const auto alphp = alpha->get_const_values();
         const auto betap = beta->get_const_values();
-        auto descr = cusparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
         const auto values = a->get_const_values();
@@ -189,23 +192,23 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         const auto in_stride = b->get_stride();
         const auto out_stride = c->get_stride();
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
-            cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
-                            nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), betap, c->get_values());
+            sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
+                             nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
+                             b->get_const_values(), betap, c->get_values());
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
             dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
                             trans_stride, trans_c.get_data());
-            cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                            CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
-                            alphp, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), in_stride, betap,
-                            trans_c.get_data(), trans_stride);
+            sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
+                             SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
+                             alphp, descr, values, row_ptrs, col_idxs, bs,
+                             b->get_const_values(), in_stride, betap,
+                             trans_c.get_data(), trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
                             out_stride, c->get_values());
         }
-        cusparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -244,20 +247,21 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
                const matrix::Fbcsr<ValueType, IndexType>* const orig,
                matrix::Fbcsr<ValueType, IndexType>* const trans)
 {
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
+#ifdef GKO_COMPILING_CUDA
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         const int bs = orig->get_block_size();
         const IndexType nnzb =
             static_cast<IndexType>(orig->get_num_stored_blocks());
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        const IndexType buffer_size = cusparse::bsr_transpose_buffersize(
-            exec->get_cusparse_handle(), orig->get_num_block_rows(),
+        const IndexType buffer_size = sparselib::bsr_transpose_buffersize(
+            exec->get_sparselib_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs);
         array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
-        cusparse::bsr_transpose(
-            exec->get_cusparse_handle(), orig->get_num_block_rows(),
+        sparselib::bsr_transpose(
+            exec->get_sparselib_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs,
             trans->get_values(), trans->get_col_idxs(), trans->get_row_ptrs(),
@@ -268,7 +272,9 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             fixedblock::compiled_kernels(),
             [bs](int compiled_block_size) { return bs == compiled_block_size; },
             syn::value_list<int>(), syn::type_list<>(), exec, trans);
-    } else {
+    } else
+#endif
+    {
         fallback_transpose(exec, orig, trans);
     }
 }

@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else
@@ -18,8 +17,9 @@
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
@@ -260,6 +260,20 @@ inline void destroy_hipblas_handle(hipblasContext* handle)
 
 
 }  // namespace hipblas
+
+
+namespace blas {
+
+
+using namespace hipblas;
+
+
+#define BLAS_OP_N HIPBLAS_OP_N
+#define BLAS_OP_T HIPBLAS_OP_T
+#define BLAS_OP_C HIPBLAS_OP_C
+
+
+}  // namespace blas
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

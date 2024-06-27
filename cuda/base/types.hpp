@@ -394,6 +394,10 @@ GKO_INLINE GKO_ATTRIBUTES constexpr
 }
 
 
+using deviceComplex = cuComplex;
+using deviceDoubleComplex = cuDoubleComplex;
+
+
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

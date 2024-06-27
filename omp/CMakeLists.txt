@@ -54,7 +54,7 @@ target_sources(ginkgo_omp
     )
 
 ginkgo_compile_features(ginkgo_omp)
-target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
+target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP GKO_DEVICE_NAMESPACE=omp)
 
 # TODO FIXME: Currently nvhpc 22.7+ optimizations break the omp jacobi's custom
 # precision implementation (mantissa segmentation)
@@ -94,7 +94,7 @@ ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_omp GKO_COMPILING_OMP)
+    ginkgo_check_headers(ginkgo_omp "GKO_COMPILING_OMP;GKO_DEVICE_NAMESPACE=omp")
 endif()
 
 if(GINKGO_BUILD_TESTS)

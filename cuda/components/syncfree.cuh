@@ -9,11 +9,11 @@
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/memory.cuh"
 
 
 namespace gko {

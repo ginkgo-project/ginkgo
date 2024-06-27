@@ -93,7 +93,7 @@ string(REPLACE ";" "," GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE "${GKO_DPCPP_JACOBI_BLO
 configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
 
 ginkgo_compile_features(ginkgo_dpcpp)
-target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP GKO_DEVICE_NAMESPACE=dpcpp _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
@@ -126,7 +126,7 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp GKO_COMPILING_DPCPP)
+    ginkgo_check_headers(ginkgo_dpcpp "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp")
 endif()
 
 if(GINKGO_BUILD_TESTS)

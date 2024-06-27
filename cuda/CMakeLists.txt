@@ -33,12 +33,12 @@ target_sources(ginkgo_cuda
     factorization/par_ic_kernels.cu
     factorization/par_ict_kernels.cu
     factorization/par_ilu_kernels.cu
-    factorization/par_ilut_approx_filter_kernel.cu
-    factorization/par_ilut_filter_kernel.cu
+    factorization/par_ilut_approx_filter_kernels.cu
+    factorization/par_ilut_filter_kernels.cu
     factorization/par_ilut_select_common.cu
-    factorization/par_ilut_select_kernel.cu
-    factorization/par_ilut_spgeam_kernel.cu
-    factorization/par_ilut_sweep_kernel.cu
+    factorization/par_ilut_select_kernels.cu
+    factorization/par_ilut_spgeam_kernels.cu
+    factorization/par_ilut_sweep_kernels.cu
     matrix/batch_csr_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu
@@ -54,10 +54,10 @@ target_sources(ginkgo_cuda
     multigrid/pgm_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
     preconditioner/isai_kernels.cu
-    preconditioner/jacobi_advanced_apply_kernel.cu
-    preconditioner/jacobi_generate_kernel.cu
+    preconditioner/jacobi_advanced_apply_kernels.cu
+    preconditioner/jacobi_generate_kernels.cu
     preconditioner/jacobi_kernels.cu
-    preconditioner/jacobi_simple_apply_kernel.cu
+    preconditioner/jacobi_simple_apply_kernels.cu
     reorder/rcm_kernels.cu
     solver/batch_bicgstab_kernels.cu
     solver/batch_cg_kernels.cu
@@ -85,18 +85,18 @@ endif()
 set(GKO_CUDA_JACOBI_SOURCES)
 foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_CUDA_JACOBI_BLOCK_SIZES)
     configure_file(
-        preconditioner/jacobi_generate_instantiate.inc.cu
-        preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+        preconditioner/jacobi_generate_kernels.instantiate.cu
+        preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
     configure_file(
-        preconditioner/jacobi_simple_apply_instantiate.inc.cu
-        preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+        preconditioner/jacobi_simple_apply_kernels.instantiate.cu
+        preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
     configure_file(
-        preconditioner/jacobi_advanced_apply_instantiate.inc.cu
-        preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.cu
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
     list(APPEND GKO_CUDA_JACOBI_SOURCES
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu
+        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cu)
 endforeach()
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
 string(REPLACE ";" "," GKO_CUDA_JACOBI_BLOCK_SIZES_CODE "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
@@ -120,7 +120,7 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
 endif()
 
 ginkgo_compile_features(ginkgo_cuda)
-target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA)
+target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
@@ -133,7 +133,7 @@ ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda GKO_COMPILING_CUDA)
+    ginkgo_check_headers(ginkgo_cuda "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda")
 endif()
 
 if(GINKGO_BUILD_TESTS)

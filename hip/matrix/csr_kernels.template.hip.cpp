@@ -8,7 +8,6 @@
 #include <algorithm>
 
 
-#include <hip/hip_runtime.h>
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>
@@ -28,7 +27,13 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include "accessor/hip_helper.hpp"
+#include "accessor/cuda_hip_helper.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -39,14 +44,9 @@
 #include "core/matrix/csr_lookup.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/prefix_sum.hip.hpp"
@@ -133,10 +133,11 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_hip_range(a_vals), a->get_const_col_idxs(),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        acc::as_hip_range(b_vals), acc::as_hip_range(c_vals),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
@@ -144,7 +145,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
-                    acc::as_hip_range(c_vals));
+                    acc::as_device_range(c_vals));
 
         } else if (alpha != nullptr && beta != nullptr) {
             if (grid_num > 0) {
@@ -152,12 +153,12 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
                         as_device_type(alpha->get_const_values()),
-                        acc::as_hip_range(a_vals), a->get_const_col_idxs(),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
-                        acc::as_hip_range(b_vals),
+                        acc::as_device_range(b_vals),
                         as_device_type(beta->get_const_values()),
-                        acc::as_hip_range(c_vals),
+                        acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
             }
@@ -166,7 +167,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
                     as_device_type(alpha->get_const_values()),
-                    acc::as_hip_range(c_vals));
+                    acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -262,21 +263,21 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], acc::as_hip_range(a_vals),
+                    a->get_size()[0], acc::as_device_range(a_vals),
                     a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    acc::as_hip_range(b_vals), acc::as_hip_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
                     a->get_size()[0], as_device_type(alpha->get_const_values()),
-                    acc::as_hip_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    acc::as_hip_range(b_vals),
+                    acc::as_device_range(b_vals),
                     as_device_type(beta->get_const_values()),
-                    acc::as_hip_range(c_vals));
+                    acc::as_device_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -318,20 +319,20 @@ void load_balance_spmv(std::shared_ptr<const HipExecutor> exec,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_device_type(alpha->get_const_values()),
-                    acc::as_hip_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    acc::as_hip_range(b_vals), acc::as_hip_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                         exec->get_stream()>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
-                    acc::as_hip_range(a_vals), a->get_const_col_idxs(),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
                     as_device_type(a->get_const_srow()),
-                    acc::as_hip_range(b_vals), acc::as_hip_range(c_vals));
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
             }
         }
     }
@@ -346,24 +347,24 @@ bool try_general_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
                                 const ValueType* beta,
                                 matrix::Dense<ValueType>* c)
 {
-    bool try_sparselib = hipsparse::is_supported<ValueType, IndexType>::value;
+    bool try_sparselib = sparselib::is_supported<ValueType, IndexType>::value;
     try_sparselib =
         try_sparselib && b->get_stride() == 1 && c->get_stride() == 1;
     // rocSPARSE has issues with zero matrices
     try_sparselib = try_sparselib && a->get_num_stored_elements() > 0;
     if (try_sparselib) {
-        auto descr = hipsparse::create_mat_descr();
+        auto descr = sparselib::create_mat_descr();
 
         auto row_ptrs = a->get_const_row_ptrs();
         auto col_idxs = a->get_const_col_idxs();
 
-        hipsparse::spmv(exec->get_hipsparse_handle(),
-                        HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+        sparselib::spmv(exec->get_sparselib_handle(),
+                        SPARSELIB_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                         a->get_size()[1], a->get_num_stored_elements(), alpha,
                         descr, a->get_const_values(), row_ptrs, col_idxs,
                         b->get_const_values(), beta, c->get_values());
 
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     }
     return try_sparselib;
 }
@@ -397,8 +398,8 @@ bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
         return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
                                           beta->get_const_values(), c);
     } else {
-        auto handle = exec->get_hipsparse_handle();
-        hipsparse::pointer_mode_guard pm_guard(handle);
+        auto handle = exec->get_sparselib_handle();
+        sparselib::pointer_mode_guard pm_guard(handle);
         const auto valpha = one<ValueType>();
         const auto vbeta = zero<ValueType>();
         return try_general_sparselib_spmv(exec, &valpha, a, b, &vbeta, c);
@@ -535,14 +536,14 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
 {
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
-        hipsparse::pointer_mode_guard pm_guard(handle);
-        auto a_descr = hipsparse::create_mat_descr();
-        auto b_descr = hipsparse::create_mat_descr();
-        auto c_descr = hipsparse::create_mat_descr();
-        auto d_descr = hipsparse::create_mat_descr();
-        auto info = hipsparse::create_spgemm_info();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
+        sparselib::pointer_mode_guard pm_guard(handle);
+        auto a_descr = sparselib::create_mat_descr();
+        auto b_descr = sparselib::create_mat_descr();
+        auto c_descr = sparselib::create_mat_descr();
+        auto d_descr = sparselib::create_mat_descr();
+        auto info = sparselib::create_spgemm_info();
 
         auto alpha = one<ValueType>();
         auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
@@ -566,7 +567,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
 
         // allocate buffer
         size_type buffer_size{};
-        hipsparse::spgemm_buffer_size(
+        sparselib::spgemm_buffer_size(
             handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
             zero_nnz, null_index, null_index, info, buffer_size);
@@ -575,7 +576,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
 
         // count nnz
         IndexType c_nnz{};
-        hipsparse::spgemm_nnz(
+        sparselib::spgemm_nnz(
             handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
             b_nnz, b_row_ptrs, b_col_idxs, d_descr, zero_nnz, null_index,
             null_index, c_descr, c_row_ptrs, &c_nnz, info, buffer);
@@ -585,17 +586,17 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         c_vals_array.resize_and_reset(c_nnz);
         auto c_col_idxs = c_col_idxs_array.get_data();
         auto c_vals = c_vals_array.get_data();
-        hipsparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+        sparselib::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
                           a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
                           b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
                           null_value, null_index, null_index, c_descr, c_vals,
                           c_row_ptrs, c_col_idxs, info, buffer);
 
-        hipsparse::destroy_spgemm_info(info);
-        hipsparse::destroy(d_descr);
-        hipsparse::destroy(c_descr);
-        hipsparse::destroy(b_descr);
-        hipsparse::destroy(a_descr);
+        sparselib::destroy_spgemm_info(info);
+        sparselib::destroy(d_descr);
+        sparselib::destroy(c_descr);
+        sparselib::destroy(b_descr);
+        sparselib::destroy(a_descr);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -611,14 +612,14 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* d,
                      matrix::Csr<ValueType, IndexType>* c)
 {
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
-        hipsparse::pointer_mode_guard pm_guard(handle);
-        auto a_descr = hipsparse::create_mat_descr();
-        auto b_descr = hipsparse::create_mat_descr();
-        auto c_descr = hipsparse::create_mat_descr();
-        auto d_descr = hipsparse::create_mat_descr();
-        auto info = hipsparse::create_spgemm_info();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
+        sparselib::pointer_mode_guard pm_guard(handle);
+        auto a_descr = sparselib::create_mat_descr();
+        auto b_descr = sparselib::create_mat_descr();
+        auto c_descr = sparselib::create_mat_descr();
+        auto d_descr = sparselib::create_mat_descr();
+        auto info = sparselib::create_spgemm_info();
 
         auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
         auto a_vals = a->get_const_values();
@@ -640,7 +641,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
 
         // allocate buffer
         size_type buffer_size{};
-        hipsparse::spgemm_buffer_size(
+        sparselib::spgemm_buffer_size(
             handle, m, n, k, &one_value, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
             IndexType{}, null_index, null_index, info, buffer_size);
@@ -651,7 +652,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
         auto c_tmp_row_ptrs = c_tmp_row_ptrs_array.get_data();
         IndexType c_nnz{};
-        hipsparse::spgemm_nnz(
+        sparselib::spgemm_nnz(
             handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
             b_nnz, b_row_ptrs, b_col_idxs, d_descr, IndexType{}, null_index,
             null_index, c_descr, c_tmp_row_ptrs, &c_nnz, info, buffer);
@@ -661,7 +662,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         array<ValueType> c_tmp_vals_array(exec, c_nnz);
         auto c_tmp_col_idxs = c_tmp_col_idxs_array.get_data();
         auto c_tmp_vals = c_tmp_vals_array.get_data();
-        hipsparse::spgemm(handle, m, n, k, &one_value, a_descr, a_nnz, a_vals,
+        sparselib::spgemm(handle, m, n, k, &one_value, a_descr, a_nnz, a_vals,
                           a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
                           b_row_ptrs, b_col_idxs, null_value, d_descr,
                           IndexType{}, null_value, null_index, null_index,
@@ -669,11 +670,11 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                           info, buffer);
 
         // destroy hipsparse context
-        hipsparse::destroy_spgemm_info(info);
-        hipsparse::destroy(d_descr);
-        hipsparse::destroy(c_descr);
-        hipsparse::destroy(b_descr);
-        hipsparse::destroy(a_descr);
+        sparselib::destroy_spgemm_info(info);
+        sparselib::destroy(d_descr);
+        sparselib::destroy(c_descr);
+        sparselib::destroy(b_descr);
+        sparselib::destroy(a_descr);
 
         auto total_nnz = c_nnz + d->get_num_stored_elements();
         auto nnz_per_row = total_nnz / m;
@@ -701,12 +702,12 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
     if (orig->get_size()[0] == 0) {
         return;
     }
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
 
-        hipsparse::transpose(
-            exec->get_hipsparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -728,12 +729,12 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
     const auto block_size = default_block_size;
     const auto grid_size =
         ceildiv(trans->get_num_stored_elements(), block_size);
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
 
-        hipsparse::transpose(
-            exec->get_hipsparse_handle(), orig->get_size()[0],
+        sparselib::transpose(
+            exec->get_sparselib_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
@@ -753,9 +754,9 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
-        auto descr = hipsparse::create_mat_descr();
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_sparselib_handle();
+        auto descr = sparselib::create_mat_descr();
         auto m = IndexType(to_sort->get_size()[0]);
         auto n = IndexType(to_sort->get_size()[1]);
         auto nnz = IndexType(to_sort->get_num_stored_elements());
@@ -771,23 +772,23 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
         // init identity permutation
         array<IndexType> permutation_array(exec, nnz);
         auto permutation = permutation_array.get_data();
-        hipsparse::create_identity_permutation(handle, nnz, permutation);
+        components::fill_seq_array(exec, permutation, nnz);
 
         // allocate buffer
         size_type buffer_size{};
-        hipsparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
+        sparselib::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
                                        buffer_size);
         array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
 
         // sort column indices
-        hipsparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
+        sparselib::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
                            permutation, buffer);
 
         // sort values
-        hipsparse::gather(handle, nnz, tmp_vals, vals, permutation);
+        sparselib::gather(handle, nnz, tmp_vals, vals, permutation);
 
-        hipsparse::destroy(descr);
+        sparselib::destroy(descr);
     } else {
         fallback_sort(exec, to_sort);
     }

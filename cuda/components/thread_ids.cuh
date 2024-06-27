@@ -6,17 +6,12 @@
 #define GKO_CUDA_COMPONENTS_THREAD_IDS_CUH_
 
 
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-/**
- * @brief The CUDA thread namespace.
- *
- * @ingroup cuda_thread
- */
 namespace thread {
 
 
