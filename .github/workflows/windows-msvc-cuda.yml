@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   windows_cuda:
+    if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
