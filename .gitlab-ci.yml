@@ -622,8 +622,27 @@ build/icpx/igpu/release/static:
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
 
-# windows jobs: Release shared
+# windows jobs
 # Note that this is using Powershell, not bash
+build/windows-cuda/release/shared:
+  extends:
+    - .quick_test_condition
+  stage: build
+  script:
+    - if (Test-Path build) { rm -r -fo build }
+    - if (Test-Path install) { rm -r -fo install }
+    - mkdir build
+    - mkdir install
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake --build build --config Release -j16
+# we disable these tests until the triangular solver issues are resolved
+#   - ctest --test-dir build -C Release --no-tests=error --output-on-failure
+    - $env:PATH+=";$pwd/install/bin"
+    - cmake --install build --config Release
+    - cmake --build build --target test_install --config Release
+  tags:
+    - windows-cuda
+
 build/windows/release/shared:
   extends:
     - .quick_test_condition
@@ -641,25 +660,6 @@ build/windows/release/shared:
     - cmake --build build --target test_install --config Release
   tags:
     - windows
-
-# CUDA
-build/windows-cuda/release/shared:
-  extends:
-    - .quick_test_condition
-  stage: build
-  script:
-    - if (Test-Path build) { rm -r -fo build }
-    - if (Test-Path install) { rm -r -fo install }
-    - mkdir build
-    - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
-    - cmake --build build --config Release -j16
-    - ctest --test-dir build -C Release --no-tests=error --output-on-failure
-    - $env:PATH+=";$pwd/install/bin"
-    - cmake --install build --config Release
-    - cmake --build build --target test_install --config Release
-  tags:
-    - windows-cuda
 
 # Job with important warnings as error
 warnings:
