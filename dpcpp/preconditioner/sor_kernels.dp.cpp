@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "dpcpp/factorization/factorization_helpers.dp.hpp"
 
 namespace gko {
 namespace kernels {
@@ -14,12 +15,36 @@ namespace dpcpp {
 namespace sor {
 
 
+constexpr int default_block_size{256};
+
+
 template <typename ValueType, typename IndexType>
 void initialize_weighted_l(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
-    remove_complex<ValueType> weight,
-    matrix::Csr<ValueType, IndexType>* l_mtx) GKO_NOT_IMPLEMENTED;
+    remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{static_cast<uint32>(ceildiv(
+                            num_rows, static_cast<size_type>(block_size.x))),
+                        1, 1};
+
+    auto inv_weight = one(weight) / weight;
+
+    exec->get_queue()->parallel_for(
+        sycl_nd_range(grid_dim, block_size), [=](sycl::nd_item<3> item_ct1) {
+            factorization::helpers::initialize_l(
+                num_rows, system_matrix->get_const_row_ptrs(),
+                system_matrix->get_const_col_idxs(),
+                system_matrix->get_const_values(), l_mtx->get_const_row_ptrs(),
+                l_mtx->get_col_idxs(), l_mtx->get_values(),
+                factorization::helpers::triangular_mtx_closure(
+                    [inv_weight](auto val) { return val * inv_weight; },
+                    factorization::helpers::identity{}),
+                item_ct1);
+        });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L);
@@ -30,7 +55,40 @@ void initialize_weighted_l_u(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx,
-    matrix::Csr<ValueType, IndexType>* u_mtx) GKO_NOT_IMPLEMENTED;
+    matrix::Csr<ValueType, IndexType>* u_mtx)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{static_cast<uint32>(ceildiv(
+                            num_rows, static_cast<size_type>(block_size.x))),
+                        1, 1};
+
+    auto inv_weight = one(weight) / weight;
+    auto inv_two_minus_weight =
+        one(weight) / (static_cast<remove_complex<ValueType>>(2.0) - weight);
+
+    exec->get_queue()->parallel_for(
+        sycl_nd_range(grid_dim, block_size), [=](sycl::nd_item<3> item_ct1) {
+            factorization::helpers::initialize_l_u(
+                num_rows, system_matrix->get_const_row_ptrs(),
+                system_matrix->get_const_col_idxs(),
+                system_matrix->get_const_values(), l_mtx->get_const_row_ptrs(),
+                l_mtx->get_col_idxs(), l_mtx->get_values(),
+                u_mtx->get_const_row_ptrs(), u_mtx->get_col_idxs(),
+                u_mtx->get_values(),
+                factorization::helpers::triangular_mtx_closure(
+                    [inv_weight](auto val) { return val * inv_weight; },
+                    factorization::helpers::identity{}),
+                factorization::helpers::triangular_mtx_closure(
+                    [inv_two_minus_weight](auto val) {
+                        return val * inv_two_minus_weight;
+                    },
+                    [weight, inv_two_minus_weight](auto val) {
+                        return val * weight * inv_two_minus_weight;
+                    }),
+                item_ct1);
+        });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U);
