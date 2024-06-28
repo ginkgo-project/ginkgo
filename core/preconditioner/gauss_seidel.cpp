@@ -5,9 +5,40 @@
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 
+#include "core/config/config_helper.hpp"
+
 
 namespace gko {
 namespace preconditioner {
+
+
+template <typename ValueType, typename IndexType>
+typename GaussSeidel<ValueType, IndexType>::parameters_type
+GaussSeidel<ValueType, IndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = GaussSeidel::build();
+
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("symmetric")) {
+        params.with_symmetric(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("l_solver")) {
+        params.with_l_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("u_solver")) {
+        params.with_u_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>

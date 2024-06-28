@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/config/config.hpp>
 
 
 namespace gko {
@@ -83,6 +84,11 @@ public:
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
+
 protected:
     explicit GaussSeidel(std::shared_ptr<const Executor> exec,
                          const parameters_type& params = {})
@@ -96,6 +102,8 @@ protected:
 private:
     parameters_type parameters_;
 };
+
+
 }  // namespace preconditioner
 }  // namespace gko
 
