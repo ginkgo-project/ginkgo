@@ -33,6 +33,7 @@ configuration_map generate_config_map()
             {"solver::Direct", parse<LinOpFactoryType::Direct>},
             {"solver::LowerTrs", parse<LinOpFactoryType::LowerTrs>},
             {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>},
+            {"solver::Chebyshev", parse<LinOpFactoryType::Chebyshev>},
             {"factorization::Ic", parse<LinOpFactoryType::Factorization_Ic>},
             {"factorization::Ilu", parse<LinOpFactoryType::Factorization_Ilu>},
             {"factorization::Cholesky", parse<LinOpFactoryType::Cholesky>},
