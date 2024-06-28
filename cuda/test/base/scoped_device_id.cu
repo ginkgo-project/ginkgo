@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// clang-format off
-// prevent compilation failure related to disappearing assert(...) statements
 #include <cuda_runtime.h>
-// clang-format on
 
 
 #include <gtest/gtest.h>

@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 
-// clang-format off
-// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
-// clang-format on
 
 
 #include "core/multigrid/pgm_kernels.hpp"
