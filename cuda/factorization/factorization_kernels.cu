@@ -12,6 +12,7 @@
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/factorization_helpers.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/searching.cuh"
@@ -32,6 +33,7 @@ namespace factorization {
 constexpr int default_block_size{512};
 
 
+#include "common/cuda_hip/factorization/factorization_helpers.hpp.inc"
 #include "common/cuda_hip/factorization/factorization_kernels.hpp.inc"
 
 
