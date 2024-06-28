@@ -9,13 +9,10 @@
 #include <memory>
 #include <stdexcept>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/stream.hpp>
-
 
 #include "core/test/gtest/resources.hpp"
 #include "test/utils/executor.hpp"
