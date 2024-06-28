@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/block_operator.hpp>
+#include "ginkgo/core/base/block_operator.hpp"
 
 
 #include <utility>

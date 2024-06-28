@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/config/type_descriptor.hpp>
+#include "ginkgo/core/config/type_descriptor.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
