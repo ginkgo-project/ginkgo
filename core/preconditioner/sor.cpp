@@ -12,6 +12,7 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/preconditioner/sor_kernels.hpp"
@@ -30,6 +31,39 @@ GKO_REGISTER_OPERATION(initialize_weighted_l_u, sor::initialize_weighted_l_u);
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+typename Sor<ValueType, IndexType>::parameters_type
+Sor<ValueType, IndexType>::parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child)
+{
+    auto params = Sor::build();
+
+    if (auto& obj = config.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("symmetric")) {
+        params.with_symmetric(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config.get("relaxation_factor")) {
+        params.with_relaxation_factor(
+            config::get_value<remove_complex<ValueType>>(obj));
+    }
+    if (auto& obj = config.get("l_solver")) {
+        params.with_l_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("u_solver")) {
+        params.with_u_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+
+    return params;
+}
 
 
 template <typename ValueType, typename IndexType>
