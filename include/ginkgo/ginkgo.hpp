@@ -114,6 +114,7 @@
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
