@@ -24,10 +24,9 @@ namespace gko {
 namespace config {
 
 
-#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                            \
-    GKO_INVALID_STATE(std::string("The value >" + _value +                  \
-                                  "< is invalid for the entry >" + _entry + \
-                                  "<"))
+#define GKO_INVALID_CONFIG_VALUE(_entry, _value)            \
+    GKO_INVALID_STATE(std::string("The value >") + _value + \
+                      "< is invalid for the entry >" + _entry + "<")
 
 
 #define GKO_MISSING_CONFIG_ENTRY(_entry) \
@@ -52,6 +51,7 @@ enum class LinOpFactoryType : int {
     Direct,
     LowerTrs,
     UpperTrs,
+    Chebyshev,
     Factorization_Ic,
     Factorization_Ilu,
     Cholesky,
