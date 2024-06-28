@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 
-// clang-format off
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/iterator>
-// clang-format off
 
 
 #include "core/distributed/partition_kernels.hpp"

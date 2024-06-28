@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// clang-format off
-// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
+
 #include <oneapi/dpl/algorithm>
-// clang-format on
 
 
 #include "core/base/device_matrix_data_kernels.hpp"

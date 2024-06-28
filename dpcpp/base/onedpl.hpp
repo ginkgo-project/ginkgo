@@ -5,9 +5,9 @@
 #ifndef GKO_DPCPP_BASE_ONEDPL_HPP_
 #define GKO_DPCPP_BASE_ONEDPL_HPP_
 
-// clang-format off
+
 #include <oneapi/dpl/execution>
-// clang-format on
+
 
 #include <ginkgo/core/base/executor.hpp>
 
