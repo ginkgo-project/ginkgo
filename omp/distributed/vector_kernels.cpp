@@ -4,7 +4,6 @@
 
 #include "core/distributed/vector_kernels.hpp"
 
-
 #include "core/components/prefix_sum_kernels.hpp"
 #include "reference/distributed/partition_helpers.hpp"
 

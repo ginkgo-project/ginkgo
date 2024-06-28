@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/base/stream.hpp"
 
-
 #include <cuda_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "cuda/base/scoped_device_id.hpp"
 

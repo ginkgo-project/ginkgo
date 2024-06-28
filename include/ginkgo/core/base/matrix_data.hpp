@@ -11,7 +11,6 @@
 #include <tuple>
 #include <vector>
 
-
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>

@@ -8,7 +8,6 @@
 
 #include <algorithm>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/coo.hpp>

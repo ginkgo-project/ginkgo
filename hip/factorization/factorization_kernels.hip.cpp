@@ -4,9 +4,7 @@
 
 #include "core/factorization/factorization_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

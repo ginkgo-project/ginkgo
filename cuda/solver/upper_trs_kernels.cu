@@ -4,18 +4,14 @@
 
 #include "core/solver/upper_trs_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <cuda.h>
 #include <cusparse.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
-
 
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"

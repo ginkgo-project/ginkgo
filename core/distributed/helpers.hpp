@@ -8,12 +8,10 @@
 
 #include <memory>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 

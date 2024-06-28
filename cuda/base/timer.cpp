@@ -4,13 +4,10 @@
 
 #include "ginkgo/core/base/timer.hpp"
 
-
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "cuda/base/scoped_device_id.hpp"
 

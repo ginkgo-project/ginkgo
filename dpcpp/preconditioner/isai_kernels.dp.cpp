@@ -4,14 +4,11 @@
 
 #include "core/preconditioner/isai_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"

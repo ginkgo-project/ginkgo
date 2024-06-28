@@ -8,10 +8,8 @@
 
 #include <type_traits>
 
-
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

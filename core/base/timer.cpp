@@ -4,15 +4,12 @@
 
 #include "ginkgo/core/base/timer.hpp"
 
-
 #include <chrono>
 #include <memory>
 #include <utility>
 
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "cuda/base/device.hpp"
 #include "dpcpp/base/device.hpp"

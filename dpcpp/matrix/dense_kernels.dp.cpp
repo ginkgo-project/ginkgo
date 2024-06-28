@@ -4,10 +4,8 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
@@ -18,7 +16,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/config.hpp"

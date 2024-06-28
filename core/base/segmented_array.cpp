@@ -4,7 +4,6 @@
 
 #include <ginkgo/core/base/segmented_array.hpp>
 
-
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 

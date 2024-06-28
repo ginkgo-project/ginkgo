@@ -2,12 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/preconditioner/jacobi_kernels.hpp"
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -15,6 +11,7 @@
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/math.hip.hpp"

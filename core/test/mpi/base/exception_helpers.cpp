@@ -4,9 +4,7 @@
 
 #include <mpi.h>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

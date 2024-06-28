@@ -4,11 +4,9 @@
 
 #include "ginkgo/core/solver/batch_cg.hpp"
 
-
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"

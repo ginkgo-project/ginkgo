@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/stop/residual_norm.hpp"
 
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"

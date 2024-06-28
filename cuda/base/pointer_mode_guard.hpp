@@ -8,11 +8,9 @@
 
 #include <exception>
 
-
-#include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 #include <cusparse.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>

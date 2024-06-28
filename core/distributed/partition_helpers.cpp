@@ -4,12 +4,9 @@
 
 #include "ginkgo/core/distributed/partition_helpers.hpp"
 
-
 #include <numeric>
 
-
 #include <ginkgo/core/distributed/partition.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"

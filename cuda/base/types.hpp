@@ -6,20 +6,16 @@
 #define GKO_CUDA_BASE_TYPES_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
 #include <type_traits>
 
-
-#include <cublas_v2.h>
 #include <cuda.h>
+#include <cublas_v2.h>
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
 
-
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {

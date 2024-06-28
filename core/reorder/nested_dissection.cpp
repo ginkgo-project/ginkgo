@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/reorder/nested_dissection.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>

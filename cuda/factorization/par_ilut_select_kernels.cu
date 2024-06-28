@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/factorization/par_ilut_kernels.hpp"
-
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/intrinsics.cuh"

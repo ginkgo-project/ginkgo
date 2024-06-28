@@ -8,7 +8,6 @@
 
 #include <string>
 
-
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"

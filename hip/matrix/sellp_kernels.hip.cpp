@@ -4,13 +4,11 @@
 
 #include "core/matrix/sellp_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

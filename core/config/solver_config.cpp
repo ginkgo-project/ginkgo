@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/config/solver_config.hpp"
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -19,11 +21,9 @@
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/parse_macro.hpp"
-#include "core/config/solver_config.hpp"
 
 
 namespace gko {

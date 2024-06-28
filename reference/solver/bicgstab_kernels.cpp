@@ -4,9 +4,7 @@
 
 #include "core/solver/bicgstab_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

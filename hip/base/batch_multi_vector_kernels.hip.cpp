@@ -4,14 +4,11 @@
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 
-
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-
 
 #include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/base/config.hpp"

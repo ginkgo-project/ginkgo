@@ -2,20 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-
-#include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"

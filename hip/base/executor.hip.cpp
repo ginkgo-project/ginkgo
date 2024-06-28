@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/base/executor.hpp"
 
-
 #include <iostream>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

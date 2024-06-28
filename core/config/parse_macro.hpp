@@ -10,7 +10,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/type_descriptor_helper.hpp"

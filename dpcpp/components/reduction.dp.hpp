@@ -8,14 +8,11 @@
 
 #include <type_traits>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/types.hpp"

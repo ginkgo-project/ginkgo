@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/config/property_tree.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

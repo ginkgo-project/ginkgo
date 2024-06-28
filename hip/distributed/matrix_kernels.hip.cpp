@@ -4,7 +4,6 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/distance.h>
@@ -17,9 +16,7 @@
 #include <thrust/transform_reduce.h>
 #include <thrust/unique.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "hip/base/thrust.hip.hpp"
 #include "hip/components/atomic.hip.hpp"

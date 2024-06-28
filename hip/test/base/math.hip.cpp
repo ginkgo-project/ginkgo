@@ -2,30 +2,25 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 // clang-format off
 // prevent compilation failure related to disappearing assert(...) statements
 #include <hip/hip_runtime.h>
 // clang-format on
 
 
-#include <ginkgo/core/base/math.hpp>
-
+#include "hip/base/math.hip.hpp"
 
 #include <cmath>
 #include <complex>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
+#include <ginkgo/core/base/math.hpp>
 
 #include "common/cuda_hip/base/types.hpp"
-#include "hip/base/math.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

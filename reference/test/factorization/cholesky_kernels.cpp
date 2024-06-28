@@ -2,24 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/cholesky.hpp>
-
+#include "core/factorization/cholesky_kernels.hpp"
 
 #include <algorithm>
 #include <initializer_list>
 #include <memory>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
-
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"

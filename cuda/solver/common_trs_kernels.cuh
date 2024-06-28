@@ -10,15 +10,12 @@
 #include <iostream>
 #include <memory>
 
-
 #include <cuda.h>
 #include <cusparse.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"

@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/reorder/rcm.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/matrix/csr_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"

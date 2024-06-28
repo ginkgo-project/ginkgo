@@ -4,7 +4,6 @@
 
 #include "core/solver/batch_cg_kernels.hpp"
 
-
 #include "core/solver/batch_dispatch.hpp"
 
 

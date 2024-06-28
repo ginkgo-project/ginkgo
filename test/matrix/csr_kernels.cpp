@@ -4,19 +4,15 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/array_access.hpp"

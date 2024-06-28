@@ -9,7 +9,6 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/components/thread_ids.hip.hpp"

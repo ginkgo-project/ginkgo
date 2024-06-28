@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/executor.hpp"
 
-
 #include <omp.h>
 
 

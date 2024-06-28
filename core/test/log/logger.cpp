@@ -8,16 +8,12 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 // clang-format on
 
 
-#include <ginkgo/core/log/logger.hpp>
-
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/log/stream.hpp>
 

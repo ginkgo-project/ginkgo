@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <set>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 #define GKO_BENCHMARK_DISTRIBUTED

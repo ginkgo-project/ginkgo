@@ -6,15 +6,12 @@
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
-#include <ginkgo/core/base/utils.hpp>
-
-
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 

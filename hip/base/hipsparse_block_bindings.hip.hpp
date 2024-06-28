@@ -15,7 +15,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"

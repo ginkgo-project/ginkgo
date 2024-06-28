@@ -2,15 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 #include <oneapi/dpl/algorithm>
-
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "dpcpp/base/onedpl.hpp"
 

@@ -2,17 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/dense.hpp>
-
+#include "core/matrix/dense_kernels.hpp"
 
 #include <complex>
 #include <memory>
 #include <numeric>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,6 +17,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -28,8 +26,6 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
-#include "core/matrix/dense_kernels.hpp"
 #include "core/test/utils.hpp"
 
 

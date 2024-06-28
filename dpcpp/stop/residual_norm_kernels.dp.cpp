@@ -4,14 +4,11 @@
 
 #include "core/stop/residual_norm_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "dpcpp/base/dim3.dp.hpp"

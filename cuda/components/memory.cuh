@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/cuda_hip/base/types.hpp"
 

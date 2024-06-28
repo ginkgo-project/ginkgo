@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/matrix/batch_dense.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/matrix/batch_dense_kernels.hpp"
 

@@ -4,7 +4,6 @@
 
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
-
 #include "core/base/batch_struct.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"

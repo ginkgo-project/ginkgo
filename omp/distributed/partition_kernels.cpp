@@ -4,12 +4,9 @@
 
 #include "core/distributed/partition_kernels.hpp"
 
-
 #include <omp.h>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/allocator.hpp"
 

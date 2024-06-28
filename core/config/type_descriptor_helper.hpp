@@ -8,7 +8,6 @@
 
 #include <string>
 
-
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>

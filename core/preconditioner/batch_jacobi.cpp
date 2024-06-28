@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/preconditioner/batch_jacobi.hpp"
 
-
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"

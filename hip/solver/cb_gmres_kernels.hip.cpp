@@ -4,15 +4,12 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "accessor/cuda_hip_helper.hpp"
 #include "accessor/range.hpp"

@@ -4,11 +4,9 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/utils.hpp"
 

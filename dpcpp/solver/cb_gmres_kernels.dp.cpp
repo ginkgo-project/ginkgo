@@ -4,18 +4,14 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"

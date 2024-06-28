@@ -2,23 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/math.hpp>
-
+#include "cuda/base/math.hpp"
 
 #include <cmath>
 #include <complex>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
+#include <ginkgo/core/base/math.hpp>
 
 #include "common/cuda_hip/base/types.hpp"
-#include "cuda/base/math.hpp"
 #include "cuda/test/utils.hpp"
 
 

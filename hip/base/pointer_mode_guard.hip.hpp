@@ -22,7 +22,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 
 

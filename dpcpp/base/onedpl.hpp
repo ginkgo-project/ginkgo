@@ -8,7 +8,6 @@
 
 #include <oneapi/dpl/execution>
 
-
 #include <ginkgo/core/base/executor.hpp>
 
 

@@ -4,19 +4,15 @@
 
 #include "cuda/components/merging.cuh"
 
-
 #include <algorithm>
 #include <memory>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "cuda/test/utils.hpp"

@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/lin_op.hpp>
-
-
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/lin_op.hpp>
 
 
 namespace {

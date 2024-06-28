@@ -4,7 +4,6 @@
 
 #include <ginkgo/config.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 
 

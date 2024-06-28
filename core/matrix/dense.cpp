@@ -4,10 +4,8 @@
 
 #include "ginkgo/core/matrix/dense.hpp"
 
-
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -27,7 +25,6 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"

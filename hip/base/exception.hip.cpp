@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/base/exception.hpp"
 
-
 #include <string>
 
 
@@ -20,7 +19,6 @@
 
 
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "common/cuda_hip/base/runtime.hpp"
 

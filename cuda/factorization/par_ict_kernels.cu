@@ -4,13 +4,11 @@
 
 #include "core/factorization/par_ict_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/components/memory.hpp"

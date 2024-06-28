@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/preconditioner/jacobi.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -18,7 +16,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"

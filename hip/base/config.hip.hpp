@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/types.hpp>
 
-
 #include "common/cuda_hip/base/runtime.hpp"
 #include "hip/base/math.hip.hpp"
 

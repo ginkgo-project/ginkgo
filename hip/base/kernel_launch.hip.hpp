@@ -10,7 +10,6 @@
 
 #include <thrust/tuple.h>
 
-
 #include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"

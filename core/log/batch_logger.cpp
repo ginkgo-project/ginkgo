@@ -4,11 +4,9 @@
 
 #include "ginkgo/core/log/batch_logger.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/workspace_aliases.hpp"
 

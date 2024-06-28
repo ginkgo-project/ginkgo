@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "common/cuda_hip/base/types.hpp"
 #include "hip/base/math.hip.hpp"
 

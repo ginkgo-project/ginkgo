@@ -4,14 +4,11 @@
 
 #include "core/solver/batch_cg_kernels.hpp"
 
-
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/solver/batch_cg.hpp>
-
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
