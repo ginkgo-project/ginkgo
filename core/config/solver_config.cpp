@@ -12,6 +12,7 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
@@ -43,6 +44,7 @@ GKO_PARSE_VALUE_TYPE_BASE(CbGmres, gko::solver::CbGmres);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
+GKO_PARSE_VALUE_TYPE(Chebyshev, gko::solver::Chebyshev);
 
 
 template <>
