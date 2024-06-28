@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/chebyshev.hpp>
-
+#include "ginkgo/core/solver/chebyshev.hpp"
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
