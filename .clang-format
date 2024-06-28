@@ -67,7 +67,7 @@ IncludeCategories:
   - Regex:    '(^<(hip/hip_runtime|cuda(_runtime)?)\.h)|common/cuda_hip/base/runtime\.hpp$'
     Priority: 2
     SortPriority: 2
-  - Regex:    '^<(omp|cu|hip|oneapi|thrust|CL/|cooperative|mpi|nvToolsExt).*'
+  - Regex:    '^<(omp|cu|hip|oneapi|thrust|CL/|cooperative|mpi|nvToolsExt|Kokkos).*'
     Priority: 2
     SortPriority: 3
   - Regex:    '^<(nlohmann|gflags|gtest|sde_lib|papi).*'
