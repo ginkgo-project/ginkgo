@@ -12,6 +12,7 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -297,6 +298,55 @@ struct Jacobi
 };
 
 
+struct Sor
+    : PreconditionerConfigTest<::gko::preconditioner::Sor<float, gko::int32>,
+                               ::gko::preconditioner::Sor<double, gko::int32>> {
+    using Ir = gko::solver::Ir<float>;
+
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Sor"}}};
+    }
+
+    static void change_template(pnode::map_type& config_map)
+    {
+        config_map["value_type"] = pnode{"float32"};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        config_map["symmetric"] = pnode{true};
+        param.with_symmetric(true);
+        config_map["relaxation_factor"] = pnode{0.8};
+        // float can be cast to double without issues
+        param.with_relaxation_factor(0.8f);
+        config_map["l_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_l_solver(DummyIr::build());
+        config_map["u_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_u_solver(DummyIr::build());
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.symmetric, ans_param.symmetric);
+        ASSERT_EQ(res_param.relaxation_factor, ans_param.relaxation_factor);
+        ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
+        ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+    }
+};
+
+
 template <typename T>
 class Preconditioner : public ::testing::Test {
 protected:
@@ -327,7 +377,8 @@ protected:
 };
 
 
-using PreconditionerTypes = ::testing::Types<::Ic, ::Ilu, ::Isai, ::Jacobi>;
+using PreconditionerTypes =
+    ::testing::Types<::Ic, ::Ilu, ::Isai, ::Jacobi, ::Sor>;
 
 
 TYPED_TEST_SUITE(Preconditioner, PreconditionerTypes, TypenameNameGenerator);
