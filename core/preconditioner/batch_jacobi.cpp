@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include "ginkgo/core/preconditioner/batch_jacobi.hpp"
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
