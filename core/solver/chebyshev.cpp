@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -26,6 +27,28 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 }  // anonymous namespace
 }  // namespace chebyshev
+
+template <typename ValueType>
+typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = solver::Chebyshev<ValueType>::build();
+    common_solver_parse(params, config, context, td_for_child);
+    if (auto& obj = config.get("foci")) {
+        auto arr = obj.get_array();
+        if (arr.size() != 2) {
+            GKO_INVALID_CONFIG_VALUE("foci", "must contain two elements");
+        }
+        params.with_foci(gko::config::get_value<ValueType>(arr.at(0)),
+                         gko::config::get_value<ValueType>(arr.at(1)));
+    }
+    if (auto& obj = config.get("default_initial_guess")) {
+        params.with_default_initial_guess(
+            gko::config::get_value<solver::initial_guess_mode>(obj));
+    }
+    return params;
+}
 
 
 template <typename ValueType>
