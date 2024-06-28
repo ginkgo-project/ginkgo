@@ -9,6 +9,7 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -294,6 +295,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
 
 
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Jacobi, gko::preconditioner::Jacobi);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Sor, gko::preconditioner::Sor);
 
 
 }  // namespace config
