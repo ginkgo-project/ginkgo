@@ -12,7 +12,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
 
 

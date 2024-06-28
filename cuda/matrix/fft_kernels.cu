@@ -4,12 +4,9 @@
 
 #include "core/matrix/fft_kernels.hpp"
 
-
 #include <array>
 
-
 #include <cufft.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

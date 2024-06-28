@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/bicg.hpp>
-
+#include "ginkgo/core/solver/bicg.hpp"
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -11,7 +10,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-
 
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"

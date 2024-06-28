@@ -5,7 +5,6 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/executor.hpp"
 

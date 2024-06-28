@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <cstdlib>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
 

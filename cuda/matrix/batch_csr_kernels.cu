@@ -4,14 +4,11 @@
 
 #include "core/matrix/batch_csr_kernels.hpp"
 
-
 #include <thrust/functional.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

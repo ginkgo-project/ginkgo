@@ -4,16 +4,13 @@
 
 #include "core/matrix/ell_kernels.hpp"
 
-
 #include <array>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "accessor/cuda_hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"

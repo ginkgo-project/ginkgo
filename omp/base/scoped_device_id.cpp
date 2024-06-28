@@ -5,7 +5,6 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 
-
 #include "core/base/noop_scoped_device_id_guard.hpp"
 
 

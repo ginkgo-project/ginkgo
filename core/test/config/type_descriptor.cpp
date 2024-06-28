@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/config/type_descriptor.hpp>
-
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/config/type_descriptor.hpp>
 
 #include "core/config/type_descriptor_helper.hpp"
 #include "core/test/utils.hpp"

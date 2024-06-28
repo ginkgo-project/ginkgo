@@ -4,9 +4,7 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
 #include <ginkgo/core/matrix/coo.hpp>
-
 
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"

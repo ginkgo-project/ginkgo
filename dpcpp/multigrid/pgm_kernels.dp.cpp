@@ -2,21 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
-// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
-// force-top: off
-
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "dpcpp/base/onedpl.hpp"
 

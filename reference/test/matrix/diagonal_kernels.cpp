@@ -2,25 +2,21 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/diagonal.hpp>
-
+#include "core/matrix/diagonal_kernels.hpp"
 
 #include <algorithm>
 #include <complex>
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
-
-#include "core/matrix/diagonal_kernels.hpp"
 #include "core/test/utils.hpp"
 
 

@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
-
+#include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/distributed/helpers.hpp"

@@ -11,12 +11,10 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/test/utils/matrix_generator.hpp"

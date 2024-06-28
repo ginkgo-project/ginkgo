@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
-
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"

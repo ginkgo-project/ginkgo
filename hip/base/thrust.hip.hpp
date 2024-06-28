@@ -8,7 +8,6 @@
 
 #include <thrust/execution_policy.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #if GINKGO_HIP_PLATFORM_HCC

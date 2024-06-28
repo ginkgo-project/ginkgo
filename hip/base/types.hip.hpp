@@ -6,14 +6,12 @@
 #define GKO_HIP_BASE_TYPES_HIP_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
-
-
 #include <type_traits>
-
 
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
+
+#include <ginkgo/core/base/types.hpp>
 
 
 #if HIP_VERSION >= 50200000
@@ -23,9 +21,7 @@
 #endif
 #include <thrust/complex.h>
 
-
 #include <ginkgo/core/base/matrix_data.hpp>
-
 
 #include "common/cuda_hip/base/runtime.hpp"
 

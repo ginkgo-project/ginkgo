@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/components/reduction.hip.hpp"

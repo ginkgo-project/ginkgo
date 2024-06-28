@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include <thread>
 #include <type_traits>
+
+#include <ginkgo/core/base/executor.hpp>
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -15,7 +14,6 @@
 
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/memory.hpp>

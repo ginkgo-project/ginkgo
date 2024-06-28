@@ -4,9 +4,7 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>

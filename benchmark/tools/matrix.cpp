@@ -6,10 +6,8 @@
 #include <iostream>
 #include <vector>
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
-
 
 #include "core/utils/matrix_utils.hpp"
 

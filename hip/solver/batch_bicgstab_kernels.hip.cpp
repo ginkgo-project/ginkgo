@@ -4,14 +4,11 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

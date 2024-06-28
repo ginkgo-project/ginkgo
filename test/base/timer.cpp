@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/timer.hpp>
-
-
 #include <map>
 #include <thread>
 
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/timer.hpp>
 
 #include "core/test/utils/assertions.hpp"
 #include "test/utils/executor.hpp"

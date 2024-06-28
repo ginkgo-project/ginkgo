@@ -4,9 +4,7 @@
 
 #include "core/preconditioner/jacobi_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"

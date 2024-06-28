@@ -4,17 +4,13 @@
 
 #include "core/utils/matrix_utils.hpp"
 
-
 #include <cmath>
 #include <random>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"

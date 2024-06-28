@@ -5,7 +5,6 @@
 #pragma once
 #include <numeric>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 

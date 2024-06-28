@@ -8,9 +8,7 @@
 
 #include <curand.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "common/cuda_hip/base/types.hpp"
 #include "cuda/base/math.hpp"

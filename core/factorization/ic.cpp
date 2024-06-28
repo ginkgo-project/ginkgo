@@ -2,18 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/ic.hpp>
-
+#include "ginkgo/core/factorization/ic.hpp"
 
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/config/config_helper.hpp"

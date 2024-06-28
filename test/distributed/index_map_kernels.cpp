@@ -4,21 +4,17 @@
 
 #include "core/distributed/index_map_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/distributed/partition_kernels.hpp"
 #include "core/test/utils.hpp"

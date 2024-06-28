@@ -4,7 +4,6 @@
 
 #include "core/distributed/vector_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

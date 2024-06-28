@@ -6,17 +6,13 @@
 #define GKO_CORE_FACTORIZATION_PAR_ILUT_KERNELS_HPP_
 
 
-#include <ginkgo/core/factorization/par_ilut.hpp>
-
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/factorization/par_ilut.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

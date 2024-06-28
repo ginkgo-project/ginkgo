@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "test/utils/executor.hpp"
 
 #include <map>
 
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/executor.hpp>
 
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
 
 
 namespace reference {

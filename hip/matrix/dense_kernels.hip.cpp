@@ -4,7 +4,6 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -15,7 +14,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/base/config.hpp"

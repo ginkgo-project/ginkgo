@@ -2,23 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <iostream>
 #include <stdexcept>
 #include <thread>
 
-
 #include <cuda_runtime.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/memory.hpp>
-
 
 #include "common/cuda_hip/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"

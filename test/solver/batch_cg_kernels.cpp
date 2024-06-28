@@ -4,20 +4,16 @@
 
 #include "core/solver/batch_cg_kernels.hpp"
 
-
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/solver/batch_cg.hpp>
-
 
 #include "core/base/batch_utilities.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"

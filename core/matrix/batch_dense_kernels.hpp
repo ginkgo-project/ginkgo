@@ -6,12 +6,9 @@
 #define GKO_CORE_MATRIX_BATCH_DENSE_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/types.hpp>
-
+#include <ginkgo/core/matrix/batch_dense.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

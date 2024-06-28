@@ -5,17 +5,13 @@
 #include <cstring>
 #include <sstream>
 
-
 #include <Kokkos_Core.hpp>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/extensions/kokkos/spaces.hpp>
 #include <ginkgo/extensions/kokkos/types.hpp>
-
 
 #include "core/test/utils.hpp"
 

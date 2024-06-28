@@ -4,7 +4,6 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 

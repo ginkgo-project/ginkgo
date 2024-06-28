@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/scaled_reordered.hpp>
-
+#include "ginkgo/core/reorder/scaled_reordered.hpp"
 
 #include <utility>
-
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>

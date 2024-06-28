@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/multigrid/pgm.hpp>
-
+#include "ginkgo/core/multigrid/pgm.hpp"
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -21,7 +20,6 @@
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/iterator_factory.hpp"

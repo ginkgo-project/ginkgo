@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/vector.hpp>
-
+#include "ginkgo/core/distributed/vector.hpp"
 
 #include <ginkgo/core/distributed/partition.hpp>
-
 
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"

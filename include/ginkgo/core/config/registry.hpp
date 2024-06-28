@@ -13,7 +13,6 @@
 #include <unordered_map>
 #include <utility>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>

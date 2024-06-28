@@ -4,16 +4,12 @@
 
 #include "core/matrix/fbcsr_kernels.hpp"
 
-
 #include <random>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-
 
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"

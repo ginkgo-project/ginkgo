@@ -10,9 +10,7 @@
 #include <stdexcept>
 #include <string>
 
-
 #include <nlohmann/json.hpp>
-
 
 #include <ginkgo/core/config/property_tree.hpp>
 

@@ -4,17 +4,13 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

@@ -8,7 +8,6 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>

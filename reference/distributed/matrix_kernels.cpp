@@ -4,7 +4,6 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/iterator_factory.hpp"

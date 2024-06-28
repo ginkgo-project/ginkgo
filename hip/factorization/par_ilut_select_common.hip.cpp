@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+// clang-format off
 // prevent compilation failure related to disappearing assert(...) statements
 #include "common/cuda_hip/base/runtime.hpp"
-// force-top: off
+// clang-format on
 
 
 #include "hip/factorization/par_ilut_select_common.hip.hpp"
-
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"

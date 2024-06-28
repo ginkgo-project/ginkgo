@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/amd.hpp>
-
+#include "ginkgo/core/reorder/amd.hpp"
 
 #include <cstddef>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -14,7 +12,6 @@
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 

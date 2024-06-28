@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <gtest/gtest.h>
-
-
 #include "accessor/index_span.hpp"
+
+#include <gtest/gtest.h>
 
 
 namespace {

@@ -4,12 +4,9 @@
 
 #include "core/base/device_matrix_data_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/components/prefix_sum_kernels.hpp"
 

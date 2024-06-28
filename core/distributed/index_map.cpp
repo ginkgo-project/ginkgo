@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/index_map.hpp>
-
+#include "ginkgo/core/distributed/index_map.hpp"
 
 #include "core/distributed/index_map_kernels.hpp"
 

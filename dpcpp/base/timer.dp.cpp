@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/timer.hpp>
-
+#include "ginkgo/core/base/timer.hpp"
 
 #include <CL/sycl.hpp>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

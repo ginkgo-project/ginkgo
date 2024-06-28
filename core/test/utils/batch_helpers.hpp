@@ -9,13 +9,11 @@
 #include <random>
 #include <vector>
 
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
