@@ -4,7 +4,6 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/count.h>
@@ -16,14 +15,12 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "common/cuda_hip/components/memory.hpp"
 #include "core/base/array_access.hpp"

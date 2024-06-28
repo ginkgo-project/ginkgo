@@ -4,13 +4,10 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -20,7 +17,6 @@
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"

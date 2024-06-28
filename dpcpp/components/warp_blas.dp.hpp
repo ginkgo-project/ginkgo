@@ -9,12 +9,9 @@
 #include <cassert>
 #include <type_traits>
 
-
 #include <CL/sycl.hpp>
 
-
 #include <ginkgo/config.hpp>
-
 
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"

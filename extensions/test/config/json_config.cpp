@@ -4,14 +4,11 @@
 
 #include <stdexcept>
 
-
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/extensions/config/json_config.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "extensions/test/config/file_location.hpp"

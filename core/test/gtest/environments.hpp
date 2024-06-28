@@ -10,14 +10,11 @@
 #include <regex>
 #include <sstream>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
-
 
 #include "core/test/gtest/resources.hpp"
 

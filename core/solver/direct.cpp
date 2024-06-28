@@ -4,14 +4,11 @@
 
 #include "ginkgo/core/solver/direct.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/config/config_helper.hpp"
 

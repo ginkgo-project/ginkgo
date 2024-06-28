@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/factorization/par_ic.hpp"
 
-
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"

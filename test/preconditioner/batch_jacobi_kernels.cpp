@@ -4,13 +4,10 @@
 
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
-
 #include <limits>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -20,7 +17,6 @@
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
-
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"

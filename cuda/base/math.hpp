@@ -6,10 +6,9 @@
 #define GKO_CUDA_BASE_MATH_HPP_
 
 
-#include <ginkgo/core/base/math.hpp>
-
-
 #include <thrust/complex.h>
+
+#include <ginkgo/core/base/math.hpp>
 
 
 namespace gko {

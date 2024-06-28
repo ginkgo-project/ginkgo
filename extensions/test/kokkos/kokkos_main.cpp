@@ -4,9 +4,7 @@
 
 #include <Kokkos_Core.hpp>
 
-
 #include <gtest/gtest.h>
-
 
 #include "core/test/gtest/environments.hpp"
 

@@ -2,20 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/solver/idr_kernels.hpp"
+#include <oneapi/dpl/random>
 
+#include "core/solver/idr_kernels.hpp"
 
 #include <ctime>
 #include <random>
 
-
 #include <CL/sycl.hpp>
-#include <oneapi/dpl/random>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "dpcpp/base/config.hpp"

@@ -4,14 +4,11 @@
 
 #include "core/factorization/cholesky_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 #include <numeric>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"

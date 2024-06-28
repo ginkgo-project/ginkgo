@@ -2,22 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/profiler_hook.hpp>
-
+#include "core/log/profiler_hook.hpp"
 
 #include <chrono>
 #include <string>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
-
-#include "core/log/profiler_hook.hpp"
 #include "core/test/utils.hpp"
 
 

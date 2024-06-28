@@ -8,7 +8,6 @@
 
 #include <chrono>
 
-
 #include <ginkgo/core/stop/criterion.hpp>
 
 

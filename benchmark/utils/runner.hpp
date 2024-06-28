@@ -6,13 +6,11 @@
 #define GKO_BENCHMARK_UTILS_RUNNER_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <iomanip>
 #include <iostream>
 #include <vector>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
 

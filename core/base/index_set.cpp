@@ -4,16 +4,13 @@
 
 #include "ginkgo/core/base/index_set.hpp"
 
-
 #include <algorithm>
 #include <iostream>
 #include <mutex>
 #include <vector>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/index_set_kernels.hpp"

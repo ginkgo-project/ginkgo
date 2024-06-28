@@ -4,11 +4,9 @@
 
 #include "core/stop/criterion_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "common/cuda_hip/base/types.hpp"
 #include "hip/base/math.hip.hpp"

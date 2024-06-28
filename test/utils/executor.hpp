@@ -6,18 +6,13 @@
 #define GKO_TEST_UTILS_EXECUTOR_HPP_
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include <memory>
 #include <stdexcept>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/stream.hpp>
-
 
 #include "core/test/gtest/resources.hpp"
 

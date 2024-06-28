@@ -4,12 +4,10 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <iterator>
 #include <numeric>
 #include <utility>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -20,7 +18,6 @@
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"

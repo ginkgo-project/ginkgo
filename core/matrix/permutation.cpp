@@ -4,13 +4,11 @@
 
 #include "ginkgo/core/matrix/permutation.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/matrix/permutation_kernels.hpp"

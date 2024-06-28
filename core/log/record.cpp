@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/log/record.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>

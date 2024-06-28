@@ -2,16 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <cuda_runtime.h>
+#include "cuda/base/scoped_device_id.hpp"
 
+#include <cuda_runtime.h>
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "cuda/base/scoped_device_id.hpp"
 #include "cuda/test/utils.hpp"
 
 

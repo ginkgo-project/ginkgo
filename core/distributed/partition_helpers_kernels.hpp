@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
 
 

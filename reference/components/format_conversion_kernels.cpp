@@ -4,9 +4,7 @@
 
 #include "core/components/format_conversion_kernels.hpp"
 
-
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"

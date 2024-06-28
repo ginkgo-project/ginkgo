@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/matrix/ell.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -16,7 +14,6 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"

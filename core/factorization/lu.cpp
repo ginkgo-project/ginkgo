@@ -4,13 +4,11 @@
 
 #include "ginkgo/core/factorization/lu.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"

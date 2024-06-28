@@ -4,9 +4,7 @@
 
 #include "ginkgo/core/base/array.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"

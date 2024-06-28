@@ -17,7 +17,6 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>

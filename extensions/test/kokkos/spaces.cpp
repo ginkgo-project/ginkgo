@@ -4,12 +4,9 @@
 
 #include <Kokkos_Core.hpp>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/extensions/kokkos/spaces.hpp>
-
 
 #include "core/test/gtest/environments.hpp"
 #include "core/test/utils.hpp"

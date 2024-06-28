@@ -4,11 +4,9 @@
 
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-
 
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"

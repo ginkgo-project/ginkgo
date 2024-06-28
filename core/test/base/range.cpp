@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/range.hpp>
-
-
 #include <array>
 
-
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace {

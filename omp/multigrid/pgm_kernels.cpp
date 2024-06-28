@@ -4,17 +4,13 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/iterator_factory.hpp"
 

@@ -4,10 +4,8 @@
 
 #include "core/solver/idr_kernels.hpp"
 
-
 #include <fstream>
 #include <random>
-
 
 #include <gtest/gtest.h>
 
@@ -27,7 +25,6 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"

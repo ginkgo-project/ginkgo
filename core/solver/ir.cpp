@@ -4,11 +4,9 @@
 
 #include "ginkgo/core/solver/ir.hpp"
 
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"

@@ -4,12 +4,9 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-
 #include <omp.h>
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "core/solver/batch_dispatch.hpp"
 

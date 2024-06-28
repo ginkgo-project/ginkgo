@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/iterator>
 
-
 #include "core/distributed/partition_kernels.hpp"
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"

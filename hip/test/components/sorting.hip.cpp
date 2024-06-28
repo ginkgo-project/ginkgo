@@ -4,17 +4,13 @@
 
 #include "hip/components/sorting.hip.hpp"
 
-
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "hip/test/utils.hip.hpp"
 

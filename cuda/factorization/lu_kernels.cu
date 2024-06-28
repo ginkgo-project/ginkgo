@@ -4,18 +4,14 @@
 
 #include "core/factorization/lu_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
-
 
 #include <thrust/copy.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"

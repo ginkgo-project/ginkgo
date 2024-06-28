@@ -8,7 +8,6 @@
 
 #include <vector>
 
-
 #include <ginkgo/core/stop/criterion.hpp>
 
 

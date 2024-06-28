@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/mc64.hpp>
-
+#include "core/reorder/mc64.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,17 +10,14 @@
 #include <limits>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-
+#include <ginkgo/core/reorder/mc64.hpp>
 
 #include "core/components/addressable_pq.hpp"
-#include "core/reorder/mc64.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"

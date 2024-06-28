@@ -18,7 +18,6 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
 #include "core/matrix/csr_lookup.hpp"
 

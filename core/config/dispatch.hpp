@@ -9,14 +9,12 @@
 #include <complex>
 #include <string>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/type_descriptor_helper.hpp"

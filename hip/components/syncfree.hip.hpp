@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/memory.hpp"

@@ -4,12 +4,9 @@
 
 #include "core/distributed/index_map_kernels.hpp"
 
-
 #include <omp.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
