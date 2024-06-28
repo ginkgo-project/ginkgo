@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/ic.hpp>
+#include "ginkgo/core/preconditioner/ic.hpp"
 
 
 #include <ginkgo/core/base/types.hpp>

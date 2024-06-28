@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/composition.hpp>
+#include "ginkgo/core/base/composition.hpp"
 
 
 #include <algorithm>

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/config/config.hpp>
+#include "ginkgo/core/config/config.hpp"
 
 
 #include <map>
