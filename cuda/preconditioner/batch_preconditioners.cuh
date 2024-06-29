@@ -7,9 +7,9 @@
 
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
+#include "cuda/components/reduction.cuh"
 
 
 namespace gko {
