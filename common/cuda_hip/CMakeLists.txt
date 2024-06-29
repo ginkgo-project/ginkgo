@@ -2,6 +2,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 set(CUDA_HIP_SOURCES
     base/device_matrix_data_kernels.cpp
     components/prefix_sum_kernels.cpp
+    distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
