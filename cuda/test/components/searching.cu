@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/searching.cuh"
+#include "common/cuda_hip/components/searching.hpp"
 
 #include <memory>
 #include <numeric>

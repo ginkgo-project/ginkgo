@@ -18,7 +18,7 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/preconditioner/jacobi_common.hpp"
+#include "preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

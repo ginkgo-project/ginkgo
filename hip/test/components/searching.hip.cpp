@@ -8,7 +8,7 @@
 // clang-format on
 
 
-#include "hip/components/searching.hip.hpp"
+#include "common/cuda_hip/components/searching.hpp"
 
 #include <memory>
 #include <numeric>

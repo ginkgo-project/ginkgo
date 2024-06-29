@@ -2,68 +2,21 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/batch_ell_kernels.hpp"
-
-#include <thrust/functional.h>
-
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
-
-#include "common/cuda_hip/base/batch_struct.hpp"
-#include "common/cuda_hip/base/config.hpp"
-#include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/uninitialized_array.hpp"
-#include "common/cuda_hip/matrix/batch_struct.hpp"
-#include "core/base/batch_struct.hpp"
-#include "core/matrix/batch_struct.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-/**
- * @brief The Ell matrix format namespace.
- * @ref Ell
- * @ingroup batch_ell
- */
-namespace batch_ell {
-
-
-constexpr auto default_block_size = 256;
-constexpr int sm_oversubscription = 4;
-
-// clang-format off
-
-// NOTE: DO NOT CHANGE THE ORDERING OF THE INCLUDES
-
-
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void simple_apply(
-    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
+    const gko::batch::matrix::csr::batch_item<const ValueType, IndexType>& mat,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ x)
 {
     const auto num_rows = mat.num_rows;
-    const auto num_stored_elements_per_row = mat.num_stored_elems_per_row;
-    const auto stride = mat.stride;
     const auto val = mat.values;
     const auto col = mat.col_idxs;
-    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
+    for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
         auto temp = zero<ValueType>();
-        for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
-            const auto ind = tidx + idx * stride;
-            const auto col_idx = col[ind];
-            if (col_idx == invalid_index<IndexType>()) {
-                break;
-            } else {
-                temp += val[ind] * b[col_idx];
-            }
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
         }
-        x[tidx] = temp;
+        x[row] = temp;
     }
 }
 
@@ -71,7 +24,7 @@ template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(
     default_block_size,
     sm_oversubscription) void simple_apply_kernel(const gko::batch::matrix::
-                                                      ell::uniform_batch<
+                                                      csr::uniform_batch<
                                                           const ValueType,
                                                           IndexType>
                                                           mat,
@@ -100,27 +53,20 @@ __global__ __launch_bounds__(
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void advanced_apply(
     const ValueType alpha,
-    const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
+    const gko::batch::matrix::csr::batch_item<const ValueType, IndexType>& mat,
     const ValueType* const __restrict__ b, const ValueType beta,
     ValueType* const __restrict__ x)
 {
     const auto num_rows = mat.num_rows;
-    const auto num_stored_elements_per_row = mat.num_stored_elems_per_row;
-    const auto stride = mat.stride;
     const auto val = mat.values;
     const auto col = mat.col_idxs;
-    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
+    for (int row = threadIdx.x; row < num_rows; row += blockDim.x) {
         auto temp = zero<ValueType>();
-        for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
-            const auto ind = tidx + idx * stride;
-            const auto col_idx = col[ind];
-            if (col_idx == invalid_index<IndexType>()) {
-                break;
-            } else {
-                temp += alpha * val[ind] * b[col_idx];
-            }
+        for (auto nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
+            const auto col_idx = col[nnz];
+            temp += alpha * val[nnz] * b[col_idx];
         }
-        x[tidx] = temp + beta * x[tidx];
+        x[row] = temp + beta * x[row];
     }
 }
 
@@ -133,7 +79,7 @@ __global__ __launch_bounds__(
                                                                 const ValueType>
                                                                 alpha,
                                                     const gko::batch::matrix::
-                                                        ell::uniform_batch<
+                                                        csr::uniform_batch<
                                                             const ValueType,
                                                             IndexType>
                                                             mat,
@@ -169,20 +115,23 @@ __global__ __launch_bounds__(
 
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void scale(
-    const ValueType* const __restrict__ col_scale,
+    const int num_rows, const ValueType* const __restrict__ col_scale,
     const ValueType* const __restrict__ row_scale,
-    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+    const IndexType* const __restrict__ col_idxs,
+    const IndexType* const __restrict__ row_ptrs,
+    ValueType* const __restrict__ values)
 {
-    for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
-        auto r_scale = row_scale[tidx];
-        for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
-            const auto ind = tidx + idx * mat.stride;
-            const auto col_idx = mat.col_idxs[ind];
-            if (col_idx == invalid_index<IndexType>()) {
-                break;
-            } else {
-                mat.values[ind] *= r_scale * col_scale[col_idx];
-            }
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = ceildiv(blockDim.x, warp_size);
+
+    for (int row = tile_rank; row < num_rows; row += num_tiles) {
+        const ValueType row_scalar = row_scale[row];
+        for (int col = row_ptrs[row] + tile.thread_rank();
+             col < row_ptrs[row + 1]; col += warp_size) {
+            values[col] *= row_scalar * col_scale[col_idxs[col]];
         }
     }
 }
@@ -192,7 +141,7 @@ template <typename ValueType, typename IndexType>
 __global__ void scale_kernel(
     const ValueType* const __restrict__ col_scale_vals,
     const ValueType* const __restrict__ row_scale_vals,
-    const gko::batch::matrix::ell::uniform_batch<ValueType, IndexType> mat)
+    const gko::batch::matrix::csr::uniform_batch<ValueType, IndexType> mat)
 {
     auto num_rows = mat.num_rows;
     auto num_cols = mat.num_cols;
@@ -202,7 +151,8 @@ __global__ void scale_kernel(
             gko::batch::matrix::extract_batch_item(mat, batch_id);
         const auto col_scale_b = col_scale_vals + num_cols * batch_id;
         const auto row_scale_b = row_scale_vals + num_rows * batch_id;
-        scale(col_scale_b, row_scale_b, mat_b);
+        scale(mat.num_rows, col_scale_b, row_scale_b, mat_b.col_idxs,
+              mat_b.row_ptrs, mat_b.values);
     }
 }
 
@@ -210,19 +160,20 @@ __global__ void scale_kernel(
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void add_scaled_identity(
     const ValueType alpha, const ValueType beta,
-    const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat)
+    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
 {
-    for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
-        for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
-            const auto ind = tidx + idx * mat.stride;
-            mat.values[ind] *= beta;
-            const auto col_idx = mat.col_idxs[ind];
-            if (col_idx == invalid_index<IndexType>()) {
-                break;
-            } else {
-                if (tidx == col_idx) {
-                    mat.values[ind] += alpha;
-                }
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const int tile_rank = threadIdx.x / warp_size;
+    const int num_tiles = ceildiv(blockDim.x, warp_size);
+
+    for (int row = tile_rank; row < mat.num_rows; row += num_tiles) {
+        for (int nnz = mat.row_ptrs[row] + tile.thread_rank();
+             nnz < mat.row_ptrs[row + 1]; nnz += warp_size) {
+            mat.values[nnz] *= beta;
+            if (row == mat.col_idxs[nnz]) {
+                mat.values[nnz] += alpha;
             }
         }
     }
@@ -233,7 +184,7 @@ template <typename ValueType, typename IndexType>
 __global__ void add_scaled_identity_kernel(
     const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
     const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
-    const gko::batch::matrix::ell::uniform_batch<ValueType, IndexType> mat)
+    const gko::batch::matrix::csr::uniform_batch<ValueType, IndexType> mat)
 {
     const size_type num_batch_items = mat.num_batch_items;
     for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
@@ -245,14 +196,3 @@ __global__ void add_scaled_identity_kernel(
         add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
     }
 }
-
-
-#include "common/cuda_hip/matrix/batch_ell_kernel_launcher.hpp.inc"
-
-// clang-format on
-
-
-}  // namespace batch_ell
-}  // namespace GKO_DEVICE_NAMESPACE
-}  // namespace kernels
-}  // namespace gko
