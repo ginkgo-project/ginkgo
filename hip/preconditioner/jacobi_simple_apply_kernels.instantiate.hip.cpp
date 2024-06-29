@@ -5,16 +5,16 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/warp_blas.hip.hpp"
 #include "hip/preconditioner/jacobi_common.hip.hpp"
 
 

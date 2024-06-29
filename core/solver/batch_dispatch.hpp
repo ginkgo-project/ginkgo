@@ -21,15 +21,15 @@
 #include "core/matrix/batch_struct.hpp"
 
 
-#if defined GKO_COMPILING_CUDA
+#if defined(GKO_COMPILING_CUDA)
 
 
+#include "common/cuda_hip/log/batch_logger.hpp"
+#include "common/cuda_hip/stop/batch_criteria.hpp"
 #include "cuda/base/batch_struct.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/log/batch_logger.cuh"
 #include "cuda/matrix/batch_struct.hpp"
 #include "cuda/preconditioner/batch_preconditioners.cuh"
-#include "cuda/stop/batch_criteria.cuh"
 
 
 namespace gko {
@@ -37,11 +37,12 @@ namespace batch {
 namespace solver {
 
 
-namespace device = gko::kernels::cuda;
+namespace device = gko::kernels::GKO_DEVICE_NAMESPACE;
 
 
 template <typename ValueType>
-using DeviceValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
+using DeviceValueType =
+    typename gko::kernels::GKO_DEVICE_NAMESPACE::device_type<ValueType>;
 
 
 }  // namespace solver
@@ -49,15 +50,15 @@ using DeviceValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 }  // namespace gko
 
 
-#elif defined GKO_COMPILING_HIP
+#elif defined(GKO_COMPILING_HIP)
 
 
+#include "common/cuda_hip/log/batch_logger.hpp"
+#include "common/cuda_hip/stop/batch_criteria.hpp"
 #include "hip/base/batch_struct.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/log/batch_logger.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 #include "hip/preconditioner/batch_preconditioners.hip.hpp"
-#include "hip/stop/batch_criteria.hip.hpp"
 
 
 namespace gko {

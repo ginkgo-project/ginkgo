@@ -18,10 +18,10 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "hip/base/math.hip.hpp"
 #include "hip/solver/common_trs_kernels.hip.hpp"
 
 

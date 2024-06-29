@@ -19,9 +19,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
+#include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/searching.hpp"
 #include "hip/base/thrust.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/searching.hip.hpp"
 
 
 namespace gko {
