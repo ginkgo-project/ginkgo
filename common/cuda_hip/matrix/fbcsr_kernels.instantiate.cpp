@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "hip/matrix/fbcsr_kernels.template.hip.cpp"
+#include "common/cuda_hip/matrix/fbcsr_kernels.template.cpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The fixed-size block compressed sparse row matrix format namespace.
  *
@@ -42,6 +42,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace fbcsr
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
