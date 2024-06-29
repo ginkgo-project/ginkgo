@@ -8,7 +8,7 @@
 // clang-format on
 
 
-#include "hip/components/merging.hip.hpp"
+#include "common/cuda_hip/components/merging.hpp"
 
 #include <algorithm>
 #include <memory>
