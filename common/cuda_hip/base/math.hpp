@@ -2,6 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
+#define GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
+
+
+#include <thrust/complex.h>
+
+#include <ginkgo/core/base/math.hpp>
+
+
+namespace gko {
+
+
 // We need this struct, because otherwise we would call a __host__ function in a
 // __device__ function (even though it is constexpr)
 template <typename T>
@@ -37,3 +49,9 @@ struct truncate_type_impl<thrust::complex<T>> {
 
 
 }  // namespace detail
+
+
+}  // namespace gko
+
+
+#endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
