@@ -2,22 +2,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 set(CUDA_HIP_SOURCES
     base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
-    base/kernel_launch.hpp
-    base/kernel_launch_reduction.hpp
-    base/kernel_launch_solver.hpp
-    components/atomic.hpp
-    components/diagonal_block_manipulation.hpp
-    components/intrinsics.hpp
-    components/merging.hpp
-    components/prefix_sum.hpp
     components/prefix_sum_kernels.cpp
-    components/reduction.hpp
-    components/searching.hpp
-    components/segment_scan.hpp
-    components/sorting.hpp
-    components/syncfree.hpp
-    components/thread_ids.hpp
-    components/warp_blas.hpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
@@ -27,7 +12,6 @@ set(CUDA_HIP_SOURCES
     factorization/lu_kernels.cpp
     factorization/par_ic_kernels.cpp
     factorization/par_ilu_kernels.cpp
-    log/batch_logger.hpp
     matrix/batch_csr_kernels.cpp
     matrix/batch_dense_kernels.cpp
     matrix/batch_ell_kernels.cpp
@@ -35,7 +19,6 @@ set(CUDA_HIP_SOURCES
     matrix/dense_kernels.cpp
     matrix/diagonal_kernels.cpp
     matrix/ell_kernels.cpp
-    matrix/fbcsr_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
@@ -45,7 +28,6 @@ set(CUDA_HIP_SOURCES
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/multigrid_kernels.cpp
-    stop/batch_criteria.hpp
     )
 list(TRANSFORM CUDA_HIP_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_CUDA_HIP_COMMON_SOURCES ${CUDA_HIP_SOURCES} PARENT_SCOPE)
