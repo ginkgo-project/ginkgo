@@ -38,8 +38,6 @@ set(GINKGO_HIP_SOURCES
     solver/batch_cg_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
-    stop/criterion_kernels.hip.cpp
-    stop/residual_norm_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )

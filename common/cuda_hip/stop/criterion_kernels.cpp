@@ -9,13 +9,14 @@
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 #include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Set all statuses namespace.
  * @ref set_status
@@ -38,8 +39,9 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 }
 
 
-void set_all_statuses(std::shared_ptr<const HipExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, array<stopping_status>* stop_status)
+void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec,
+                      uint8 stoppingId, bool setFinalized,
+                      array<stopping_status>* stop_status)
 {
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(stop_status->get_size(), block_size);
@@ -53,6 +55,6 @@ void set_all_statuses(std::shared_ptr<const HipExecutor> exec, uint8 stoppingId,
 
 
 }  // namespace set_all_statuses
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

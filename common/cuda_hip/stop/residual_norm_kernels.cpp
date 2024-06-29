@@ -17,7 +17,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Residual norm stopping criterion namespace.
  * @ref resnorm
@@ -61,7 +61,7 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 
 template <typename ValueType>
-void residual_norm(std::shared_ptr<const HipExecutor> exec,
+void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
@@ -143,7 +143,7 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 template <typename ValueType>
 void implicit_residual_norm(
-    std::shared_ptr<const HipExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
@@ -175,6 +175,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
