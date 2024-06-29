@@ -10,20 +10,20 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
+#include "common/cuda_hip/components/merging.hpp"
+#include "common/cuda_hip/components/prefix_sum.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/searching.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/merging.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/searching.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {

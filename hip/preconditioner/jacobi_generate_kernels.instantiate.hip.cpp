@@ -6,18 +6,18 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/diagonal_block_manipulation.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/diagonal_block_manipulation.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/components/warp_blas.hip.hpp"
 #include "hip/preconditioner/jacobi_common.hip.hpp"
 
 

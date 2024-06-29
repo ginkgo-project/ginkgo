@@ -8,10 +8,10 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/array_access.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
