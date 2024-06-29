@@ -168,11 +168,11 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
  *
  * @param extra  describes benchmark specific extra parameters to output
  */
-void print_general_information(const std::string& extra)
+void print_general_information(const std::string& extra,
+                               std::shared_ptr<const gko::Executor> exec)
 {
     std::clog << gko::version_info::get() << std::endl
-              << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
-              << ")\n"
+              << "Running on " << exec->get_description() << std::endl
               << "Running with " << FLAGS_warmup << " warm iterations and ";
     if (FLAGS_repetitions == "auto") {
         std::clog << "adaptively determined repetititions with "

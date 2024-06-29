@@ -7,7 +7,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 constexpr gko::size_type test_iterations = 10;

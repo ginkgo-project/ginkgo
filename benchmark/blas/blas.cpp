@@ -104,8 +104,8 @@ Parameters for a benchmark case are:
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information);
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
+    print_general_information(extra_information, exec);
 
     auto test_cases = json::parse(get_input_stream());
 

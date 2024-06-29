@@ -22,7 +22,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 #if GINKGO_COMMON_SINGLE_MODE

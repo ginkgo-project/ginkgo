@@ -22,7 +22,7 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace detail {

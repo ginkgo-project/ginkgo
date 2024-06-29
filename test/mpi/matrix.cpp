@@ -20,7 +20,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
-#include "test/utils/mpi/executor.hpp"
+#include "test/utils/mpi/common_fixture.hpp"
 
 
 #ifndef GKO_COMPILING_DPCPP

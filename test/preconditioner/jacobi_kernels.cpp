@@ -13,7 +13,7 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Jacobi : public CommonTestFixture {

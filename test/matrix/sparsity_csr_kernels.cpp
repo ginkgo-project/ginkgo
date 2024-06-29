@@ -19,7 +19,7 @@
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace {

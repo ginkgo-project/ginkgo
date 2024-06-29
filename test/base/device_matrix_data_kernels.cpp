@@ -16,7 +16,7 @@
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>

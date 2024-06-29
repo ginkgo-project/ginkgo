@@ -865,6 +865,9 @@ public:
 
     virtual scoped_device_id_guard get_scoped_device_id_guard() const = 0;
 
+    /** @return a textual representation of the executor and its device. */
+    virtual std::string get_description() const = 0;
+
 protected:
     /**
      * A struct that abstracts the executor info for different executors
@@ -1368,6 +1371,8 @@ public:
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
+    std::string get_description() const override;
+
 protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : alloc_{std::move(alloc)}
@@ -1425,6 +1430,8 @@ public:
     {
         return {this, 0};
     }
+
+    std::string get_description() const override { return "ReferenceExecutor"; }
 
     void run(const Operation& op) const override
     {
@@ -1531,6 +1538,8 @@ public:
     void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1752,6 +1761,8 @@ public:
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
+    std::string get_description() const override;
+
     /**
      * Get the HIP device id of the device associated to this executor.
      */
@@ -1952,6 +1963,8 @@ public:
     void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.

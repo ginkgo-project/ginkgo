@@ -27,7 +27,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 // use another alias to avoid conflict name in the Idr
