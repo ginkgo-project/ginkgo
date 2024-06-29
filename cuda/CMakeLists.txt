@@ -44,7 +44,7 @@ target_sources(ginkgo_cuda
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
 # override the default language mapping for the common files, set them to CUDA
-foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES)
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)

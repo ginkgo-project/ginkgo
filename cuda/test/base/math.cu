@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/base/math.hpp"
+#include "common/cuda_hip/base/math.hpp"
 
 #include <cmath>
 #include <complex>

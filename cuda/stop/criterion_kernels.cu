@@ -8,9 +8,9 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {
