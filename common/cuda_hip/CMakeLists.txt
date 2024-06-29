@@ -25,6 +25,8 @@ set(CUDA_HIP_SOURCES
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/multigrid_kernels.cpp
+    stop/criterion_kernels.cpp
+    stop/residual_norm_kernels.cpp
     )
 list(TRANSFORM CUDA_HIP_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_CUDA_HIP_COMMON_SOURCES ${CUDA_HIP_SOURCES} PARENT_SCOPE)
