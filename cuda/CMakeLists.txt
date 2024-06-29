@@ -7,9 +7,7 @@ add_instantiation_files(. matrix/fbcsr_kernels.instantiate.cu FBCSR_INSTANTIATE)
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
     PRIVATE
-    base/batch_multi_vector_kernels.cu
     base/device.cpp
-    base/device_matrix_data_kernels.cu
     base/exception.cpp
     base/executor.cpp
     base/index_set_kernels.cpp
@@ -19,56 +17,31 @@ target_sources(ginkgo_cuda
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    components/prefix_sum_kernels.cu
     distributed/index_map_kernels.cu
-    distributed/matrix_kernels.cu
-    distributed/partition_helpers_kernels.cu
-    distributed/partition_kernels.cu
-    distributed/vector_kernels.cu
-    factorization/cholesky_kernels.cu
-    factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
-    factorization/lu_kernels.cu
-    factorization/par_ic_kernels.cu
     factorization/par_ict_kernels.cu
-    factorization/par_ilu_kernels.cu
     factorization/par_ilut_approx_filter_kernels.cu
     factorization/par_ilut_filter_kernels.cu
     factorization/par_ilut_select_common.cu
     factorization/par_ilut_select_kernels.cu
     factorization/par_ilut_spgeam_kernels.cu
     factorization/par_ilut_sweep_kernels.cu
-    matrix/batch_csr_kernels.cu
-    matrix/batch_dense_kernels.cu
-    matrix/batch_ell_kernels.cu
-    matrix/coo_kernels.cu
     ${CSR_INSTANTIATE}
-    matrix/dense_kernels.cu
-    matrix/diagonal_kernels.cu
-    matrix/ell_kernels.cu
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
-    matrix/sellp_kernels.cu
-    matrix/sparsity_csr_kernels.cu
-    multigrid/pgm_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
-    preconditioner/isai_kernels.cu
     preconditioner/jacobi_advanced_apply_kernels.cu
     preconditioner/jacobi_generate_kernels.cu
-    preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernels.cu
-    reorder/rcm_kernels.cu
     solver/batch_bicgstab_kernels.cu
     solver/batch_cg_kernels.cu
-    solver/cb_gmres_kernels.cu
-    solver/idr_kernels.cu
     solver/lower_trs_kernels.cu
-    solver/multigrid_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
     stop/residual_norm_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
+    ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
 # override the default language mapping for the common files, set them to CUDA
 foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES)

@@ -2,6 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_INC_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_INC_
+
+
+#include <ginkgo/core/base/types.hpp>
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+
+
 /**
  * Stores an array with uninitialized contents.
  *
@@ -63,3 +75,11 @@ public:
 private:
     unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
 };
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_UNINITIALIZED_ARRAY_HPP_INC_
