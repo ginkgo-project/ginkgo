@@ -7,7 +7,7 @@
 #include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/preconditioner/jacobi_common.hip.hpp"
+#include "preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

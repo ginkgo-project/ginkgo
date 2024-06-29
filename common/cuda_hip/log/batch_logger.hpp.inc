@@ -2,19 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_
-
-
-#include <ginkgo/core/base/types.hpp>
-
-
-namespace gko {
-namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-namespace batch_log {
-
-
 /**
  * @see reference/log/batch_logger.hpp
  */
@@ -41,12 +28,3 @@ private:
     real_type* const final_residuals_;
     idx_type* const final_iters_;
 };
-
-
-}  // namespace batch_log
-}  // namespace GKO_DEVICE_NAMESPACE
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_COMMON_CUDA_HIP_LOG_BATCH_LOGGER_HPP_INC_

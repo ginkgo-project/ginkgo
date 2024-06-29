@@ -2,19 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_STOP_BATCH_CRITERIA_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_STOP_BATCH_CRITERIA_HPP_INC_
-
-
-#include <ginkgo/core/base/math.hpp>
-
-
-namespace gko {
-namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-namespace batch_stop {
-
-
 /**
  * @see reference/stop/batch_criteria.hpp
  */
@@ -62,11 +49,3 @@ public:
 private:
     const real_type abs_tol_;
 };
-
-
-}  // namespace batch_stop
-}  // namespace GKO_DEVICE_NAMESPACE
-}  // namespace kernels
-}  // namespace gko
-
-#endif  // GKO_COMMON_CUDA_HIP_STOP_BATCH_CRITERIA_HPP_INC_

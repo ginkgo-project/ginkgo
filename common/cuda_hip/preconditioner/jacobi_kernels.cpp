@@ -12,10 +12,10 @@
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

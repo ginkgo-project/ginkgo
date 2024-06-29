@@ -7,6 +7,7 @@ add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kerne
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
     PRIVATE
+    base/batch_multi_vector_kernels.cu
     base/device.cpp
     base/exception.cpp
     base/executor.cpp
@@ -27,6 +28,9 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_select_kernels.cu
     factorization/par_ilut_spgeam_kernels.cu
     factorization/par_ilut_sweep_kernels.cu
+    matrix/batch_csr_kernels.cu
+    matrix/batch_dense_kernels.cu
+    matrix/batch_ell_kernels.cu
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
@@ -97,7 +101,7 @@ target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAM
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(ginkgo_cuda PRIVATE CUDA::cudart CUDA::cublas CUDA::cusparse CUDA::curand CUDA::cufft nvtx::nvtx)
 # NVTX3 is header-only and requires dlopen/dlclose in static builds
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${CMAKE_DL_LIBS})

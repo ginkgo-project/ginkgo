@@ -5,6 +5,7 @@ add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kerne
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
+    base/batch_multi_vector_kernels.hip.cpp
     base/device.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
@@ -25,6 +26,9 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernels.hip.cpp
     factorization/par_ilut_spgeam_kernels.hip.cpp
     factorization/par_ilut_sweep_kernels.hip.cpp
+    matrix/batch_csr_kernels.hip.cpp
+    matrix/batch_dense_kernels.hip.cpp
+    matrix/batch_ell_kernels.hip.cpp
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     preconditioner/batch_jacobi_kernels.hip.cpp
@@ -83,14 +87,14 @@ foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
         ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
 endforeach()
 string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
-configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hip.hpp)
+configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hpp)
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES LANGUAGE HIP)
 add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES})
 
 target_include_directories(ginkgo_hip
     PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}/.. # for generated headers like jacobi_common.hip.hpp
+        ${CMAKE_CURRENT_BINARY_DIR} # for generated headers like jacobi_common.hip.hpp
         )
 target_compile_definitions(ginkgo_hip PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip)
 
