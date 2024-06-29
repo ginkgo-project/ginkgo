@@ -41,8 +41,6 @@ target_sources(ginkgo_cuda
     solver/batch_cg_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
-    stop/criterion_kernels.cu
-    stop/residual_norm_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     )
