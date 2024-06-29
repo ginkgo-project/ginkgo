@@ -16,7 +16,6 @@ set(GINKGO_HIP_SOURCES
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
-    distributed/index_map_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
