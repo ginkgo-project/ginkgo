@@ -6,16 +6,12 @@
 #define GKO_CORE_MULTIGRID_UNIFORM_COARSENING_KERNELS_HPP_
 
 
-#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
-
-
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

@@ -4,10 +4,8 @@
 
 #include "core/multigrid/uniform_coarsening_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"

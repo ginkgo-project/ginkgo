@@ -11,9 +11,6 @@
 #include <ginkgo/ginkgo.hpp>
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 int main(int argc, char* argv[])
 {
     // Some shortcuts
