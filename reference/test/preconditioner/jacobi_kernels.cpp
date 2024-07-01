@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/preconditioner/jacobi_kernels.hpp"
+
 #include <algorithm>
 #include <type_traits>
 
@@ -12,7 +14,6 @@
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include "core/base/extended_float.hpp"
-#include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
