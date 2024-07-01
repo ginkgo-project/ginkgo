@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -55,4 +55,4 @@ __forceinline__ __device__ int clz(uint64 mask) { return __clzll(mask); }
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_INTRINSICS_HPP_

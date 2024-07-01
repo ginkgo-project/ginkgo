@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_
 
 
 #include "common/cuda_hip/base/config.hpp"
@@ -311,4 +311,4 @@ __forceinline__ __device__ void bitonic_sort(ValueType* local_elements,
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SORTING_HPP_

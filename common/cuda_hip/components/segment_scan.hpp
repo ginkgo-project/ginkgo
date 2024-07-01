@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_
 
 
 #include "common/cuda_hip/components/cooperative_groups.hpp"
@@ -52,4 +52,4 @@ __device__ __forceinline__ bool segment_scan(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SEGMENT_SCAN_HPP_
