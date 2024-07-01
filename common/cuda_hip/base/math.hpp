@@ -49,8 +49,6 @@ struct truncate_type_impl<thrust::complex<T>> {
 
 
 }  // namespace detail
-
-
 }  // namespace gko
 
 
