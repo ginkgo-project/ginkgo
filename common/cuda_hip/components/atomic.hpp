@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_
 
 
 #include <type_traits>
@@ -250,4 +250,4 @@ __forceinline__ __device__ thrust::complex<double> atomic_add(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_ATOMIC_HPP_
