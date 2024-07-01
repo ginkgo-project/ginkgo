@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_
+#define GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_
 
 
 #include <thrust/complex.h>
@@ -54,4 +54,4 @@ struct truncate_type_impl<thrust::complex<T>> {
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_
 
 
 #include "common/cuda_hip/base/config.hpp"
@@ -228,4 +228,4 @@ __forceinline__ __device__ IndexType group_ary_search(IndexType offset,
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_SEARCHING_HPP_

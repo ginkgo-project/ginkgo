@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_
 
 
 #include <type_traits>
@@ -296,4 +296,4 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_REDUCTION_HPP_

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_
 
 
 #include "common/cuda_hip/base/math.hpp"
@@ -302,4 +302,4 @@ __forceinline__ __device__ void sequential_match(const ValueType* a,
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_MERGING_HPP_

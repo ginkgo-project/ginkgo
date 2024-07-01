@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_
 
 
 #include <cassert>
@@ -434,4 +434,4 @@ __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_WARP_BLAS_HPP_

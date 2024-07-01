@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_INC_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_INC_
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_
 
 
 #include <type_traits>
@@ -182,4 +182,4 @@ __global__ __launch_bounds__(block_size) void finalize_prefix_sum(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_INC_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_PREFIX_SUM_HPP_
