@@ -357,9 +357,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
-        auto csr_mtx = share(
-            convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting)
-                ->clone());
+        auto csr_mtx = share(convert_to_with_sorting<csr_type>(
+            exec, system_matrix, skip_sorting));
         if (parameters_.block_pointers.get_data() == nullptr) {
             this->detect_blocks(csr_mtx.get());
         }
@@ -368,10 +367,15 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // We only use it to generate the inversed block, so we do not need
             // to rebuild srow
             // Note: Does the diagonal make the find_block different?
-            exec->run(jacobi::make_add_diagonal_elements(csr_mtx.get(), true));
+            // Because we change the matrix value, we clone it to avoid
+            // overwriting to the original matrix.
+            auto changed_mtx = share(csr_mtx->clone());
+            exec->run(
+                jacobi::make_add_diagonal_elements(changed_mtx.get(), true));
             // block_pointers has larger size than actual num_blocks_
             exec->run(jacobi::make_block_l1(
-                num_blocks_, parameters_.block_pointers, csr_mtx.get()));
+                num_blocks_, parameters_.block_pointers, changed_mtx.get()));
+            csr_mtx = changed_mtx;
         }
         const auto all_block_opt =
             parameters_.storage_optimization.of_all_blocks;
