@@ -129,7 +129,8 @@ void abstract_classical_spmv(
     device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
+            return is_zero(beta_val) ? alpha_val * x
+                                     : alpha_val * x + beta_val * y;
         },
         item_ct1);
 }

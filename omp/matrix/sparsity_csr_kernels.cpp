@@ -89,7 +89,9 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                     val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
             c->at(row, j) = static_cast<OutputValueType>(
-                vbeta * static_cast<arithmetic_type>(c->at(row, j)) +
+                (is_zero(vbeta)
+                     ? zero(vbeta)
+                     : vbeta * static_cast<arithmetic_type>(c->at(row, j))) +
                 valpha * temp_val);
         }
     }

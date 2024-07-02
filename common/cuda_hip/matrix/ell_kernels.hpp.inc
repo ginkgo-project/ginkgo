@@ -124,7 +124,10 @@ __global__ __launch_bounds__(default_block_size) void spmv(
             num_stored_elements_per_row, b, c, c_stride,
             [&alpha_val, &beta_val](const auto& x, const OutputValueType& y) {
                 return static_cast<OutputValueType>(
-                    alpha_val * x + static_cast<arithmetic_type>(beta_val * y));
+                    is_zero(beta_val)
+                        ? alpha_val * x
+                        : alpha_val * x +
+                              static_cast<arithmetic_type>(beta_val * y));
             });
     }
 }
