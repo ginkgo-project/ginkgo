@@ -8,7 +8,7 @@
 // clang-format on
 
 
-#include "hip/base/math.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
 
 #include <cmath>
 #include <complex>

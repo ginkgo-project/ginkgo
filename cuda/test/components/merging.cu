@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/merging.cuh"
+#include "common/cuda_hip/components/merging.hpp"
 
 #include <algorithm>
 #include <memory>

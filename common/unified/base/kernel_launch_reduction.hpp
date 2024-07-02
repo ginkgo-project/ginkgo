@@ -19,10 +19,8 @@
     {}
 
 
-#if defined(GKO_COMPILING_CUDA)
-#include "cuda/base/kernel_launch_reduction.cuh"
-#elif defined(GKO_COMPILING_HIP)
-#include "hip/base/kernel_launch_reduction.hip.hpp"
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+#include "common/cuda_hip/base/kernel_launch_reduction.hpp"
 #elif defined(GKO_COMPILING_DPCPP)
 #include "dpcpp/base/kernel_launch_reduction.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)
