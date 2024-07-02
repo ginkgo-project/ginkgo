@@ -327,28 +327,31 @@ TYPED_TEST(Pgm, Renumber)
 TYPED_TEST(Pgm, GatherIndex)
 {
     using index_type = typename TestFixture::index_type;
+    auto partition = gko::experimental::distributed::Partition<
+        index_type, gko::int64>::build_from_mapping(this->exec,
+                                                    {this->exec, {0, 1, 0}}, 2);
     gko::size_type num = 5;
-    gko::array<index_type> result(this->exec, num);
+    gko::array<gko::int64> result(this->exec, num);
     gko::array<index_type> map(this->exec, num);
     gko::array<index_type> orig(this->exec, 3);
-    orig.get_data()[0] = 1;
-    orig.get_data()[1] = 2;
-    orig.get_data()[2] = 3;
+    orig.get_data()[0] = 0;
+    orig.get_data()[1] = 1;
+    orig.get_data()[2] = 0;
     map.get_data()[0] = 1;
     map.get_data()[1] = 2;
     map.get_data()[2] = 0;
-    map.get_data()[3] = 2;
+    map.get_data()[3] = 1;
     map.get_data()[4] = 0;
 
-    gko::kernels::reference::pgm::gather_index(
-        this->exec, num, orig.get_const_data(), map.get_const_data(),
-        result.get_data());
+    gko::kernels::reference::pgm::gather_as_global_index(
+        this->exec, partition.get(), 0, num, orig.get_const_data(),
+        map.get_const_data(), result.get_data());
 
     ASSERT_EQ(result.get_const_data()[0], 2);
-    ASSERT_EQ(result.get_const_data()[1], 3);
-    ASSERT_EQ(result.get_const_data()[2], 1);
-    ASSERT_EQ(result.get_const_data()[3], 3);
-    ASSERT_EQ(result.get_const_data()[4], 1);
+    ASSERT_EQ(result.get_const_data()[1], 0);
+    ASSERT_EQ(result.get_const_data()[2], 0);
+    ASSERT_EQ(result.get_const_data()[3], 2);
+    ASSERT_EQ(result.get_const_data()[4], 0);
 }
 
 

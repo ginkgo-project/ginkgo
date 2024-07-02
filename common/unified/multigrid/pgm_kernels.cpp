@@ -5,6 +5,7 @@
 #include "core/multigrid/pgm_kernels.hpp"
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
@@ -309,20 +310,18 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 
 
-template <typename IndexType>
-void gather_index(std::shared_ptr<const DefaultExecutor> exec,
-                  size_type num_res, const IndexType* orig,
-                  const IndexType* gather_map, IndexType* result)
+template <typename IndexType, typename GlobalIndexType>
+void gather_as_global_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const experimental::distributed::Partition<IndexType, GlobalIndexType>*
+        partition,
+    experimental::distributed::comm_index_type part_id, size_type num_res,
+    const IndexType* orig, const IndexType* gather_map, GlobalIndexType* result)
 {
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto orig, auto gather_map, auto result) {
-            result[tidx] = orig[gather_map[tidx]];
-        },
-        num_res, orig, gather_map, result);
+    GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm

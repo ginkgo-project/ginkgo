@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -19,6 +20,7 @@
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "reference/distributed/partition_helpers.hpp"
 
 
 namespace gko {
@@ -316,17 +318,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 
 
-template <typename IndexType>
-void gather_index(std::shared_ptr<const DefaultExecutor> exec,
-                  size_type num_res, const IndexType* orig,
-                  const IndexType* gather_map, IndexType* result)
+template <typename IndexType, typename GlobalIndexType>
+void gather_as_global_index(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const experimental::distributed::Partition<IndexType, GlobalIndexType>*
+        partition,
+    experimental::distributed::comm_index_type part_id, size_type num_res,
+    const IndexType* orig, const IndexType* gather_map, GlobalIndexType* result)
 {
+    auto local_ranges = create_part_local_ranges(part_id, partition);
+    size_type local_range_id = 0;
     for (size_type i = 0; i < num_res; ++i) {
-        result[i] = orig[gather_map[i]];
+        local_range_id = map_local_to_range(orig[gather_map[i]], local_ranges,
+                                            partition, local_range_id);
+        result[i] = map_to_global(orig[gather_map[i]], partition,
+                                  local_ranges[local_range_id]);
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm
