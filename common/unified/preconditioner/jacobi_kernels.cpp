@@ -42,7 +42,8 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto elem, auto diag, auto inv_diag) {
-            inv_diag[elem] = safe_divide(one(diag[elem]), diag[elem]);
+            inv_diag[elem] = is_zero(diag[elem]) ? one(diag[elem])
+                                                 : one(diag[elem]) / diag[elem];
         },
         diag.get_size(), diag, inv_diag);
 }
