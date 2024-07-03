@@ -2,16 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/solver_debug.hpp>
-
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/solver_debug.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
@@ -39,17 +35,21 @@ public:
     template <typename Mtx>
     void assert_file_equals(const std::string& filename, Mtx* ref_mtx)
     {
+        SCOPED_TRACE(filename);
         auto cleanup = [filename] {
             std::remove((filename + ".mtx").c_str());
             std::remove((filename + ".bin").c_str());
         };
+        std::ifstream stream_mtx{filename + ".mtx"};
+        std::ifstream stream_bin{filename + ".bin", std::ios::binary};
+        // check that the files exist
+        ASSERT_TRUE(stream_mtx.good());
+        ASSERT_TRUE(stream_bin.good());
         if (!ref_mtx) {
             cleanup();
             return;
         }
-        SCOPED_TRACE(filename);
-        std::ifstream stream_mtx{filename + ".mtx"};
-        std::ifstream stream_bin{filename + ".bin", std::ios::binary};
+        // check that the files have the correct contents
         auto mtx = gko::read<Dense>(stream_mtx, ref);
         auto mtx_bin = gko::read_binary<Dense>(stream_bin, ref);
         cleanup();
@@ -97,7 +97,8 @@ TYPED_TEST(SolverDebug, TableWorks)
            << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{0.0} << '\n';
     std::stringstream ss;
-    this->solver->add_logger(gko::log::SolverDebug::create_scalar_table(ss));
+    this->solver->add_logger(
+        gko::log::SolverDebug::create_scalar_table_writer(ss));
 
     this->solver->apply(this->in, this->out);
 
@@ -120,7 +121,8 @@ TYPED_TEST(SolverDebug, CsvWorks)
            << 1 << ',' << T{0.0} << ',' << T{4.0} << ',' << T{0.0} << ','
            << T{4.0} << ',' << T{0.0} << '\n';
     std::stringstream ss;
-    this->solver->add_logger(gko::log::SolverDebug::create_scalar_csv(ss));
+    this->solver->add_logger(
+        gko::log::SolverDebug::create_scalar_csv_writer(ss));
 
     this->solver->apply(this->in, this->out);
 
