@@ -29,7 +29,7 @@ struct device_segmented_array {
         T* end;
     };
 
-    constexpr segment get_segment(size_type segment_id)
+    constexpr segment get_segment(size_type segment_id) const
     {
         GKO_ASSERT(segment_id < (offsets_end - offsets_begin));
         return {flat_begin + offsets_begin[segment_id],
