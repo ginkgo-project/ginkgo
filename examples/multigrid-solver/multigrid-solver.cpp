@@ -8,7 +8,6 @@
 #include <map>
 #include <string>
 
-
 #include <ginkgo/ginkgo.hpp>
 
 
