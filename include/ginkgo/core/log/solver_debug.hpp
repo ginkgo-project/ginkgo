@@ -9,7 +9,6 @@
 #include <iosfwd>
 #include <memory>
 
-
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -18,40 +17,45 @@ namespace log {
 
 
 /**
- * This Logger prints the value of all scalar values stored internally by the
- * solver after each iteration. If the solver is applied to multiple right-hand
- * sides, only the first right-hand side gets printed.
+ * This Logger outputs the value of all scalar values (and potentially vectors)
+ * stored internally by the solver after each iteration. It needs to be attached
+ * to the solver being debugged.
  */
 class SolverDebug : public Logger {
 public:
     /**
      * Creates a logger printing the value for all scalar values in the solver
      * after each iteration in an ASCII table.
+     * If the solver is applied to multiple right-hand sides, only the first
+     * right-hand side gets printed.
      *
      * @param output  the stream to write the output to.
      * @param precision  the number of digits of precision to print
      * @param column_width  the number of characters an output column is wide
      */
-    static std::shared_ptr<SolverDebug> create_scalar_table(
+    static std::shared_ptr<SolverDebug> create_scalar_table_writer(
         std::ostream& output, int precision = 6, int column_width = 12);
 
 
     /**
      * Creates a logger printing the value for all scalar values in the solver
      * after each iteration in a CSV table.
+     * If the solver is applied to multiple right-hand sides, only the first
+     * right-hand side gets printed.
      *
      * @param output  the stream to write the output to.
      * @param precision  the number of digits of precision to print
-     * @param column_width  the number of characters an output column is wide
+     * @param separator  the character separating columns from each other
      */
-    static std::shared_ptr<SolverDebug> create_scalar_csv(std::ostream& output,
-                                                          int precision = 6,
-                                                          char separator = ',');
+    static std::shared_ptr<SolverDebug> create_scalar_csv_writer(
+        std::ostream& output, int precision = 6, char separator = ',');
 
 
     /**
      * Creates a logger storing all vectors and scalar values in the solver
      * after each iteration on disk.
+     * This logger can handle multiple right-hand sides, in contrast to
+     * create_scalar_table_writer or create_scalar_csv_writer.
      *
      * @param output  the path and file name prefix used to generate the output
      *                file names.

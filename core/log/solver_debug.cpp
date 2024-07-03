@@ -2,23 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/solver_debug.hpp>
-
-
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/log/solver_debug.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 
@@ -26,6 +22,15 @@
 namespace gko {
 namespace log {
 namespace {
+
+
+bool is_dense(const LinOp* value)
+{
+    using conv_to_double = ConvertibleTo<matrix::Dense<double>>;
+    using conv_to_complex = ConvertibleTo<matrix::Dense<std::complex<double>>>;
+    return dynamic_cast<const conv_to_double*>(value) ||
+           dynamic_cast<const conv_to_complex*>(value);
+}
 
 
 template <typename Functor>
@@ -154,8 +159,19 @@ private:
         } else if (value->get_size()[0] != 1) {
             stream << "<vector>";
         } else {
-            if (!dispatch_type(
-                    value, [&](auto vector) { stream << vector->at(0, 0); })) {
+            if (is_dense(value)) {
+                auto host_exec = value->get_executor()->get_master();
+                run<ConvertibleTo<matrix::Dense<double>>,
+                    ConvertibleTo<matrix::Dense<std::complex<double>>>>(
+                    value, [&](auto vector) {
+                        using vector_type = typename detail::pointee<
+                            decltype(vector)>::result_type;
+                        auto host_vec = vector_type::create(host_exec);
+                        host_vec->copy_from(value);
+                        stream << host_vec->at(0, 0);
+                    });
+
+            } else {
                 stream << "<unknown>";
             }
         }
@@ -293,7 +309,7 @@ private:
 }  // namespace
 
 
-std::shared_ptr<SolverDebug> SolverDebug::create_scalar_table(
+std::shared_ptr<SolverDebug> SolverDebug::create_scalar_table_writer(
     std::ostream& output, int precision, int column_width)
 {
     return std::shared_ptr<SolverDebug>{
@@ -301,7 +317,7 @@ std::shared_ptr<SolverDebug> SolverDebug::create_scalar_table(
 }
 
 
-std::shared_ptr<SolverDebug> SolverDebug::create_scalar_csv(
+std::shared_ptr<SolverDebug> SolverDebug::create_scalar_csv_writer(
     std::ostream& output, int precision, char separator)
 {
     return std::shared_ptr<SolverDebug>{
