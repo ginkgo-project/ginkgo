@@ -468,7 +468,7 @@ struct TupleTypenameNameGenerator {
 };
 
 
-namespace detail {
+namespace temporary_test {
 
 
 // singly linked list of all our supported precisions
@@ -497,10 +497,10 @@ struct next_precision_impl<std::complex<T>> {
 };
 
 
-}  // namespace detail
+}  // namespace temporary_test
 
 template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+using next_precision = typename temporary_test::next_precision_impl<T>::type;
 
 
 #define SKIP_IF_HALF(type)                                                   \
