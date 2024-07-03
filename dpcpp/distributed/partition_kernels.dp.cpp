@@ -10,6 +10,7 @@
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "dpcpp/base/onedpl.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
 
 
 namespace gko {
@@ -128,6 +129,35 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
+
+
+void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,
+                          const int* range_parts, size_type num_ranges,
+                          int num_parts, array<size_type>& range_ids,
+                          array<int64>& sizes)
+{
+    auto policy = onedpl_policy(exec);
+
+    range_ids.resize_and_reset(num_ranges);
+    auto range_ids_ptr = range_ids.get_data();
+    // fill range_ids with 0,...,num_ranges - 1
+    run_kernel(
+        exec, [] GKO_KERNEL(auto i, auto rid) { rid[i] = i; }, num_ranges,
+        range_ids_ptr);
+
+    oneapi::dpl::stable_sort(policy, range_ids_ptr, range_ids_ptr + num_ranges,
+                             [range_parts](const auto rid_a, const auto rid_b) {
+                                 return range_parts[rid_a] < range_parts[rid_b];
+                             });
+
+    sizes.resize_and_reset(num_parts);
+    auto sizes_ptr = sizes.get_data();
+    oneapi::dpl::fill_n(policy, sizes_ptr, num_parts, 0);
+    oneapi::dpl::for_each_n(policy, range_parts, num_ranges,
+                            [sizes_ptr](const size_type pid) {
+                                atomic_add(sizes_ptr + pid, int64(1));
+                            });
+}
 
 
 }  // namespace partition
