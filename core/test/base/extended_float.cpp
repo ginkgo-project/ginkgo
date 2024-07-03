@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/math.hpp>
 
 namespace {

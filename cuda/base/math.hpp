@@ -11,9 +11,6 @@
 #include <ginkgo/core/base/math.hpp>
 
 
-#include <thrust/complex.h>
-
-
 namespace gko {
 
 
