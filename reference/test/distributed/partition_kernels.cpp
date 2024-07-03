@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +30,22 @@ void assert_equal_data(const T* data, std::initializer_list<U> reference_data)
     for (auto i = 0; i < ref.size(); ++i) {
         EXPECT_EQ(data[i], ref[i]);
     }
+}
+
+
+template <typename T, typename U>
+void assert_equal_segmented_array(const gko::segmented_array<T>& data,
+                                  std::initializer_list<U> buffer,
+                                  std::initializer_list<gko::int64> offsets)
+{
+    gko::array<T> buffer_arr(data.get_executor(), buffer);
+    gko::array<gko::int64> offsets_arr(data.get_executor(), offsets);
+    auto view = gko::make_const_array_view(data.get_executor(), data.get_size(),
+                                           data.get_const_flat_data())
+                    .copy_to_array();
+
+    GKO_ASSERT_ARRAY_EQ(view, buffer_arr);
+    GKO_ASSERT_ARRAY_EQ(data.get_offsets(), offsets_arr);
 }
 
 
@@ -75,6 +91,8 @@ TYPED_TEST(Partition, BuildsFromMapping)
     assert_equal_data(partition->get_range_starting_indices(),
                       {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
     assert_equal_data(partition->get_part_sizes(), {5, 6, 5});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {1, 4, 6, 9, 2, 5, 7, 0, 3, 8}, {0, 4, 7, 10});
 }
 
 
@@ -100,6 +118,9 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
     assert_equal_data(partition->get_range_starting_indices(),
                       {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
     assert_equal_data(partition->get_part_sizes(), {5, 6, 0, 5, 0});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {1, 4, 6, 9, 2, 5, 7, 0, 3, 8},
+                                 {0, 4, 7, 7, 10, 10});
 }
 
 
@@ -119,6 +140,8 @@ TYPED_TEST(Partition, BuildsFromRanges)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {5, 0, 2, 2, 1});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {0, 1, 2, 3, 4}, {0, 1, 2, 3, 4, 5});
 }
 
 
@@ -135,6 +158,8 @@ TYPED_TEST(Partition, BuildsFromRangeWithSingleElement)
     EXPECT_EQ(partition->get_num_parts(), 0);
     EXPECT_EQ(partition->get_num_empty_parts(), 0);
     assert_equal_data(partition->get_range_bounds(), {0});
+    assert_equal_segmented_array(partition->get_ranges_by_part(), I<int>{},
+                                 {0});
 }
 
 
@@ -156,6 +181,8 @@ TYPED_TEST(Partition, BuildsFromRangesWithPartIds)
     assert_equal_data(partition->get_part_ids(), {0, 4, 3, 1, 2});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {5, 2, 1, 2, 0});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {0, 3, 4, 2, 1}, {0, 1, 2, 3, 4, 5});
 }
 
 
@@ -174,6 +201,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {3, 3, 3, 2, 2});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {0, 1, 2, 3, 4}, {0, 1, 2, 3, 4, 5});
 }
 
 
@@ -191,6 +220,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {0, 0, 0, 0, 0});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {0, 1, 2, 3, 4}, {0, 1, 2, 3, 4, 5});
 }
 
 
@@ -208,6 +239,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {1, 1, 1, 0, 0});
+    assert_equal_segmented_array(partition->get_ranges_by_part(),
+                                 {0, 1, 2, 3, 4}, {0, 1, 2, 3, 4, 5});
 }
 
 
@@ -225,6 +258,8 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithZeroParts)
     ASSERT_EQ(partition->get_part_ids(), nullptr);
     ASSERT_EQ(partition->get_range_starting_indices(), nullptr);
     ASSERT_EQ(partition->get_part_sizes(), nullptr);
+    assert_equal_segmented_array(partition->get_ranges_by_part(), I<int>{},
+                                 {0});
 }
 
 
