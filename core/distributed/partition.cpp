@@ -21,6 +21,7 @@ GKO_REGISTER_OPERATION(build_ranges_from_global_size,
                        partition::build_ranges_from_global_size);
 GKO_REGISTER_OPERATION(build_starting_indices,
                        partition::build_starting_indices);
+GKO_REGISTER_OPERATION(build_ranges_by_part, partition::build_ranges_by_part);
 GKO_REGISTER_OPERATION(has_ordered_parts, partition::has_ordered_parts);
 
 
@@ -38,7 +39,8 @@ Partition<LocalIndexType, GlobalIndexType>::Partition(
       offsets_{exec, num_ranges + 1},
       starting_indices_{exec, num_ranges},
       part_sizes_{exec, static_cast<size_type>(num_parts)},
-      part_ids_{exec, num_ranges}
+      part_ids_{exec, num_ranges},
+      ranges_by_part_{exec}
 {
     offsets_.fill(0);
     starting_indices_.fill(0);
@@ -126,6 +128,13 @@ void Partition<LocalIndexType, GlobalIndexType>::finalize_construction()
         get_num_parts(), num_empty_parts_, starting_indices_.get_data(),
         part_sizes_.get_data()));
     size_ = get_element(offsets_, get_num_ranges());
+    array<size_type> range_ids(exec);
+    array<int64> num_ranges_per_part(exec);
+    exec->run(partition::make_build_ranges_by_part(
+        part_ids_.get_const_data(), get_num_ranges(), get_num_parts(),
+        range_ids, num_ranges_per_part));
+    ranges_by_part_ = segmented_array<size_type>::create_from_sizes(
+        std::move(range_ids), num_ranges_per_part);
 }
 
 template <typename LocalIndexType, typename GlobalIndexType>
