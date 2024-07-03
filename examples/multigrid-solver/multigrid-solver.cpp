@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
-    using MixedType = float;
+    using MixedType = gko::half;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
@@ -118,11 +118,15 @@ int main(int argc, char* argv[])
     if (lower_ic) {
         inner_gen = gko::share(
             mixed_ic::build()
-                .with_factorization(
-                    gko::factorization::Ic<MixedType, int>::build().on(exec))
                 // .with_factorization(
-                //     gko::factorization::Ic<ValueType, int>::build().on(exec))
-                // .with_l_solver_factory(gko::solver::LowerTrs<MixedType>::build().on(exec))
+                //     gko::factorization::Ic<MixedType, int>::build().on(exec))
+                .with_factorization(
+                    gko::factorization::Ic<ValueType, int>::build().on(exec))
+                .with_l_solver_factory(
+                    gko::solver::LowerTrs<MixedType>::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
                 .on(exec));
     } else {
         inner_gen = gko::share(

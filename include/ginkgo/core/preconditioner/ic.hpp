@@ -406,6 +406,10 @@ protected:
                        const Composition<next_precision<value_type>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next precision" << std::endl;
+        } else if (auto comp2 = std::dynamic_pointer_cast<const Composition<
+                       next_precision<next_precision<value_type>>>>(fact)) {
+            l_factor = comp2->get_operators()[0];
+            std::cout << "generation on next next precision" << std::endl;
         } else {
             GKO_NOT_SUPPORTED(fact);
         }
@@ -431,9 +435,11 @@ protected:
             lh_solver_ = as<lh_solver_type>(
                 as<Transposable>(l_solver_)->conj_transpose());
         } else {
+            std::cout << "generate lower solver" << std::endl;
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
-            lh_solver_ = as<lh_solver_type>(
-                as<Transposable>(l_solver_)->conj_transpose());
+            std::cout << "generate upper by transpose" << std::endl;
+            lh_solver_ = as<lh_solver_type>(as<Transposable>(l_solver_)->conj_transpose());
+            std::cout << "finish" << std::endl;
         }
     }
 
