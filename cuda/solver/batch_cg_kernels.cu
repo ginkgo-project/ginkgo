@@ -100,13 +100,14 @@ template <typename T>
 using settings = gko::kernels::batch_cg::settings<T>;
 
 
-template <typename CuValueType>
+template <typename ValueType>
 class kernel_caller {
 public:
-    using value_type = CuValueType;
+    using cu_value_type = cuda_type<ValueType>;
+    ;
 
     kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
-                  const settings<remove_complex<value_type>> settings)
+                  const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
     {}
 
@@ -116,36 +117,36 @@ public:
     void launch_apply_kernel(
         const gko::kernels::batch_cg::storage_config& sconf, LogType& logger,
         PrecType& prec, const BatchMatrixType& mat,
-        const value_type* const __restrict__ b_values,
-        value_type* const __restrict__ x_values,
-        value_type* const __restrict__ workspace_data, const int& block_size,
+        const cu_value_type* const __restrict__ b_values,
+        cu_value_type* const __restrict__ x_values,
+        cu_value_type* const __restrict__ workspace_data, const int& block_size,
         const size_t& shared_size) const
     {
         apply_kernel<StopType, n_shared, prec_shared_bool>
             <<<mat.num_batch_items, block_size, shared_size,
                exec_->get_stream()>>>(sconf, settings_.max_iterations,
-                                      settings_.residual_tol, logger, prec, mat,
-                                      b_values, x_values, workspace_data);
+                                      as_cuda_type(settings_.residual_tol),
+                                      logger, prec, mat, b_values, x_values,
+                                      workspace_data);
     }
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
     void call_kernel(
         LogType logger, const BatchMatrixType& mat, PrecType prec,
-        const gko::batch::multi_vector::uniform_batch<const value_type>& b,
-        const gko::batch::multi_vector::uniform_batch<value_type>& x) const
+        const gko::batch::multi_vector::uniform_batch<const cu_value_type>& b,
+        const gko::batch::multi_vector::uniform_batch<cu_value_type>& x) const
     {
-        using real_type = gko::remove_complex<value_type>;
+        using real_type = gko::remove_complex<cu_value_type>;
         const size_type num_batch_items = mat.num_batch_items;
         constexpr int align_multiple = 8;
         const int padded_num_rows =
             ceildiv(mat.num_rows, align_multiple) * align_multiple;
-        const int shmem_per_blk =
-            get_max_dynamic_shared_memory<StopType, PrecType, LogType,
-                                          BatchMatrixType, value_type>(exec_);
+        const int shmem_per_blk = get_max_dynamic_shared_memory<
+            StopType, PrecType, LogType, BatchMatrixType, cu_value_type>(exec_);
         const int block_size =
             get_num_threads_per_block<StopType, PrecType, LogType,
-                                      BatchMatrixType, value_type>(
+                                      BatchMatrixType, cu_value_type>(
                 exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
 
@@ -153,18 +154,18 @@ public:
             padded_num_rows, mat.get_single_item_num_nnz());
         const auto sconf =
             gko::kernels::batch_cg::compute_shared_storage<PrecType,
-                                                           value_type>(
+                                                           cu_value_type>(
                 shmem_per_blk, padded_num_rows, mat.get_single_item_num_nnz(),
                 b.num_rhs);
         const size_t shared_size =
-            sconf.n_shared * padded_num_rows * sizeof(value_type) +
+            sconf.n_shared * padded_num_rows * sizeof(cu_value_type) +
             (sconf.prec_shared ? prec_size : 0);
-        auto workspace = gko::array<value_type>(
+        auto workspace = gko::array<cu_value_type>(
             exec_,
-            sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+            sconf.gmem_stride_bytes * num_batch_items / sizeof(cu_value_type));
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(cu_value_type) == 0);
 
-        value_type* const workspace_data = workspace.get_data();
+        cu_value_type* const workspace_data = workspace.get_data();
 
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared>
@@ -212,7 +213,7 @@ public:
 
 private:
     std::shared_ptr<const DefaultExecutor> exec_;
-    const settings<remove_complex<value_type>> settings_;
+    const settings<remove_complex<ValueType>> settings_;
 };
 
 
@@ -225,9 +226,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::MultiVector<ValueType>* const x,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
-    using cu_value_type = cuda_type<ValueType>;
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        kernel_caller<cu_value_type>(exec, settings), settings, mat, precon);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precon);
     dispatcher.apply(b, x, logdata);
 }
 

@@ -161,7 +161,9 @@ using ComplexValueIndexTypes =
     ::testing::Types<OPTIONAL(std::tuple < std::complex<gko::half>) gko::int32>,
       std::tuple<std::complex<float>, gko::int32>,
       OPTIONAL(std::tuple<std::complex<gko::half>, gko::int64>)
-              std::tuple<std::complex<float>, gko::int64>> ;
+              std::tuple < std::complex<float>,
+      gko::int64 >>
+    ;
 #else
     ::testing::Types<OPTIONAL(std::tuple<std::complex<gko::half>, gko::int32>)
                          std::tuple<std::complex<float>, gko::int32>,
@@ -317,7 +319,7 @@ struct TupleTypenameNameGenerator {
 };
 
 
-namespace detail {
+namespace temporary_test {
 
 
 // singly linked list of all our supported precisions
@@ -346,10 +348,10 @@ struct next_precision_impl<std::complex<T>> {
 };
 
 
-}  // namespace detail
+}  // namespace temporary_test
 
 template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+using next_precision = typename temporary_test::next_precision_impl<T>::type;
 
 
 #define SKIP_IF_HALF(type)                                                   \
