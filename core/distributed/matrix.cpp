@@ -8,6 +8,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/distributed/matrix_kernels.hpp"
 
@@ -501,6 +502,55 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                                   one_scalar_.get(), local_x);
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
+    ptr_param<const global_vector_type> scaling_factors)
+{
+    GKO_ASSERT_CONFORMANT(this, scaling_factors.get());
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    size_type n_local_cols = local_mtx_->get_size()[1];
+    size_type n_non_local_cols = non_local_mtx_->get_size()[1];
+    const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
+        exec, n_local_cols,
+        make_const_array_view(exec, n_local_cols,
+                              scaling_factors->get_const_local_values()));
+
+    auto req = this->communicate(scaling_factors->get_local_vector());
+    scale_diag->rapply(local_mtx_, local_mtx_);
+    req.wait();
+    if (n_non_local_cols > 0) {
+        auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+        if (use_host_buffer) {
+            recv_buffer_->copy_from(host_recv_buffer_.get());
+        }
+        const auto non_local_scale_diag =
+            gko::matrix::Diagonal<ValueType>::create_const(
+                exec, n_non_local_cols,
+                make_const_array_view(exec, n_non_local_cols,
+                                      recv_buffer_->get_const_values()));
+        non_local_scale_diag->rapply(non_local_mtx_, non_local_mtx_);
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
+    ptr_param<const global_vector_type> scaling_factors)
+{
+    GKO_ASSERT_EQUAL_ROWS(this, scaling_factors.get());
+    auto exec = this->get_executor();
+    size_type n_local_rows = local_mtx_->get_size()[0];
+    const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
+        exec, n_local_rows,
+        make_const_array_view(exec, n_local_rows,
+                              scaling_factors->get_const_local_values()));
+
+    scale_diag->apply(local_mtx_, local_mtx_);
+    scale_diag->apply(non_local_mtx_, non_local_mtx_);
 }
 
 

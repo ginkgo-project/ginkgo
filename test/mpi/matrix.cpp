@@ -516,6 +516,99 @@ TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
 }
 
 
+TYPED_TEST(Matrix, CanColScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> res_col_scale_local[] = {
+        {{8, 0}, {0, 0}}, {{0, 10}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_col_scale_non_local[] = {
+        {{2, 0}, {6, 12}}, {{0, 0, 18}, {32, 35, 0}}, {{50, 9}}};
+    auto rank = this->comm.rank();
+    auto col_scaling_factors = dist_vec_type::create(this->exec, this->comm);
+    col_scaling_factors->read_distributed(vec_md, this->col_part);
+
+    this->dist_mat->col_scale(col_scaling_factors);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_col_scale_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_col_scale_non_local[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, CanRowScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> res_row_scale_local[] = {
+        {{2, 0}, {0, 0}}, {{0, 15}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_row_scale_non_local[] = {
+        {{1, 0}, {6, 8}}, {{0, 0, 18}, {32, 28, 0}}, {{50, 45}}};
+    auto rank = this->comm.rank();
+    auto row_scaling_factors = dist_vec_type::create(this->exec, this->comm);
+    row_scaling_factors->read_distributed(vec_md, this->row_part);
+
+    this->dist_mat->row_scale(row_scaling_factors);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_row_scale_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_row_scale_non_local[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, ColScaleThrowsOnWrongDimension)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using part_type = typename TestFixture::part_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}}};
+    auto rank = this->comm.rank();
+    auto col_part = part_type::build_from_mapping(
+        this->exec,
+        gko::array<gko::experimental::distributed::comm_index_type>(
+            this->exec,
+            I<gko::experimental::distributed::comm_index_type>{1, 2, 0, 0}),
+        3);
+    auto col_scaling_factors = dist_vec_type::create(this->exec, this->comm);
+    col_scaling_factors->read_distributed(vec_md, col_part);
+
+    ASSERT_THROW(this->dist_mat->col_scale(col_scaling_factors),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Matrix, RowScaleThrowsOnWrongDimension)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using part_type = typename TestFixture::part_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}}};
+    auto rank = this->comm.rank();
+    auto row_part = part_type::build_from_contiguous(
+        this->exec,
+        gko::array<index_type>(this->exec, I<index_type>{0, 2, 3, 4}));
+    auto row_scaling_factors = dist_vec_type::create(this->exec, this->comm);
+    row_scaling_factors->read_distributed(vec_md, row_part);
+
+    ASSERT_THROW(this->dist_mat->row_scale(row_scaling_factors),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Matrix, CanConvertToNextPrecision)
 {
     using T = typename TestFixture::value_type;

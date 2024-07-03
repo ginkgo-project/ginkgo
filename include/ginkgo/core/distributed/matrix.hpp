@@ -575,6 +575,24 @@ public:
         std::vector<comm_index_type> recv_offsets,
         array<local_index_type> recv_gather_idxs);
 
+    /**
+     * Scales the columns of the matrix by the respective entries of the vector.
+     * The vector's row partition has to be the same as the matrix's column
+     * partition. The scaling is done in-place.
+     *
+     * @param scaling_factors  The vector containing the scaling factors.
+     */
+    void col_scale(ptr_param<const global_vector_type> scaling_factors);
+
+    /**
+     * Scales the rows of the matrix by the respective entries of the vector.
+     * The vector and the matrix have to have the same row partition.
+     * The scaling is done in-place.
+     *
+     * @param scaling_factors  The vector containing the scaling factors.
+     */
+    void row_scale(ptr_param<const global_vector_type> scaling_factors);
+
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm);
