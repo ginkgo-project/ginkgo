@@ -136,22 +136,20 @@ private:
             stream << "<empty>";
         } else if (value->get_size()[0] != 1) {
             stream << "<vector>";
-        } else {
-            if (is_dense(value)) {
-                auto host_exec = value->get_executor()->get_master();
-                run<ConvertibleTo<matrix::Dense<double>>,
-                    ConvertibleTo<matrix::Dense<std::complex<double>>>>(
-                    value, [&](auto vector) {
-                        using vector_type = typename detail::pointee<
-                            decltype(vector)>::result_type;
-                        auto host_vec = vector_type::create(host_exec);
-                        vector->convert_to(host_vec);
-                        stream << host_vec->at(0, 0);
-                    });
+        } else if (is_dense(value)) {
+            auto host_exec = value->get_executor()->get_master();
+            run<ConvertibleTo<matrix::Dense<double>>,
+                ConvertibleTo<matrix::Dense<std::complex<double>>>>(
+                value, [&](auto vector) {
+                    using vector_type =
+                        typename detail::pointee<decltype(vector)>::result_type;
+                    auto host_vec = vector_type::create(host_exec);
+                    vector->convert_to(host_vec);
+                    stream << host_vec->at(0, 0);
+                });
 
-            } else {
-                stream << "<unknown>";
-            }
+        } else {
+            stream << "<unknown>";
         }
     }
 
