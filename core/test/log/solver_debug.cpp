@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <regex>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
@@ -78,7 +80,6 @@ TYPED_TEST(SolverDebug, TableWorks)
            << this->out.get() << ") of dimensions " << this->solver->get_size()
            << " and " << this->in->get_size()[1] << " rhs\n";
     ref_ss << std::setw(default_column_width) << "Iteration"
-           << std::setw(default_column_width) << "alpha"
            << std::setw(default_column_width) << "beta"
            << std::setw(default_column_width) << "prev_rho"
            << std::setw(default_column_width) << "rho"
@@ -86,12 +87,10 @@ TYPED_TEST(SolverDebug, TableWorks)
            << '\n';
     ref_ss << std::setw(default_column_width) << 0
            << std::setw(default_column_width) << T{0.0}
-           << std::setw(default_column_width) << T{0.0}
            << std::setw(default_column_width) << T{1.0}
            << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{4.0} << '\n'
            << std::setw(default_column_width) << 1
-           << std::setw(default_column_width) << T{0.0}
            << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{0.0}
            << std::setw(default_column_width) << T{4.0}
@@ -102,7 +101,12 @@ TYPED_TEST(SolverDebug, TableWorks)
 
     this->solver->apply(this->in, this->out);
 
-    ASSERT_EQ(ss.str(), ref_ss.str());
+    // the first value of beta is uninitialized, so we need to remove it
+    std::regex first_beta("\n           0 *[()0-9.e,+-]*");
+    auto clean_str = std::regex_replace(ss.str(), first_beta, "\n           0");
+    auto clean_ref =
+        std::regex_replace(ref_ss.str(), first_beta, "\n           0");
+    ASSERT_EQ(clean_str, clean_ref);
 }
 
 
@@ -114,19 +118,22 @@ TYPED_TEST(SolverDebug, CsvWorks)
     ref_ss << dynamic_type << "::apply(" << this->in.get() << ','
            << this->out.get() << ") of dimensions " << this->solver->get_size()
            << " and " << this->in->get_size()[1] << " rhs\n";
-    ref_ss << "Iteration,alpha,beta,prev_rho,rho,implicit_sq_residual_norm"
-           << '\n';
-    ref_ss << 0 << ',' << T{0.0} << ',' << T{0.0} << ',' << T{1.0} << ','
-           << T{4.0} << ',' << T{4.0} << '\n'
-           << 1 << ',' << T{0.0} << ',' << T{4.0} << ',' << T{0.0} << ','
-           << T{4.0} << ',' << T{0.0} << '\n';
+    ref_ss << "Iteration;beta;prev_rho;rho;implicit_sq_residual_norm" << '\n';
+    ref_ss << 0 << ';' << T{0.0} << ';' << T{1.0} << ';' << T{4.0} << ';'
+           << T{4.0} << '\n'
+           << 1 << ';' << T{4.0} << ';' << T{0.0} << ';' << T{4.0} << ';'
+           << T{0.0} << '\n';
     std::stringstream ss;
     this->solver->add_logger(
-        gko::log::SolverDebug::create_scalar_csv_writer(ss));
+        gko::log::SolverDebug::create_scalar_csv_writer(ss, 6, ';'));
 
     this->solver->apply(this->in, this->out);
 
-    ASSERT_EQ(ss.str(), ref_ss.str());
+    // the first value of beta is uninitialized, so we need to remove it
+    std::regex first_beta("\n0;[^;]*");
+    auto clean_str = std::regex_replace(ss.str(), first_beta, "\n0;");
+    auto clean_ref = std::regex_replace(ref_ss.str(), first_beta, "\n0;");
+    ASSERT_EQ(clean_str, clean_ref);
 }
 
 
@@ -137,7 +144,6 @@ TYPED_TEST(SolverDebug, StorageWorks)
     auto orig_out = this->out->clone();
     auto init_residual = gko::initialize<Dense>({T{-2.0}}, this->ref);
     std::vector<std::pair<std::string, Dense*>> files{
-        {"solver_debug_test_0_alpha", this->zero.get()},
         {"solver_debug_test_0_beta", nullptr},
         {"solver_debug_test_0_implicit_sq_residual_norm", orig_out.get()},
         {"solver_debug_test_0_minus_one", nullptr},
@@ -150,8 +156,7 @@ TYPED_TEST(SolverDebug, StorageWorks)
         {"solver_debug_test_0_rho", nullptr},
         {"solver_debug_test_0_solution", orig_out.get()},
         {"solver_debug_test_0_z", nullptr},
-        {"solver_debug_test_1_alpha", nullptr},
-        {"solver_debug_test_1_beta", nullptr},
+        {"solver_debug_test_1_beta", orig_out.get()},
         {"solver_debug_test_1_implicit_sq_residual_norm", this->zero.get()},
         {"solver_debug_test_1_minus_one", nullptr},
         {"solver_debug_test_1_one", nullptr},
