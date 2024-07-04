@@ -33,28 +33,6 @@ bool is_dense(const LinOp* value)
 }
 
 
-template <typename Functor>
-static bool dispatch_type(const LinOp* value, Functor fn)
-{
-    const auto host_exec = value->get_executor()->get_master();
-    using conv_to_double = ConvertibleTo<matrix::Dense<double>>;
-    using conv_to_complex = ConvertibleTo<matrix::Dense<std::complex<double>>>;
-    if (dynamic_cast<const conv_to_double*>(value)) {
-        auto host_vec = matrix::Dense<double>::create(host_exec);
-        host_vec->copy_from(value);
-        fn(host_vec.get());
-        return true;
-    } else if (dynamic_cast<const conv_to_complex*>(value)) {
-        auto host_vec = matrix::Dense<std::complex<double>>::create(host_exec);
-        host_vec->copy_from(value);
-        fn(host_vec.get());
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
 class SolverDebugPrint : public SolverDebug {
     friend class SolverDebug;
 
@@ -167,7 +145,7 @@ private:
                         using vector_type = typename detail::pointee<
                             decltype(vector)>::result_type;
                         auto host_vec = vector_type::create(host_exec);
-                        host_vec->copy_from(value);
+                        vector->convert_to(host_vec);
                         stream << host_vec->at(0, 0);
                     });
 
