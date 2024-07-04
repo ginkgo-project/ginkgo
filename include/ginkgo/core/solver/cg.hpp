@@ -141,18 +141,16 @@ struct workspace_traits<Cg<ValueType>> {
     constexpr static int p = 2;
     // q vector
     constexpr static int q = 3;
-    // alpha scalar
-    constexpr static int alpha = 4;
     // beta scalar
-    constexpr static int beta = 5;
+    constexpr static int beta = 4;
     // previous rho scalar
-    constexpr static int prev_rho = 6;
+    constexpr static int prev_rho = 5;
     // current rho scalar
-    constexpr static int rho = 7;
+    constexpr static int rho = 6;
     // constant 1.0 scalar
-    constexpr static int one = 8;
+    constexpr static int one = 7;
     // constant -1.0 scalar
-    constexpr static int minus_one = 9;
+    constexpr static int minus_one = 8;
 
     // stopping status array
     constexpr static int stop = 0;

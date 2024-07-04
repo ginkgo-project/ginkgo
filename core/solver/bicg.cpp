@@ -124,7 +124,6 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     GKO_SOLVER_VECTOR(p2, dense_b);
     GKO_SOLVER_VECTOR(q2, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha, dense_b);
     GKO_SOLVER_SCALAR(beta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
     GKO_SOLVER_SCALAR(rho, dense_b);
@@ -255,7 +254,7 @@ int workspace_traits<Bicg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Bicg<ValueType>>::num_vectors(const Solver&)
 {
-    return 14;
+    return 13;
 }
 
 
@@ -264,8 +263,8 @@ std::vector<std::string> workspace_traits<Bicg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r",  "z",     "p",    "q",        "r2",  "z2",  "p2",
-        "q2", "alpha", "beta", "prev_rho", "rho", "one", "minus_one",
+        "r",  "z",    "p",        "q",   "r2",  "z2",        "p2",
+        "q2", "beta", "prev_rho", "rho", "one", "minus_one",
     };
 }
 
@@ -281,7 +280,7 @@ std::vector<std::string> workspace_traits<Bicg<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Bicg<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, beta, prev_rho, rho};
+    return {beta, prev_rho, rho};
 }
 
 

@@ -155,18 +155,16 @@ struct workspace_traits<Bicg<ValueType>> {
     constexpr static int p2 = 6;
     // "transposed" q vector
     constexpr static int q2 = 7;
-    // alpha scalar
-    constexpr static int alpha = 8;
     // beta scalar
-    constexpr static int beta = 9;
+    constexpr static int beta = 8;
     // previous rho scalar
-    constexpr static int prev_rho = 10;
+    constexpr static int prev_rho = 9;
     // current rho scalar
-    constexpr static int rho = 11;
+    constexpr static int rho = 10;
     // constant 1.0 scalar
-    constexpr static int one = 12;
+    constexpr static int one = 11;
     // constant -1.0 scalar
-    constexpr static int minus_one = 13;
+    constexpr static int minus_one = 12;
 
     // stopping status array
     constexpr static int stop = 0;
