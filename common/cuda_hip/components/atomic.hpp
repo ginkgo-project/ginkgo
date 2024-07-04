@@ -15,8 +15,6 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
-
-
 namespace detail {
 
 
