@@ -99,6 +99,7 @@ std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::transpose() const
 {
     return transposed_type::build()
         .with_num_rhs(this->parameters_.num_rhs)
+        .with_algorithm(this->parameters_.algorithm)
         .on(this->get_executor())
         ->generate(share(this->get_system_matrix()->transpose()));
 }
@@ -109,6 +110,7 @@ std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
 {
     return transposed_type::build()
         .with_num_rhs(this->parameters_.num_rhs)
+        .with_algorithm(this->parameters_.algorithm)
         .on(this->get_executor())
         ->generate(share(this->get_system_matrix()->conj_transpose()));
 }
