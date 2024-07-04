@@ -125,8 +125,9 @@ public:
             exec_->get_device_id()));
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
+        bool is_block_size_aligned = block_size % config::warp_size == 0;
         GKO_ASSERT(block_size >= 2 * config::warp_size);
-        GKO_ASSERT(block_size % config::warp_size == 0);
+        GKO_ASSERT(is_block_size_aligned);
 
         // Returns amount required in bytes
         const size_t prec_size = PrecType::dynamic_work_size(
@@ -142,7 +143,9 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        bool is_stride_aligned =
+            sconf.gmem_stride_bytes % sizeof(value_type) == 0;
+        GKO_ASSERT(is_stride_aligned);
 
         value_type* const workspace_data = workspace.get_data();
 
