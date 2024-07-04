@@ -26,7 +26,8 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
-#include "test/utils/executor.hpp"
+#include "core/utils/matrix_utils.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class UniformCoarsening : public CommonTestFixture {
@@ -102,7 +103,7 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
         gko::size_type coarse_skip = 2;
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, coarse_skip, &c_rows);
-        gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
+        gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
             fill_incremental_indices(exec, coarse_skip, &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
@@ -112,7 +113,7 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
         d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, coarse_skip, &c_rows);
-        gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
+        gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
             fill_incremental_indices(exec, coarse_skip, &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
@@ -122,7 +123,7 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
         d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, coarse_skip, &c_rows);
-        gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
+        gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
             fill_incremental_indices(exec, coarse_skip, &d_c_rows);
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
@@ -134,16 +135,16 @@ TEST_F(UniformCoarsening, FillRestrictOpIsEquivalentToRef)
     initialize_data();
     gko::kernels::reference::components::fill_array(
         ref, restrict_op->get_values(), c_dim, gko::one<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_array(
         exec, d_restrict_op->get_values(), c_dim, gko::one<value_type>());
     gko::kernels::reference::components::fill_seq_array(
         ref, restrict_op->get_row_ptrs(), c_dim + 1);
-    gko::kernels::EXEC_NAMESPACE::components::fill_seq_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_seq_array(
         exec, d_restrict_op->get_row_ptrs(), c_dim + 1);
 
     gko::kernels::reference::uniform_coarsening::fill_restrict_op(
         ref, &coarse_rows, restrict_op.get());
-    gko::kernels::EXEC_NAMESPACE::uniform_coarsening::fill_restrict_op(
+    gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::fill_restrict_op(
         exec, &d_coarse_rows, d_restrict_op.get());
 
     GKO_ASSERT_MTX_NEAR(restrict_op, d_restrict_op, r<value_type>::value);
