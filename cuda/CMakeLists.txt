@@ -74,7 +74,7 @@ foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_CUDA_JACOBI_BLOCK_SIZES)
 endforeach()
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
 string(REPLACE ";" "," GKO_CUDA_JACOBI_BLOCK_SIZES_CODE "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
-configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
+configure_file(preconditioner/jacobi_common.hpp.in common/cuda_hip/preconditioner/jacobi_common.hpp)
 
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
