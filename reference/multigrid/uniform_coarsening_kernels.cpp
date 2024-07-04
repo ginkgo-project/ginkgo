@@ -4,10 +4,8 @@
 
 #include "core/multigrid/uniform_coarsening_kernels.hpp"
 
-
 #include <memory>
 #include <tuple>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -15,7 +13,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
