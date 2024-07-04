@@ -75,14 +75,22 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
-                x(row, col) *= alpha[col];
+                if (is_zero(zero(alpha[col]))) {
+                    x(row, col) = zero(alpha[col]);
+                } else {
+                    x(row, col) *= alpha[col];
+                }
             },
             x->get_size(), alpha->get_const_values(), x);
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
-                x(row, col) *= alpha[0];
+                if (is_zero(alpha[0])) {
+                    x(row, col) = zero(alpha[0]);
+                } else {
+                    x(row, col) *= alpha[0];
+                }
             },
             x->get_size(), alpha->get_const_values(), x);
     }
@@ -128,7 +136,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                y(row, col) += alpha[0] * x(row, col);
+                if (is_nonzero(alpha[0])) {
+                    y(row, col) += alpha[0] * x(row, col);
+                }
             },
             x->get_size(), alpha->get_const_values(), x, y);
     }
@@ -151,7 +161,9 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                y(row, col) -= alpha[0] * x(row, col);
+                if (is_nonzero(alpha[0])) {
+                    y(row, col) -= alpha[0] * x(row, col);
+                }
             },
             x->get_size(), alpha->get_const_values(), x, y);
     }
@@ -168,7 +180,9 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            y(i, i) += alpha[0] * diag[i];
+            if (is_nonzero(alpha[0])) {
+                y(i, i) += alpha[0] * diag[i];
+            }
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
 }
@@ -184,7 +198,9 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            y(i, i) -= alpha[0] * diag[i];
+            if (is_nonzero(alpha[0])) {
+                y(i, i) -= alpha[0] * diag[i];
+            }
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
 }

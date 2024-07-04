@@ -484,8 +484,10 @@ void abstract_merge_path_spmv(
     merge_path_spmv<items_per_thread>(
         num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
         [&alpha_val](const type& x) { return alpha_val * x; },
-        [&beta_val](const type& x) { return beta_val * x; }, item_ct1,
-        shared_row_ptrs);
+        [&beta_val](const type& x) {
+            return is_zero(beta_val) ? zero(beta_val) : beta_val * x;
+        },
+        item_ct1, shared_row_ptrs);
 }
 
 template <int items_per_thread, typename matrix_accessor,
@@ -699,7 +701,8 @@ void abstract_classical_spmv(
     device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
+            return is_zero(beta_val) ? alpha_val * x
+                                     : alpha_val * x + beta_val * y;
         },
         item_ct1);
 }
