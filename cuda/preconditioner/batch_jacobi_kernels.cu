@@ -21,7 +21,8 @@
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/matrix/batch_struct.hpp"
-#include "preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

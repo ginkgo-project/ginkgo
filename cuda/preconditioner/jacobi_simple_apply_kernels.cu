@@ -7,7 +7,8 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

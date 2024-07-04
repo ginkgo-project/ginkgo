@@ -84,7 +84,7 @@ foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
         ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
 endforeach()
 string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
-configure_file(preconditioner/jacobi_common.hip.hpp.in preconditioner/jacobi_common.hpp)
+configure_file(preconditioner/jacobi_common.hip.hpp.in common/cuda_hip/preconditioner/jacobi_common.hpp)
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES LANGUAGE HIP)
 add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES})

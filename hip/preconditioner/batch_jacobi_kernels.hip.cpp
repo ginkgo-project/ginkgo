@@ -23,7 +23,8 @@
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
-#include "preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
