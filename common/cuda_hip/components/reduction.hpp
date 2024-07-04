@@ -260,8 +260,8 @@ __launch_bounds__(default_reduce_block_size) void reduce_add_array_with_initial_
  * @return the reduction result
  */
 template <typename ValueType>
-__host__ ValueType reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
-                                    size_type size, const ValueType* source)
+ValueType reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
+                           size_type size, const ValueType* source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;
