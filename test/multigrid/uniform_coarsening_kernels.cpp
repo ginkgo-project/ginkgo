@@ -37,8 +37,7 @@ protected:
 
     UniformCoarsening() : rand_engine(30), m{597} {}
 
-    gko::array<index_type> gen_coarse_array(gko::size_type num,
-                                            gko::size_type coarse_skip)
+    gko::array<index_type> gen_coarse_array(gko::size_type num, int coarse_skip)
     {
         gko::array<index_type> coarse_array(ref, num);
         coarse_array.fill(-1);
@@ -58,7 +57,7 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void initialize_data(gko::size_type coarse_skip = 2)
+    void initialize_data(int coarse_skip = 2)
     {
         coarse_rows = gen_coarse_array(m, coarse_skip);
         c_dim = (coarse_rows.get_size() + 1) / coarse_skip;
@@ -99,28 +98,8 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
     c_rows.fill(-gko::one<index_type>());
     auto d_c_rows = gko::array<index_type>(exec, c_rows);
 
-    {
-        gko::size_type coarse_skip = 2;
-        gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-            ref, coarse_skip, &c_rows);
-        gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
-            fill_incremental_indices(exec, coarse_skip, &d_c_rows);
-        GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
-    }
-    {
-        gko::size_type coarse_skip = 3;
-        c_rows.fill(-gko::one<index_type>());
-        d_c_rows.fill(-gko::one<index_type>());
-        gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-            ref, coarse_skip, &c_rows);
-        gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
-            fill_incremental_indices(exec, coarse_skip, &d_c_rows);
-        GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
-    }
-    {
-        gko::size_type coarse_skip = 47;
-        c_rows.fill(-gko::one<index_type>());
-        d_c_rows.fill(-gko::one<index_type>());
+    for (int coarse_skip : {2, 3, 47}) {
+        SCOPED_TRACE("Using coarse skip:" + std::to_string(coarse_skip));
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, coarse_skip, &c_rows);
         gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
@@ -153,16 +132,16 @@ TEST_F(UniformCoarsening, FillRestrictOpIsEquivalentToRef)
 
 TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRef)
 {
-    gko::size_type coarse_skip = 2;
+    int coarse_skip = 2;
     initialize_data(coarse_skip);
     auto mg_level_factory =
         gko::multigrid::UniformCoarsening<value_type, int>::build()
-            .with_coarse_skip(static_cast<unsigned>(coarse_skip))
+            .with_coarse_skip(coarse_skip)
             .with_skip_sorting(true)
             .on(ref);
     auto d_mg_level_factory =
         gko::multigrid::UniformCoarsening<value_type, int>::build()
-            .with_coarse_skip(static_cast<unsigned>(coarse_skip))
+            .with_coarse_skip(coarse_skip)
             .with_skip_sorting(true)
             .on(exec);
 

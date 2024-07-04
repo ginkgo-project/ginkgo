@@ -113,74 +113,29 @@ int main(int argc, char* argv[])
     // copy b again
     b->copy_from(b_clone);
 
-    // Prepare the stopping criteria
-    const gko::remove_complex<ValueType> tolerance = 1e-8;
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(tolerance)
-                                   .with_baseline(gko::stop::mode::absolute)
-                                   .on(exec));
-
-    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
-        gko::log::Convergence<ValueType>::create();
-    iter_stop->add_logger(logger);
-    tol_stop->add_logger(logger);
-
-    // Create smoother factory (ir with bj)
-    auto inner_solver_gen =
-        gko::share(bj::build().with_max_block_size(1u).on(exec));
-    auto smoother_gen = gko::share(
-        ir::build()
-            .with_solver(inner_solver_gen)
-            .with_relaxation_factor(0.9)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-            .on(exec));
-    // Create MultigridLevel factory
-    auto mg_level_gen =
-        gko::share(pgm::build().with_deterministic(true).on(exec));
-    // Create MultigridLevel factory
-    auto coarse_unif_gen = gko::share(
-        uniform_coarsening::build().with_coarse_skip(coarse_skip).on(exec));
-
-    // Create CoarsestSolver factory
-    auto coarsest_gen = gko::share(
-        ir::build()
-            .with_solver(inner_solver_gen)
-            .with_relaxation_factor(0.9)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
-            .on(exec));
     // Create multigrid factory
-    auto multigrid_gen = gko::share(mg::build()
-                                        .with_max_levels(10u)
-                                        .with_min_coarse_rows(10u)
-                                        .with_pre_smoother(smoother_gen)
-                                        .with_post_uses_pre(true)
-                                        .with_mg_level(mg_level_gen)
-                                        .with_coarsest_solver(coarsest_gen)
-                                        .with_criteria(iter_stop, tol_stop)
-                                        .on(exec));
+    std::shared_ptr<gko::LinOpFactory> mg_level;
     if (coarse_type == std::string("uniform")) {
-        std::cout << "Using Uniform coarsening" << std::endl;
-        multigrid_gen = gko::share(mg::build()
-                                       .with_max_levels(10u)
-                                       .with_min_coarse_rows(10u)
-                                       .with_pre_smoother(smoother_gen)
-                                       .with_post_uses_pre(true)
-                                       .with_mg_level(coarse_unif_gen)
-                                       .with_coarsest_solver(coarsest_gen)
-                                       .with_criteria(iter_stop, tol_stop)
-                                       .on(exec));
+        mg_level = uniform_coarsening::build().with_coarse_skip(2).on(exec);
     } else {
-        std::cout << "Using PGM coarsening" << std::endl;
+        mg_level = pgm::build().with_deterministic(true).on(exec);
     }
-    // Create solver factory
-    auto solver_gen = cg::build()
-                          .with_criteria(iter_stop, tol_stop)
-                          .with_preconditioner(multigrid_gen)
-                          .on(exec);
+    std::shared_ptr<gko::LinOpFactory> multigrid_gen;
+    multigrid_gen =
+        mg::build()
+            .with_mg_level(mg_level)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(exec);
+    const gko::remove_complex<ValueType> tolerance = 1e-8;
+    auto solver_gen =
+        cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_baseline(gko::stop::mode::absolute)
+                               .with_reduction_factor(tolerance))
+            .with_preconditioner(multigrid_gen)
+            .on(exec);
+
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
@@ -191,7 +146,10 @@ int main(int argc, char* argv[])
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
     // Add logger
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
     solver->add_logger(logger);
+
 
     // Solve system
     exec->synchronize();

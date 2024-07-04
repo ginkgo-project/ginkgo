@@ -22,11 +22,6 @@
 namespace gko {
 namespace kernels {
 namespace reference {
-/**
- * @brief The UNIFORM_COARSENING solver namespace.
- *
- * @ingroup uniform_coarsening
- */
 namespace uniform_coarsening {
 
 

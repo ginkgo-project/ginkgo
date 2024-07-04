@@ -45,7 +45,7 @@ protected:
     UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening_factory(
-              MgLevel::build().with_coarse_skip(2u).with_skip_sorting(true).on(
+              MgLevel::build().with_coarse_skip(2).with_skip_sorting(true).on(
                   exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
@@ -128,29 +128,6 @@ protected:
                        {2, 2, 5}}});
     }
 
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        ASSERT_EQ(m1->get_num_stored_elements(), m2->get_num_stored_elements());
-        for (gko::size_type i = 0; i < m1->get_size()[0] + 1; i++) {
-            ASSERT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
-        }
-        for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
-            EXPECT_EQ(m1->get_const_values()[i], m2->get_const_values()[i]);
-            EXPECT_EQ(m1->get_const_col_idxs()[i], m2->get_const_col_idxs()[i]);
-        }
-    }
-
-    static void assert_same_coarse_rows(const index_type* m1,
-                                        const index_type* m2,
-                                        gko::size_type len)
-    {
-        for (gko::size_type i = 0; i < len; ++i) {
-            EXPECT_EQ(m1[i], m2[i]);
-        }
-    }
-
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> coarse;
@@ -172,7 +149,7 @@ TYPED_TEST_SUITE(UniformCoarsening, gko::test::ValueIndexTypes,
 TYPED_TEST(UniformCoarsening, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
+    using IndexType = typename TestFixture::index_type;
     auto copy =
         this->uniform_coarsening_factory->generate(Mtx::create(this->exec));
 
@@ -181,20 +158,21 @@ TYPED_TEST(UniformCoarsening, CanBeCopied)
     auto copy_coarse_rows = copy->get_const_coarse_rows();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_coarse_rows(copy_coarse_rows,
-                                  this->coarse_rows.get_data(),
-                                  this->coarse_rows.get_size());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()),
+                        this->mtx.get(), 0.0);
+    GKO_ASSERT_ARRAY_EQ(
+        gko::array<IndexType>::const_view(
+            this->exec, this->coarse_rows.get_size(), copy_coarse_rows),
+        this->coarse_rows);
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_coarse.get()),
+                        this->coarse.get(), 0.0);
 }
 
 
 TYPED_TEST(UniformCoarsening, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
+    using IndexType = typename TestFixture::index_type;
     auto copy =
         this->uniform_coarsening_factory->generate(Mtx::create(this->exec));
 
@@ -203,32 +181,34 @@ TYPED_TEST(UniformCoarsening, CanBeMoved)
     auto copy_coarse_rows = copy->get_const_coarse_rows();
     auto copy_coarse = copy->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_coarse_rows(copy_coarse_rows,
-                                  this->coarse_rows.get_data(),
-                                  this->coarse_rows.get_size());
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()),
+                        this->mtx.get(), 0.0);
+    GKO_ASSERT_ARRAY_EQ(
+        gko::array<IndexType>::const_view(
+            this->exec, this->coarse_rows.get_size(), copy_coarse_rows),
+        this->coarse_rows);
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_coarse.get()),
+                        this->coarse.get(), 0.0);
 }
 
 
 TYPED_TEST(UniformCoarsening, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
+    using IndexType = typename TestFixture::index_type;
     auto clone = this->mg_level->clone();
     auto clone_mtx = clone->get_system_matrix();
     auto clone_coarse_rows = clone->get_const_coarse_rows();
     auto clone_coarse = clone->get_coarse_op();
 
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
-    this->assert_same_coarse_rows(clone_coarse_rows,
-                                  this->coarse_rows.get_data(),
-                                  this->coarse_rows.get_size());
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_coarse.get()),
-                               this->coarse.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_mtx.get()),
+                        this->mtx.get(), 0.0);
+    GKO_ASSERT_ARRAY_EQ(
+        gko::array<IndexType>::const_view(
+            this->exec, this->coarse_rows.get_size(), clone_coarse_rows),
+        this->coarse_rows);
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_coarse.get()),
+                        this->coarse.get(), 0.0);
 }
 
 
@@ -408,7 +388,7 @@ TYPED_TEST(UniformCoarsening, GenerateMgLevelOnUnsortedMatrix)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto mglevel_sort = MgLevel::build().with_coarse_skip(2u).on(this->exec);
+    auto mglevel_sort = MgLevel::build().with_coarse_skip(2).on(this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0
      * -3  5  0 -2 -1

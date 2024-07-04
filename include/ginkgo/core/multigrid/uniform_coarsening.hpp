@@ -78,7 +78,7 @@ public:
         /**
          * The number of rows to skip for the coarse matrix generation
          */
-        unsigned GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2u);
+        int GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be

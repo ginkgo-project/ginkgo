@@ -19,6 +19,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/uniform_coarsening_kernels.hpp"
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -69,8 +70,7 @@ void UniformCoarsening<ValueType, IndexType>::generate()
         parameters_.coarse_skip, &coarse_rows_));
 
     gko::dim<2>::dimension_type coarse_dim =
-        (coarse_rows_.get_size() + parameters_.coarse_skip - 1) /
-        parameters_.coarse_skip;
+        gko::ceildiv(coarse_rows_.get_size(), parameters_.coarse_skip);
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim,

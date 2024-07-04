@@ -14,11 +14,6 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
-/**
- * @brief The UniformCoarsening namespace.
- *
- * @ingroup uniform_coarsening
- */
 namespace uniform_coarsening {
 
 

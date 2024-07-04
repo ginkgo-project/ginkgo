@@ -3,7 +3,6 @@ This is the expected output:
 
 @code{.cpp}
 
-Using PGM coarsening
 Problem size: (8000, 8000)
 Initial residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
