@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -294,6 +294,90 @@ void map_to_local(
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+void map_to_global(
+    std::shared_ptr<const DefaultExecutor> exec,
+    device_partition<const LocalIndexType, const GlobalIndexType> partition,
+    device_segmented_array<const GlobalIndexType> remote_global_idxs,
+    experimental::distributed::comm_index_type rank,
+    const array<LocalIndexType>& local_ids,
+    experimental::distributed::index_space is,
+    array<GlobalIndexType>& global_ids)
+{
+    auto range_bounds = partition.offsets_begin;
+    auto starting_indices = partition.starting_indices_begin;
+    const auto& ranges_by_part = partition.ranges_by_part;
+    auto local_ids_it = local_ids.get_const_data();
+    auto input_size = local_ids.get_size();
+
+    auto policy = thrust_policy(exec);
+
+    global_ids.resize_and_reset(local_ids.get_size());
+    auto global_ids_it = global_ids.get_data();
+
+    auto map_local = [rank, ranges_by_part, range_bounds, starting_indices,
+                      partition] __device__(auto lid) {
+        auto local_size =
+            static_cast<LocalIndexType>(partition.part_sizes_begin[rank]);
+
+        if (lid < 0 || lid >= local_size) {
+            return invalid_index<GlobalIndexType>();
+        }
+
+        auto local_ranges = ranges_by_part.get_segment(rank);
+        auto local_ranges_size =
+            static_cast<int64>(local_ranges.end - local_ranges.begin);
+
+        auto it = binary_search(int64(0), local_ranges_size, [=](const auto i) {
+            return starting_indices[local_ranges.begin[i]] >= lid;
+        });
+        auto local_range_id =
+            it != local_ranges_size ? it : max(int64(0), it - 1);
+        auto range_id = local_ranges.begin[local_range_id];
+
+        return static_cast<GlobalIndexType>(lid - starting_indices[range_id]) +
+               range_bounds[range_id];
+    };
+    auto map_non_local = [remote_global_idxs] __device__(auto lid) {
+        auto remote_size = static_cast<LocalIndexType>(
+            remote_global_idxs.flat_end - remote_global_idxs.flat_begin);
+
+        if (lid < 0 || lid >= remote_size) {
+            return invalid_index<GlobalIndexType>();
+        }
+
+        return remote_global_idxs.flat_begin[lid];
+    };
+    auto map_combined = [map_local, map_non_local, partition,
+                         rank] __device__(auto lid) {
+        auto local_size =
+            static_cast<LocalIndexType>(partition.part_sizes_begin[rank]);
+
+        if (lid < local_size) {
+            return map_local(lid);
+        } else {
+            return map_non_local(lid - local_size);
+        }
+    };
+
+    if (is == experimental::distributed::index_space::local) {
+        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
+                          global_ids_it, map_local);
+    }
+    if (is == experimental::distributed::index_space::non_local) {
+        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
+                          global_ids_it, map_non_local);
+    }
+    if (is == experimental::distributed::index_space::combined) {
+        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
+                          global_ids_it, map_combined);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL);
 
 
 }  // namespace index_map

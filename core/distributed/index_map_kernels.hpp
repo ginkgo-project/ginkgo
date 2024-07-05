@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 
 #include "core/base/kernel_declaration.hpp"
 #include "core/base/segmented_array.hpp"
+#include "core/distributed/device_partition.hpp"
 
 
 namespace gko {
@@ -55,10 +56,13 @@ namespace kernels {
  *
  * - partition:  the global partition
  * - remote_target_ids: the owning part ids of each segment of
- *   remote_global_idxs
+ *                      remote_global_idxs
  * - remote_global_idxs: the remote global indices, segmented by the owning part
  *   ids
  * - rank: the part id of this process
+ *
+ * Any global index that is not in the specified local index space is mapped
+ * to invalid_index.
  */
 #define GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL(_ltype, _gtype)                     \
     void map_to_local(                                                         \
@@ -72,11 +76,36 @@ namespace kernels {
         experimental::distributed::index_space is, array<_ltype>& local_ids)
 
 
+/**
+ * This kernels maps local indices to global indices.
+ *
+ * The relevant input parameter from the index map are:
+ *
+ * - partition:  the global partition
+ * - remote_global_idxs: the remote global indices, segmented by the owning part
+ *                       ids
+ * - rank: the part id of this process
+ *
+ * Any local index that is not part of the specified index space is mapped to
+ * invalid_index.
+ */
+#define GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL(_ltype, _gtype)      \
+    void map_to_global(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,             \
+        device_partition<const _ltype, const _gtype> partition,  \
+        device_segmented_array<const _gtype> remote_global_idxs, \
+        experimental::distributed::comm_index_type rank,         \
+        const array<_ltype>& local_ids,                          \
+        experimental::distributed::index_space is, array<_gtype>& global_ids)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
     template <typename LocalIndexType, typename GlobalIndexType>          \
     GKO_DECLARE_INDEX_MAP_BUILD_MAPPING(LocalIndexType, GlobalIndexType); \
     template <typename LocalIndexType, typename GlobalIndexType>          \
-    GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL(LocalIndexType, GlobalIndexType)
+    GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL(LocalIndexType, GlobalIndexType);  \
+    template <typename LocalIndexType, typename GlobalIndexType>          \
+    GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL(LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(index_map,
