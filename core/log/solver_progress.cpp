@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "ginkgo/core/log/solver_progress.hpp"
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -12,7 +14,6 @@
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/log/solver_debug.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
@@ -33,8 +34,8 @@ bool is_dense(const LinOp* value)
 }
 
 
-class SolverDebugPrint : public SolverDebug {
-    friend class SolverDebug;
+class SolverProgressPrint : public SolverProgress {
+    friend class SolverProgress;
 
 public:
     /* Internal solver events */
@@ -153,8 +154,8 @@ private:
         }
     }
 
-    SolverDebugPrint(std::ostream& output, int precision, int column_width,
-                     char separator)
+    SolverProgressPrint(std::ostream& output, int precision, int column_width,
+                        char separator)
         : output_{&output},
           precision_{precision},
           column_width_{column_width},
@@ -170,8 +171,8 @@ private:
 };
 
 
-class SolverDebugStore : public SolverDebug {
-    friend class SolverDebug;
+class SolverProgressStore : public SolverProgress {
+    friend class SolverProgress;
 
 public:
     /* Internal solver events */
@@ -273,7 +274,7 @@ private:
         store_vector(value, std::to_string(iteration) + "_" + name);
     }
 
-    SolverDebugStore(std::string output_file_prefix, bool binary)
+    SolverProgressStore(std::string output_file_prefix, bool binary)
         : output_file_prefix_{std::move(output_file_prefix)}, binary_{binary}
     {}
 
@@ -285,27 +286,27 @@ private:
 }  // namespace
 
 
-std::shared_ptr<SolverDebug> SolverDebug::create_scalar_table_writer(
+std::shared_ptr<SolverProgress> SolverProgress::create_scalar_table_writer(
     std::ostream& output, int precision, int column_width)
 {
-    return std::shared_ptr<SolverDebug>{
-        new SolverDebugPrint{output, precision, column_width, '\0'}};
+    return std::shared_ptr<SolverProgress>{
+        new SolverProgressPrint{output, precision, column_width, '\0'}};
 }
 
 
-std::shared_ptr<SolverDebug> SolverDebug::create_scalar_csv_writer(
+std::shared_ptr<SolverProgress> SolverProgress::create_scalar_csv_writer(
     std::ostream& output, int precision, char separator)
 {
-    return std::shared_ptr<SolverDebug>{
-        new SolverDebugPrint{output, precision, 0, separator}};
+    return std::shared_ptr<SolverProgress>{
+        new SolverProgressPrint{output, precision, 0, separator}};
 }
 
 
-std::shared_ptr<SolverDebug> SolverDebug::create_vector_storage(
+std::shared_ptr<SolverProgress> SolverProgress::create_vector_storage(
     std::string output_file_prefix, bool binary)
 {
-    return std::shared_ptr<SolverDebug>{
-        new SolverDebugStore{output_file_prefix, binary}};
+    return std::shared_ptr<SolverProgress>{
+        new SolverProgressStore{output_file_prefix, binary}};
 }
 
 

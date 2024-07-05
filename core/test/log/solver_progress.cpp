@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/log/solver_debug.hpp>
+#include <ginkgo/core/log/solver_progress.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -16,12 +16,12 @@
 
 
 template <typename T>
-class SolverDebug : public ::testing::Test {
+class SolverProgress : public ::testing::Test {
 public:
     using Dense = gko::matrix::Dense<T>;
     using Cg = gko::solver::Cg<T>;
 
-    SolverDebug() : ref{gko::ReferenceExecutor::create()}
+    SolverProgress() : ref{gko::ReferenceExecutor::create()}
     {
         mtx = gko::initialize<Dense>({T{1.0}}, ref);
         in = gko::initialize<Dense>({T{2.0}}, ref);
@@ -67,10 +67,10 @@ public:
     std::unique_ptr<Cg> solver;
 };
 
-TYPED_TEST_SUITE(SolverDebug, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(SolverProgress, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(SolverDebug, TableWorks)
+TYPED_TEST(SolverProgress, TableWorks)
 {
     using T = TypeParam;
     std::stringstream ref_ss;
@@ -97,7 +97,7 @@ TYPED_TEST(SolverDebug, TableWorks)
            << std::setw(default_column_width) << T{0.0} << '\n';
     std::stringstream ss;
     this->solver->add_logger(
-        gko::log::SolverDebug::create_scalar_table_writer(ss));
+        gko::log::SolverProgress::create_scalar_table_writer(ss));
 
     this->solver->apply(this->in, this->out);
 
@@ -110,7 +110,7 @@ TYPED_TEST(SolverDebug, TableWorks)
 }
 
 
-TYPED_TEST(SolverDebug, CsvWorks)
+TYPED_TEST(SolverProgress, CsvWorks)
 {
     using T = TypeParam;
     std::stringstream ref_ss;
@@ -125,7 +125,7 @@ TYPED_TEST(SolverDebug, CsvWorks)
            << T{0.0} << '\n';
     std::stringstream ss;
     this->solver->add_logger(
-        gko::log::SolverDebug::create_scalar_csv_writer(ss, 6, ';'));
+        gko::log::SolverProgress::create_scalar_csv_writer(ss, 6, ';'));
 
     this->solver->apply(this->in, this->out);
 
@@ -137,44 +137,44 @@ TYPED_TEST(SolverDebug, CsvWorks)
 }
 
 
-TYPED_TEST(SolverDebug, StorageWorks)
+TYPED_TEST(SolverProgress, StorageWorks)
 {
     using T = TypeParam;
     using Dense = typename TestFixture::Dense;
     auto orig_out = this->out->clone();
     auto init_residual = gko::initialize<Dense>({T{-2.0}}, this->ref);
     std::vector<std::pair<std::string, Dense*>> files{
-        {"solver_debug_test_0_beta", nullptr},
-        {"solver_debug_test_0_implicit_sq_residual_norm", orig_out.get()},
-        {"solver_debug_test_0_minus_one", nullptr},
-        {"solver_debug_test_0_one", nullptr},
-        {"solver_debug_test_0_p", nullptr},
-        {"solver_debug_test_0_prev_rho", nullptr},
-        {"solver_debug_test_0_q", nullptr},
-        {"solver_debug_test_0_r", nullptr},
-        {"solver_debug_test_0_residual", init_residual.get()},
-        {"solver_debug_test_0_rho", nullptr},
-        {"solver_debug_test_0_solution", orig_out.get()},
-        {"solver_debug_test_0_z", nullptr},
-        {"solver_debug_test_1_beta", orig_out.get()},
-        {"solver_debug_test_1_implicit_sq_residual_norm", this->zero.get()},
-        {"solver_debug_test_1_minus_one", nullptr},
-        {"solver_debug_test_1_one", nullptr},
-        {"solver_debug_test_1_p", nullptr},
-        {"solver_debug_test_1_prev_rho", nullptr},
-        {"solver_debug_test_1_q", nullptr},
-        {"solver_debug_test_1_r", nullptr},
-        {"solver_debug_test_1_residual", this->zero.get()},
-        {"solver_debug_test_1_rho", nullptr},
-        {"solver_debug_test_1_solution", this->in.get()},
-        {"solver_debug_test_1_z", nullptr},
-        {"solver_debug_test_initial_guess", orig_out.get()},
-        {"solver_debug_test_rhs", this->in.get()},
-        {"solver_debug_test_system_matrix", this->mtx.get()}};
-    this->solver->add_logger(gko::log::SolverDebug::create_vector_storage(
-        "solver_debug_test", false));
-    this->solver->add_logger(gko::log::SolverDebug::create_vector_storage(
-        "solver_debug_test", true));
+        {"solver_progress_test_0_beta", nullptr},
+        {"solver_progress_test_0_implicit_sq_residual_norm", orig_out.get()},
+        {"solver_progress_test_0_minus_one", nullptr},
+        {"solver_progress_test_0_one", nullptr},
+        {"solver_progress_test_0_p", nullptr},
+        {"solver_progress_test_0_prev_rho", nullptr},
+        {"solver_progress_test_0_q", nullptr},
+        {"solver_progress_test_0_r", nullptr},
+        {"solver_progress_test_0_residual", init_residual.get()},
+        {"solver_progress_test_0_rho", nullptr},
+        {"solver_progress_test_0_solution", orig_out.get()},
+        {"solver_progress_test_0_z", nullptr},
+        {"solver_progress_test_1_beta", orig_out.get()},
+        {"solver_progress_test_1_implicit_sq_residual_norm", this->zero.get()},
+        {"solver_progress_test_1_minus_one", nullptr},
+        {"solver_progress_test_1_one", nullptr},
+        {"solver_progress_test_1_p", nullptr},
+        {"solver_progress_test_1_prev_rho", nullptr},
+        {"solver_progress_test_1_q", nullptr},
+        {"solver_progress_test_1_r", nullptr},
+        {"solver_progress_test_1_residual", this->zero.get()},
+        {"solver_progress_test_1_rho", nullptr},
+        {"solver_progress_test_1_solution", this->in.get()},
+        {"solver_progress_test_1_z", nullptr},
+        {"solver_progress_test_initial_guess", orig_out.get()},
+        {"solver_progress_test_rhs", this->in.get()},
+        {"solver_progress_test_system_matrix", this->mtx.get()}};
+    this->solver->add_logger(gko::log::SolverProgress::create_vector_storage(
+        "solver_progress_test", false));
+    this->solver->add_logger(gko::log::SolverProgress::create_vector_storage(
+        "solver_progress_test", true));
 
     this->solver->apply(this->in, this->out);
 
