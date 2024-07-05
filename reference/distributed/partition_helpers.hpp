@@ -11,6 +11,9 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
+#include "core/base/segmented_array.hpp"
+#include "core/distributed/device_partition.hpp"
+
 
 namespace gko {
 
@@ -45,6 +48,49 @@ LocalIndexType map_to_local(
     auto range_starting_indices = partition->get_range_starting_indices();
     return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
            range_starting_indices[range_id];
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+size_type find_local_range(
+    LocalIndexType idx, size_type part_id,
+    device_partition<const LocalIndexType, const GlobalIndexType> partition,
+    const size_type local_range_id_hint = 0)
+{
+    const auto& ranges_by_part = partition.ranges_by_part;
+    auto local_ranges = ranges_by_part.get_segment(part_id);
+    auto local_range_size =
+        static_cast<size_type>(local_ranges.end - local_ranges.begin);
+
+    auto range_starting_indices = partition.starting_indices_begin;
+    if (range_starting_indices[local_ranges.begin[local_range_id_hint]] <=
+            idx &&
+        (local_range_id_hint == local_range_size - 1 ||
+         range_starting_indices[local_ranges.begin[local_range_id_hint + 1]] >
+             idx)) {
+        return local_range_id_hint;
+    }
+
+    auto it = std::lower_bound(
+        local_ranges.begin, local_ranges.end, idx,
+        [range_starting_indices, local_ranges](const auto rid, const auto idx) {
+            return range_starting_indices[rid] < idx;
+        });
+    auto local_range_id = std::distance(local_ranges.begin, it) - 1;
+    return local_range_id;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+GlobalIndexType map_to_global(
+    LocalIndexType idx,
+    device_partition<const LocalIndexType, const GlobalIndexType> partition,
+    size_type range_id)
+{
+    auto range_bounds = partition.offsets_begin;
+    auto starting_indices = partition.starting_indices_begin;
+    return static_cast<GlobalIndexType>(idx - starting_indices[range_id]) +
+           range_bounds[range_id];
 }
 
 
