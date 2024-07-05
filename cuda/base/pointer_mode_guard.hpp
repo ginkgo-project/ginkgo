@@ -50,7 +50,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception() > uncaught_exceptions_) {
+        if (std::uncaught_exceptions() > uncaught_exceptions_) {
             cublasSetPointerMode(*l_handle, CUBLAS_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_CUBLAS_ERRORS(
