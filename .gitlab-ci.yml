@@ -720,7 +720,7 @@ cudamemcheck:
     - .before_script_template
     - .default_variables
     - .deploy_condition
-  image: use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
   tags:
     - private_ci
     - nvidia-gpu
