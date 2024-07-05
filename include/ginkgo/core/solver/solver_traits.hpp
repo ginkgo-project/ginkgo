@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/stop/criterion.hpp>
 
 

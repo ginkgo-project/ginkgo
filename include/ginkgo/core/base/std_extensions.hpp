@@ -32,7 +32,10 @@ using void_t = std::void_t<Ts...>;
 
 
 GKO_DEPRECATED("use std::uncaught_exceptions")
-inline bool uncaught_exception() noexcept { return std::uncaught_exception(); }
+inline bool uncaught_exception() noexcept
+{
+    return std::uncaught_exceptions() > 0;
+}
 
 
 // Kept for backward compatibility.

@@ -6,10 +6,9 @@
 #define GKO_CORE_LOG_PROFILER_HOOK_HPP_
 
 
-#include <ginkgo/core/log/profiler_hook.hpp>
-
-
 #include <optional>
+
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 namespace gko {

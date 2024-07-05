@@ -419,8 +419,7 @@ public:
 
     profiling_scope_guard(const profiling_scope_guard&) = delete;
 
-    /** Move-constructs from another scope guard, other will be left empty. */
-    profiling_scope_guard(profiling_scope_guard&& other);
+    profiling_scope_guard(profiling_scope_guard&& other) = delete;
 
     profiling_scope_guard& operator=(const profiling_scope_guard&) = delete;
 
