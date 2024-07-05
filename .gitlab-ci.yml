@@ -159,40 +159,6 @@ test/cuda110/nompi/clang/cuda/release/static:
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
 
-build/cuda110/nompi/intel/cuda/debug/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    CXX_COMPILER: "icpc"
-    CXX_FLAGS: ""
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/nompi/intel/cuda/debug/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
-
-
 # cuda 11.4 and friends
 build/cuda114/nompi/gcc/cuda/debug/shared:
   extends:
