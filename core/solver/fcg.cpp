@@ -102,7 +102,6 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(q, dense_b);
     GKO_SOLVER_VECTOR(t, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha, dense_b);
     GKO_SOLVER_SCALAR(beta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
     GKO_SOLVER_SCALAR(rho, dense_b);
@@ -209,7 +208,7 @@ int workspace_traits<Fcg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Fcg<ValueType>>::num_vectors(const Solver&)
 {
-    return 12;
+    return 11;
 }
 
 
@@ -218,8 +217,8 @@ std::vector<std::string> workspace_traits<Fcg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r",    "z",        "p",   "q",     "t",   "alpha",
-        "beta", "prev_rho", "rho", "rho_t", "one", "minus_one",
+        "r",        "z",   "p",     "q",   "t",         "beta",
+        "prev_rho", "rho", "rho_t", "one", "minus_one",
     };
 }
 
@@ -235,7 +234,7 @@ std::vector<std::string> workspace_traits<Fcg<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Fcg<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, beta, prev_rho, rho, rho_t};
+    return {beta, prev_rho, rho, rho_t};
 }
 
 
