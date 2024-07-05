@@ -11,6 +11,8 @@
 #include <memory>
 #include <type_traits>
 
+#include "ginkgo/core/base/types.hpp"
+
 
 // This header provides implementations of useful utilities introduced into the
 // C++ standard after C++14 (e.g. C++17 and C++20).
@@ -25,33 +27,12 @@ namespace gko {
  * @ingroup xstd
  */
 namespace xstd {
-namespace detail {
-
-
 template <typename... Ts>
-struct make_void {
-    using type = void;
-};
+using void_t = std::void_t<Ts...>;
 
 
-}  // namespace detail
-
-
-// Added in C++17
-template <typename... Ts>
-using void_t = typename detail::make_void<Ts...>::type;
-
-
-// Disable deprecation warnings when using standard > C++14
-inline bool uncaught_exception() noexcept
-{
-// MSVC uses _MSVC_LANG as __cplusplus
-#if (defined(_MSVC_LANG) && _MSVC_LANG > 201402L) || __cplusplus > 201402L
-    return std::uncaught_exceptions() > 0;
-#else
-    return std::uncaught_exception();
-#endif
-}
+GKO_DEPRECATED("use std::uncaught_exceptions")
+inline bool uncaught_exception() noexcept { return std::uncaught_exception(); }
 
 
 // Kept for backward compatibility.
@@ -101,14 +82,8 @@ constexpr bool less_equal(const T&& lhs, const T&& rhs)
 }
 
 
-// available in <type_traits> with C++17
-template <class...>
-struct conjunction : std::true_type {};
-template <class B1>
-struct conjunction<B1> : B1 {};
-template <class B1, class... Bn>
-struct conjunction<B1, Bn...>
-    : std::conditional_t<bool(B1::value), conjunction<Bn...>, B1> {};
+template <class... Ts>
+using conjunction = std::conjunction<Ts...>;
 
 
 }  // namespace xstd
