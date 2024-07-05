@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -197,6 +197,77 @@ void map_to_local(
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+void map_to_global(
+    std::shared_ptr<const DefaultExecutor> exec,
+    device_partition<const LocalIndexType, const GlobalIndexType> partition,
+    device_segmented_array<const GlobalIndexType> remote_global_idxs,
+    experimental::distributed::comm_index_type rank,
+    const array<LocalIndexType>& local_ids,
+    experimental::distributed::index_space is,
+    array<GlobalIndexType>& global_ids)
+{
+    const auto& ranges_by_part = partition.ranges_by_part;
+    auto local_ranges = ranges_by_part.get_segment(rank);
+
+    global_ids.resize_and_reset(local_ids.get_size());
+
+    auto local_size =
+        static_cast<LocalIndexType>(partition.part_sizes_begin[rank]);
+    size_type local_range_id = 0;
+    auto map_local = [&](auto lid) {
+        if (0 <= lid && lid < local_size) {
+            local_range_id =
+                find_local_range(lid, rank, partition, local_range_id);
+            return map_to_global(lid, partition,
+                                 local_ranges.begin[local_range_id]);
+        } else {
+            return invalid_index<GlobalIndexType>();
+        }
+    };
+
+    auto remote_size = static_cast<LocalIndexType>(
+        remote_global_idxs.flat_end - remote_global_idxs.flat_begin);
+    auto map_non_local = [&](auto lid) {
+        if (0 <= lid && lid < remote_size) {
+            return remote_global_idxs.flat_begin[lid];
+        } else {
+            return invalid_index<GlobalIndexType>();
+        }
+    };
+
+    auto map_combined = [&](auto lid) {
+        if (lid < local_size) {
+            return map_local(lid);
+        } else {
+            return map_non_local(lid - local_size);
+        }
+    };
+
+    if (is == experimental::distributed::index_space::local) {
+        for (size_type i = 0; i < local_ids.get_size(); ++i) {
+            auto lid = local_ids.get_const_data()[i];
+            global_ids.get_data()[i] = map_local(lid);
+        }
+    }
+    if (is == experimental::distributed::index_space::non_local) {
+        for (size_type i = 0; i < local_ids.get_size(); ++i) {
+            auto lid = local_ids.get_const_data()[i];
+            global_ids.get_data()[i] = map_non_local(lid);
+        }
+    }
+    if (is == experimental::distributed::index_space::combined) {
+        for (size_type i = 0; i < local_ids.get_size(); ++i) {
+            auto lid = local_ids.get_const_data()[i];
+            global_ids.get_data()[i] = map_combined(lid);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL);
 
 
 }  // namespace index_map

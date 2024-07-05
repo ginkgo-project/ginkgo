@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,6 +43,19 @@ void map_to_local(
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL);
 
+
+template <typename LocalIndexType, typename GlobalIndexType>
+void map_to_global(
+    std::shared_ptr<const DefaultExecutor> exec,
+    device_partition<const LocalIndexType, const GlobalIndexType> partition,
+    device_segmented_array<const GlobalIndexType> remote_global_idxs,
+    experimental::distributed::comm_index_type rank,
+    const array<LocalIndexType>& local_ids,
+    experimental::distributed::index_space is,
+    array<GlobalIndexType>& global_ids) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL);
 
 }  // namespace index_map
 }  // namespace GKO_DEVICE_NAMESPACE
