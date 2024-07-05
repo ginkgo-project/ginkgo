@@ -8,16 +8,16 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/prefix_sum.hpp"
+#include "common/cuda_hip/components/searching.hpp"
+#include "common/cuda_hip/components/sorting.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/atomic.cuh"
-#include "cuda/components/intrinsics.cuh"
-#include "cuda/components/prefix_sum.cuh"
-#include "cuda/components/searching.cuh"
-#include "cuda/components/sorting.cuh"
-#include "cuda/components/thread_ids.cuh"
 #include "cuda/factorization/par_ilut_select_common.cuh"
 
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/sorting.cuh"
+#include "common/cuda_hip/components/sorting.hpp"
 
 #include <memory>
 #include <random>

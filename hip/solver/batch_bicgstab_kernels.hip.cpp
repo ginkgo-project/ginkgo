@@ -11,18 +11,18 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
 #include "hip/base/batch_struct.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/thrust.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 
@@ -43,7 +43,6 @@ namespace batch_bicgstab {
 
 
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
-#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
@@ -126,8 +125,9 @@ public:
             exec_->get_device_id()));
         const int block_size =
             get_num_threads_per_block<BatchMatrixType>(exec_, mat.num_rows);
+        bool is_block_size_aligned = block_size % config::warp_size == 0;
         GKO_ASSERT(block_size >= 2 * config::warp_size);
-        GKO_ASSERT(block_size % config::warp_size == 0);
+        GKO_ASSERT(is_block_size_aligned);
 
         // Returns amount required in bytes
         const size_t prec_size = PrecType::dynamic_work_size(
@@ -143,7 +143,9 @@ public:
         auto workspace = gko::array<value_type>(
             exec_,
             sconf.gmem_stride_bytes * num_batch_items / sizeof(value_type));
-        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+        bool is_stride_aligned =
+            sconf.gmem_stride_bytes % sizeof(value_type) == 0;
+        GKO_ASSERT(is_stride_aligned);
 
         value_type* const workspace_data = workspace.get_data();
 

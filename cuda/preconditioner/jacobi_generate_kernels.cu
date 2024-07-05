@@ -8,7 +8,8 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {

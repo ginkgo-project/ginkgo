@@ -15,9 +15,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "hip/base/math.hip.hpp"
 
 
 namespace gko {

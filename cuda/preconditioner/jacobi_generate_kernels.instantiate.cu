@@ -6,19 +6,20 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/diagonal_block_manipulation.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/components/diagonal_block_manipulation.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/warp_blas.cuh"
-#include "cuda/preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
