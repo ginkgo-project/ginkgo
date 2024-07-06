@@ -895,10 +895,11 @@ TEST_F(Jacobi, ScalarJacobiHandleZero)
         gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
     auto b = gko::initialize<Vec>({1, 2, 3}, ref);
     auto x = Vec::create(ref, gko::dim<2>(3, 1));
-    auto jacobi = Bj::build().with_max_block_size(1u).on(ref)->generate(mtx);
     auto d_b = b->clone(exec);
     auto d_x = x->clone(exec);
     auto d_mtx = gko::share(mtx->clone(exec));
+
+    auto jacobi = Bj::build().with_max_block_size(1u).on(ref)->generate(mtx);
     // Must generate from scratch because the clone copies the inverted
     // information.
     auto d_jacobi =
@@ -907,6 +908,5 @@ TEST_F(Jacobi, ScalarJacobiHandleZero)
     // Jacobi uses 1 as the result when diagonal value is zero.
     jacobi->apply(b, x);
     d_jacobi->apply(d_b, d_x);
-
     GKO_ASSERT_MTX_NEAR(d_x, x, 0.0);
 }
