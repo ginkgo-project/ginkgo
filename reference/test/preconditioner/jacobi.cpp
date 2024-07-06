@@ -503,11 +503,11 @@ TYPED_TEST(Jacobi, ScalarJacobiHandleZero)
         gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, this->exec));
     auto b = gko::initialize<Vec>({1, 2, 3}, this->exec);
     auto x = Vec::create(this->exec, gko::dim<2>(3, 1));
+
     auto jacobi = this->scalar_j_factory->generate(mtx);
 
     // Jacobi uses 1 as the result when diagonal value is zero.
     jacobi->apply(b, x);
-
     ASSERT_EQ(x->at(0, 0), value_type{1.0});
     ASSERT_EQ(x->at(1, 0), value_type{1.0});
     ASSERT_EQ(x->at(2, 0), value_type{3.0});
