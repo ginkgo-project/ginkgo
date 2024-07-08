@@ -157,6 +157,23 @@ test/cuda110/nompi/clang/cuda/release/static:
     SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
+  
+
+build/cuda110/nompi/clang/cuda/release/shared:
+  extends:
+    - .build_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  variables:
+    CXX_COMPILER: "clang++"
+    CUDA_ARCH: 52
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Release"
+    FAST_TESTS: "ON"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
 
 # cuda 11.4 and friends
@@ -173,23 +190,6 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-  
-
-build/cuda114/nompi/clang/cuda/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko_cuda114-openmpi-gnu10-llvm12
-  variables:
-    CXX_COMPILER: "clang++"
-    CUDA_ARCH: 35
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    FAST_TESTS: "ON"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
