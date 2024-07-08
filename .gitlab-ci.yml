@@ -190,8 +190,6 @@ build/cuda114/nompi/clang/cuda/release/shared:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
-    # fix gtest issue https://github.com/google/googletest/issues/3514
-    CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
