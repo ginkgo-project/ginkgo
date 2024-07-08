@@ -9,7 +9,6 @@
 #include <iterator>
 #include <type_traits>
 
-
 #include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
 

@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <memory>
+#include "core/base/segmented_range.hpp"
 
+#include <memory>
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "common/unified/base/kernel_launch.hpp"
-#include "core/base/segmented_range.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 

@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/base/segmented_range.hpp"
+
 #include <iterator>
 #include <numeric>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
-
-#include "core/base/segmented_range.hpp"
 
 
 TEST(SegmentedRange, WorksByIndex)
