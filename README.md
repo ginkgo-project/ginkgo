@@ -18,7 +18,7 @@
 
 Ginkgo is a high-performance numerical linear algebra library for many-core systems, with a
 focus on solution of sparse linear systems. It is implemented using modern C++
-(you will need an at least C++14 compliant compiler to build it), with GPU kernels
+(you will need an at least C++17 compliant compiler to build it), with GPU kernels
 implemented for NVIDIA, AMD and Intel GPUs.
 
 ---
@@ -39,18 +39,18 @@ implemented for NVIDIA, AMD and Intel GPUs.
 For Ginkgo core library:
 
 *   _cmake 3.16+_
-*   C++14 compliant compiler, one of:
-    *   _gcc 5.5+_
-    *   _clang 3.9+_
+*   C++17 compliant compiler, one of:
+    *   _gcc 7+_
+    *   _clang 5+_
     *   _Intel compiler 2019+_
-    *   _Apple Clang 14.0_ is tested. Earlier versions might also work.
+    *   _Apple Clang 15.0_ is tested. Earlier versions might also work.
     *   _Cray Compiler 14.0.1+_
     *   _NVHPC Compiler 22.7+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
 *   _cmake 3.18+_ (If CUDA was installed through the NVIDIA HPC Toolkit, we require _cmake 3.22+_)
-*   _CUDA 10.1+_ or _NVHPC Package 22.7+_
+*   _CUDA 11.0+_ or _NVHPC Package 22.7+_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
@@ -59,9 +59,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 The Ginkgo HIP module has the following __additional__ requirements:
 
 * _ROCm 4.5+_
-*    the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with either:
-    * _AMD_ backend (using the `clang` compiler)
-    * _10.1 <= CUDA < 11_ backend
+* the HIP, hipBLAS, hipSPARSE, hip/rocRAND and rocThrust packages compiled with the ROCm backend
 * if the hipFFT package is available, it is used to implement the FFT LinOps.
 * _cmake 3.21+_
 
@@ -69,7 +67,6 @@ The Ginkgo DPC++(SYCL) module has the following __additional__ requirements:
 
 * _oneAPI 2023.1+_
 * Set `dpcpp` or `icpx` as the `CMAKE_CXX_COMPILER`
-* `c++17` is used to compile Ginkgo
 * The following oneAPI packages should be available:
     * oneMKL
     * oneDPL
@@ -81,20 +78,20 @@ The Ginkgo MPI module has the following __additional__ requirements:
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
-*   _clang-format 8.0.0+_ (ships as part of _clang_)
+*   _clang-format 14_ (downloaded automatically by `pre-commit`)
 *   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
 *   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
 ### Windows
 
 *   _cmake 3.16+_
-*   C++14 compliant 64-bit compiler:
-    *   _MinGW : gcc 5.5+_
+*   C++17 compliant 64-bit compiler:
+    *   _MinGW : gcc 7+_
     *   _Microsoft Visual Studio : VS 2019+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
-*   _CUDA 10.1+_
+*   _CUDA 11.0+_
 *   _Microsoft Visual Studio_
 *   Any host compiler restrictions your version of CUDA may impose also apply
     here. For the newest CUDA version, this information can be found in the
