@@ -175,6 +175,25 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+  
+
+build/cuda114/nompi/clang/cuda/release/shared:
+  extends:
+    - .build_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
+  variables:
+    CXX_COMPILER: "clang++"
+    CUDA_ARCH: 35
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Release"
+    FAST_TESTS: "ON"
+    # fix gtest issue https://github.com/google/googletest/issues/3514
+    CXX_FLAGS: "-Wno-error=maybe-uninitialized"
+    # disable spurious unused argument warning
+    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
 
 # nvhpc and friends
