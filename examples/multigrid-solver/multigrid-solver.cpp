@@ -15,21 +15,28 @@ int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
-    using MixedType = gko::half;
+    using MixedType = float;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using ir = gko::solver::Ir<ValueType>;
+    using ir_mixed = gko::solver::Ir<MixedType>;
     using mg = gko::solver::Multigrid;
-    using ic = gko::preconditioner::Ic<gko::solver::LowerTrs<ValueType>>;
-    using mixed_ic = gko::preconditioner::Ic<gko::solver::LowerTrs<MixedType>>;
+    using lower_trs = gko::solver::LowerTrs<ValueType>;
+    using mixed_lower_trs = gko::solver::LowerTrs<MixedType>;
+    using ic = gko::preconditioner::Ic<lower_trs>;
+    using mixed_ic = gko::preconditioner::Ic<mixed_lower_trs>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using bj_mixed = gko::preconditioner::Jacobi<MixedType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
     if (argc > 1 && argv[1] == std::string("--help")) {
         std::cout << "Usage:" << argv[0]
-                  << " executor, matrix, rhs, max_mg_levels, lowerIC, "
+                  << " executor, matrix, rhs, max_mg_levels, coarse_solver, "
+                     "coarest_level_tolerance, smoother kind, smoother "
+                     "iteration, smoother parameter(fill-in), "
                      "is_export, custom_prefix"
                   << std::endl;
         std::exit(-1);
@@ -39,17 +46,44 @@ int main(int argc, char* argv[])
     const std::string rhs_string = argc >= 4 ? argv[3] : "ones";
     const unsigned max_mg_levels =
         argc >= 5 ? static_cast<unsigned>(std::stoi(argv[4])) : 5u;
-    const bool lower_ic = argc >= 6 ? (argv[5] == std::string("true")) : false;
+    const std::string coarse_string = argc >= 6 ? argv[5] : "direct";
+    const ValueType coarsest_level_tolerance =
+        argc >= 7 ? static_cast<ValueType>(std::stod(argv[6]))
+                  : static_cast<ValueType>(1.0e-4);
+    const unsigned smoother =
+        argc >= 8 ? static_cast<unsigned>(std::stoi(argv[7])) : 1u;
+    // jacobi = 1
+    // IC = 2
+    // IC low = 3
+    // ParICT = 4
+    // ParICT low = 5
+    // ParICT but using Jacobi to solve = 6
+    // ParICT low but using Jacobi to solve = 7
+    const unsigned smoother_iter =
+        argc >= 9 ? static_cast<unsigned>(std::stoi(argv[8])) : 3u;
+    const ValueType smoother_real_parameter =
+        argc >= 10 ? static_cast<ValueType>(std::stod(argv[9]))
+                   : static_cast<ValueType>(1.0);
+    const unsigned triangular_solver_iter =
+        argc >= 11 ? static_cast<unsigned>(std::stoi(argv[10])) : 10u;
     const bool export_data =
-        argc >= 7 ? (argv[6] == std::string("true")) : false;
-    const std::string custom_prefix = argc >= 8 ? argv[7] : "none";
+        argc >= 12 ? (argv[11] == std::string("true")) : false;
+    const std::string custom_prefix = argc >= 13 ? argv[12] : "none";
     std::cout << "executor: " << executor_string << std::endl;
     std::cout << "matrix: " << matrix_string << std::endl;
     std::cout << "rhs: " << rhs_string << std::endl;
     std::cout << "max mg_levels: " << max_mg_levels << std::endl;
-    std::cout << "lower precision smoother: " << lower_ic << std::endl;
+    std::cout << "coarse solver: " << coarse_string << std::endl;
+    std::cout << "coarse tolerance: " << coarsest_level_tolerance << std::endl;
+    std::cout << "smoother kind: " << smoother << std::endl;
+    std::cout << "smoother iterations: " << smoother_iter << std::endl;
+    std::cout << "smoother parameter (fill-in): " << smoother_real_parameter
+              << std::endl;
+    std::cout << "triangular solver iter: " << triangular_solver_iter
+              << std::endl;
     std::cout << "export intermediate data : " << export_data << std::endl;
     std::cout << "custom hierarchy prefix: " << custom_prefix << std::endl;
+
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -101,11 +135,11 @@ int main(int argc, char* argv[])
     b->copy_from(host_b);
 
     // Prepare the stopping criteria
-    const gko::remove_complex<ValueType> tolerance = 1e-12;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
+    const gko::remove_complex<ValueType> tolerance = 1.0e-8;
+
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(100000u).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_baseline(gko::stop::mode::absolute)
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
     // LL' ~ A (IC)
@@ -114,30 +148,116 @@ int main(int argc, char* argv[])
     // LL'y = r solve y -> L'^-1(L^-1r)
     // x += y
     // Create smoother factory (ir with ic)
+    // smoother cases
+    // jacobi = 1
+    // IC = 2
+    // IC low = 3
+    // ParICT = 4
+    // ParICT low = 5
+    // ParICT but using Jacobi to solve = 6
+    // ParICT low but using Jacobi to solve = 7
     std::shared_ptr<const gko::LinOpFactory> inner_gen;
-    if (lower_ic) {
-        inner_gen = gko::share(
-            mixed_ic::build()
-                // .with_factorization(
-                //     gko::factorization::Ic<MixedType, int>::build().on(exec))
-                .with_factorization(
-                    gko::factorization::Ic<ValueType, int>::build().on(exec))
-                .with_l_solver_factory(
-                    gko::solver::LowerTrs<MixedType>::build()
-                        .with_algorithm(
-                            gko::solver::trisolve_algorithm::syncfree)
-                        .on(exec))
-                .on(exec));
-    } else {
+    auto trisolve_factory = gko::share(
+        ir::build()
+            .with_solver(
+                gko::share(bj::build().with_max_block_size(1u).on(exec)))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                triangular_solver_iter))
+            .on(exec));
+    auto trisolve_factory_mixed = gko::share(
+        ir_mixed::build()
+            .with_solver(
+                gko::share(bj_mixed::build().with_max_block_size(1u).on(exec)))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                triangular_solver_iter))
+            .on(exec));
+    ValueType damping_parameter = static_cast<ValueType>(1.0);
+
+    switch (smoother) {
+    case 1:
+        inner_gen = gko::share(bj::build().with_max_block_size(1u).on(exec));
+        damping_parameter = smoother_real_parameter;
+        break;
+    case 2:
         inner_gen = gko::share(
             ic::build()
                 .with_factorization(
                     gko::factorization::Ic<ValueType, int>::build().on(exec))
+                .with_l_solver_factory(
+                    lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
                 .on(exec));
+        break;
+    case 3:
+        inner_gen = gko::share(
+            mixed_ic::build()
+                .with_factorization(
+                    gko::factorization::Ic<ValueType, int>::build().on(exec))
+                .with_l_solver_factory(
+                    mixed_lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
+                .on(exec));
+        break;
+    case 4:
+        inner_gen = gko::share(
+            ic::build()
+                .with_factorization(
+                    gko::factorization::ParIct<ValueType, int>::build()
+                        .with_fill_in_limit(smoother_real_parameter)
+                        .with_iterations(10u)
+                        .on(exec))
+                .with_l_solver_factory(
+                    lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
+                .on(exec));
+        break;
+    case 5:
+        inner_gen = gko::share(
+            mixed_ic::build()
+                .with_factorization(
+                    gko::factorization::ParIct<ValueType, int>::build()
+                        .with_fill_in_limit(smoother_real_parameter)
+                        .with_iterations(10u)
+                        .on(exec))
+                .with_l_solver_factory(
+                    mixed_lower_trs::build()
+                        .with_algorithm(
+                            gko::solver::trisolve_algorithm::syncfree)
+                        .on(exec))
+                .on(exec));
+        break;
+    case 6:
+        inner_gen = gko::share(
+            gko::preconditioner::Ic<ir>::build()
+                .with_factorization(
+                    gko::factorization::ParIct<ValueType, int>::build()
+                        .with_fill_in_limit(smoother_real_parameter)
+                        .with_iterations(10u)
+                        .on(exec))
+                .with_l_solver_factory(trisolve_factory)
+                .on(exec));
+        break;
+    case 7:
+        inner_gen = gko::share(
+            gko::preconditioner::Ic<ir_mixed>::build()
+                .with_factorization(
+                    gko::factorization::ParIct<ValueType, int>::build()
+                        .with_fill_in_limit(smoother_real_parameter)
+                        .with_iterations(10u)
+                        .on(exec))
+                .with_l_solver_factory(trisolve_factory_mixed)
+                .on(exec));
+        break;
     }
-    auto smoother_gen = gko::share(gko::solver::build_smoother(
-        inner_gen, 3u, static_cast<ValueType>(1.0)));
     // Create RestrictProlong factory
+    auto smoother_gen = gko::share(gko::solver::build_smoother(
+        inner_gen, smoother_iter, damping_parameter));
     std::vector<std::shared_ptr<const gko::LinOpFactory>> mg_level_gen;
     if (custom_prefix == std::string("none")) {
         auto mg_level =
@@ -164,12 +284,22 @@ int main(int argc, char* argv[])
         }
     }
     // Create CoarsesSolver factory
-    auto coarsest_solver_gen = gko::share(
-        gko::experimental::solver::Direct<ValueType, IndexType>::build()
-            .with_factorization(
-                gko::experimental::factorization::Cholesky<ValueType,
-                                                           IndexType>::build())
-            .on(exec));
+    std::shared_ptr<gko::LinOpFactory> coarsest_solver_gen = nullptr;
+    if (coarse_string == std::string("direct")) {
+        coarsest_solver_gen = gko::share(
+            gko::experimental::solver::Direct<ValueType, IndexType>::build()
+                .with_factorization(gko::experimental::factorization::Cholesky<
+                                    ValueType, IndexType>::build())
+                .on(exec));
+    } else {
+        // cg
+        coarsest_solver_gen = gko::share(
+            gko::solver::Cg<ValueType>::build()
+                .with_criteria(
+                    gko::stop::ResidualNorm<>::build().with_reduction_factor(
+                        coarsest_level_tolerance))
+                .on(exec));
+    }
     // Create multigrid factory
     auto multigrid_gen =
         gko::share(mg::build()
