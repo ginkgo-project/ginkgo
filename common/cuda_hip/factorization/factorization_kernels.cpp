@@ -13,6 +13,7 @@
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/factorization/factorization_helpers.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -256,51 +257,6 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
 
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void initialize_l_u(
-    size_type num_rows, const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs,
-    const ValueType* __restrict__ values,
-    const IndexType* __restrict__ l_row_ptrs,
-    IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
-    const IndexType* __restrict__ u_row_ptrs,
-    IndexType* __restrict__ u_col_idxs, ValueType* __restrict__ u_values)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
-        // default diagonal to one
-        auto diag_val = one<ValueType>();
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                diag_val = val;
-            }
-            if (col < row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
-                ++l_idx;
-            }
-            if (row < col) {
-                u_col_idxs[u_idx] = col;
-                u_values[u_idx] = val;
-                ++u_idx;
-            }
-        }
-        // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        auto u_diag_idx = u_row_ptrs[row];
-        l_col_idxs[l_diag_idx] = row;
-        u_col_idxs[u_diag_idx] = row;
-        l_values[l_diag_idx] = one<ValueType>();
-        u_values[u_diag_idx] = diag_val;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
     size_type num_rows, const IndexType* __restrict__ row_ptrs,
     const IndexType* __restrict__ col_idxs,
@@ -316,48 +272,6 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
         }
         // add the diagonal entry
         l_nnz_row[row] = l_row_nnz + 1;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void initialize_l(
-    size_type num_rows, const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs,
-    const ValueType* __restrict__ values,
-    const IndexType* __restrict__ l_row_ptrs,
-    IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
-    bool use_sqrt)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        // if there was no diagonal entry, default to one
-        auto diag_val = one<ValueType>();
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                diag_val = val;
-            }
-            if (col < row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
-                ++l_idx;
-            }
-        }
-        // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        l_col_idxs[l_diag_idx] = row;
-        // compute square root with sentinel
-        if (use_sqrt) {
-            diag_val = sqrt(diag_val);
-            if (!is_finite(diag_val)) {
-                diag_val = one<ValueType>();
-            }
-        }
-        l_values[l_diag_idx] = diag_val;
     }
 }
 
@@ -481,18 +395,25 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Csr<ValueType, IndexType>* csr_u)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
-    const auto block_size = default_block_size;
+    const auto block_size = helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (grid_dim > 0) {
-        kernel::initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
-            num_rows, system_matrix->get_const_row_ptrs(),
-            system_matrix->get_const_col_idxs(),
-            as_device_type(system_matrix->get_const_values()),
-            csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-            as_device_type(csr_l->get_values()), csr_u->get_const_row_ptrs(),
-            csr_u->get_col_idxs(), as_device_type(csr_u->get_values()));
+        helpers::
+            initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
+                num_rows, system_matrix->get_const_row_ptrs(),
+                system_matrix->get_const_col_idxs(),
+                as_device_type(system_matrix->get_const_values()),
+                csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
+                as_device_type(csr_l->get_values()),
+                csr_u->get_const_row_ptrs(), csr_u->get_col_idxs(),
+                as_device_type(csr_u->get_values()),
+                helpers::triangular_mtx_closure(
+                    [] __device__(auto val) { return one(val); },
+                    helpers::identity{}),
+                helpers::triangular_mtx_closure(helpers::identity{},
+                                                helpers::identity{}));
     }
 }
 
@@ -534,17 +455,28 @@ void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
-    const auto block_size = default_block_size;
+    const auto block_size = helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (grid_dim > 0) {
-        kernel::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
+        helpers::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
             num_rows, system_matrix->get_const_row_ptrs(),
             system_matrix->get_const_col_idxs(),
             as_device_type(system_matrix->get_const_values()),
             csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-            as_device_type(csr_l->get_values()), diag_sqrt);
+            as_device_type(csr_l->get_values()),
+            helpers::triangular_mtx_closure(
+                [diag_sqrt] __device__(auto val) {
+                    if (diag_sqrt) {
+                        val = sqrt(val);
+                        if (!is_finite(val)) {
+                            val = one(val);
+                        }
+                    }
+                    return val;
+                },
+                helpers::identity{}));
     }
 }
 
