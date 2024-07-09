@@ -510,16 +510,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
     GKO_ASSERT_CONFORMANT(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
     size_type n_local_cols = local_mtx_->get_size()[1];
     size_type n_non_local_cols = non_local_mtx_->get_size()[1];
+    std::unique_ptr<global_vector_type> scaling_factors_single_stride;
+    auto stride = scaling_factors->get_stride();
+    if (stride != 1) {
+        scaling_factors_single_stride = global_vector_type::create(exec, comm);
+        scaling_factors_single_stride->copy_from(scaling_factors.get());
+    }
+    const auto scale_values =
+        stride == 1 ? scaling_factors->get_const_local_values()
+                    : scaling_factors_single_stride->get_const_local_values();
     const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
         exec, n_local_cols,
-        make_const_array_view(exec, n_local_cols,
-                              scaling_factors->get_const_local_values()));
+        make_const_array_view(exec, n_local_cols, scale_values));
 
-    auto req = this->communicate(scaling_factors->get_local_vector());
+    auto req = this->communicate(
+        stride == 1 ? scaling_factors->get_local_vector()
+                    : scaling_factors_single_stride->get_local_vector());
     scale_diag->rapply(local_mtx_, local_mtx_);
     req.wait();
     if (n_non_local_cols > 0) {
@@ -542,12 +553,22 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
     GKO_ASSERT_EQUAL_ROWS(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
+    auto comm = this->get_communicator();
     size_type n_local_rows = local_mtx_->get_size()[0];
+    std::unique_ptr<global_vector_type> scaling_factors_single_stride;
+    auto stride = scaling_factors->get_stride();
+    if (stride != 1) {
+        scaling_factors_single_stride = global_vector_type::create(exec, comm);
+        scaling_factors_single_stride->copy_from(scaling_factors.get());
+    }
+    const auto scale_values =
+        stride == 1 ? scaling_factors->get_const_local_values()
+                    : scaling_factors_single_stride->get_const_local_values();
     const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
         exec, n_local_rows,
-        make_const_array_view(exec, n_local_rows,
-                              scaling_factors->get_const_local_values()));
+        make_const_array_view(exec, n_local_rows, scale_values));
 
     scale_diag->apply(local_mtx_, local_mtx_);
     scale_diag->apply(non_local_mtx_, non_local_mtx_);

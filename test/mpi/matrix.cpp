@@ -20,6 +20,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/exception.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 
@@ -566,6 +567,62 @@ TYPED_TEST(Matrix, CanRowScale)
 }
 
 
+TYPED_TEST(Matrix, CanColScaleWithStride)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> res_col_scale_local[] = {
+        {{8, 0}, {0, 0}}, {{0, 10}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_col_scale_non_local[] = {
+        {{2, 0}, {6, 12}}, {{0, 0, 18}, {32, 35, 0}}, {{50, 9}}};
+    gko::dim<2> local_sizes[] = {{2, 1}, {2, 1}, {1, 1}};
+    auto rank = this->comm.rank();
+    auto col_scaling_factors = dist_vec_type::create(
+        this->exec, this->comm, gko::dim<2>{5, 1}, local_sizes[rank], 2);
+    col_scaling_factors->read_distributed(vec_md, this->col_part);
+
+    this->dist_mat->col_scale(col_scaling_factors);
+
+    GKO_ASSERT_EQ(col_scaling_factors->get_stride(), 2);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_col_scale_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_col_scale_non_local[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, CanRowScaleWithStride)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> res_row_scale_local[] = {
+        {{2, 0}, {0, 0}}, {{0, 15}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_row_scale_non_local[] = {
+        {{1, 0}, {6, 8}}, {{0, 0, 18}, {32, 28, 0}}, {{50, 45}}};
+    gko::dim<2> local_sizes[] = {{2, 1}, {2, 1}, {1, 1}};
+    auto rank = this->comm.rank();
+    auto row_scaling_factors = dist_vec_type::create(
+        this->exec, this->comm, gko::dim<2>{5, 1}, local_sizes[rank], 2);
+    row_scaling_factors->read_distributed(vec_md, this->row_part);
+
+    this->dist_mat->row_scale(row_scaling_factors);
+
+    GKO_ASSERT_EQ(row_scaling_factors->get_stride(), 2);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_row_scale_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_row_scale_non_local[rank], 0);
+}
+
+
 TYPED_TEST(Matrix, ColScaleThrowsOnWrongDimension)
 {
     using value_type = typename TestFixture::value_type;
@@ -574,6 +631,8 @@ TYPED_TEST(Matrix, ColScaleThrowsOnWrongDimension)
     using part_type = typename TestFixture::part_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}}};
+    auto two_vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}}};
     auto rank = this->comm.rank();
     auto col_part = part_type::build_from_mapping(
         this->exec,
@@ -583,9 +642,14 @@ TYPED_TEST(Matrix, ColScaleThrowsOnWrongDimension)
         3);
     auto col_scaling_factors = dist_vec_type::create(this->exec, this->comm);
     col_scaling_factors->read_distributed(vec_md, col_part);
+    auto two_col_scaling_factors =
+        dist_vec_type::create(this->exec, this->comm);
+    two_col_scaling_factors->read_distributed(two_vec_md, this->col_part);
 
     ASSERT_THROW(this->dist_mat->col_scale(col_scaling_factors),
                  gko::DimensionMismatch);
+    ASSERT_THROW(this->dist_mat->col_scale(two_col_scaling_factors),
+                 gko::ValueMismatch);
 }
 
 
@@ -597,15 +661,22 @@ TYPED_TEST(Matrix, RowScaleThrowsOnWrongDimension)
     using part_type = typename TestFixture::part_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}}};
+    auto two_vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}}};
     auto rank = this->comm.rank();
     auto row_part = part_type::build_from_contiguous(
         this->exec,
         gko::array<index_type>(this->exec, I<index_type>{0, 2, 3, 4}));
     auto row_scaling_factors = dist_vec_type::create(this->exec, this->comm);
     row_scaling_factors->read_distributed(vec_md, row_part);
+    auto two_row_scaling_factors =
+        dist_vec_type::create(this->exec, this->comm);
+    two_row_scaling_factors->read_distributed(two_vec_md, this->col_part);
 
     ASSERT_THROW(this->dist_mat->row_scale(row_scaling_factors),
                  gko::DimensionMismatch);
+    ASSERT_THROW(this->dist_mat->row_scale(two_row_scaling_factors),
+                 gko::ValueMismatch);
 }
 
 
