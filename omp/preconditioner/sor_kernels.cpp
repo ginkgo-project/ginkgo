@@ -7,12 +7,9 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-#include "common/unified/base/kernel_launch.hpp"
-
-
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
+namespace omp {
 namespace sor {
 
 
@@ -39,6 +36,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace sor
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
