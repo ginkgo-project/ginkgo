@@ -53,6 +53,7 @@ GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
+GKO_REGISTER_OPERATION(compute_infinite_norm, dense::compute_infinite_norm);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(compute_mean, dense::compute_mean);
 GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
@@ -201,6 +202,18 @@ void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_infinite_norm(ptr_param<LinOp> result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_infinite_norm(this, dense_res.get(), tmp));
 }
 
 
@@ -421,6 +434,23 @@ void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
     exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_infinite_norm(ptr_param<LinOp> result,
+                                             array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_infinite_norm(this, dense_res.get(), tmp));
 }
 
 
