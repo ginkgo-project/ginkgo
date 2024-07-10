@@ -282,9 +282,13 @@ struct workspace_traits<Ir<ValueType>> {
     constexpr static int one = 2;
     // constant -1.0 scalar
     constexpr static int minus_one = 3;
+    // norm scalar
+    constexpr static int norm = 4;
 
     // stopping status array
     constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
 };
 
 

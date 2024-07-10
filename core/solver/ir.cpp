@@ -201,17 +201,22 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
+    auto norm_op = this->template create_workspace_scalar<ValueType>(
+        GKO_SOLVER_TRAITS::norm, 1);
 
-    auto& stop_status = this->template create_workspace_array<stopping_status>(
-        ws::stop, dense_b->get_size()[1]);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
     exec->run(ir::make_initialize(&stop_status));
     if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    } else {
+        residual->copy_from(dense_b);
     }
     // zero input the residual is dense_b
-    const VectorType* residual_ptr =
-        guess == initial_guess_mode::zero ? dense_b : residual;
+    // const VectorType* residual_ptr =
+    //     guess == initial_guess_mode::zero ? dense_b : residual;
+    // WARNING
+    VectorType* residual_ptr = residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -230,8 +235,9 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 solver, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
                 &stop_status, all_stopped);
         };
+        const auto* const_residual_ptr = residual_ptr;
         bool all_stopped = update_residual(
-            this, iter, dense_b, dense_x, residual, residual_ptr,
+            this, iter, dense_b, dense_x, residual, const_residual_ptr,
             stop_criterion, stop_status, log_func);
         if (all_stopped) {
             break;
@@ -250,8 +256,11 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // x = x + relaxation_factor * A \ residual
             // solver_->apply(relaxation_factor_, residual_ptr, one_op,
             // dense_x);
+            // WARNING: ignore the relaxation factor now
+            residual_ptr->compute_norm2(norm_op, reduction_tmp);
+            residual_ptr->inv_scale(norm_op);
             solver_->apply(residual_ptr, inner_solution);
-            dense_x->add_scaled(relaxation_factor_, inner_solution);
+            dense_x->add_scaled(norm_op, inner_solution);
         }
     }
 }
@@ -289,14 +298,14 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
 template <typename ValueType>
 int workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
 {
-    return 1;
+    return 2;
 }
 
 
 template <typename ValueType>
 int workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
 {
-    return 4;
+    return 5;
 }
 
 
@@ -304,12 +313,7 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Ir<ValueType>>::op_names(
     const Solver&)
 {
-    return {
-        "residual",
-        "inner_solution",
-        "one",
-        "minus_one",
-    };
+    return {"residual", "inner_solution", "one", "minus_one", "norm"};
 }
 
 
@@ -317,7 +321,7 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Ir<ValueType>>::array_names(
     const Solver&)
 {
-    return {"stop"};
+    return {"stop", "tmp"};
 }
 
 
