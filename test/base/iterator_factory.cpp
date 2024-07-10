@@ -12,7 +12,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class IteratorFactory : public CommonTestFixture {
@@ -35,7 +35,7 @@ public:
 void run_zip_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
                       gko::array<int>& key_array, gko::array<int>& value_array)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto keys, auto values, auto size) {
             auto begin = gko::detail::make_zip_iterator(keys, values);
