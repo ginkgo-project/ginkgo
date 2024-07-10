@@ -242,6 +242,43 @@ TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
 TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
 
 
+__global__ void cg_communicator_categorization(bool*)
+{
+    auto this_block = group::this_thread_block();
+    auto tiled_partition =
+        group::tiled_partition<config::warp_size>(this_block);
+    auto subwarp_partition = group::tiled_partition<subwarp_size>(this_block);
+
+    using not_group = int;
+    using this_block_t = decltype(this_block);
+    using tiled_partition_t = decltype(tiled_partition);
+    using subwarp_partition_t = decltype(subwarp_partition);
+
+    static_assert(!group::is_group<not_group>::value &&
+                      group::is_group<this_block_t>::value &&
+                      group::is_group<tiled_partition_t>::value &&
+                      group::is_group<subwarp_partition_t>::value,
+                  "Group check doesn't work.");
+    static_assert(
+        !group::is_synchronizable_group<not_group>::value &&
+            group::is_synchronizable_group<this_block_t>::value &&
+            group::is_synchronizable_group<tiled_partition_t>::value &&
+            group::is_synchronizable_group<subwarp_partition_t>::value,
+        "Synchronizable group check doesn't work.");
+    static_assert(
+        !group::is_communicator_group<not_group>::value &&
+            !group::is_communicator_group<this_block_t>::value &&
+            group::is_communicator_group<tiled_partition_t>::value &&
+            group::is_communicator_group<subwarp_partition_t>::value,
+        "Communicator group check doesn't work.");
+}
+
+TEST_F(CooperativeGroups, CorrectCategorization)
+{
+    test(cg_communicator_categorization);
+}
+
+
 template <typename ValueType>
 __global__ void cg_shuffle_sum(const int num, ValueType* __restrict__ value)
 {
