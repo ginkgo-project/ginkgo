@@ -250,6 +250,19 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
+void compute_infinite_norm(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           matrix::Dense<remove_complex<ValueType>>* result,
+                           array<char>& tmp)
+{
+    run_kernel_col_reduction_cached(
+        exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
+        GKO_KERNEL_REDUCE_MAX(remove_complex<ValueType>), result->get_values(),
+        x->get_size(), tmp, x);
+}
+
+
+template <typename ValueType>
 void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* x,
                   matrix::Dense<ValueType>* result, array<char>& tmp)

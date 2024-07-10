@@ -109,6 +109,12 @@ namespace kernels {
                                 matrix::Dense<remove_complex<_type>>* result, \
                                 array<char>& tmp)
 
+#define GKO_DECLARE_DENSE_COMPUTE_INFINITE_NORM_KERNEL(_type)                \
+    void compute_infinite_norm(std::shared_ptr<const DefaultExecutor> exec,  \
+                               const matrix::Dense<_type>* x,                \
+                               matrix::Dense<remove_complex<_type>>* result, \
+                               array<char>& tmp)
+
 #define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)                \
     void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,  \
                        const matrix::Dense<_type>* x,                \
@@ -383,6 +389,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                        \
     template <typename ValueType>                                             \
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(ValueType);               \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_DENSE_COMPUTE_INFINITE_NORM_KERNEL(ValueType);                \
     template <typename ValueType>                                             \
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                        \
     template <typename ValueType>                                             \
