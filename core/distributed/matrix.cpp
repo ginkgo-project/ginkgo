@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/distributed/matrix.hpp"
 
+#include <numeric>
+#include <vector>
+
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -20,6 +23,10 @@ namespace matrix {
 namespace {
 
 
+GKO_REGISTER_OPERATION(count_overlap_entries,
+                       distributed_matrix::count_overlap_entries);
+GKO_REGISTER_OPERATION(fill_overlap_send_buffers,
+                       distributed_matrix::fill_overlap_send_buffers);
 GKO_REGISTER_OPERATION(separate_local_nonlocal,
                        distributed_matrix::separate_local_nonlocal);
 
@@ -243,7 +250,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    assembly assembly_type)
 {
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
@@ -252,6 +260,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
@@ -259,6 +268,76 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
     this->set_size(global_dim);
+
+    if (assembly_type == assembly::communicate) {
+        array<comm_index_type> overlap_count{exec, num_parts};
+        overlap_count.fill(0);
+        auto tmp_part = make_temporary_clone(exec, row_partition);
+        exec->run(matrix::make_count_overlap_entries(
+            data, tmp_part.get(), local_part, overlap_count));
+
+        overlap_count.set_executor(exec->get_master());
+        std::vector<comm_index_type> overlap_send_sizes(
+            overlap_count.get_data(), overlap_count.get_data() + num_parts);
+        std::vector<comm_index_type> overlap_send_offsets(num_parts + 1);
+        std::vector<comm_index_type> overlap_recv_sizes(num_parts);
+        std::vector<comm_index_type> overlap_recv_offsets(num_parts + 1);
+
+        std::partial_sum(overlap_send_sizes.begin(), overlap_send_sizes.end(),
+                         overlap_send_offsets.begin() + 1);
+        comm.all_to_all(exec, overlap_send_sizes.data(), 1,
+                        overlap_recv_sizes.data(), 1);
+        std::partial_sum(overlap_recv_sizes.begin(), overlap_recv_sizes.end(),
+                         overlap_recv_offsets.begin() + 1);
+        overlap_send_offsets[0] = 0;
+        overlap_recv_offsets[0] = 0;
+
+        size_type n_send = overlap_send_offsets.back();
+        size_type n_recv = overlap_recv_offsets.back();
+        array<global_index_type> overlap_send_row_idxs{exec, n_send};
+        array<global_index_type> overlap_send_col_idxs{exec, n_send};
+        array<value_type> overlap_send_values{exec, n_send};
+        array<global_index_type> overlap_recv_row_idxs{exec, n_recv};
+        array<global_index_type> overlap_recv_col_idxs{exec, n_recv};
+        array<value_type> overlap_recv_values{exec, n_recv};
+        auto offset_array =
+            make_const_array_view(exec->get_master(), num_parts + 1,
+                                  overlap_send_offsets.data())
+                .copy_to_array();
+        offset_array.set_executor(exec);
+        exec->run(matrix::make_fill_overlap_send_buffers(
+            data, tmp_part.get(), local_part, offset_array,
+            overlap_send_row_idxs, overlap_send_col_idxs, overlap_send_values));
+
+        if (use_host_buffer) {
+            overlap_send_row_idxs.set_executor(exec->get_master());
+            overlap_send_col_idxs.set_executor(exec->get_master());
+            overlap_send_values.set_executor(exec->get_master());
+            overlap_recv_row_idxs.set_executor(exec->get_master());
+            overlap_recv_col_idxs.set_executor(exec->get_master());
+            overlap_recv_values.set_executor(exec->get_master());
+        }
+        comm.all_to_all_v(
+            use_host_buffer ? exec : exec->get_master(),
+            overlap_send_row_idxs.get_const_data(), overlap_send_sizes.data(),
+            overlap_send_offsets.data(), overlap_recv_row_idxs.get_data(),
+            overlap_recv_sizes.data(), overlap_recv_offsets.data());
+        comm.all_to_all_v(
+            use_host_buffer ? exec : exec->get_master(),
+            overlap_send_col_idxs.get_const_data(), overlap_send_sizes.data(),
+            overlap_send_offsets.data(), overlap_recv_col_idxs.get_data(),
+            overlap_recv_sizes.data(), overlap_recv_offsets.data());
+        comm.all_to_all_v(
+            use_host_buffer ? exec : exec->get_master(),
+            overlap_send_values.get_const_data(), overlap_send_sizes.data(),
+            overlap_send_offsets.data(), overlap_recv_values.get_data(),
+            overlap_recv_sizes.data(), overlap_recv_offsets.data());
+        if (use_host_buffer) {
+            overlap_recv_row_idxs.set_executor(exec);
+            overlap_recv_col_idxs.set_executor(exec);
+            overlap_recv_values.set_executor(exec);
+        }
+    }
 
     // temporary storage for the output
     array<local_index_type> local_row_idxs{exec};
@@ -335,7 +414,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
             imap.get_executor(), imap.get_non_local_size(),
             imap.get_remote_local_idxs().get_const_flat_data())
             .copy_to_array();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
@@ -358,12 +436,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    assembly assembly_type)
 {
     return this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        row_partition, col_partition);
+        row_partition, col_partition, assembly_type);
 }
 
 
@@ -371,12 +450,13 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        partition)
+        partition,
+    assembly assembly_type)
 {
     return this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        partition, partition);
+        partition, partition, assembly_type);
 }
 
 
@@ -384,9 +464,10 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        partition)
+        partition,
+    assembly assembly_type)
 {
-    return this->read_distributed(data, partition, partition);
+    return this->read_distributed(data, partition, partition, assembly_type);
 }
 
 
