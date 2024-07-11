@@ -22,7 +22,8 @@ namespace preconditioner {
 /**
  * This class generates the Gauss-Seidel preconditioner.
  *
- * This is the special case of $\omega = 1$ of the (S)SOR preconditioner.
+ * This is the special case of the relaxation factor $\omega = 1$ of the (S)SOR
+ * preconditioner.
  *
  * @see Sor
  */
@@ -49,12 +50,12 @@ public:
         // determines if Gauss-Seidel or symmetric Gauss-Seidel should be used
         bool GKO_FACTORY_PARAMETER_SCALAR(symmetric, false);
 
-        // factory for the lower triangular factor solver
+        // factory for the lower triangular factor solver, defaults to LowerTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             l_solver);
 
         // factory for the upper triangular factor solver, unused if symmetric
-        // is false
+        // is false, defaults to UpperTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             u_solver);
     };

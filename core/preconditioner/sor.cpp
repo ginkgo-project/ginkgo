@@ -96,10 +96,11 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
 
     auto l_trs_factory =
         parameters_.l_solver ? parameters_.l_solver : LTrs::build().on(exec);
-    auto u_trs_factory =
-        parameters_.u_solver ? parameters_.u_solver : UTrs::build().on(exec);
 
     if (parameters_.symmetric) {
+        auto u_trs_factory = parameters_.u_solver ? parameters_.u_solver
+                                                  : UTrs::build().on(exec);
+
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         array<index_type> u_row_ptrs{exec, size[0] + 1};
         exec->run(make_initialize_row_ptrs_l_u(
