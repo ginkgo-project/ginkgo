@@ -19,6 +19,29 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_COUNT_OVERLAP_ENTRIES(ValueType, LocalIndexType, \
+                                          GlobalIndexType)           \
+    void count_overlap_entries(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        const device_matrix_data<ValueType, GlobalIndexType>& input, \
+        const experimental::distributed::Partition<                  \
+            LocalIndexType, GlobalIndexType>* row_partition,         \
+        comm_index_type local_part, array<comm_index_type>& overlap_count)
+
+
+#define GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS(ValueType, LocalIndexType, \
+                                              GlobalIndexType)           \
+    void fill_overlap_send_buffers(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const device_matrix_data<ValueType, GlobalIndexType>& input,     \
+        const experimental::distributed::Partition<                      \
+            LocalIndexType, GlobalIndexType>* row_partition,             \
+        comm_index_type local_part, array<comm_index_type>& offsets,     \
+        array<GlobalIndexType>& overlap_row_idxs,                        \
+        array<GlobalIndexType>& overlap_col_idxs,                        \
+        array<ValueType>& overlap_values)
+
+
 #define GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,         \
                                             GlobalIndexType)                   \
     void separate_local_nonlocal(                                              \
@@ -37,6 +60,14 @@ namespace kernels {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_COUNT_OVERLAP_ENTRIES(ValueType, LocalIndexType,        \
+                                      GlobalIndexType);                 \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS(ValueType, LocalIndexType,    \
+                                          GlobalIndexType);             \
     template <typename ValueType, typename LocalIndexType,              \
               typename GlobalIndexType>                                 \
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,      \

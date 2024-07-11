@@ -131,11 +131,16 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
     if (parameters_.local_solver) {
-        this->set_solver(gko::share(parameters_.local_solver->generate(
-            as<experimental::distributed::Matrix<
-                ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
-                ->get_local_matrix())));
-
+        if (as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                 GlobalIndexType>>(
+                system_matrix)
+                ->get_local_matrix()
+                ->get_size()[0] > 0) {
+            this->set_solver(gko::share(parameters_.local_solver->generate(
+                as<experimental::distributed::Matrix<
+                    ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
+                    ->get_local_matrix())));
+        }
     } else {
         this->set_solver(parameters_.generated_local_solver);
     }

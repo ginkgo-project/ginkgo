@@ -164,6 +164,8 @@ protected:
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
+    mutable std::shared_ptr<LinOp> INTERM1 = 0;
+    mutable std::shared_ptr<LinOp> INTERM2 = 0;
     mutable array<ValueType> storage_;
 };
 

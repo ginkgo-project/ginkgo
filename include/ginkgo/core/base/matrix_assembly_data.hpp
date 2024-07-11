@@ -155,6 +155,8 @@ public:
         return data;
     }
 
+    void empty() { nonzeros_.clear(); }
+
 private:
     /**
      * Size of the matrix.

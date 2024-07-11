@@ -14,6 +14,34 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void count_overlap_entries(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const device_matrix_data<ValueType, GlobalIndexType>& input,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        row_partition,
+    comm_index_type local_part,
+    array<comm_index_type>& overlap_count) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_COUNT_OVERLAP_ENTRIES);
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void fill_overlap_send_buffers(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const device_matrix_data<ValueType, GlobalIndexType>& input,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        row_partition,
+    comm_index_type local_part, array<comm_index_type>& offsets,
+    array<GlobalIndexType>& overlap_row_idxs,
+    array<GlobalIndexType>& overlap_col_idxs,
+    array<ValueType>& overlap_values) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS);
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void separate_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
