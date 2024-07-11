@@ -52,7 +52,8 @@ void run_zip_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
             }
             // check structured bindings
             auto [key, value] = *begin;
-            static_assert(std::is_same<typeof(key), int>::value,
+            static_assert(std::is_same<std::remove_reference_t<decltype(key)>,
+                                       int>::value,
                           "incorrect type");
             gko::get<0>(*begin) = value;
         },
