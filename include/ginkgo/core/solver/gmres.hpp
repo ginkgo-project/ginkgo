@@ -31,6 +31,29 @@ namespace solver {
 
 constexpr size_type gmres_default_krylov_dim = 100u;
 
+namespace gmres {
+/**
+ * Set the orthogonalization method for the Krylov subspace.
+ */
+enum class orthog_method {
+    /**
+     * Modified Gram-Schmidt (default)
+     */
+    mgs,
+    /**
+     * Classical Gram-Schmidt
+     */
+    cgs,
+    /**
+     * Classical Gram-Schmidt with re-orthogonalization
+     */
+    cgs2
+};
+
+/** Prints an orthogonalization method. */
+std::ostream& operator<<(std::ostream& stream, orthog_method orthog);
+
+}  // namespace gmres
 
 /**
  * GMRES or the generalized minimal residual method is an iterative type Krylov
@@ -93,6 +116,10 @@ public:
 
         /** Flexible GMRES */
         bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
+
+        /** Orthogonalization method */
+        gmres::orthog_method GKO_FACTORY_PARAMETER_SCALAR(
+            orthog_method, gmres::orthog_method::mgs);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -167,28 +194,30 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int krylov_bases = 2;
     // hessenberg matrix
     constexpr static int hessenberg = 3;
+    // auxiliary space for CGS2
+    constexpr static int hessenberg_aux = 4;
     // givens sin parameters
-    constexpr static int givens_sin = 4;
+    constexpr static int givens_sin = 5;
     // givens cos parameters
-    constexpr static int givens_cos = 5;
+    constexpr static int givens_cos = 6;
     // coefficients of the residual in Krylov space
-    constexpr static int residual_norm_collection = 6;
+    constexpr static int residual_norm_collection = 7;
     // residual norm scalar
-    constexpr static int residual_norm = 7;
+    constexpr static int residual_norm = 8;
     // solution of the least-squares problem in Krylov space
-    constexpr static int y = 8;
+    constexpr static int y = 9;
     // solution of the least-squares problem mapped to the full space
-    constexpr static int before_preconditioner = 9;
+    constexpr static int before_preconditioner = 10;
     // preconditioned solution of the least-squares problem
-    constexpr static int after_preconditioner = 10;
+    constexpr static int after_preconditioner = 11;
     // constant 1.0 scalar
-    constexpr static int one = 11;
+    constexpr static int one = 12;
     // constant -1.0 scalar
-    constexpr static int minus_one = 12;
+    constexpr static int minus_one = 13;
     // temporary norm vector of next_krylov to copy into hessenberg matrix
-    constexpr static int next_krylov_norm_tmp = 13;
+    constexpr static int next_krylov_norm_tmp = 14;
     // preconditioned krylov basis multivector
-    constexpr static int preconditioned_krylov_bases = 14;
+    constexpr static int preconditioned_krylov_bases = 15;
 
     // stopping status array
     constexpr static int stop = 0;
