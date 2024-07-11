@@ -74,10 +74,11 @@ protected:
         b = gen_mtx(m, nrhs);
         krylov_bases =
             gen_mtx(m * (gko::solver::gmres_default_krylov_dim + 1), nrhs);
-        hessenberg = gen_mtx(gko::solver::gmres_default_krylov_dim + 1,
-                             gko::solver::gmres_default_krylov_dim * nrhs);
+        hessenberg =
+            gen_mtx(gko::solver::gmres_default_krylov_dim,
+                    (gko::solver::gmres_default_krylov_dim + 1) * nrhs);
         hessenberg_iter =
-            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
+            gen_mtx(1, (gko::solver::gmres_default_krylov_dim + 1) * nrhs);
         residual = gen_mtx(m, nrhs);
         residual_norm = gen_mtx<norm_type>(1, nrhs);
         residual_norm_collection =
@@ -272,6 +273,50 @@ TEST_F(Gmres, GmresKernelMultiAxpyIsEquivalentToRef)
     GKO_ASSERT_ARRAY_EQ(stop_status, d_stop_status);
 }
 
+TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
+{
+    initialize_data();
+
+    auto krylov_basis = krylov_bases->create_submatrix(
+        gko::span{
+            0, x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0, x->get_size()[1]});
+    auto d_krylov_basis = d_krylov_bases->create_submatrix(
+        gko::span{0, d_x->get_size()[0] *
+                         (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0, d_x->get_size()[1]});
+    auto next_krylov = krylov_bases->create_submatrix(
+        gko::span{
+            x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
+            x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+        gko::span{0, x->get_size()[1]});
+    auto d_next_krylov = d_krylov_bases->create_submatrix(
+        gko::span{
+            d_x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
+            d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+        gko::span{0, d_x->get_size()[1]});
+    gko::kernels::reference::gmres::multi_dot(
+        ref, krylov_basis.get(), next_krylov.get(), hessenberg_iter.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_dot(
+        exec, d_krylov_basis.get(), d_next_krylov.get(),
+        d_hessenberg_iter.get());
+
+    // The multidot computation does not set the value below the diagonal
+    // in the Hessenberg matrix column(s), as that is done after the
+    // orthogonalization of the next basis vector. In this test, we
+    // are checking the column(s) created on the last iteration before the
+    // solver's restart would be triggered, so it is only the final row of
+    // the Hessenberg column(s) that we ignore.
+    auto hessenberg_iter_small = hessenberg_iter->create_submatrix(
+        gko::span{0, 1},
+        gko::span{0, gko::solver::gmres_default_krylov_dim * x->get_size()[1]});
+    auto d_hessenberg_iter_small = d_hessenberg_iter->create_submatrix(
+        gko::span{0, 1},
+        gko::span{0, gko::solver::gmres_default_krylov_dim * x->get_size()[1]});
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter_small, hessenberg_iter_small,
+                        r<value_type>::value);
+}
+
 
 TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 {
@@ -294,18 +339,27 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 5;
-    auto ref_solver = ref_gmres_factory->generate(mtx);
-    auto exec_solver = exec_gmres_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = gko::clone(exec, b);
-    auto d_x = gko::clone(exec, x);
+    using gko::solver::gmres::orthog_method;
+    auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
 
-    ref_solver->apply(b, x);
-    exec_solver->apply(d_b, d_x);
+    for (auto orthog :
+         {orthog_method::mgs, orthog_method::cgs, orthog_method::cgs2}) {
+        SCOPED_TRACE(orthog);
+        int m = 123;
+        int n = 5;
+        auto ref_solver =
+            base_params.with_orthog_method(orthog).on(ref)->generate(mtx);
+        auto exec_solver =
+            base_params.with_orthog_method(orthog).on(exec)->generate(d_mtx);
+        auto b = gen_mtx(m, n);
+        auto x = gen_mtx(m, n);
+        auto d_b = gko::clone(exec, b);
+        auto d_x = gko::clone(exec, x);
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+        ref_solver->apply(b, x);
+        exec_solver->apply(d_b, d_x);
+
+        GKO_ASSERT_MTX_NEAR(d_b, b, 0);
+        GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+    }
 }

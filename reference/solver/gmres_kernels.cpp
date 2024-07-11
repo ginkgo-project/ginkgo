@@ -71,6 +71,27 @@ void multi_axpy(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
 
+template <typename ValueType>
+void multi_dot(std::shared_ptr<const ReferenceExecutor> exec,
+               const matrix::Dense<ValueType>* krylov_bases,
+               const matrix::Dense<ValueType>* next_krylov,
+               matrix::Dense<ValueType>* hessenberg_col)
+{
+    auto num_rhs = next_krylov->get_size()[1];
+    auto krylov_bases_rowoffset = next_krylov->get_size()[0];
+    for (size_type i = 0; i < hessenberg_col->get_size()[1]; ++i) {
+        auto ivec = i / num_rhs;
+        auto irhs = i % num_rhs;
+        hessenberg_col->at(0, i) = zero<ValueType>();
+        for (size_type j = 0; j < krylov_bases_rowoffset; ++j) {
+            hessenberg_col->at(0, i) +=
+                krylov_bases->at(ivec * krylov_bases_rowoffset + j, irhs) *
+                next_krylov->at(j, irhs);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);
 
 }  // namespace gmres
 }  // namespace reference
