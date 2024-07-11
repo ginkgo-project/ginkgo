@@ -24,7 +24,10 @@ protected:
     std::shared_ptr<gko::Executor> ref;
 };
 
-TYPED_TEST_SUITE(MpiBindings, gko::test::PODTypes, TypenameNameGenerator);
+using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypes,
+                                               gko::test::IndexTypes>;
+
+TYPED_TEST_SUITE(MpiBindings, TestTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MpiBindings, CanSetADefaultwindow)
