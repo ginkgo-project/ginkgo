@@ -132,6 +132,18 @@ namespace experimental {
 namespace distributed {
 
 
+/**
+ * assembly defines how the read_distributed function of the distributed
+ * matrix treats non-local indices in the (device_)matrix_data:
+ * - communicate communicates the overlap between ranks and adds up all local
+ *   contributions. Indices smaller than 0 or larger than the global size
+ *   of the matrix are ignored.
+ * - local_only does not communicate any overlap but ignores all non-local
+ *   indices.
+ */
+enum class assembly { communicate, local_only };
+
+
 template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
 template <typename ValueType>
@@ -296,7 +308,8 @@ public:
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+            partition,
+        assembly assembly_type = assembly::local_only);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -310,7 +323,8 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+            partition,
+        assembly assembly_type = assembly::local_only);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -334,7 +348,8 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            col_partition,
+        assembly assembly_type = assembly::local_only);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -350,7 +365,8 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            col_partition,
+        assembly assembly_type = assembly::local_only);
 
     /**
      * Get read access to the stored local matrix.
