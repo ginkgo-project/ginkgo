@@ -587,7 +587,7 @@ TYPED_TEST(Matrix, CanColScaleWithStride)
 
     this->dist_mat->col_scale(col_scaling_factors);
 
-    GKO_ASSERT_EQ(col_scaling_factors->get_stride(), 2);
+    ASSERT_EQ(col_scaling_factors->get_stride(), 2);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_col_scale_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
@@ -615,7 +615,7 @@ TYPED_TEST(Matrix, CanRowScaleWithStride)
 
     this->dist_mat->row_scale(row_scaling_factors);
 
-    GKO_ASSERT_EQ(row_scaling_factors->get_stride(), 2);
+    ASSERT_EQ(row_scaling_factors->get_stride(), 2);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_row_scale_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
