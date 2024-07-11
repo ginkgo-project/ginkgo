@@ -36,6 +36,7 @@ struct PreconditionerConfigTest {
     using changed_type = ChangedType;
     using default_type = DefaultType;
     using preconditioner_config_test = PreconditionerConfigTest;
+
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ic"}}};
@@ -328,12 +329,23 @@ struct Sor
         config_map["relaxation_factor"] = pnode{0.8};
         // float can be cast to double without issues
         param.with_relaxation_factor(0.8f);
-        config_map["l_solver"] = pnode{
-            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_l_solver(DummyIr::build());
-        config_map["u_solver"] = pnode{
-            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_u_solver(DummyIr::build());
+        if (from_reg) {
+            config_map["l_solver"] = pnode{"l_solver"};
+            param.with_l_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "l_solver"));
+            config_map["u_solver"] = pnode{"u_solver"};
+            param.with_u_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "u_solver"));
+        } else {
+            config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
+            param.with_l_solver(Ir::build());
+            config_map["u_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
+            param.with_u_solver(Ir::build());
+        }
     }
 
     template <bool from_reg, typename AnswerType>
@@ -345,8 +357,13 @@ struct Sor
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.symmetric, ans_param.symmetric);
         ASSERT_EQ(res_param.relaxation_factor, ans_param.relaxation_factor);
-        ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
-        ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+        if (from_reg) {
+            ASSERT_EQ(res_param.l_solver, ans_param.l_solver);
+            ASSERT_EQ(res_param.u_solver, ans_param.u_solver);
+        } else {
+            ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
+            ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+        }
     }
 };
 
@@ -375,12 +392,23 @@ struct GaussSeidel
         param.with_skip_sorting(true);
         config_map["symmetric"] = pnode{true};
         param.with_symmetric(true);
-        config_map["l_solver"] = pnode{
-            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_l_solver(DummyIr::build());
-        config_map["u_solver"] = pnode{
-            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_u_solver(DummyIr::build());
+        if (from_reg) {
+            config_map["l_solver"] = pnode{"l_solver"};
+            param.with_l_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "l_solver"));
+            config_map["u_solver"] = pnode{"u_solver"};
+            param.with_u_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "u_solver"));
+        } else {
+            config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
+            param.with_l_solver(Ir::build());
+            config_map["u_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
+                                            {"value_type", pnode{"float32"}}}};
+            param.with_u_solver(Ir::build());
+        }
     }
 
     template <bool from_reg, typename AnswerType>
@@ -391,8 +419,13 @@ struct GaussSeidel
 
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.symmetric, ans_param.symmetric);
-        ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
-        ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+        if (from_reg) {
+            ASSERT_EQ(res_param.l_solver, ans_param.l_solver);
+            ASSERT_EQ(res_param.u_solver, ans_param.u_solver);
+        } else {
+            ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
+            ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+        }
     }
 };
 

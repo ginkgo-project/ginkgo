@@ -29,7 +29,7 @@ void initialize_weighted_l(
         system_matrix, l_mtx,
         factorization::helpers::triangular_mtx_closure(
             [inv_weight](auto val) { return val * inv_weight; },
-            [](auto val) { return val; }));
+            factorization::helpers::identity{}));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

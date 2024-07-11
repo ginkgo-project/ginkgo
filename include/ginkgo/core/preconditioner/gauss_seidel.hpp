@@ -6,8 +6,6 @@
 #define GKO_PUBLIC_CORE_PRECONDITIONER_GAUSS_SEIDEL_HPP_
 
 
-#include <vector>
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -22,7 +20,8 @@ namespace preconditioner {
 /**
  * This class generates the Gauss-Seidel preconditioner.
  *
- * This is the special case of $\omega = 1$ of the (S)SOR preconditioner.
+ * This is the special case of the relaxation factor $\omega = 1$ of the (S)SOR
+ * preconditioner.
  *
  * @see Sor
  */
@@ -49,12 +48,12 @@ public:
         // determines if Gauss-Seidel or symmetric Gauss-Seidel should be used
         bool GKO_FACTORY_PARAMETER_SCALAR(symmetric, false);
 
-        // factory for the lower triangular factor solver
+        // factory for the lower triangular factor solver, defaults to LowerTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             l_solver);
 
         // factory for the upper triangular factor solver, unused if symmetric
-        // is false
+        // is false, defaults to UpperTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             u_solver);
     };
@@ -84,6 +83,15 @@ public:
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
+    /**
+     * Creates a new parameter_type based on an input configuration.
+     *
+     * @param config  The parameter tree for the Gauss-Seidel.
+     * @param context  The context for the parsing.
+     * @param td_for_child  The type_descriptor used for child configurations.
+     *
+     * @return  a parameter_type object with the settings from config
+     */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
