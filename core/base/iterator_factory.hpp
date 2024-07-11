@@ -13,6 +13,8 @@
 #include <tuple>
 #include <utility>
 
+#include <ginkgo/core/base/types.hpp>
+
 #include "core/base/copy_assignable.hpp"
 
 
@@ -290,7 +292,7 @@ class zip_iterator_reference
         // std::tuple<int, char> t = { 1, '2' }; is not allowed.
         // converting to 'std::tuple<...>' from initializer list would use
         // explicit constructor
-        return value_type(get<idxs>(*this)...);
+        return value_type(gko::get<idxs>(*this)...);
     }
 
     template <std::size_t... idxs>
@@ -298,7 +300,7 @@ class zip_iterator_reference
                                const value_type& other)
     {
         (void)std::initializer_list<int>{
-            (get<idxs>(*this) = get<idxs>(other), 0)...};
+            (gko::get<idxs>(*this) = gko::get<idxs>(other), 0)...};
     }
 
     constexpr explicit zip_iterator_reference(Iterators... it)
@@ -509,7 +511,7 @@ private:
         auto other_it = get<0>(other.iterators_);
         auto result = fn(it, other_it);
         forall_impl(
-            other, [&](auto a, auto b) { assert(it - other_it == a - b); },
+            other, [&](auto a, auto b) { GKO_ASSERT(it - other_it == a - b); },
             index_sequence{});
         return result;
     }
