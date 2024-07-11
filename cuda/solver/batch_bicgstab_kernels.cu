@@ -174,6 +174,9 @@ public:
 
         value_type* const workspace_data = workspace.get_data();
 
+        // Only instantiate when full optimizations has been enabled. Otherwise,
+        // just use the default one with no shared memory.
+#ifdef GINKGO_BATCHED_FULL_OPTIMIZATIONS
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared>
         if (sconf.prec_shared) {
@@ -236,6 +239,11 @@ public:
                 GKO_NOT_IMPLEMENTED;
             }
         }
+#else
+        launch_apply_kernel<StopType, 0, false>(
+            sconf, logger, prec, mat, b.values, x.values, workspace_data,
+            block_size, shared_size);
+#endif
     }
 
 private:
