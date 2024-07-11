@@ -265,12 +265,11 @@ __global__ void cg_communicator_categorization(bool*)
             group::is_synchronizable_group<tiled_partition_t>::value &&
             group::is_synchronizable_group<subwarp_partition_t>::value,
         "Synchronizable group check doesn't work.");
-    static_assert(
-        !group::is_communicator_group<not_group>::value &&
-            !group::is_communicator_group<this_block_t>::value &&
-            group::is_communicator_group<tiled_partition_t>::value &&
-            group::is_communicator_group<subwarp_partition_t>::value,
-        "Communicator group check doesn't work.");
+    static_assert(!group::is_communicator_group<not_group>::value &&
+                      !group::is_communicator_group<this_block_t>::value &&
+                      group::is_communicator_group<tiled_partition_t>::value &&
+                      group::is_communicator_group<subwarp_partition_t>::value,
+                  "Communicator group check doesn't work.");
 }
 
 TEST_F(CooperativeGroups, CorrectCategorization)
