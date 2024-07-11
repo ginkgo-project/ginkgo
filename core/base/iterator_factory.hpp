@@ -13,6 +13,8 @@
 #include <tuple>
 #include <utility>
 
+#include <ginkgo/core/base/types.hpp>
+
 #include "core/base/copy_assignable.hpp"
 
 
@@ -22,6 +24,234 @@ namespace detail {
 
 template <typename... Iterators>
 class zip_iterator;
+
+
+template <typename... Iterators>
+class zip_iterator_reference;
+
+
+template <typename T, typename... Ts>
+class device_tuple;
+
+
+}  // namespace detail
+}  // namespace gko
+
+
+// structured binding specializations for device_tuple, zip_iterator_reference
+namespace std {
+
+
+template <typename... Ts>
+struct tuple_size<gko::detail::device_tuple<Ts...>>
+    : integral_constant<size_t, sizeof...(Ts)> {};
+
+
+template <std::size_t I, typename... Ts>
+struct tuple_element<I, gko::detail::device_tuple<Ts...>> {
+    using type = typename tuple_element<I, tuple<Ts...>>::type;
+};
+
+
+template <typename... Iterators>
+struct tuple_size<gko::detail::zip_iterator_reference<Iterators...>>
+    : integral_constant<size_t, sizeof...(Iterators)> {};
+
+
+template <std::size_t I, typename... Iterators>
+struct tuple_element<I, gko::detail::zip_iterator_reference<Iterators...>> {
+    using type = typename iterator_traits<
+        typename tuple_element<I, tuple<Iterators...>>::type>::reference;
+};
+
+
+}  // namespace std
+
+
+namespace gko {
+
+
+/** std::get reimplementation for device_tuple. */
+template <std::size_t index, typename... Ts>
+constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
+get(detail::device_tuple<Ts...>& tuple);
+
+
+/** std::get reimplementation for const device_tuple. */
+template <std::size_t index, typename... Ts>
+constexpr const typename std::tuple_element<index,
+                                            detail::device_tuple<Ts...>>::type&
+get(const detail::device_tuple<Ts...>& tuple);
+
+
+namespace detail {
+
+
+/** simplified constexpr std::tuple reimplementation for use in device code. */
+template <typename T, typename... Ts>
+class device_tuple {
+public:
+    /** Constructs a device tuple from its elements. */
+    constexpr explicit device_tuple(T value, Ts... others)
+        : value_{value}, other_{others...}
+    {}
+
+    device_tuple() = default;
+
+    /**
+     * Copy-assigns a tuple.
+     * This is necessary to make tuples of references work, which normally cause
+     * the impliciy copy-assignment operator to be deleted.
+     */
+    constexpr device_tuple& operator=(const device_tuple& other)
+    {
+        value_ = other.value_;
+        other_ = other.other_;
+        return *this;
+    }
+
+    /** @return the index-th element in the tuple. */
+    template <std::size_t index>
+    constexpr typename std::tuple_element<index, device_tuple>::type& get()
+    {
+        if constexpr (index == 0) {
+            return value_;
+        } else {
+            return other_.template get<index - 1>();
+        }
+    }
+
+    /** @return the index-th element in the const tuple. */
+    template <std::size_t index>
+    constexpr const typename std::tuple_element<index, device_tuple>::type&
+    get() const
+    {
+        if constexpr (index == 0) {
+            return value_;
+        } else {
+            return other_.template get<index - 1>();
+        }
+    }
+
+    // comparison operators
+    constexpr friend bool operator<(const device_tuple& lhs,
+                                    const device_tuple& rhs)
+    {
+        return lhs.value_ < rhs.value_ ||
+               (lhs.value_ == rhs.value_ && lhs.other_ < rhs.other_);
+    }
+
+    constexpr friend bool operator>(const device_tuple& lhs,
+                                    const device_tuple& rhs)
+    {
+        return rhs < lhs;
+    }
+
+    constexpr friend bool operator>=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs < rhs);
+    }
+
+    constexpr friend bool operator<=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs > rhs);
+    }
+
+    constexpr friend bool operator==(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return lhs.value_ == rhs.value_ && lhs.other_ == rhs.other_;
+    }
+
+    constexpr friend bool operator!=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+private:
+    T value_;
+    device_tuple<Ts...> other_;
+};
+
+
+template <typename T>
+class device_tuple<T> {
+public:
+    /** Constructs a device tuple from its elements. */
+    constexpr explicit device_tuple(T value) : value_{value} {}
+
+    device_tuple() = default;
+
+    /**
+     * Copy-assigns a tuple.
+     * This is necessary to make tuples of references work, which normally cause
+     * the impliciy copy-assignment operator to be deleted.
+     */
+    constexpr device_tuple& operator=(const device_tuple& other)
+    {
+        value_ = other.value_;
+        return *this;
+    }
+
+    /** @return the index-th element in the tuple. */
+    template <std::size_t index>
+    constexpr T& get()
+    {
+        static_assert(index == 0, "invalid index");
+        return value_;
+    }
+
+    /** @return the index-th element in the const tuple. */
+    template <std::size_t index>
+    constexpr const T& get() const
+    {
+        static_assert(index == 0, "invalid index");
+        return value_;
+    }
+
+    // comparison operators
+    constexpr friend bool operator<(const device_tuple& lhs,
+                                    const device_tuple& rhs)
+    {
+        return lhs.value_ < rhs.value_;
+    }
+
+    constexpr friend bool operator>(const device_tuple& lhs,
+                                    const device_tuple& rhs)
+    {
+        return rhs < lhs;
+    }
+
+    constexpr friend bool operator>=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs < rhs);
+    }
+
+    constexpr friend bool operator<=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs > rhs);
+    }
+
+    constexpr friend bool operator==(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return lhs.value_ == rhs.value_;
+    }
+
+    constexpr friend bool operator!=(const device_tuple& lhs,
+                                     const device_tuple& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+private:
+    T value_;
+};
 
 
 /**
@@ -45,45 +275,51 @@ class zip_iterator;
  */
 template <typename... Iterators>
 class zip_iterator_reference
-    : public std::tuple<
+    : public device_tuple<
           typename std::iterator_traits<Iterators>::reference...> {
     using ref_tuple_type =
-        std::tuple<typename std::iterator_traits<Iterators>::reference...>;
+        device_tuple<typename std::iterator_traits<Iterators>::reference...>;
     using value_type =
-        std::tuple<typename std::iterator_traits<Iterators>::value_type...>;
+        device_tuple<typename std::iterator_traits<Iterators>::value_type...>;
     using index_sequence = std::index_sequence_for<Iterators...>;
 
     friend class zip_iterator<Iterators...>;
 
     template <std::size_t... idxs>
-    value_type cast_impl(std::index_sequence<idxs...>) const
+    constexpr value_type cast_impl(std::index_sequence<idxs...>) const
     {
         // gcc 5 throws error as using uninitialized array
         // std::tuple<int, char> t = { 1, '2' }; is not allowed.
         // converting to 'std::tuple<...>' from initializer list would use
         // explicit constructor
-        return value_type(std::get<idxs>(*this)...);
+        return value_type(gko::get<idxs>(*this)...);
     }
 
     template <std::size_t... idxs>
-    void assign_impl(std::index_sequence<idxs...>, const value_type& other)
+    constexpr void assign_impl(std::index_sequence<idxs...>,
+                               const value_type& other)
     {
         (void)std::initializer_list<int>{
-            (std::get<idxs>(*this) = std::get<idxs>(other), 0)...};
+            (gko::get<idxs>(*this) = gko::get<idxs>(other), 0)...};
     }
 
-    zip_iterator_reference(Iterators... it) : ref_tuple_type{*it...} {}
+    constexpr explicit zip_iterator_reference(Iterators... it)
+        : ref_tuple_type{*it...}
+    {}
 
 public:
-    operator value_type() const { return cast_impl(index_sequence{}); }
+    constexpr operator value_type() const
+    {
+        return cast_impl(index_sequence{});
+    }
 
-    zip_iterator_reference& operator=(const value_type& other)
+    constexpr zip_iterator_reference& operator=(const value_type& other)
     {
         assign_impl(index_sequence{}, other);
         return *this;
     }
 
-    value_type copy() const { return *this; }
+    constexpr value_type copy() const { return *this; }
 };
 
 
@@ -123,166 +359,170 @@ class zip_iterator {
 public:
     using difference_type = std::ptrdiff_t;
     using value_type =
-        std::tuple<typename std::iterator_traits<Iterators>::value_type...>;
+        device_tuple<typename std::iterator_traits<Iterators>::value_type...>;
     using pointer = value_type*;
     using reference = zip_iterator_reference<Iterators...>;
     using iterator_category = std::random_access_iterator_tag;
     using index_sequence = std::index_sequence_for<Iterators...>;
 
-    explicit zip_iterator() = default;
+    constexpr zip_iterator() = default;
 
-    explicit zip_iterator(Iterators... its) : iterators_{its...} {}
+    constexpr explicit zip_iterator(Iterators... its) : iterators_{its...} {}
 
-    zip_iterator& operator+=(difference_type i)
+    constexpr zip_iterator& operator+=(difference_type i)
     {
         forall([i](auto& it) { it += i; });
         return *this;
     }
 
-    zip_iterator& operator-=(difference_type i)
+    constexpr zip_iterator& operator-=(difference_type i)
     {
         forall([i](auto& it) { it -= i; });
         return *this;
     }
 
-    zip_iterator& operator++()
+    constexpr zip_iterator& operator++()
     {
         forall([](auto& it) { it++; });
         return *this;
     }
 
-    zip_iterator operator++(int)
+    constexpr zip_iterator operator++(int)
     {
         auto tmp = *this;
         ++(*this);
         return tmp;
     }
 
-    zip_iterator& operator--()
+    constexpr zip_iterator& operator--()
     {
         forall([](auto& it) { it--; });
         return *this;
     }
 
-    zip_iterator operator--(int)
+    constexpr zip_iterator operator--(int)
     {
         auto tmp = *this;
         --(*this);
         return tmp;
     }
 
-    zip_iterator operator+(difference_type i) const
+    constexpr zip_iterator operator+(difference_type i) const
     {
         auto tmp = *this;
         tmp += i;
         return tmp;
     }
 
-    friend zip_iterator operator+(difference_type i, const zip_iterator& iter)
+    constexpr friend zip_iterator operator+(difference_type i,
+                                            const zip_iterator& iter)
     {
         return iter + i;
     }
 
-    zip_iterator operator-(difference_type i) const
+    constexpr zip_iterator operator-(difference_type i) const
     {
         auto tmp = *this;
         tmp -= i;
         return tmp;
     }
 
-    difference_type operator-(const zip_iterator& other) const
+    constexpr difference_type operator-(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a - b; });
     }
 
-    reference operator*() const
+    constexpr reference operator*() const
     {
         return deref_impl(std::index_sequence_for<Iterators...>{});
     }
 
-    reference operator[](difference_type i) const { return *(*this + i); }
+    constexpr reference operator[](difference_type i) const
+    {
+        return *(*this + i);
+    }
 
-    bool operator==(const zip_iterator& other) const
+    constexpr bool operator==(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a == b; });
     }
 
-    bool operator!=(const zip_iterator& other) const
+    constexpr bool operator!=(const zip_iterator& other) const
     {
         return !(*this == other);
     }
 
-    bool operator<(const zip_iterator& other) const
+    constexpr bool operator<(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a < b; });
     }
 
-    bool operator<=(const zip_iterator& other) const
+    constexpr bool operator<=(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a <= b; });
     }
 
-    bool operator>(const zip_iterator& other) const
+    constexpr bool operator>(const zip_iterator& other) const
     {
         return !(*this <= other);
     }
 
-    bool operator>=(const zip_iterator& other) const
+    constexpr bool operator>=(const zip_iterator& other) const
     {
         return !(*this < other);
     }
 
 private:
     template <std::size_t... idxs>
-    reference deref_impl(std::index_sequence<idxs...>) const
+    constexpr reference deref_impl(std::index_sequence<idxs...>) const
     {
-        return reference{std::get<idxs>(iterators_)...};
+        return reference{get<idxs>(iterators_)...};
     }
 
     template <typename Functor>
-    void forall(Functor fn)
+    constexpr void forall(Functor fn)
     {
         forall_impl(fn, index_sequence{});
     }
 
     template <typename Functor, std::size_t... idxs>
-    void forall_impl(Functor fn, std::index_sequence<idxs...>)
+    constexpr void forall_impl(Functor fn, std::index_sequence<idxs...>)
     {
-        (void)std::initializer_list<int>{
-            (fn(std::get<idxs>(iterators_)), 0)...};
+        (void)std::initializer_list<int>{(fn(get<idxs>(iterators_)), 0)...};
     }
 
     template <typename Functor, std::size_t... idxs>
-    void forall_impl(const zip_iterator& other, Functor fn,
-                     std::index_sequence<idxs...>) const
+    constexpr void forall_impl(const zip_iterator& other, Functor fn,
+                               std::index_sequence<idxs...>) const
     {
         (void)std::initializer_list<int>{
-            (fn(std::get<idxs>(iterators_), std::get<idxs>(other.iterators_)),
-             0)...};
+            (fn(get<idxs>(iterators_), get<idxs>(other.iterators_)), 0)...};
     }
 
     template <typename Functor>
-    auto forall_check_consistent(const zip_iterator& other, Functor fn) const
+    constexpr auto forall_check_consistent(const zip_iterator& other,
+                                           Functor fn) const
     {
-        auto it = std::get<0>(iterators_);
-        auto other_it = std::get<0>(other.iterators_);
+        auto it = get<0>(iterators_);
+        auto other_it = get<0>(other.iterators_);
         auto result = fn(it, other_it);
         forall_impl(
-            other, [&](auto a, auto b) { assert(it - other_it == a - b); },
+            other, [&](auto a, auto b) { GKO_ASSERT(it - other_it == a - b); },
             index_sequence{});
         return result;
     }
 
-    std::tuple<Iterators...> iterators_;
+    device_tuple<Iterators...> iterators_;
 };
 
 
 template <typename... Iterators>
-zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(Iterators&&... it)
+constexpr zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(
+    Iterators&&... it)
 {
     return zip_iterator<std::decay_t<Iterators>...>{
         std::forward<Iterators>(it)...};
@@ -305,8 +545,8 @@ zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(Iterators&&... it)
  * @tparam Iterators  the iterator types inside the corresponding zip_iterator
  */
 template <typename... Iterators>
-void swap(zip_iterator_reference<Iterators...> a,
-          zip_iterator_reference<Iterators...> b)
+constexpr void swap(zip_iterator_reference<Iterators...> a,
+                    zip_iterator_reference<Iterators...> b)
 {
     auto tmp = a.copy();
     a = b;
@@ -318,8 +558,8 @@ void swap(zip_iterator_reference<Iterators...> a,
  * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
  */
 template <typename... Iterators>
-void swap(typename zip_iterator<Iterators...>::value_type& a,
-          zip_iterator_reference<Iterators...> b)
+constexpr void swap(typename zip_iterator<Iterators...>::value_type& a,
+                    zip_iterator_reference<Iterators...> b)
 {
     auto tmp = a;
     a = b;
@@ -331,8 +571,8 @@ void swap(typename zip_iterator<Iterators...>::value_type& a,
  * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
  */
 template <typename... Iterators>
-void swap(zip_iterator_reference<Iterators...> a,
-          typename zip_iterator<Iterators...>::value_type& b)
+constexpr void swap(zip_iterator_reference<Iterators...> a,
+                    typename zip_iterator<Iterators...>::value_type& b)
 {
     auto tmp = a.copy();
     a = b;
@@ -468,6 +708,25 @@ permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
 
 
 }  // namespace detail
+
+
+template <std::size_t index, typename... Ts>
+constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
+get(detail::device_tuple<Ts...>& tuple)
+{
+    return tuple.template get<index>();
+}
+
+
+template <std::size_t index, typename... Ts>
+constexpr const typename std::tuple_element<index,
+                                            detail::device_tuple<Ts...>>::type&
+get(const detail::device_tuple<Ts...>& tuple)
+{
+    return tuple.template get<index>();
+}
+
+
 }  // namespace gko
 
 

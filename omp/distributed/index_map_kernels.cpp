@@ -58,16 +58,15 @@ void build_mapping(
     auto sort_it = detail::make_zip_iterator(
         full_remote_part_ids.begin(), recv_connections_ptr, range_ids.begin());
     std::sort(sort_it, sort_it + input_size, [](const auto& a, const auto& b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
+        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
     });
 
     // get only unique connections
-    auto unique_end = std::unique(
-        sort_it, sort_it + input_size, [](const auto& a, const auto& b) {
-            return std::tie(std::get<0>(a), std::get<1>(a)) ==
-                   std::tie(std::get<0>(b), std::get<1>(b));
-        });
+    auto unique_end = std::unique(sort_it, sort_it + input_size,
+                                  [](const auto& a, const auto& b) {
+                                      return std::tie(get<0>(a), get<1>(a)) ==
+                                             std::tie(get<0>(b), get<1>(b));
+                                  });
     auto unique_size = std::distance(sort_it, unique_end);
 
     remote_global_idxs.resize_and_reset(unique_size);
