@@ -213,17 +213,18 @@ void cg_communicator_categorization(bool* s, sycl::nd_item<3> item_ct1)
                       group::is_group<this_block_t>::value &&
                       group::is_group<tiled_partition_t>::value,
                   "Group check doesn't work.");
-    static_assert(
-        !group::is_synchronizable_group<not_group>::value &&
-            group::is_synchronizable_group<this_block_t>::value &&
-            group::is_synchronizable_group<tiled_partition_t>::value,
-        "Synchronizable group check doesn't work.");
-    static_assert(
-        !group::is_communicator_group<not_group>::value &&
-            !group::is_communicator_group<this_block_t>::value &&
-            group::is_communicator_group<tiled_partition_t>::value,
-        "Communicator group check doesn't work.");
+    static_assert(!group::is_synchronizable_group<not_group>::value &&
+                      group::is_synchronizable_group<this_block_t>::value &&
+                      group::is_synchronizable_group<tiled_partition_t>::value,
+                  "Synchronizable group check doesn't work.");
+    static_assert(!group::is_communicator_group<not_group>::value &&
+                      !group::is_communicator_group<this_block_t>::value &&
+                      group::is_communicator_group<tiled_partition_t>::value,
+                  "Communicator group check doesn't work.");
+    // Make it work with the test framework, which performs 3 tests
     s[this_block.thread_rank()] = true;
+    s[this_block.thread_rank() + cfg::subgroup_size] = true;
+    s[this_block.thread_rank() + 2 * cfg::subgroup_size] = true;
 }
 
 GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(cg_communicator_categorization,
