@@ -80,15 +80,15 @@ TYPED_TEST(Sor, CanInitializeLFactorWithWeight)
     result->scale(
         gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
     std::shared_ptr<csr_type> expected_l =
-        gko::initialize<csr_type>({{1, 0, 0, 0, 0},
-                                   {-2, 1, 0, 0, 0},
-                                   {0, -5, 1, 0, 0},
-                                   {-3, 0, 0, 1, 0},
-                                   {-4, 0, -6, -7, 1}},
+        gko::initialize<csr_type>({{2 * this->diag_value, 0, 0, 0, 0},
+                                   {-2, 2 * this->diag_value, 0, 0, 0},
+                                   {0, -5, 2 * this->diag_value, 0, 0},
+                                   {-3, 0, 0, 2 * this->diag_value, 0},
+                                   {-4, 0, -6, -7, 2 * this->diag_value}},
                                   this->exec);
 
     gko::kernels::reference::sor::initialize_weighted_l(
-        this->exec, this->mtx.get(), this->diag_value, result.get());
+        this->exec, this->mtx.get(), 0.5f, result.get());
 
     GKO_ASSERT_MTX_NEAR(result, expected_l, r<value_type>::value);
 }
@@ -122,15 +122,16 @@ TYPED_TEST(Sor, CanInitializeLAndUFactorWithWeight)
         gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
     result_u->scale(
         gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
-    auto diag_weight = static_cast<gko::remove_complex<value_type>>(
-        1.0 / (2 - this->diag_value));
-    auto off_diag_weight = this->diag_value * diag_weight;
+    auto factor = static_cast<gko::remove_complex<value_type>>(0.5);
+    auto diag_weight =
+        static_cast<gko::remove_complex<value_type>>(1.0 / (2 - factor));
+    auto off_diag_weight = factor * diag_weight;
     std::shared_ptr<csr_type> expected_l =
-        gko::initialize<csr_type>({{1, 0, 0, 0, 0},
-                                   {-2, 1, 0, 0, 0},
-                                   {0, -5, 1, 0, 0},
-                                   {-3, 0, 0, 1, 0},
-                                   {-4, 0, -6, -7, 1}},
+        gko::initialize<csr_type>({{2 * this->diag_value, 0, 0, 0, 0},
+                                   {-2, 2 * this->diag_value, 0, 0, 0},
+                                   {0, -5, 2 * this->diag_value, 0, 0},
+                                   {-3, 0, 0, 2 * this->diag_value, 0},
+                                   {-4, 0, -6, -7, 2 * this->diag_value}},
                                   this->exec);
     std::shared_ptr<csr_type> expected_u = gko::initialize<csr_type>(
         {{this->diag_value * diag_weight, 2 * off_diag_weight, 0,
@@ -142,8 +143,7 @@ TYPED_TEST(Sor, CanInitializeLAndUFactorWithWeight)
         this->exec);
 
     gko::kernels::reference::sor::initialize_weighted_l_u(
-        this->exec, this->mtx.get(), this->diag_value, result_l.get(),
-        result_u.get());
+        this->exec, this->mtx.get(), factor, result_l.get(), result_u.get());
 
     GKO_ASSERT_MTX_NEAR(result_l, expected_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(result_u, expected_u, r<value_type>::value);
