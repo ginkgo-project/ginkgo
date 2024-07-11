@@ -330,10 +330,10 @@ struct Sor
         param.with_relaxation_factor(0.8f);
         config_map["l_solver"] = pnode{
             {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_l_solver(DummyIr::build());
+        param.with_l_solver(Ir::build());
         config_map["u_solver"] = pnode{
             {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_u_solver(DummyIr::build());
+        param.with_u_solver(Ir::build());
     }
 
     template <bool from_reg, typename AnswerType>
@@ -377,10 +377,10 @@ struct GaussSeidel
         param.with_symmetric(true);
         config_map["l_solver"] = pnode{
             {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_l_solver(DummyIr::build());
+        param.with_l_solver(Ir::build());
         config_map["u_solver"] = pnode{
             {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
-        param.with_u_solver(DummyIr::build());
+        param.with_u_solver(Ir::build());
     }
 
     template <bool from_reg, typename AnswerType>

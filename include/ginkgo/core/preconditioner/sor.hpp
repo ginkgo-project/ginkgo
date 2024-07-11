@@ -36,6 +36,8 @@ namespace preconditioner {
  * M = \frac{1}{\omega (2 - \omega)} (D + \omega L) D^{-1} (D + \omega U) ,
  * \quad 0 < \omega < 2.
  * $$
+ * A detailed description can be found in Iterative Methods for Sparse Linear
+ * Systems (Y. Saad) ch. 4.1.
  *
  * This class is a factory, which will only generate the preconditioner. The
  * resulting LinOp will represent the application of $M^{-1}$.
@@ -69,12 +71,12 @@ public:
         remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
             relaxation_factor, remove_complex<value_type>(1.2));
 
-        // factory for the lower triangular factor solver
+        // factory for the lower triangular factor solver, defaults to LowerTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             l_solver);
 
         // factory for the upper triangular factor solver, unused if symmetric
-        // is false
+        // is false, defaults to UpperTrs
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             u_solver);
     };
