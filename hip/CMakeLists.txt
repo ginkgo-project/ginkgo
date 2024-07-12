@@ -9,7 +9,6 @@ set(GINKGO_HIP_SOURCES
     base/device.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
-    base/index_set_kernels.hip.cpp
     base/memory.hip.cpp
     base/roctx.hip.cpp
     base/scoped_device_id.hip.cpp
