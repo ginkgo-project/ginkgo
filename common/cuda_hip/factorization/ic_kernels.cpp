@@ -6,17 +6,13 @@
 
 #include <ginkgo/core/base/array.hpp>
 
+#include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
-/**
- * @brief The ic factorization namespace.
- *
- * @ingroup factor
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace ic_factorization {
 
 
@@ -50,7 +46,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
                    SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
     // CUDA 11.4 has a use-after-free bug on Turing
-#if (CUDA_VERSION >= 11040)
+#if defined(GKO_COMPILING_CUDA) && (CUDA_VERSION >= 11040)
     exec->synchronize();
 #endif
 
@@ -62,6 +58,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_COMPUTE_KERNEL);
 
 
 }  // namespace ic_factorization
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
