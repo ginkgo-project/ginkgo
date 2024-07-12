@@ -16,13 +16,10 @@ set(GINKGO_HIP_SOURCES
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
-    factorization/par_ict_kernels.hip.cpp
     factorization/par_ilut_approx_filter_kernels.hip.cpp
     factorization/par_ilut_filter_kernels.hip.cpp
     factorization/par_ilut_select_common.hip.cpp
     factorization/par_ilut_select_kernels.hip.cpp
-    factorization/par_ilut_spgeam_kernels.hip.cpp
-    factorization/par_ilut_sweep_kernels.hip.cpp
     matrix/batch_csr_kernels.hip.cpp
     matrix/batch_dense_kernels.hip.cpp
     matrix/batch_ell_kernels.hip.cpp
