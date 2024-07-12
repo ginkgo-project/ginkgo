@@ -11,7 +11,6 @@ target_sources(ginkgo_cuda
     base/device.cpp
     base/exception.cpp
     base/executor.cpp
-    base/index_set_kernels.cpp
     base/memory.cpp
     base/nvtx.cpp
     base/scoped_device_id.cpp
