@@ -2,6 +2,24 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_KERNELS_HIP_HPP_
+#define GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_KERNELS_HIP_HPP_
+
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/prefix_sum.hpp"
+#include "common/cuda_hip/components/searching.hpp"
+#include "common/cuda_hip/components/sorting.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/factorization/par_ilut_config.hpp"
+#include "core/factorization/par_ilut_kernels.hpp"
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace par_ilut_factorization {
 namespace kernel {
 
 
@@ -278,3 +296,9 @@ __global__ __launch_bounds__(config::warp_size) void find_bucket(
 
 
 }  // namespace kernel
+}  // namespace par_ilut_factorization
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+#endif  // GKO_COMMON_CUDA_HIP_FACTORIZATION_PAR_ILUT_SELECT_KERNELS_HIP_HPP_
