@@ -33,6 +33,7 @@
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/atomic.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/merging.hpp"
 #include "common/cuda_hip/components/prefix_sum.hpp"
@@ -54,7 +55,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
@@ -93,7 +94,7 @@ namespace {
 template <int items_per_thread, typename MatrixValueType,
           typename InputValueType, typename OutputValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
-                     std::shared_ptr<const HipExecutor> exec,
+                     std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<MatrixValueType, IndexType>* a,
                      const matrix::Dense<InputValueType>* b,
                      matrix::Dense<OutputValueType>* c,
@@ -174,7 +175,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 
 
 template <typename ValueType, typename IndexType>
-int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
+int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
 {
 #if GINKGO_HIP_PLATFORM_NVCC
 
@@ -231,7 +232,7 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 template <int subwarp_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
-                    std::shared_ptr<const HipExecutor> exec,
+                    std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<MatrixValueType, IndexType>* a,
                     const matrix::Dense<InputValueType>* b,
                     matrix::Dense<OutputValueType>* c,
@@ -285,7 +286,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void load_balance_spmv(std::shared_ptr<const HipExecutor> exec,
+void load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Csr<MatrixValueType, IndexType>* a,
                        const matrix::Dense<InputValueType>* b,
                        matrix::Dense<OutputValueType>* c,
@@ -336,7 +337,7 @@ void load_balance_spmv(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
+bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                                 const ValueType* alpha,
                                 const matrix::Csr<ValueType, IndexType>* a,
                                 const matrix::Dense<ValueType>* b,
@@ -371,7 +372,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename = std::enable_if_t<
               !std::is_same<MatrixValueType, InputValueType>::value ||
               !std::is_same<MatrixValueType, OutputValueType>::value>>
-bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<MatrixValueType, IndexType>* a,
                         const matrix::Dense<InputValueType>* b,
                         matrix::Dense<OutputValueType>* c,
@@ -383,7 +384,7 @@ bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
 }
 
 template <typename ValueType, typename IndexType>
-bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
+bool try_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* a,
                         const matrix::Dense<ValueType>* b,
                         matrix::Dense<ValueType>* c,
@@ -409,7 +410,7 @@ bool try_sparselib_spmv(std::shared_ptr<const HipExecutor> exec,
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const HipExecutor> exec,
+void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           const matrix::Dense<InputValueType>* b,
           matrix::Dense<OutputValueType>* c)
@@ -466,7 +467,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
+void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<MatrixValueType>* alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
@@ -527,7 +528,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const HipExecutor> exec,
+void spgemm(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
@@ -600,7 +601,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
+void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Dense<ValueType>* alpha,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Csr<ValueType, IndexType>* b,
@@ -691,7 +692,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const HipExecutor> exec,
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -715,7 +716,7 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const HipExecutor> exec,
+void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
@@ -747,7 +748,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
+void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
     if (sparselib::is_supported<ValueType, IndexType>::value) {
@@ -792,6 +793,6 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
 
 
 }  // namespace csr
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
