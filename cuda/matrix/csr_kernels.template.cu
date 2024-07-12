@@ -27,6 +27,7 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
@@ -54,7 +55,7 @@
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
@@ -224,6 +225,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() *
                         classical_oversubscription;
@@ -488,7 +490,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
                            a->get_strategy())) {
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
-                // as a fall-back: use average row length
+                // as a fall-back: use average row length, at least 1
                 max_length_per_row = a->get_num_stored_elements() /
                                      std::max<size_type>(a->get_size()[0], 1);
             }
@@ -995,6 +997,6 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
 
 
 }  // namespace csr
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
