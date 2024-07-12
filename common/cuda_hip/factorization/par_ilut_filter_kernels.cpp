@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp"
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -25,7 +27,7 @@
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -34,15 +36,9 @@ namespace cuda {
 namespace par_ilut_factorization {
 
 
-constexpr int default_block_size = 512;
-
-
 // subwarp sizes for filter kernels
 using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
-
-
-#include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp.inc"
 
 
 namespace {
@@ -132,6 +128,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

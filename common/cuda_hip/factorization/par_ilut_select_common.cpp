@@ -8,7 +8,7 @@
 // clang-format on
 
 
-#include "hip/factorization/par_ilut_select_common.hip.hpp"
+#include "common/cuda_hip/factorization/par_ilut_select_common.hpp"
 
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/components/atomic.hpp"
@@ -17,22 +17,20 @@
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/sorting.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
  * @ingroup factor
  */
 namespace par_ilut_factorization {
-
-
-#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -96,6 +94,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(DECLARE_SSSS_FIND_BUCKET);
 
 
 }  // namespace par_ilut_factorization
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

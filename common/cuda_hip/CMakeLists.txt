@@ -15,6 +15,10 @@ set(CUDA_HIP_SOURCES
     factorization/par_ic_kernels.cpp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
+    factorization/par_ilut_approx_filter_kernels.cpp
+    factorization/par_ilut_filter_kernels.cpp
+    factorization/par_ilut_select_common.cpp
+    factorization/par_ilut_select_kernels.cpp
     factorization/par_ilut_spgeam_kernels.cpp
     factorization/par_ilut_sweep_kernels.cpp
     matrix/coo_kernels.cpp

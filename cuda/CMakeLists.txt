@@ -18,10 +18,6 @@ target_sources(ginkgo_cuda
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    factorization/par_ilut_approx_filter_kernels.cu
-    factorization/par_ilut_filter_kernels.cu
-    factorization/par_ilut_select_common.cu
-    factorization/par_ilut_select_kernels.cu
     matrix/batch_csr_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu
