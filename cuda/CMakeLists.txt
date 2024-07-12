@@ -18,8 +18,6 @@ target_sources(ginkgo_cuda
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    factorization/ic_kernels.cu
-    factorization/ilu_kernels.cu
     factorization/par_ict_kernels.cu
     factorization/par_ilut_approx_filter_kernels.cu
     factorization/par_ilut_filter_kernels.cu
