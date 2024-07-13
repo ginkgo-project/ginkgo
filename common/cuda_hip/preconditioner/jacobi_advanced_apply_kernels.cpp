@@ -13,7 +13,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
@@ -38,7 +38,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_apply, advanced_apply);
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
+void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
@@ -70,6 +70,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 }  // namespace jacobi
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
