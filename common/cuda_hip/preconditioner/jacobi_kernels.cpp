@@ -22,11 +22,6 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
-/**
- * @brief The Jacobi preconditioner namespace.
- * @ref Jacobi
- * @ingroup jacobi
- */
 namespace jacobi {
 
 

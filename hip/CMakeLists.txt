@@ -21,9 +21,6 @@ set(GINKGO_HIP_SOURCES
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     preconditioner/batch_jacobi_kernels.hip.cpp
-    preconditioner/jacobi_advanced_apply_kernels.hip.cpp
-    preconditioner/jacobi_generate_kernels.hip.cpp
-    preconditioner/jacobi_simple_apply_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     solver/batch_cg_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
@@ -48,33 +45,15 @@ else()
     set(GKO_HIP_JACOBI_BLOCK_SIZES 1 2 4 8 13 16 32 ${GKO_HIP_JACOBI_MAX_BLOCK_SIZE})
     list(REMOVE_DUPLICATES GKO_HIP_JACOBI_BLOCK_SIZES)
 endif()
-foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_HIP_JACOBI_BLOCK_SIZES)
-    configure_file(
-        preconditioner/jacobi_generate_kernels.instantiate.hip.cpp
-        preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
-    configure_file(
-        preconditioner/jacobi_simple_apply_kernels.instantiate.hip.cpp
-        preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
-    configure_file(
-        preconditioner/jacobi_advanced_apply_kernels.instantiate.hip.cpp
-        preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
-    # The 3D indexing used in Jacobi kernel triggers an instruction selection bug in Debug builds
-    # Probably the same as https://github.com/llvm/llvm-project/issues/67574
-    # Fixed in ROCm 6.0 https://github.com/ROCm/llvm-project/commit/cd7f574a1fd1d3f3e8b9c1cae61fa8133a51de5f
-    # and in LLVM trunk https://github.com/llvm/llvm-project/commit/cc3d2533cc2e4ea06981b86ede5087fbf801e789
-    set_source_files_properties(
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        PROPERTIES
-        COMPILE_OPTIONS $<$<CONFIG:Debug>:-O2>)
-    list(APPEND GINKGO_HIP_SOURCES
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp
-        ${CMAKE_CURRENT_BINARY_DIR}/preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.hip.cpp)
-endforeach()
-string(REPLACE ";" "," GKO_HIP_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
-configure_file(preconditioner/jacobi_common.hip.hpp.in common/cuda_hip/preconditioner/jacobi_common.hpp)
+jacobi_generated_files(GKO_HIP_JACOBI_SOURCES "${GKO_HIP_JACOBI_BLOCK_SIZES}")
+# The 3D indexing used in Jacobi kernel triggers an instruction selection bug in Debug builds
+# Probably the same as https://github.com/llvm/llvm-project/issues/67574
+# Fixed in ROCm 6.0 https://github.com/ROCm/llvm-project/commit/cd7f574a1fd1d3f3e8b9c1cae61fa8133a51de5f
+# and in LLVM trunk https://github.com/llvm/llvm-project/commit/cc3d2533cc2e4ea06981b86ede5087fbf801e789
+set_source_files_properties(${GKO_HIP_JACOBI_SOURCES} PROPERTIES COMPILE_OPTIONS $<$<CONFIG:Debug>:-O2>)
+list(APPEND GINKGO_HIP_SOURCES ${GKO_HIP_JACOBI_SOURCES})
+string(REPLACE ";" "," GKO_JACOBI_BLOCK_SIZES_CODE "${GKO_HIP_JACOBI_BLOCK_SIZES}")
+configure_file(${Ginkgo_SOURCE_DIR}/common/cuda_hip/preconditioner/jacobi_common.hpp.in common/cuda_hip/preconditioner/jacobi_common.hpp)
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES LANGUAGE HIP)
 add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES})
