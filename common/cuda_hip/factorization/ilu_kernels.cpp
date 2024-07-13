@@ -46,7 +46,7 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                     SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
     // CUDA 11.4 has a use-after-free bug on Turing
-#if defined(GKO_BUILDING_CUDA) && (CUDA_VERSION >= 11040)
+#if defined(GKO_COMPILING_CUDA) && (CUDA_VERSION >= 11040)
     exec->synchronize();
 #endif
 
