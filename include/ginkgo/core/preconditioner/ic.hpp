@@ -388,6 +388,14 @@ protected:
             }
             fact = std::shared_ptr<const LinOp>(
                 parameters_.factorization_factory->generate(lin_op));
+            // CUDA parICT seems to have some issues.
+            // We generate from omp and then copy to cuda
+            std::cout << fact->get_executor()->get_description() << std::endl;
+            if (fact->get_executor() != this->get_executor()) {
+                std::cout << "executor is different" << std::endl;
+                fact = gko::clone(this->get_executor(), fact);
+            }
+            std::cout << fact->get_executor()->get_description() << std::endl;
             // ensure that the result is a composition
             comp =
                 std::dynamic_pointer_cast<const Composition<value_type>>(fact);
@@ -454,7 +462,7 @@ protected:
     {
         if (cache_.intermediate == nullptr) {
             cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor());
+                matrix::Dense<double>::create(this->get_executor());
         }
         // Use b as the initial guess for the first triangular solve
         cache_.intermediate->copy_from(b);
