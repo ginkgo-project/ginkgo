@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
                         .with_iterations(10u)
-                        .on(exec))
+                        .on(exec->get_master()))
                 .with_l_solver_factory(
                     lower_trs::build()
                         .with_algorithm(
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
                         .with_iterations(10u)
-                        .on(exec))
+                        .on(exec->get_master()))
                 .with_l_solver_factory(
                     mixed_lower_trs::build()
                         .with_algorithm(
@@ -239,7 +239,7 @@ int main(int argc, char* argv[])
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
                         .with_iterations(10u)
-                        .on(exec))
+                        .on(exec->get_master()))
                 .with_l_solver_factory(trisolve_factory)
                 .on(exec));
         break;
@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
                         .with_iterations(10u)
-                        .on(exec))
+                        .on(exec->get_master()))
                 .with_l_solver_factory(trisolve_factory_mixed)
                 .on(exec));
         break;
