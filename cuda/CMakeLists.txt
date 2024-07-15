@@ -11,22 +11,12 @@ target_sources(ginkgo_cuda
     base/device.cpp
     base/exception.cpp
     base/executor.cpp
-    base/index_set_kernels.cpp
     base/memory.cpp
     base/nvtx.cpp
     base/scoped_device_id.cpp
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    factorization/ic_kernels.cu
-    factorization/ilu_kernels.cu
-    factorization/par_ict_kernels.cu
-    factorization/par_ilut_approx_filter_kernels.cu
-    factorization/par_ilut_filter_kernels.cu
-    factorization/par_ilut_select_common.cu
-    factorization/par_ilut_select_kernels.cu
-    factorization/par_ilut_spgeam_kernels.cu
-    factorization/par_ilut_sweep_kernels.cu
     matrix/batch_csr_kernels.cu
     matrix/batch_dense_kernels.cu
     matrix/batch_ell_kernels.cu

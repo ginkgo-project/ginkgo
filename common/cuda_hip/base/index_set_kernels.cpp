@@ -13,17 +13,7 @@
 
 namespace gko {
 namespace kernels {
-/**
- * @brief The Cuda namespace.
- *
- * @ingroup cuda
- */
-namespace cuda {
-/**
- * @brief The index_set namespace.
- *
- * @ingroup index_set
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace idx_set {
 
 
@@ -78,6 +68,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace idx_set
-}  // namespace cuda
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

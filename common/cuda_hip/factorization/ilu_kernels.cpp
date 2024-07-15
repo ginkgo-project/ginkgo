@@ -12,12 +12,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
-/**
- * @brief The ilu factorization namespace.
- *
- * @ingroup factor
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace ilu_factorization {
 
 
@@ -50,6 +45,11 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                     m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
                     SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
 
+    // CUDA 11.4 has a use-after-free bug on Turing
+#if defined(GKO_COMPILING_CUDA) && (CUDA_VERSION >= 11040)
+    exec->synchronize();
+#endif
+
     sparselib::destroy_ilu0_info(info);
     sparselib::destroy(desc);
 }
@@ -59,6 +59,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace ilu_factorization
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

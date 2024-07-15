@@ -20,18 +20,20 @@
 #include "common/cuda_hip/components/prefix_sum.hpp"
 #include "common/cuda_hip/components/sorting.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp"
+#include "common/cuda_hip/factorization/par_ilut_select_common.hpp"
+#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The parallel ILUT factorization namespace.
  *
@@ -43,10 +45,6 @@ namespace par_ilut_factorization {
 // subwarp sizes for filter kernels
 using compiled_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
-
-
-#include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp.inc"
-#include "common/cuda_hip/factorization/par_ilut_select_kernels.hpp.inc"
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
@@ -175,6 +173,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
