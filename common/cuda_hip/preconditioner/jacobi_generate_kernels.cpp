@@ -25,16 +25,8 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
-/**
- * @brief The Jacobi preconditioner namespace.
- * @ref Jacobi
- * @ingroup jacobi
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace jacobi {
-
-
-#include "common/cuda_hip/preconditioner/jacobi_generate_kernels.hpp.inc"
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,
@@ -53,7 +45,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const HipExecutor> exec,
+void generate(std::shared_ptr<const DefaultExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
@@ -81,6 +73,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace jacobi
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

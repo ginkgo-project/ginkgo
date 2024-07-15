@@ -4,15 +4,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include "common/cuda_hip/base/config.hpp"
-#include "common/cuda_hip/base/math.hpp"
-#include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/warp_blas.hpp"
-#include "core/base/extended_float.hpp"
-#include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -22,16 +13,8 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
-/**
- * @brief The Jacobi preconditioner namespace.
- * @ref Jacobi
- * @ingroup jacobi
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace jacobi {
-
-
-#include "common/cuda_hip/preconditioner/jacobi_simple_apply_kernels.hpp.inc"
 
 
 template <int warps_per_block, int max_block_size, typename ValueType,
@@ -50,7 +33,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
@@ -79,6 +62,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace jacobi
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

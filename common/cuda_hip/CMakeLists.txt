@@ -31,6 +31,9 @@ set(CUDA_HIP_SOURCES
     multigrid/pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    preconditioner/jacobi_advanced_apply_kernels.cpp
+    preconditioner/jacobi_generate_kernels.cpp
+    preconditioner/jacobi_simple_apply_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
@@ -38,5 +41,27 @@ set(CUDA_HIP_SOURCES
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
     )
+# create files for all potentially used block sizes
+foreach(GKO_JACOBI_BLOCK_SIZE RANGE 1 64)
+    configure_file(
+        preconditioner/jacobi_generate_kernels.instantiate.cpp
+        preconditioner/jacobi_generate_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp)
+    configure_file(
+        preconditioner/jacobi_simple_apply_kernels.instantiate.cpp
+        preconditioner/jacobi_simple_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp)
+    configure_file(
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.cpp
+        preconditioner/jacobi_advanced_apply_kernels.instantiate.${GKO_JACOBI_BLOCK_SIZE}.cpp)
+endforeach()
+function(jacobi_generated_files variable_name block_sizes)
+    set(${variable_name})
+    foreach(block_size IN LISTS block_sizes)
+        list(APPEND variable_name
+            ${Ginkgo_BINARY_DIR}/common/cuda_hip/preconditioner/jacobi_generate_kernels.instantiate.${block_size}.cpp
+            ${Ginkgo_BINARY_DIR}/common/cuda_hip/preconditioner/jacobi_simple_apply_kernels.instantiate.${block_size}.cpp
+            ${Ginkgo_BINARY_DIR}/common/cuda_hip/preconditioner/jacobi_advanced_apply_kernels.instantiate.${block_size}.cpp)
+    endforeach()
+    set(${variable_name} ${${variable_name}} PARENT_SCOPE)
+endfunction()
 list(TRANSFORM CUDA_HIP_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_CUDA_HIP_COMMON_SOURCES ${CUDA_HIP_SOURCES} PARENT_SCOPE)
