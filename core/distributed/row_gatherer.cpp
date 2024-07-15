@@ -93,9 +93,13 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
                     dim<2> send_size(coll_comm_->get_send_size(),
                                      b_local->get_size()[1]);
+                    auto send_size_in_bytes =
+                        sizeof(ValueType) * send_size[0] * send_size[1];
                     workspace.set_executor(mpi_exec);
-                    workspace.resize_and_reset(sizeof(ValueType) *
-                                               send_size[0] * send_size[1]);
+                    if (send_size_in_bytes > workspace.get_size()) {
+                        workspace.resize_and_reset(sizeof(ValueType) *
+                                                   send_size[0] * send_size[1]);
+                    }
                     auto send_buffer = matrix::Dense<ValueType>::create(
                         mpi_exec, send_size,
                         make_array_view(
@@ -107,7 +111,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                     auto recv_ptr = x_local->get_values();
                     auto send_ptr = send_buffer->get_values();
 
-                    mpi_exec->synchronize();
+                    b_local->get_executor()->synchronize();
                     mpi::contiguous_type type(
                         b_local->get_size()[1],
                         mpi::type_impl<ValueType>::get_type());
