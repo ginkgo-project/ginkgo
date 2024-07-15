@@ -86,7 +86,7 @@ TYPED_TEST(SolverProgress, TableWorks)
            << std::setw(default_column_width) << "implicit_sq_residual_norm"
            << '\n';
     ref_ss << std::setw(default_column_width) << 0
-           << std::setw(default_column_width) << T{0.0}
+           << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{1.0}
            << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{4.0} << '\n'
@@ -95,18 +95,16 @@ TYPED_TEST(SolverProgress, TableWorks)
            << std::setw(default_column_width) << T{0.0}
            << std::setw(default_column_width) << T{4.0}
            << std::setw(default_column_width) << T{0.0} << '\n';
+    // run the solve once so the internal vectors are initialized before
+    // attaching the logger
+    this->solver->apply(this->in, this->out->clone());
     std::stringstream ss;
     this->solver->add_logger(
         gko::log::SolverProgress::create_scalar_table_writer(ss));
 
     this->solver->apply(this->in, this->out);
 
-    // the first value of beta is uninitialized, so we need to remove it
-    std::regex first_beta("\n           0 *[()0-9.e,+-]*");
-    auto clean_str = std::regex_replace(ss.str(), first_beta, "\n           0");
-    auto clean_ref =
-        std::regex_replace(ref_ss.str(), first_beta, "\n           0");
-    ASSERT_EQ(clean_str, clean_ref);
+    ASSERT_EQ(ss.str(), ref_ss.str());
 }
 
 
@@ -119,21 +117,20 @@ TYPED_TEST(SolverProgress, CsvWorks)
            << this->out.get() << ") of dimensions " << this->solver->get_size()
            << " and " << this->in->get_size()[1] << " rhs\n";
     ref_ss << "Iteration;beta;prev_rho;rho;implicit_sq_residual_norm" << '\n';
-    ref_ss << 0 << ';' << T{0.0} << ';' << T{1.0} << ';' << T{4.0} << ';'
+    ref_ss << 0 << ';' << T{4.0} << ';' << T{1.0} << ';' << T{4.0} << ';'
            << T{4.0} << '\n'
            << 1 << ';' << T{4.0} << ';' << T{0.0} << ';' << T{4.0} << ';'
            << T{0.0} << '\n';
+    // run the solve once so the internal vectors are initialized before
+    // attaching the logger
+    this->solver->apply(this->in, this->out->clone());
     std::stringstream ss;
     this->solver->add_logger(
         gko::log::SolverProgress::create_scalar_csv_writer(ss, 6, ';'));
 
     this->solver->apply(this->in, this->out);
 
-    // the first value of beta is uninitialized, so we need to remove it
-    std::regex first_beta("\n0;[^;]*");
-    auto clean_str = std::regex_replace(ss.str(), first_beta, "\n0;");
-    auto clean_ref = std::regex_replace(ref_ss.str(), first_beta, "\n0;");
-    ASSERT_EQ(clean_str, clean_ref);
+    ASSERT_EQ(ss.str(), ref_ss.str());
 }
 
 
@@ -171,6 +168,9 @@ TYPED_TEST(SolverProgress, StorageWorks)
         {"solver_progress_test_initial_guess", orig_out.get()},
         {"solver_progress_test_rhs", this->in.get()},
         {"solver_progress_test_system_matrix", this->mtx.get()}};
+    // run the solve once so the internal vectors are initialized before
+    // attaching the logger
+    this->solver->apply(this->in, this->out->clone());
     this->solver->add_logger(gko::log::SolverProgress::create_vector_storage(
         "solver_progress_test", false));
     this->solver->add_logger(gko::log::SolverProgress::create_vector_storage(
