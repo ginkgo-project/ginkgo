@@ -14,6 +14,7 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/distributed/matrix_kernels.hpp"
+#include "ginkgo/core/base/mtx_io.hpp"
 
 
 namespace gko {
@@ -263,14 +264,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
 
     // set up LinOp sizes
-    auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
     auto global_num_rows = row_partition->get_size();
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
     this->set_size(global_dim);
 
+    device_matrix_data<value_type, global_index_type> all_data{exec};
     if (assembly_type == assembly::communicate) {
-        array<comm_index_type> overlap_count{exec, num_parts};
+        array<comm_index_type> overlap_count{exec, comm.size()};
         overlap_count.fill(0);
         auto tmp_part = make_temporary_clone(exec, row_partition);
         exec->run(matrix::make_count_overlap_entries(
@@ -278,10 +279,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
         overlap_count.set_executor(exec->get_master());
         std::vector<comm_index_type> overlap_send_sizes(
-            overlap_count.get_data(), overlap_count.get_data() + num_parts);
-        std::vector<comm_index_type> overlap_send_offsets(num_parts + 1);
-        std::vector<comm_index_type> overlap_recv_sizes(num_parts);
-        std::vector<comm_index_type> overlap_recv_offsets(num_parts + 1);
+            overlap_count.get_data(), overlap_count.get_data() + comm.size());
+        std::vector<comm_index_type> overlap_send_offsets(comm.size() + 1);
+        std::vector<comm_index_type> overlap_recv_sizes(comm.size());
+        std::vector<comm_index_type> overlap_recv_offsets(comm.size() + 1);
 
         std::partial_sum(overlap_send_sizes.begin(), overlap_send_sizes.end(),
                          overlap_send_offsets.begin() + 1);
@@ -301,7 +302,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         array<global_index_type> overlap_recv_col_idxs{exec, n_recv};
         array<value_type> overlap_recv_values{exec, n_recv};
         auto offset_array =
-            make_const_array_view(exec->get_master(), num_parts + 1,
+            make_const_array_view(exec->get_master(), comm.size() + 1,
                                   overlap_send_offsets.data())
                 .copy_to_array();
         offset_array.set_executor(exec);
@@ -337,6 +338,26 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
             overlap_recv_col_idxs.set_executor(exec);
             overlap_recv_values.set_executor(exec);
         }
+
+        size_type n_nnz = data.get_num_stored_elements();
+        array<global_index_type> all_row_idxs{exec, n_nnz + n_recv};
+        array<global_index_type> all_col_idxs{exec, n_nnz + n_recv};
+        array<value_type> all_values{exec, n_nnz + n_recv};
+        exec->copy_from(exec, n_nnz, data.get_const_row_idxs(),
+                        all_row_idxs.get_data());
+        exec->copy_from(exec, n_recv, overlap_recv_row_idxs.get_data(),
+                        all_row_idxs.get_data() + n_nnz);
+        exec->copy_from(exec, n_nnz, data.get_const_col_idxs(),
+                        all_col_idxs.get_data());
+        exec->copy_from(exec, n_recv, overlap_recv_col_idxs.get_data(),
+                        all_col_idxs.get_data() + n_nnz);
+        exec->copy_from(exec, n_nnz, data.get_const_values(),
+                        all_values.get_data());
+        exec->copy_from(exec, n_recv, overlap_recv_values.get_data(),
+                        all_values.get_data() + n_nnz);
+        all_data = device_matrix_data<value_type, global_index_type>{
+            exec, global_dim, all_row_idxs, all_col_idxs, all_values};
+        all_data.sum_duplicates();
     }
 
     // temporary storage for the output
@@ -352,7 +373,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     // as well as the rows of the non-local block. The columns of the non-local
     // block are still in global indices.
     exec->run(matrix::make_separate_local_nonlocal(
-        data, make_temporary_clone(exec, row_partition).get(),
+        assembly_type == assembly::communicate ? all_data : data,
+        make_temporary_clone(exec, row_partition).get(),
         make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         global_non_local_col_idxs, non_local_values));
