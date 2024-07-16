@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
-add_instantiation_files(. matrix/csr_kernels.instantiate.cu CSR_INSTANTIATE)
+add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/csr_kernels.instantiate.cpp CSR_INSTANTIATE)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kernels.instantiate.cpp FBCSR_INSTANTIATE)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
@@ -41,7 +41,7 @@ else()
 endif()
 jacobi_generated_files(GKO_CUDA_JACOBI_SOURCES "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
 # override the default language mapping for the common files, set them to CUDA
-foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES GKO_CUDA_JACOBI_SOURCES FBCSR_INSTANTIATE)
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES GKO_CUDA_JACOBI_SOURCES CSR_INSTANTIATE FBCSR_INSTANTIATE)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})
