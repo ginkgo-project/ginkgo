@@ -17,6 +17,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/array.hpp"
+#include "ginkgo/core/base/types.hpp"
 
 
 namespace {
@@ -184,6 +186,85 @@ protected:
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
+
+
+TYPED_TEST(Matrix, CountOverlapEntries)
+{
+    using lit = typename TestFixture::local_index_type;
+    using git = typename TestFixture::global_index_type;
+    using vt = typename TestFixture::value_type;
+    using ca = gko::array<comm_index_type>;
+    this->mapping = {this->ref, {1, 0, 2, 2, 0, 1, 1}};
+    std::vector<ca> overlap_count_ref{
+        ca{this->ref, I<comm_index_type>{0, 5, 3}},
+        ca{this->ref, I<comm_index_type>{4, 0, 3}},
+        ca{this->ref, I<comm_index_type>{4, 5, 0}}};
+    comm_index_type num_parts = 3;
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    auto input = this->create_input_full_rank();
+
+    gko::array<comm_index_type> overlap_count{
+        this->ref, static_cast<gko::size_type>(num_parts)};
+    for (gko::size_type i = 0; i < num_parts; i++) {
+        overlap_count.fill(0);
+        gko::kernels::reference::distributed_matrix::count_overlap_entries(
+            this->ref, input, partition.get(), i, overlap_count);
+        GKO_ASSERT_ARRAY_EQ(overlap_count, overlap_count_ref[i]);
+    }
+}
+
+
+TYPED_TEST(Matrix, FillOverlapSendBuffers)
+{
+    using lit = typename TestFixture::local_index_type;
+    using git = typename TestFixture::global_index_type;
+    using vt = typename TestFixture::value_type;
+    using ca = gko::array<comm_index_type>;
+    using ga = gko::array<git>;
+    using va = gko::array<vt>;
+    this->mapping = {this->ref, {1, 0, 2, 2, 0, 1, 1}};
+    std::vector<ca> overlap_offsets{
+        ca{this->ref, I<comm_index_type>{0, 0, 5, 8}},
+        ca{this->ref, I<comm_index_type>{0, 4, 4, 7}},
+        ca{this->ref, I<comm_index_type>{0, 4, 9, 9}}};
+    std::vector<ga> overlap_row_idxs_ref{
+        ga{this->ref, I<git>{0, 0, 5, 5, 6, 2, 3, 3}},
+        ga{this->ref, I<git>{1, 1, 4, 4, 2, 3, 3}},
+        ga{this->ref, I<git>{1, 1, 4, 4, 0, 0, 5, 5, 6}}};
+    std::vector<ga> overlap_col_idxs_ref{
+        ga{this->ref, I<git>{0, 3, 4, 5, 5, 2, 0, 3}},
+        ga{this->ref, I<git>{1, 2, 4, 6, 2, 0, 3}},
+        ga{this->ref, I<git>{1, 2, 4, 6, 0, 3, 4, 5, 5}}};
+    std::vector<va> overlap_values_ref{
+        va{this->ref, I<vt>{1, 2, 10, 11, 12, 5, 6, 7}},
+        va{this->ref, I<vt>{3, 4, 8, 9, 5, 6, 7}},
+        va{this->ref, I<vt>{3, 4, 8, 9, 1, 2, 10, 11, 12}}};
+    comm_index_type num_parts = 3;
+    auto partition =
+        gko::experimental::distributed::Partition<lit, git>::build_from_mapping(
+            this->ref, this->mapping, num_parts);
+    auto input = this->create_input_full_rank();
+
+    gko::array<git> overlap_row_idxs{this->ref};
+    gko::array<git> overlap_col_idxs{this->ref};
+    gko::array<vt> overlap_values{this->ref};
+    for (gko::size_type i = 0; i < num_parts; i++) {
+        overlap_row_idxs.resize_and_reset(
+            overlap_offsets[i].get_data()[num_parts]);
+        overlap_col_idxs.resize_and_reset(
+            overlap_offsets[i].get_data()[num_parts]);
+        overlap_values.resize_and_reset(
+            overlap_offsets[i].get_data()[num_parts]);
+        gko::kernels::reference::distributed_matrix::fill_overlap_send_buffers(
+            this->ref, input, partition.get(), i, overlap_offsets[i],
+            overlap_row_idxs, overlap_col_idxs, overlap_values);
+        GKO_ASSERT_ARRAY_EQ(overlap_row_idxs, overlap_row_idxs_ref[i]);
+        GKO_ASSERT_ARRAY_EQ(overlap_col_idxs, overlap_col_idxs_ref[i]);
+        GKO_ASSERT_ARRAY_EQ(overlap_values, overlap_values_ref[i]);
+    }
+}
 
 
 TYPED_TEST(Matrix, SeparateLocalNonLocalEmpty)
