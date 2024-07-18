@@ -9,7 +9,7 @@
 #include <ginkgo/config.hpp>
 
 
-#if GINKGO_BUILD_MPI
+#if GINKGO_BUILD_MPI && !GINKGO_HAVE_OPENMPI_PRE_4_1_X
 
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
