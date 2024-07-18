@@ -131,6 +131,7 @@ if(GINKGO_BUILD_MPI)
         PRIVATE
         mpi/exception.cpp
         distributed/collective_communicator.cpp
+        distributed/dense_communicator.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp
