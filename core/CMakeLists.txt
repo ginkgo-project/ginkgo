@@ -134,9 +134,13 @@ if(GINKGO_BUILD_MPI)
         distributed/dense_communicator.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
-        distributed/neighborhood_communicator.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
+    if(NOT GINKGO_HAVE_OPENMPI_PRE_4_1_X)
+        target_sources(${ginkgo_core}
+            PRIVATE
+            distributed/neighborhood_communicator.cpp)
+    endif()
 endif()
 
 # MSVC/shared: make ginkgo be the major library
