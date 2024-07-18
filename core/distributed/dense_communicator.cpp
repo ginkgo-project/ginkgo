@@ -9,13 +9,22 @@ namespace experimental {
 namespace mpi {
 
 
+size_type get_comm_size_safe(const communicator& comm)
+{
+    if (comm.get() == MPI_COMM_NULL) {
+        return 0;
+    }
+    return comm.size();
+}
+
+
 DenseCommunicator::DenseCommunicator(communicator base)
     : CollectiveCommunicator(base),
       comm_(base),
-      recv_sizes_(comm_.size()),
-      recv_offsets_(comm_.size() + 1),
-      send_sizes_(comm_.size()),
-      send_offsets_(comm_.size() + 1)
+      recv_sizes_(get_comm_size_safe(comm_)),
+      recv_offsets_(get_comm_size_safe(comm_) + 1),
+      send_sizes_(get_comm_size_safe(comm_)),
+      send_offsets_(get_comm_size_safe(comm_) + 1)
 {}
 
 
@@ -60,6 +69,30 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_DENSE_CONSTRUCTOR);
 #undef GKO_DECLARE_DENSE_CONSTRUCTOR
 
 
+DenseCommunicator::DenseCommunicator(DenseCommunicator&& other)
+    : DenseCommunicator(other.get_base_communicator())
+{
+    *this = std::move(other);
+}
+
+
+DenseCommunicator& DenseCommunicator::operator=(DenseCommunicator&& other)
+{
+    if (this != &other) {
+        comm_ = std::exchange(other.comm_, MPI_COMM_NULL);
+        send_sizes_ =
+            std::exchange(other.send_sizes_, std::vector<comm_index_type>{});
+        send_offsets_ =
+            std::exchange(other.send_offsets_, std::vector<comm_index_type>{0});
+        recv_sizes_ =
+            std::exchange(other.recv_sizes_, std::vector<comm_index_type>{});
+        recv_offsets_ =
+            std::exchange(other.recv_offsets_, std::vector<comm_index_type>{0});
+    }
+    return *this;
+}
+
+
 DenseCommunicator::DenseCommunicator(
     communicator base, const std::vector<comm_index_type>& recv_sizes,
     const std::vector<comm_index_type>& recv_offsets,
@@ -74,11 +107,9 @@ DenseCommunicator::DenseCommunicator(
 {}
 
 
-request DenseCommunicator::i_all_to_all_v(std::shared_ptr<const Executor> exec,
-                                          const void* send_buffer,
-                                          MPI_Datatype send_type,
-                                          void* recv_buffer,
-                                          MPI_Datatype recv_type) const
+request DenseCommunicator::i_all_to_all_v_impl(
+    std::shared_ptr<const Executor> exec, const void* send_buffer,
+    MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
 {
 #ifdef GINKGO_HAVE_OPENMPI_PRE_4_1_X
     comm_.all_to_all_v(exec, send_buffer, send_sizes_.data(),
@@ -122,6 +153,21 @@ comm_index_type DenseCommunicator::get_recv_size() const
 comm_index_type DenseCommunicator::get_send_size() const
 {
     return send_offsets_.back();
+}
+
+
+bool operator==(const DenseCommunicator& a, const DenseCommunicator& b)
+{
+    return (a.comm_.is_identical(b.comm_) || a.comm_.is_congruent(b.comm_)) &&
+           a.send_sizes_ == b.send_sizes_ && a.recv_sizes_ == b.recv_sizes_ &&
+           a.send_offsets_ == b.send_offsets_ &&
+           a.recv_offsets_ == b.recv_offsets_;
+}
+
+
+bool operator!=(const DenseCommunicator& a, const DenseCommunicator& b)
+{
+    return !(a == b);
 }
 
 

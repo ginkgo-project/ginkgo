@@ -21,6 +21,15 @@ const communicator& CollectiveCommunicator::get_base_communicator() const
 }
 
 
+request CollectiveCommunicator::i_all_to_all_v(
+    std::shared_ptr<const Executor> exec, const void* send_buffer,
+    MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
+{
+    return this->i_all_to_all_v_impl(std::move(exec), send_buffer, send_type,
+                                     recv_buffer, recv_type);
+}
+
+
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko

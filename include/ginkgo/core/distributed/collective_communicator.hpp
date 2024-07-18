@@ -36,8 +36,9 @@ public:
     /**
      * Non-blocking all-to-all communication.
      *
-     * The send_buffer must have size get_send_size, and the recv_buffer
-     * must have size get_recv_size.
+     * The send_buffer must have allocated at least get_send_size number of
+     * elements, and the recv_buffer must have allocated at least get_recv_size
+     * number of elements.
      *
      * @tparam SendType  the type of the elements to send
      * @tparam RecvType  the type of the elements to receive
@@ -47,23 +48,17 @@ public:
      * @return  a request handle
      */
     template <typename SendType, typename RecvType>
-    request i_all_to_all_v(std::shared_ptr<const Executor> exec,
-                           const SendType* send_buffer,
-                           RecvType* recv_buffer) const
-    {
-        return this->i_all_to_all_v(
-            std::move(exec), send_buffer, type_impl<SendType>::get_type(),
-            recv_buffer, type_impl<RecvType>::get_type());
-    }
+    [[nodiscard]] request i_all_to_all_v(std::shared_ptr<const Executor> exec,
+                                         const SendType* send_buffer,
+                                         RecvType* recv_buffer) const;
 
     /**
      * @copydoc i_all_to_all_v(std::shared_ptr<const Executor>, const SendType*
      *          send_buffer, RecvType* recv_buffer)
      */
-    virtual request i_all_to_all_v(std::shared_ptr<const Executor> exec,
-                                   const void* send_buffer,
-                                   MPI_Datatype send_type, void* recv_buffer,
-                                   MPI_Datatype recv_type) const = 0;
+    request i_all_to_all_v(std::shared_ptr<const Executor> exec,
+                           const void* send_buffer, MPI_Datatype send_type,
+                           void* recv_buffer, MPI_Datatype recv_type) const;
 
     /**
      * Creates a new collective_communicator with the same dynamic type.
@@ -103,9 +98,27 @@ public:
      */
     [[nodiscard]] virtual comm_index_type get_send_size() const = 0;
 
+protected:
+    virtual request i_all_to_all_v_impl(std::shared_ptr<const Executor> exec,
+                                        const void* send_buffer,
+                                        MPI_Datatype send_type,
+                                        void* recv_buffer,
+                                        MPI_Datatype recv_type) const = 0;
+
 private:
     communicator base_;
 };
+
+
+template <typename SendType, typename RecvType>
+request CollectiveCommunicator::i_all_to_all_v(
+    std::shared_ptr<const Executor> exec, const SendType* send_buffer,
+    RecvType* recv_buffer) const
+{
+    return this->i_all_to_all_v(std::move(exec), send_buffer,
+                                type_impl<SendType>::get_type(), recv_buffer,
+                                type_impl<RecvType>::get_type());
+}
 
 
 }  // namespace mpi

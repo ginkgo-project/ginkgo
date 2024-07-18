@@ -533,11 +533,18 @@ public:
     /**
      * Checks if the rhs communicator is identical to this communicator.
      *
+     * @note If MPI_COMM_NULL is the underlying MPI_COMM of this, then the
+     *       communicator is equal to rhs, iff MPI_COMM_NULL is also the
+     *       underlying MPI_COMM of rhs.
+     *
      * @return  true if rhs is identical to this
      */
     bool is_identical(const communicator& rhs) const
     {
-        if (!get() || !rhs.get()) {
+        if (get() == nullptr || rhs.get() == nullptr) {
+            return get() == rhs.get();
+        }
+        if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
         int flag;
@@ -551,11 +558,18 @@ public:
      * Congruent communicators are defined as having identical rank members and
      * rank ordering.
      *
+     * @note If MPI_COMM_NULL is the underlying MPI_COMM of this, then the
+     *       communicator is congruent to rhs, iff MPI_COMM_NULL is also the
+     *       underlying MPI_COMM of rhs.
+     *
      * @return  true if rhs is congruent to this
      */
     bool is_congruent(const communicator& rhs) const
     {
         if (!get() || !rhs.get()) {
+            return get() == rhs.get();
+        }
+        if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
         int flag;
