@@ -113,7 +113,7 @@ struct is_synchronizable_group_impl : std::false_type {};
 
 
 template <typename T>
-struct is_communicator_group_impl : std::true_type {};
+struct is_communicator_group_impl : std::false_type {};
 
 }  // namespace detail
 
