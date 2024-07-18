@@ -89,14 +89,14 @@ std::unique_ptr<CollectiveCommunicator>
 NeighborhoodCommunicator::create_inverse() const
 {
     auto base_comm = this->get_base_communicator();
-    distributed::comm_index_type num_sources;
-    distributed::comm_index_type num_destinations;
-    distributed::comm_index_type weighted;
+    comm_index_type num_sources;
+    comm_index_type num_destinations;
+    comm_index_type weighted;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors_count(
         comm_.get(), &num_sources, &num_destinations, &weighted));
 
-    std::vector<distributed::comm_index_type> sources(num_sources);
-    std::vector<distributed::comm_index_type> destinations(num_destinations);
+    std::vector<comm_index_type> sources(num_sources);
+    std::vector<comm_index_type> destinations(num_destinations);
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors(
         comm_.get(), num_sources, sources.data(), MPI_UNWEIGHTED,
         num_destinations, destinations.data(), MPI_UNWEIGHTED));
@@ -120,10 +120,10 @@ comm_index_type NeighborhoodCommunicator::get_send_size() const
 
 
 NeighborhoodCommunicator::NeighborhoodCommunicator(
-    communicator base, const std::vector<distributed::comm_index_type>& sources,
+    communicator base, const std::vector<comm_index_type>& sources,
     const std::vector<comm_index_type>& recv_sizes,
     const std::vector<comm_index_type>& recv_offsets,
-    const std::vector<distributed::comm_index_type>& destinations,
+    const std::vector<comm_index_type>& destinations,
     const std::vector<comm_index_type>& send_sizes,
     const std::vector<comm_index_type>& send_offsets)
     : CollectiveCommunicator(base), comm_(MPI_COMM_NULL)
@@ -138,24 +138,27 @@ NeighborhoodCommunicator::NeighborhoodCommunicator(
 
 NeighborhoodCommunicator::NeighborhoodCommunicator(communicator base)
     : CollectiveCommunicator(std::move(base)),
-      comm_(MPI_COMM_SELF),
-      send_sizes_(),
+      comm_(MPI_COMM_NULL),
       send_offsets_(1),
-      recv_sizes_(),
       recv_offsets_(1)
 {
-    // ensure that comm_ always has the correct topology
-    std::vector<comm_index_type> non_nullptr(1);
-    non_nullptr.resize(0);
-    comm_ = create_neighborhood_comm(this->get_base_communicator(), non_nullptr,
-                                     non_nullptr);
+    if (this->get_base_communicator().get() != MPI_COMM_NULL) {
+        // ensure that comm_ always has the correct topology
+        std::vector<comm_index_type> non_nullptr(1);
+        non_nullptr.resize(0);
+        comm_ = create_neighborhood_comm(this->get_base_communicator(),
+                                         non_nullptr, non_nullptr);
+    }
 }
 
 
-request NeighborhoodCommunicator::i_all_to_all_v(
+request NeighborhoodCommunicator::i_all_to_all_v_impl(
     std::shared_ptr<const Executor> exec, const void* send_buffer,
     MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
 {
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+    GKO_NOT_IMPLEMENTED;
+#else
     auto guard = exec->get_scoped_device_id_guard();
     request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
@@ -163,6 +166,7 @@ request NeighborhoodCommunicator::i_all_to_all_v(
         recv_buffer, recv_sizes_.data(), recv_offsets_.data(), recv_type,
         comm_.get(), req.get()));
     return req;
+#endif
 }
 
 
@@ -179,12 +183,55 @@ NeighborhoodCommunicator::create_with_same_type(
 }
 
 
+NeighborhoodCommunicator::NeighborhoodCommunicator(
+    NeighborhoodCommunicator&& other)
+    : NeighborhoodCommunicator(other.get_base_communicator())
+{
+    *this = std::move(other);
+}
+
+
+NeighborhoodCommunicator& NeighborhoodCommunicator::operator=(
+    NeighborhoodCommunicator&& other)
+{
+    if (this != &other) {
+        comm_ = std::exchange(other.comm_, MPI_COMM_NULL);
+        send_sizes_ =
+            std::exchange(other.send_sizes_, std::vector<comm_index_type>{});
+        send_offsets_ =
+            std::exchange(other.send_offsets_, std::vector<comm_index_type>{0});
+        recv_sizes_ =
+            std::exchange(other.recv_sizes_, std::vector<comm_index_type>{});
+        recv_offsets_ =
+            std::exchange(other.recv_offsets_, std::vector<comm_index_type>{0});
+    }
+    return *this;
+}
+
+
+bool operator==(const NeighborhoodCommunicator& a,
+                const NeighborhoodCommunicator& b)
+{
+    return (a.comm_.is_identical(b.comm_) || a.comm_.is_congruent(b.comm_)) &&
+           a.send_sizes_ == b.send_sizes_ && a.recv_sizes_ == b.recv_sizes_ &&
+           a.send_offsets_ == b.send_offsets_ &&
+           a.recv_offsets_ == b.recv_offsets_;
+}
+
+
+bool operator!=(const NeighborhoodCommunicator& a,
+                const NeighborhoodCommunicator& b)
+{
+    return !(a == b);
+}
+
+
 template <typename LocalIndexType, typename GlobalIndexType>
 NeighborhoodCommunicator::NeighborhoodCommunicator(
     communicator base,
     const distributed::index_map<LocalIndexType, GlobalIndexType>& imap)
     : CollectiveCommunicator(base),
-      comm_(MPI_COMM_SELF),
+      comm_(MPI_COMM_NULL),
       recv_sizes_(imap.get_remote_target_ids().get_size()),
       recv_offsets_(recv_sizes_.size() + 1),
       send_offsets_(1)
