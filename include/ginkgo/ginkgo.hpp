@@ -60,6 +60,7 @@
 
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
+#include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/index_map_fwd.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
