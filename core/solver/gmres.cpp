@@ -154,8 +154,9 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // orthogonalize against krylov_bases(:, i):
         // hessenberg(i, restart_iter) = next_krylov' * krylov_bases(:,
-        // i) next_krylov -= hessenberg(i, restart_iter) *
-        // krylov_bases(:, i)
+        // i)
+        // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
+        // i)
         auto hessenberg_entry = hessenberg_iter->create_submatrix(
             span{0, 1}, span{i * num_rhs, (i + 1) * num_rhs});
         auto krylov_basis = ::gko::detail::create_submatrix_helper(
@@ -185,9 +186,10 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
     auto exec = hessenberg_iter->get_executor();
     const auto comm = next_krylov->get_communicator();
     exec->synchronize();
-    // hessenberg_iter is the size of all non-zeros for this iteration -- but we
-    // are not setting the last values for each rhs (values that would be below
-    // the diagonal in the "full" matrix.
+    // hessenberg_iter is the size of all non-zeros for this iteration, but we
+    // are not setting the last values for each rhs here. Values that would be
+    // below the diagonal in the "full" matrix are skipped, because they will
+    // be used to hold the norm of next_krylov for each rhs.
     auto hessenberg_reduce = hessenberg_iter->create_submatrix(
         span{0, 1}, span{0, num_rhs * (restart_iter + 1)});
     if (experimental::mpi::requires_host_buffer(exec, comm)) {
