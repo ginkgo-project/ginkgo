@@ -240,7 +240,7 @@ if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
-set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
+set(GINKGO_HAVE_OPENMPI_PRE_4_1_X OFF)
 if(GINKGO_BUILD_MPI)
     find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
     if(GINKGO_FORCE_GPU_AWARE_MPI)
@@ -265,12 +265,14 @@ if(GINKGO_BUILD_MPI)
         )
         if(NOT valid_openmpi_version)
             message(WARNING
-                "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
+                "OpenMPI v4.0.x has several bugs that forces us to use non-optimal communication in our distributed "
                 "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
                 "switch to a different vendor.")
-            set(GINKGO_FORCE_SPMV_BLOCKING_COMM ON)
+            set(GINKGO_HAVE_OPENMPI_PRE_4_1_X ON)
         endif()
+        unset(valid_openmpi_version)
     endif()
+    unset(uses_openmpi)
 endif()
 
 # Try to find the third party packages before using our subdirectories
