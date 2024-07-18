@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GINKGO_PARTITION_HPP
-#define GINKGO_PARTITION_HPP
+#ifndef GKO_CORE_DISTRIBUTED_PARTITION_HPP
+#define GKO_CORE_DISTRIBUTED_PARTITION_HPP
 
 #include <ginkgo/core/distributed/partition.hpp>
 
@@ -89,4 +89,4 @@ to_device_const(
 }  // namespace gko
 
 
-#endif  // GINKGO_PARTITION_HPP
+#endif  // GKO_CORE_DISTRIBUTED_PARTITION_HPP

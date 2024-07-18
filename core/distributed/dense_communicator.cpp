@@ -60,6 +60,27 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_DENSE_CONSTRUCTOR);
 #undef GKO_DECLARE_DENSE_CONSTRUCTOR
 
 
+DenseCommunicator::DenseCommunicator(DenseCommunicator&& other) noexcept
+    : DenseCommunicator(other.get_base_communicator())
+{
+    *this = std::move(other);
+}
+
+
+DenseCommunicator& DenseCommunicator::operator=(
+    DenseCommunicator&& other) noexcept
+{
+    if (this != &other) {
+        *this = other;
+        std::fill(other.send_sizes_.begin(), other.send_sizes_.end(), 0);
+        std::fill(other.send_offsets_.begin(), other.send_offsets_.end(), 0);
+        std::fill(other.recv_sizes_.begin(), other.recv_sizes_.end(), 0);
+        std::fill(other.recv_offsets_.begin(), other.recv_offsets_.end(), 0);
+    }
+    return *this;
+}
+
+
 DenseCommunicator::DenseCommunicator(
     communicator base, const std::vector<comm_index_type>& recv_sizes,
     const std::vector<comm_index_type>& recv_offsets,
@@ -122,6 +143,28 @@ comm_index_type DenseCommunicator::get_recv_size() const
 comm_index_type DenseCommunicator::get_send_size() const
 {
     return send_offsets_.back();
+}
+
+
+bool operator==(const DenseCommunicator& a, const DenseCommunicator& b)
+{
+    return (a.comm_.is_identical(b.comm_) || a.comm_.is_congruent(b.comm_)) &&
+           a.send_sizes_.size() == b.send_sizes_.size() &&
+           a.recv_sizes_.size() == b.recv_sizes_.size() &&
+           std::equal(a.send_sizes_.begin(), a.send_sizes_.end(),
+                      b.send_sizes_.begin()) &&
+           std::equal(a.recv_sizes_.begin(), a.recv_sizes_.end(),
+                      b.recv_sizes_.begin()) &&
+           std::equal(a.send_offsets_.begin(), a.send_offsets_.end(),
+                      b.send_offsets_.begin()) &&
+           std::equal(a.recv_offsets_.begin(), a.recv_offsets_.end(),
+                      b.recv_offsets_.begin());
+}
+
+
+bool operator!=(const DenseCommunicator& a, const DenseCommunicator& b)
+{
+    return !(a == b);
 }
 
 

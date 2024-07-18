@@ -36,8 +36,9 @@ public:
     /**
      * Non-blocking all-to-all communication.
      *
-     * The send_buffer must have size get_send_size, and the recv_buffer
-     * must have size get_recv_size.
+     * The send_buffer must have allocated at least get_send_size number of
+     * elements, and the recv_buffer must have allocated at least get_recv_size
+     * number of elements.
      *
      * @tparam SendType  the type of the elements to send
      * @tparam RecvType  the type of the elements to receive

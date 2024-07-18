@@ -156,6 +156,9 @@ request NeighborhoodCommunicator::i_all_to_all_v(
     std::shared_ptr<const Executor> exec, const void* send_buffer,
     MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
 {
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+    GKO_NOT_IMPLEMENTED;
+#else
     auto guard = exec->get_scoped_device_id_guard();
     request req;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
@@ -163,6 +166,7 @@ request NeighborhoodCommunicator::i_all_to_all_v(
         recv_buffer, recv_sizes_.data(), recv_offsets_.data(), recv_type,
         comm_.get(), req.get()));
     return req;
+#endif
 }
 
 
@@ -176,6 +180,61 @@ NeighborhoodCommunicator::create_with_same_type(
                 new NeighborhoodCommunicator(base, imap));
         },
         imap);
+}
+
+
+NeighborhoodCommunicator::NeighborhoodCommunicator(
+    NeighborhoodCommunicator&& other) noexcept
+    : NeighborhoodCommunicator(other.get_base_communicator())
+{
+    *this = std::move(other);
+}
+
+
+NeighborhoodCommunicator& NeighborhoodCommunicator::operator=(
+    NeighborhoodCommunicator&& other) noexcept
+{
+    if (this != &other) {
+        comm_ = std::exchange(other.comm_, MPI_COMM_SELF);
+        // set topology for other comm
+        std::vector<comm_index_type> non_nullptr(1);
+        non_nullptr.resize(0);
+        other.comm_ = create_neighborhood_comm(this->get_base_communicator(),
+                                               non_nullptr, non_nullptr);
+        send_sizes_ = std::exchange(
+            other.send_sizes_, std::vector<distributed::comm_index_type>{});
+        send_offsets_ = std::exchange(
+            other.send_offsets_, std::vector<distributed::comm_index_type>{0});
+        recv_sizes_ = std::exchange(
+            other.recv_sizes_, std::vector<distributed::comm_index_type>{});
+        recv_offsets_ = std::exchange(
+            other.recv_offsets_, std::vector<distributed::comm_index_type>{0});
+    }
+    return *this;
+}
+
+
+bool operator==(const NeighborhoodCommunicator& a,
+                const NeighborhoodCommunicator& b)
+{
+    return (a.comm_.is_identical(b.comm_) || a.comm_.is_congruent(b.comm_)) &&
+           a.send_sizes_.size() == b.send_sizes_.size() &&
+           a.recv_sizes_.size() == b.recv_sizes_.size() &&
+           std::equal(a.send_sizes_.begin(), a.send_sizes_.end(),
+                      b.send_sizes_.begin()) &&
+           std::equal(a.recv_sizes_.begin(), a.recv_sizes_.end(),
+                      b.recv_sizes_.begin()) &&
+           std::equal(a.send_offsets_.begin(), a.send_offsets_.end(),
+                      b.send_offsets_.begin()) &&
+           std::equal(a.recv_offsets_.begin(), a.recv_offsets_.end(),
+                      b.recv_offsets_.begin());
+}
+
+
+bool operator!=(const NeighborhoodCommunicator& a,
+                const NeighborhoodCommunicator& b)
+{
+    return !(a == b);
 }
 
 
