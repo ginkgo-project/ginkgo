@@ -44,6 +44,7 @@ namespace gmres {
                    const matrix::Dense<_type>* next_krylov,     \
                    matrix::Dense<_type>* hessenberg_col)
 
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                \
     template <typename ValueType>                   \
     GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
