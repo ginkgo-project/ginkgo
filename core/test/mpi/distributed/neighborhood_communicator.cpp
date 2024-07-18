@@ -17,6 +17,21 @@ protected:
 
     void SetUp() override { ASSERT_EQ(comm.size(), 6); }
 
+    gko::experimental::mpi::NeighborhoodCommunicator create_default_comm()
+    {
+        auto part = gko::share(part_type::build_from_global_size_uniform(
+            ref, comm.size(), comm.size() * 3));
+        gko::array<long> recv_connections[] = {{ref, {3, 5, 10, 11}},
+                                               {ref, {0, 1, 7, 12, 13}},
+                                               {ref, {3, 4, 17}},
+                                               {ref, {1, 2, 12, 14}},
+                                               {ref, {4, 5, 9, 10, 16, 15}},
+                                               {ref, {8, 12, 13, 14}}};
+        auto imap = map_type{ref, part, comm.rank(), recv_connections[rank]};
+
+        return {comm, imap};
+    }
+
     std::shared_ptr<gko::Executor> ref = gko::ReferenceExecutor::create();
     gko::experimental::mpi::communicator comm = MPI_COMM_WORLD;
     int rank = comm.rank();
@@ -120,6 +135,74 @@ TEST_F(NeighborhoodCommunicator, CanConstructFromEmptyEnvelopData)
 }
 
 
+TEST_F(NeighborhoodCommunicator, CanTestEquality)
+{
+    auto comm_a = create_default_comm();
+    auto comm_b = create_default_comm();
+
+    ASSERT_EQ(comm_a, comm_b);
+}
+
+
+TEST_F(NeighborhoodCommunicator, CanTestInequality)
+{
+    auto comm_a = create_default_comm();
+    auto comm_b = gko::experimental::mpi::NeighborhoodCommunicator(comm);
+
+    ASSERT_NE(comm_a, comm_b);
+}
+
+
+TEST_F(NeighborhoodCommunicator, CanCopyConstruct)
+{
+    auto spcomm = create_default_comm();
+
+    auto copy(spcomm);
+
+    ASSERT_TRUE(copy == spcomm);
+}
+
+
+TEST_F(NeighborhoodCommunicator, CanCopyAssign)
+{
+    auto spcomm = create_default_comm();
+    gko::experimental::mpi::NeighborhoodCommunicator copy{comm};
+
+    copy = spcomm;
+
+    ASSERT_TRUE(copy == spcomm);
+}
+
+
+TEST_F(NeighborhoodCommunicator, CanMoveConstruct)
+{
+    auto spcomm = create_default_comm();
+    auto moved_from = spcomm;
+    auto empty_comm =
+        gko::experimental::mpi::NeighborhoodCommunicator{MPI_COMM_NULL};
+
+    auto moved(std::move(moved_from));
+
+    ASSERT_TRUE(moved == spcomm);
+    ASSERT_TRUE(moved_from == empty_comm);
+}
+
+
+TEST_F(NeighborhoodCommunicator, CanMoveAssign)
+{
+    auto spcomm = create_default_comm();
+    auto moved_from = spcomm;
+    auto empty_comm =
+        gko::experimental::mpi::NeighborhoodCommunicator{MPI_COMM_NULL};
+    gko::experimental::mpi::NeighborhoodCommunicator moved{comm};
+
+    moved = std::move(moved_from);
+
+    ASSERT_TRUE(moved == spcomm);
+    ASSERT_TRUE(moved_from == empty_comm);
+}
+
+
 TEST_F(NeighborhoodCommunicator, CanCommunicateIalltoall)
 {
     auto part = gko::share(part_type::build_from_global_size_uniform(
@@ -160,16 +243,7 @@ TEST_F(NeighborhoodCommunicator, CanCommunicateIalltoallWhenEmpty)
 
 TEST_F(NeighborhoodCommunicator, CanCreateInverse)
 {
-    auto part = gko::share(part_type::build_from_global_size_uniform(
-        ref, comm.size(), comm.size() * 3));
-    gko::array<long> recv_connections[] = {{ref, {3, 5, 10, 11}},
-                                           {ref, {0, 1, 7, 12, 13}},
-                                           {ref, {3, 4, 17}},
-                                           {ref, {1, 2, 12, 14}},
-                                           {ref, {4, 5, 9, 10, 16, 15}},
-                                           {ref, {8, 12, 13, 14}}};
-    auto imap = map_type{ref, part, comm.rank(), recv_connections[rank]};
-    gko::experimental::mpi::NeighborhoodCommunicator spcomm{comm, imap};
+    auto spcomm = create_default_comm();
 
     auto inverse = spcomm.create_inverse();
 
