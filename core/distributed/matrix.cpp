@@ -478,7 +478,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     auto recv_ptr = use_host_buffer ? host_recv_buffer_->get_values()
                                     : recv_buffer_->get_values();
     exec->synchronize();
-#ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
+#ifdef GINKGO_HAVE_OPENMPI_PRE_4_1_X
     comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
                       send_sizes_.data(), send_offsets_.data(), type.get(),
                       recv_ptr, recv_sizes_.data(), recv_offsets_.data(),
