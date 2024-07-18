@@ -24,14 +24,19 @@ namespace mpi {
 /**
  * A collective_communicator that uses a dense communication.
  *
- * The neighborhood communicator is defined by a list of neighbors this
- * rank sends data to and a list of neighbors this rank receives data from.
- * No communication with any ranks that is not in one of those lists will
- * take place.
+ * The dense communicator uses the MPI_Alltoall function for its communication.
  */
 class DenseCommunicator final : public CollectiveCommunicator {
 public:
     using CollectiveCommunicator::i_all_to_all_v;
+
+    DenseCommunicator(const DenseCommunicator& other) = default;
+
+    DenseCommunicator(DenseCommunicator&& other);
+
+    DenseCommunicator& operator=(const DenseCommunicator& other) = default;
+
+    DenseCommunicator& operator=(DenseCommunicator&& other);
 
     /**
      * Default constructor with empty communication pattern
@@ -40,7 +45,7 @@ public:
     explicit DenseCommunicator(communicator base);
 
     /**
-     * Create a neighborhood_communicator from an index map.
+     * Create a DenseCommunicator from an index map.
      *
      * The receive neighbors are defined by the remote indices and their
      * owning ranks of the index map. The send neighbors are deduced
@@ -57,7 +62,7 @@ public:
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
     /**
-     * Create a neighborhood_communicator by explicitly defining the
+     * Create a DenseCommunicator by explicitly defining the
      * neighborhood lists and sizes/offsets.
      *
      * @param base  the base communicator
@@ -75,22 +80,14 @@ public:
                       const std::vector<comm_index_type>& send_offsets);
 
     /**
-     * @copydoc CollectiveCommunicator::i_all_to_all_v
-     *
-     * This implementation uses the neighborhood communication
-     * MPI_Ineighbor_alltoallv. See MPI documentation for more details.
+     * @copydoc collective_communicator::create_with_same_type
      */
-    request i_all_to_all_v(std::shared_ptr<const Executor> exec,
-                           const void* send_buffer, MPI_Datatype send_type,
-                           void* recv_buffer,
-                           MPI_Datatype recv_type) const override;
-
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_with_same_type(
         communicator base,
         const distributed::index_map_variant& imap) const override;
 
     /**
-     * Creates the inverse neighborhood_communicator by switching sources
+     * Creates the inverse DenseCommunicator by switching sources
      * and destinations.
      *
      * @return  collective_communicator with the inverse communication pattern
@@ -107,6 +104,39 @@ public:
      * @copydoc collective_communicator::get_recv_size
      */
     [[nodiscard]] comm_index_type get_send_size() const override;
+
+
+    /**
+     * Compares two communicators for equality.
+     *
+     * Equality is defined as having identical or congruent communicators and
+     * their communication pattern is equal. No communication is done, i.e.
+     * there is no reduction over the local equality check results.
+     *
+     * @return  true if both communicators are equal.
+     */
+    friend bool operator==(const DenseCommunicator& a,
+                           const DenseCommunicator& b);
+
+    /**
+     * Compares two communicators for inequality.
+     *
+     * @see operator==
+     */
+    friend bool operator!=(const DenseCommunicator& a,
+                           const DenseCommunicator& b);
+
+protected:
+    /**
+     * @copydoc CollectiveCommunicator::i_all_to_all_v
+     *
+     * This implementation uses the neighborhood communication
+     * MPI_Ineighbor_alltoallv. See MPI documentation for more details.
+     */
+    request i_all_to_all_v_impl(std::shared_ptr<const Executor> exec,
+                                const void* send_buffer, MPI_Datatype send_type,
+                                void* recv_buffer,
+                                MPI_Datatype recv_type) const override;
 
 private:
     communicator comm_;

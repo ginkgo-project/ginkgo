@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GINKGO_INDEX_MAP_FWD_HPP
-#define GINKGO_INDEX_MAP_FWD_HPP
+#ifndef GKO_PUBLIC_CORE_INDEX_MAP_FWD_HPP
+#define GKO_PUBLIC_CORE_INDEX_MAP_FWD_HPP
 
 #include <variant>
 
@@ -27,4 +27,4 @@ using index_map_variant =
 }  // namespace experimental
 }  // namespace gko
 
-#endif  // GINKGO_INDEX_MAP_FWD_HPP
+#endif  // GKO_PUBLIC_CORE_INDEX_MAP_FWD_HPP
