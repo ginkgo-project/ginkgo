@@ -791,7 +791,7 @@ namespace distributed {
 
 
 /**
- * Make mpi::comm_index_type avaiable in this namespace
+ * Make mpi::comm_index_type available in this namespace
  */
 using mpi::comm_index_type;
 
