@@ -100,13 +100,14 @@ public:
     static_assert(dimensionality >= 1,
                   "Dimensionality must be a positive number!");
 
+    using frsz2_compressor =
+        frsz::frsz2_compressor<bits_per_value, max_exp_block_size,
+                               arithmetic_type>;
+
     // Normal operator() is not yet supported, so no `range` support
 
 private:
     using index_type = access_pattern::index_type;
-    using frsz2_compressor =
-        frsz::frsz2_compressor<bits_per_value, max_exp_block_size,
-                               arithmetic_type>;
 
     dim_type size_;
     access_pattern acc_pattern_;
@@ -230,6 +231,14 @@ public:
     constexpr GKO_ACC_ATTRIBUTES auto get_stride() const
     {
         return acc_pattern_.get_stride();
+    }
+
+    constexpr GKO_ACC_ATTRIBUTES auto get_compressor() {
+        return compressor_;
+    }
+
+    constexpr GKO_ACC_ATTRIBUTES auto get_const_compressor() const {
+        return compressor_;
     }
 };
 
