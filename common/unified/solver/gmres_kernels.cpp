@@ -111,8 +111,10 @@ void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
                    next_krylov(row, irhs);
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col->get_values(),
-        gko::dim<2>{next_krylov->get_size()[0],
-                    hessenberg_col->get_size()[1] - next_krylov->get_size()[1]},
+        gko::dim<2>{
+            next_krylov->get_size()[0],
+            hessenberg_col->get_size()[0] * hessenberg_col->get_size()[1] -
+                next_krylov->get_size()[1]},
         krylov_bases, next_krylov, next_krylov->get_size()[1],
         next_krylov->get_size()[0]);
 }

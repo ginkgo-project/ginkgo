@@ -30,15 +30,14 @@ template <typename ValueType>
 void calculate_sin_and_cos(matrix::Dense<ValueType>* givens_sin,
                            matrix::Dense<ValueType>* givens_cos,
                            matrix::Dense<ValueType>* hessenberg_iter,
-                           size_type iter, const size_type num_rhs,
-                           const size_type rhs)
+                           size_type iter, const size_type rhs)
 {
-    if (is_zero(hessenberg_iter->at(0, iter * num_rhs + rhs))) {
+    if (is_zero(hessenberg_iter->at(iter, rhs))) {
         givens_cos->at(iter, rhs) = zero<ValueType>();
         givens_sin->at(iter, rhs) = one<ValueType>();
     } else {
-        auto this_hess = hessenberg_iter->at(0, iter * num_rhs + rhs);
-        auto next_hess = hessenberg_iter->at(0, (iter + 1) * num_rhs + rhs);
+        auto this_hess = hessenberg_iter->at(iter, rhs);
+        auto next_hess = hessenberg_iter->at(iter + 1, rhs);
         const auto scale = abs(this_hess) + abs(next_hess);
         const auto hypotenuse =
             scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
@@ -53,24 +52,19 @@ template <typename ValueType>
 void givens_rotation(matrix::Dense<ValueType>* givens_sin,
                      matrix::Dense<ValueType>* givens_cos,
                      matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-                     const size_type num_rhs,
                      const stopping_status* stop_status)
 {
-    for (size_type i = 0; i < num_rhs; ++i) {
+    for (size_type i = 0; i < hessenberg_iter->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
         }
         for (size_type j = 0; j < iter; ++j) {
-            auto temp =
-                givens_cos->at(j, i) * hessenberg_iter->at(0, j * num_rhs + i) +
-                givens_sin->at(j, i) *
-                    hessenberg_iter->at(0, (j + 1) * num_rhs + i);
-            hessenberg_iter->at(0, (j + 1) * num_rhs + i) =
-                -conj(givens_sin->at(j, i)) *
-                    hessenberg_iter->at(0, j * num_rhs + i) +
-                conj(givens_cos->at(j, i)) *
-                    hessenberg_iter->at(0, (j + 1) * num_rhs + i);
-            hessenberg_iter->at(0, j * num_rhs + i) = temp;
+            auto temp = givens_cos->at(j, i) * hessenberg_iter->at(j, i) +
+                        givens_sin->at(j, i) * hessenberg_iter->at(j + 1, i);
+            hessenberg_iter->at(j + 1, i) =
+                -conj(givens_sin->at(j, i)) * hessenberg_iter->at(j, i) +
+                conj(givens_cos->at(j, i)) * hessenberg_iter->at(j + 1, i);
+            hessenberg_iter->at(j, i) = temp;
             // temp             =  cos(j)*hessenberg(j) +
             //                     sin(j)*hessenberg(j+1)
             // hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
@@ -78,15 +72,12 @@ void givens_rotation(matrix::Dense<ValueType>* givens_sin,
             // hessenberg(j)    =  temp;
         }
 
-        calculate_sin_and_cos(givens_sin, givens_cos, hessenberg_iter, iter,
-                              num_rhs, i);
+        calculate_sin_and_cos(givens_sin, givens_cos, hessenberg_iter, iter, i);
 
-        hessenberg_iter->at(0, iter * num_rhs + i) =
-            givens_cos->at(iter, i) *
-                hessenberg_iter->at(0, iter * num_rhs + i) +
-            givens_sin->at(iter, i) *
-                hessenberg_iter->at(0, (iter + 1) * num_rhs + i);
-        hessenberg_iter->at(0, (iter + 1) * num_rhs + i) = zero<ValueType>();
+        hessenberg_iter->at(iter, i) =
+            givens_cos->at(iter, i) * hessenberg_iter->at(iter, i) +
+            givens_sin->at(iter, i) * hessenberg_iter->at(iter + 1, i);
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
         //                      sin(iter)*hessenberg(iter + 1)
         // hessenberg(iter+1) = 0
@@ -160,8 +151,7 @@ void hessenberg_qr(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
-                    residual_norm->get_size()[1], stop_status);
+    givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter, stop_status);
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
                                  residual_norm_collection, iter, stop_status);
 }

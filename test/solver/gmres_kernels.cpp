@@ -78,7 +78,7 @@ protected:
             gen_mtx(gko::solver::gmres_default_krylov_dim,
                     (gko::solver::gmres_default_krylov_dim + 1) * nrhs);
         hessenberg_iter =
-            gen_mtx(1, (gko::solver::gmres_default_krylov_dim + 1) * nrhs);
+            gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
         residual = gen_mtx(m, nrhs);
         residual_norm = gen_mtx<norm_type>(1, nrhs);
         residual_norm_collection =
@@ -308,11 +308,11 @@ TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
     // solver's restart would be triggered, so it is only the final row of
     // the Hessenberg column(s) that we ignore.
     auto hessenberg_iter_small = hessenberg_iter->create_submatrix(
-        gko::span{0, 1},
-        gko::span{0, gko::solver::gmres_default_krylov_dim * x->get_size()[1]});
+        gko::span{0, gko::solver::gmres_default_krylov_dim + 1},
+        gko::span{0, x->get_size()[1]});
     auto d_hessenberg_iter_small = d_hessenberg_iter->create_submatrix(
-        gko::span{0, 1},
-        gko::span{0, gko::solver::gmres_default_krylov_dim * x->get_size()[1]});
+        gko::span{0, gko::solver::gmres_default_krylov_dim + 1},
+        gko::span{0, x->get_size()[1]});
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter_small, hessenberg_iter_small,
                         r<value_type>::value);
 }

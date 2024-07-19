@@ -69,30 +69,28 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto rhs, auto givens_sin, auto givens_cos,
                       auto residual_norm, auto residual_norm_collection,
-                      auto hessenberg_iter, auto iter, auto num_rhs,
-                      auto final_iter_nums, auto stop_status) {
+                      auto hessenberg_iter, auto iter, auto final_iter_nums,
+                      auto stop_status) {
             using value_type = std::decay_t<decltype(givens_sin(0, 0))>;
             if (stop_status[rhs].has_stopped()) {
                 return;
             }
             // increment iteration count
             final_iter_nums[rhs]++;
-            auto hess_this =
-                hessenberg_iter(0, rhs);  // hessenberg_iter(0, rhs);
-            auto hess_next =
-                hessenberg_iter(0, num_rhs + rhs);  // hessenberg_iter(1, rhs);
+            auto hess_this = hessenberg_iter(0, rhs);
+            auto hess_next = hessenberg_iter(1, rhs);
             // apply previous Givens rotations to column
             for (decltype(iter) j = 0; j < iter; ++j) {
                 // in here: hess_this = hessenberg_iter(j, rhs);
                 //          hess_next = hessenberg_iter(j+1, rhs);
-                hess_next = hessenberg_iter(0, (j + 1) * num_rhs + rhs);
+                hess_next = hessenberg_iter(j + 1, rhs);
                 const auto gc = givens_cos(j, rhs);
                 const auto gs = givens_sin(j, rhs);
                 const auto out1 = gc * hess_this + gs * hess_next;
                 const auto out2 = -conj(gs) * hess_this + conj(gc) * hess_next;
-                hessenberg_iter(0, j * num_rhs + rhs) = out1;
-                hessenberg_iter(0, (j + 1) * num_rhs + rhs) = hess_this = out2;
-                hess_next = hessenberg_iter(0, (j + 2) * num_rhs + rhs);
+                hessenberg_iter(j, rhs) = out1;
+                hessenberg_iter(j + 1, rhs) = hess_this = out2;
+                hess_next = hessenberg_iter(j + 2, rhs);
             }
             // hess_this is hessenberg_iter(iter, rhs) and
             // hess_next is hessenberg_iter(iter + 1, rhs)
@@ -112,9 +110,8 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                 givens_sin(iter, rhs) = gs = conj(hess_next) / hypotenuse;
             }
             // apply new Givens rotation to column
-            hessenberg_iter(0, iter * num_rhs + rhs) =
-                gc * hess_this + gs * hess_next;
-            hessenberg_iter(0, (iter + 1) * num_rhs + rhs) = zero<value_type>();
+            hessenberg_iter(iter, rhs) = gc * hess_this + gs * hess_next;
+            hessenberg_iter(iter + 1, rhs) = zero<value_type>();
             // apply new Givens rotation to RHS of least-squares problem
             const auto rnc_new =
                 -conj(gs) * residual_norm_collection(iter, rhs);
@@ -123,9 +120,9 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                 gc * residual_norm_collection(iter, rhs);
             residual_norm(0, rhs) = abs(rnc_new);
         },
-        residual_norm->get_size()[1], givens_sin, givens_cos, residual_norm,
-        residual_norm_collection, hessenberg_iter, iter,
-        residual_norm->get_size()[1], final_iter_nums, stop_status);
+        hessenberg_iter->get_size()[1], givens_sin, givens_cos, residual_norm,
+        residual_norm_collection, hessenberg_iter, iter, final_iter_nums,
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
