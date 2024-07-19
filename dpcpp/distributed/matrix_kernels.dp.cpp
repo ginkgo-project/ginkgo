@@ -19,8 +19,9 @@ void count_overlap_entries(
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part,
-    array<comm_index_type>& overlap_count) GKO_NOT_IMPLEMENTED;
+    comm_index_type local_part, array<comm_index_type>& overlap_count,
+    array<GlobalIndexType>& overlap_positions,
+    array<GlobalIndexType>& original_positions) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_COUNT_OVERLAP_ENTRIES);
@@ -32,7 +33,8 @@ void fill_overlap_send_buffers(
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part, array<comm_index_type>& offsets,
+    comm_index_type local_part, const array<GlobalIndexType>& overlap_positions,
+    const array<GlobalIndexType>& original_positions,
     array<GlobalIndexType>& overlap_row_idxs,
     array<GlobalIndexType>& overlap_col_idxs,
     array<ValueType>& overlap_values) GKO_NOT_IMPLEMENTED;
