@@ -4,17 +4,14 @@
 
 #include "ginkgo/core/distributed/matrix.hpp"
 
-#include <numeric>
-#include <vector>
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
-#include "ginkgo/core/base/mtx_io.hpp"
 
 
 namespace gko {
@@ -271,18 +268,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     device_matrix_data<value_type, global_index_type> all_data{exec};
     if (assembly_type == assembly::communicate) {
-        array<comm_index_type> overlap_count{exec, comm.size()};
+        size_type num_entries = data.get_num_stored_elements();
+        size_type num_parts = comm.size();
+        array<comm_index_type> overlap_count{exec, num_parts};
+        array<global_index_type> overlap_positions{exec, num_entries};
+        array<global_index_type> original_positions{exec, num_entries};
         overlap_count.fill(0);
         auto tmp_part = make_temporary_clone(exec, row_partition);
         exec->run(matrix::make_count_overlap_entries(
-            data, tmp_part.get(), local_part, overlap_count));
+            data, tmp_part.get(), local_part, overlap_count, overlap_positions,
+            original_positions));
 
         overlap_count.set_executor(exec->get_master());
         std::vector<comm_index_type> overlap_send_sizes(
-            overlap_count.get_data(), overlap_count.get_data() + comm.size());
-        std::vector<comm_index_type> overlap_send_offsets(comm.size() + 1);
-        std::vector<comm_index_type> overlap_recv_sizes(comm.size());
-        std::vector<comm_index_type> overlap_recv_offsets(comm.size() + 1);
+            overlap_count.get_data(), overlap_count.get_data() + num_parts);
+        std::vector<comm_index_type> overlap_send_offsets(num_parts + 1);
+        std::vector<comm_index_type> overlap_recv_sizes(num_parts);
+        std::vector<comm_index_type> overlap_recv_offsets(num_parts + 1);
 
         std::partial_sum(overlap_send_sizes.begin(), overlap_send_sizes.end(),
                          overlap_send_offsets.begin() + 1);
@@ -301,14 +303,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         array<global_index_type> overlap_recv_row_idxs{exec, n_recv};
         array<global_index_type> overlap_recv_col_idxs{exec, n_recv};
         array<value_type> overlap_recv_values{exec, n_recv};
-        auto offset_array =
-            make_const_array_view(exec->get_master(), comm.size() + 1,
-                                  overlap_send_offsets.data())
-                .copy_to_array();
-        offset_array.set_executor(exec);
         exec->run(matrix::make_fill_overlap_send_buffers(
-            data, tmp_part.get(), local_part, offset_array,
-            overlap_send_row_idxs, overlap_send_col_idxs, overlap_send_values));
+            data, tmp_part.get(), local_part, overlap_positions,
+            original_positions, overlap_send_row_idxs, overlap_send_col_idxs,
+            overlap_send_values));
 
         if (use_host_buffer) {
             overlap_send_row_idxs.set_executor(exec->get_master());
@@ -339,22 +337,21 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
             overlap_recv_values.set_executor(exec);
         }
 
-        size_type n_nnz = data.get_num_stored_elements();
-        array<global_index_type> all_row_idxs{exec, n_nnz + n_recv};
-        array<global_index_type> all_col_idxs{exec, n_nnz + n_recv};
-        array<value_type> all_values{exec, n_nnz + n_recv};
-        exec->copy_from(exec, n_nnz, data.get_const_row_idxs(),
+        array<global_index_type> all_row_idxs{exec, num_entries + n_recv};
+        array<global_index_type> all_col_idxs{exec, num_entries + n_recv};
+        array<value_type> all_values{exec, num_entries + n_recv};
+        exec->copy_from(exec, num_entries, data.get_const_row_idxs(),
                         all_row_idxs.get_data());
         exec->copy_from(exec, n_recv, overlap_recv_row_idxs.get_data(),
-                        all_row_idxs.get_data() + n_nnz);
-        exec->copy_from(exec, n_nnz, data.get_const_col_idxs(),
+                        all_row_idxs.get_data() + num_entries);
+        exec->copy_from(exec, num_entries, data.get_const_col_idxs(),
                         all_col_idxs.get_data());
         exec->copy_from(exec, n_recv, overlap_recv_col_idxs.get_data(),
-                        all_col_idxs.get_data() + n_nnz);
-        exec->copy_from(exec, n_nnz, data.get_const_values(),
+                        all_col_idxs.get_data() + num_entries);
+        exec->copy_from(exec, num_entries, data.get_const_values(),
                         all_values.get_data());
         exec->copy_from(exec, n_recv, overlap_recv_values.get_data(),
-                        all_values.get_data() + n_nnz);
+                        all_values.get_data() + num_entries);
         all_data = device_matrix_data<value_type, global_index_type>{
             exec, global_dim, all_row_idxs, all_col_idxs, all_values};
         all_data.sum_duplicates();
