@@ -79,14 +79,14 @@ void multi_dot(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rhs = next_krylov->get_size()[1];
     auto krylov_bases_rowoffset = next_krylov->get_size()[0];
-    for (size_type i = 0; i < hessenberg_col->get_size()[1]; ++i) {
-        auto ivec = i / num_rhs;
-        auto irhs = i % num_rhs;
-        hessenberg_col->at(0, i) = zero<ValueType>();
-        for (size_type j = 0; j < krylov_bases_rowoffset; ++j) {
-            hessenberg_col->at(0, i) +=
-                krylov_bases->at(ivec * krylov_bases_rowoffset + j, irhs) *
-                next_krylov->at(j, irhs);
+    for (size_type i = 0; i < hessenberg_col->get_size()[0] - 1; ++i) {
+        for (size_type k = 0; k < num_rhs; ++k) {
+            hessenberg_col->at(i, k) = zero<ValueType>();
+            for (size_type j = 0; j < krylov_bases_rowoffset; ++j) {
+                hessenberg_col->at(i, k) +=
+                    conj(krylov_bases->at(i * krylov_bases_rowoffset + j, k)) *
+                    next_krylov->at(j, k);
+            }
         }
     }
 }

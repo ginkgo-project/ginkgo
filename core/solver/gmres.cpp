@@ -157,8 +157,8 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
         // i)
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry = hessenberg_iter->create_submatrix(
-            span{0, 1}, span{i * num_rhs, (i + 1) * num_rhs});
+        auto hessenberg_entry =
+            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
         auto krylov_basis = ::gko::detail::create_submatrix_helper(
             krylov_bases, dim<2>{num_rows, num_rhs},
             span{local_num_rows * i, local_num_rows * (i + 1)},
@@ -191,19 +191,18 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
     // below the diagonal in the "full" matrix are skipped, because they will
     // be used to hold the norm of next_krylov for each rhs.
     auto hessenberg_reduce = hessenberg_iter->create_submatrix(
-        span{0, 1}, span{0, num_rhs * (restart_iter + 1)});
+        span{0, restart_iter + 1}, span{0, num_rhs});
+    int message_size = static_cast<int>((restart_iter + 1) * num_rhs);
     if (experimental::mpi::requires_host_buffer(exec, comm)) {
         ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
         host_reduction_buffer.init(exec->get_master(),
                                    hessenberg_reduce->get_size());
         host_reduction_buffer->copy_from(hessenberg_reduce);
         comm.all_reduce(exec->get_master(), host_reduction_buffer->get_values(),
-                        static_cast<int>(hessenberg_reduce->get_size()[1]),
-                        MPI_SUM);
+                        message_size, MPI_SUM);
         hessenberg_reduce->copy_from(host_reduction_buffer.get());
     } else {
-        comm.all_reduce(exec, hessenberg_reduce->get_values(),
-                        static_cast<int>(hessenberg_reduce->get_size()[1]),
+        comm.all_reduce(exec, hessenberg_reduce->get_values(), message_size,
                         MPI_SUM);
     }
 }
@@ -228,8 +227,8 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry = hessenberg_iter->create_submatrix(
-            span{0, 1}, span{i * num_rhs, (i + 1) * num_rhs});
+        auto hessenberg_entry =
+            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
         auto krylov_col = ::gko::detail::create_submatrix_helper(
             krylov_bases, dim<2>{num_rows, num_rhs},
             span{local_num_rows * i, local_num_rows * (i + 1)},
@@ -260,8 +259,8 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry = hessenberg_iter->create_submatrix(
-            span{0, 1}, span{i * num_rhs, (i + 1) * num_rhs});
+        auto hessenberg_entry =
+            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
         auto krylov_col = ::gko::detail::create_submatrix_helper(
             krylov_bases, dim<2>{num_rows, num_rhs},
             span{local_num_rows * i, local_num_rows * (i + 1)},
@@ -270,7 +269,7 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     }
     // Re-orthogonalize
     auto hessenberg_aux_iter = hessenberg_aux->create_submatrix(
-        span{0, 1}, span{0, (restart_iter + 2) * num_rhs});
+        span{0, restart_iter + 2}, span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
         gko::detail::get_local(krylov_basis_small.get()),
         gko::detail::get_local(next_krylov), hessenberg_aux_iter.get()));
@@ -280,8 +279,8 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry = hessenberg_aux->create_submatrix(
-            span{0, 1}, span{i * num_rhs, (i + 1) * num_rhs});
+        auto hessenberg_entry =
+            hessenberg_aux->create_submatrix(span{i, i + 1}, span{0, num_rhs});
         auto krylov_col = ::gko::detail::create_submatrix_helper(
             krylov_bases, dim<2>{num_rows, num_rhs},
             span{local_num_rows * i, local_num_rows * (i + 1)},
@@ -353,10 +352,13 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Krylov basis vector, for the (j % num_rhs)th RHS vector.
     auto hessenberg = this->template create_workspace_op<LocalVector>(
         ws::hessenberg, dim<2>{krylov_dim, (krylov_dim + 1) * num_rhs});
+    // Because the auxiliary Hessenberg workspace only ever stores one
+    // iteration of data at a time, we store it in the "logical" layout
+    // from the start.
     LocalVector* hessenberg_aux = nullptr;
     if (this->parameters_.orthog_method == gmres::orthog_method::cgs2) {
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
-            ws::hessenberg_aux, dim<2>{1, (krylov_dim + 1) * num_rhs});
+            ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
     }
     auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
@@ -506,12 +508,16 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_preconditioner()->apply(this_krylov,
                                           preconditioned_krylov_vector);
 
-        // Create view of current "column" in the hessenberg matrix:
+        // Create view of current column in the hessenberg matrix:
         // hessenberg_iter = hessenberg(:, restart_iter), which
-        // is actually stored as a row, hessenberg(restart_iter, :)
-        auto hessenberg_iter =
-            hessenberg->create_submatrix(span{restart_iter, restart_iter + 1},
-                                         span{0, num_rhs * (restart_iter + 2)});
+        // is actually stored as a row, hessenberg(restart_iter, :),
+        // but we will reshape it for viewing in hessenberg_iter.
+        auto hessenberg_iter = LocalVector::create(
+            exec, dim<2>{restart_iter + 2, num_rhs},
+            make_array_view(exec, (restart_iter + 2) * num_rhs,
+                            hessenberg->get_values() +
+                                restart_iter * hessenberg->get_size()[1]),
+            num_rhs);
 
         // Start of Arnoldi
         // next_krylov = A * preconditioned_krylov_vector
@@ -537,8 +543,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
         // next_krylov /= hessenberg(restart_iter+1, restart_iter)
         auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
-            span{0, 1},
-            span{(restart_iter + 1) * num_rhs, (restart_iter + 2) * num_rhs});
+            span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
             next_krylov.get(), hessenberg_norm_entry.get(),
             next_krylov_norm_tmp, reduction_tmp);

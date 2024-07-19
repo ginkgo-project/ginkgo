@@ -227,12 +227,19 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter0)
     this->small_final_iter_nums.get_data()[0] = 0;
     this->small_final_iter_nums.get_data()[1] = 0;
 
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter_rows = this->small_givens_sin->get_size()[0] + 1;
+    auto hessenberg_iter_cols = this->small_givens_sin->get_size()[1];
+    auto hessenberg_reshape = Mtx::create(
+        this->exec, gko::dim<2>{hessenberg_iter_rows, hessenberg_iter_cols},
+        make_array_view(this->exec, hessenberg_iter_rows * hessenberg_iter_cols,
+                        this->small_hessenberg->get_values()),
+        hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
         this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
         this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), iteration,
-        this->small_final_iter_nums.get_data(),
+        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
+        iteration, this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 1);
@@ -272,12 +279,19 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter1)
     this->small_final_iter_nums.get_data()[0] = 1;
     this->small_final_iter_nums.get_data()[1] = 1;
 
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter_rows = this->small_givens_sin->get_size()[0] + 1;
+    auto hessenberg_iter_cols = this->small_givens_sin->get_size()[1];
+    auto hessenberg_reshape = Mtx::create(
+        this->exec, gko::dim<2>{hessenberg_iter_rows, hessenberg_iter_cols},
+        make_array_view(this->exec, hessenberg_iter_rows * hessenberg_iter_cols,
+                        this->small_hessenberg->get_values()),
+        hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
         this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
         this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), iteration,
-        this->small_final_iter_nums.get_data(),
+        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
+        iteration, this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
@@ -372,9 +386,13 @@ TYPED_TEST(Gmres, KernelMultiDot)
     const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
     const auto restart = this->small_givens_sin->get_size()[0];
     this->small_hessenberg->fill(gko::zero<T>());
-    auto hessenberg_iter = this->small_hessenberg->create_submatrix(
-        gko::span{0, 1},
-        gko::span{0, (restart + 1) * this->small_x->get_size()[1]});
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter = Mtx::create(
+        this->exec, gko::dim<2>{restart + 1, this->small_x->get_size()[1]},
+        make_array_view(this->exec,
+                        (restart + 1) * this->small_x->get_size()[1],
+                        this->small_hessenberg->get_values()),
+        this->small_x->get_size()[1]);
     this->small_x = gko::initialize<Mtx>(  // next_krylov
         {I<T>{-1.0, 2.3}, I<T>{-14.0, -22.0}, I<T>{8.4, 14.2}}, this->exec);
 
@@ -396,7 +414,7 @@ TYPED_TEST(Gmres, KernelMultiDot)
         hessenberg_iter.get());
 
     GKO_ASSERT_MTX_NEAR(hessenberg_iter,
-                        l({{-3.8, -48.6, -23.6, -65.1, -43.4, -81.6}}),
+                        l({{-3.8, -48.6}, {-23.6, -65.1}, {0.0, 0.0}}),
                         r<T>::value);
 }
 
