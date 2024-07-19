@@ -19,14 +19,16 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_COUNT_OVERLAP_ENTRIES(ValueType, LocalIndexType, \
-                                          GlobalIndexType)           \
-    void count_overlap_entries(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const device_matrix_data<ValueType, GlobalIndexType>& input, \
-        const experimental::distributed::Partition<                  \
-            LocalIndexType, GlobalIndexType>* row_partition,         \
-        comm_index_type local_part, array<comm_index_type>& overlap_count)
+#define GKO_DECLARE_COUNT_OVERLAP_ENTRIES(ValueType, LocalIndexType,       \
+                                          GlobalIndexType)                 \
+    void count_overlap_entries(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const device_matrix_data<ValueType, GlobalIndexType>& input,       \
+        const experimental::distributed::Partition<                        \
+            LocalIndexType, GlobalIndexType>* row_partition,               \
+        comm_index_type local_part, array<comm_index_type>& overlap_count, \
+        array<GlobalIndexType>& overlap_positions,                         \
+        array<GlobalIndexType>& original_positions)
 
 
 #define GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS(ValueType, LocalIndexType, \
@@ -36,7 +38,9 @@ namespace kernels {
         const device_matrix_data<ValueType, GlobalIndexType>& input,     \
         const experimental::distributed::Partition<                      \
             LocalIndexType, GlobalIndexType>* row_partition,             \
-        comm_index_type local_part, array<comm_index_type>& offsets,     \
+        comm_index_type local_part,                                      \
+        const array<GlobalIndexType>& overlap_positions,                 \
+        const array<GlobalIndexType>& original_positions,                \
         array<GlobalIndexType>& overlap_row_idxs,                        \
         array<GlobalIndexType>& overlap_col_idxs,                        \
         array<ValueType>& overlap_values)
