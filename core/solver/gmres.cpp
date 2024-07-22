@@ -52,6 +52,7 @@ std::ostream& operator<<(std::ostream& stream, orthog_method orthog)
     return stream;
 }
 
+
 }  // namespace gmres
 
 
@@ -142,7 +143,7 @@ struct help_compute_norm {
     }
 };
 
-namespace {
+
 // Orthogonalization helper functions
 template <typename ValueType, typename VectorType>
 void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
@@ -169,6 +170,7 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
     }
 }
 
+
 template <typename ValueType>
 void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
                    matrix::Dense<ValueType>* next_krylov,
@@ -176,6 +178,7 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
 {
     return;
 }
+
 
 #if GINKGO_BUILD_MPI
 template <typename ValueType>
@@ -207,6 +210,7 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
     }
 }
 #endif
+
 
 template <typename ValueType, typename VectorType>
 void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
@@ -290,7 +294,7 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     // Add both Hessenberg columns
     hessenberg_iter->add_scaled(one_op, hessenberg_aux_iter);
 }
-}  // anonymous namespace
+
 
 template <typename ValueType>
 struct help_compute_norm<ValueType,
@@ -306,6 +310,7 @@ struct help_compute_norm<ValueType,
         next_krylov_norm_tmp->make_complex(hessenberg_norm_entry);
     }
 };
+
 
 template <typename ValueType>
 template <typename VectorType>
