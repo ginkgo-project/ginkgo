@@ -301,19 +301,7 @@ TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
         exec, d_krylov_basis.get(), d_next_krylov.get(),
         d_hessenberg_iter.get());
 
-    // The multidot computation does not set the value below the diagonal
-    // in the Hessenberg matrix column(s), as that is done after the
-    // orthogonalization of the next basis vector. In this test, we
-    // are checking the column(s) created on the last iteration before the
-    // solver's restart would be triggered, so it is only the final row of
-    // the Hessenberg column(s) that we ignore.
-    auto hessenberg_iter_small = hessenberg_iter->create_submatrix(
-        gko::span{0, gko::solver::gmres_default_krylov_dim + 1},
-        gko::span{0, x->get_size()[1]});
-    auto d_hessenberg_iter_small = d_hessenberg_iter->create_submatrix(
-        gko::span{0, gko::solver::gmres_default_krylov_dim + 1},
-        gko::span{0, x->get_size()[1]});
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter_small, hessenberg_iter_small,
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
                         r<value_type>::value);
 }
 
