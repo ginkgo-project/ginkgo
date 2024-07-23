@@ -1,5 +1,6 @@
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 set(CUDA_HIP_SOURCES
+    base/batch_multi_vector_kernels.cpp
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     components/prefix_sum_kernels.cpp
