@@ -3,7 +3,10 @@ add_subdirectory(device_hooks) # placeholders for disabled modules
 set(config_source 
     config/factorization_config.cpp
     config/multigrid_config.cpp
-    config/preconditioner_config.cpp
+    config/ic_config.cpp
+    config/ilu_config.cpp
+    config/isai_config.cpp
+    config/jacobi_config.cpp
     config/registry.cpp
     config/solver_config.cpp
 )
