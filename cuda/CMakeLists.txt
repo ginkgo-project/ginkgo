@@ -7,7 +7,6 @@ add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kerne
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
     PRIVATE
-    base/batch_multi_vector_kernels.cu
     base/device.cpp
     base/exception.cpp
     base/executor.cpp
