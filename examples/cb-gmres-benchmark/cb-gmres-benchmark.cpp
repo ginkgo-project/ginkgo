@@ -334,7 +334,7 @@ public:
           operation_logger_{nullptr},
           detail_logger_{nullptr}
     {
-        operation_logger_ = std::make_shared<OperationLogger>();
+        // operation_logger_ = std::make_shared<OperationLogger>();
         if (operation_logger_) {
             detail_logger_ = std::make_shared<DetailLoggerType>();
         }
@@ -457,8 +457,8 @@ private:
         convergence_history_logger_->reset();
         if (operation_logger_) {
             operation_logger_->reset();
+            detail_logger_->clear();
         }
-        detail_logger_->clear();
     }
 
     std::shared_ptr<gko::Executor> exec_;
