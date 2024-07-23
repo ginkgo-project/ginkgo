@@ -353,8 +353,6 @@ public:
     nlohmann::json benchmark_solver(solver_settings s_s)
     {
         double duration{0};
-        auto krylov_basis_log = std::make_shared<
-            std::map<int, std::unique_ptr<gko::matrix::Dense<ValueType>>>>();
 
         this->reset();
 
@@ -384,7 +382,6 @@ public:
                               .with_generated_preconditioner(s_s.precond)
                               .with_init_compressor(s_s.init_compressor)
                               .with_detail_operation_logger(detail_logger_)
-                              .with_krylov_basis_log(krylov_basis_log)
                               .on(exec_);
 
         // Generate the actual solver from the factory and the matrix.
@@ -399,7 +396,6 @@ public:
         for (int i = 0; i < repeats; ++i) {
             // No need to copy it in the first iteration
             if (i != 0) {
-                krylov_basis_log->clear();
                 x_->copy_from(init_x_.get());
                 convergence_history_logger_.reset();
                 detail_logger_->clear();
@@ -438,24 +434,6 @@ public:
         };
         if (operation_timings.size() > 0) {
             json_result["operations"] = operation_timings;
-        }
-        if (krylov_basis_log && krylov_basis_log->size() > 0) {
-            int last_iteration = 0;
-            for (auto&& entry : *krylov_basis_log) {
-                last_iteration = std::max(entry.first, last_iteration);
-            }
-            if (last_iteration > 0) {
-                nlohmann::json last_basis_json = nlohmann::json::array();
-                const auto& basis =
-                    krylov_basis_log->operator[](last_iteration);
-                const auto stride = basis->get_stride();
-                for (int i = 0; i < basis->get_size()[0]; ++i) {
-                    const auto start = basis->get_const_values() + i * stride;
-                    last_basis_json.push_back(std::vector<ValueType>(
-                        start, start + basis->get_size()[1]));
-                }
-                json_result["last_krylov_basis"] = last_basis_json;
-            }
         }
         return json_result;
     }

@@ -401,41 +401,6 @@ void print_krylov_vectors(Range&& curr, size_type num_vecs, size_type iteration)
 }
 
 
-template <typename ValueType, typename StorageType>
-struct krylov_basis_helper {
-    static std::unique_ptr<matrix::Dense<ValueType>> extract(
-        gko::cb_gmres::Range3dHelper<ValueType, StorageType>&, size_type, bool)
-    {
-        return nullptr;
-    }
-};
-
-
-template <>
-struct krylov_basis_helper<double, double> {
-    using ValueType = double;
-    static std::unique_ptr<matrix::Dense<ValueType>> extract(
-        gko::cb_gmres::Range3dHelper<ValueType, ValueType>& helper,
-        size_type local_iter, bool do_store)
-    {
-        std::unique_ptr<matrix::Dense<ValueType>> krylov_basis{nullptr};
-        if (do_store && helper.get_range().length(2) == 1) {
-            const auto& range = helper.get_range();
-            const auto source_exec = helper.get_bases().get_executor();
-            const auto dest_exec = source_exec->get_master();
-            const auto number_vectors =
-                std::min<size_type>(local_iter + 1, range.length(0));
-            krylov_basis = matrix::Dense<ValueType>::create(
-                dest_exec, dim<2>{number_vectors, range.length(1)});
-            dest_exec->copy_from(source_exec, number_vectors * range.length(1),
-                                 helper.get_bases().get_const_data(),
-                                 krylov_basis->get_values());
-        }
-        return krylov_basis;
-    }
-};
-
-
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
     const matrix::Dense<ValueType>* dense_b,
@@ -710,14 +675,6 @@ void CbGmres<ValueType>::apply_dense_impl(
 
                 // print_krylov_vectors(krylov_bases_range, restart_iter + 1,
                 //                     total_iter);
-                auto krylov_basis_as_mtx =
-                    krylov_basis_helper<ValueType, storage_type>::extract(
-                        helper, restart_iter, which_frsz2 == 0 && !use_pressio);
-                // Only write log if both the log and the matrix actually exists
-                if (this->parameters_.krylov_basis_log && krylov_basis_as_mtx) {
-                    this->parameters_.krylov_basis_log->operator[](total_iter) =
-                        std::move(krylov_basis_as_mtx);
-                }
                 if (which_frsz2 == 0) {
                     exec->run(cb_gmres::make_solve_krylov(
                         residual_norm_collection.get(),
@@ -856,16 +813,6 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto hessenberg_small = hessenberg->create_submatrix(
             span{0, restart_iter}, span{0, num_rhs * restart_iter});
 
-        if (restart_iter > 1) {
-            auto krylov_basis_as_mtx =
-                krylov_basis_helper<ValueType, storage_type>::extract(
-                    helper, restart_iter, which_frsz2 == 0 && !use_pressio);
-            // Only write log if both the log and the matrix actually exists
-            if (this->parameters_.krylov_basis_log && krylov_basis_as_mtx) {
-                this->parameters_.krylov_basis_log->operator[](total_iter) =
-                    std::move(krylov_basis_as_mtx);
-            }
-        }
         if (which_frsz2 == 0) {
             exec->run(cb_gmres::make_solve_krylov(
                 residual_norm_collection.get(),
