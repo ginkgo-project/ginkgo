@@ -1,9 +1,14 @@
 add_subdirectory(device_hooks) # placeholders for disabled modules
 
-set(config_source 
+set(config_source
     config/factorization_config.cpp
     config/multigrid_config.cpp
-    config/preconditioner_config.cpp
+    config/gauss_seidel_config.cpp
+    config/ic_config.cpp
+    config/ilu_config.cpp
+    config/isai_config.cpp
+    config/jacobi_config.cpp
+    config/sor_config.cpp
     config/registry.cpp
     config/solver_config.cpp
 )
@@ -151,7 +156,7 @@ if(MSVC AND BUILD_SHARED_LIBS)
     if(GINKGO_CHECK_CIRCULAR_DEPS)
         ginkgo_check_headers(ginkgo "")
     endif()
-else() 
+else()
     target_sources(${ginkgo_core} PRIVATE ${config_source})
 endif()
 
