@@ -163,59 +163,53 @@ public:
 
         // Only instantiate when full optimizations has been enabled. Otherwise,
         // just use the default one with no shared memory.
-#ifdef GINKGO_BATCHED_FULL_OPTIMIZATIONS
         // template
         // launch_apply_kernel<StopType, subgroup_size, n_shared_total>
-        if (num_rows <= 32 && n_shared_total == 6) {
-            launch_apply_kernel<StopType, 16, 6>(
-                sconf, logger, prec, mat, b.values, x.values, workspace_data,
-                group_size, shared_size);
-        } else {
-            switch (n_shared_total) {
-            case 0:
-                launch_apply_kernel<StopType, 32, 0>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 1:
-                launch_apply_kernel<StopType, 32, 1>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 2:
-                launch_apply_kernel<StopType, 32, 2>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 3:
-                launch_apply_kernel<StopType, 32, 3>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 4:
-                launch_apply_kernel<StopType, 32, 4>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 5:
-                launch_apply_kernel<StopType, 32, 5>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            case 6:
-                launch_apply_kernel<StopType, 32, 6>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, group_size, shared_size);
-                break;
-            default:
-                GKO_NOT_IMPLEMENTED;
-            }
-        }
-#else
+        // if (num_rows <= 32 && n_shared_total == 6) {
+        //     launch_apply_kernel<StopType, 16, 6>(
+        //         sconf, logger, prec, mat, b.values, x.values, workspace_data,
+        //         group_size, shared_size);
+        // } else {
+        //     switch (n_shared_total) {
+        //     case 0:
         launch_apply_kernel<StopType, 32, 0>(sconf, logger, prec, mat, b.values,
                                              x.values, workspace_data,
                                              group_size, shared_size);
-#endif
+        //         break;
+        //     case 1:
+        //         launch_apply_kernel<StopType, 32, 1>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     case 2:
+        //         launch_apply_kernel<StopType, 32, 2>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     case 3:
+        //         launch_apply_kernel<StopType, 32, 3>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     case 4:
+        //         launch_apply_kernel<StopType, 32, 4>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     case 5:
+        //         launch_apply_kernel<StopType, 32, 5>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     case 6:
+        //         launch_apply_kernel<StopType, 32, 6>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, group_size, shared_size);
+        //         break;
+        //     default:
+        //         GKO_NOT_IMPLEMENTED;
+        //     }
+        // }
     }
 
 private:

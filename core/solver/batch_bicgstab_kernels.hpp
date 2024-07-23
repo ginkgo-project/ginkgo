@@ -17,11 +17,8 @@
 #include "core/base/kernel_declaration.hpp"
 
 
-#ifdef GINKGO_BACTCHED_FULL_OPTIMIZATIONS
-constexpr bool bicgstab_no_shared_vecs = false;
-#else
+// TODO: update when splitting kernels
 constexpr bool bicgstab_no_shared_vecs = true;
-#endif
 
 
 namespace gko {
