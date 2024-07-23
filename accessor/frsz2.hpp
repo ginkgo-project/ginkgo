@@ -167,6 +167,12 @@ public:
         return dimension < dimensionality ? size_[dimension] : 1;
     }
 
+    constexpr GKO_ACC_ATTRIBUTES index_type get_linear_index(
+        index_type krylov_vec, index_type vec_idx, index_type vec_rhs) const
+    {
+        return acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs);
+    }
+
     /**
      * Returns the stored value for the given indices.
      */
@@ -191,6 +197,16 @@ public:
 #else
         return compressor_.decompress_cpu_element(
             acc_pattern_.get_linear_index(krylov_vec, vec_idx, vec_rhs));
+#endif
+    }
+
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    read_element(index_type linear_index) const
+    {
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        return compressor_.decompress_gpu_element(linear_index);
+#else
+        return compressor_.decompress_cpu_element(linear_index);
 #endif
     }
 
@@ -233,11 +249,10 @@ public:
         return acc_pattern_.get_stride();
     }
 
-    constexpr GKO_ACC_ATTRIBUTES auto get_compressor() {
-        return compressor_;
-    }
+    constexpr GKO_ACC_ATTRIBUTES auto get_compressor() { return compressor_; }
 
-    constexpr GKO_ACC_ATTRIBUTES auto get_const_compressor() const {
+    constexpr GKO_ACC_ATTRIBUTES auto get_const_compressor() const
+    {
         return compressor_;
     }
 };
