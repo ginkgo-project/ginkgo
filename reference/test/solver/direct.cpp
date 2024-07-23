@@ -54,7 +54,7 @@ protected:
                                 symmetric))
                 .on(exec);
         solver = factory->generate(mtx);
-        std::normal_distribution<gko::remove_complex<value_type>> dist(0, 1);
+        gko::test::normal_distribution<> dist(0, 1);
         x = gko::test::generate_random_dense_matrix<value_type>(
             mtx->get_size()[0], nrhs, dist, rng, this->exec);
         x_ref = x->clone();

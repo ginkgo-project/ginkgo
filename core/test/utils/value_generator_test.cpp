@@ -67,7 +67,7 @@ TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)
     using T = typename TestFixture::value_type;
     int num = 500;
     std::vector<T> values(num);
-    auto dist = std::normal_distribution<double>(20.0, 5.0);
+    auto dist = gko::test::normal_distribution<double>(20.0, 5.0);
     auto engine = std::default_random_engine(42);
 
     for (int i = 0; i < num; i++) {

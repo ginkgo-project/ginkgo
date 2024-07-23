@@ -61,13 +61,14 @@ struct Ic : PreconditionerConfigTest<
     {
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
-            param.with_l_solver(detail::registry_accessor::get_data<
-                                typename changed_type::l_solver_type::Factory>(
-                reg, "l_solver"));
+            param.with_l_solver(
+                gko::config::detail::registry_accessor::get_data<
+                    typename changed_type::l_solver_type::Factory>(reg,
+                                                                   "l_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "factorization"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "factorization"));
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
@@ -126,17 +127,19 @@ struct Ilu
     {
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
-            param.with_l_solver(detail::registry_accessor::get_data<
-                                typename changed_type::l_solver_type::Factory>(
-                reg, "l_solver"));
+            param.with_l_solver(
+                gko::config::detail::registry_accessor::get_data<
+                    typename changed_type::l_solver_type::Factory>(reg,
+                                                                   "l_solver"));
             config_map["u_solver"] = pnode{"u_solver"};
-            param.with_u_solver(detail::registry_accessor::get_data<
-                                typename changed_type::u_solver_type::Factory>(
-                reg, "u_solver"));
+            param.with_u_solver(
+                gko::config::detail::registry_accessor::get_data<
+                    typename changed_type::u_solver_type::Factory>(reg,
+                                                                   "u_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "factorization"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "factorization"));
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
@@ -214,8 +217,8 @@ struct Isai
         if (from_reg) {
             config_map["excess_solver_factory"] = pnode{"solver"};
             param.with_excess_solver_factory(
-                detail::registry_accessor::get_data<gko::LinOpFactory>(
-                    reg, "solver"));
+                gko::config::detail::registry_accessor::get_data<
+                    gko::LinOpFactory>(reg, "solver"));
         } else {
             config_map["excess_solver_factory"] =
                 pnode{{{"type", pnode{"solver::Ir"}},

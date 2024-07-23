@@ -369,6 +369,8 @@ TYPED_TEST(ScaledReordered, AppliesWithRcmReordering)
 TYPED_TEST(ScaledReordered, SolvesSingleRhsWithOnlyInnerOperator)
 {
     using SR = typename TestFixture::SR;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto scaled_reordered_fact =
         SR::build().with_inner_operator(this->solver_factory).on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
@@ -415,6 +417,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithColScaling)
 TYPED_TEST(ScaledReordered, SolvesSingleRhsWithRcmReordering)
 {
     using SR = typename TestFixture::SR;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto scaled_reordered_fact = SR::build()
                                      .with_reordering(this->rcm_factory)
                                      .with_inner_operator(this->solver_factory)
@@ -450,7 +454,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    using Vec = gko::matrix::Dense<next_precision<T>>;
+    SKIP_IF_HALF(T);
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)
@@ -472,6 +477,8 @@ TYPED_TEST(ScaledReordered, AdvancedSolvesSingleRhsWithScalingAndRcmReordering)
 {
     using SR = typename TestFixture::SR;
     using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    SKIP_IF_HALF(T);
     const auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto scaled_reordered_fact = SR::build()
@@ -494,8 +501,9 @@ TYPED_TEST(ScaledReordered,
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using value_type = gko::next_precision<T>;
+    using value_type = next_precision<T>;
     using Vec = gko::matrix::Dense<value_type>;
+    SKIP_IF_HALF(T);
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)

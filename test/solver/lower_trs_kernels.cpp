@@ -34,14 +34,14 @@ protected:
         return gko::test::generate_random_matrix<vec_type>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<mtx_type> gen_l_mtx(int size, int row_nnz)
     {
         return gko::test::generate_random_lower_triangular_matrix<mtx_type>(
             size, false, std::uniform_int_distribution<>(row_nnz, size),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<mtx_type> gen_mtx(int size, int row_nnz)
@@ -49,7 +49,7 @@ protected:
         auto data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 size, size, std::uniform_int_distribution<>(row_nnz, size),
-                std::normal_distribution<>(-1.0, 1.0), rand_engine);
+                gko::test::normal_distribution<>(-1.0, 1.0), rand_engine);
         gko::utils::make_diag_dominant(data);
         auto result = mtx_type::create(ref);
         result->read(data);

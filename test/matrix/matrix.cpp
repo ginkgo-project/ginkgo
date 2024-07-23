@@ -560,7 +560,7 @@ protected:
     using Mtx = typename T::matrix_type;
     using index_type = typename Mtx::index_type;
     using value_type = typename Mtx::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
@@ -572,8 +572,8 @@ protected:
                                                           DistType dist)
     {
         return gko::test::generate_random_matrix_data<value_type, index_type>(
-            num_rows, num_cols, dist, std::normal_distribution<>(0.0, 1.0),
-            rand_engine);
+            num_rows, num_cols, dist,
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine);
     }
 
     gko::matrix_data<value_type, index_type> gen_mtx_data(int num_rows,
@@ -589,10 +589,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {
-            size,
-            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
-            rand_engine};
+        return {size, gko::test::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename VecType = Vec>
@@ -609,15 +606,13 @@ protected:
     template <typename VecType = Vec>
     test_pair<VecType> gen_scalar()
     {
-        return {gko::initialize<VecType>(
-                    {gko::test::detail::get_rand_value<
-                        typename VecType::value_type>(
-                        std::normal_distribution<
-                            gko::remove_complex<typename VecType::value_type>>(
-                            0.0, 1.0),
-                        rand_engine)},
-                    ref),
-                exec};
+        return {
+            gko::initialize<VecType>(
+                {gko::test::detail::get_rand_value<
+                    typename VecType::value_type>(
+                    gko::test::normal_distribution<>(0.0, 1.0), rand_engine)},
+                ref),
+            exec};
     }
 
     template <typename VecType = Vec>

@@ -124,7 +124,9 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     // Initialize and Orthonormalize P
     const auto num_rows = subspace_vectors->get_size()[0];
     const auto num_cols = subspace_vectors->get_size()[1];
-    auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
+    auto dist = std::normal_distribution<
+        typename ::gko::detail::arth_type<remove_complex<ValueType>>::type>(
+        0.0, 1.0);
     auto seed = std::random_device{}();
     auto gen = std::default_random_engine(seed);
     for (size_type row = 0; row < num_rows; row++) {

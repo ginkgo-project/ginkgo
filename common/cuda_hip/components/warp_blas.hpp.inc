@@ -407,5 +407,5 @@ __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
         }
     }
     return reduce(group, sum,
-                  [](result_type x, result_type y) { return max(x, y); });
+                  [](result_type x, result_type y) { return gko::max(x, y); });
 }

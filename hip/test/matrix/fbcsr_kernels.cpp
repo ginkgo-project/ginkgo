@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -45,7 +46,7 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted_ref;
 
-    std::normal_distribution<gko::remove_complex<T>> distb;
+    gko::test::normal_distribution<> distb;
     std::default_random_engine engine;
 
     value_type get_random_value()
@@ -149,11 +150,15 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
     auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
-    rand_hip->apply(x_hip, prod_hip);
-    this->rsorted_ref->apply(x_ref, prod_ref);
+    if (std::is_same<value_type, gko::half>::value) {
+        ASSERT_THROW(rand_hip->apply(x_hip, prod_hip), gko::NotImplemented);
+    } else {
+        rand_hip->apply(x_hip, prod_hip);
+        this->rsorted_ref->apply(x_ref, prod_ref);
 
-    const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+        const double tol = r<value_type>::value;
+        GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+    }
 }
 
 
@@ -173,11 +178,15 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
 
-    rand_hip->apply(x_hip, prod_hip);
-    this->rsorted_ref->apply(x_ref, prod_ref);
+    if (std::is_same<value_type, gko::half>::value) {
+        ASSERT_THROW(rand_hip->apply(x_hip, prod_hip), gko::NotImplemented);
+    } else {
+        rand_hip->apply(x_hip, prod_hip);
+        this->rsorted_ref->apply(x_ref, prod_ref);
 
-    const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+        const double tol = r<value_type>::value;
+        GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+    }
 }
 
 
@@ -209,11 +218,16 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
-    rand_hip->apply(alpha, x_hip, beta, prod_hip);
-    this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
+    if (std::is_same<value_type, gko::half>::value) {
+        ASSERT_THROW(rand_hip->apply(alpha, x_hip, beta, prod_hip),
+                     gko::NotImplemented);
+    } else {
+        rand_hip->apply(alpha, x_hip, beta, prod_hip);
+        this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
 
-    const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+        const double tol = r<value_type>::value;
+        GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+    }
 }
 
 
@@ -245,11 +259,16 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref);
 
-    rand_hip->apply(alpha, x_hip, beta, prod_hip);
-    this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
+    if (std::is_same<value_type, gko::half>::value) {
+        ASSERT_THROW(rand_hip->apply(alpha, x_hip, beta, prod_hip),
+                     gko::NotImplemented);
+    } else {
+        rand_hip->apply(alpha, x_hip, beta, prod_hip);
+        this->rsorted_ref->apply(alpha_ref, x_ref, beta_ref, prod_ref);
 
-    const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+        const double tol = r<value_type>::value;
+        GKO_ASSERT_MTX_NEAR(prod_ref, prod_hip, 5 * tol);
+    }
 }
 
 

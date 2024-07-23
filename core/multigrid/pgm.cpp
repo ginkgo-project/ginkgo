@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -191,7 +192,7 @@ Pgm<ValueType, IndexType>::generate_local(
     auto abs_mtx = local_matrix->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
     auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+    auto half_scalar = initialize<matrix::Dense<real_type>>({half(0.5)}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
     abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
@@ -544,7 +545,6 @@ void Pgm<ValueType, IndexType>::generate()
 
 #define GKO_DECLARE_PGM(_vtype, _itype) class Pgm<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM);
-
 
 }  // namespace multigrid
 }  // namespace gko

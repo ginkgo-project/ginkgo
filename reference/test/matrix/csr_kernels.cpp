@@ -50,7 +50,7 @@ protected:
     using Ell = gko::matrix::Ell<value_type, index_type>;
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using MixedVec = gko::matrix::Dense<next_precision<value_type>>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
 
@@ -792,7 +792,7 @@ TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -800,7 +800,9 @@ TYPED_TEST(Csr, ConvertsToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->convert_to(tmp);
@@ -817,7 +819,7 @@ TYPED_TEST(Csr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -825,7 +827,9 @@ TYPED_TEST(Csr, MovesToPrecision)
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->move_to(tmp);
@@ -994,7 +998,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -1013,7 +1017,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -2049,8 +2053,7 @@ TYPED_TEST(Csr, AppliesToComplex)
 
 TYPED_TEST(Csr, AppliesToMixedComplex)
 {
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_value_type = next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -2105,8 +2108,7 @@ TYPED_TEST(Csr, AdvancedAppliesToComplex)
 
 TYPED_TEST(Csr, AdvancedAppliesToMixedComplex)
 {
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+    using mixed_value_type = next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;

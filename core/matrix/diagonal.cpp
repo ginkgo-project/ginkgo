@@ -165,6 +165,25 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 }
 
 
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<next_precision<ValueType>>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(
+    Diagonal<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {

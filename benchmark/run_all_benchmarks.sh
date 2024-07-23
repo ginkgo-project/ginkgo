@@ -110,6 +110,8 @@ elif [ "${BENCHMARK_PRECISION}" == "dcomplex" ]; then
     BENCH_SUFFIX="_dcomplex"
 elif [ "${BENCHMARK_PRECISION}" == "scomplex" ]; then
     BENCH_SUFFIX="_scomplex"
+elif [ "${BENCHMARK_PRECISION}" == "half" ]; then
+    BENCH_SUFFIX="_half"
 else
     echo "BENCHMARK_PRECISION is set to the not supported \"${BENCHMARK_PRECISION}\"." 1>&2
     echo "Currently supported values: \"double\", \"single\", \"dcomplex\" and \"scomplex\"" 1>&2
@@ -216,9 +218,16 @@ keep_latest() {
 compute_matrix_statistics() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
-    ./matrix_statistics/matrix_statistics${BENCH_SUFFIX} \
-        --backup="$1.bkp" --double_buffer="$1.bkp2" \
-        <"$1.imd" 2>&1 >"$1"
+    if [ "${BENCH_SUFFIX}" == "_half" ]; then
+        # half precision benchmark still uses single for statistics
+        ./matrix_statistics/matrix_statistics_single \
+            --backup="$1.bkp" --double_buffer="$1.bkp2" \
+            <"$1.imd" 2>&1 >"$1"
+    else
+        ./matrix_statistics/matrix_statistics${BENCH_SUFFIX} \
+            --backup="$1.bkp" --double_buffer="$1.bkp2" \
+            <"$1.imd" 2>&1 >"$1"
+    fi
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
 

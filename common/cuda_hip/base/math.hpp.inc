@@ -11,6 +11,13 @@ struct device_numeric_limits {
     static constexpr auto min = std::numeric_limits<T>::min();
 };
 
+template <>
+struct device_numeric_limits<__half> {
+    static constexpr auto inf = std::numeric_limits<gko::half>::infinity();
+    static constexpr auto max = std::numeric_limits<gko::half>::max();
+    static constexpr auto min = std::numeric_limits<gko::half>::min();
+};
+
 
 namespace detail {
 
@@ -19,15 +26,6 @@ template <typename T>
 struct remove_complex_impl<thrust::complex<T>> {
     using type = T;
 };
-
-
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
-
-
-template <typename T>
-struct is_complex_or_scalar_impl<thrust::complex<T>> : std::is_scalar<T> {};
 
 
 template <typename T>

@@ -323,12 +323,10 @@ public:
 
         alpha = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            gko::test::normal_distribution<>(), this->engine, this->exec);
         beta = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            gko::test::normal_distribution<>(), this->engine, this->exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -368,14 +366,12 @@ public:
             num_rows, num_cols,
             std::uniform_int_distribution<int>(static_cast<int>(num_cols),
                                                static_cast<int>(num_cols)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            gko::test::normal_distribution<>(), engine);
         auto mat_md = gko::test::generate_random_matrix_data<value_type,
                                                              global_index_type>(
             num_rows, num_rows,
             std::uniform_int_distribution<int>(0, static_cast<int>(num_rows)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            gko::test::normal_distribution<>(), engine);
 
         auto row_mapping = gko::test::generate_random_array<
             gko::experimental::distributed::comm_index_type>(
@@ -526,15 +522,15 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        ? gko::remove_complex<T>(0)
+                        : gko::remove_complex<T>(r<OtherT>::value);
 
     this->dist_mat->convert_to(tmp);
     tmp->convert_to(res);
@@ -552,7 +548,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
@@ -560,8 +556,8 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     auto clone_dist_mat = gko::clone(this->dist_mat);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        ? gko::remove_complex<T>(0)
+                        : gko::remove_complex<T>(r<OtherT>::value);
 
     this->dist_mat->move_to(tmp);
     tmp->convert_to(res);

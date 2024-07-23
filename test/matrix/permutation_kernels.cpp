@@ -37,13 +37,13 @@ protected:
 
         mtx = gko::test::generate_random_matrix<Mtx>(
             tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                -1.0, 1.0),
             rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Mtx>(
             tmp.size(), 4, std::uniform_int_distribution<>(4, 4),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
+            gko::test::normal_distribution<gko::remove_complex<value_type>>(
+                -1.0, 1.0),
             rand_engine, ref);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-3.0}, ref);

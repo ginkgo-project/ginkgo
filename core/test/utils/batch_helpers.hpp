@@ -138,7 +138,7 @@ std::unique_ptr<MatrixType> generate_diag_dominant_batch_matrix(
                     static_cast<size_type>(num_cols)},
         {}};
     auto engine = std::default_random_engine(42);
-    auto rand_diag_dist = std::normal_distribution<real_type>(20.0, 1.0);
+    auto rand_diag_dist = gko::test::normal_distribution<real_type>(20.0, 1.0);
     for (int row = 0; row < num_rows; ++row) {
         std::uniform_int_distribution<index_type> rand_nnz_dist{1, row + 1};
         const auto k = rand_nnz_dist(engine);
@@ -175,7 +175,7 @@ std::unique_ptr<MatrixType> generate_diag_dominant_batch_matrix(
     std::vector<gko::matrix_data<value_type, index_type>> batch_data;
     batch_data.reserve(num_batch_items);
     batch_data.emplace_back(data);
-    auto rand_val_dist = std::normal_distribution<>(-0.5, 0.5);
+    auto rand_val_dist = gko::test::normal_distribution<>(-0.5, 0.5);
     for (size_type b = 1; b < num_batch_items; b++) {
         auto rand_data = fill_random_matrix_data<value_type, index_type>(
             num_rows, num_cols, row_idxs, col_idxs, rand_val_dist, engine);

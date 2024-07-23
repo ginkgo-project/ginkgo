@@ -45,7 +45,8 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            gko::test::normal_distribution<value_type>(-1.0, 1.0), rand_engine,
+            ref);
     }
 
     Range3dHelper generate_krylov_helper(gko::dim<3> size)
@@ -57,13 +58,13 @@ protected:
         auto temp_krylov_bases = gko::test::generate_random_matrix<Dense>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
-            std::normal_distribution<storage_type>(-1.0, 1.0), rand_engine,
-            ref);
+            gko::test::normal_distribution<storage_type>(-1.0, 1.0),
+            rand_engine, ref);
         std::copy_n(temp_krylov_bases->get_const_values(), bases.get_size(),
                     bases.get_data());
         // Only useful when the Accessor actually has a scale
         auto range = helper.get_range();
-        auto dist = std::normal_distribution<value_type>(-1, 1);
+        auto dist = gko::test::normal_distribution<value_type>(-1, 1);
         for (size_type k = 0; k < size[0]; ++k) {
             for (size_type i = 0; i < size[2]; ++i) {
                 gko::cb_gmres::helper_functions_accessor<Range3d>::write_scalar(

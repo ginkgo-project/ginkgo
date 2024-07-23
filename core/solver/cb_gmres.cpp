@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
@@ -521,8 +522,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 #define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>
 #define GKO_DECLARE_CB_GMRES_TRAITS(_type1) \
     struct workspace_traits<CbGmres<_type1>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_NO_HALF(GKO_DECLARE_CB_GMRES);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_NO_HALF(GKO_DECLARE_CB_GMRES_TRAITS);
 
 
 }  // namespace solver

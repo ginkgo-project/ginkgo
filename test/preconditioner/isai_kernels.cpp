@@ -54,7 +54,8 @@ protected:
     {
         const bool for_lower_tm = type == matrix_type::lower;
         auto nz_dist = std::uniform_int_distribution<index_type>(1, row_limit);
-        auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
+        auto val_dist =
+            gko::test::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         if (type == matrix_type::general) {
             auto dense_mtx = gko::test::generate_random_matrix<Dense>(
@@ -82,7 +83,8 @@ protected:
 
     void initialize_tridiag_data(matrix_type type, gko::size_type n)
     {
-        auto val_dist = std::uniform_real_distribution<value_type>(0., 1.);
+        auto val_dist =
+            gko::test::uniform_real_distribution<value_type>(0., 1.);
         mtx = Csr::create(ref);
         auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
             n, 1, 1, val_dist, rand_engine, ref);

@@ -170,6 +170,30 @@ void Fbcsr<ValueType, IndexType>::move_to(
 }
 
 
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::convert_to(
+    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
+    const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+    // block sizes are immutable except for assignment/conversion
+    result->bs_ = this->bs_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::move_to(
+    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     Dense<ValueType>* const result) const

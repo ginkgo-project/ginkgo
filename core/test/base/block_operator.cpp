@@ -290,7 +290,7 @@ TEST_F(BlockOperator, CanApplyAndAdvancedApplyLarge)
     gko::size_type block_num_cols = 5;
     auto dense = gko::test::generate_random_dense_matrix<vtype>(
         block_num_rows * local_num_rows, block_num_cols * local_num_cols,
-        std::uniform_real_distribution<vtype>(-1, 1), engine, exec);
+        gko::test::uniform_real_distribution<vtype>(-1, 1), engine, exec);
     auto get_submatrix = [&](auto i, auto j) {
         return dense->create_submatrix(
             {i * local_num_rows, (i + 1) * local_num_rows},
@@ -307,7 +307,7 @@ TEST_F(BlockOperator, CanApplyAndAdvancedApplyLarge)
     auto bop = gko::BlockOperator::create(exec, blocks);
     auto x = gko::test::generate_random_dense_matrix<vtype>(
         block_num_cols * local_num_cols, 3,
-        std::uniform_real_distribution<vtype>(-1, 1), engine, exec);
+        gko::test::uniform_real_distribution<vtype>(-1, 1), engine, exec);
     auto y = Mtx::create(exec, gko::dim<2>{block_num_rows * local_num_rows, 3});
     auto result_y = gko::clone(y);
 

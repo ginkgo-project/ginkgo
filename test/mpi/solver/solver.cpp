@@ -48,7 +48,7 @@ template <typename SolverType>
 struct SimpleSolverTest {
     using solver_type = SolverType;
     using value_type = typename solver_type::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using dist_matrix_type =
@@ -231,7 +231,7 @@ protected:
     using local_index_type = typename T::local_index_type;
     using global_index_type = typename T::global_index_type;
     using value_type = typename T::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using Vec = typename T::dist_vector_type;
     using LocalVec = typename T::non_dist_vector_type;
     using MixedVec = typename T::mixed_dist_vector_type;
@@ -260,7 +260,7 @@ protected:
                                                            global_index_type>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_cols, max_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine);
+            gko::test::normal_distribution<>(0.0, 1.0), rand_engine);
         Config::preprocess(data);
         auto dist_mtx = Mtx::create(ref, comm);
         dist_mtx->read_distributed(data, part);
@@ -270,10 +270,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {
-            size,
-            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
-            rand_engine};
+        return {size, gko::test::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename DistVecType = Vec>
@@ -300,10 +297,7 @@ protected:
     {
         return gko::share(gko::initialize<VecType>(
             {gko::test::detail::get_rand_value<typename VecType::value_type>(
-                std::normal_distribution<
-                    gko::remove_complex<typename VecType::value_type>>(0.0,
-                                                                       1.0),
-                rand_engine)},
+                gko::test::normal_distribution<>(0.0, 1.0), rand_engine)},
             exec));
     }
 

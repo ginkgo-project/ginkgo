@@ -59,12 +59,15 @@ template <typename ValueType = double>
 class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
+#endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
-    friend class Vector<next_precision<ValueType>>;
+    friend class Vector<previous_precision<ValueType>>;
 
 public:
     using EnableDistributedLinOp<Vector>::convert_to;
@@ -162,6 +165,20 @@ public:
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Vector<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Vector<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Vector<next_precision<next_precision<ValueType>>>>::move_to;
+
+    void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
+        const override;
+
+    void move_to(
+        Vector<next_precision<next_precision<ValueType>>>* result) override;
+#endif
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -670,6 +687,27 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
         return target_type::create(source->get_executor(),
                                    source->get_communicator());
     }
+
+    // Allow to create_empty of the same type
+    // For distributed case, next<next<V>> will be V in the candicated list.
+    // TODO: decide to whether to add this or add condition to the list
+    static std::unique_ptr<target_type> create_empty(const target_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+
+#if GINKGO_ENABLE_HALF
+    using snd_source_type = experimental::distributed::Vector<
+        previous_precision<previous_precision<ValueType>>>;
+
+    static std::unique_ptr<target_type> create_empty(
+        const snd_source_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+#endif
 };
 
 
