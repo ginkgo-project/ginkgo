@@ -16,11 +16,8 @@
 #include "core/base/kernel_declaration.hpp"
 
 
-#ifdef GINKGO_BACTCHED_FULL_OPTIMIZATIONS
-constexpr bool cg_no_shared_vecs = false;
-#else
+// TODO: update when splitting compilation
 constexpr bool cg_no_shared_vecs = true;
-#endif
 
 
 namespace gko {
