@@ -62,11 +62,10 @@
 #else  // NDEBUG
 // Poor man's assertions on GPUs for MACs. They won't terminate the program
 // but will at least print something on the screen
-#define GKO_ASSERT(condition)                                               \
-    ((condition)                                                            \
-         ? ((void)0)                                                        \
-         : ((void)printf("%s: %d: %s: Assertion `" #condition "' failed\n", \
-                         __FILE__, __LINE__, __func__)))
+#define GKO_ASSERT(condition)                                           \
+    ((condition) ? ((void)0)                                            \
+                 : ((void)printf("%s: %d: %s: Assertion `%s` failed\n", \
+                                 __FILE__, __LINE__, __func__, #condition)))
 #endif  // NDEBUG
 
 #else  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||

@@ -6,6 +6,7 @@
 #define GKO_CORE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
@@ -14,6 +15,10 @@
 
 
 #include "core/base/kernel_declaration.hpp"
+
+
+// TODO: update when splitting kernels
+constexpr bool bicgstab_no_shared_vecs = true;
 
 
 namespace gko {
@@ -139,7 +144,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
     // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}
     storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
     // If available shared mem is zero, set all vecs to global.
-    if (rem_shared <= 0) {
+    if (rem_shared <= 0 || bicgstab_no_shared_vecs) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
