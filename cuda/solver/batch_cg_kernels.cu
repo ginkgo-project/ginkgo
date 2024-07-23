@@ -165,56 +165,51 @@ public:
 
         value_type* const workspace_data = workspace.get_data();
 
+        // TODO: split compilation
         // Only instantiate when full optimizations has been enabled. Otherwise,
         // just use the default one with no shared memory.
-#ifdef GINKGO_BATCHED_FULL_OPTIMIZATIONS
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared>
-        if (sconf.prec_shared) {
-            launch_apply_kernel<StopType, 5, true>(
-                sconf, logger, prec, mat, b.values, x.values, workspace_data,
-                block_size, shared_size);
-        } else {
-            switch (sconf.n_shared) {
-            case 0:
-                launch_apply_kernel<StopType, 0, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 1:
-                launch_apply_kernel<StopType, 1, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 2:
-                launch_apply_kernel<StopType, 2, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 3:
-                launch_apply_kernel<StopType, 3, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 4:
-                launch_apply_kernel<StopType, 4, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 5:
-                launch_apply_kernel<StopType, 5, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            default:
-                GKO_NOT_IMPLEMENTED;
-            }
-        }
-#else
+        // if (sconf.prec_shared) {
+        //     launch_apply_kernel<StopType, 5, true>(
+        //         sconf, logger, prec, mat, b.values, x.values, workspace_data,
+        //         block_size, shared_size);
+        // } else {
+        //     switch (sconf.n_shared) {
+        //     case 0:
         launch_apply_kernel<StopType, 0, false>(
             sconf, logger, prec, mat, b.values, x.values, workspace_data,
             block_size, shared_size);
-#endif
+        //         break;
+        //     case 1:
+        //         launch_apply_kernel<StopType, 1, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 2:
+        //         launch_apply_kernel<StopType, 2, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 3:
+        //         launch_apply_kernel<StopType, 3, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 4:
+        //         launch_apply_kernel<StopType, 4, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 5:
+        //         launch_apply_kernel<StopType, 5, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     default:
+        //         GKO_NOT_IMPLEMENTED;
+        //     }
+        // }
     }
 
 private:

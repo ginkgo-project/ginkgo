@@ -31,10 +31,6 @@
 #cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
 
 
-/* Should we use all optimizations for batched solvers? */
-#cmakedefine GINKGO_BATCHED_FULL_OPTIMIZATIONS
-
-
 /* Should we compile Ginkgo specifically to tune values? */
 #cmakedefine GINKGO_BENCHMARK_ENABLE_TUNING
 
