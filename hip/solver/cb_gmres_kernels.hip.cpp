@@ -513,7 +513,7 @@ void restart_f(std::shared_ptr<const DefaultExecutor> exec,
                array<size_type>* final_iter_nums, array<char>& reduction_tmp,
                size_type krylov_dim)
 {
-    constexpr auto block_size = FrszCompressor::max_exp_block_size;
+    constexpr auto block_size = default_block_size;
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
     const auto krylov_stride = krylov_bases.get_stride();
@@ -556,9 +556,7 @@ void finish_arnoldi_CGS_f(
     array<size_type>* num_reorth)
 {
     constexpr bool use_scalar = false;
-    // TODO: Increase this as well
-    constexpr auto write_krylov_bases_block_size =
-        FrszCompressor::max_exp_block_size;
+    constexpr auto write_krylov_bases_block_size = default_block_size;
     const auto dim_size = next_krylov_basis->get_size();
     if (dim_size[1] == 0) {
         return;

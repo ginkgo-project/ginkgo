@@ -641,14 +641,15 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
 // Must be called with at least `num_rows * stride_next_krylov` threads in
 // total.
 template <int block_size, typename ValueType, typename FrszCompressor>
-__global__
-__launch_bounds__(block_size) void update_next_krylov_and_add_f_kernel(
-    size_type num_iters, size_type num_rows, size_type num_cols,
-    ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const FrszCompressor krylov_bases, ValueType* __restrict__ hessenberg_iter,
-    size_type stride_hessenberg, const ValueType* __restrict__ buffer_iter,
-    size_type stride_buffer, const stopping_status* __restrict__ stop_status,
-    const stopping_status* __restrict__ reorth_status)
+__global__ __launch_bounds__(block_size) std::
+    enable_if_t<FrszCompressor::frsz2_compressor::bits_per_value != FrszCompressor::frsz2_compressor::uint_compressed_size_bit> update_next_krylov_and_add_f_kernel(
+        size_type num_iters, size_type num_rows, size_type num_cols,
+        ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+        const FrszCompressor krylov_bases,
+        ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+        const ValueType* __restrict__ buffer_iter, size_type stride_buffer,
+        const stopping_status* __restrict__ stop_status,
+        const stopping_status* __restrict__ reorth_status)
 {
     const auto global_id = thread::get_thread_id_flat<int>();
     const auto row_idx = global_id / stride_next_krylov;
@@ -667,6 +668,64 @@ __launch_bounds__(block_size) void update_next_krylov_and_add_f_kernel(
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                 hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
             }
+        }
+        next_krylov_basis[next_krylov_idx] = local_res;
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename FrszCompressor>
+__global__ __launch_bounds__(block_size) std::
+    enable_if_t<FrszCompressor::frsz2_compressor::bits_per_value == FrszCompressor::frsz2_compressor::uint_compressed_size_bit> update_next_krylov_and_add_f_kernel(
+        size_type num_iters, size_type num_rows, size_type num_cols,
+        ValueType* __restrict__ next_krylov_basis, size_type stride_next_krylov,
+        const FrszCompressor krylov_bases,
+        ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
+        const ValueType* __restrict__ buffer_iter, size_type stride_buffer,
+        const stopping_status* __restrict__ stop_status,
+        const stopping_status* __restrict__ reorth_status)
+{
+    const auto global_id = thread::get_thread_id_flat<int>();
+    const auto row_idx = global_id / stride_next_krylov;
+    const auto col_idx = global_id % stride_next_krylov;
+    using frsz2 = typename FrszCompressor::frsz2_compressor;
+    using exp_type = typename frsz2::exp_type;
+    using uint_compressed_type = typename frsz2::uint_compressed_type;
+
+    if (row_idx < num_rows && col_idx < num_cols &&
+        !stop_status[col_idx].has_stopped() &&
+        !reorth_status[col_idx].has_stopped()) {
+        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+        auto local_res = next_krylov_basis[next_krylov_idx];
+        const exp_type* __restrict__ exponent;
+        const uint_compressed_type* __restrict__ krylov_bases_value;
+        {
+            const auto start_idx =
+                col_idx * krylov_bases.get_stride()[0] + row_idx;
+            exponent = reinterpret_cast<const exp_type*>(
+                           krylov_bases.get_const_compressor()
+                               .get_const_exponent_data()) +
+                       start_idx / frsz2::max_exp_block_size;
+            krylov_bases_value = reinterpret_cast<const uint_compressed_type*>(
+                                     krylov_bases.get_const_compressor()
+                                         .get_const_compressed_data()) +
+                                 start_idx;
+        }
+        const auto krylov_exp_stride =
+            (krylov_bases.get_stride()[1] / frsz2::max_exp_block_size);
+        for (int k = 0; k < num_iters; ++k) {
+            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+            const auto buffer_idx = k * stride_buffer + col_idx;
+            local_res -=
+                buffer_iter[buffer_idx] *
+                frsz2::decompress_gpu_value(*exponent, *krylov_bases_value);
+            if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
+                hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+            }
+            exponent += krylov_exp_stride;
+            krylov_bases_value += krylov_bases.get_stride()[1];
         }
         next_krylov_basis[next_krylov_idx] = local_res;
     }
