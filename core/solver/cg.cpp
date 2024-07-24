@@ -125,6 +125,22 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
+    // If the initial guess is already a good enough solution, return
+    // immediately.
+    r->compute_conj_dot(r, rho, reduction_tmp);
+    bool all_stopped =
+        stop_criterion->update()
+            .num_iterations(0)
+            .residual(r)
+            .implicit_sq_residual_norm(rho)
+            .solution(dense_x)
+            .check(RelativeStoppingId, true, &stop_status, &one_changed);
+    this->template log<log::Logger::iteration_complete>(
+        this, dense_b, dense_x, 0, r, nullptr, rho, &stop_status, all_stopped);
+    if (all_stopped) {
+        return;
+    }
+
     int iter = -1;
     /* Memory movement summary:
      * 18n * values + matrix/preconditioner storage
