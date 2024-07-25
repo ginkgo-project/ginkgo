@@ -762,6 +762,11 @@ void Multigrid::generate()
     GKO_ASSERT_EQ(level > 0, true);
     auto last_mg_level = mg_level_list_.back();
 
+    using ws = workspace_traits<Multigrid>;
+    this->setup_workspace();
+    this->create_state();
+    cache_.state->generate(this->get_system_matrix().get(), this, 1);
+
     // generate coarsest solver
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -947,9 +952,6 @@ template <typename VectorType>
 void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                  initial_guess_mode guess) const
 {
-    using ws = workspace_traits<Multigrid>;
-    this->setup_workspace();
-    this->create_state();
     if (cache_.state->nrhs != b->get_size()[1]) {
         cache_.state->generate(this->get_system_matrix().get(), this,
                                b->get_size()[1]);
