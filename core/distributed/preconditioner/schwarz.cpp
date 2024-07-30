@@ -31,7 +31,7 @@ namespace preconditioner {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parameters_type
+typename Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parameters_type
 Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)

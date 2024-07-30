@@ -7,7 +7,6 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/type_descriptor_helper.hpp"
@@ -30,20 +29,22 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
     // index type, which leadw the invalid index type <int64, int32> in
     // compile time.
     if (updated.get_index_typestr() == type_string<int32>::str()) {
-        return dispatch<gko::LinOpFactory,
-                        gko::experimental::distributed::Schwarz>(
+        return dispatch<
+            gko::LinOpFactory,
+            gko::experimental::distributed::preconditioner::Schwarz>(
             config, context, updated,
             make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(),
-                               syn::type_list<int32>());
+                               syn::type_list<int32>()),
             make_type_selector(global_index_str, index_type_list()));
     } else {
-        return dispatch<gko::LinOpFactory,
-                        gko::experimental::distributed::Schwarz>(
+        return dispatch<
+            gko::LinOpFactory,
+            gko::experimental::distributed::preconditioner::Schwarz>(
             config, context, updated,
             make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(),
-                               syn::type_list<int64>());
+                               syn::type_list<int64>()),
             make_type_selector(global_index_str, syn::type_list<int64>()));
     }
 }
