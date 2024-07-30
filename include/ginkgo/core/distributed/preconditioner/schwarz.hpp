@@ -91,15 +91,16 @@ public:
      * @param config  the property tree for setting
      * @param context  the registry
      * @param td_for_child  the type descriptor for children objects. The
-     *                      default uses the value/local index type of this
-     * class.
+     *                      default uses the value/local/global index type of
+     *                      this class.
      *
      * @return parameters
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
-            config::make_type_descriptor<ValueType, LocalIndexType>());
+            config::make_type_descriptor<ValueType, LocalIndexType,
+                                         GlobalIndexType>());
 
 protected:
     /**
