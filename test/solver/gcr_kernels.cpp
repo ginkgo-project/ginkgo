@@ -157,6 +157,22 @@ TEST_F(Gcr, GcrKernelInitializeIsEquivalentToRef)
 }
 
 
+TEST_F(Gcr, GcrKernelInitializeWithStrideIsEquivalentToRef)
+{
+    initialize_data();
+    auto d_b_strided = Mtx::create(exec, b->get_size(), b->get_stride() + 2);
+    d_b_strided->copy_from(d_b);
+
+    gko::kernels::reference::gcr::initialize(ref, b.get(), residual.get(),
+                                             stop_status.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::gcr::initialize(
+        exec, d_b_strided.get(), d_residual.get(), d_stop_status.get_data());
+
+    GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+}
+
+
 TEST_F(Gcr, GcrKernelRestartIsEquivalentToRef)
 {
     initialize_data();

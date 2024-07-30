@@ -27,7 +27,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 stopping_status* stop_status)
 {
     if (b->get_size()) {
-        run_kernel_solver(
+        run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto b, auto residual,
                           auto stop) {
@@ -36,8 +36,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 residual(row, col) = b(row, col);
             },
-            b->get_size(), b->get_stride(), default_stride(b),
-            default_stride(residual), stop_status);
+            b->get_size(), b, residual, stop_status);
     } else {
         run_kernel(
             exec, [] GKO_KERNEL(auto col, auto stop) { stop[col].reset(); },
