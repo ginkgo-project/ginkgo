@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include <ginkgo/core/base/types.hpp>
+
 namespace gko {
 namespace config {
 
@@ -27,10 +29,9 @@ namespace config {
  * value `void` can be used to specify that no default type is provided. In this
  * case, the configuration has to provide the necessary template types.
  *
- * If the configuration specifies one of the fields (or both):
+ * If the configuration specifies one field (only allow value_type now):
  * ```
  * value_type: "some_value_type"
- * index_type: "some_index_type"
  * ```
  * these types will take precedence over the type_descriptor.
  */
@@ -42,12 +43,15 @@ public:
      *
      * @param value_typestr  the value type string. "void" means no default.
      * @param index_typestr  the index type string. "void" means no default.
+     * @param global_index_typestr  the global index type string. "void" means
+     * no default.
      *
      * @note there is no way to call the constructor with explicit template, so
      * we create another free function to handle it.
      */
     explicit type_descriptor(std::string value_typestr = "float64",
-                             std::string index_typestr = "int32");
+                             std::string index_typestr = "int32",
+                             std::string global_index_typestr = "int64");
 
     /**
      * Get the value type string.
@@ -59,9 +63,15 @@ public:
      */
     const std::string& get_index_typestr() const;
 
+    /**
+     * Get the global index type string
+     */
+    const std::string& get_global_index_typestr() const;
+
 private:
     std::string value_typestr_;
     std::string index_typestr_;
+    std::string global_index_typestr_;
 };
 
 
@@ -71,8 +81,10 @@ private:
  *
  * @tparam ValueType  the value type in descriptor
  * @tparam IndexType  the index type in descriptor
+ * @tparam GlobalIndexType  the global index type in descriptor
  */
-template <typename ValueType = double, typename IndexType = int>
+template <typename ValueType = double, typename IndexType = int,
+          typename GlobalIndexType = int64>
 type_descriptor make_type_descriptor();
 
 

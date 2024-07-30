@@ -21,12 +21,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
-    auto global_index_str = updated.get_index_typestr();
-    if (auto& obj = config.get("global_index_type")) {
-        global_index_str = obj.get_string();
-    }
     // We can not directly dispatch the global index type without consider local
-    // index type, which leadw the invalid index type <int64, int32> in
+    // index type, which leads the invalid index type <int64, int32> in
     // compile time.
     if (updated.get_index_typestr() == type_string<int32>::str()) {
         return dispatch<
@@ -36,7 +32,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
             make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(),
                                syn::type_list<int32>()),
-            make_type_selector(global_index_str, index_type_list()));
+            make_type_selector(updated.get_global_index_typestr(),
+                               index_type_list()));
     } else {
         return dispatch<
             gko::LinOpFactory,
@@ -45,7 +42,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
             make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(),
                                syn::type_list<int64>()),
-            make_type_selector(global_index_str, syn::type_list<int64>()));
+            make_type_selector(updated.get_global_index_typestr(),
+                               syn::type_list<int64>()));
     }
 }
 
