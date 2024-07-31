@@ -661,6 +661,17 @@ public:
         this->run(op);
     }
 
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
+              typename ClosureDpcpp>
+    void run(std::string name, const ClosureOmp& op_omp,
+             const ClosureCuda& op_cuda, const ClosureHip& op_hip,
+             const ClosureDpcpp& op_dpcpp) const
+    {
+        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
+            std::move(name), op_omp, op_cuda, op_hip, op_dpcpp);
+        this->run(op);
+    }
+
     /**
      * Allocates memory in this Executor.
      *
@@ -1108,6 +1119,16 @@ private:
               typename ClosureDpcpp>
     class LambdaOperation : public Operation {
     public:
+        LambdaOperation(std::string name, const ClosureOmp& op_omp,
+                        const ClosureCuda& op_cuda, const ClosureHip& op_hip,
+                        const ClosureDpcpp& op_dpcpp)
+            : name_(std::move(name)),
+              op_omp_(op_omp),
+              op_cuda_(op_cuda),
+              op_hip_(op_hip),
+              op_dpcpp_(op_dpcpp)
+        {}
+
         /**
          * Creates an LambdaOperation object from four functors.
          *
@@ -1120,10 +1141,7 @@ private:
          */
         LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
                         const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
-            : op_omp_(op_omp),
-              op_cuda_(op_cuda),
-              op_hip_(op_hip),
-              op_dpcpp_(op_dpcpp)
+            : LambdaOperation("unnamed", op_omp, op_cuda, op_hip, op_dpcpp)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1151,7 +1169,10 @@ private:
             op_dpcpp_();
         }
 
+        const char* get_name() const noexcept override { return name_.c_str(); }
+
     private:
+        std::string name_;
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
