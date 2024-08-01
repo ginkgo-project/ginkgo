@@ -12,7 +12,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class SegmentedRange : public CommonTestFixture {
@@ -30,14 +30,15 @@ public:
 
 
 // nvcc doesn't like device lambdas declared in complex classes, move it out
-void run_segmented_range(std::shared_ptr<gko::EXEC_TYPE> exec,
-                         const gko::array<int>& ptrs,
-                         const gko::array<int>& values, gko::array<int>& output)
+void run_segmented_index_range(std::shared_ptr<gko::EXEC_TYPE> exec,
+                               const gko::array<int>& ptrs,
+                               const gko::array<int>& values,
+                               gko::array<int>& output)
 {
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto ptrs, auto values, auto output, auto size) {
-            gko::segmented_range<int> range{ptrs, size};
+            gko::segmented_index_range<int> range{ptrs, size};
             for (auto [row, segment] : range) {
                 for (auto nz : segment) {
                     output[nz] = row;
@@ -61,7 +62,7 @@ TEST_F(SegmentedRange, KernelRunsSegmentedRange)
     gko::array<int> expected{
         ref, {1, 2, 2, 3, 4, 4, 4, 4, 4, 11, 22, 23, 34, 45, 46, 47, 48, 49}};
 
-    run_segmented_range(exec, ptrs, values, output);
+    run_segmented_index_range(exec, ptrs, values, output);
 
     GKO_ASSERT_ARRAY_EQ(output, expected);
 }

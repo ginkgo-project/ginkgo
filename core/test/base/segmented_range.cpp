@@ -16,8 +16,8 @@ TEST(SegmentedRange, WorksByIndex)
     std::vector<int> begins{3, 1, 4, 9};
     std::vector<int> ends{3, 10, 6, 10};
     std::vector<std::vector<int>> result_indices(begins.size());
-    gko::segmented_range<int> range{begins.data(), ends.data(),
-                                    static_cast<int>(begins.size())};
+    gko::segmented_index_range<int> range{begins.data(), ends.data(),
+                                          static_cast<int>(begins.size())};
 
     for (auto row : range.segment_indices()) {
         for (auto nz : range[row]) {
@@ -36,8 +36,8 @@ TEST(SegmentedRange, WorksByRangeFor)
     std::vector<int> begins{3, 1, 4, 9};
     std::vector<int> ends{3, 10, 6, 10};
     std::vector<std::vector<int>> result_indices(begins.size());
-    gko::segmented_range<int> range{begins.data(), ends.data(),
-                                    static_cast<int>(begins.size())};
+    gko::segmented_index_range<int> range{begins.data(), ends.data(),
+                                          static_cast<int>(begins.size())};
 
     for (auto [row, segment] : range) {
         for (auto nz : segment) {
@@ -55,8 +55,8 @@ TEST(SegmentedRange, WorksWithPtrsConstructor)
 {
     std::vector<int> ptrs{0, 2, 4, 5, 9};
     std::vector<std::vector<int>> result_indices(ptrs.size() - 1);
-    gko::segmented_range<int> range{ptrs.data(),
-                                    static_cast<int>(ptrs.size() - 1)};
+    gko::segmented_index_range<int> range{ptrs.data(),
+                                          static_cast<int>(ptrs.size() - 1)};
 
     for (auto row : range.segment_indices()) {
         for (auto nz : range[row]) {
@@ -210,7 +210,7 @@ bool check_assertion_exit_code(int exit_code)
 
 TEST(DeathTest, Assertions)
 {
-    using range_t = gko::segmented_range<int>;
+    using range_t = gko::segmented_index_range<int>;
     using vrange_t = gko::segmented_value_range<int, int*>;
     using range_it_t = range_t::iterator;
     using vrange_it_t = vrange_t::iterator;
@@ -221,12 +221,12 @@ TEST(DeathTest, Assertions)
     vrange_t vrange{ptrs.data(), values.data(),
                     static_cast<int>(ptrs.size() - 1)};
     vrange_t vrange2{ptrs.data(), values.data(), 0};
-    // gko::segmented_range::iterator
+    // gko::segmented_index_range::iterator
     EXPECT_EXIT((void)*(range_it_t{range, -1}), check_assertion_exit_code, "");
     EXPECT_EXIT((void)*(range_it_t{range, 1}), check_assertion_exit_code, "");
     EXPECT_EXIT((void)(range_it_t{range, 0} == range_it_t{range2, 0}),
                 check_assertion_exit_code, "");
-    // gko::segmented_range
+    // gko::segmented_index_range
     EXPECT_EXIT((void)(range_t{nullptr, -1}), check_assertion_exit_code, "");
     EXPECT_EXIT((void)range[-1], check_assertion_exit_code, "");
     EXPECT_EXIT((void)range[1], check_assertion_exit_code, "");
