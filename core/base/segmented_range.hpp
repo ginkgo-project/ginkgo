@@ -23,7 +23,7 @@ namespace gko {
  * @tparam IndexType  the type of indices used to represent the segments.
  */
 template <typename IndexType>
-class segmented_range {
+class segmented_index_range {
 public:
     using index_type = IndexType;
     using index_iterator_type = index_iterator<index_type>;
@@ -34,7 +34,8 @@ public:
      */
     class iterator {
     public:
-        constexpr explicit iterator(segmented_range range, index_type segment)
+        constexpr explicit iterator(segmented_index_range range,
+                                    index_type segment)
             : range_{range}, segment_{segment}
         {}
 
@@ -70,7 +71,7 @@ public:
         }
 
     private:
-        segmented_range range_;
+        segmented_index_range range_;
         index_type segment_;
     };
 
@@ -83,9 +84,9 @@ public:
      * @param num_segments  the number of segments, i.e. the size of the
      *                      beginning and end index arrays.
      */
-    constexpr explicit segmented_range(const index_type* begins,
-                                       const index_type* ends,
-                                       index_type num_segments)
+    constexpr explicit segmented_index_range(const index_type* begins,
+                                             const index_type* ends,
+                                             index_type num_segments)
         : begins_{begins}, ends_{ends}, num_segments_{num_segments}
     {
         assert(num_segments_ >= 0);
@@ -99,9 +100,9 @@ public:
      * @param num_segments  the number of segments, i.e. the size of the
      *                      ptrs index arrays.
      */
-    constexpr explicit segmented_range(const index_type* ptrs,
-                                       index_type num_segments)
-        : segmented_range{ptrs, ptrs + 1, num_segments}
+    constexpr explicit segmented_index_range(const index_type* ptrs,
+                                             index_type num_segments)
+        : segmented_index_range{ptrs, ptrs + 1, num_segments}
     {}
 
     /**
@@ -155,7 +156,8 @@ public:
     }
 
     /** Compares two ranges for equality. */
-    constexpr friend bool operator==(segmented_range lhs, segmented_range rhs)
+    constexpr friend bool operator==(segmented_index_range lhs,
+                                     segmented_index_range rhs)
     {
         return lhs.begin_indices() == rhs.begin_indices() &&
                lhs.end_indices() == rhs.end_indices() &&
@@ -163,7 +165,8 @@ public:
     }
 
     /** Compares two ranges for inequality. */
-    constexpr friend bool operator!=(segmented_range lhs, segmented_range rhs)
+    constexpr friend bool operator!=(segmented_index_range lhs,
+                                     segmented_index_range rhs)
     {
         return !(lhs == rhs);
     }
