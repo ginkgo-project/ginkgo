@@ -46,8 +46,8 @@ public:
 
         constexpr enumerated_segment operator*() const
         {
-            assert(segment_ >= 0);
-            assert(segment_ < range_.num_segments());
+            GKO_ASSERT(segment_ >= 0);
+            GKO_ASSERT(segment_ < range_.num_segments());
             return enumerated_segment{segment_,
                                       segment_type{range_.begin_index(segment_),
                                                    range_.end_index(segment_)}};
@@ -61,7 +61,7 @@ public:
 
         constexpr friend bool operator==(iterator lhs, iterator rhs)
         {
-            assert(lhs.range_ == rhs.range_);
+            GKO_ASSERT(lhs.range_ == rhs.range_);
             return lhs.segment_ == rhs.segment_;
         }
 
@@ -89,7 +89,7 @@ public:
                                              index_type num_segments)
         : begins_{begins}, ends_{ends}, num_segments_{num_segments}
     {
-        assert(num_segments_ >= 0);
+        GKO_ASSERT(num_segments_ >= 0);
     }
 
     /**
@@ -113,8 +113,8 @@ public:
      */
     constexpr segment_type operator[](index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return (*iterator{*this, segment}).segment;
     }
 
@@ -142,16 +142,16 @@ public:
     /** @return the beginning index of the given segment. */
     constexpr index_type begin_index(index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return begin_indices()[segment];
     }
 
     /** @return the end index of the given segment. */
     constexpr index_type end_index(index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return end_indices()[segment];
     }
 
@@ -214,8 +214,8 @@ public:
 
         constexpr enumerated_segment operator*() const
         {
-            assert(segment_ >= 0);
-            assert(segment_ < range_.num_segments());
+            GKO_ASSERT(segment_ >= 0);
+            GKO_ASSERT(segment_ < range_.num_segments());
             return enumerated_segment{
                 segment_,
                 segment_type{range_.values() + range_.begin_index(segment_),
@@ -230,7 +230,7 @@ public:
 
         constexpr friend bool operator==(iterator lhs, iterator rhs)
         {
-            assert(lhs.range_ == rhs.range_);
+            GKO_ASSERT(lhs.range_ == rhs.range_);
             return lhs.segment_ == rhs.segment_;
         }
 
@@ -264,7 +264,7 @@ public:
           values_{values},
           num_segments_{num_segments}
     {
-        assert(num_segments_ >= 0);
+        GKO_ASSERT(num_segments_ >= 0);
     }
 
     /**
@@ -291,8 +291,8 @@ public:
      */
     constexpr segment_type operator[](index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return (*iterator{*this, segment}).segment;
     }
 
@@ -328,16 +328,16 @@ public:
     /** @return the beginning index of the given segment. */
     constexpr index_type begin_index(index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return begin_indices()[segment];
     }
 
     /** @return the end index of the given segment. */
     constexpr index_type end_index(index_type segment) const
     {
-        assert(segment >= 0);
-        assert(segment < num_segments());
+        GKO_ASSERT(segment >= 0);
+        GKO_ASSERT(segment < num_segments());
         return end_indices()[segment];
     }
 
