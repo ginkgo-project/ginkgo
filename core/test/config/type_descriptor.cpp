@@ -29,7 +29,7 @@ TEST(TypeDescriptor, TemplateCreate)
 
         ASSERT_EQ(td.get_value_typestr(), "float32");
         ASSERT_EQ(td.get_index_typestr(), "int32");
-        ASSERT_EQ(td.get_global_index_typestr(), "int");
+        ASSERT_EQ(td.get_global_index_typestr(), "int32");
     }
     {
         SCOPED_TRACE("specify valuetype");
