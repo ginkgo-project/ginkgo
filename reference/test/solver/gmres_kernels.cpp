@@ -754,17 +754,17 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
 
 TYPED_TEST(Gmres, SolvesWithPreconditioner)
 {
-    using gko::solver::gmres::orthog_method;
+    using gko::solver::gmres::ortho_method;
 
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    for (auto orthog :
-         {orthog_method::mgs, orthog_method::cgs, orthog_method::cgs2}) {
-        SCOPED_TRACE(orthog);
+    for (auto ortho :
+         {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
+        SCOPED_TRACE(ortho);
         auto gmres_factory_preconditioner =
             Solver::build()
-                .with_orthog_method(orthog)
+                .with_ortho_method(ortho)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(100u),
                     gko::stop::ResidualNorm<value_type>::build()

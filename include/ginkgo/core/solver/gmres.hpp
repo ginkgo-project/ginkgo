@@ -35,7 +35,7 @@ namespace gmres {
 /**
  * Set the orthogonalization method for the Krylov subspace.
  */
-enum class orthog_method {
+enum class ortho_method {
     /**
      * Modified Gram-Schmidt (default)
      */
@@ -51,7 +51,7 @@ enum class orthog_method {
 };
 
 /** Prints an orthogonalization method. */
-std::ostream& operator<<(std::ostream& stream, orthog_method orthog);
+std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
 
 }  // namespace gmres
 
@@ -118,8 +118,8 @@ public:
         bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
 
         /** Orthogonalization method */
-        gmres::orthog_method GKO_FACTORY_PARAMETER_SCALAR(
-            orthog_method, gmres::orthog_method::mgs);
+        gmres::ortho_method GKO_FACTORY_PARAMETER_SCALAR(
+            ortho_method, gmres::ortho_method::mgs);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
