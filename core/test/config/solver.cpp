@@ -289,8 +289,8 @@ struct Gmres
         param.with_krylov_dim(3u);
         config_map["flexible"] = pnode{true};
         param.with_flexible(true);
-        config_map["orthog_method"] = pnode{"cgs"};
-        param.with_orthog_method(gko::solver::gmres::orthog_method::cgs);
+        config_map["ortho_method"] = pnode{"cgs"};
+        param.with_ortho_method(gko::solver::gmres::ortho_method::cgs);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -302,7 +302,7 @@ struct Gmres
         solver_config_test::template validate<from_reg>(result, answer);
         ASSERT_EQ(res_param.krylov_dim, ans_param.krylov_dim);
         ASSERT_EQ(res_param.flexible, ans_param.flexible);
-        ASSERT_EQ(res_param.orthog_method, ans_param.orthog_method);
+        ASSERT_EQ(res_param.ortho_method, ans_param.ortho_method);
     }
 };
 

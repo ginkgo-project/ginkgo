@@ -39,14 +39,14 @@ GKO_REGISTER_OPERATION(multi_dot, gmres::multi_dot);
 }  // anonymous namespace
 
 
-std::ostream& operator<<(std::ostream& stream, orthog_method orthog)
+std::ostream& operator<<(std::ostream& stream, ortho_method ortho)
 {
-    switch (orthog) {
-    case orthog_method::mgs:
+    switch (ortho) {
+    case ortho_method::mgs:
         return stream << "mgs";
-    case orthog_method::cgs:
+    case ortho_method::cgs:
         return stream << "cgs";
-    case orthog_method::cgs2:
+    case ortho_method::cgs2:
         return stream << "cgs2";
     }
     return stream;
@@ -69,19 +69,19 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     if (auto& obj = config.get("flexible")) {
         params.with_flexible(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("orthog_method")) {
+    if (auto& obj = config.get("ortho_method")) {
         auto str = obj.get_string();
-        gmres::orthog_method orthog;
+        gmres::ortho_method ortho;
         if (str == "mgs") {
-            orthog = gmres::orthog_method::mgs;
+            ortho = gmres::ortho_method::mgs;
         } else if (str == "cgs") {
-            orthog = gmres::orthog_method::cgs;
+            ortho = gmres::ortho_method::cgs;
         } else if (str == "cgs2") {
-            orthog = gmres::orthog_method::cgs2;
+            ortho = gmres::ortho_method::cgs2;
         } else {
-            GKO_INVALID_CONFIG_VALUE("orthog_method", str);
+            GKO_INVALID_CONFIG_VALUE("ortho_method", str);
         }
-        params.with_orthog_method(orthog);
+        params.with_ortho_method(ortho);
     }
     return params;
 }
@@ -361,7 +361,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // iteration of data at a time, we store it in the "logical" layout
     // from the start.
     LocalVector* hessenberg_aux = nullptr;
-    if (this->parameters_.orthog_method == gmres::orthog_method::cgs2) {
+    if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
             ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
     }
@@ -528,17 +528,16 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // next_krylov = A * preconditioned_krylov_vector
         this->get_system_matrix()->apply(preconditioned_krylov_vector,
                                          next_krylov);
-        if (this->parameters_.orthog_method == gmres::orthog_method::mgs) {
+        if (this->parameters_.ortho_method == gmres::ortho_method::mgs) {
             orthogonalize_mgs(hessenberg_iter.get(), krylov_bases,
                               next_krylov.get(), reduction_tmp, restart_iter,
                               num_rows, num_rhs, local_num_rows);
-        } else if (this->parameters_.orthog_method ==
-                   gmres::orthog_method::cgs) {
+        } else if (this->parameters_.ortho_method == gmres::ortho_method::cgs) {
             orthogonalize_cgs(hessenberg_iter.get(), krylov_bases,
                               next_krylov.get(), restart_iter, num_rows,
                               num_rhs, local_num_rows);
-        } else if (this->parameters_.orthog_method ==
-                   gmres::orthog_method::cgs2) {
+        } else if (this->parameters_.ortho_method ==
+                   gmres::ortho_method::cgs2) {
             orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);

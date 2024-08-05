@@ -327,18 +327,18 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
 {
-    using gko::solver::gmres::orthog_method;
+    using gko::solver::gmres::ortho_method;
     auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
 
-    for (auto orthog :
-         {orthog_method::mgs, orthog_method::cgs, orthog_method::cgs2}) {
-        SCOPED_TRACE(orthog);
+    for (auto ortho :
+         {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
+        SCOPED_TRACE(ortho);
         int m = 123;
         int n = 5;
         auto ref_solver =
-            base_params.with_orthog_method(orthog).on(ref)->generate(mtx);
+            base_params.with_ortho_method(ortho).on(ref)->generate(mtx);
         auto exec_solver =
-            base_params.with_orthog_method(orthog).on(exec)->generate(d_mtx);
+            base_params.with_ortho_method(ortho).on(exec)->generate(d_mtx);
         auto b = gen_mtx(m, n);
         auto x = gen_mtx(m, n);
         auto d_b = gko::clone(exec, b);
