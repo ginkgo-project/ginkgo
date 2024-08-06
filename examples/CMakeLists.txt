@@ -20,6 +20,7 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
+    file-config-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
