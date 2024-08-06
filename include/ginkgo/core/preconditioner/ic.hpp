@@ -190,6 +190,9 @@ public:
             return *this;
         }
 
+        /** set precision: same, float16, float32, float64 */
+        std::string GKO_FACTORY_PARAMETER_SCALAR(precision, "same");
+
     private:
         deferred_factory_parameter<
             const gko::detail::factory_type<l_solver_type>>
@@ -461,8 +464,21 @@ protected:
     void set_cache_to(const LinOp* b) const
     {
         if (cache_.intermediate == nullptr) {
-            cache_.intermediate =
-                matrix::Dense<double>::create(this->get_executor());
+            if (parameters_.precision == "same") {
+                cache_.intermediate =
+                    matrix::Dense<value_type>::create(this->get_executor());
+            } else if (parameters_.precision == "float16") {
+                cache_.intermediate =
+                    matrix::Dense<gko::half>::create(this->get_executor());
+            } else if (parameters_.precision == "float32") {
+                cache_.intermediate =
+                    matrix::Dense<float>::create(this->get_executor());
+            } else if (parameters_.precision == "float64") {
+                cache_.intermediate =
+                    matrix::Dense<double>::create(this->get_executor());
+            } else {
+                GKO_NOT_SUPPORTED(parameters_.precision);
+            }
         }
         // Use b as the initial guess for the first triangular solve
         cache_.intermediate->copy_from(b);

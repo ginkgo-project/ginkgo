@@ -37,6 +37,9 @@ typename Ic::parameters_type ic_parse(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
+    if (auto& obj = config.get("precision")) {
+        params.with_factorization(obj.get_string());
+    }
 
     return params;
 }
