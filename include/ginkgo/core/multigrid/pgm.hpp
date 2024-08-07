@@ -1,12 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_MULTIGRID_PGM_HPP_
 #define GKO_PUBLIC_CORE_MULTIGRID_PGM_HPP_
 
-
-#include <vector>
 
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -16,8 +14,11 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
@@ -49,7 +50,8 @@ namespace multigrid {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
-            public EnableMultigridLevel<ValueType> {
+            public EnableMultigridLevel<ValueType>,
+            public UpdateMatrixValue {
     friend class EnableLinOp<Pgm>;
     friend class EnablePolymorphicObject<Pgm, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
@@ -150,6 +152,8 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -222,6 +226,13 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
+    IndexType num_agg_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_local_;
+#if GINKGO_BUILD_MPI
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_non_local_;
+#endif
 };
 
 
