@@ -10,6 +10,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+// #include <typeinfo>
 
 #include <cuda.h>
 #include <cusparse.h>
@@ -541,7 +542,7 @@ __global__ void sptrsv_naive_caching_kernel(
         (static_cast<SharedValueType>(b[row * b_stride + rhs]) - sum) / diag;
 
     store_relaxed_shared(x_s + self_shid, r);
-    store_relaxed(x + row * x_stride + rhs, static_cast<ValueType>(r));
+    store_relaxed(x + row * x_stride + rhs, static_cast<OutputValueType>(r));
 
     // This check to ensure no infinite loops happen.
     if (is_nan_exact(r)) {
@@ -640,6 +641,11 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    // std::cout << "is it upper trs? " << is_upper
+    //           << ", input:" << typeid(InputValueType).name()
+    //           << ", output: " << typeid(OutputValueType).name()
+    //           << ", matrix: " << typeid(InputValueType).name()
+    //           << ", arith:" << typeid(arithmetic_type).name() << std::endl;
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
