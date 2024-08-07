@@ -48,7 +48,9 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Pgm : public LinOp, public EnableMultigridLevel<ValueType> {
+class Pgm : public LinOp,
+            public EnableMultigridLevel<ValueType>,
+            public UpdateMatrixValue {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -147,6 +149,8 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -168,6 +172,11 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(components.system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
+#if GINKGO_BUILD_MPI
+          ,
+          non_local_col_map_(factory->get_executor()),
+          new_recv_gather_idxs_(factory->get_executor())
+#endif
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
@@ -217,6 +226,14 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
+    IndexType num_agg_;
+#if GINKGO_BUILD_MPI
+    IndexType non_local_num_agg_;
+    array<IndexType> non_local_col_map_;
+    std::vector<experimental::distributed::comm_index_type> new_recv_size_;
+    std::vector<experimental::distributed::comm_index_type> new_recv_offsets_;
+    array<IndexType> new_recv_gather_idxs_;
+#endif
 };
 
 
