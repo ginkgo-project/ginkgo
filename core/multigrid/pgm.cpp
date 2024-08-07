@@ -241,10 +241,10 @@ Pgm<ValueType, IndexType>::generate_local(
             pgm::make_assign_to_exist_agg(weight_mtx->get_const_device_view(),
                                           diag.get(), agg_, intermediate_agg));
     }
-    IndexType num_agg = 0;
+    num_agg_ = 0;
     // Renumber the index
-    exec->run(pgm::make_renumber(agg_, &num_agg));
-    gko::dim<2>::dimension_type coarse_dim = num_agg;
+    exec->run(pgm::make_renumber(agg_, &num_agg_));
+    gko::dim<2>::dimension_type coarse_dim = num_agg_;
     auto fine_dim = local_matrix->get_size()[0];
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
@@ -254,13 +254,13 @@ Pgm<ValueType, IndexType>::generate_local(
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
             exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
-    agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
+    agg_to_restrict(exec, num_agg_, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
     // TODO: improve it
     auto coarse_matrix =
-        generate_coarse(exec, local_matrix.get(), num_agg, agg_);
+        generate_coarse(exec, local_matrix.get(), num_agg_, agg_);
 
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
@@ -431,7 +431,12 @@ void Pgm<ValueType, IndexType>::generate()
             // off_diag_agg already maps the fine off-diag indices to
             // coarse global indices, so mapping it with the coarse index
             // map results in the coarse off-diag indices.
-            auto off_diag_map = coarse_imap.map_to_local(
+            // keep the coarse off-diag mapping such that the coarse matrix
+            // can be regenerated from updated values without recomputing the
+            // aggregates.
+            off_diag_num_agg_ =
+                static_cast<IndexType>(coarse_imap.get_non_local_size());
+            off_diag_col_map_ = coarse_imap.map_to_local(
                 off_diag_agg,
                 experimental::distributed::index_space::non_local);
 
@@ -443,8 +448,7 @@ void Pgm<ValueType, IndexType>::generate()
             auto result_off_diag_csr = generate_coarse(
                 exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                agg_, static_cast<IndexType>(coarse_imap.get_non_local_size()),
-                off_diag_map);
+                agg_, off_diag_num_agg_, off_diag_col_map_);
 
             // setup the generated linop.
             auto coarse = share(
@@ -487,6 +491,120 @@ void Pgm<ValueType, IndexType>::generate()
         auto result = this->generate_local(pgm_op);
         this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
                                   std::get<2>(result));
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::update_matrix_value(
+    std::shared_ptr<const LinOp> new_matrix)
+{
+    using csr_type = matrix::Csr<ValueType, IndexType>;
+    system_matrix_ = new_matrix;
+#if GINKGO_BUILD_MPI
+    if (std::dynamic_pointer_cast<
+            const experimental::distributed::DistributedBase>(system_matrix_)) {
+        auto convert_fine_op = [&](auto matrix) {
+            using global_index_type = typename std::decay_t<
+                decltype(*matrix)>::result_type::global_index_type;
+            auto exec = as<LinOp>(matrix)->get_executor();
+            auto comm = as<experimental::distributed::DistributedBase>(matrix)
+                            ->get_communicator();
+            auto fine = share(
+                experimental::distributed::
+                    Matrix<ValueType, IndexType, global_index_type>::create(
+                        exec, comm,
+                        matrix::Csr<ValueType, IndexType>::create(exec),
+                        matrix::Csr<ValueType, IndexType>::create(exec)));
+            matrix->convert_to(fine);
+            this->set_fine_op(fine);
+        };
+        auto setup_fine_op = [&](auto matrix) {
+            // Only support csr matrix currently.
+            auto diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_diag_matrix());
+            auto off_diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_off_diag_matrix());
+            // If system matrix is not csr or need sorting, generate the csr.
+            if (!parameters_.skip_sorting || !diag_csr || !off_diag_csr) {
+                using global_index_type =
+                    typename std::decay_t<decltype(*matrix)>::global_index_type;
+                convert_fine_op(
+                    as<ConvertibleTo<experimental::distributed::Matrix<
+                        ValueType, IndexType, global_index_type>>>(matrix));
+            }
+        };
+
+        using fst_mtx_type =
+            experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
+        using snd_mtx_type =
+            experimental::distributed::Matrix<ValueType, IndexType, int64>;
+        // setup the fine op using Csr with current ValueType
+        // we do not use dispatcher run in the first place because we have the
+        // fallback option for that.
+        if (auto obj =
+                std::dynamic_pointer_cast<const fst_mtx_type>(system_matrix_)) {
+            setup_fine_op(obj);
+        } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
+                       system_matrix_)) {
+            setup_fine_op(obj);
+        } else {
+            // handle other ValueTypes.
+            run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
+                                                           convert_fine_op);
+        }
+
+        auto distributed_setup = [&](auto matrix) {
+            using global_index_type =
+                typename std::decay_t<decltype(*matrix)>::global_index_type;
+
+            auto exec = gko::as<LinOp>(matrix)->get_executor();
+            auto comm =
+                gko::as<experimental::distributed::DistributedBase>(matrix)
+                    ->get_communicator();
+            auto pgm_local_op =
+                gko::as<const csr_type>(matrix->get_diag_matrix());
+
+            auto coarse_diag_matrix =
+                generate_coarse(exec, pgm_local_op.get(), num_agg_, agg_);
+
+            auto off_diag_csr =
+                as<const csr_type>(matrix->get_off_diag_matrix());
+            auto coarse_off_diag_matrix =
+                generate_coarse(exec, off_diag_csr.get(), num_agg_, agg_,
+                                off_diag_num_agg_, off_diag_col_map_);
+
+            // the aggregates are unchanged, so the communication pattern of
+            // the coarse matrix is unchanged as well and can be reused.
+            auto old_coarse = gko::as<const experimental::distributed::Matrix<
+                ValueType, IndexType, global_index_type>>(
+                this->get_coarse_op());
+            auto coarse = share(
+                experimental::distributed::
+                    Matrix<ValueType, IndexType, global_index_type>::create(
+                        exec, comm, old_coarse->imap_, coarse_diag_matrix,
+                        coarse_off_diag_matrix));
+            this->set_multigrid_level(this->get_prolong_op(), coarse,
+                                      this->get_restrict_op());
+        };
+        // the fine op is using csr with the current ValueType
+        run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
+    } else
+#endif
+    {
+        auto exec = this->get_executor();
+        auto pgm_op = std::dynamic_pointer_cast<const csr_type>(system_matrix_);
+        // If system matrix is not csr or need sorting, generate the csr.
+        if (!parameters_.skip_sorting || !pgm_op) {
+            pgm_op = convert_to_with_sorting<csr_type>(
+                exec, system_matrix_, parameters_.skip_sorting);
+            // keep the same precision data in fine_op
+            this->set_fine_op(pgm_op);
+        }
+        auto coarse_matrix =
+            generate_coarse(exec, pgm_op.get(), num_agg_, agg_);
+        this->set_multigrid_level(this->get_prolong_op(), coarse_matrix,
+                                  this->get_restrict_op());
     }
 }
 
