@@ -40,7 +40,7 @@ typename Ic::parameters_type ic_parse(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("precision")) {
-        params.with_factorization(obj.get_string());
+        params.with_precision(obj.get_string());
     }
 
     return params;
