@@ -332,7 +332,7 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
         // take care of real-to-complex apply
-        precision_dispatch_real_complex<value_type>(
+        mixed_precision_dispatch_real_complex<value_type>(
             [&](auto dense_b, auto dense_x) {
                 this->set_cache_to(dense_b);
                 l_solver_->apply(dense_b, cache_.intermediate);
@@ -347,14 +347,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        precision_dispatch_real_complex<value_type>(
-            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+        mixed_precision_dispatch_real_complex<value_type>(
+            [&](auto dense_b, auto dense_x) {
                 this->set_cache_to(dense_b);
                 l_solver_->apply(dense_b, cache_.intermediate);
-                lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                                  dense_x);
+                lh_solver_->apply(alpha, cache_.intermediate, beta, dense_x);
             },
-            alpha, b, beta, x);
+            b, x);
     }
 
     explicit Ic(std::shared_ptr<const Executor> exec)
