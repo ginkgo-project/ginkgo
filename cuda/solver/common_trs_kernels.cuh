@@ -571,7 +571,12 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                 as_device_type(x->get_values()), x->get_stride(), n, nrhs,
                 unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     } else {
-        sptrsv_naive_caching_kernel<is_upper, cuda_type<arithmetic_type>>
+        // atomic on the half-precision shared_memory gives wrong result, we use
+        // float in shared_memory.
+        using arith_type =
+            std::conditional_t<std::is_same<arithmetic_type, gko::half>::value,
+                               float, arithmetic_type>;
+        sptrsv_naive_caching_kernel<is_upper, cuda_type<arith_type>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
