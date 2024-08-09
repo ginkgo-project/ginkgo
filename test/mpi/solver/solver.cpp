@@ -195,13 +195,14 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 };
 
 
-template <unsigned dimension>
+template <unsigned dimension, gko::solver::gmres::ortho_method ortho>
 struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec)
     {
         return SimpleSolverTest<gko::solver::Gmres<solver_value_type>>::build(
                    std::move(exec))
+            .with_ortho_method(ortho)
             .with_krylov_dim(dimension);
     }
 };
@@ -531,7 +532,10 @@ protected:
 
 using SolverTypes =
     ::testing::Types<Cg, CgWithMg, Cgs, Fcg, Bicgstab, Ir, Gcr<10u>, Gcr<100u>,
-                     Gmres<10u>, Gmres<100u>>;
+                     Gmres<10u, gko::solver::gmres::ortho_method::mgs>,
+                     Gmres<10u, gko::solver::gmres::ortho_method::cgs>,
+                     Gmres<10u, gko::solver::gmres::ortho_method::cgs2>,
+                     Gmres<100u, gko::solver::gmres::ortho_method::mgs>>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 

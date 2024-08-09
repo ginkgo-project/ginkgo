@@ -8,6 +8,7 @@
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 
 
 namespace gko {
@@ -93,6 +94,32 @@ void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
 
+
+template <typename ValueType>
+void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ValueType>* krylov_bases,
+               const matrix::Dense<ValueType>* next_krylov,
+               matrix::Dense<ValueType>* hessenberg_col)
+{
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto bases, auto next_krylov,
+                      auto num_rhs, auto num_rows) {
+            auto irhs = col % num_rhs;  // which rhs
+            auto ivec = col / num_rhs;  // which Krylov vector
+            return conj(bases(ivec * num_rows + row, irhs)) *
+                   next_krylov(row, irhs);
+        },
+        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col->get_values(),
+        gko::dim<2>{
+            next_krylov->get_size()[0],
+            hessenberg_col->get_size()[0] * hessenberg_col->get_size()[1] -
+                next_krylov->get_size()[1]},
+        krylov_bases, next_krylov, next_krylov->get_size()[1],
+        next_krylov->get_size()[0]);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);
 
 }  // namespace gmres
 }  // namespace GKO_DEVICE_NAMESPACE

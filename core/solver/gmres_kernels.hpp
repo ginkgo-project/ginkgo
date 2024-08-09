@@ -38,11 +38,20 @@ namespace gmres {
                     stopping_status* stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES             \
-    template <typename ValueType>                \
-    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType); \
-    template <typename ValueType>                \
-    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType)
+#define GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(_type)               \
+    void multi_dot(std::shared_ptr<const DefaultExecutor> exec, \
+                   const matrix::Dense<_type>* krylov_bases,    \
+                   const matrix::Dense<_type>* next_krylov,     \
+                   matrix::Dense<_type>* hessenberg_col)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(ValueType)
 
 
 }  // namespace gmres
