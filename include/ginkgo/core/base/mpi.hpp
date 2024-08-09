@@ -462,6 +462,22 @@ public:
         return comm_out;
     }
 
+    communicator(const communicator& other) = default;
+
+    communicator(communicator&& other) { *this = std::move(other); }
+
+    communicator& operator=(const communicator& other) = default;
+
+    communicator& operator=(communicator&& other)
+    {
+        if (this != &other) {
+            comm_ = std::exchange(other.comm_,
+                                  std::make_shared<MPI_Comm>(MPI_COMM_NULL));
+            force_host_buffer_ = other.force_host_buffer_;
+        }
+        return *this;
+    }
+
     /**
      * Return the underlying MPI_Comm object.
      *
