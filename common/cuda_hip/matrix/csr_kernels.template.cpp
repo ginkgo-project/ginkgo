@@ -335,7 +335,7 @@ __device__ void merge_path_reduce(const IndexType nwarps,
             }
         }
     }
-    __shared__ uninitialized_array<IndexType, spmv_block_size> tmp_ind;
+    __shared__ IndexType tmp_ind[spmv_block_size];
     __shared__ uninitialized_array<arithmetic_type, spmv_block_size> tmp_val;
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row;
