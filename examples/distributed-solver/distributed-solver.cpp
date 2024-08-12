@@ -209,12 +209,11 @@ int main(int argc, char* argv[])
     if (schw_type == "multi-level") {
         Ainv =
             solver::build()
-                .with_preconditioner(
-                    schwarz::build()
-                        .with_local_solver(local_solver)
-                        .with_galerkin_ops_factory(pgm_fac)
-                        .with_coarse_solver_factory(coarse_solver)
-                        .on(exec))
+                .with_preconditioner(schwarz::build()
+                                         .with_local_solver(local_solver)
+                                         .with_galerkin_ops(pgm_fac)
+                                         .with_coarse_solver(coarse_solver)
+                                         .on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
                         exec),
