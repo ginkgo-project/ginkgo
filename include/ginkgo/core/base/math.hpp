@@ -9,6 +9,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -100,6 +101,21 @@ using std::sqrt;
  * @ingroup detail
  */
 namespace detail {
+
+
+/** Returns an unsigned type matching the size of the given float type. */
+template <typename T>
+struct float_to_bytes_impl {};
+
+template <>
+struct float_to_bytes_impl<double> {
+    using type = uint64;
+};
+
+template <>
+struct float_to_bytes_impl<float> {
+    using type = uint32;
+};
 
 
 /**
@@ -1223,7 +1239,8 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_nan(const T& value)
 {
-    return std::isnan(value);
+    using std::isnan;
+    return isnan(value);
 }
 
 
@@ -1240,7 +1257,7 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
     const T& value)
 {
-    return std::isnan(value.real()) || std::isnan(value.imag());
+    return is_nan(value.real()) || is_nan(value.imag());
 }
 
 
@@ -1271,6 +1288,48 @@ GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value, T>
 nan()
 {
     return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};
+}
+
+
+/**
+ * Checks if a floating point number is a quiet NaN (gko::nan()).
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * @return `true` if the value is bitwise equal to gko::nan<T>().
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
+is_nan_exact(const T& value)
+{
+    using type = typename detail::float_to_bytes_impl<T>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    auto nan_value = nan<T>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
+
+
+/**
+ * Checks if any component of a complex value is a quiet NaN (gko::nan).
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param value  complex value to check
+ *
+ * @return `true` if any component of the complex number fulfills
+ * is_nan_exact(component).
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
+is_nan_exact(const T& value)
+{
+    return is_nan_exact(value.real()) || is_nan_exact(value.imag());
 }
 
 

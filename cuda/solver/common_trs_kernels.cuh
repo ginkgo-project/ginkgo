@@ -399,11 +399,12 @@ __global__ void sptrsv_naive_caching_kernel(
         ValueType val{};
         if (shmem_possible) {
             const auto dependency_shid = dependency_gid % default_block_size;
-            while (is_nan(val = load_relaxed_shared(x_s + dependency_shid))) {
+            while (is_nan_exact(
+                val = load_relaxed_shared(x_s + dependency_shid))) {
             }
         } else {
-            while (
-                is_nan(val = load_relaxed(x + dependency * x_stride + rhs))) {
+            while (is_nan_exact(
+                val = load_relaxed(x + dependency * x_stride + rhs))) {
             }
         }
 
@@ -418,7 +419,7 @@ __global__ void sptrsv_naive_caching_kernel(
     store_relaxed(x + row * x_stride + rhs, r);
 
     // This check to ensure no infinite loops happen.
-    if (is_nan(r)) {
+    if (is_nan_exact(r)) {
         store_relaxed_shared(x_s + self_shid, zero<ValueType>());
         store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
         *nan_produced = true;
@@ -460,7 +461,7 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto col = colidxs[j];
     while (j != row_end) {
         auto x_val = load_relaxed(x + col * x_stride + rhs);
-        while (!is_nan(x_val)) {
+        while (!is_nan_exact(x_val)) {
             sum += vals[j] * x_val;
             j += row_step;
             col = colidxs[j];
@@ -478,7 +479,7 @@ __global__ void sptrsv_naive_legacy_kernel(
             // after we encountered the diagonal, we are done
             // this also skips entries outside the triangle
             j = row_end;
-            if (is_nan(r)) {
+            if (is_nan_exact(r)) {
                 store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
                 *nan_produced = true;
             }
