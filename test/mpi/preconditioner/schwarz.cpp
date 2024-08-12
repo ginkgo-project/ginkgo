@@ -20,6 +20,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -59,6 +60,9 @@ protected:
     using solver_type = gko::solver::Bicgstab<value_type>;
     using local_prec_type =
         gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using coarse_solver_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using galerkin_ops_type = gko::multigrid::Pgm<value_type, local_index_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using non_dist_matrix_type =
         gko::matrix::Csr<value_type, global_index_type>;
@@ -125,6 +129,8 @@ protected:
     std::shared_ptr<gko::LinOpFactory> non_dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> local_solver_factory;
+    std::shared_ptr<gko::LinOpFactory> pgm_factory;
+    std::shared_ptr<gko::LinOpFactory> coarse_solver_factory;
 
     void assert_equal_to_non_distributed_vector(
         std::shared_ptr<dist_vec_type> dist_vec,
@@ -259,6 +265,28 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
 
     auto precond_factory = prec::build()
                                .with_local_solver(this->local_solver_factory)
+                               .on(this->exec);
+    auto local_precond =
+        this->local_solver_factory->generate(this->non_dist_mat);
+    auto precond = precond_factory->generate(this->dist_mat);
+
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+    local_precond->apply(this->non_dist_b.get(), this->non_dist_x.get());
+
+    this->assert_equal_to_non_distributed_vector(this->dist_x,
+                                                 this->non_dist_x);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CanApplyMultilevelPreconditioner)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_coarse_solver(this->coarse_solver_factory)
+                               .with_galerkin_ops(this->pgm_factory)
                                .on(this->exec);
     auto local_precond =
         this->local_solver_factory->generate(this->non_dist_mat);

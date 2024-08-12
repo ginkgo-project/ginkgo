@@ -21,6 +21,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
@@ -95,14 +96,14 @@ public:
          * Operator factory to generate the triplet (prolong_op, coarse_op,
          * restrict_op).
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            galerkin_ops_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            galerkin_ops);
 
         /**
          * Coarse solver factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-            coarse_solver_factory, nullptr);
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            coarse_solver);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -181,7 +182,6 @@ private:
 
     std::shared_ptr<const multigrid::MultigridLevel> coarse_solver_;
     std::shared_ptr<const multigrid::MultigridLevel> galerkin_ops_;
-    std::shared_ptr<const LinOp> coarse_solver_;
     std::shared_ptr<LinOp> csol_;
     std::shared_ptr<const LinOp> half_;
 };
