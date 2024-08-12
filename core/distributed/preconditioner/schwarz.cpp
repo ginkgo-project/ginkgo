@@ -97,8 +97,11 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     }
 
     if (this->coarse_solver_ != nullptr && this->galerkin_ops_ != nullptr) {
-        auto restrict = this->galerkin_ops_->get_restrict_op();
-        auto prolong = this->galerkin_ops_->get_prolong_op();
+        auto restrict = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                            ->get_restrict_op();
+        auto prolong = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                           ->get_prolong_op();
+        GKO_ASSERT(this->half_ != nullptr);
 
         restrict->apply(dense_b, this->csol_);
         this->coarse_solver_->apply(this->csol_, this->csol_);
@@ -210,28 +213,32 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
 
-    if (parameters_.galerkin_ops_factory && parameters_.coarse_solver_factory) {
-        this->galerkin_ops_ = as<multigrid::MultigridLevel>(
-            share(parameters_.galerkin_ops_factory->generate(dist_mat)));
-        auto coarse =
-            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                 GlobalIndexType>>(
-                this->galerkin_ops_->get_coarse_op());
-        auto exec = coarse->get_executor();
-        auto comm = coarse->get_communicator();
-        this->coarse_solver_ =
-            parameters_.coarse_solver_factory->generate(coarse);
-        // TODO: Set correct rhs and stride.
-        auto cs_ncols = 1;  // dense_x->get_size()[1];
-        auto cs_local_nrows = coarse->get_local_matrix()->get_size()[0];
-        auto cs_global_nrows = coarse->get_size()[0];
-        auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
-        auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
-        this->csol_ = gko::share(dist_vec::create(exec, comm, cs_global_size,
-                                                  cs_local_size,
-                                                  1 /*dense_x->get_stride()*/));
-        // this->temp_ = this->csol->clone();
-        this->half_ = gko::share(gko::initialize<Vector>({0.5}, exec));
+    if (parameters_.galerkin_ops && parameters_.coarse_solver) {
+        this->galerkin_ops_ =
+            share(parameters_.galerkin_ops->generate(system_matrix));
+        if (as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                ->get_coarse_op()) {
+            auto coarse =
+                as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                     GlobalIndexType>>(
+                    as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                        ->get_coarse_op());
+            auto exec = coarse->get_executor();
+            auto comm = coarse->get_communicator();
+            this->coarse_solver_ =
+                share(parameters_.coarse_solver->generate(coarse));
+            // TODO: Set correct rhs and stride.
+            auto cs_ncols = 1;  // dense_x->get_size()[1];
+            auto cs_local_nrows = coarse->get_local_matrix()->get_size()[0];
+            auto cs_global_nrows = coarse->get_size()[0];
+            auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
+            auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
+            this->csol_ = gko::share(
+                dist_vec::create(exec, comm, cs_global_size, cs_local_size,
+                                 1 /*dense_x->get_stride()*/));
+            // this->temp_ = this->csol->clone();
+            this->half_ = gko::share(gko::initialize<Vector>({0.5}, exec));
+        }
     }
 }
 
