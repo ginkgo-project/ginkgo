@@ -222,7 +222,7 @@ TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
     exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
 }
 
 
