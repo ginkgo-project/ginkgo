@@ -358,7 +358,10 @@ struct float_to_unsigned_impl<float> {
 };
 
 
-/** Checks if a floating point number is a quiet NaN (gko::nan()). */
+/**
+ * Checks if a floating point number representation matches the representation
+ * of the quiet NaN with value gko::nan() exactly.
+ */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_nan_exact(const T& value)
@@ -374,7 +377,10 @@ is_nan_exact(const T& value)
 }
 
 
-/** Checks if any component of a complex value is a quiet NaN (gko::nan). */
+/**
+ * Checks if any component of the complex value matches the quiet NaN with
+ * value gko::nan() exactly.
+ */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
 is_nan_exact(const T& value)
