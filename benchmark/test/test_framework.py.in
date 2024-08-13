@@ -90,9 +90,12 @@ def sanitize_json_text(input: str) -> List[str]:
     and pretty-printed to replace the original JSON input.
     """
 
-    result = json.dumps(sanitize_json(json.loads(input)), indent=4)
-    # json.dumps doesn't add a trailing newline
-    return result.splitlines() + [""]
+    try:
+        result = json.dumps(sanitize_json(json.loads(input)), indent=4)
+        # json.dumps doesn't add a trailing newline
+        return result.splitlines() + [""]
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 def sanitize_text(
