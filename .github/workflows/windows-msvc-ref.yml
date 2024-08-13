@@ -30,11 +30,11 @@ jobs:
         config:
         # Debug shared exceeds symbol limit
         # - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
-        - {shared: "ON", build_type: "Release", name: "reference/release/shared"}
+          - { preset: "ci-ref-msvc-nompi-release-static" }
+          - { preset: "ci-ref-msvc-nompi-release" }
         # Debug static needs too much storage
         # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
-    name: msvc/${{ matrix.config.name }}
+    name: ${{ matrix.config.preset }}
     runs-on: [windows-latest]
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -50,13 +50,13 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_CXX_FLAGS_DEBUG='/MDd /Zi /Ob1 /O1 /Od /RTC1' -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
-        cmake --build . -j4 --config ${{ matrix.config.build_type }}
-        ctest . -C ${{ matrix.config.build_type }} --output-on-failure
+        cmake -S .. -B . --preset ${{ matrix.config.preset }}
+        cmake --build . -j4
+        ctest . --output-on-failure
 
     - name: install
       run: |
         $env:PATH="$env:PATH;C:\Program Files (x86)\Ginkgo\bin"
         cd build
-        cmake --install . --config ${{ matrix.config.build_type }}
-        cmake --build . --target test_install --config ${{ matrix.config.build_type }}
+        cmake --install .
+        cmake --build . --target test_install

@@ -21,9 +21,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {compiler: "dpcpp", build_type: "Release", name: "intel/dpcpp/release/shared", mixed: "ON"}
-        - {compiler: "icpx", build_type: "Release", name: "intel/icpx/release/shared", mixed: "OFF"}
-    name: ${{ matrix.config.name }}
+          - { preset: "ci-sycl-dpcpp-nompi-release-singlemode" }
+          - { preset: "ci-sycl-icpx-nompi-release-singlemode-nomixed" }
+    name: ${{ matrix.config.preset }}
     runs-on: [gpu_intel]
 
     steps:
@@ -36,8 +36,8 @@ jobs:
         module load intel-oneapi-compilers intel-oneapi-dpl intel-oneapi-mkl intel-oneapi-tbb cmake
         mkdir build
         cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=install_ginkgo -DCMAKE_CXX_FLAGS="-Wpedantic -ffp-model=precise" -DCMAKE_CXX_COMPILER=${{ matrix.config.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_MPI=OFF -DGINKGO_DPCPP_SINGLE_MODE=ON
-        make -j8
+        cmake -S .. -B . --preset ${{ matrix.config.preset }} -DCMAKE_INSTALL_PREFIX=install_ginkgo
+        cmake --build . -j8
         ONEAPI_DEVICE_SELECTOR=level_zero:gpu ctest -j10 --output-on-failure
 
     - name: install

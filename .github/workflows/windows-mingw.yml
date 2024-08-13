@@ -28,8 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
-    name: mingw/${{ matrix.config.name }}
+          - { preset: "ci-omp-mingwgcc-nompi-release-static" }
+    name: ${{ matrix.config.preset }}
     runs-on: [windows-latest]
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -50,7 +50,7 @@ jobs:
         set PATH=C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin;%PATH%
         mkdir build
         cd build
-        cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DCMAKE_CXX_FLAGS=${{ matrix.config.cflags }} ..
+        cmake -S .. -B . --preset ${{ matrix.config.preset }}
         cmake --build . -j4
       shell: cmd
 

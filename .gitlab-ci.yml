@@ -2,6 +2,7 @@ stages:
   - init-status
   - sync
   - trigger_pipeline
+  - configure
   - build
   - test
   - code_quality
@@ -90,6 +91,27 @@ trigger_pipeline:
         echo "Can not find the corresponding Pull Request"
       fi
 
+configure/cmake-3.16:
+  extends:
+    - .quick_test_condition
+    - .configure_template
+    - .use_gko-rocm45-nompi-gnu8-llvm8
+  variables:
+    BUILD_CUDA: "OFF"
+    BUILD_HIP: "ON"
+    BUILD_SYCL: "OFF"
+    BUILD_MPI: "ON"
+
+configure/cmake-3.18:
+  extends:
+    - .quick_test_condition
+    - .configure_template
+    - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "OFF"
+    BUILD_SYCL: "OFF"
+    BUILD_MPI: "OFF"
 
 # Build jobs
 # Job with example runs.
@@ -101,12 +123,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    NONDEFAULT_STREAM: "ON"
+    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-mpi-debug-fasttest-nondefault_stream"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
@@ -134,11 +151,7 @@ build/cuda110/nompi/clang/cuda/release/static:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+    CI_CMAKE_PRESET: "ci-cuda+omp-clang-nompi-release-static"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
@@ -157,7 +170,7 @@ test/cuda110/nompi/clang/cuda/release/static:
     SLURM_TIME: "01:30:00"
   dependencies: null
   needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
-  
+
 
 build/cuda110/nompi/clang/cuda/release/shared:
   extends:
@@ -166,14 +179,8 @@ build/cuda110/nompi/clang/cuda/release/shared:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CXX_COMPILER: "clang++"
+    CI_CMAKE_PRESET: "ci-cuda+omp-clang-nompi-release-fasttest-shared"
     CUDA_ARCH: 52
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    FAST_TESTS: "ON"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
 
 # cuda 11.4 and friends
@@ -184,14 +191,7 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     - .quick_test_condition
     - .use_gko_cuda114-openmpi-gnu10-llvm12
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    # fix gtest issue https://github.com/google/googletest/issues/3514
-    CXX_FLAGS: "-Wno-error=maybe-uninitialized"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-nompi-debug-fasttest"
 
 
 # nvhpc and friends
@@ -202,17 +202,7 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
     - .quick_test_condition
     - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
-    CXX_COMPILER: "nvc++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "OFF"
-    BUILD_TYPE: "Release"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    # disable common gflags warnings
-    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CI_CMAKE_PRESET: "ci-cuda+omp-nvhpc-nompi-release-static-fasttest"
 
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
@@ -221,16 +211,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     - .quick_test_condition
     - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
   variables:
-    CXX_COMPILER: "nvc++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "OFF"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    # disable common gflags warnings
-    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    CI_CMAKE_PRESET: "ci-cuda+omp-nvhpc-nompi-debug-fasttest"
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -240,11 +221,7 @@ build/amd/nompi/gcc/rocm45/release/shared:
     - .quick_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    NONDEFAULT_STREAM: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_HWLOC: "OFF"
+    CI_CMAKE_PRESET: "ci-hip+omp-gcc-nompi-release-fasttest-nondefault_stream"
 
 build/amd/nompi/clang/rocm45/release/static:
   extends:
@@ -253,11 +230,7 @@ build/amd/nompi/clang/rocm45/release/static:
     - .full_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-release-static"
 
 build/amd/nompi/clang/rocm45/debug/shared:
   extends:
@@ -266,10 +239,7 @@ build/amd/nompi/clang/rocm45/debug/shared:
     - .quick_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
+    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-debug"
 
 # ROCm 5.1.4 and friends
 build/amd/nompi/gcc/rocm514/debug/static:
@@ -279,10 +249,7 @@ build/amd/nompi/gcc/rocm514/debug/static:
     - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
+    CI_CMAKE_PRESET: "ci-hip+omp-gcc-nompi-debug-static"
 
 build/amd/nompi/clang/rocm514/release/shared:
   extends:
@@ -291,10 +258,7 @@ build/amd/nompi/clang/rocm514/release/shared:
     - .quick_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-release"
 
 # without omp
 build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
@@ -304,10 +268,7 @@ build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
     - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    BUILD_OMP: "OFF"
-    BUILD_MPI: "OFF"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-hip-gcc-nompi-release"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
@@ -317,10 +278,7 @@ build/nocuda/nompi/gcc/core/debug/static:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    BUILD_HWLOC: "OFF"
+    CI_CMAKE_PRESET: "ci-ref-gcc-nompi-debug-static-fasttest"
 
 build/nocuda/nompi/clang/core/release/shared:
   extends:
@@ -329,8 +287,7 @@ build/nocuda/nompi/clang/core/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-ref-clang-nompi-release"
 
 build/nocuda/nompi/gcc/omp/release/shared:
   extends:
@@ -339,8 +296,7 @@ build/nocuda/nompi/gcc/omp/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-omp-gcc-nompi-release"
 
 build/nocuda/openmpi/clang/omp/debug/static:
   extends:
@@ -349,13 +305,7 @@ build/nocuda/openmpi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-openmpi-gnu9-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_MPI: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
+    CI_CMAKE_PRESET: "ci-omp-clang-mpi-debug-static-fasttest"
 
 build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
   extends:
@@ -364,13 +314,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_MPI: "ON"
-    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
-    # The tests are prohibitively slow in Debug
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-omp-clang-mpi-glibcxx+debug-release"
 
 # nocuda with old compiler
 build/nocuda/nompi/gcc/omp/release/static:
@@ -380,9 +324,7 @@ build/nocuda/nompi/gcc/omp/release/static:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+    CI_CMAKE_PRESET: "ci-omp-gcc-nompi-release-static"
 
 build/nocuda-nomixed/nompi/clang/omp/release/static:
   extends:
@@ -391,11 +333,7 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    MIXED_PRECISION: "OFF"
+    CI_CMAKE_PRESET: "ci-omp-clang-nompi-release-static-nomixed"
 
 build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   extends:
@@ -404,11 +342,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
-    MIXED_PRECISION: "OFF"
+    CI_CMAKE_PRESET: "ci-omp-gcc-mpi-release-nomixed"
 
 build/nocuda-nomixed/nompi/clang/omp/debug/static:
   extends:
@@ -417,11 +351,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
-    MIXED_PRECISION: "OFF"
+    CI_CMAKE_PRESET: "ci-omp-clang-nompi-debug-static-nomixed"
 
 # spack oneapi 2023.1
 build/icpx20231/igpu/release/shared:
@@ -431,14 +361,8 @@ build/icpx20231/igpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi20231-igpu
   variables:
-    CXX_COMPILER: "icpx"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "ON"
-    DPCPP_SINGLE_MODE: "ON"
+    CI_CMAKE_PRESET: "ci-sycl-icpx-nompi-release-shared-singlemode"
     ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
-    BUILD_HWLOC: "OFF"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
@@ -464,14 +388,8 @@ build/icpx/igpu/release/static:
     - .full_test_condition
     - .use_gko-oneapi-igpu
   variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OF"
-    DPCPP_SINGLE_MODE: "ON"
+    CI_CMAKE_PRESET: "ci-sycl-dpcpp-nompi-release-static-singlemode"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
-    BUILD_HWLOC: "OFF"
 
 # windows jobs
 # Note that this is using Powershell, not bash
@@ -484,7 +402,7 @@ build/windows-cuda/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build --preset "ci-cuda-msvc-nompi-release-shared" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
 # we disable these tests until the triangular solver issues are resolved
 #   - ctest --test-dir build -C Release --no-tests=error --output-on-failure
@@ -503,7 +421,7 @@ build/windows/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build --preset "ci-ref-msvc-nompi-release" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
     - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
     - $env:PATH+=";$pwd/install/bin"
@@ -521,9 +439,7 @@ warnings:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+    CI_CMAKE_PRESET: "ci-warnings"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core
@@ -535,9 +451,7 @@ no-circular-deps:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
+    CI_CMAKE_PRESET: "ci-no_circular_deps"
   allow_failure: no
 
 # Ensure Ginkgo builds from a subdirectory
@@ -549,8 +463,7 @@ subdir-build:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    BUILD_OMP: "ON"
-    CI_PROJECT_PATH_SUFFIX: "/test_subdir"
+    CI_CMAKE_PRESET: "ci-subdir_build"
   allow_failure: no
 
 # Run clang-tidy and iwyu
@@ -562,9 +475,7 @@ clang-tidy:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
+    CI_CMAKE_PRESET: "ci-clang_tidy"
   allow_failure: yes
 
 iwyu:
@@ -575,9 +486,7 @@ iwyu:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
+    CI_CMAKE_PRESET: "ci-iwyu"
   allow_failure: yes
 
 # Code analysis, coverage and reporting tool
@@ -769,12 +678,7 @@ benchmark-cuda-spmv-build:
     - .benchmark-spmv-cuda-rules
   stage: benchmark-build
   variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_HIP: "OFF"
-    BUILD_TYPE: "Release"
+    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-mpi-release-shared"
     CUDA_ARCH: 80
     USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
