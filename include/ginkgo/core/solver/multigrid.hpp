@@ -107,7 +107,8 @@ class MultigridState;
 class Multigrid : public EnableLinOp<Multigrid>,
                   public EnableSolverBase<Multigrid>,
                   public EnableIterativeBase<Multigrid>,
-                  public EnableApplyWithInitialGuess<Multigrid> {
+                  public EnableApplyWithInitialGuess<Multigrid>,
+                  public UpdateMatrixValue {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
     friend class EnableApplyWithInitialGuess<Multigrid>;
@@ -133,7 +134,12 @@ public:
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
     get_mg_level_list() const
     {
-        return mg_level_list_;
+        std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+            const_copy(mg_level_list_.size());
+        for (int i = 0; i < mg_level_list_.size(); i++) {
+            const_copy.at(i) = mg_level_list_.at(i);
+        }
+        return const_copy;
     }
 
     /**
@@ -400,6 +406,9 @@ public:
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<>());
 
+    void update_matrix_value(
+        std::shared_ptr<const gko::LinOp> new_matrix) override;
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -447,7 +456,7 @@ protected:
     void create_state() const;
 
 private:
-    std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+    std::vector<std::shared_ptr<gko::multigrid::MultigridLevel>>
         mg_level_list_{};
     std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<const LinOp>> mid_smoother_list_{};
