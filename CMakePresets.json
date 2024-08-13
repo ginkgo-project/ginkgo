@@ -19,8 +19,7 @@
             },
             "warnings": {
                 "dev": true,
-                "deprecated": true,
-                "uninitialized": true
+                "deprecated": true
             }
         },
         {
@@ -64,6 +63,7 @@
             "name": "develop-msvc",
             "inherits": ["base", "base-dev"],
             "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "msvc",
                 "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} /permissive- /Oy-"
             },
             "condition": {
