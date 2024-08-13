@@ -417,7 +417,6 @@
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
-                "enable-mpi",
                 "enable-release",
                 "base-ci"
             ],
