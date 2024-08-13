@@ -144,10 +144,11 @@ public:
         const int shmem_per_blk =
             get_max_dynamic_shared_memory<StopType, PrecType, LogType,
                                           BatchMatrixType, value_type>(exec_);
-        const int block_size =
-            get_num_threads_per_block<StopType, PrecType, LogType,
-                                      BatchMatrixType, value_type>(
-                exec_, mat.num_rows);
+        // TODO
+        const int block_size = 256;
+        // get_num_threads_per_block<StopType, PrecType, LogType,
+        //                           BatchMatrixType, value_type>(
+        //     exec_, mat.num_rows);
         GKO_ASSERT(block_size >= 2 * config::warp_size);
 
         const size_t prec_size = PrecType::dynamic_work_size(
