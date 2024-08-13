@@ -512,7 +512,7 @@
         {
             "name": "ci-sycl-icpx-nompi-release-singlemode-nomixed",
             "inherits": [
-                "ci-sycl-icpx-nompi-release-singlemode"
+                "ci-sycl-icpx-nompi-release-shared-singlemode"
             ],
             "generator": "Unix Makefiles",
             "cacheVariables": {
