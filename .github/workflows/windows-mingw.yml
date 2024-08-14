@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { preset: "ci-omp-mingwgcc-nompi-release-static" }
+          - { preset: "ci/omp/mingwgcc/nompi/release/static" }
     name: ${{ matrix.config.preset }}
     runs-on: [windows-latest]
     steps:

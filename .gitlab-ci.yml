@@ -123,7 +123,7 @@ build/cuda110/mvapich2/gcc/cuda/debug/shared:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-mpi-debug-fasttest-nondefault_stream"
+    CI_CMAKE_PRESET: "ci/cuda+omp/gcc/mpi/debug/fasttest/nondefault_stream"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
@@ -151,7 +151,7 @@ build/cuda110/nompi/clang/cuda/release/static:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-clang-nompi-release-static"
+    CI_CMAKE_PRESET: "ci/cuda+omp/clang/nompi/release/static"
     CUDA_ARCH: 80
     USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"
@@ -179,7 +179,7 @@ build/cuda110/nompi/clang/cuda/release/shared:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-clang-nompi-release-fasttest-shared"
+    CI_CMAKE_PRESET: "ci/cuda+omp/clang/nompi/release/fasttest/shared"
     CUDA_ARCH: 52
 
 
@@ -191,7 +191,7 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     - .quick_test_condition
     - .use_gko_cuda114-openmpi-gnu10-llvm12
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-nompi-debug-fasttest"
+    CI_CMAKE_PRESET: "ci/cuda+omp/gcc/nompi/debug/fasttest"
 
 
 # nvhpc and friends
@@ -202,7 +202,7 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
     - .quick_test_condition
     - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-nvhpc-nompi-release-static-fasttest"
+    CI_CMAKE_PRESET: "ci/cuda+omp/nvhpc/nompi/release/static/fasttest"
 
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
@@ -211,7 +211,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     - .quick_test_condition
     - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-nvhpc-nompi-debug-fasttest"
+    CI_CMAKE_PRESET: "ci/cuda+omp/nvhpc/nompi/debug/fasttest"
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -221,7 +221,7 @@ build/amd/nompi/gcc/rocm45/release/shared:
     - .quick_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-hip+omp-gcc-nompi-release-fasttest-nondefault_stream"
+    CI_CMAKE_PRESET: "ci/hip+omp/gcc/nompi/release/fasttest/nondefault_stream"
 
 build/amd/nompi/clang/rocm45/release/static:
   extends:
@@ -230,7 +230,7 @@ build/amd/nompi/clang/rocm45/release/static:
     - .full_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-release-static"
+    CI_CMAKE_PRESET: "ci/hip+omp/clang/nompi/release/static"
 
 build/amd/nompi/clang/rocm45/debug/shared:
   extends:
@@ -239,7 +239,7 @@ build/amd/nompi/clang/rocm45/debug/shared:
     - .quick_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-debug"
+    CI_CMAKE_PRESET: "ci/hip+omp/clang/nompi/debug"
 
 # ROCm 5.1.4 and friends
 build/amd/nompi/gcc/rocm514/debug/static:
@@ -249,7 +249,7 @@ build/amd/nompi/gcc/rocm514/debug/static:
     - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    CI_CMAKE_PRESET: "ci-hip+omp-gcc-nompi-debug-static"
+    CI_CMAKE_PRESET: "ci/hip+omp/gcc/nompi/debug/static"
 
 build/amd/nompi/clang/rocm514/release/shared:
   extends:
@@ -258,7 +258,7 @@ build/amd/nompi/clang/rocm514/release/shared:
     - .quick_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    CI_CMAKE_PRESET: "ci-hip+omp-clang-nompi-release"
+    CI_CMAKE_PRESET: "ci/hip+omp/clang/nompi/release"
 
 # without omp
 build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
@@ -268,7 +268,7 @@ build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
     - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
-    CI_CMAKE_PRESET: "ci-hip-gcc-nompi-release"
+    CI_CMAKE_PRESET: "ci/hip/gcc/nompi/release"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
@@ -278,7 +278,7 @@ build/nocuda/nompi/gcc/core/debug/static:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-ref-gcc-nompi-debug-static-fasttest"
+    CI_CMAKE_PRESET: "ci/ref/gcc/nompi/debug/static/fasttest"
 
 build/nocuda/nompi/clang/core/release/shared:
   extends:
@@ -287,7 +287,7 @@ build/nocuda/nompi/clang/core/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-ref-clang-nompi-release"
+    CI_CMAKE_PRESET: "ci/ref/clang/nompi/release"
 
 build/nocuda/nompi/gcc/omp/release/shared:
   extends:
@@ -296,7 +296,7 @@ build/nocuda/nompi/gcc/omp/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-gcc-nompi-release"
+    CI_CMAKE_PRESET: "ci/omp/gcc/nompi/release"
 
 build/nocuda/openmpi/clang/omp/debug/static:
   extends:
@@ -305,7 +305,7 @@ build/nocuda/openmpi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-openmpi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-clang-mpi-debug-static-fasttest"
+    CI_CMAKE_PRESET: "ci/omp/clang/mpi/debug/static/fasttest"
 
 build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
   extends:
@@ -314,7 +314,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-clang-mpi-glibcxx+debug-release"
+    CI_CMAKE_PRESET: "ci/omp/clang/mpi/glibcxx+debug/release"
 
 # nocuda with old compiler
 build/nocuda/nompi/gcc/omp/release/static:
@@ -324,7 +324,7 @@ build/nocuda/nompi/gcc/omp/release/static:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-gcc-nompi-release-static"
+    CI_CMAKE_PRESET: "ci/omp/gcc/nompi/release/static"
 
 build/nocuda-nomixed/nompi/clang/omp/release/static:
   extends:
@@ -333,7 +333,7 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-clang-nompi-release-static-nomixed"
+    CI_CMAKE_PRESET: "ci/omp/clang/nompi/release/static/nomixed"
 
 build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   extends:
@@ -342,7 +342,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
     - .quick_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-gcc-mpi-release-nomixed"
+    CI_CMAKE_PRESET: "ci/omp/gcc/mpi/release/nomixed"
 
 build/nocuda-nomixed/nompi/clang/omp/debug/static:
   extends:
@@ -351,7 +351,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-omp-clang-nompi-debug-static-nomixed"
+    CI_CMAKE_PRESET: "ci/omp/clang/nompi/debug/static/nomixed"
 
 # spack oneapi 2023.1
 build/icpx20231/igpu/release/shared:
@@ -361,7 +361,7 @@ build/icpx20231/igpu/release/shared:
     - .quick_test_condition
     - .use_gko-oneapi20231-igpu
   variables:
-    CI_CMAKE_PRESET: "ci-sycl-icpx-nompi-release-shared-singlemode"
+    CI_CMAKE_PRESET: "ci/sycl/icpx/nompi/release/shared/singlemode"
     ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
 
 # TODO: Enable when debug shared library size issues are fixed
@@ -388,7 +388,7 @@ build/icpx/igpu/release/static:
     - .full_test_condition
     - .use_gko-oneapi-igpu
   variables:
-    CI_CMAKE_PRESET: "ci-sycl-dpcpp-nompi-release-static-singlemode"
+    CI_CMAKE_PRESET: "ci/sycl/dpcpp/nompi/release/static/singlemode"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
 
 # windows jobs
@@ -402,7 +402,7 @@ build/windows-cuda/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build --preset "ci-cuda-msvc-nompi-release-shared" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build --preset "ci/cuda/msvc/nompi/release/shared" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
 # we disable these tests until the triangular solver issues are resolved
 #   - ctest --test-dir build -C Release --no-tests=error --output-on-failure
@@ -421,7 +421,7 @@ build/windows/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build --preset "ci-ref-msvc-nompi-release" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build --preset "ci/ref/msvc/nompi/release" "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
     - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
     - $env:PATH+=";$pwd/install/bin"
@@ -439,7 +439,7 @@ warnings:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-warnings"
+    CI_CMAKE_PRESET: "ci/warnings"
   allow_failure: yes
 
 # Ensure kernel modules do not depend on core
@@ -451,7 +451,7 @@ no-circular-deps:
     - .quick_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-no_circular_deps"
+    CI_CMAKE_PRESET: "ci/no_circular_deps"
   allow_failure: no
 
 # Ensure Ginkgo builds from a subdirectory
@@ -463,7 +463,7 @@ subdir-build:
     - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
-    CI_CMAKE_PRESET: "ci-subdir_build"
+    CI_CMAKE_PRESET: "ci/subdir_build"
   allow_failure: no
 
 # Run clang-tidy and iwyu
@@ -475,7 +475,7 @@ clang-tidy:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-clang_tidy"
+    CI_CMAKE_PRESET: "ci/clang_tidy"
   allow_failure: yes
 
 iwyu:
@@ -486,7 +486,7 @@ iwyu:
     - .full_test_condition
     - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
   variables:
-    CI_CMAKE_PRESET: "ci-iwyu"
+    CI_CMAKE_PRESET: "ci/iwyu"
   allow_failure: yes
 
 # Code analysis, coverage and reporting tool
@@ -678,7 +678,7 @@ benchmark-cuda-spmv-build:
     - .benchmark-spmv-cuda-rules
   stage: benchmark-build
   variables:
-    CI_CMAKE_PRESET: "ci-cuda+omp-gcc-mpi-release-shared"
+    CI_CMAKE_PRESET: "ci/cuda+omp/gcc/mpi/release/shared"
     CUDA_ARCH: 80
     USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
     KEEP_CONTAINER: "ON"

@@ -27,8 +27,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { preset: "ci-omp-clang-nompi-debug-nomixed" }
-          - { preset: "ci-omp-clang-nompi-release-static" }
+          - { preset: "ci/omp/clang/nompi/debug/nomixed" }
+          - { preset: "ci/omp/clang/nompi/release/static" }
     name: ${{ matrix.config.preset }}
     runs-on: [macos-latest]
 

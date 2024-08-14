@@ -30,8 +30,8 @@ jobs:
         config:
         # Debug shared exceeds symbol limit
         # - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
-          - { preset: "ci-ref-msvc-nompi-release-static" }
-          - { preset: "ci-ref-msvc-nompi-release" }
+          - { preset: "ci/ref/msvc/nompi/release/static" }
+          - { preset: "ci/ref/msvc/nompi/release" }
         # Debug static needs too much storage
         # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
     name: ${{ matrix.config.preset }}

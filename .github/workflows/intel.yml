@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { preset: "ci-sycl-dpcpp-nompi-release-singlemode" }
-          - { preset: "ci-sycl-icpx-nompi-release-singlemode-nomixed" }
+          - { preset: "ci/sycl/dpcpp/nompi/release/singlemode" }
+          - { preset: "ci/sycl/icpx/nompi/release/singlemode/nomixed" }
     name: ${{ matrix.config.preset }}
     runs-on: [gpu_intel]
 

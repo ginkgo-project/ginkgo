@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {version: "latest", preset: "ci-cuda-msvc-nompi-release"}
+        - {version: "latest", preset: "ci/cuda/msvc/nompi/release"}
     name: ${{ matrix.config.preset }} (only compile)
     runs-on: [windows-2019]
 
