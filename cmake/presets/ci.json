@@ -394,7 +394,6 @@
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
-                "enable-mpi",
                 "enable-debug",
                 "base-ci"
             ],
