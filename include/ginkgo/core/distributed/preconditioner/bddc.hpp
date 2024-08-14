@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017-2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,6 @@
 
 #include <map>
 #include <set>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
@@ -113,9 +112,9 @@ public:
         /**
          * A rank local list of interior dofs.
          */
-        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interior_dofs, 0);
+        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interior_dofs);
 
-        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interf_dofs, 0);
+        std::vector<index_type> GKO_FACTORY_PARAMETER_VECTOR(interf_dofs);
 
         std::set<index_type> GKO_FACTORY_PARAMETER_VECTOR(boundary_idxs);
 
@@ -212,6 +211,7 @@ private:
     std::shared_ptr<vec_type> phi_t;
     std::vector<index_type> interfaces_;
     std::vector<index_type> inner_idxs_;
+    std::vector<index_type> interf_idxs_;
     std::vector<index_type> corners;
     std::vector<index_type> corner_idxs;
     std::vector<index_type> edges;

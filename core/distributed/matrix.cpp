@@ -6,7 +6,6 @@
 
 #include <fstream>
 
-
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -286,6 +285,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto exec = this->get_executor();
     auto local_part = comm.rank();
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    matrix_data_ = data;
+    row_partition_ = clone(row_partition);
+    col_partition_ = clone(col_partition);
 
     // set up LinOp sizes
     auto global_num_rows = row_partition->get_size();
