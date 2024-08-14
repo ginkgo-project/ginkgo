@@ -8,6 +8,8 @@
 
 #include <ginkgo/core/base/types.hpp>
 
+#include "common/cuda_hip/base/thrust.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -34,7 +36,7 @@ public:
      */
     constexpr GKO_ATTRIBUTES operator const ValueType*() const noexcept
     {
-        return &(*this)[0];
+        return data_;
     }
 
     /**
@@ -43,7 +45,7 @@ public:
      *
      * @return the non-const pointer to the first entry of the array.
      */
-    GKO_ATTRIBUTES operator ValueType*() noexcept { return &(*this)[0]; }
+    GKO_ATTRIBUTES operator ValueType*() noexcept { return data_; }
 
     /**
      * constexpr array access operator.
@@ -56,7 +58,7 @@ public:
     constexpr GKO_ATTRIBUTES const ValueType& operator[](
         size_type pos) const noexcept
     {
-        return reinterpret_cast<const ValueType*>(data_)[pos];
+        return data_[pos];
     }
 
     /**
@@ -69,11 +71,42 @@ public:
      */
     GKO_ATTRIBUTES ValueType& operator[](size_type pos) noexcept
     {
-        return reinterpret_cast<ValueType*>(data_)[pos];
+        return data_[pos];
     }
 
 private:
-    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+    ValueType data_[size];
+};
+
+
+template <typename ValueType, size_type size>
+class uninitialized_array<thrust::complex<ValueType>, size> {
+public:
+    constexpr GKO_ATTRIBUTES operator const thrust::complex<ValueType>*()
+        const noexcept
+    {
+        return &(*this)[0];
+    }
+
+    GKO_ATTRIBUTES operator thrust::complex<ValueType>*() noexcept
+    {
+        return &(*this)[0];
+    }
+
+    constexpr GKO_ATTRIBUTES const thrust::complex<ValueType>& operator[](
+        size_type pos) const noexcept
+    {
+        return reinterpret_cast<const thrust::complex<ValueType>*>(data_)[pos];
+    }
+
+    GKO_ATTRIBUTES thrust::complex<ValueType>& operator[](
+        size_type pos) noexcept
+    {
+        return reinterpret_cast<thrust::complex<ValueType>*>(data_)[pos];
+    }
+
+private:
+    ValueType data_[2 * size];
 };
 
 

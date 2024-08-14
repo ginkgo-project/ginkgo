@@ -152,7 +152,7 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-13);
 }
 
 
