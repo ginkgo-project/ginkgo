@@ -1125,7 +1125,7 @@ void Bddc<ValueType, IndexType>::generate()
     if (n_corners > 0) {
         A_ec->apply(phi_c, rhs);
         rhs->scale(neg_one_op);
-        for (auto i = 0; i < n_corners + n_edges; i++) {
+        for (size_type i = 0; i < n_corners + n_edges; i++) {
             auto rhs_edge = rhs->create_submatrix(span{0, n_inner + n_e_idxs},
                                                   span{i, i + 1});
             auto interm_edge = schur_interm->create_submatrix(
@@ -1151,7 +1151,7 @@ void Bddc<ValueType, IndexType>::generate()
     }
     if (n_edges > 0) {
         C->apply(one_op, schur_interm, neg_one_op, schur_rhs);
-        for (auto i = 0; i < n_corners + n_edges; i++) {
+        for (size_type i = 0; i < n_corners + n_edges; i++) {
             auto rhs_edge =
                 schur_rhs->create_submatrix(span{0, n_edges}, span{i, i + 1});
             auto lambda_edge =
