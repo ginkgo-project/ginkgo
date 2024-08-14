@@ -135,7 +135,7 @@
             }
         },
         {
-            "name": "ci-cuda-msvc-nompi-release",
+            "name": "ci/cuda/msvc/nompi/release",
             "inherits": [
                 "enable-cuda",
                 "enable-msvc",
@@ -144,7 +144,7 @@
             ]
         },
         {
-            "name": "ci-cuda+omp-gcc-mpi-release-shared",
+            "name": "ci/cuda+omp/gcc/mpi/release/shared",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -154,7 +154,7 @@
             ]
         },
         {
-            "name": "ci-cuda+omp-gcc-mpi-debug-fasttest-nondefault_stream",
+            "name": "ci/cuda+omp/gcc/mpi/debug/fasttest/nondefault_stream",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -168,7 +168,7 @@
             }
         },
         {
-            "name": "ci-cuda+omp-clang-nompi-release-static",
+            "name": "ci/cuda+omp/clang/nompi/release/static",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -181,7 +181,7 @@
             }
         },
         {
-            "name": "ci-cuda+omp-clang-nompi-release-fasttest-shared",
+            "name": "ci/cuda+omp/clang/nompi/release/fasttest/shared",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -196,7 +196,7 @@
             }
         },
         {
-            "name": "ci-cuda+omp-gcc-nompi-debug-fasttest",
+            "name": "ci/cuda+omp/gcc/nompi/debug/fasttest",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -211,7 +211,7 @@
             }
         },
         {
-            "name": "ci-cuda+omp-nvhpc-nompi-release-static-fasttest",
+            "name": "ci/cuda+omp/nvhpc/nompi/release/static/fasttest",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -225,7 +225,7 @@
             }
         },
         {
-            "name": "ci-cuda+omp-nvhpc-nompi-debug-fasttest",
+            "name": "ci/cuda+omp/nvhpc/nompi/debug/fasttest",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
@@ -238,7 +238,7 @@
             }
         },
         {
-            "name": "ci-cuda-msvc-nompi-release-shared",
+            "name": "ci/cuda/msvc/nompi/release/shared",
             "inherits": [
                 "enable-cuda",
                 "enable-msvc",
@@ -247,7 +247,7 @@
             ]
         },
         {
-            "name": "ci-hip+omp-gcc-nompi-debug-static",
+            "name": "ci/hip+omp/gcc/nompi/debug/static",
             "inherits": [
                 "enable-hip",
                 "enable-openmp",
@@ -261,7 +261,7 @@
             }
         },
         {
-            "name": "ci-hip+omp-gcc-nompi-release-fasttest-nondefault_stream",
+            "name": "ci/hip+omp/gcc/nompi/release/fasttest/nondefault_stream",
             "inherits": [
                 "enable-hip",
                 "enable-openmp",
@@ -276,7 +276,7 @@
             }
         },
         {
-            "name": "ci-hip+omp-clang-nompi-debug",
+            "name": "ci/hip+omp/clang/nompi/debug",
             "inherits": [
                 "enable-hip",
                 "enable-openmp",
@@ -289,7 +289,7 @@
             }
         },
         {
-            "name": "ci-hip+omp-clang-nompi-release",
+            "name": "ci/hip+omp/clang/nompi/release",
             "inherits": [
                 "enable-hip",
                 "enable-openmp",
@@ -302,9 +302,9 @@
             }
         },
         {
-            "name": "ci-hip+omp-clang-nompi-release-static",
+            "name": "ci/hip+omp/clang/nompi/release/static",
             "inherits": [
-                "ci-hip+omp-clang-nompi-release"
+                "ci/hip+omp/clang/nompi/release"
             ],
             "cacheVariables": {
                 "BUILD_SHARED_LIBS": "OFF",
@@ -312,7 +312,7 @@
             }
         },
         {
-            "name": "ci-hip-gcc-nompi-release",
+            "name": "ci/hip/gcc/nompi/release",
             "inherits": [
                 "enable-hip",
                 "enable-gcc",
@@ -324,7 +324,7 @@
             }
         },
         {
-            "name": "ci-ref-clang-nompi-release",
+            "name": "ci/ref/clang/nompi/release",
             "inherits": [
                 "enable-clang",
                 "enable-release",
@@ -332,7 +332,7 @@
             ]
         },
         {
-            "name": "ci-ref-gcc-nompi-debug-static-fasttest",
+            "name": "ci/ref/gcc/nompi/debug/static/fasttest",
             "inherits": [
                 "enable-clang",
                 "enable-release",
@@ -344,7 +344,7 @@
             }
         },
         {
-            "name": "ci-ref-msvc-nompi-release",
+            "name": "ci/ref/msvc/nompi/release",
             "generator": "Visual Studio 17 2022",
             "inherits": [
                 "enable-msvc",
@@ -353,17 +353,17 @@
             ]
         },
         {
-            "name": "ci-ref-msvc-nompi-release-static",
+            "name": "ci/ref/msvc/nompi/release/static",
             "generator": "Visual Studio 17 2022",
             "inherits": [
-                "ci-ref-msvc-nompi-release"
+                "ci/ref/msvc/nompi/release"
             ],
             "cacheVariables": {
                 "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
-            "name": "ci-omp-clang-mpi-debug-static-fasttest",
+            "name": "ci/omp/clang/mpi/debug/static/fasttest",
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
@@ -377,7 +377,7 @@
             }
         },
         {
-            "name": "ci-omp-clang-mpi-glibcxx+debug-release",
+            "name": "ci/omp/clang/mpi/glibcxx+debug/release",
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
@@ -390,7 +390,7 @@
             }
         },
         {
-            "name": "ci-omp-clang-nompi-debug-nomixed",
+            "name": "ci/omp/clang/nompi/debug/nomixed",
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
@@ -403,16 +403,16 @@
             }
         },
         {
-            "name": "ci-omp-clang-nompi-debug-static-nomixed",
+            "name": "ci/omp/clang/nompi/debug/static/nomixed",
             "inherits": [
-                "ci-omp-clang-nompi-debug-nomixed"
+                "ci/omp/clang/nompi/debug/nomixed"
             ],
             "cacheVariables": {
                 "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
-            "name": "ci-omp-clang-nompi-release-static",
+            "name": "ci/omp/clang/nompi/release/static",
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
@@ -425,16 +425,16 @@
             }
         },
         {
-            "name": "ci-omp-clang-nompi-release-static-nomixed",
+            "name": "ci/omp/clang/nompi/release/static/nomixed",
             "inherits": [
-                "ci-omp-clang-nompi-release-static"
+                "ci/omp/clang/nompi/release/static"
             ],
             "cacheVariables": {
                 "GINKGO_MIXED_PRECISION": "OFF"
             }
         },
         {
-            "name": "ci-omp-gcc-nompi-release",
+            "name": "ci/omp/gcc/nompi/release",
             "inherits": [
                 "enable-openmp",
                 "enable-gcc",
@@ -443,16 +443,16 @@
             ]
         },
         {
-            "name": "ci-omp-gcc-nompi-release-static",
+            "name": "ci/omp/gcc/nompi/release/static",
             "inherits": [
-                "ci-omp-gcc-nompi-release"
+                "ci/omp/gcc/nompi/release"
             ],
             "cacheVariables": {
                 "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
-            "name": "ci-omp-gcc-mpi-release-nomixed",
+            "name": "ci/omp/gcc/mpi/release/nomixed",
             "inherits": [
                 "enable-openmp",
                 "enable-clang",
@@ -465,7 +465,7 @@
             }
         },
         {
-            "name": "ci-omp-mingwgcc-nompi-release-static",
+            "name": "ci/omp/mingwgcc/nompi/release/static",
             "generator": "MinGW Makefiles",
             "inherits": [
                 "enable-openmp",
@@ -478,7 +478,7 @@
             }
         },
         {
-            "name": "ci-sycl-icpx-nompi-release-shared-singlemode",
+            "name": "ci/sycl/icpx/nompi/release/shared/singlemode",
             "inherits": [
                 "enable-sycl",
                 "enable-intel",
@@ -488,7 +488,7 @@
             ]
         },
         {
-            "name": "ci-sycl-dpcpp-nompi-release-singlemode",
+            "name": "ci/sycl/dpcpp/nompi/release/singlemode",
             "inherits": [
                 "enable-sycl",
                 "enable-dpcpp",
@@ -499,18 +499,18 @@
             "generator": "Unix Makefiles"
         },
         {
-            "name": "ci-sycl-dpcpp-nompi-release-static-singlemode",
+            "name": "ci/sycl/dpcpp/nompi/release/static/singlemode",
             "inherits": [
-                "ci-sycl-dpcpp-nompi-release-singlemode"
+                "ci/sycl/dpcpp/nompi/release/singlemode"
             ],
             "cacheVariables": {
                 "BUILD_SHARED_LIBS": "OFF"
             }
         },
         {
-            "name": "ci-sycl-icpx-nompi-release-singlemode-nomixed",
+            "name": "ci/sycl/icpx/nompi/release/singlemode/nomixed",
             "inherits": [
-                "ci-sycl-icpx-nompi-release-shared-singlemode"
+                "ci/sycl/icpx/nompi/release/shared/singlemode"
             ],
             "generator": "Unix Makefiles",
             "cacheVariables": {
@@ -518,7 +518,7 @@
             }
         },
         {
-            "name": "ci-warnings",
+            "name": "ci/warnings",
             "inherits": [
                 "enable-cuda",
                 "enable-hip",
@@ -530,7 +530,7 @@
             }
         },
         {
-            "name": "ci-no_circular_deps",
+            "name": "ci/no_circular_deps",
             "inherits": [
                 "enable-cuda",
                 "enable-hip",
@@ -542,14 +542,14 @@
             }
         },
         {
-            "name": "ci-subdir_build",
+            "name": "ci/subdir_build",
             "inherits": [
                 "enable-openmp",
                 "base-ci"
             ]
         },
         {
-            "name": "ci-clang_tidy",
+            "name": "ci/clang_tidy",
             "inherits": [
                 "enable-cuda",
                 "enable-hip",
@@ -561,7 +561,7 @@
             }
         },
         {
-            "name": "ci-iwyu",
+            "name": "ci/iwyu",
             "inherits": [
                 "enable-cuda",
                 "enable-openmp",
