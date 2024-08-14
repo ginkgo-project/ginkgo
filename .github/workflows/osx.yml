@@ -55,7 +55,7 @@ jobs:
         mkdir install
         export INSTALL_PREFIX=`pwd`/install
         cd build
-        cmake -S .. -B . --preset ${{ matrix.config.preset }} -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/
+        cmake -S .. -B . --preset ${{ matrix.config.preset }} -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/ -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
         cmake --build . -j8
         ctest -j10 --output-on-failure
 
