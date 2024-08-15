@@ -1251,8 +1251,6 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
-    using Executor::run;
-
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
@@ -1362,6 +1360,8 @@ class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new OmpExecutor.
      */
@@ -1439,6 +1439,8 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
+    using Executor::run;
+
     static std::shared_ptr<ReferenceExecutor> create(
         std::shared_ptr<CpuAllocatorBase> alloc =
             std::make_shared<CpuAllocator>())
@@ -1513,6 +1515,8 @@ class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new CudaExecutor.
      *
@@ -1748,6 +1752,8 @@ class HipExecutor : public detail::ExecutorBase<HipExecutor>,
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new HipExecutor.
      *
@@ -1963,6 +1969,8 @@ class DpcppExecutor : public detail::ExecutorBase<DpcppExecutor>,
     friend class detail::ExecutorBase<DpcppExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new DpcppExecutor.
      *
