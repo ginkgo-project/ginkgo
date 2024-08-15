@@ -35,6 +35,7 @@ constexpr int max_num_rhs = 1;
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"
+#include "reference/matrix/batch_external_kernels.hpp.inc"
 #include "reference/solver/batch_bicgstab_kernels.hpp.inc"
 
 

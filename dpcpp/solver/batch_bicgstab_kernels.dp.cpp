@@ -43,6 +43,7 @@ namespace batch_bicgstab {
 #include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
+#include "dpcpp/matrix/batch_external_kernels.hpp.inc"
 #include "dpcpp/solver/batch_bicgstab_kernels.hpp.inc"
 
 

@@ -70,6 +70,14 @@ public:
         common_generate_for_all_system_matrix_types(batch_id);
     }
 
+    __device__ __forceinline__ void generate(
+        size_type batch_id,
+        const gko::batch::matrix::external::batch_item<const value_type>&,
+        value_type* const __restrict__)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+    }
+
     __device__ __forceinline__ void apply(const int num_rows,
                                           const value_type* const r,
                                           value_type* const z) const

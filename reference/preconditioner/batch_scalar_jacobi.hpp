@@ -113,6 +113,20 @@ public:
         }
     }
 
+    /**
+     * Set to unit diagonal for external matrices
+     */
+    void generate(
+        size_type,
+        const gko::batch::matrix::external::batch_item<const value_type>& mat,
+        value_type* const work)
+    {
+        work_ = work;
+        for (int i = 0; i < mat.num_rows; i++) {
+            work_[i] = one<value_type>();
+        }
+    }
+
     void apply(const gko::batch::multi_vector::batch_item<const value_type>& r,
                const gko::batch::multi_vector::batch_item<value_type>& z) const
     {

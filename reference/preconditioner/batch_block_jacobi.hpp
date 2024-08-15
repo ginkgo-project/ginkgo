@@ -80,6 +80,14 @@ public:
         common_generate(batch_id);
     }
 
+    void generate(
+        size_type batch_id,
+        const gko::batch::matrix::external::batch_item<const value_type>&,
+        value_type* const)
+    {
+        common_generate(batch_id);
+    }
+
     void apply(const gko::batch::multi_vector::batch_item<const value_type>& r,
                const gko::batch::multi_vector::batch_item<value_type>& z) const
     {

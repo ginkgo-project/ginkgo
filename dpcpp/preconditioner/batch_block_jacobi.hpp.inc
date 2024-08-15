@@ -67,6 +67,15 @@ public:
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
+    __dpct_inline__ void generate(
+        size_type batch_id,
+        const batch::matrix::external::batch_item<const value_type>&,
+        value_type* const, sycl::nd_item<3> item_ct1)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+    }
+
     __dpct_inline__ void apply(const int num_rows, const value_type* const r,
                                value_type* const z,
                                sycl::nd_item<3> item_ct1) const

@@ -120,6 +120,26 @@ public:
         __syncthreads();
     }
 
+    /**
+     * Identity for external operators
+     */
+    __device__ __forceinline__ void generate(
+        size_type,
+        const gko::batch::matrix::external::batch_item<const value_type>& mat,
+        value_type* const __restrict__ work)
+    {
+        work_ = work;
+        constexpr auto warp_size = config::warp_size;
+        const auto tile =
+            group::tiled_partition<warp_size>(group::this_thread_block());
+        const int tile_rank = threadIdx.x / warp_size;
+        const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+        for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
+            work_[irow] = one<ValueType>();
+        }
+        __syncthreads();
+    }
+
     __device__ __forceinline__ void apply(const int num_rows,
                                           const value_type* const r,
                                           value_type* const z) const

@@ -300,6 +300,11 @@ public:
                        const batch::matrix::Csr<ValueType, int32>*>(mat_)) {
             auto mat_item = device::get_batch_struct(batch_mat);
             dispatch_on_logger(mat_item, b_item, x_item, log_data);
+        } else if (auto batch_mat =
+                       dynamic_cast<const batch::matrix::External<ValueType>*>(
+                           mat_)) {
+            auto mat_item = device::get_batch_struct(batch_mat);
+            dispatch_on_logger(mat_item, b_item, x_item, log_data);
         } else {
             GKO_NOT_SUPPORTED(mat_);
         }

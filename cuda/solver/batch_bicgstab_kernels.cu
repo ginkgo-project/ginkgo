@@ -51,6 +51,7 @@ namespace batch_bicgstab {
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_external_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
 
 

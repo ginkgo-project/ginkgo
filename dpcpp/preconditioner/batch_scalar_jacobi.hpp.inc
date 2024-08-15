@@ -121,6 +121,25 @@ public:
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }
 
+    /**
+     * Uses the identity for external operators
+     */
+    __dpct_inline__ void generate(
+        size_type,
+        const batch::matrix::external::batch_item<const value_type>& mat,
+        value_type* const __restrict__ work, sycl::nd_item<3> item_ct1)
+    {
+        work_ = work;
+        const auto sg = item_ct1.get_sub_group();
+        const int sg_id = sg.get_group_id();
+        const int num_sg = sg.get_group_range().size();
+
+        for (int irow = sg_id; irow < mat.num_rows; irow += num_sg) {
+            work_[irow] = one<value_type>();
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+    }
+
     __dpct_inline__ void apply(const int num_rows, const value_type* const r,
                                value_type* const z,
                                sycl::nd_item<3> item_ct1) const
