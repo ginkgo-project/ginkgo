@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -89,6 +89,14 @@ public:
     __device__ __forceinline__ void generate(
         size_type batch_id,
         const gko::batch::matrix::dense::batch_item<const value_type>&,
+        value_type* const __restrict__)
+    {
+        common_generate_for_all_system_matrix_types(batch_id);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id,
+        const gko::batch::matrix::external::batch_item<const value_type>&,
         value_type* const __restrict__)
     {
         common_generate_for_all_system_matrix_types(batch_id);

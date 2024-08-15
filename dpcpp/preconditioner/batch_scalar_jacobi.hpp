@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -144,6 +144,25 @@ public:
             work_[irow] = (mat.values[iz] != zero<value_type>())
                               ? one<value_type>() / mat.values[iz]
                               : one<value_type>();
+        }
+        item_ct1.barrier(sycl::access::fence_space::local_space);
+    }
+
+    /**
+     * Uses the identity for external operators
+     */
+    __dpct_inline__ void generate(
+        size_type,
+        const batch::matrix::external::batch_item<const value_type>& mat,
+        value_type* const __restrict__ work, sycl::nd_item<3> item_ct1)
+    {
+        work_ = work;
+        const auto sg = item_ct1.get_sub_group();
+        const int sg_id = sg.get_group_id();
+        const int num_sg = sg.get_group_range().size();
+
+        for (int irow = sg_id; irow < mat.num_rows; irow += num_sg) {
+            work_[irow] = one<value_type>();
         }
         item_ct1.barrier(sycl::access::fence_space::local_space);
     }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -110,6 +110,20 @@ public:
                        (mat.values[i * mat.stride + i] == zero<value_type>()
                             ? one<value_type>()
                             : mat.values[i * mat.stride + i]);
+        }
+    }
+
+    /**
+     * Set to unit diagonal for external matrices
+     */
+    void generate(
+        size_type,
+        const gko::batch::matrix::external::batch_item<const value_type>& mat,
+        value_type* const work)
+    {
+        work_ = work;
+        for (int i = 0; i < mat.num_rows; i++) {
+            work_[i] = one<value_type>();
         }
     }
 
