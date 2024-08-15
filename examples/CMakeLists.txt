@@ -5,6 +5,7 @@ set(EXAMPLES_EXEC_LIST
     batched-solver
     cb-gmres
     custom-logger
+    electrostatic-abb
     ginkgo-ranges
     ilu-preconditioned-solver
     ir-ilu-preconditioned-solver
