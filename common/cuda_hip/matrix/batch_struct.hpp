@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,6 +128,25 @@ get_batch_struct(batch::matrix::Ell<ValueType, IndexType>* const op)
             static_cast<IndexType>(op->get_common_size()[0]),
             static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_num_stored_elements_per_row())};
+}
+
+
+/**
+ * Generates an immutable uniform batch struct from a batch of external
+ * operators.
+ */
+template <typename ValueType>
+inline batch::matrix::external::uniform_batch<const cuda_type<ValueType>>
+get_batch_struct(const batch::matrix::External<ValueType>* const op)
+{
+    assert(op->get_simple_apply_functions().cuda_apply);
+    assert(op->get_advanced_apply_functions().cuda_apply);
+    return {op->get_num_batch_items(),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            op->get_simple_apply_functions().cuda_apply,
+            op->get_advanced_apply_functions().cuda_apply,
+            op->get_payload()};
 }
 
 

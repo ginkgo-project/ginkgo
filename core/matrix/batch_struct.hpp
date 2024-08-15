@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_external.hpp>
 
 
 namespace gko {
@@ -164,6 +165,51 @@ struct uniform_batch {
 
 }  // namespace ell
 
+namespace external {
+
+
+/**
+ * Encapsulates one matrix from a batch of ell matrices.
+ */
+template <typename ValueType>
+struct batch_item {
+    using value_type = ValueType;
+    using index_type = int32;
+    using simple_apply_t = external_apply::simple_type;
+    using advanced_apply_t = external_apply::advanced_type;
+
+    size_type batch_id;
+    index_type num_rows;
+    index_type num_cols;
+    simple_apply_t simple_apply;
+    advanced_apply_t advanced_apply;
+    void* payload;
+};
+
+
+/**
+ * A 'simple' structure to store a global uniform batch of ell matrices.
+ */
+template <typename ValueType>
+struct uniform_batch {
+    using value_type = ValueType;
+    using index_type = int32;
+    using simple_apply_t = external_apply::simple_type;
+    using advanced_apply_t = external_apply::advanced_type;
+
+    inline size_type get_single_item_num_nnz() const { return 0; }
+
+    size_type num_batch_items;
+    index_type num_rows;
+    index_type num_cols;
+    simple_apply_t simple_apply;
+    advanced_apply_t advanced_apply;
+    void* payload;
+};
+
+
+}  // namespace external
+
 
 template <typename ValueType, typename IndexType>
 GKO_ATTRIBUTES GKO_INLINE csr::batch_item<const ValueType, const IndexType>
@@ -292,6 +338,24 @@ extract_batch_item(ValueType* const batch_values,
             num_rows,
             num_cols,
             num_elems_per_row};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE external::uniform_batch<const ValueType> to_const(
+    const external::uniform_batch<ValueType>& ub)
+{
+    return {ub.num_batch_items, ub.num_rows,       ub.num_cols,
+            ub.simple_apply,    ub.advanced_apply, ub.payload};
+}
+
+
+template <typename ValueType>
+GKO_ATTRIBUTES GKO_INLINE external::batch_item<ValueType> extract_batch_item(
+    const external::uniform_batch<ValueType>& batch, const size_type batch_idx)
+{
+    return {batch_idx,          batch.num_rows,       batch.num_cols,
+            batch.simple_apply, batch.advanced_apply, batch.payload};
 }
 
 

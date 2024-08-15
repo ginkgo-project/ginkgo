@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -126,6 +126,22 @@ inline batch::matrix::ell::uniform_batch<ValueType, IndexType> get_batch_struct(
             static_cast<IndexType>(op->get_common_size()[0]),
             static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_num_stored_elements_per_row())};
+}
+
+
+/**
+ * Generates an immutable uniform batch struct from a batch of ell matrices.
+ */
+template <typename ValueType>
+inline batch::matrix::external::uniform_batch<const ValueType> get_batch_struct(
+    const batch::matrix::External<ValueType>* const op)
+{
+    return {op->get_num_batch_items(),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            op->get_simple_apply_functions().cpu_apply,
+            op->get_advanced_apply_functions().cpu_apply,
+            op->get_payload()};
 }
 
 
