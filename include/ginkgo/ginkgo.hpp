@@ -95,6 +95,7 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_external.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
