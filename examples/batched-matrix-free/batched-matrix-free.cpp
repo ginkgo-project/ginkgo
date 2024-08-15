@@ -10,9 +10,10 @@
 #include <random>
 #include <string>
 
-
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
+
+#include "apply.hpp"
 
 
 // @sect3{Type aliases for convenience}
@@ -24,6 +25,7 @@ using size_type = gko::size_type;
 using vec_type = gko::batch::MultiVector<value_type>;
 using real_vec_type = gko::batch::MultiVector<real_type>;
 using mtx_type = gko::batch::matrix::Csr<value_type, index_type>;
+using ext_type = gko::batch::matrix::External<value_type>;
 using cg = gko::batch::solver::Cg<value_type>;
 
 
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    const size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
+    size_type num_systems = argc >= 3 ? std::atoi(argv[2]) : 2;
     const int num_rows = argc >= 4 ? std::atoi(argv[3]) : 32;  // per system
     const int num_reps = 1;
 
@@ -112,8 +114,16 @@ int main(int argc, char* argv[])
         gko::batch_dim<2>(num_systems, gko::dim<2>(num_rows, 1));
     auto nnz = 3 * (num_rows - 2) + 4;
 
-    auto A = gko::share(mtx_type::create(exec, batch_mat_size, nnz));
+    gko::array<gko::size_type> payload(exec, {num_systems});
+    auto A = gko::share(
+        ext_type::create(exec, batch_mat_size,
+                         {.cpu_apply = simple_apply_generic<value_type>,
+                          .hip_apply = get_hip_simple_apply_ptr()},
+                         {.cpu_apply = advanced_apply_generic<value_type>,
+                          .hip_apply = get_hip_advanced_apply_ptr()},
+                         payload.get_data()));
 
+    auto A_mtx = gko::share(mtx_type::create(exec, batch_mat_size, nnz));
     auto create_batch = [batch_mat_size, num_rows, nnz](gko::size_type id) {
         gko::matrix_data<value_type, index_type> md(
             batch_mat_size.get_common_size());
@@ -131,10 +141,9 @@ int main(int argc, char* argv[])
         }
         return md;
     };
-
     for (gko::size_type id = 0; id < batch_mat_size.get_num_batch_items();
          ++id) {
-        A->create_view_for_item(id)->read(create_batch(id));
+        A_mtx->create_view_for_item(id)->read(create_batch(id));
     }
 
     // @sect3{RHS and solution vectors}
@@ -182,7 +191,8 @@ int main(int argc, char* argv[])
     // allocate and compute the residual
     auto res = vec_type::create(exec, batch_vec_size);
     res->copy_from(b);
-    A->apply(one, x, neg_one, res);
+    // @todo: change this when the external apply becomes available
+    A_mtx->apply(one, x, neg_one, res);
     // allocate and compute residual norm
     auto host_res_norm = real_vec_type::create(exec->get_master(), norm_dim);
     host_res_norm->fill(0.0);
