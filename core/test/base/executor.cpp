@@ -521,4 +521,42 @@ TEST_F(ExecutorLogging, LogsOperation)
 }
 
 
+struct NameLogger : public gko::log::Logger {
+protected:
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
+    {
+        op_name = op->get_name();
+    }
+
+public:
+    mutable std::string op_name;
+};
+
+
+TEST(LambdaOperation, CanSetName)
+{
+    auto name_logger = std::make_shared<NameLogger>();
+    auto exec = gko::ReferenceExecutor::create();
+    exec->add_logger(name_logger);
+
+    exec->run(
+        "name", [] {}, [] {}, [] {}, [] {});
+
+    ASSERT_EQ("name", name_logger->op_name);
+}
+
+
+TEST(LambdaOperation, HasDefaultName)
+{
+    auto name_logger = std::make_shared<NameLogger>();
+    auto exec = gko::ReferenceExecutor::create();
+    exec->add_logger(name_logger);
+
+    exec->run([] {}, [] {}, [] {}, [] {});
+
+    ASSERT_EQ("unname", name_logger->op_name);
+}
+
+
 }  // namespace
