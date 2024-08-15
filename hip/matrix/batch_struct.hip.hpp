@@ -130,6 +130,25 @@ get_batch_struct(batch::matrix::Ell<ValueType, IndexType>* const op)
 }
 
 
+/**
+ * Generates an immutable uniform batch struct from a batch of external
+ * operators.
+ */
+template <typename ValueType>
+inline batch::matrix::external::uniform_batch<const hip_type<ValueType>>
+get_batch_struct(const batch::matrix::External<ValueType>* const op)
+{
+    assert(op->get_simple_apply_functions().hip_apply);
+    assert(op->get_advanced_apply_functions().hip_apply);
+    return {op->get_num_batch_items(),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            op->get_simple_apply_functions().hip_apply,
+            op->get_advanced_apply_functions().hip_apply,
+            op->get_payload()};
+}
+
+
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

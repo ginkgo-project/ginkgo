@@ -127,6 +127,25 @@ inline batch::matrix::ell::uniform_batch<ValueType, IndexType> get_batch_struct(
 }
 
 
+/**
+ * Generates an immutable uniform batch struct from a batch of external
+ * operators.
+ */
+template <typename ValueType>
+inline batch::matrix::external::uniform_batch<const ValueType> get_batch_struct(
+    const batch::matrix::External<ValueType>* const op)
+{
+    assert(op->get_simple_apply_functions().sycl_apply);
+    assert(op->get_advanced_apply_functions().sycl_apply);
+    return {op->get_num_batch_items(),
+            static_cast<int32>(op->get_common_size()[0]),
+            static_cast<int32>(op->get_common_size()[1]),
+            op->get_simple_apply_functions().sycl_apply,
+            op->get_advanced_apply_functions().sycl_apply,
+            op->get_payload()};
+}
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
