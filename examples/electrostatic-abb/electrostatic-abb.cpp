@@ -50,6 +50,9 @@ int main(int argc, char* argv[])
     using mtx = gko::matrix::Dense<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
     using bicgstab = gko::solver::Bicgstab<ValueType>;
+    using gmres = gko::solver::Gmres<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using ilu = gko::preconditioner::Ilu<>;
 
     std::cout << gko::version_info::get() << std::endl;
 
@@ -60,7 +63,8 @@ int main(int argc, char* argv[])
     }
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const auto fname_string = argc >= 3 ? argv[2] : "sphere";
+    std::string solver_string = argc >= 3 ? argv[2] : "gmres";
+    const auto fname_string = argc >= 4 ? argv[3] : "sphere";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -89,20 +93,67 @@ int main(int argc, char* argv[])
     auto b = gko::share(mtx::create(exec));
     b->read(data[1]);
     auto x = gko::clone(b);
+    // std::ofstream fout("sphere.mtx");
+    // std::ofstream fout2("sphere_b.mtx");
+    // gko::write(fout, A);
+    // gko::write(fout2, b);
 
-    const RealValueType reduction_factor{1e-7};
+    const RealValueType reduction_factor{1e-16};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto solver_gen =
-        bicgstab::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(20u),
+    auto gmres_gen =
+        gmres::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor))
+            // .with_preconditioner(bj::build().with_max_block_size(1u))
+            .with_preconditioner(ilu::build())
             .on(exec);
-    auto solver = solver_gen->generate(A);
+    auto bicgstab_gen =
+        bicgstab::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(reduction_factor))
+            // .with_preconditioner(bj::build().with_max_block_size(1u))
+            .with_preconditioner(ilu::build())
+            .on(exec);
+    std::shared_ptr<gko::LinOp> solver;
+    if (solver_string.compare("gmres") == 0) {
+        std::cout << "Using " << solver_string << std::endl;
+        solver = gmres_gen->generate(A);
+
+    } else if (solver_string.compare("bicgstab") == 0) {
+        std::cout << "Using " << solver_string << std::endl;
+        solver = bicgstab_gen->generate(A);
+    } else {
+        throw("Invalid solver");
+    }
     solver->add_logger(logger);
 
-    solver->apply(b, x);
+    auto x_clone = gko::clone(x);
+    // Warmup
+    for (int i = 0; i < 3; ++i) {
+        x_clone->copy_from(x.get());
+        solver->apply(b, x_clone);
+    }
+
+    double apply_time = 0.0;
+
+    int num_reps = 3;
+    for (int i = 0; i < num_reps; ++i) {
+        x_clone->copy_from(x.get());
+        exec->synchronize();
+        std::chrono::steady_clock::time_point t1 =
+            std::chrono::steady_clock::now();
+        solver->apply(b, x_clone);
+        exec->synchronize();
+        std::chrono::steady_clock::time_point t2 =
+            std::chrono::steady_clock::now();
+        auto time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+        apply_time += time_span.count();
+    }
+    x->copy_from(x_clone.get());
 
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
@@ -112,5 +163,5 @@ int main(int argc, char* argv[])
 
     std::cout << "Residual norm sqrt(r^T r): " << res->get_values()[0]
               << "\nIteration count: " << logger->get_num_iterations()
-              << std::endl;
+              << "\nApply time: " << apply_time / num_reps << std::endl;
 }
