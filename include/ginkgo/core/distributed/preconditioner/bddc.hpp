@@ -27,6 +27,7 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 
 namespace gko {
@@ -66,6 +67,7 @@ public:
     using fact_type =
         gko::experimental::factorization::Factorization<ValueType, IndexType>;
     using perm_type = matrix::Permutation<IndexType>;
+    using scale_perm = matrix::ScaledPermutation<ValueType, IndexType>;
 
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -206,6 +208,11 @@ private:
     std::shared_ptr<const LinOp> edge_solver;
     std::shared_ptr<const LinOp> local_schur_solver;
     std::shared_ptr<const LinOp> coarse_solver;
+    std::shared_ptr<const LinOp> constrained_solver;
+    std::shared_ptr<vec_type> constrained_buf1;
+    std::shared_ptr<vec_type> constrained_buf2;
+    std::shared_ptr<compo_type> mc64;
+    bool fallback = false;
     std::shared_ptr<const diag_type> weights;
     std::shared_ptr<vec_type> phi;
     std::shared_ptr<vec_type> phi_t;

@@ -20,11 +20,13 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/preconditioner/bddc.hpp>
 #include <ginkgo/core/factorization/cholesky.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/reorder/amd.hpp>
+#include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
@@ -245,8 +247,10 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     }
 
     for (auto& bd_idx : parameters_.boundary_idxs) {
-        auto gid = global_to_local.at(bd_idx);
-        local_data.nonzeros.emplace_back(gid, gid, one<ValueType>());
+        if (global_to_local.find(bd_idx) != global_to_local.end()) {
+            auto gid = global_to_local.at(bd_idx);
+            local_data.nonzeros.emplace_back(gid, gid, one<ValueType>());
+        }
     }
 
     local_data.sort_row_major();
@@ -643,36 +647,55 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     phi->apply(coarse_sol, coarse_2);
 
     // Subdomain correction
-    auto qe = coarse_3->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
-    auto qc = coarse_3->create_submatrix(
-        span{edge_idxs.size(), coarse_3->get_size()[0]}, span{0, 1});
-    qc->fill(zero<ValueType>());
-    auto ge = coarse_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
-    auto im = local_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
-    if (c->get_size()[0] > 0) {
+    if (fallback) {
+        auto ge =
+            coarse_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
+        auto qe =
+            coarse_3->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
+        e_perm->apply(ge, constrained_buf2);
+        constrained_buf2->scale_permute(
+            as<scale_perm>(mc64->get_operators()[0]), constrained_buf1,
+            matrix::permute_mode::rows);
+        constrained_solver->apply(constrained_buf1, constrained_buf2);
+        constrained_buf2->scale_permute(
+            as<scale_perm>(mc64->get_operators()[1]), constrained_buf1,
+            matrix::permute_mode::rows);
+        e_perm_t->apply(constrained_buf1, qe);
+    } else {
+        auto qe =
+            coarse_3->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
+        auto qc = coarse_3->create_submatrix(
+            span{edge_idxs.size(), coarse_3->get_size()[0]}, span{0, 1});
+        qc->fill(zero<ValueType>());
+        auto ge =
+            coarse_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
+        auto im =
+            local_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
+        if (c->get_size()[0] > 0) {
+            if (edge_solver->apply_uses_initial_guess()) {
+                edge_buf2->fill(zero<ValueType>());
+            }
+            e_perm->apply(ge, edge_buf1);
+            edge_solver->apply(edge_buf1, edge_buf2);
+            e_perm_t->apply(edge_buf2, im);
+            auto schur_rhs = local_2->create_submatrix(
+                span{0, c->get_size()[0]}, span{0, 1});
+            auto mue = local_3->create_submatrix(span{0, c->get_size()[0]},
+                                                 span{0, 1});
+            c->apply(im, schur_rhs);
+            if (local_schur_solver->apply_uses_initial_guess()) {
+                mue->fill(zero<ValueType>());
+            }
+            local_schur_solver->apply(schur_rhs, mue);
+            cT->apply(neg_one_op, mue, one_op, ge);
+        }
         if (edge_solver->apply_uses_initial_guess()) {
             edge_buf2->fill(zero<ValueType>());
         }
         e_perm->apply(ge, edge_buf1);
         edge_solver->apply(edge_buf1, edge_buf2);
-        e_perm_t->apply(edge_buf2, im);
-        auto schur_rhs =
-            local_2->create_submatrix(span{0, c->get_size()[0]}, span{0, 1});
-        auto mue =
-            local_3->create_submatrix(span{0, c->get_size()[0]}, span{0, 1});
-        c->apply(im, schur_rhs);
-        if (local_schur_solver->apply_uses_initial_guess()) {
-            mue->fill(zero<ValueType>());
-        }
-        local_schur_solver->apply(schur_rhs, mue);
-        cT->apply(neg_one_op, mue, one_op, ge);
+        e_perm_t->apply(edge_buf2, qe);
     }
-    if (edge_solver->apply_uses_initial_guess()) {
-        edge_buf2->fill(zero<ValueType>());
-    }
-    e_perm->apply(ge, edge_buf1);
-    edge_solver->apply(edge_buf1, edge_buf2);
-    e_perm_t->apply(edge_buf2, qe);
     coarse_2->add_scaled(one_op, coarse_3);
 
     weights->apply(coarse_2, local_sol);
@@ -718,6 +741,9 @@ void Bddc<ValueType, IndexType>::generate()
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
     auto rank = comm.rank();
+    for (auto bdry_idx : parameters_.boundary_idxs) {
+        std::cout << "RANK " << rank << ": " << bdry_idx << std::endl;
+    }
     std::shared_ptr<
         const gko::experimental::distributed::Partition<IndexType, IndexType>>
         partition = share(
@@ -928,8 +954,6 @@ void Bddc<ValueType, IndexType>::generate()
 
     for (auto& bd_idx : parameters_.boundary_idxs) {
         auto gid = global_to_local.at(bd_idx);
-        bool inner = std::find(inner_idxs_.begin(), inner_idxs_.end(),
-                               bd_idx) != inner_idxs_.end();
         local_data.nonzeros.emplace_back(gid, gid, one<ValueType>());
     }
 
@@ -1008,130 +1032,70 @@ void Bddc<ValueType, IndexType>::generate()
     neg_one_op = share(initialize<vec_type>({-one<ValueType>()}, exec));
     auto zero_op = share(initialize<vec_type>({zero<ValueType>()}, exec));
 
-    // Generate edge constraints
-    matrix_data<ValueType, IndexType> C_data(
-        dim<2>{n_edges, n_inner + n_e_idxs});
-    for (size_type i = 0; i < n_edges; i++) {
-        auto edge = interface_dofs_[interfaces_[edges[i]]];
-        ValueType val = one<ValueType>() / static_cast<ValueType>(edge.size());
-        for (size_type j = 0; j < edge.size(); j++) {
-            C_data.nonzeros.emplace_back(i, global_to_local.at(edge[j]), val);
-        }
-    }
-    auto C = share(matrix_type::create(exec));
-    C->read(C_data);
-    c = C->create_submatrix(span{0, n_edges},
-                            span{n_inner, n_inner + n_e_idxs});
-    auto CT = share(as<matrix_type>(C->transpose()));
-    cT = CT->create_submatrix(span{n_inner, n_inner + n_e_idxs},
-                              span{0, n_edges});
-    auto CCT = vec_type::create(exec);
-    CCT->copy_from(CT);
-
-    // Generate edge and local Schur complement solvers
-    matrix_data<ValueType, IndexType> e_perm_data(
-        dim<2>{n_e_idxs, n_inner + n_e_idxs});
-    std::shared_ptr<perm_type> AMD;
-    if (parameters_.use_amd) {
-        AMD = share(
-            experimental::reorder::Amd<IndexType>::build().on(exec)->generate(
-                A_ee));
-        auto h_AMD_inv = clone(host, AMD)->compute_inverse();
-        for (size_type i = 0; i < n_e_idxs; i++) {
-            e_perm_data.nonzeros.emplace_back(
-                i, h_AMD_inv->get_const_permutation()[n_inner + i],
-                one<ValueType>());
-        }
-        auto A_ee_amd = share(A_ee->permute(AMD));
-        std::swap(A_ee, A_ee_amd);
-    } else {
-        for (size_type i = 0; i < n_e_idxs; i++) {
-            e_perm_data.nonzeros.emplace_back(i, n_inner + i, one<ValueType>());
-        }
-    }
-    e_perm_t = share(matrix_type::create(exec));
-    e_perm_t->read(e_perm_data);
-    e_perm = share(as<matrix_type>(e_perm_t->transpose()));
-
-    edge_solver = share(parameters_.local_solver_factory->generate(A_ee));
-
-    auto interm = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, n_edges});
-    edge_buf1 = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, 1});
-    edge_buf2 = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, 1});
-    auto local_schur_complement =
-        vec_type::create(exec, dim<2>{n_edges, n_edges});
-    for (size_type edge = 0; edge < n_edges; edge++) {
-        auto CCT_edge = CCT->create_submatrix(span{0, n_inner + n_e_idxs},
-                                              span{edge, edge + 1});
-        auto interm_edge = interm->create_submatrix(span{0, n_inner + n_e_idxs},
-                                                    span{edge, edge + 1});
-        if (parameters_.use_amd) {
-            CCT_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
-            if (edge_solver->apply_uses_initial_guess()) {
-                edge_buf2->fill(zero<ValueType>());
-            }
-            edge_solver->apply(edge_buf1, edge_buf2);
-            edge_buf2->permute(AMD, interm_edge,
-                               matrix::permute_mode::inverse_rows);
-        } else {
-            if (edge_solver->apply_uses_initial_guess()) {
-                interm_edge->fill(zero<ValueType>());
-            }
-            edge_solver->apply(CCT_edge, interm_edge);
-        }
-    }
-    if (n_edges > 0) {
-        C->apply(interm, local_schur_complement);
-        auto ls = share(matrix_type::create(exec));
-        ls->copy_from(local_schur_complement);
-        local_schur_solver =
-            share(parameters_.schur_complement_solver_factory->generate(ls));
-    }
-
-    // Generate Phi and coarse system
-    if (!parameters_.use_corners) {
-        n_corners = 0;
-    }
-    auto h_phi = vec_type::create(
-        host, dim<2>{n_inner + n_interface_idxs, n_corners + n_edges});
-    h_phi->fill(zero<ValueType>());
-    for (size_type i = 0; i < n_corners; i++) {
-        h_phi->at(n_inner + n_e_idxs + i, n_edges + i) = one<ValueType>();
-    }
-    auto phi_whole = clone(exec, h_phi);
-    auto lambda = vec_type::create(
-        exec, dim<2>{n_corners + n_edges, n_corners + n_edges});
-    lambda->fill(zero<ValueType>());
-    auto phi_e = phi_whole->create_submatrix(span{0, n_inner + n_e_idxs},
-                                             span{0, n_corners + n_edges});
-    auto phi_c = phi_whole->create_submatrix(
-        span{n_inner + n_e_idxs, n_inner + n_interface_idxs},
-        span{0, n_corners + n_edges});
-    auto lambda_e = lambda->create_submatrix(span{0, n_edges},
-                                             span{0, n_corners + n_edges});
-    auto lambda_c = lambda->create_submatrix(span{n_edges, n_corners + n_edges},
-                                             span{0, n_corners + n_edges});
-    auto rhs =
-        vec_type::create(exec, dim<2>{n_inner + n_e_idxs, n_corners + n_edges});
-    auto h_schur_rhs =
-        vec_type::create(host, dim<2>{n_edges, n_corners + n_edges});
-    h_schur_rhs->fill(zero<ValueType>());
-    for (size_type i = 0; i < n_edges; i++) {
-        h_schur_rhs->at(i, i) = one<ValueType>();
-    }
-    auto schur_rhs = clone(exec, h_schur_rhs);
-    auto schur_interm = vec_type::create(exec, rhs->get_size());
-    schur_interm->fill(zero<ValueType>());
     if (n_corners > 0) {
-        A_ec->apply(phi_c, rhs);
-        rhs->scale(neg_one_op);
-        for (size_type i = 0; i < n_corners + n_edges; i++) {
-            auto rhs_edge = rhs->create_submatrix(span{0, n_inner + n_e_idxs},
-                                                  span{i, i + 1});
-            auto interm_edge = schur_interm->create_submatrix(
-                span{0, n_inner + n_e_idxs}, span{i, i + 1});
+        // Generate edge constraints
+        matrix_data<ValueType, IndexType> C_data(
+            dim<2>{n_edges, n_inner + n_e_idxs});
+        for (size_type i = 0; i < n_edges; i++) {
+            auto edge = interface_dofs_[interfaces_[edges[i]]];
+            ValueType val =
+                one<ValueType>() / static_cast<ValueType>(edge.size());
+            for (size_type j = 0; j < edge.size(); j++) {
+                C_data.nonzeros.emplace_back(i, global_to_local.at(edge[j]),
+                                             val);
+            }
+        }
+        auto C = share(matrix_type::create(exec));
+        C->read(C_data);
+        c = C->create_submatrix(span{0, n_edges},
+                                span{n_inner, n_inner + n_e_idxs});
+        auto CT = share(as<matrix_type>(C->transpose()));
+        cT = CT->create_submatrix(span{n_inner, n_inner + n_e_idxs},
+                                  span{0, n_edges});
+        auto CCT = vec_type::create(exec);
+        CCT->copy_from(CT);
+
+        // Generate edge and local Schur complement solvers
+        matrix_data<ValueType, IndexType> e_perm_data(
+            dim<2>{n_e_idxs, n_inner + n_e_idxs});
+        std::shared_ptr<perm_type> AMD;
+        if (parameters_.use_amd) {
+            AMD = share(experimental::reorder::Amd<IndexType>::build()
+                            .on(exec)
+                            ->generate(A_ee));
+            auto h_AMD_inv = clone(host, AMD)->compute_inverse();
+            for (size_type i = 0; i < n_e_idxs; i++) {
+                e_perm_data.nonzeros.emplace_back(
+                    i, h_AMD_inv->get_const_permutation()[n_inner + i],
+                    one<ValueType>());
+            }
+            auto A_ee_amd = share(A_ee->permute(AMD));
+            std::swap(A_ee, A_ee_amd);
+        } else {
+            for (size_type i = 0; i < n_e_idxs; i++) {
+                e_perm_data.nonzeros.emplace_back(i, n_inner + i,
+                                                  one<ValueType>());
+            }
+        }
+        e_perm_t = share(matrix_type::create(exec));
+        e_perm_t->read(e_perm_data);
+        e_perm = share(as<matrix_type>(e_perm_t->transpose()));
+
+        edge_solver = share(parameters_.local_solver_factory->generate(A_ee));
+
+        auto interm =
+            vec_type::create(exec, dim<2>{n_inner + n_e_idxs, n_edges});
+        edge_buf1 = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, 1});
+        edge_buf2 = vec_type::create(exec, dim<2>{n_inner + n_e_idxs, 1});
+        auto local_schur_complement =
+            vec_type::create(exec, dim<2>{n_edges, n_edges});
+        for (size_type edge = 0; edge < n_edges; edge++) {
+            auto CCT_edge = CCT->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                  span{edge, edge + 1});
+            auto interm_edge = interm->create_submatrix(
+                span{0, n_inner + n_e_idxs}, span{edge, edge + 1});
             if (parameters_.use_amd) {
-                rhs_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
+                CCT_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
                 if (edge_solver->apply_uses_initial_guess()) {
                     edge_buf2->fill(zero<ValueType>());
                 }
@@ -1142,79 +1106,247 @@ void Bddc<ValueType, IndexType>::generate()
                 if (edge_solver->apply_uses_initial_guess()) {
                     interm_edge->fill(zero<ValueType>());
                 }
-                edge_solver->apply(rhs_edge, interm_edge);
+                edge_solver->apply(CCT_edge, interm_edge);
             }
         }
-    } else {
-        rhs->fill(zero<ValueType>());
+        if (n_edges > 0) {
+            C->apply(interm, local_schur_complement);
+            auto ls = share(matrix_type::create(exec));
+            ls->copy_from(local_schur_complement);
+            local_schur_solver = share(
+                parameters_.schur_complement_solver_factory->generate(ls));
+        }
+
+        // Generate Phi and coarse system
+        if (!parameters_.use_corners) {
+            n_corners = 0;
+        }
+        auto h_phi = vec_type::create(
+            host, dim<2>{n_inner + n_interface_idxs, n_corners + n_edges});
+        h_phi->fill(zero<ValueType>());
+        for (size_type i = 0; i < n_corners; i++) {
+            h_phi->at(n_inner + n_e_idxs + i, n_edges + i) = one<ValueType>();
+        }
+        auto phi_whole = clone(exec, h_phi);
+        auto lambda = vec_type::create(
+            exec, dim<2>{n_corners + n_edges, n_corners + n_edges});
+        lambda->fill(zero<ValueType>());
+        auto phi_e = phi_whole->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                 span{0, n_corners + n_edges});
+        auto phi_c = phi_whole->create_submatrix(
+            span{n_inner + n_e_idxs, n_inner + n_interface_idxs},
+            span{0, n_corners + n_edges});
+        auto lambda_e = lambda->create_submatrix(span{0, n_edges},
+                                                 span{0, n_corners + n_edges});
+        auto lambda_c = lambda->create_submatrix(
+            span{n_edges, n_corners + n_edges}, span{0, n_corners + n_edges});
+        auto rhs = vec_type::create(
+            exec, dim<2>{n_inner + n_e_idxs, n_corners + n_edges});
+        auto h_schur_rhs =
+            vec_type::create(host, dim<2>{n_edges, n_corners + n_edges});
+        h_schur_rhs->fill(zero<ValueType>());
+        for (size_type i = 0; i < n_edges; i++) {
+            h_schur_rhs->at(i, i) = one<ValueType>();
+        }
+        auto schur_rhs = clone(exec, h_schur_rhs);
+        auto schur_interm = vec_type::create(exec, rhs->get_size());
         schur_interm->fill(zero<ValueType>());
-    }
-    if (n_edges > 0) {
-        C->apply(one_op, schur_interm, neg_one_op, schur_rhs);
-        for (size_type i = 0; i < n_corners + n_edges; i++) {
-            auto rhs_edge =
-                schur_rhs->create_submatrix(span{0, n_edges}, span{i, i + 1});
-            auto lambda_edge =
-                lambda_e->create_submatrix(span{0, n_edges}, span{i, i + 1});
-            local_schur_solver->apply(rhs_edge, lambda_edge);
-        }
-        // local_schur_solver->apply(schur_rhs, lambda_e);
-        CT->apply(neg_one_op, lambda_e, one_op, rhs);
-    }
-    for (size_type i = 0; i < n_corners + n_edges; i++) {
-        auto rhs_edge =
-            rhs->create_submatrix(span{0, n_inner + n_e_idxs}, span{i, i + 1});
-        auto phi_edge = phi_e->create_submatrix(span{0, n_inner + n_e_idxs},
-                                                span{i, i + 1});
-        if (parameters_.use_amd) {
-            rhs_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
-            if (edge_solver->apply_uses_initial_guess()) {
-                edge_buf2->fill(zero<ValueType>());
+        if (n_corners > 0) {
+            A_ec->apply(phi_c, rhs);
+            rhs->scale(neg_one_op);
+            for (size_type i = 0; i < n_corners + n_edges; i++) {
+                auto rhs_edge = rhs->create_submatrix(
+                    span{0, n_inner + n_e_idxs}, span{i, i + 1});
+                auto interm_edge = schur_interm->create_submatrix(
+                    span{0, n_inner + n_e_idxs}, span{i, i + 1});
+                if (parameters_.use_amd) {
+                    rhs_edge->permute(AMD, edge_buf1,
+                                      matrix::permute_mode::rows);
+                    if (edge_solver->apply_uses_initial_guess()) {
+                        edge_buf2->fill(zero<ValueType>());
+                    }
+                    edge_solver->apply(edge_buf1, edge_buf2);
+                    edge_buf2->permute(AMD, interm_edge,
+                                       matrix::permute_mode::inverse_rows);
+                } else {
+                    if (edge_solver->apply_uses_initial_guess()) {
+                        interm_edge->fill(zero<ValueType>());
+                    }
+                    edge_solver->apply(rhs_edge, interm_edge);
+                }
             }
-            edge_solver->apply(edge_buf1, edge_buf2);
-            edge_buf2->permute(AMD, phi_edge,
-                               matrix::permute_mode::inverse_rows);
         } else {
-            if (edge_solver->apply_uses_initial_guess()) {
-                phi_edge->fill(zero<ValueType>());
+            rhs->fill(zero<ValueType>());
+            schur_interm->fill(zero<ValueType>());
+        }
+        if (n_edges > 0) {
+            C->apply(one_op, schur_interm, neg_one_op, schur_rhs);
+            for (size_type i = 0; i < n_corners + n_edges; i++) {
+                auto rhs_edge = schur_rhs->create_submatrix(span{0, n_edges},
+                                                            span{i, i + 1});
+                auto lambda_edge = lambda_e->create_submatrix(span{0, n_edges},
+                                                              span{i, i + 1});
+                local_schur_solver->apply(rhs_edge, lambda_edge);
             }
-            edge_solver->apply(rhs_edge, phi_edge);
+            // local_schur_solver->apply(schur_rhs, lambda_e);
+            CT->apply(neg_one_op, lambda_e, one_op, rhs);
         }
-    }
-    if (n_corners > 0) {
-        A_cc->apply(phi_c, lambda_c);
-        A_ce->apply(neg_one_op, phi_e, neg_one_op, lambda_c);
-    }
-    phi = clone(
-        phi_whole->create_submatrix(span{n_inner, n_inner + n_interface_idxs},
-                                    span{0, n_corners + n_edges}));
-    phi_t = as<vec_type>(phi->transpose());
-    auto h_lambda = clone(host, lambda);
-    matrix_data<ValueType, IndexType> coarse_data(
-        dim<2>{n_interfaces, n_interfaces});
-    for (size_type i = 0; i < n_edges; i++) {
-        for (size_type j = 0; j < n_edges; j++) {
-            coarse_data.nonzeros.emplace_back(edges[i], edges[j],
-                                              -h_lambda->at(i, j));
+        for (size_type i = 0; i < n_corners + n_edges; i++) {
+            auto rhs_edge = rhs->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                  span{i, i + 1});
+            auto phi_edge = phi_e->create_submatrix(span{0, n_inner + n_e_idxs},
+                                                    span{i, i + 1});
+            if (parameters_.use_amd) {
+                rhs_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
+                if (edge_solver->apply_uses_initial_guess()) {
+                    edge_buf2->fill(zero<ValueType>());
+                }
+                edge_solver->apply(edge_buf1, edge_buf2);
+                edge_buf2->permute(AMD, phi_edge,
+                                   matrix::permute_mode::inverse_rows);
+            } else {
+                if (edge_solver->apply_uses_initial_guess()) {
+                    phi_edge->fill(zero<ValueType>());
+                }
+                edge_solver->apply(rhs_edge, phi_edge);
+            }
         }
-        for (size_type j = 0; j < n_corners; j++) {
-            coarse_data.nonzeros.emplace_back(edges[i], corners[j],
-                                              -h_lambda->at(i, n_edges + j));
-            coarse_data.nonzeros.emplace_back(corners[j], edges[i],
-                                              -h_lambda->at(i, n_edges + j));
+        if (n_corners > 0) {
+            A_cc->apply(phi_c, lambda_c);
+            A_ce->apply(neg_one_op, phi_e, neg_one_op, lambda_c);
         }
-    }
-    for (size_type i = 0; i < n_corners; i++) {
-        for (size_type j = 0; j < n_corners; j++) {
-            coarse_data.nonzeros.emplace_back(
-                corners[i], corners[j],
-                -h_lambda->at(n_edges + i, n_edges + j));
+        phi = clone(phi_whole->create_submatrix(
+            span{n_inner, n_inner + n_interface_idxs},
+            span{0, n_corners + n_edges}));
+        phi_t = as<vec_type>(phi->transpose());
+        auto h_lambda = clone(host, lambda);
+        matrix_data<ValueType, IndexType> coarse_data(
+            dim<2>{n_interfaces, n_interfaces});
+        for (size_type i = 0; i < n_edges; i++) {
+            for (size_type j = 0; j < n_edges; j++) {
+                coarse_data.nonzeros.emplace_back(edges[i], edges[j],
+                                                  -h_lambda->at(i, j));
+            }
+            for (size_type j = 0; j < n_corners; j++) {
+                coarse_data.nonzeros.emplace_back(
+                    edges[i], corners[j], -h_lambda->at(i, n_edges + j));
+                coarse_data.nonzeros.emplace_back(
+                    corners[j], edges[i], -h_lambda->at(i, n_edges + j));
+            }
         }
+        for (size_type i = 0; i < n_corners; i++) {
+            for (size_type j = 0; j < n_corners; j++) {
+                coarse_data.nonzeros.emplace_back(
+                    corners[i], corners[j],
+                    -h_lambda->at(n_edges + i, n_edges + j));
+            }
+        }
+        global_coarse_matrix_ = global_matrix_type::create(exec, comm);
+        global_coarse_matrix_->read_distributed(
+            coarse_data, part,
+            gko::experimental::distributed::assembly::communicate);
+    } else {
+        auto n_rows = local->get_size()[0];
+        local_data.size = dim<2>{n_rows + n_edges, n_rows + n_edges};
+        for (size_type i = 0; i < n_edges; i++) {
+            std::cout << n_rows + i << std::endl;
+            auto edge = interface_dofs_[interfaces_[edges[i]]];
+            ValueType val =
+                one<ValueType>() / static_cast<ValueType>(edge.size());
+            for (size_type j = 0; j < edge.size(); j++) {
+                local_data.nonzeros.emplace_back(
+                    n_rows + i, global_to_local.at(edge[j]), val);
+                local_data.nonzeros.emplace_back(global_to_local.at(edge[j]),
+                                                 n_rows + i, val);
+            }
+        }
+        auto constrained_mat = share(matrix_type::create(exec));
+        local_data.sort_row_major();
+        constrained_mat->read(local_data);
+        mc64 = gko::experimental::reorder::Mc64<ValueType, IndexType>::build()
+                   .on(exec)
+                   ->generate(constrained_mat);
+        auto row_op = as<scale_perm>(mc64->get_operators()[0]);
+        auto col_op = as<scale_perm>(mc64->get_operators()[1]);
+        auto perm_constrained_mat =
+            share(constrained_mat->scale_permute(row_op, col_op));
+        std::swap(constrained_mat, perm_constrained_mat);
+        auto phi_whole =
+            vec_type::create(exec, dim<2>{n_rows + n_edges, n_edges});
+        phi_whole->fill(zero<ValueType>());
+        auto h_constrained_rhs = vec_type::create(
+            exec->get_master(), dim<2>{n_rows + n_edges, n_edges});
+        h_constrained_rhs->fill(zero<ValueType>());
+        for (size_type i = 0; i < n_edges; i++) {
+            h_constrained_rhs->at(n_rows + i, i) = one<ValueType>();
+        }
+        auto constrained_rhs = clone(exec, h_constrained_rhs);
+        constrained_solver =
+            gko::experimental::solver::Direct<ValueType, IndexType>::build()
+                .with_factorization(
+                    gko::experimental::factorization::Lu<ValueType,
+                                                         IndexType>::build()
+                        .on(exec))
+                .on(exec)
+                ->generate(constrained_mat);
+        constrained_buf1 = vec_type::create(exec, dim<2>{n_rows + n_edges, 1});
+        constrained_buf2 = vec_type::create(exec, dim<2>{n_rows + n_edges, 1});
+
+        for (size_type i = 0; i < n_edges; i++) {
+            auto e_rhs = constrained_rhs->create_submatrix(
+                span{0, n_rows + n_edges}, span{i, i + 1});
+            auto e_sol = phi_whole->create_submatrix(span{0, n_rows + n_edges},
+                                                     span{i, i + 1});
+            /* constrained_solver->apply(e_rhs, e_sol); */
+            e_rhs->scale_permute(row_op, constrained_buf1,
+                                 matrix::permute_mode::rows);
+            constrained_solver->apply(constrained_buf1, constrained_buf2);
+            constrained_buf2->scale_permute(col_op, e_sol,
+                                            matrix::permute_mode::rows);
+        }
+        phi = clone(phi_whole->create_submatrix(span{n_inner, n_rows},
+                                                span{0, n_edges}));
+        phi_t = as<vec_type>(phi->transpose());
+        auto lambda =
+            clone(host, phi_whole->create_submatrix(
+                            span{n_rows, n_rows + n_edges}, span{0, n_edges}));
+        matrix_data<ValueType, IndexType> coarse_data(
+            dim<2>{n_interfaces, n_interfaces});
+        for (size_type i = 0; i < n_edges; i++) {
+            for (size_type j = 0; j < n_edges; j++) {
+                coarse_data.nonzeros.emplace_back(edges[i], edges[j],
+                                                  -lambda->at(i, j));
+            }
+        }
+        global_coarse_matrix_ = global_matrix_type::create(exec, comm);
+        global_coarse_matrix_->read_distributed(
+            coarse_data, part,
+            gko::experimental::distributed::assembly::communicate);
+        matrix_data<ValueType, IndexType> e_perm_data(
+            dim<2>{n_rows + n_edges, n_e_idxs});
+        matrix_data<ValueType, IndexType> e_perm_t_data(
+            dim<2>{n_e_idxs, n_rows + n_edges});
+        auto h_mc64 = clone(exec, mc64);
+        auto h_row_op = as<scale_perm>(h_mc64->get_operators()[0]);
+        auto h_col_op = as<scale_perm>(h_mc64->get_operators()[1]);
+        auto h_row_inv = h_row_op->compute_inverse();
+        auto h_col_inv = h_col_op->compute_inverse();
+        for (size_type i = 0; i < n_e_idxs; i++) {
+            e_perm_data.nonzeros.emplace_back(n_inner + i, i, one<ValueType>());
+            e_perm_t_data.nonzeros.emplace_back(i, n_inner + i,
+                                                one<ValueType>());
+            /* e_perm_data.nonzeros.emplace_back(h_row_op->get_const_permutation()[n_inner
+             * + i], i, h_row_op->get_const_scaling_factors()[n_inner + i]); */
+            /* e_perm_t_data.nonzeros.emplace_back(i,
+             * h_col_inv->get_const_permutation()[n_inner + i],
+             * h_col_inv->get_const_scaling_factors()[n_inner + i]); */
+        }
+        e_perm_t = share(matrix_type::create(exec));
+        e_perm_t->read(e_perm_t_data);
+        e_perm = share(matrix_type::create(exec));
+        e_perm->read(e_perm_data);
+        fallback = true;
     }
-    global_coarse_matrix_ = global_matrix_type::create(exec, comm);
-    global_coarse_matrix_->read_distributed(
-        coarse_data, part,
-        gko::experimental::distributed::assembly::communicate);
     coarse_solver =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
 
