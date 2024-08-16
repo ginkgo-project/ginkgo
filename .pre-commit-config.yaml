@@ -36,7 +36,8 @@ repos:
           third_party/SuiteSparse/AMD/.*|
           third_party/identify_stream_usage/.*|
           include/ginkgo/ginkgo.hpp|
-          core/base/workspace_aliases.hpp
+          core/base/workspace_aliases.hpp|
+          examples/batched-matrix-free/.*
         )$
   - id: update-ginkgo-header
     name: update ginkgo header
