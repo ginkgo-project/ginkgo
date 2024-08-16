@@ -123,6 +123,7 @@ find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
 # At the moment, for hiprand to work also rocrand is required.
 find_package(rocrand REQUIRED)
+find_package(rocthrust REQUIRED)
 find_package(ROCTX)
 
 if(GINKGO_HIP_AMD_UNSAFE_ATOMIC AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 5)
