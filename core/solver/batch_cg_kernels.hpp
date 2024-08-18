@@ -15,6 +15,10 @@
 #include "core/base/kernel_declaration.hpp"
 
 
+// TODO: update when splitting compilation
+constexpr bool cg_no_shared_vecs = true;
+
+
 namespace gko {
 namespace kernels {
 namespace batch_cg {
@@ -126,7 +130,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
     // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}
     storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
     // If available shared mem is zero, set all vecs to global.
-    if (rem_shared <= 0) {
+    if (rem_shared <= 0 || cg_no_shared_vecs) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_bytes, prec_storage);
         return sconf;
     }

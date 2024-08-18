@@ -149,68 +149,70 @@ public:
 
         value_type* const workspace_data = workspace.get_data();
 
+        // Only instantiate when full optimizations has been enabled. Otherwise,
+        // just use the default one with no shared memory.
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared)
-        if (sconf.prec_shared) {
-            launch_apply_kernel<StopType, 9, true>(
-                sconf, logger, prec, mat, b.values, x.values, workspace_data,
-                block_size, shared_size);
-        } else {
-            switch (sconf.n_shared) {
-            case 0:
-                launch_apply_kernel<StopType, 0, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 1:
-                launch_apply_kernel<StopType, 1, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 2:
-                launch_apply_kernel<StopType, 2, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 3:
-                launch_apply_kernel<StopType, 3, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 4:
-                launch_apply_kernel<StopType, 4, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 5:
-                launch_apply_kernel<StopType, 5, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 6:
-                launch_apply_kernel<StopType, 6, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 7:
-                launch_apply_kernel<StopType, 7, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 8:
-                launch_apply_kernel<StopType, 8, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            case 9:
-                launch_apply_kernel<StopType, 9, false>(
-                    sconf, logger, prec, mat, b.values, x.values,
-                    workspace_data, block_size, shared_size);
-                break;
-            default:
-                GKO_NOT_IMPLEMENTED;
-            }
-        }
+        // if (sconf.prec_shared) {
+        //     launch_apply_kernel<StopType, 9, true>(
+        //         sconf, logger, prec, mat, b.values, x.values, workspace_data,
+        //         block_size, shared_size);
+        // } else {
+        //     switch (sconf.n_shared) {
+        //     case 0:
+        launch_apply_kernel<StopType, 0, false>(
+            sconf, logger, prec, mat, b.values, x.values, workspace_data,
+            block_size, shared_size);
+        //         break;
+        //     case 1:
+        //         launch_apply_kernel<StopType, 1, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 2:
+        //         launch_apply_kernel<StopType, 2, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 3:
+        //         launch_apply_kernel<StopType, 3, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 4:
+        //         launch_apply_kernel<StopType, 4, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 5:
+        //         launch_apply_kernel<StopType, 5, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 6:
+        //         launch_apply_kernel<StopType, 6, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 7:
+        //         launch_apply_kernel<StopType, 7, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 8:
+        //         launch_apply_kernel<StopType, 8, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     case 9:
+        //         launch_apply_kernel<StopType, 9, false>(
+        //             sconf, logger, prec, mat, b.values, x.values,
+        //             workspace_data, block_size, shared_size);
+        //         break;
+        //     default:
+        //         GKO_NOT_IMPLEMENTED;
+        //     }
+        // }
     }
 
 private:
