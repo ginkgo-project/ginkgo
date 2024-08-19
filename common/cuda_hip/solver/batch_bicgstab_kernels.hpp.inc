@@ -32,10 +32,14 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_norm2(subgroup, num_rows, r_shared_entry, res_norm);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_norm2(subgroup, num_rows, r_shared_entry,
+                                     res_norm);
     } else if (threadIdx.x / config::warp_size == 1) {
         // Compute norms of rhs
-        single_rhs_compute_norm2(subgroup, num_rows, b_global_entry, rhs_norm);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_norm2(subgroup, num_rows, b_global_entry,
+                                     rhs_norm);
     }
     __syncthreads();
 
@@ -70,8 +74,9 @@ __device__ __forceinline__ void compute_alpha(
     const ValueType* const v_shared_entry, ValueType& alpha)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_shared_entry,
-                                    v_shared_entry, alpha);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_shared_entry,
+                                        v_shared_entry, alpha);
     }
     __syncthreads();
     if (threadIdx.x == 0) {
@@ -99,11 +104,13 @@ __device__ __forceinline__ void compute_omega(
     const ValueType* const s_shared_entry, ValueType& temp, ValueType& omega)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
-                                    s_shared_entry, omega);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
+                                        s_shared_entry, omega);
     } else if (threadIdx.x / config::warp_size == 1) {
-        single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
-                                    t_shared_entry, temp);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot(subgroup, num_rows, t_shared_entry,
+                                        t_shared_entry, temp);
     }
 
     __syncthreads();
@@ -271,8 +278,9 @@ __global__ void apply_kernel(
 
             // rho_new =  < r_hat , r > = (r_hat)' * (r)
             if (threadIdx.x / config::warp_size == 0) {
-                single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_sh, r_sh,
-                                            rho_new_sh[0]);
+                gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                    single_rhs_compute_conj_dot(subgroup, num_rows, r_hat_sh,
+                                                r_sh, rho_new_sh[0]);
             }
             __syncthreads();
 
@@ -301,8 +309,9 @@ __global__ void apply_kernel(
 
             // an estimate of residual norms
             if (threadIdx.x / config::warp_size == 0) {
-                single_rhs_compute_norm2(subgroup, num_rows, s_sh,
-                                         norms_res_sh[0]);
+                gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                    single_rhs_compute_norm2(subgroup, num_rows, s_sh,
+                                             norms_res_sh[0]);
             }
             __syncthreads();
 
@@ -333,8 +342,9 @@ __global__ void apply_kernel(
             __syncthreads();
 
             if (threadIdx.x / config::warp_size == 0) {
-                single_rhs_compute_norm2(subgroup, num_rows, r_sh,
-                                         norms_res_sh[0]);
+                gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                    single_rhs_compute_norm2(subgroup, num_rows, r_sh,
+                                             norms_res_sh[0]);
             }
             //__syncthreads();
 
@@ -347,7 +357,8 @@ __global__ void apply_kernel(
         logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
         // copy x back to global memory
-        single_rhs_copy(num_rows, x_sh, x_gl_entry_ptr);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_copy(num_rows, x_sh, x_gl_entry_ptr);
         __syncthreads();
     }
 }
