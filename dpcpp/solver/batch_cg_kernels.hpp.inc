@@ -40,11 +40,13 @@ __dpct_inline__ void initialize(
     // Compute norms of rhs
     // and rho_old = r' * z
     if (sg_id == 0) {
-        single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norms,
-                                    item_ct1);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norms,
+                                        item_ct1);
     } else if (sg_id == 1) {
-        single_rhs_compute_conj_dot_sg(num_rows, r_shared_entry, z_shared_entry,
-                                       rho_old, item_ct1);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot_sg(num_rows, r_shared_entry,
+                                           z_shared_entry, rho_old, item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -80,9 +82,10 @@ __dpct_inline__ void update_x_and_r(
     auto sg = item_ct1.get_sub_group();
     const auto tid = item_ct1.get_local_linear_id();
     if (sg.get_group_id() == 0) {
-        single_rhs_compute_conj_dot_sg(num_rows, p_shared_entry,
-                                       Ap_shared_entry, alpha_shared_entry,
-                                       item_ct1);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot_sg(num_rows, p_shared_entry,
+                                           Ap_shared_entry, alpha_shared_entry,
+                                           item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
     if (tid == 0) {
@@ -221,8 +224,9 @@ __dpct_inline__ void apply_kernel(
 
         //  rho_new =  (r)' * (z)
         if (sg_id == 0) {
-            single_rhs_compute_conj_dot_sg(num_rows, r_sh, z_sh, rho_new_sh[0],
-                                           item_ct1);
+            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                single_rhs_compute_conj_dot_sg(num_rows, r_sh, z_sh,
+                                               rho_new_sh[0], item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -239,6 +243,7 @@ __dpct_inline__ void apply_kernel(
     logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
     // copy x back to global memory
-    copy_kernel(num_rows, x_sh, x_global_entry, item_ct1);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
+        num_rows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }

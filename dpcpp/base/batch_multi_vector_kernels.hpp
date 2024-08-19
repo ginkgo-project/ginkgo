@@ -2,6 +2,29 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType, typename Mapping>
 __dpct_inline__ void scale_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
@@ -229,3 +252,9 @@ __dpct_inline__ void copy_kernel(
         out.values[i * out.stride + j] = in.values[i * in.stride + j];
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
