@@ -35,7 +35,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
         const auto alpha_b = batch::extract_batch_item(alpha_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::scale_kernel(alpha_b, x_b);
+        batch_single_kernels::scale_kernel(alpha_b, x_b);
     }
 }
 
@@ -56,8 +56,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
         const auto alpha_b = batch::extract_batch_item(alpha_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::add_scaled_kernel(alpha_b,
-                                                                      x_b, y_b);
+        batch_single_kernels::add_scaled_kernel(alpha_b, x_b, y_b);
     }
 }
 
@@ -78,8 +77,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::compute_dot_product_kernel(
-            x_b, y_b, res_b);
+        batch_single_kernels::compute_dot_product_kernel(x_b, y_b, res_b);
     }
 }
 
@@ -100,8 +98,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            compute_conj_dot_product_kernel(x_b, y_b, res_b);
+        batch_single_kernels::compute_conj_dot_product_kernel(x_b, y_b, res_b);
     }
 }
 
@@ -119,8 +116,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < result->get_num_batch_items(); ++batch) {
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::compute_norm2_kernel(x_b,
-                                                                         res_b);
+        batch_single_kernels::compute_norm2_kernel(x_b, res_b);
     }
 }
 
@@ -138,7 +134,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
         const auto result_b = batch::extract_batch_item(result_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(x_b, result_b);
+        batch_single_kernels::copy_kernel(x_b, result_b);
     }
 }
 
