@@ -651,22 +651,42 @@ public:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
+    GKO_DEPRECATED(
+        "Please use the overload with std::string as first parameter.")
     void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
              const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
-            op_omp, op_cuda, op_hip, op_dpcpp);
+        LambdaOperation<ClosureOmp, ClosureOmp, ClosureCuda, ClosureHip,
+                        ClosureDpcpp>
+            op(op_omp, op_cuda, op_hip, op_dpcpp);
         this->run(op);
     }
 
-    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
-    void run(std::string name, const ClosureOmp& op_omp,
-             const ClosureCuda& op_cuda, const ClosureHip& op_hip,
-             const ClosureDpcpp& op_dpcpp) const
+    /**
+     * Runs one of the passed in functors, depending on the Executor type.
+     *
+     * @tparam ClosureReference  type of op_ref
+     * @tparam ClosureOmp  type of op_omp
+     * @tparam ClosureCuda  type of op_cuda
+     * @tparam ClosureHip  type of op_hip
+     * @tparam ClosureDpcpp  type of op_dpcpp
+     *
+     *  @param name  the name of the operation
+     * @param op_ref  functor to run in case of a ReferenceExecutor
+     * @param op_omp  functor to run in case of a OmpExecutor
+     * @param op_cuda  functor to run in case of a CudaExecutor
+     * @param op_hip  functor to run in case of a HipExecutor
+     * @param op_dpcpp  functor to run in case of a DpcppExecutor
+     */
+    template <typename ClosureReference, typename ClosureOmp,
+              typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp>
+    void run(std::string name, const ClosureReference& op_ref,
+             const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
-            std::move(name), op_omp, op_cuda, op_hip, op_dpcpp);
+        LambdaOperation<ClosureReference, ClosureOmp, ClosureCuda, ClosureHip,
+                        ClosureDpcpp>
+            op(std::move(name), op_ref, op_omp, op_cuda, op_hip, op_dpcpp);
         this->run(op);
     }
 
@@ -1116,14 +1136,15 @@ private:
      * @tparam ClosureHip  the type of the third functor
      * @tparam ClosureDpcpp  the type of the fourth functor
      */
-    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
+    template <typename ClosureReference, typename ClosureOmp,
+              typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp>
     class LambdaOperation : public Operation {
     public:
-        LambdaOperation(std::string name, const ClosureOmp& op_omp,
-                        const ClosureCuda& op_cuda, const ClosureHip& op_hip,
-                        const ClosureDpcpp& op_dpcpp)
+        LambdaOperation(std::string name, const ClosureReference& op_ref,
+                        const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+                        const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
             : name_(std::move(name)),
+              op_ref_(op_ref),
               op_omp_(op_omp),
               op_cuda_(op_cuda),
               op_hip_(op_hip),
@@ -1142,7 +1163,8 @@ private:
          */
         LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
                         const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
-            : LambdaOperation("unnamed", op_omp, op_cuda, op_hip, op_dpcpp)
+            : LambdaOperation("unnamed", op_omp, op_omp, op_cuda, op_hip,
+                              op_dpcpp)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1152,7 +1174,7 @@ private:
 
         void run(std::shared_ptr<const ReferenceExecutor>) const override
         {
-            op_omp_();
+            op_ref_();
         }
 
         void run(std::shared_ptr<const CudaExecutor>) const override
@@ -1174,6 +1196,7 @@ private:
 
     private:
         std::string name_;
+        ClosureReference op_ref_;
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
