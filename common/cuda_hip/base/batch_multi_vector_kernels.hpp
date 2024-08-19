@@ -34,7 +34,6 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
-namespace batch_multi_vector {
 namespace batch_single_kernels {
 
 
@@ -320,7 +319,6 @@ __global__ __launch_bounds__(default_block_size) void copy_kernel(
 
 
 }  // namespace batch_single_kernels
-}  // namespace batch_multi_vector
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

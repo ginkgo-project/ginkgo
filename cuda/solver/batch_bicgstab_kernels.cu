@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
@@ -43,7 +44,6 @@ constexpr int sm_oversubscription = 4;
 namespace batch_bicgstab {
 
 
-#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
