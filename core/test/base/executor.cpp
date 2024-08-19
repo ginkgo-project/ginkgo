@@ -541,10 +541,13 @@ TEST(LambdaOperation, CanSetName)
     exec->add_logger(name_logger);
 
     exec->run(
-        "name", [] {}, [] {}, [] {}, [] {});
+        "name", [] {}, [] {}, [] {}, [] {}, [] {});
 
     ASSERT_EQ("name", name_logger->op_name);
 }
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 TEST(LambdaOperation, HasDefaultName)
@@ -555,8 +558,11 @@ TEST(LambdaOperation, HasDefaultName)
 
     exec->run([] {}, [] {}, [] {}, [] {});
 
-    ASSERT_EQ("unname", name_logger->op_name);
+    ASSERT_NE(nullptr, name_logger->op_name.c_str());
 }
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace

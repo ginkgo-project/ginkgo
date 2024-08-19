@@ -90,7 +90,26 @@ TEST_F(Executor, RunsCorrectHostOperation)
 }
 
 
+TEST_F(Executor, RunsCorrectLambdaOperationWithReferenceExecutor)
+{
+    int value = 0;
+    auto ref_lambda = [&value]() { value = reference::value; };
+    auto omp_lambda = [&value]() { value = omp::value; };
+    auto cuda_lambda = [&value]() { value = cuda::value; };
+    auto hip_lambda = [&value]() { value = hip::value; };
+    auto dpcpp_lambda = [&value]() { value = dpcpp::value; };
+
+    exec->run("test", ref_lambda, omp_lambda, cuda_lambda, hip_lambda,
+              dpcpp_lambda);
+
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
+}
+
+
 #ifndef GKO_COMPILING_REFERENCE
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 TEST_F(Executor, RunsCorrectLambdaOperation)
@@ -105,6 +124,9 @@ TEST_F(Executor, RunsCorrectLambdaOperation)
 
     ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 #endif  // GKO_COMPILING_REFERENCE
