@@ -2,6 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+#include "reference/base/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType>
 inline void scale_kernel(
     const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
@@ -129,3 +143,9 @@ inline void copy_kernel(
         out.values[i * out.stride + j] = in.values[i * in.stride + j];
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
