@@ -486,7 +486,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
 
     auto r = r_list.at(level);
     auto g = g_list.at(level);
-    auto e = as<VectorType>(e_list.at(level));
+    auto e = e_list.at(level);
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -537,7 +537,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // next level
     if (level + 1 == total_level) {
         // the coarsest solver use the last level valuetype
-        e->fill(zero<value_type>());
+        as<VectorType>(e)->fill(zero<value_type>());
     }
     auto next_level_matrix =
         (level + 1 < total_level)
