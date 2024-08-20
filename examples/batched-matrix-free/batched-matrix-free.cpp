@@ -118,9 +118,11 @@ int main(int argc, char* argv[])
     auto A = gko::share(
         ext_type::create(exec, batch_mat_size,
                          {.cpu_apply = simple_apply_generic<value_type>,
-                          .hip_apply = get_hip_simple_apply_ptr()},
+                          .cuda_apply = get_gpu_simple_apply_ptr(),
+                          .hip_apply = get_gpu_simple_apply_ptr()},
                          {.cpu_apply = advanced_apply_generic<value_type>,
-                          .hip_apply = get_hip_advanced_apply_ptr()},
+                          .cuda_apply = get_gpu_advanced_apply_ptr(),
+                          .hip_apply = get_gpu_advanced_apply_ptr()},
                          payload.get_data()));
 
     auto A_mtx = gko::share(mtx_type::create(exec, batch_mat_size, nnz));
@@ -202,7 +204,8 @@ int main(int argc, char* argv[])
     auto host_log_iters = gko::make_temporary_clone(
         exec->get_master(), &logger->get_num_iterations());
 
-    std::cout << "Solver type: " << "batch::bicgstab"
+    std::cout << "Solver type: "
+              << "batch::bicgstab"
               << "\nMatrix size: " << A->get_common_size()
               << "\nNum batch entries: " << A->get_num_batch_items()
               << std::endl;

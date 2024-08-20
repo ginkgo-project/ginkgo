@@ -20,6 +20,6 @@ void simple_apply_generic(gko::size_type id, gko::dim<2> size, const void* b,
                           void* x, void* payload);
 
 
-gko::batch::matrix::external_apply::advanced_type get_hip_advanced_apply_ptr();
+gko::batch::matrix::external_apply::advanced_type get_gpu_advanced_apply_ptr();
 
-gko::batch::matrix::external_apply::simple_type get_hip_simple_apply_ptr();
+gko::batch::matrix::external_apply::simple_type get_gpu_simple_apply_ptr();

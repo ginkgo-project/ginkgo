@@ -78,6 +78,7 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     int max_threads = std::min(max_threads_regs, device_max_threads);
     max_threads = max_threads <= 1024 ? max_threads : 1024;
     return std::max(std::min(num_warps * warp_sz, max_threads), min_block_size);
+    //    return 64;
 }
 
 
@@ -85,19 +86,22 @@ template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
 {
-    int shmem_per_sm = 0;
-    cudaDeviceGetAttribute(&shmem_per_sm,
-                           cudaDevAttrMaxSharedMemoryPerMultiprocessor,
-                           exec->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        apply_kernel<StopType, 5, true, PrecType, LogType, BatchMatrixType,
-                     ValueType>,
-        cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
-    cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 5, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
-    return funcattr.maxDynamicSharedSizeBytes;
+    //    int shmem_per_sm = 0;
+    //    cudaDeviceGetAttribute(&shmem_per_sm,
+    //                           cudaDevAttrMaxSharedMemoryPerMultiprocessor,
+    //                           exec->get_device_id());
+    //    GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
+    //        apply_kernel<StopType, 5, true, PrecType, LogType,
+    //        BatchMatrixType,
+    //                     ValueType>,
+    //        cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
+    //    cudaFuncAttributes funcattr;
+    //    cudaFuncGetAttributes(&funcattr,
+    //                          apply_kernel<StopType, 5, true, PrecType,
+    //                          LogType,
+    //                                       BatchMatrixType, ValueType>);
+    //    return funcattr.maxDynamicSharedSizeBytes;
+    return 0;
 }
 
 
@@ -219,6 +223,9 @@ public:
         //         GKO_NOT_IMPLEMENTED;
         //     }
         // }
+
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaPeekAtLastError());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
     }
 
 private:
