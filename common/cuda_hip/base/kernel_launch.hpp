@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,8 +49,8 @@ constexpr int default_block_size = 512;
 
 
 template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
-    int64 size, KernelFunction fn, KernelArgs... args)
+__global__ void generic_kernel_1d(int64 size, KernelFunction fn,
+                                  KernelArgs... args)
 {
     auto tidx = thread::get_thread_id_flat<int64>();
     if (tidx >= size) {
@@ -61,8 +61,8 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
 
 
 template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
-    int64 rows, int64 cols, KernelFunction fn, KernelArgs... args)
+__global__ void generic_kernel_2d(int64 rows, int64 cols, KernelFunction fn,
+                                  KernelArgs... args)
 {
     auto tidx = thread::get_thread_id_flat<int64>();
     auto col = tidx % cols;

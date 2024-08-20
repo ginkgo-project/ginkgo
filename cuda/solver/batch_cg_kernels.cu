@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -112,6 +112,9 @@ public:
                 GKO_NOT_IMPLEMENTED;
             }
         }
+
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaPeekAtLastError());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
     }
 
 private:

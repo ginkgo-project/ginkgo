@@ -38,6 +38,57 @@ using advanced_type = void (*)(gko::size_type id, dim<2> size,
 
 }  // namespace external_apply
 
+// struct ExternalOperation {
+//     __device__ virtual void simple_apply_cpu(gko::size_type id, dim<2> size,
+//                                              const void* b, void* x,
+//                                              void* payload)
+//     {}
+//
+//     __device__ virtual void simple_apply_cuda(gko::size_type id, dim<2> size,
+//                                               const void* b, void* x,
+//                                               void* payload)
+//     {}
+//
+//     __device__ virtual void simple_apply_hip(gko::size_type id, dim<2> size,
+//                                              const void* b, void* x,
+//                                              void* payload)
+//     {}
+//
+//     __device__ virtual void simple_apply_sycl(gko::size_type id, dim<2> size,
+//                                               const void* b, void* x,
+//                                               void* payload)
+//     {}
+//
+//     __device__ virtual void advanced_apply_cpu(gko::size_type id, dim<2>
+//     size,
+//                                                const void* alpha, const void*
+//                                                b, const void* beta, void* x,
+//                                                void* payload)
+//     {}
+//
+//     __device__ virtual void advanced_apply_cuda(gko::size_type id, dim<2>
+//     size,
+//                                                 const void* alpha,
+//                                                 const void* b, const void*
+//                                                 beta, void* x, void* payload)
+//     {}
+//
+//     __device__ virtual void advanced_apply_hip(gko::size_type id, dim<2>
+//     size,
+//                                                const void* alpha, const void*
+//                                                b, const void* beta, void* x,
+//                                                void* payload)
+//     {}
+//
+//     __device__ virtual void advanced_apply_sycl(gko::size_type id, dim<2>
+//     size,
+//                                                 const void* alpha,
+//                                                 const void* b, const void*
+//                                                 beta, void* x, void* payload)
+//     {}
+// };
+
+
 /**
  * Matrix format that uses externally provided function pointer for the
  * individual batch application.

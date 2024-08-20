@@ -165,6 +165,7 @@ struct uniform_batch {
 
 }  // namespace ell
 
+
 namespace external {
 
 

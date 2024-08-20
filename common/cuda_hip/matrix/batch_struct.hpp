@@ -139,6 +139,8 @@ template <typename ValueType>
 inline batch::matrix::external::uniform_batch<const cuda_type<ValueType>>
 get_batch_struct(const batch::matrix::External<ValueType>* const op)
 {
+    printf("s=%p\n", op->get_simple_apply_functions().cuda_apply);
+    printf("a=%p\n", op->get_advanced_apply_functions().cuda_apply);
     assert(op->get_simple_apply_functions().cuda_apply);
     assert(op->get_advanced_apply_functions().cuda_apply);
     return {op->get_num_batch_items(),
