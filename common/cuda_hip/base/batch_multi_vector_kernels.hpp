@@ -35,9 +35,13 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 namespace batch_single_kernels {
+namespace {
 
 
 constexpr auto default_block_size = 256;
+
+
+}
 
 
 template <typename ValueType, typename Mapping>

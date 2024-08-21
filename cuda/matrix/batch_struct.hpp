@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
+#include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
@@ -17,6 +18,13 @@
 namespace gko {
 namespace kernels {
 namespace cuda {
+namespace {
+
+
+constexpr auto default_block_size = 256;
+
+
+}
 
 
 /** @file batch_struct.hpp

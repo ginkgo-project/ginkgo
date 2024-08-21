@@ -22,8 +22,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    advanced_apply(static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
-                   static_cast<ValueType>(1.0), r_shared_entry);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+        static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
+        static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     // z = precond * r
@@ -189,7 +190,8 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
             }
 
             // Ap = A * p
-            simple_apply(mat_entry, p_sh, Ap_sh);
+            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                simple_apply(mat_entry, p_sh, Ap_sh);
             __syncthreads();
 
             // alpha = rho_old / (p' * Ap)

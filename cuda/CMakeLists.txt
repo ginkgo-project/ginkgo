@@ -16,9 +16,6 @@ target_sources(ginkgo_cuda
     base/stream.cpp
     base/timer.cpp
     base/version.cpp
-    matrix/batch_csr_kernels.cu
-    matrix/batch_dense_kernels.cu
-    matrix/batch_ell_kernels.cu
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu

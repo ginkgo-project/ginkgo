@@ -18,6 +18,9 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
@@ -30,11 +33,6 @@ namespace kernels {
 namespace cuda {
 
 
-// NOTE: this default block size is not used for the main solver kernel.
-constexpr int default_block_size = 256;
-constexpr int sm_oversubscription = 4;
-
-
 /**
  * @brief The batch Cg solver namespace.
  *
@@ -43,9 +41,6 @@ constexpr int sm_oversubscription = 4;
 namespace batch_cg {
 
 
-#include "common/cuda_hip/matrix/batch_csr_kernels.hpp.inc"
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp.inc"
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp.inc"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp.inc"
 
 
