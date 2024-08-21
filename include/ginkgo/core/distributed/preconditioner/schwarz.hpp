@@ -78,6 +78,11 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    std::shared_ptr<const LinOp> get_local_solver() const
+    {
+        return local_solver_;
+    }
+
 protected:
     /**
      * Creates an empty Schwarz preconditioner.
