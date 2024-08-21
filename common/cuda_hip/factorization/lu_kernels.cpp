@@ -79,8 +79,14 @@ __global__ __launch_bounds__(default_block_size) void initialize(
         const auto val = mtx_vals[nz];
         factor_vals[lookup.lookup_unsafe(col) + factor_begin] = val;
     }
-    if (lane == 0) {
-        diag_idxs[row] = lookup.lookup_unsafe(row) + factor_begin;
+    // if (lane == 0) {
+    //     diag_idxs[row] = lookup.lookup_unsafe(row) + factor_begin;
+    // }
+    for (auto nz = factor_begin + lane; nz < factor_end;
+         nz += config::warp_size) {
+        if (factor_cols[nz] == row) {
+            diag_idxs[row] = nz;
+        }
     }
 }
 
@@ -130,8 +136,13 @@ __global__ __launch_bounds__(default_block_size) void factorize(
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
             const auto upper_val = vals[upper_nz];
-            const auto output_pos = lookup.lookup_unsafe(upper_col) + row_begin;
-            vals[output_pos] -= scale * upper_val;
+            // const auto output_pos = lookup.lookup_unsafe(upper_col) +
+            // row_begin; vals[output_pos] -= scale * upper_val;
+            for (auto pos = lower_nz + 1; pos < row_end; pos++) {
+                if (cols[pos] == upper_col) {
+                    vals[pos] -= scale * upper_val;
+                }
+            }
         }
     }
     scheduler.mark_ready();

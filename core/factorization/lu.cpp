@@ -117,6 +117,11 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
             exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
             break;
         }
+        case symbolic_type::incomplete:
+            factors = mtx->clone();
+            // update srow to be safe
+            factors->set_strategy(factors->get_strategy());
+            break;
         default:
             GKO_INVALID_STATE("Invalid symbolic factorization algorithm");
         }
@@ -158,6 +163,11 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     exec->run(make_initialize(
         mtx.get(), storage_offsets.get_const_data(), row_descs.get_const_data(),
         storage.get_const_data(), diag_idxs.get_data(), factors.get()));
+    if (parameters_.symbolic_algorithm == symbolic_type::incomplete) {
+        // copy the value again just to ensure it is correct
+        exec->copy_from(exec, factors->get_num_stored_elements(),
+                        mtx->get_const_values(), factors->get_values());
+    }
     // run numerical factorization
     array<int> tmp{exec};
     exec->run(make_factorize(storage_offsets.get_const_data(),

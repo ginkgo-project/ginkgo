@@ -34,7 +34,11 @@ enum class symbolic_type {
      * sparsity pattern is undefined behavior and will likely lead to the
      * application crashing.
      */
-    symmetric
+    symmetric,
+    /**
+     * Incomplete (note: it may be moved to ILU not here)
+     */
+    incomplete,
 };
 
 

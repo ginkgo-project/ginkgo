@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <complex>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -14,7 +15,7 @@
 int main(int argc, char* argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
@@ -61,11 +62,17 @@ int main(int argc, char* argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate incomplete factors using ParILU
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
+    auto cuda_ilu_fact =
+        gko::factorization::Ilu<ValueType, IndexType>::build().on(exec);
     // Generate concrete factorization for input matrix
-    auto par_ilu = gko::share(par_ilu_fact->generate(A));
-
+    auto cuda_ilu = gko::share(cuda_ilu_fact->generate(A));
+    std::cout << "Finish CUDA ILU" << std::endl;
+    {
+        std::ofstream L("cL.mtx");
+        std::ofstream U("cU.mtx");
+        gko::write(L, cuda_ilu->get_l_factor());
+        gko::write(U, cuda_ilu->get_u_factor());
+    }
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the exact triangular solves
     auto ilu_pre_factory =
@@ -74,8 +81,26 @@ int main(int argc, char* argv[])
                                  false>::build()
             .on(exec);
 
+    auto gko_ilu = gko::share(
+        gko::experimental::factorization::Lu<ValueType, IndexType>::build()
+            .with_symbolic_algorithm(
+                gko::experimental::factorization::symbolic_type::incomplete)
+            .on(exec)
+            ->generate(A));
+    std::cout << "Finish GKO ILU" << std::endl;
+    {
+        auto unpack = gko_ilu->unpack();
+        std::ofstream L("gL.mtx");
+        std::ofstream U("gU.mtx");
+        gko::write(L, unpack->get_lower_factor());
+        gko::write(U, unpack->get_upper_factor());
+    }
+
+    std::exit(-1);
+
     // Use incomplete factors to generate ILU preconditioner
-    auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));
+    auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(gko_ilu));
+
 
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
