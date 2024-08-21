@@ -247,9 +247,11 @@ protected:
         this->set_default_initial_guess(parameters_.default_initial_guess);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
+        normalized_ = (parameters_.relaxation_factor == -one<ValueType>());
     }
 
 private:
+    bool normalized_;
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };

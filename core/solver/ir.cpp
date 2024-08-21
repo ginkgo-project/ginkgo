@@ -292,10 +292,16 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // solver_->apply(relaxation_factor_, residual_ptr, one_op,
             // dense_x);
             // WARNING: ignore the relaxation factor now
-            residual_ptr->compute_infinite_norm(norm_op, reduction_tmp);
-            residual_ptr->inv_scale(norm_op);
+            if (normalized_) {
+                residual_ptr->compute_infinite_norm(norm_op, reduction_tmp);
+                residual_ptr->inv_scale(norm_op);
+            }
             solver_->apply(residual_ptr, inner_solution);
-            dense_x->add_scaled(norm_op, inner_solution);
+            if (normalized_) {
+                dense_x->add_scaled(norm_op, inner_solution);
+            } else {
+                dense_x->add_scaled(relaxation_factor_, inner_solution);
+            }
         }
     }
 }
