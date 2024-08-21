@@ -235,6 +235,9 @@ int main(int argc, char* argv[])
     ValueType damping_parameter = static_cast<ValueType>(1.0);
     if (smoother == 1) {
         damping_parameter = smoother_real_parameter;
+    } else {
+        // other uses -1 to normalize the residual not the relaxation factor
+        damping_parameter = -gko::one<ValueType>();
     }
     if (precision == "double") {
         inner_gen = generate_inner<double>(
