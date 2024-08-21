@@ -5,7 +5,6 @@ add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kerne
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 set(GINKGO_HIP_SOURCES
-    base/batch_multi_vector_kernels.hip.cpp
     base/device.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp

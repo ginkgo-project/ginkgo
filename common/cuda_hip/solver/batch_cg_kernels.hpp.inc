@@ -32,12 +32,14 @@ __device__ __forceinline__ void initialize(
 
     if (threadIdx.x / config::warp_size == 0) {
         // Compute norms of rhs
-        single_rhs_compute_norm2(subgroup, num_rows, b_global_entry,
-                                 rhs_norms_sh);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_norm2(subgroup, num_rows, b_global_entry,
+                                     rhs_norms_sh);
     } else if (threadIdx.x / config::warp_size == 1) {
         // rho_old = r' * z
-        single_rhs_compute_conj_dot(subgroup, num_rows, r_shared_entry,
-                                    z_shared_entry, rho_old_shared_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot(subgroup, num_rows, r_shared_entry,
+                                        z_shared_entry, rho_old_shared_entry);
     }
 
     // p = z
@@ -69,8 +71,9 @@ __device__ __forceinline__ void update_x_and_r(
     ValueType* const x_shared_entry, ValueType* const r_shared_entry)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        single_rhs_compute_conj_dot(subgroup, num_rows, p_shared_entry,
-                                    Ap_shared_entry, alpha_shared_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_compute_conj_dot(subgroup, num_rows, p_shared_entry,
+                                        Ap_shared_entry, alpha_shared_entry);
     }
     __syncthreads();
 
@@ -202,8 +205,9 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
 
             if (threadIdx.x / config::warp_size == 0) {
                 // rho_new =  (r)' * (z)
-                single_rhs_compute_conj_dot(subgroup, num_rows, r_sh, z_sh,
-                                            rho_new_sh[0]);
+                gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                    single_rhs_compute_conj_dot(subgroup, num_rows, r_sh, z_sh,
+                                                rho_new_sh[0]);
             }
             __syncthreads();
 
@@ -222,7 +226,8 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
         logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
         // copy x back to global memory
-        single_rhs_copy(num_rows, x_sh, x_global_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+            single_rhs_copy(num_rows, x_sh, x_global_entry);
         __syncthreads();
     }
 }

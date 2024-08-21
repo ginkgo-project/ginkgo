@@ -5,6 +5,7 @@
 #include "core/solver/batch_cg_kernels.hpp"
 
 #include "core/solver/batch_dispatch.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
 
 
 namespace gko {
@@ -26,7 +27,6 @@ namespace {
 constexpr int max_num_rhs = 1;
 
 
-#include "reference/base/batch_multi_vector_kernels.hpp.inc"
 #include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/matrix/batch_dense_kernels.hpp.inc"
 #include "reference/matrix/batch_ell_kernels.hpp.inc"

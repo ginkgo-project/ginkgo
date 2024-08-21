@@ -13,6 +13,7 @@
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
+#include "dpcpp/base/batch_multi_vector_kernels.hpp"
 #include "dpcpp/base/batch_struct.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -36,7 +37,6 @@ namespace dpcpp {
 namespace batch_cg {
 
 
-#include "dpcpp/base/batch_multi_vector_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 #include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
