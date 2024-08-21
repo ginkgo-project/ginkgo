@@ -2,6 +2,44 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <thrust/functional.h>
+#include <thrust/transform.h>
+
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/segment_scan.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
+
+#if defined(GKO_COMPILING_CUDA)
+#include "cuda/base/batch_struct.hpp"
+#include "cuda/matrix/batch_struct.hpp"
+#elif defined(GKO_COMPILING_HIP)
+#include "hip/base/batch_struct.hip.hpp"
+#include "hip/matrix/batch_struct.hip.hpp"
+#else
+#error "batch struct def missing"
+#endif
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ void simple_apply(
     const gko::batch::matrix::csr::batch_item<const ValueType, IndexType>& mat,
@@ -21,23 +59,11 @@ __device__ __forceinline__ void simple_apply(
 }
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_oversubscription) void simple_apply_kernel(const gko::batch::matrix::
-                                                      csr::uniform_batch<
-                                                          const ValueType,
-                                                          IndexType>
-                                                          mat,
-                                                  const gko::batch::
-                                                      multi_vector::
-                                                          uniform_batch<
-                                                              const ValueType>
-                                                              b,
-                                                  const gko::batch::
-                                                      multi_vector::
-                                                          uniform_batch<
-                                                              ValueType>
-                                                              x)
+__global__ __launch_bounds__(default_block_size) void simple_apply_kernel(
+    const gko::batch::matrix::csr::uniform_batch<const ValueType, IndexType>
+        mat,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> b,
+    const gko::batch::multi_vector::uniform_batch<ValueType> x)
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
@@ -71,33 +97,13 @@ __device__ __forceinline__ void advanced_apply(
 }
 
 template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(
-    default_block_size,
-    sm_oversubscription) void advanced_apply_kernel(const gko::batch::
-                                                        multi_vector::
-                                                            uniform_batch<
-                                                                const ValueType>
-                                                                alpha,
-                                                    const gko::batch::matrix::
-                                                        csr::uniform_batch<
-                                                            const ValueType,
-                                                            IndexType>
-                                                            mat,
-                                                    const gko::batch::
-                                                        multi_vector::
-                                                            uniform_batch<
-                                                                const ValueType>
-                                                                b,
-                                                    const gko::batch::
-                                                        multi_vector::
-                                                            uniform_batch<
-                                                                const ValueType>
-                                                                beta,
-                                                    const gko::batch::
-                                                        multi_vector::
-                                                            uniform_batch<
-                                                                ValueType>
-                                                                x)
+__global__ __launch_bounds__(default_block_size) void advanced_apply_kernel(
+    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
+    const gko::batch::matrix::csr::uniform_batch<const ValueType, IndexType>
+        mat,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> b,
+    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
+    const gko::batch::multi_vector::uniform_batch<ValueType> x)
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
@@ -196,3 +202,9 @@ __global__ void add_scaled_identity_kernel(
         add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

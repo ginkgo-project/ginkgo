@@ -17,6 +17,13 @@
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace {
+
+
+constexpr auto default_block_size = 256;
+
+
+}
 
 
 /** @file batch_struct.hpp

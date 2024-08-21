@@ -27,8 +27,9 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    advanced_apply(static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
-                   static_cast<ValueType>(1.0), r_shared_entry);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+        static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
+        static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
 
     if (threadIdx.x / config::warp_size == 0) {
@@ -295,7 +296,8 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // v = A * p_hat
-            simple_apply(mat_entry, p_hat_sh, v_sh);
+            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                simple_apply(mat_entry, p_hat_sh, v_sh);
             __syncthreads();
 
             // alpha = rho_new / < r_hat , v>
@@ -327,7 +329,8 @@ __global__ void apply_kernel(
             __syncthreads();
 
             // t = A * s_hat
-            simple_apply(mat_entry, s_hat_sh, t_sh);
+            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
+                simple_apply(mat_entry, s_hat_sh, t_sh);
             __syncthreads();
 
             // omega = <t,s> / <t,t>
