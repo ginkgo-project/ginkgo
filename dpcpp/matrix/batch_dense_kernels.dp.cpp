@@ -25,21 +25,14 @@
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-/**
- * @brief The Dense matrix format namespace.
- *
- * @ingroup batch_dense
- */
 namespace batch_dense {
-
-
-#include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -77,8 +70,8 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                         batch::matrix::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    simple_apply_kernel(mat_b, b_b.values, x_b.values,
-                                        item_ct1);
+                    batch_single_kernels::simple_apply_kernel(
+                        mat_b, b_b.values, x_b.values, item_ct1);
                 });
     });
 }
@@ -129,9 +122,9 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                         batch::extract_batch_item(alpha_ub, group_id);
                     const auto beta_b =
                         batch::extract_batch_item(beta_ub, group_id);
-                    advanced_apply_kernel(alpha_b.values[0], mat_b, b_b.values,
-                                          beta_b.values[0], x_b.values,
-                                          item_ct1);
+                    batch_single_kernels::advanced_apply(
+                        alpha_b.values[0], mat_b, b_b.values, beta_b.values[0],
+                        x_b.values, item_ct1);
                 });
     });
 }
@@ -174,7 +167,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                         row_scale_vals + num_rows * group_id;
                     auto input_mat =
                         batch::matrix::extract_batch_item(mat_ub, group_id);
-                    scale_kernel(col_scale_b, row_scale_b, input_mat, item_ct1);
+                    batch_single_kernels::scale(col_scale_b, row_scale_b,
+                                                input_mat, item_ct1);
                 });
     });
 }
@@ -204,18 +198,20 @@ void scale_add(std::shared_ptr<const DefaultExecutor> exec,
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                config::warp_size)]] {
-                auto group = item_ct1.get_group();
-                auto group_id = group.get_group_linear_id();
-                const auto alpha_b =
-                    gko::batch::extract_batch_item(alpha_ub, group_id);
-                const auto mat_b =
-                    gko::batch::matrix::extract_batch_item(mat_ub, group_id);
-                const auto in_out_b =
-                    gko::batch::matrix::extract_batch_item(in_out_ub, group_id);
-                scale_add_kernel(alpha_b.values[0], mat_b, in_out_b, item_ct1);
-            });
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                    auto group = item_ct1.get_group();
+                    auto group_id = group.get_group_linear_id();
+                    const auto alpha_b =
+                        gko::batch::extract_batch_item(alpha_ub, group_id);
+                    const auto mat_b = gko::batch::matrix::extract_batch_item(
+                        mat_ub, group_id);
+                    const auto in_out_b =
+                        gko::batch::matrix::extract_batch_item(in_out_ub,
+                                                               group_id);
+                    batch_single_kernels::scale_add(alpha_b.values[0], mat_b,
+                                                    in_out_b, item_ct1);
+                });
     });
 }
 
@@ -254,7 +250,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                         gko::batch::extract_batch_item(beta_ub, group_id);
                     const auto mat_b = gko::batch::matrix::extract_batch_item(
                         mat_ub, group_id);
-                    add_scaled_identity_kernel(
+                    batch_single_kernels::add_scaled_identity(
                         alpha_b.values[0], beta_b.values[0], mat_b, item_ct1);
                 });
     });

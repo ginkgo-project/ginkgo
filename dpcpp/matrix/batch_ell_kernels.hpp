@@ -2,8 +2,32 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType, typename IndexType>
-__dpct_inline__ void simple_apply_kernel(
+__dpct_inline__ void simple_apply(
     const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
     const ValueType* b, ValueType* x, sycl::nd_item<3>& item_ct1)
 {
@@ -24,7 +48,7 @@ __dpct_inline__ void simple_apply_kernel(
 
 
 template <typename ValueType, typename IndexType>
-__dpct_inline__ void advanced_apply_kernel(
+__dpct_inline__ void advanced_apply(
     const ValueType alpha,
     const gko::batch::matrix::ell::batch_item<const ValueType, IndexType>& mat,
     const ValueType* b, const ValueType beta, ValueType* x,
@@ -47,7 +71,7 @@ __dpct_inline__ void advanced_apply_kernel(
 
 
 template <typename ValueType, typename IndexType>
-__dpct_inline__ void scale_kernel(
+__dpct_inline__ void scale(
     const ValueType* const col_scale, const ValueType* const row_scale,
     gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat,
     sycl::nd_item<3>& item_ct1)
@@ -69,7 +93,7 @@ __dpct_inline__ void scale_kernel(
 
 
 template <typename ValueType, typename IndexType>
-__dpct_inline__ void add_scaled_identity_kernel(
+__dpct_inline__ void add_scaled_identity(
     const ValueType alpha, const ValueType beta,
     const gko::batch::matrix::ell::batch_item<ValueType, IndexType>& mat,
     sycl::nd_item<3>& item_ct1)
@@ -89,3 +113,9 @@ __dpct_inline__ void add_scaled_identity_kernel(
         }
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

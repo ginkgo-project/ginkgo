@@ -23,23 +23,18 @@
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-/**
- * @brief The batch Cg solver namespace.
- *
- * @ingroup batch_cg
- */
 namespace batch_cg {
 
 
-#include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
-#include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
-#include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
 #include "dpcpp/solver/batch_cg_kernels.hpp.inc"
 
 
