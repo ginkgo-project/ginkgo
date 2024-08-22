@@ -70,8 +70,8 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                         batch::matrix::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
-                    batch_single_kernels::simple_apply_kernel(
-                        mat_b, b_b.values, x_b.values, item_ct1);
+                    batch_single_kernels::simple_apply(mat_b, b_b.values,
+                                                       x_b.values, item_ct1);
                 });
     });
 }
