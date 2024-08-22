@@ -187,6 +187,28 @@ struct device_sparsity_lookup {
         return result;
     }
 
+    GKO_ATTRIBUTES GKO_INLINE IndexType lookup(IndexType col) const
+    {
+        IndexType result{};
+        switch (static_cast<sparsity_type>(desc & 0xF)) {
+        case sparsity_type::full:
+            result = lookup_full(col);
+            break;
+        case sparsity_type::bitmap:
+            result = lookup_bitmap(col);
+            break;
+        case sparsity_type::hash:
+            result = lookup_hash(col);
+            break;
+        default:
+            result = lookup_search(col);
+            break;
+        }
+        GKO_ASSERT(result != invalid_index<IndexType>() ||
+                   local_cols[result] == col);
+        return result;
+    }
+
 private:
     using unsigned_index_type = typename std::make_unsigned<IndexType>::type;
 
@@ -262,15 +284,16 @@ private:
             (static_cast<unsigned_index_type>(col) * hash_param) % hashmap_size;
         GKO_ASSERT(hashmap[hash] >= 0);
         GKO_ASSERT(hashmap[hash] < row_nnz);
-        while (local_cols[hashmap[hash]] != col) {
+        auto out_idx = hashmap[hash];
+        while (out_idx >= 0 && local_cols[out_idx] != col) {
             hash++;
             if (hash >= hashmap_size) {
                 hash = 0;
             }
-            GKO_ASSERT(hashmap[hash] >= 0);
+            out_idx = hashmap[hash];
             GKO_ASSERT(hashmap[hash] < row_nnz);
         }
-        const auto out_idx = hashmap[hash];
+        // out_idx is either correct or invalid_index, the hashmap sentinel
         return out_idx;
     }
 
