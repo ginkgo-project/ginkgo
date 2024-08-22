@@ -34,9 +34,9 @@ inline void initialize(
         b_entry, r_entry);
 
     // r = b - A*x
-    advanced_apply_kernel(static_cast<ValueType>(-1.0), A_entry,
-                          gko::batch::to_const(x_entry),
-                          static_cast<ValueType>(1.0), r_entry);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+        static_cast<ValueType>(-1.0), A_entry, gko::batch::to_const(x_entry),
+        static_cast<ValueType>(1.0), r_entry);
 }
 
 
@@ -181,7 +181,8 @@ inline void batch_entry_cg_impl(
                  gko::batch::to_const(z_entry), p_entry);
 
         // Ap = A * p
-        simple_apply_kernel(A_entry, gko::batch::to_const(p_entry), Ap_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+            A_entry, gko::batch::to_const(p_entry), Ap_entry);
 
         // temp= rho_old / (p' * Ap)
         // x = x + temp * p

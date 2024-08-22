@@ -33,9 +33,9 @@ inline void initialize(
         b_entry, r_entry);
 
     // r = b - A*x
-    advanced_apply_kernel(static_cast<ValueType>(-1.0), A_entry,
-                          gko::batch::to_const(x_entry),
-                          static_cast<ValueType>(1.0), r_entry);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+        static_cast<ValueType>(-1.0), A_entry, gko::batch::to_const(x_entry),
+        static_cast<ValueType>(1.0), r_entry);
     gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
         compute_norm2_kernel<ValueType>(gko::batch::to_const(r_entry),
                                         res_norms_entry);
@@ -271,8 +271,8 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
 
         // v = A * p_hat
-        simple_apply_kernel(A_entry, gko::batch::to_const(p_hat_entry),
-                            v_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+            A_entry, gko::batch::to_const(p_hat_entry), v_entry);
 
         // alpha = rho_new / < r_hat , v>
         compute_alpha(gko::batch::to_const(rho_new_entry),
@@ -303,8 +303,8 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
 
         // t = A * s_hat
-        simple_apply_kernel(A_entry, gko::batch::to_const(s_hat_entry),
-                            t_entry);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+            A_entry, gko::batch::to_const(s_hat_entry), t_entry);
         // omega = <t,s> / <t,t>
         compute_omega(gko::batch::to_const(t_entry),
                       gko::batch::to_const(s_entry), temp_entry, omega_entry);
