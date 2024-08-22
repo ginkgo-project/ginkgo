@@ -2,8 +2,25 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <algorithm>
+
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "reference/base/batch_struct.hpp"
+#include "reference/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType>
-inline void simple_apply_kernel(
+inline void simple_apply(
     const gko::batch::matrix::dense::batch_item<const ValueType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
     const gko::batch::multi_vector::batch_item<ValueType>& c)
@@ -27,7 +44,7 @@ inline void simple_apply_kernel(
 
 
 template <typename ValueType>
-inline void advanced_apply_kernel(
+inline void advanced_apply(
     const ValueType alpha,
     const gko::batch::matrix::dense::batch_item<const ValueType>& a,
     const gko::batch::multi_vector::batch_item<const ValueType>& b,
@@ -75,7 +92,7 @@ inline void scale(const int num_rows, const int num_cols,
 
 
 template <typename ValueType>
-inline void scale_add_kernel(
+inline void scale_add(
     const ValueType alpha,
     const gko::batch::matrix::dense::batch_item<const ValueType>& b,
     const gko::batch::matrix::dense::batch_item<ValueType>& in_out)
@@ -91,7 +108,7 @@ inline void scale_add_kernel(
 
 
 template <typename ValueType>
-inline void add_scaled_identity_kernel(
+inline void add_scaled_identity(
     const ValueType alpha, const ValueType beta,
     const gko::batch::matrix::dense::batch_item<ValueType>& mat)
 {
@@ -105,3 +122,9 @@ inline void add_scaled_identity_kernel(
         }
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
