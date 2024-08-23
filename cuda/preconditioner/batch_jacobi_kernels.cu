@@ -8,19 +8,19 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
+#include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/matrix/batch_struct.hpp"
 // generated header
 #include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 

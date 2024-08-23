@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
+#include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -22,16 +23,7 @@
 #include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
-
-#if defined(GKO_COMPILING_CUDA)
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
-#elif defined(GKO_COMPILING_HIP)
-#include "hip/base/batch_struct.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
-#else
-#error "batch struct def missing"
-#endif
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 
 
 namespace gko {
