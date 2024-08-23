@@ -27,15 +27,13 @@
 #include "dpcpp/matrix/batch_dense_kernels.hpp"
 #include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
+#include "dpcpp/solver/batch_bicgstab_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 namespace batch_bicgstab {
-
-
-#include "dpcpp/solver/batch_bicgstab_kernels.hpp.inc"
 
 
 template <typename T>
@@ -95,7 +93,8 @@ public:
                     ValueType* const x_global_entry =
                         gko::batch::multi_vector::batch_item_ptr(
                             x_values, 1, num_rows, batch_id);
-                    apply_kernel<StopType, n_shared_total>(
+                    batch_single_kernels::apply_kernel<StopType,
+                                                       n_shared_total>(
                         sconf, max_iters, res_tol, logger, prec,
                         mat_global_entry, b_global_entry, x_global_entry,
                         num_rows, mat.get_single_item_num_nnz(),

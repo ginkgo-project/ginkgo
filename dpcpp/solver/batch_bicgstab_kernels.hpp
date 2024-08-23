@@ -2,6 +2,38 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+#define GKO_DPCPP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+
+
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/batch_multi_vector_kernels.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename BatchMatrixType_entry, typename ValueType>
 __dpct_inline__ void initialize(
     const int num_rows, const BatchMatrixType_entry& mat_global_entry,
@@ -393,3 +425,12 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         num_rows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif
