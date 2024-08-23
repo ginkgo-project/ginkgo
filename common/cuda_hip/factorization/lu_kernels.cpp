@@ -130,7 +130,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
             const auto upper_val = vals[upper_nz];
-            // const auto output_pos = lookup.lookup(upper_col);
+            // const auto output_pos = lookup[upper_col];
             const auto output_pos = lookup.lookup_unsafe(upper_col) + row_begin;
             if (output_pos >= row_begin && output_pos < row_end &&
                 cols[output_pos] == upper_col) {

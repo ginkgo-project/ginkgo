@@ -183,28 +183,7 @@ struct device_sparsity_lookup {
             result = lookup_search_unsafe(col);
             break;
         }
-        GKO_ASSERT(local_cols[result] == col);
-        return result;
-    }
-
-    GKO_ATTRIBUTES GKO_INLINE IndexType lookup(IndexType col) const
-    {
-        IndexType result{};
-        switch (static_cast<sparsity_type>(desc & 0xF)) {
-        case sparsity_type::full:
-            result = lookup_full(col);
-            break;
-        case sparsity_type::bitmap:
-            result = lookup_bitmap(col);
-            break;
-        case sparsity_type::hash:
-            result = lookup_hash(col);
-            break;
-        default:
-            result = lookup_search(col);
-            break;
-        }
-        GKO_ASSERT(result != invalid_index<IndexType>() ||
+        GKO_ASSERT(result >= 0 && result < row_nnz &&
                    local_cols[result] == col);
         return result;
     }
@@ -248,11 +227,18 @@ private:
         const auto prefix_mask = (uint32{1} << col_in_block) - 1;
         GKO_ASSERT(rel_col >= 0);
         GKO_ASSERT(block < num_blocks);
+        // It should stop before if it does not satisfy the condition
+        // GKO_ASSERT(block < num_blocks && block >= 0 &&
+        //            block_bitmaps[block] & (uint32{1} << col_in_block));
         GKO_ASSERT(block_bitmaps[block] & (uint32{1} << col_in_block));
         const auto out_idx =
-            block_bases[block] +
-            gko::detail::popcount(block_bitmaps[block] & prefix_mask);
-        GKO_ASSERT(local_cols[out_idx] == col);
+            (block < num_blocks && block >= 0 &&
+             (block_bitmaps[block] & (uint32{1} << col_in_block)))
+                ? block_bases[block] +
+                      gko::detail::popcount(block_bitmaps[block] & prefix_mask)
+                : invalid_index<IndexType>();
+        GKO_ASSERT(out_idx != invalid_index<IndexType>() &&
+                   local_cols[out_idx] == col);
         return out_idx;
     }
 
