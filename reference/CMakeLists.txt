@@ -66,6 +66,7 @@ target_sources(ginkgo_reference
     stop/residual_norm_kernels.cpp)
 
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
+target_compile_definitions(ginkgo_reference PRIVATE GKO_COMPILING_REFERENCE GKO_DEVICE_NAMESPACE=reference)
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)
