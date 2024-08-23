@@ -8,21 +8,21 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
+#include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/components/diagonal_block_manipulation.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/batch_struct.hip.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/matrix/batch_struct.hip.hpp"
 // generated header
 #include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 

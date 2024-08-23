@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
+#include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
@@ -21,11 +22,10 @@
 #include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
-#include "cuda/base/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
 
 
 namespace gko {
