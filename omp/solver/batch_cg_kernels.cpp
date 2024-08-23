@@ -13,6 +13,7 @@
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/solver/batch_cg_kernels.hpp"
 
 
 namespace gko {
@@ -23,9 +24,6 @@ namespace {
 
 
 constexpr int max_num_rhs = 1;
-
-
-#include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
 }  // unnamed namespace
@@ -54,7 +52,7 @@ public:
         const size_type num_batch_items = mat.num_batch_items;
         const auto num_rows = mat.num_rows;
         const auto num_rhs = b.num_rhs;
-        if (num_rhs > max_num_rhs) {
+        if (num_rhs > 1) {
             GKO_NOT_IMPLEMENTED;
         }
 
@@ -72,10 +70,10 @@ public:
                 exec_, local_size_bytes,
                 local_space.get_data() +
                     omp_get_thread_num() * local_size_bytes);
-            batch_entry_cg_impl<StopType, PrecondType, LogType, BatchMatrixType,
-                                ValueType>(settings_, logger, precond, mat, b,
-                                           x, batch_id,
-                                           thread_local_space.get_data());
+            batch_single_kernels::batch_entry_cg_impl<
+                StopType, PrecondType, LogType, BatchMatrixType, ValueType>(
+                settings_, logger, precond, mat, b, x, batch_id,
+                thread_local_space.get_data());
         }
     }
 

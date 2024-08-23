@@ -6,8 +6,6 @@
 #define GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
 
 
-#include <algorithm>
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
