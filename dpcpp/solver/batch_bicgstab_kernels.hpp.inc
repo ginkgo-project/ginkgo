@@ -33,9 +33,9 @@ __dpct_inline__ void initialize(
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     // r = b - A*x
-    advanced_apply_kernel(static_cast<ValueType>(-1.0), mat_global_entry,
-                          x_shared_entry, static_cast<ValueType>(1.0),
-                          r_shared_entry, item_ct1);
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+        static_cast<ValueType>(-1.0), mat_global_entry, x_shared_entry,
+        static_cast<ValueType>(1.0), r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     if (sg_id == 0) {
@@ -330,7 +330,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // v = A * p_hat
-        simple_apply_kernel(mat_global_entry, p_hat_sh, v_sh, item_ct1);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+            mat_global_entry, p_hat_sh, v_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // alpha = rho_new / < r_hat , v>
@@ -361,7 +362,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // t = A * s_hat
-        simple_apply_kernel(mat_global_entry, s_hat_sh, t_sh, item_ct1);
+        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+            mat_global_entry, s_hat_sh, t_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // omega = <t,s> / <t,t>

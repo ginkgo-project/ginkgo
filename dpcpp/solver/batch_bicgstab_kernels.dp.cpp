@@ -23,23 +23,18 @@
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-/**
- * @brief The batch Bicgstab solver namespace.
- *
- * @ingroup batch_bicgstab
- */
 namespace batch_bicgstab {
 
 
-#include "dpcpp/matrix/batch_csr_kernels.hpp.inc"
-#include "dpcpp/matrix/batch_dense_kernels.hpp.inc"
-#include "dpcpp/matrix/batch_ell_kernels.hpp.inc"
 #include "dpcpp/solver/batch_bicgstab_kernels.hpp.inc"
 
 

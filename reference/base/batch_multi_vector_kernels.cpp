@@ -10,10 +10,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 
-
-#define GKO_DEVICE_NAMESPACE reference
-
-
 #include "core/base/batch_struct.hpp"
 #include "reference/base/batch_multi_vector_kernels.hpp"
 #include "reference/base/batch_struct.hpp"

@@ -23,6 +23,9 @@ set(CUDA_HIP_SOURCES
     factorization/par_ilut_select_kernels.cpp
     factorization/par_ilut_spgeam_kernels.cpp
     factorization/par_ilut_sweep_kernels.cpp
+    matrix/batch_csr_kernels.cpp
+    matrix/batch_dense_kernels.cpp
+    matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/dense_kernels.cpp
     matrix/diagonal_kernels.cpp

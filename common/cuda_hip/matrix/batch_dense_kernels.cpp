@@ -2,6 +2,34 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
+
+#include <thrust/functional.h>
+#include <thrust/transform.h>
+
+#include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_dense {
+
+
+constexpr auto default_block_size = 256;
+
+
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const batch::matrix::Dense<ValueType>* mat,
@@ -15,8 +43,9 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     if (b->get_common_size()[1] > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    simple_apply_kernel<<<num_blocks, default_block_size, 0,
-                          exec->get_stream()>>>(mat_ub, b_ub, x_ub);
+    batch_single_kernels::simple_apply_kernel<<<num_blocks, default_block_size,
+                                                0, exec->get_stream()>>>(
+        mat_ub, b_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -40,9 +69,9 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
     if (b->get_common_size()[1] > 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    advanced_apply_kernel<<<num_blocks, default_block_size, 0,
-                            exec->get_stream()>>>(alpha_ub, mat_ub, b_ub,
-                                                  beta_ub, x_ub);
+    batch_single_kernels::advanced_apply_kernel<<<
+        num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, mat_ub, b_ub, beta_ub, x_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -58,8 +87,10 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     const auto col_scale_vals = col_scale->get_const_data();
     const auto row_scale_vals = row_scale->get_const_data();
     const auto mat_ub = get_batch_struct(input);
-    scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-        as_device_type(col_scale_vals), as_device_type(row_scale_vals), mat_ub);
+    batch_single_kernels::
+        scale_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            as_device_type(col_scale_vals), as_device_type(row_scale_vals),
+            mat_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
@@ -75,7 +106,8 @@ void scale_add(std::shared_ptr<const DefaultExecutor> exec,
     const auto alpha_ub = get_batch_struct(alpha);
     const auto mat_ub = get_batch_struct(mat);
     const auto in_out_ub = get_batch_struct(in_out);
-    scale_add_kernel<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+    batch_single_kernels::scale_add_kernel<<<num_blocks, default_block_size, 0,
+                                             exec->get_stream()>>>(
         alpha_ub, mat_ub, in_out_ub);
 }
 
@@ -92,10 +124,16 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     const auto alpha_ub = get_batch_struct(alpha);
     const auto beta_ub = get_batch_struct(beta);
     const auto mat_ub = get_batch_struct(mat);
-    add_scaled_identity_kernel<<<num_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(alpha_ub, beta_ub,
-                                                       mat_ub);
+    batch_single_kernels::add_scaled_identity_kernel<<<
+        num_blocks, default_block_size, 0, exec->get_stream()>>>(
+        alpha_ub, beta_ub, mat_ub);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
+
+
+}  // namespace batch_dense
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

@@ -16,7 +16,6 @@
 
 #if defined(GKO_COMPILING_CUDA)
 
-#define GKO_DEVICE_NAMESPACE cuda
 #define GKO_KERNEL __device__
 #include "common/cuda_hip/base/types.hpp"
 
@@ -43,7 +42,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_HIP)
 
-#define GKO_DEVICE_NAMESPACE hip
 #define GKO_KERNEL __device__
 #include "common/cuda_hip/base/types.hpp"
 
@@ -70,7 +68,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_DPCPP)
 
-#define GKO_DEVICE_NAMESPACE dpcpp
 #define GKO_KERNEL
 
 
@@ -105,7 +102,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_OMP)
 
-#define GKO_DEVICE_NAMESPACE omp
 #define GKO_KERNEL
 
 

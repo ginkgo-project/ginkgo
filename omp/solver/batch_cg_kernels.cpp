@@ -10,28 +10,21 @@
 
 #include "core/solver/batch_dispatch.hpp"
 #include "reference/base/batch_multi_vector_kernels.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
-/**
- * @brief The batch Cg solver namespace.
- *
- * @ingroup batch_cg
- */
 namespace batch_cg {
-
-
 namespace {
 
 
 constexpr int max_num_rhs = 1;
 
 
-#include "reference/matrix/batch_csr_kernels.hpp.inc"
-#include "reference/matrix/batch_dense_kernels.hpp.inc"
-#include "reference/matrix/batch_ell_kernels.hpp.inc"
 #include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
