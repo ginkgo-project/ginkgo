@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_MATRIX_BATCH_ELL_KERNELS_HPP_
+#define GKO_DPCPP_MATRIX_BATCH_ELL_KERNELS_HPP_
+
+
 #include <memory>
 
 #include <CL/sycl.hpp>
@@ -119,3 +123,6 @@ __dpct_inline__ void add_scaled_identity(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif

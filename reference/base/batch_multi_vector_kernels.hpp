@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_REFERENCE_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+#define GKO_REFERENCE_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+
+
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -149,3 +153,6 @@ inline void copy_kernel(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif

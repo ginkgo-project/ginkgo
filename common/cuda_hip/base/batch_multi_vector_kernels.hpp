@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+#define GKO_COMMON_CUDA_HIP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+
+
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
@@ -315,3 +319,6 @@ __global__ __launch_bounds__(default_block_size) void copy_kernel(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif
