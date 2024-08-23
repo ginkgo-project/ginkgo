@@ -2,6 +2,29 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_REFERENCE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+#define GKO_REFERENCE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
+#include "reference/base/batch_struct.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
+constexpr int max_num_rhs = 1;
+
+
 template <typename BatchMatrixType_entry, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry& A_entry,
@@ -26,17 +49,16 @@ inline void initialize(
     }
 
     // Compute norms of rhs
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_norm2_kernel<ValueType>(b_entry, rhs_norms_entry);
+    batch_single_kernels::compute_norm2_kernel<ValueType>(b_entry,
+                                                          rhs_norms_entry);
 
     // r = b
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-        b_entry, r_entry);
+    batch_single_kernels::copy_kernel(b_entry, r_entry);
 
     // r = b - A*x
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
-        static_cast<ValueType>(-1.0), A_entry, gko::batch::to_const(x_entry),
-        static_cast<ValueType>(1.0), r_entry);
+    batch_single_kernels::advanced_apply(static_cast<ValueType>(-1.0), A_entry,
+                                         gko::batch::to_const(x_entry),
+                                         static_cast<ValueType>(1.0), r_entry);
 }
 
 
@@ -48,8 +70,7 @@ inline void update_p(
     const gko::batch::multi_vector::batch_item<ValueType>& p_entry)
 {
     if (rho_old_entry.values[0] == zero<ValueType>()) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-            z_entry, p_entry);
+        batch_single_kernels::copy_kernel(z_entry, p_entry);
         return;
     }
     const ValueType beta = rho_new_entry.values[0] / rho_old_entry.values[0];
@@ -70,9 +91,8 @@ inline void update_x_and_r(
     const gko::batch::multi_vector::batch_item<ValueType>& x_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& r_entry)
 {
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_conj_dot_product_kernel<ValueType>(p_entry, Ap_entry,
-                                                   alpha_entry);
+    batch_single_kernels::compute_conj_dot_product_kernel<ValueType>(
+        p_entry, Ap_entry, alpha_entry);
 
     const ValueType temp = rho_old_entry.values[0] / alpha_entry.values[0];
     for (int row = 0; row < r_entry.num_rows; row++) {
@@ -159,10 +179,9 @@ inline void batch_entry_cg_impl(
         prec.apply(gko::batch::to_const(r_entry), z_entry);
 
         // rho_new =  < r , z > = (r)' * (z)
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            compute_conj_dot_product_kernel<ValueType>(
-                gko::batch::to_const(r_entry), gko::batch::to_const(z_entry),
-                rho_new_entry);
+        batch_single_kernels::compute_conj_dot_product_kernel<ValueType>(
+            gko::batch::to_const(r_entry), gko::batch::to_const(z_entry),
+            rho_new_entry);
         ++iter;
         // use implicit residual norms
         res_norms_entry.values[0] = sqrt(abs(rho_new_entry.values[0]));
@@ -181,7 +200,7 @@ inline void batch_entry_cg_impl(
                  gko::batch::to_const(z_entry), p_entry);
 
         // Ap = A * p
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+        batch_single_kernels::simple_apply(
             A_entry, gko::batch::to_const(p_entry), Ap_entry);
 
         // temp= rho_old / (p' * Ap)
@@ -192,9 +211,18 @@ inline void batch_entry_cg_impl(
             gko::batch::to_const(Ap_entry), alpha_entry, x_entry, r_entry);
 
         // rho_old = rho_new
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-            gko::batch::to_const(rho_new_entry), rho_old_entry);
+        batch_single_kernels::copy_kernel(gko::batch::to_const(rho_new_entry),
+                                          rho_old_entry);
     }
 
     logger.log_iteration(batch_item_id, iter, res_norms_entry.values[0]);
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif
