@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_MATRIX_BATCH_CSR_KERNELS_HPP_
+#define GKO_COMMON_CUDA_HIP_MATRIX_BATCH_CSR_KERNELS_HPP_
+
+
 #include <thrust/functional.h>
 #include <thrust/transform.h>
 
@@ -200,3 +204,6 @@ __global__ void add_scaled_identity_kernel(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif

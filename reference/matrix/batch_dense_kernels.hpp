@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+#define GKO_REFERENCE_MATRIX_BATCH_DENSE_KERNELS_HPP_
+
+
 #include <algorithm>
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
@@ -128,3 +132,6 @@ inline void add_scaled_identity(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif
