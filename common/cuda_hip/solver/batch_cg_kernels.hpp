@@ -2,6 +2,42 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_SOLVER_BATCH_CG_KERNELS_HPP_
+#define GKO_COMMON_CUDA_HIP_SOLVER_BATCH_CG_KERNELS_HPP_
+
+
+#include <thrust/functional.h>
+#include <thrust/transform.h>
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/segment_scan.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename Group, typename BatchMatrixType_entry, typename PrecType,
           typename ValueType>
 __device__ __forceinline__ void initialize(
@@ -22,7 +58,7 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
+    batch_single_kernels::advanced_apply(
         static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
         static_cast<ValueType>(1.0), r_shared_entry);
     __syncthreads();
@@ -33,14 +69,13 @@ __device__ __forceinline__ void initialize(
 
     if (threadIdx.x / config::warp_size == 0) {
         // Compute norms of rhs
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_norm2(subgroup, num_rows, b_global_entry,
-                                     rhs_norms_sh);
+        batch_single_kernels::single_rhs_compute_norm2(
+            subgroup, num_rows, b_global_entry, rhs_norms_sh);
     } else if (threadIdx.x / config::warp_size == 1) {
         // rho_old = r' * z
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_conj_dot(subgroup, num_rows, r_shared_entry,
-                                        z_shared_entry, rho_old_shared_entry);
+        batch_single_kernels::single_rhs_compute_conj_dot(
+            subgroup, num_rows, r_shared_entry, z_shared_entry,
+            rho_old_shared_entry);
     }
 
     // p = z
@@ -72,9 +107,9 @@ __device__ __forceinline__ void update_x_and_r(
     ValueType* const x_shared_entry, ValueType* const r_shared_entry)
 {
     if (threadIdx.x / config::warp_size == 0) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_conj_dot(subgroup, num_rows, p_shared_entry,
-                                        Ap_shared_entry, alpha_shared_entry);
+        batch_single_kernels::single_rhs_compute_conj_dot(
+            subgroup, num_rows, p_shared_entry, Ap_shared_entry,
+            alpha_shared_entry);
     }
     __syncthreads();
 
@@ -190,8 +225,7 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
             }
 
             // Ap = A * p
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-                simple_apply(mat_entry, p_sh, Ap_sh);
+            batch_single_kernels::simple_apply(mat_entry, p_sh, Ap_sh);
             __syncthreads();
 
             // alpha = rho_old / (p' * Ap)
@@ -207,9 +241,8 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
 
             if (threadIdx.x / config::warp_size == 0) {
                 // rho_new =  (r)' * (z)
-                gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-                    single_rhs_compute_conj_dot(subgroup, num_rows, r_sh, z_sh,
-                                                rho_new_sh[0]);
+                batch_single_kernels::single_rhs_compute_conj_dot(
+                    subgroup, num_rows, r_sh, z_sh, rho_new_sh[0]);
             }
             __syncthreads();
 
@@ -228,8 +261,16 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
         logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
         // copy x back to global memory
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_copy(num_rows, x_sh, x_global_entry);
+        batch_single_kernels::single_rhs_copy(num_rows, x_sh, x_global_entry);
         __syncthreads();
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif
