@@ -9,10 +9,6 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 
-
-#define GKO_DEVICE_NAMESPACE reference
-
-
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/batch_struct.hpp"
