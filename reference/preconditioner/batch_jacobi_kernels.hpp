@@ -2,6 +2,27 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
+#define GKO_REFERENCE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
+
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
+#include "reference/base/batch_struct.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename ValueType>
 inline void extract_block_pattern_impl(
     const size_type k, const matrix::Csr<ValueType, int>* const first_sys_csr,
@@ -164,3 +185,12 @@ inline void compute_block_jacobi_impl(
         }
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif

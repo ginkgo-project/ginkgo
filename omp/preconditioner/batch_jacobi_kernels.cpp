@@ -10,6 +10,7 @@
 #include "reference/base/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_block_jacobi.hpp"
+#include "reference/preconditioner/batch_jacobi_kernels.hpp"
 #include "reference/preconditioner/batch_scalar_jacobi.hpp"
 
 
@@ -17,16 +18,6 @@ namespace gko {
 namespace kernels {
 namespace omp {
 namespace batch_jacobi {
-
-
-namespace {
-
-
-// Note: Do not change the ordering
-#include "reference/preconditioner/batch_jacobi_kernels.hpp.inc"
-
-
-}  // unnamed namespace
 
 
 template <typename IndexType>
@@ -78,8 +69,9 @@ void extract_common_blocks_pattern(
 {
 #pragma omp parallel for
     for (size_type k = 0; k < num_blocks; k++) {
-        extract_block_pattern_impl(k, first_sys_csr, cumulative_block_storage,
-                                   block_pointers, blocks_pattern);
+        batch_single_kernels::extract_block_pattern_impl(
+            k, first_sys_csr, cumulative_block_storage, block_pointers,
+            blocks_pattern);
     }
 }
 
@@ -105,9 +97,9 @@ void compute_block_jacobi(
 
         const auto A_entry =
             gko::batch::matrix::extract_batch_item(A_batch, batch_idx);
-        compute_block_jacobi_impl(batch_idx, block_idx, A_entry, num_blocks,
-                                  cumulative_block_storage, block_pointers,
-                                  blocks_pattern, blocks);
+        batch_single_kernels::compute_block_jacobi_impl(
+            batch_idx, block_idx, A_entry, num_blocks, cumulative_block_storage,
+            block_pointers, blocks_pattern, blocks);
     }
 }
 
