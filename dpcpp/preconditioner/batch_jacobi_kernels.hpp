@@ -2,6 +2,39 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
+#define GKO_DPCPP_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
+
+
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
+#include "dpcpp/base/batch_multi_vector_kernels.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 __dpct_inline__ void extract_common_block_pattern_kernel(
     const int nrows, const int* const __restrict__ sys_row_ptrs,
     const int* const __restrict__ sys_col_idxs, const size_type num_blocks,
@@ -203,3 +236,12 @@ __dpct_inline__ void compute_block_jacobi_kernel(
         }
     }
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif
