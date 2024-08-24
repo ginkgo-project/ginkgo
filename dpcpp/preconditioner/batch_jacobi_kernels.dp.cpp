@@ -16,6 +16,7 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
+#include "dpcpp/preconditioner/batch_jacobi_kernels.hpp"
 #include "dpcpp/preconditioner/jacobi_common.hpp"
 
 
@@ -23,15 +24,11 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 namespace batch_jacobi {
-
-
 namespace {
 
 
 using batch_jacobi_dpcpp_compiled_max_block_sizes =
     gko::kernels::dpcpp::jacobi::compiled_kernels;
-
-#include "dpcpp/preconditioner/batch_jacobi_kernels.hpp.inc"
 
 
 }  // namespace
@@ -96,15 +93,15 @@ void extract_common_blocks_pattern(
     const auto col_idxs = first_sys_csr->get_const_col_idxs();
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 extract_common_block_pattern_kernel(
-                                     static_cast<int>(nrows), row_ptrs,
-                                     col_idxs, num_blocks,
-                                     cumulative_block_storage, block_pointers,
-                                     map_block_row, blocks_pattern, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[intel::reqd_sub_group_size(subgroup_size)]] {
+                    batch_single_kernels::extract_common_block_pattern_kernel(
+                        static_cast<int>(nrows), row_ptrs, col_idxs, num_blocks,
+                        cumulative_block_storage, block_pointers, map_block_row,
+                        blocks_pattern, item_ct1);
+                });
     });
 }
 
@@ -142,15 +139,15 @@ void compute_block_jacobi_helper(
     dim3 grid(ceildiv(num_blocks * nbatch * subgroup_size, group_size));
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[intel::reqd_sub_group_size(subgroup_size)]] {
-                                 compute_block_jacobi_kernel(
-                                     nbatch, static_cast<int>(nnz),
-                                     sys_csr_values, num_blocks,
-                                     cumulative_block_storage, block_pointers,
-                                     blocks_pattern, blocks, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[intel::reqd_sub_group_size(subgroup_size)]] {
+                    batch_single_kernels::compute_block_jacobi_kernel(
+                        nbatch, static_cast<int>(nnz), sys_csr_values,
+                        num_blocks, cumulative_block_storage, block_pointers,
+                        blocks_pattern, blocks, item_ct1);
+                });
     });
 }
 
