@@ -2,6 +2,44 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
+#define GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
+
+
+#include <thrust/functional.h>
+#include <thrust/transform.h>
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+
+#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/format_conversion.hpp"
+#include "common/cuda_hip/components/reduction.hpp"
+#include "common/cuda_hip/components/segment_scan.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_preconditioner {
+
+
 /**
  * BlockJacobi preconditioner for batch solvers.
  */
@@ -173,3 +211,12 @@ private:
     const int* __restrict__ const block_ptrs_arr_;
     const int* __restrict__ const row_block_map_;
 };
+
+
+}  // namespace batch_preconditioner
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif

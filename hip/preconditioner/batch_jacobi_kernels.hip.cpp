@@ -15,6 +15,7 @@
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -40,8 +41,6 @@ constexpr int default_block_size = 128;
 using batch_jacobi_hip_compiled_max_block_sizes =
     gko::kernels::hip::jacobi::compiled_kernels;
 
-#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
-
 }  // namespace
 
 
@@ -54,8 +53,9 @@ void compute_cumulative_block_storage(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks, default_block_size));
 
-    compute_block_storage_kernel<<<grid, block, 0, exec->get_stream()>>>(
-        num_blocks, block_pointers, blocks_cumulative_offsets);
+    batch_single_kernels::
+        compute_block_storage_kernel<<<grid, block, 0, exec->get_stream()>>>(
+            num_blocks, block_pointers, blocks_cumulative_offsets);
 
     components::prefix_sum_nonnegative(exec, blocks_cumulative_offsets,
                                        num_blocks + 1);
@@ -73,8 +73,9 @@ void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
 {
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks, default_block_size));
-    find_row_block_map_kernel<<<grid, block, 0, exec->get_stream()>>>(
-        num_blocks, block_pointers, map_block_to_row);
+    batch_single_kernels::
+        find_row_block_map_kernel<<<grid, block, 0, exec->get_stream()>>>(
+            num_blocks, block_pointers, map_block_to_row);
 }
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
@@ -93,7 +94,8 @@ void extract_common_blocks_pattern(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nrows * config::warp_size, default_block_size));
 
-    extract_common_block_pattern_kernel<<<grid, block, 0, exec->get_stream()>>>(
+    batch_single_kernels::extract_common_block_pattern_kernel<<<
+        grid, block, 0, exec->get_stream()>>>(
         static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), num_blocks,
         cumulative_block_storage, block_pointers, map_block_to_row,
@@ -126,7 +128,7 @@ void compute_block_jacobi_helper(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size, default_block_size));
 
-    compute_block_jacobi_kernel<subwarp_size>
+    batch_single_kernels::compute_block_jacobi_kernel<subwarp_size>
         <<<grid, block, 0, exec->get_stream()>>>(
             nbatch, static_cast<int>(nnz),
             as_hip_type(sys_csr->get_const_values()), num_blocks,
