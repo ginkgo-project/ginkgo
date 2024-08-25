@@ -118,9 +118,9 @@ struct bitonic_warp {
             // workaround for ROCm 6.x segfaults on gfx906
 #ifdef GKO_COMPILING_CUDA
             auto other = __shfl_xor_sync(config::full_lane_mask, els[i],
-                                         num_threads / 2);
+                                         num_threads / 2, num_threads);
 #else
-            auto other = __shfl_xor(els[i], num_threads / 2);
+            auto other = __shfl_xor(els[i], num_threads / 2, num_threads);
 #endif
             bitonic_cas(els[i], other, new_reverse);
         }
