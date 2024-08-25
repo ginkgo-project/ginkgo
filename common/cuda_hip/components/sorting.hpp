@@ -113,11 +113,15 @@ struct bitonic_warp {
 
     __forceinline__ __device__ static void merge(ValueType* els, bool reverse)
     {
-        auto tile =
-            group::tiled_partition<num_threads>(group::this_thread_block());
         auto new_reverse = reverse != upper_half();
         for (int i = 0; i < num_local; ++i) {
-            auto other = tile.shfl_xor(els[i], num_threads / 2);
+            // workaround for ROCm 6.x segfaults on gfx906
+#ifdef GKO_COMPILING_CUDA
+            auto other = __shfl_xor_sync(config::full_lane_mask, els[i],
+                                         num_threads / 2, num_threads);
+#else
+            auto other = __shfl_xor(els[i], num_threads / 2, num_threads);
+#endif
             bitonic_cas(els[i], other, new_reverse);
         }
         half::merge(els, reverse);
