@@ -19,7 +19,6 @@
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/matrix/batch_csr_kernels.hpp"
@@ -59,9 +58,9 @@ __dpct_inline__ void initialize(
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     // r = b - A*x
-    batch_single_kernels::advanced_apply(
-        static_cast<ValueType>(-1.0), mat_global_entry, x_shared_entry,
-        static_cast<ValueType>(1.0), r_shared_entry, item_ct1);
+    advanced_apply(static_cast<ValueType>(-1.0), mat_global_entry,
+                   x_shared_entry, static_cast<ValueType>(1.0), r_shared_entry,
+                   item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
 
@@ -72,11 +71,11 @@ __dpct_inline__ void initialize(
     // Compute norms of rhs
     // and rho_old = r' * z
     if (sg_id == 0) {
-        batch_single_kernels::single_rhs_compute_norm2_sg(
-            num_rows, b_global_entry, rhs_norms, item_ct1);
+        single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norms,
+                                    item_ct1);
     } else if (sg_id == 1) {
-        batch_single_kernels::single_rhs_compute_conj_dot_sg(
-            num_rows, r_shared_entry, z_shared_entry, rho_old, item_ct1);
+        single_rhs_compute_conj_dot_sg(num_rows, r_shared_entry, z_shared_entry,
+                                       rho_old, item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -112,9 +111,9 @@ __dpct_inline__ void update_x_and_r(
     auto sg = item_ct1.get_sub_group();
     const auto tid = item_ct1.get_local_linear_id();
     if (sg.get_group_id() == 0) {
-        batch_single_kernels::single_rhs_compute_conj_dot_sg(
-            num_rows, p_shared_entry, Ap_shared_entry, alpha_shared_entry,
-            item_ct1);
+        single_rhs_compute_conj_dot_sg(num_rows, p_shared_entry,
+                                       Ap_shared_entry, alpha_shared_entry,
+                                       item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
     if (tid == 0) {
@@ -236,8 +235,7 @@ __dpct_inline__ void apply_kernel(
             break;
         }
         // Ap = A * p
-        batch_single_kernels::simple_apply(mat_global_entry, p_sh, Ap_sh,
-                                           item_ct1);
+        simple_apply(mat_global_entry, p_sh, Ap_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // alpha = rho_old / (p' * Ap)
@@ -254,8 +252,8 @@ __dpct_inline__ void apply_kernel(
 
         //  rho_new =  (r)' * (z)
         if (sg_id == 0) {
-            batch_single_kernels::single_rhs_compute_conj_dot_sg(
-                num_rows, r_sh, z_sh, rho_new_sh[0], item_ct1);
+            single_rhs_compute_conj_dot_sg(num_rows, r_sh, z_sh, rho_new_sh[0],
+                                           item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -272,7 +270,7 @@ __dpct_inline__ void apply_kernel(
     logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
     // copy x back to global memory
-    batch_single_kernels::copy_kernel(num_rows, x_sh, x_global_entry, item_ct1);
+    copy_kernel(num_rows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }
 

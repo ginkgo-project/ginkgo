@@ -6,9 +6,6 @@
 #define GKO_COMMON_CUDA_HIP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
 
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -18,7 +15,6 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
