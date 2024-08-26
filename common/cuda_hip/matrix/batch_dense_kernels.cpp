@@ -4,9 +4,6 @@
 
 #include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
