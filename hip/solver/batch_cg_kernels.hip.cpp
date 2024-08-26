@@ -4,26 +4,14 @@
 
 #include "core/solver/batch_cg_kernels.hpp"
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/uninitialized_array.hpp"
-#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp"
 #include "core/base/batch_struct.hpp"

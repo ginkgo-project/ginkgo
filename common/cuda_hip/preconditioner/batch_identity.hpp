@@ -10,12 +10,8 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
-#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
 
 
