@@ -21,9 +21,7 @@
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
 
