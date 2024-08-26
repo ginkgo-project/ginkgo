@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
+#ifndef GKO_COMMON_CUDA_HIP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+#define GKO_COMMON_CUDA_HIP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -14,12 +15,9 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
 
@@ -315,3 +313,6 @@ __global__ __launch_bounds__(default_block_size) void copy_kernel(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif

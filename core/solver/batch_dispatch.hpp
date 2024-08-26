@@ -25,11 +25,10 @@
 
 
 #include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/log/batch_logger.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/log/batch_logger.cuh"
-#include "cuda/preconditioner/batch_preconditioners.cuh"
-#include "cuda/stop/batch_criteria.cuh"
+#include "common/cuda_hip/preconditioner/batch_preconditioners.hpp"
+#include "common/cuda_hip/stop/batch_criteria.hpp"
 
 
 namespace gko {
@@ -53,11 +52,10 @@ using DeviceValueType = typename gko::kernels::cuda::cuda_type<ValueType>;
 
 
 #include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/log/batch_logger.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/log/batch_logger.hip.hpp"
-#include "hip/preconditioner/batch_preconditioners.hip.hpp"
-#include "hip/stop/batch_criteria.hip.hpp"
+#include "common/cuda_hip/preconditioner/batch_preconditioners.hpp"
+#include "common/cuda_hip/stop/batch_criteria.hpp"
 
 
 namespace gko {

@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+#define GKO_DPCPP_BASE_BATCH_MULTI_VECTOR_KERNELS_HPP_
+
+
 #include <memory>
 
 #include <CL/sycl.hpp>
@@ -13,7 +17,6 @@
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
-#include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
@@ -257,3 +260,6 @@ __dpct_inline__ void copy_kernel(
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif

@@ -9,6 +9,7 @@
 #include "reference/matrix/batch_csr_kernels.hpp"
 #include "reference/matrix/batch_dense_kernels.hpp"
 #include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/solver/batch_cg_kernels.hpp"
 
 
 namespace gko {
@@ -19,9 +20,6 @@ namespace {
 
 
 constexpr int max_num_rhs = 1;
-
-
-#include "reference/solver/batch_cg_kernels.hpp.inc"
 
 
 }  // unnamed namespace
@@ -62,9 +60,10 @@ public:
         array<unsigned char> local_space(exec_, local_size_bytes);
 
         for (size_type batch_id = 0; batch_id < num_batch_items; batch_id++) {
-            batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                ValueType>(settings_, logger, prec, mat, b, x,
-                                           batch_id, local_space.get_data());
+            batch_single_kernels::batch_entry_cg_impl<
+                StopType, PrecType, LogType, BatchMatrixType, ValueType>(
+                settings_, logger, prec, mat, b, x, batch_id,
+                local_space.get_data());
         }
     }
 

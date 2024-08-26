@@ -2,6 +2,29 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_REFERENCE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+#define GKO_REFERENCE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
+#include "reference/base/batch_struct.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
+constexpr int max_num_rhs = 1;
+
+
 template <typename BatchMatrixType_entry, typename ValueType>
 inline void initialize(
     const BatchMatrixType_entry& A_entry,
@@ -25,20 +48,18 @@ inline void initialize(
     alpha_entry.values[0] = one<ValueType>();
 
     // Compute norms of rhs
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_norm2_kernel<ValueType>(b_entry, rhs_norms_entry);
+    batch_single_kernels::compute_norm2_kernel<ValueType>(b_entry,
+                                                          rhs_norms_entry);
 
     // r = b
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-        b_entry, r_entry);
+    batch_single_kernels::copy_kernel(b_entry, r_entry);
 
     // r = b - A*x
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
-        static_cast<ValueType>(-1.0), A_entry, gko::batch::to_const(x_entry),
-        static_cast<ValueType>(1.0), r_entry);
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_norm2_kernel<ValueType>(gko::batch::to_const(r_entry),
-                                        res_norms_entry);
+    batch_single_kernels::advanced_apply(static_cast<ValueType>(-1.0), A_entry,
+                                         gko::batch::to_const(x_entry),
+                                         static_cast<ValueType>(1.0), r_entry);
+    batch_single_kernels::compute_norm2_kernel<ValueType>(
+        gko::batch::to_const(r_entry), res_norms_entry);
 
     for (int r = 0; r < p_entry.num_rows; r++) {
         r_hat_entry.values[r * r_hat_entry.stride] =
@@ -78,9 +99,8 @@ inline void compute_alpha(
     const gko::batch::multi_vector::batch_item<const ValueType>& v_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& alpha_entry)
 {
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_dot_product_kernel<ValueType>(r_hat_entry, v_entry,
-                                              alpha_entry);
+    batch_single_kernels::compute_dot_product_kernel<ValueType>(
+        r_hat_entry, v_entry, alpha_entry);
     alpha_entry.values[0] = rho_new_entry.values[0] / alpha_entry.values[0];
 }
 
@@ -107,10 +127,10 @@ inline void compute_omega(
     const gko::batch::multi_vector::batch_item<ValueType>& temp_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& omega_entry)
 {
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_dot_product_kernel<ValueType>(t_entry, s_entry, omega_entry);
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-        compute_dot_product_kernel<ValueType>(t_entry, t_entry, temp_entry);
+    batch_single_kernels::compute_dot_product_kernel<ValueType>(
+        t_entry, s_entry, omega_entry);
+    batch_single_kernels::compute_dot_product_kernel<ValueType>(
+        t_entry, t_entry, temp_entry);
     omega_entry.values[0] /= temp_entry.values[0];
 }
 
@@ -253,10 +273,9 @@ inline void batch_entry_bicgstab_impl(
         }
 
         // rho_new =  < r_hat , r > = (r_hat)' * (r)
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            compute_dot_product_kernel<ValueType>(
-                gko::batch::to_const(r_hat_entry),
-                gko::batch::to_const(r_entry), rho_new_entry);
+        batch_single_kernels::compute_dot_product_kernel<ValueType>(
+            gko::batch::to_const(r_hat_entry), gko::batch::to_const(r_entry),
+            rho_new_entry);
 
         // beta = (rho_new / rho_old)*(alpha / omega)
         // p = r + beta*(p - omega * v)
@@ -271,7 +290,7 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(p_entry), p_hat_entry);
 
         // v = A * p_hat
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+        batch_single_kernels::simple_apply(
             A_entry, gko::batch::to_const(p_hat_entry), v_entry);
 
         // alpha = rho_new / < r_hat , v>
@@ -285,9 +304,8 @@ inline void batch_entry_bicgstab_impl(
                  gko::batch::to_const(v_entry), s_entry);
 
         // an estimate of residual norms
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            compute_norm2_kernel<ValueType>(gko::batch::to_const(s_entry),
-                                            res_norms_entry);
+        batch_single_kernels::compute_norm2_kernel<ValueType>(
+            gko::batch::to_const(s_entry), res_norms_entry);
 
         if (stop.check_converged(res_norms_entry.values)) {
             // update x for the systems
@@ -303,7 +321,7 @@ inline void batch_entry_bicgstab_impl(
         prec.apply(gko::batch::to_const(s_entry), s_hat_entry);
 
         // t = A * s_hat
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
+        batch_single_kernels::simple_apply(
             A_entry, gko::batch::to_const(s_hat_entry), t_entry);
         // omega = <t,s> / <t,t>
         compute_omega(gko::batch::to_const(t_entry),
@@ -319,14 +337,22 @@ inline void batch_entry_bicgstab_impl(
                        gko::batch::to_const(s_entry),
                        gko::batch::to_const(t_entry), x_entry, r_entry);
 
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            compute_norm2_kernel<ValueType>(gko::batch::to_const(r_entry),
-                                            res_norms_entry);
+        batch_single_kernels::compute_norm2_kernel<ValueType>(
+            gko::batch::to_const(r_entry), res_norms_entry);
 
         // rho_old = rho_new
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-            gko::batch::to_const(rho_new_entry), rho_old_entry);
+        batch_single_kernels::copy_kernel(gko::batch::to_const(rho_new_entry),
+                                          rho_old_entry);
     }
 
     logger.log_iteration(batch_item_id, iter, res_norms_entry.values[0]);
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif

@@ -2,6 +2,37 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+#define GKO_DPCPP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
+
+
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "dpcpp/base/batch_multi_vector_kernels.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/reduction.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_csr_kernels.hpp"
+#include "dpcpp/matrix/batch_dense_kernels.hpp"
+#include "dpcpp/matrix/batch_ell_kernels.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_single_kernels {
+
+
 template <typename BatchMatrixType_entry, typename ValueType>
 __dpct_inline__ void initialize(
     const int num_rows, const BatchMatrixType_entry& mat_global_entry,
@@ -33,19 +64,17 @@ __dpct_inline__ void initialize(
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     // r = b - A*x
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::advanced_apply(
-        static_cast<ValueType>(-1.0), mat_global_entry, x_shared_entry,
-        static_cast<ValueType>(1.0), r_shared_entry, item_ct1);
+    advanced_apply(static_cast<ValueType>(-1.0), mat_global_entry,
+                   x_shared_entry, static_cast<ValueType>(1.0), r_shared_entry,
+                   item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     if (sg_id == 0) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_norm2_sg(num_rows, r_shared_entry, res_norm,
-                                        item_ct1);
+        single_rhs_compute_norm2_sg(num_rows, r_shared_entry, res_norm,
+                                    item_ct1);
     } else if (sg_id == 1) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norm,
-                                        item_ct1);
+        single_rhs_compute_norm2_sg(num_rows, b_global_entry, rhs_norm,
+                                    item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -88,9 +117,8 @@ __dpct_inline__ void compute_alpha(const int num_rows, const ValueType& rho_new,
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
     if (sg_id == 0) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_conj_dot_sg(num_rows, r_hat_shared_entry,
-                                           v_shared_entry, alpha, item_ct1);
+        single_rhs_compute_conj_dot_sg(num_rows, r_hat_shared_entry,
+                                       v_shared_entry, alpha, item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
     if (tid == 0) {
@@ -126,13 +154,11 @@ __dpct_inline__ void compute_omega(const int num_rows,
     const auto sg_id = sg.get_group_id();
     const auto tid = item_ct1.get_local_linear_id();
     if (sg_id == 0) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
-                                           s_shared_entry, omega, item_ct1);
+        single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry, s_shared_entry,
+                                       omega, item_ct1);
     } else if (sg_id == 1) {
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-            single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry,
-                                           t_shared_entry, temp, item_ct1);
+        single_rhs_compute_conj_dot_sg(num_rows, t_shared_entry, t_shared_entry,
+                                       temp, item_ct1);
     }
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
     if (tid == 0) {
@@ -313,9 +339,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
 
         // rho_new =  < r_hat , r > = (r_hat)' * (r)
         if (sg_id == 0) {
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-                single_rhs_compute_conj_dot_sg(num_rows, r_hat_sh, r_sh,
-                                               rho_new_sh[0], item_ct1);
+            single_rhs_compute_conj_dot_sg(num_rows, r_hat_sh, r_sh,
+                                           rho_new_sh[0], item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -330,8 +355,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // v = A * p_hat
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
-            mat_global_entry, p_hat_sh, v_sh, item_ct1);
+        simple_apply(mat_global_entry, p_hat_sh, v_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // alpha = rho_new / < r_hat , v>
@@ -345,9 +369,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
 
         // an estimate of residual norms
         if (sg_id == 0) {
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-                single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0],
-                                            item_ct1);
+            single_rhs_compute_norm2_sg(num_rows, s_sh, norms_res_sh[0],
+                                        item_ct1);
         }
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
@@ -362,8 +385,7 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // t = A * s_hat
-        gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::simple_apply(
-            mat_global_entry, s_hat_sh, t_sh, item_ct1);
+        simple_apply(mat_global_entry, s_hat_sh, t_sh, item_ct1);
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         // omega = <t,s> / <t,t>
@@ -377,9 +399,8 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
         item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
         if (sg_id == 0)
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::
-                single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0],
-                                            item_ct1);
+            single_rhs_compute_norm2_sg(num_rows, r_sh, norms_res_sh[0],
+                                        item_ct1);
         if (tid == group_size - 1) {
             rho_old_sh[0] = rho_new_sh[0];
         }
@@ -389,7 +410,15 @@ void apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
     logger.log_iteration(batch_id, iter, norms_res_sh[0]);
 
     // copy x back to global memory
-    gko::kernels::GKO_DEVICE_NAMESPACE::batch_single_kernels::copy_kernel(
-        num_rows, x_sh, x_global_entry, item_ct1);
+    copy_kernel(num_rows, x_sh, x_global_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 }
+
+
+}  // namespace batch_single_kernels
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif

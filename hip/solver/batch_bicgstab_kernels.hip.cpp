@@ -4,9 +4,6 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -15,16 +12,9 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/uninitialized_array.hpp"
-#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
@@ -33,17 +23,7 @@
 namespace gko {
 namespace kernels {
 namespace hip {
-
-
-/**
- * @brief The batch Bicgstab solver namespace.
- *
- * @ingroup batch_bicgstab
- */
 namespace batch_bicgstab {
-
-
-#include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
 
 
 template <typename BatchMatrixType>
@@ -96,7 +76,7 @@ public:
         value_type* const __restrict__ workspace_data, const int& block_size,
         const size_t& shared_size) const
     {
-        apply_kernel<StopType, n_shared, prec_shared_bool>
+        batch_single_kernels::apply_kernel<StopType, n_shared, prec_shared_bool>
             <<<mat.num_batch_items, block_size, shared_size,
                exec_->get_stream()>>>(sconf, settings_.max_iterations,
                                       settings_.residual_tol, logger, prec, mat,

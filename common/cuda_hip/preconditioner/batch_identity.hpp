@@ -2,6 +2,25 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_IDENTITY_HPP_
+#define GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_IDENTITY_HPP_
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_preconditioner {
+
+
 /**
  * @see reference/preconditioner/batch_identity.hpp
  */
@@ -31,3 +50,12 @@ public:
         }
     }
 };
+
+
+}  // namespace batch_preconditioner
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif

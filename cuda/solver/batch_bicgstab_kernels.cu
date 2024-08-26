@@ -4,26 +4,14 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-#include <thrust/functional.h>
-#include <thrust/transform.h>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-#include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
-#include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/cooperative_groups.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/thread_ids.hpp"
-#include "common/cuda_hip/components/warp_blas.hpp"
-#include "common/cuda_hip/matrix/batch_csr_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_dense_kernels.hpp"
-#include "common/cuda_hip/matrix/batch_ell_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
@@ -32,17 +20,7 @@
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-/**
- * @brief The batch Bicgstab solver namespace.
- *
- * @ingroup batch_bicgstab
- */
 namespace batch_bicgstab {
-
-
-#include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp.inc"
 
 
 template <typename StopType, typename PrecType, typename LogType,
@@ -56,9 +34,10 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     const int device_max_threads =
         ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 9, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>);
     const int num_regs_used = funcattr.numRegs;
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
@@ -80,13 +59,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        apply_kernel<StopType, 9, true, PrecType, LogType, BatchMatrixType,
-                     ValueType>,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>,
         cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 9, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>);
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -116,7 +96,7 @@ public:
         value_type* const __restrict__ workspace_data, const int& block_size,
         const size_t& shared_size) const
     {
-        apply_kernel<StopType, n_shared, prec_shared_bool>
+        batch_single_kernels::apply_kernel<StopType, n_shared, prec_shared_bool>
             <<<mat.num_batch_items, block_size, shared_size,
                exec_->get_stream()>>>(sconf, settings_.max_iterations,
                                       settings_.residual_tol, logger, prec, mat,

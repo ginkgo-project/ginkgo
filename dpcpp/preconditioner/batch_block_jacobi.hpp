@@ -2,6 +2,33 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_DPCPP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
+#define GKO_DPCPP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
+
+
+#include <memory>
+
+#include <CL/sycl.hpp>
+
+#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
+#include "core/preconditioner/batch_jacobi_helpers.hpp"
+#include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
+#include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/matrix/batch_struct.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace batch_preconditioner {
+
+
 /**
  * BlockJacobi preconditioner for batch solvers.
  */
@@ -129,3 +156,10 @@ private:
     const int* __restrict__ const block_ptrs_arr_;
     const int* __restrict__ const row_block_map_;
 };
+
+}  // namespace batch_preconditioner
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
+
+#endif
