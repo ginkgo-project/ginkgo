@@ -46,6 +46,7 @@ target_sources(${ginkgo_core}
     factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
+    factorization/ilut.cpp
     factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp

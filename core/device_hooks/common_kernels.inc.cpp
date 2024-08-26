@@ -24,6 +24,7 @@
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/ilut_kernels.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
@@ -877,6 +878,16 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
 
 
 }  // namespace ilu_factorization
+
+
+namespace ilut_factorization {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILUT_INITIALIZE_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILUT_COMPUTE_LU_FACTORS_KERNEL);
+
+
+}  // namespace ilut_factorization
 
 
 namespace lu_factorization {

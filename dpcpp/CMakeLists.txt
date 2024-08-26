@@ -26,6 +26,7 @@ target_sources(ginkgo_dpcpp
     factorization/cholesky_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
+    factorization/ilut_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
     factorization/lu_kernels.dp.cpp
     factorization/par_ic_kernels.dp.cpp

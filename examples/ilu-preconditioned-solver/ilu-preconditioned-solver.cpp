@@ -74,6 +74,21 @@ int main(int argc, char* argv[])
                                  false>::build()
             .on(exec);
 
+    auto gko_ilu =
+        gko::share(gko::factorization::Ilut<ValueType, IndexType>::build()
+                       //		       .with_approximate_select(false)
+                       .on(exec)
+                       ->generate(A));
+    std::cout << "Finish GKO ILU" << std::endl;
+    {
+        std::ofstream L("gL.mtx");
+        std::ofstream U("gU.mtx");
+        gko::write(L, gko_ilu->get_l_factor());
+        gko::write(U, gko_ilu->get_u_factor());
+    }
+
+    std::exit(-1);
+
     // Use incomplete factors to generate ILU preconditioner
     auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));
 

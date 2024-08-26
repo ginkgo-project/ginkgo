@@ -13,6 +13,7 @@ set(CUDA_HIP_SOURCES
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
+    factorization/ilut_kernels.cpp
     factorization/lu_kernels.cpp
     factorization/par_ic_kernels.cpp
     factorization/par_ict_kernels.cpp
