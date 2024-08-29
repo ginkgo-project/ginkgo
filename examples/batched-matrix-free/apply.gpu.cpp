@@ -13,7 +13,7 @@
 
 using ValueType = double;
 
-__device__ __noinline__ void advanced_apply_hip(
+__device__ __noinline__ void advanced_apply_gpu(
     gko::size_type id, gko::dim<2> size, const ValueType alpha,
     const ValueType* b, const ValueType beta, ValueType* x, void* payload)
 {
@@ -37,11 +37,11 @@ __device__ __noinline__ void advanced_apply_hip(
     }
 }
 
-__device__ __noinline__ void advanced_apply_generic_hip(
+__device__ __noinline__ void advanced_apply_generic_gpu(
     gko::size_type id, gko::dim<2> size, const void* alpha, const void* b,
     const void* beta, void* x, void* payload)
 {
-    advanced_apply_hip(id, size, *reinterpret_cast<const ValueType*>(alpha),
+    advanced_apply_gpu(id, size, *reinterpret_cast<const ValueType*>(alpha),
                        reinterpret_cast<const ValueType*>(b),
                        *reinterpret_cast<const ValueType*>(beta),
                        reinterpret_cast<ValueType*>(x), payload);
@@ -49,20 +49,20 @@ __device__ __noinline__ void advanced_apply_generic_hip(
 
 __device__ __constant__
     gko::batch::matrix::external_apply::advanced_type advanced_apply_ptr =
-        advanced_apply_generic_hip;
+        advanced_apply_generic_gpu;
 
 
-__device__ void simple_apply_generic_hip(gko::size_type id, gko::dim<2> size,
+__device__ void simple_apply_generic_gpu(gko::size_type id, gko::dim<2> size,
                                          const void* b, void* x, void* payload)
 {
-    advanced_apply_hip(
+    advanced_apply_gpu(
         id, size, gko::one<ValueType>(), reinterpret_cast<const ValueType*>(b),
         gko::zero<ValueType>(), reinterpret_cast<ValueType*>(x), payload);
 }
 
 __device__ __constant__
     gko::batch::matrix::external_apply::simple_type simple_apply_ptr =
-        simple_apply_generic_hip;
+        simple_apply_generic_gpu;
 
 
 __global__ void print_dummy(gko::batch::matrix::external_apply::simple_type ptr)
