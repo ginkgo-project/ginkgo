@@ -38,56 +38,6 @@ using advanced_type = void (*)(gko::size_type id, dim<2> size,
 
 }  // namespace external_apply
 
-// struct ExternalOperation {
-//     __device__ virtual void simple_apply_cpu(gko::size_type id, dim<2> size,
-//                                              const void* b, void* x,
-//                                              void* payload)
-//     {}
-//
-//     __device__ virtual void simple_apply_cuda(gko::size_type id, dim<2> size,
-//                                               const void* b, void* x,
-//                                               void* payload)
-//     {}
-//
-//     __device__ virtual void simple_apply_hip(gko::size_type id, dim<2> size,
-//                                              const void* b, void* x,
-//                                              void* payload)
-//     {}
-//
-//     __device__ virtual void simple_apply_sycl(gko::size_type id, dim<2> size,
-//                                               const void* b, void* x,
-//                                               void* payload)
-//     {}
-//
-//     __device__ virtual void advanced_apply_cpu(gko::size_type id, dim<2>
-//     size,
-//                                                const void* alpha, const void*
-//                                                b, const void* beta, void* x,
-//                                                void* payload)
-//     {}
-//
-//     __device__ virtual void advanced_apply_cuda(gko::size_type id, dim<2>
-//     size,
-//                                                 const void* alpha,
-//                                                 const void* b, const void*
-//                                                 beta, void* x, void* payload)
-//     {}
-//
-//     __device__ virtual void advanced_apply_hip(gko::size_type id, dim<2>
-//     size,
-//                                                const void* alpha, const void*
-//                                                b, const void* beta, void* x,
-//                                                void* payload)
-//     {}
-//
-//     __device__ virtual void advanced_apply_sycl(gko::size_type id, dim<2>
-//     size,
-//                                                 const void* alpha,
-//                                                 const void* b, const void*
-//                                                 beta, void* x, void* payload)
-//     {}
-// };
-
 
 /**
  * Matrix format that uses externally provided function pointer for the
@@ -129,47 +79,6 @@ public:
         functor_operation<external_apply::advanced_type> advanced_apply,
         void* payload);
 
-    /**
-     * Apply the matrix to a multi-vector. Represents the matrix vector
-     * multiplication, x = A * b, where x and b are both multi-vectors.
-     *
-     * @param b  the multi-vector to be applied to
-     * @param x  the output multi-vector
-     */
-    External* apply(ptr_param<const MultiVector<value_type>> b,
-                    ptr_param<MultiVector<value_type>> x);
-
-    /**
-     * Apply the matrix to a multi-vector with a linear combination of the given
-     * input vector. Represents the matrix vector multiplication, x = alpha * A
-     * * b + beta * x, where x and b are both multi-vectors.
-     *
-     * @param alpha  the scalar to scale the matrix-vector product with
-     * @param b      the multi-vector to be applied to
-     * @param beta   the scalar to scale the x vector with
-     * @param x      the output multi-vector
-     */
-    External* apply(ptr_param<const MultiVector<value_type>> alpha,
-                    ptr_param<const MultiVector<value_type>> b,
-                    ptr_param<const MultiVector<value_type>> beta,
-                    ptr_param<MultiVector<value_type>> x);
-
-    /**
-     * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
-     */
-    const External* apply(ptr_param<const MultiVector<value_type>> b,
-                          ptr_param<MultiVector<value_type>> x) const;
-
-    /**
-     * @copydoc apply(const MultiVector<value_type>*, const
-     * MultiVector<value_type>*, const MultiVector<value_type>*,
-     * MultiVector<value_type>*)
-     */
-    const External* apply(ptr_param<const MultiVector<value_type>> alpha,
-                          ptr_param<const MultiVector<value_type>> b,
-                          ptr_param<const MultiVector<value_type>> beta,
-                          ptr_param<MultiVector<value_type>> x) const;
-
     functor_operation<external_apply::simple_type> get_simple_apply_functions()
         const
     {
@@ -191,14 +100,6 @@ private:
              functor_operation<external_apply::simple_type> simple_apply,
              functor_operation<external_apply::advanced_type> advanced_apply,
              void* payload);
-
-    void apply_impl(const MultiVector<value_type>* b,
-                    MultiVector<value_type>* x) const;
-
-    void apply_impl(const MultiVector<value_type>* alpha,
-                    const MultiVector<value_type>* b,
-                    const MultiVector<value_type>* beta,
-                    MultiVector<value_type>* x) const;
 
     functor_operation<external_apply::simple_type> simple_apply_;
     functor_operation<external_apply::advanced_type> advanced_apply_;

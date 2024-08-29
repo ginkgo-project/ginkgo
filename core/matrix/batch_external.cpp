@@ -23,50 +23,6 @@ std::unique_ptr<External<ValueType>> External<ValueType>::create(
 
 
 template <typename ValueType>
-External<ValueType>* External<ValueType>::apply(
-    ptr_param<const MultiVector<value_type>> b,
-    ptr_param<MultiVector<value_type>> x)
-{
-    const_cast<const External*>(this)->apply(b, x);
-    return this;
-}
-
-
-template <typename ValueType>
-External<ValueType>* External<ValueType>::apply(
-    ptr_param<const MultiVector<value_type>> alpha,
-    ptr_param<const MultiVector<value_type>> b,
-    ptr_param<const MultiVector<value_type>> beta,
-    ptr_param<MultiVector<value_type>> x)
-{
-    const_cast<const External*>(this)->apply(alpha, b, beta, x);
-    return this;
-}
-
-
-template <typename ValueType>
-const External<ValueType>* External<ValueType>::apply(
-    ptr_param<const MultiVector<value_type>> b,
-    ptr_param<MultiVector<value_type>> x) const
-{
-    apply_impl(b.get(), x.get());
-    return this;
-}
-
-
-template <typename ValueType>
-const External<ValueType>* External<ValueType>::apply(
-    ptr_param<const MultiVector<value_type>> alpha,
-    ptr_param<const MultiVector<value_type>> b,
-    ptr_param<const MultiVector<value_type>> beta,
-    ptr_param<MultiVector<value_type>> x) const
-{
-    apply_impl(alpha.get(), b.get(), beta.get(), x.get());
-    return this;
-}
-
-
-template <typename ValueType>
 External<ValueType>::External(std::shared_ptr<const Executor> exec)
     : EnableBatchLinOp<External<ValueType>>(std::move(exec))
 {}
@@ -82,20 +38,6 @@ External<ValueType>::External(
       simple_apply_(simple_apply),
       advanced_apply_(advanced_apply),
       payload_(payload)
-{}
-
-
-template <typename ValueType>
-void External<ValueType>::apply_impl(const MultiVector<ValueType>* b,
-                                     MultiVector<ValueType>* x) const
-{}
-
-
-template <typename ValueType>
-void External<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
-                                     const MultiVector<ValueType>* b,
-                                     const MultiVector<ValueType>* beta,
-                                     MultiVector<ValueType>* x) const
 {}
 
 
