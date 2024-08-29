@@ -7,7 +7,6 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Determine which modules can be compiled
-include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
