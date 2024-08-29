@@ -6,9 +6,13 @@ if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.9.0 REQUIRED)
 endif ()
 
-include(CheckLanguage)
-check_language(CUDA)
-check_language(HIP)
+include(FetchContent)
+FetchContent_Declare(
+        cxxopts
+        GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+        GIT_TAG        v3.2.0
+)
+FetchContent_MakeAvailable(cxxopts)
 
 set(language CXX)
 set(compile_defs "DISABLE_GPU")
@@ -29,7 +33,7 @@ endif ()
 
 add_executable(batched-matrix-free batched-matrix-free.cpp ${apply_src})
 set_target_properties(batched-matrix-free PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-target_link_libraries(batched-matrix-free Ginkgo::ginkgo)
+target_link_libraries(batched-matrix-free Ginkgo::ginkgo cxxopts::cxxopts)
 
 set_source_files_properties(apply.gpu.cpp PROPERTIES COMPILE_DEFINITIONS ${compile_defs})
 set_source_files_properties(apply.gpu.cpp PROPERTIES LANGUAGE ${language})
