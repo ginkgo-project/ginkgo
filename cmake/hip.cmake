@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+
+include(cmake/hip_helpers.cmake)
+include(CheckLanguage)
+check_language(HIP)
+ginkgo_check_hip_detection_issue()
+
 enable_language(HIP)
 
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
@@ -17,29 +23,7 @@ else()
     set(GINKGO_HIP_PLATFORM_HCC 1)
 endif()
 
-find_program(
-    HIP_HIPCONFIG_EXECUTABLE
-    NAMES hipconfig
-    PATHS
-    "${HIP_ROOT_DIR}"
-    ENV ROCM_PATH
-    ENV HIP_PATH
-    /opt/rocm
-    /opt/rocm/hip
-    PATH_SUFFIXES bin
-    NO_DEFAULT_PATH
-)
-if(NOT HIP_HIPCONFIG_EXECUTABLE)
-    # Now search in default paths
-    find_program(HIP_HIPCONFIG_EXECUTABLE hipconfig)
-endif()
-
-execute_process(
-        COMMAND ${HIP_HIPCONFIG_EXECUTABLE} --version
-        OUTPUT_VARIABLE GINKGO_HIP_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_STRIP_TRAILING_WHITESPACE
-)
+ginkgo_find_hip_version()
 
 find_package(hipblas REQUIRED)
 find_package(hipfft) # optional dependency
