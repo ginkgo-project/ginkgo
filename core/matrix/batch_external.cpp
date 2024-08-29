@@ -38,7 +38,27 @@ External<ValueType>::External(
       simple_apply_(simple_apply),
       advanced_apply_(advanced_apply),
       payload_(payload)
-{}
+{
+    auto exec_ = this->get_executor();
+    if (dynamic_cast<const OmpExecutor*>(exec_.get())) {
+        GKO_THROW_IF_INVALID(
+            simple_apply_.cpu_apply && advanced_apply_.cpu_apply,
+            "cpu_apply needs to be set when "
+            "running on ReferenceExecutor or OmpExecutor");
+    } else if (dynamic_cast<const CudaExecutor*>(exec_.get())) {
+        GKO_THROW_IF_INVALID(
+            simple_apply_.cuda_apply && advanced_apply_.cuda_apply,
+            "cuda_apply needs to be set when running on CudaExecutor");
+    } else if (dynamic_cast<const HipExecutor*>(exec_.get())) {
+        GKO_THROW_IF_INVALID(
+            simple_apply_.hip_apply && advanced_apply_.hip_apply,
+            "hip_apply needs to be set when running on HipExecutor");
+    } else if (dynamic_cast<const DpcppExecutor*>(exec_.get())) {
+        GKO_THROW_IF_INVALID(
+            simple_apply_.sycl_apply && advanced_apply_.sycl_apply,
+            "sycl_apply needs to be set when running on DpcppExecutor");
+    }
+}
 
 
 #define GKO_DECLARE_BATCH_MATRIX_EXTERNAL(_vtype) class External<_vtype>
