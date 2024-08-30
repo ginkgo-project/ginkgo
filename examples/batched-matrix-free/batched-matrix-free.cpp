@@ -26,7 +26,7 @@ using index_type = int;
 using size_type = gko::size_type;
 using vec_type = gko::batch::MultiVector<value_type>;
 using real_vec_type = gko::batch::MultiVector<real_type>;
-using mtx_type = gko::batch::matrix::Ell<value_type, index_type>;
+using mtx_type = gko::batch::matrix::Csr<value_type, index_type>;
 using ext_type = gko::batch::matrix::External<value_type>;
 using cg = gko::batch::solver::Cg<value_type>;
 
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
         "executor", "The Ginkgo Executor type",
         cxxopts::value<std::string>()->default_value("reference"))(
         "b,batches", "The number of batches",
-        cxxopts::value<size_type>()->default_value("2"))(
+        cxxopts::value<value_type>()->default_value("2"))(
         "s,size", "The (square) size of a batch item",
         cxxopts::value<size_type>()->default_value("32"))(
         "print-residuals", "Print the final residuals",
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    auto num_systems = args["batches"].as<size_type>();
+    auto num_systems = static_cast<size_type>(args["batches"].as<value_type>());
     auto num_rows = args["size"].as<size_type>();
 
     if (num_rows < 2) {
@@ -149,13 +149,14 @@ int main(int argc, char* argv[])
                           .hip_apply = get_gpu_advanced_apply_ptr()},
                          payload.get_data()));
 
-    auto A_mtx = gko::share(mtx_type::create(exec, batch_mat_size, 3));
+    auto A_mtx =
+        gko::share(mtx_type::create(exec->get_master(), batch_mat_size, nnz));
 
     if (args["print-residuals"].as<bool>() || !args["matrix-free"].as<bool>()) {
         gko::matrix_data<value_type, index_type> md(
             batch_mat_size.get_common_size());
-        auto create_batch = [batch_mat_size, num_rows, nnz,
-                             &md](gko::size_type id) {
+        auto create_batch = [batch_mat_size, num_rows, nnz](gko::size_type id,
+                                                            auto& md) {
             md.nonzeros.reserve(nnz);
             for (index_type i = 0; i < num_rows; ++i) {
                 if (i > 0) {
@@ -168,13 +169,15 @@ int main(int argc, char* argv[])
                     md.nonzeros.emplace_back(i, i + 1, -1);
                 }
             }
-            return md;
         };
+#pragma omp parallel for firstprivate(md)
         for (gko::size_type id = 0; id < batch_mat_size.get_num_batch_items();
              ++id) {
             md.nonzeros.clear();
-            A_mtx->create_view_for_item(id)->read(create_batch(id));
+            create_batch(id, md);
+            A_mtx->create_view_for_item(id)->read(md);
         }
+        A_mtx = gko::clone(exec, A_mtx);
     }
 
     // @sect3{RHS and solution vectors}
