@@ -31,9 +31,11 @@ else ()
     list(APPEND apply_src apply.not-impl.cpp)
 endif ()
 
+find_package(OpenMP REQUIRED)
+
 add_executable(batched-matrix-free batched-matrix-free.cpp ${apply_src})
 set_target_properties(batched-matrix-free PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-target_link_libraries(batched-matrix-free Ginkgo::ginkgo cxxopts::cxxopts)
+target_link_libraries(batched-matrix-free Ginkgo::ginkgo cxxopts::cxxopts OpenMP::OpenMP_CXX)
 
 set_source_files_properties(apply.gpu.cpp PROPERTIES COMPILE_DEFINITIONS ${compile_defs})
 set_source_files_properties(apply.gpu.cpp PROPERTIES LANGUAGE ${language})
