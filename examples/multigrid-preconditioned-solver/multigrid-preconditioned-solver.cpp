@@ -18,7 +18,10 @@ int main(int argc, char* argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using cg = gko::solver::Cg<ValueType>;
+    using gmres = gko::solver::Gmres<ValueType>;
+    using ilu = gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType>,
+                                         gko::solver::UpperTrs<ValueType>>;
+    using fact_ilu = gko::factorization::Ilu<ValueType>;
     using mg = gko::solver::Multigrid;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
@@ -79,11 +82,13 @@ int main(int argc, char* argv[])
     multigrid_gen =
         mg::build()
             .with_mg_level(pgm::build().with_deterministic(true))
+            .with_pre_smoother(
+                ilu::build().with_factorization(fact_ilu::build()))
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     const gko::remove_complex<ValueType> tolerance = 1e-8;
     auto solver_gen =
-        cg::build()
+        gmres::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_baseline(gko::stop::mode::absolute)
@@ -122,13 +127,13 @@ int main(int argc, char* argv[])
     write(std::cout, res);
 
     // Print solver statistics
-    std::cout << "CG iteration count:     " << logger->get_num_iterations()
+    std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
               << std::endl;
-    std::cout << "CG generation time [ms]: "
+    std::cout << "GMRES generation time [ms]: "
               << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
-    std::cout << "CG execution time [ms]: "
+    std::cout << "GMRES execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
-    std::cout << "CG execution time per iteration[ms]: "
+    std::cout << "GMRES execution time per iteration[ms]: "
               << static_cast<double>(time.count()) / 1000000.0 /
                      logger->get_num_iterations()
               << std::endl;
