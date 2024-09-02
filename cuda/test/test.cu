@@ -10,7 +10,11 @@
 
 __global__ void isnan_direct(double* d) { *d = isnan(*d); }
 
-__host__ __device__ bool is_nan(double d) { return isnan(d); }
+__host__ __device__ bool is_nan(double d)
+{
+    using std::isnan;
+    return isnan(d);
+}
 
 __global__ void isnan_indirect(double* d) { *d = is_nan(*d); }
 
