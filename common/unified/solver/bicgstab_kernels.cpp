@@ -174,11 +174,18 @@ void finalize(std::shared_ptr<const DefaultExecutor> exec,
                       auto stop) {
             if (stop[col].has_stopped() && !stop[col].is_finalized()) {
                 x(row, col) += alpha[col] * y(row, col);
-                stop[col].finalize();
             }
         },
         x->get_size(), y->get_stride(), x, default_stride(y), row_vector(alpha),
         *stop_status);
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto col, auto stop) {
+            if (stop[col].has_stopped() && !stop[col].is_finalized()) {
+                stop[col].finalize();
+            }
+        },
+        x->get_size()[1], *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
