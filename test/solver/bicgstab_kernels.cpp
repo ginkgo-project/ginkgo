@@ -245,6 +245,48 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
 }
 
 
+TEST_F(Bicgstab, BicgstabFinalizeIsEquivalentToRefWithoutRaceCondition)
+{
+    /**
+     * This test is designed to detect the following problem. Originally, we
+     * assigned threads per value to update the value and the stop status if the
+     * stop status is stopped but not finished yet. However, it leads to race
+     * conditions. If all threads see stop status before the update, all values
+     * will be correctly updated. It is also possible that some threads already
+     * finalize the stop status, but the rest see the stop status as finalized
+     * such that they will not update the value. We make this test case large to
+     * trigger this race condition more easily. However, it is not guaranteed to
+     * fail with the old version because of race conditions.
+     */
+    int m = 1e6;
+    int n = 2;
+    x = gen_mtx(m, n, n);
+    y = gen_mtx(m, n, n);
+    alpha = gen_mtx(1, n, n);
+    d_x = x->clone(exec);
+    d_y = y->clone(exec);
+    d_alpha = alpha->clone(exec);
+    stop_status = std::make_unique<gko::array<gko::stopping_status>>(ref, n);
+    for (size_t i = 0; i < n; ++i) {
+        stop_status->get_data()[i].reset();
+    }
+    // check correct handling for stopped columns
+    stop_status->get_data()[1].stop(1);
+    // finalize only update the stopped one but not finished yet
+    stop_status->get_data()[0].stop(1, false);
+    d_stop_status =
+        std::make_unique<gko::array<gko::stopping_status>>(exec, *stop_status);
+
+    gko::kernels::reference::bicgstab::finalize(ref, x.get(), y.get(),
+                                                alpha.get(), stop_status.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::finalize(
+        exec, d_x.get(), d_y.get(), d_alpha.get(), d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
+}
+
+
 TEST_F(Bicgstab, BicgstabApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
