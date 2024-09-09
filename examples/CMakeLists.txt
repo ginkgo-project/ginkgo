@@ -103,4 +103,18 @@ if(GINKGO_BUILD_TESTS)
                      "${CMAKE_CURRENT_SOURCE_DIR}/${example}")
         endforeach()
     endforeach()
+
+    file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
+    foreach(config IN LISTS config_list)
+        get_filename_component(config_name "${config}" NAME_WE)
+        foreach(executor IN LISTS executors)
+            add_test(NAME example_file-config-solver_${config_name}_${executor} 
+                     COMMAND 
+                     "$<TARGET_FILE:file-config-solver>"
+                     "${executor}" "config/${config_name}.json"
+                     WORKING_DIRECTORY
+                     "${CMAKE_CURRENT_BINARY_DIR}/file-config-solver")
+        endforeach()    
+    endforeach()
+        
 endif()
