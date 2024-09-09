@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -91,7 +92,7 @@ int main(int argc, char* argv[])
     //                              level)
     auto config = gko::ext::config::parse_json_file(configfile);
     // Create the registry, which allows passing the existing data into config
-    // This example does not show the usage
+    // This example does not use existing data.
     auto reg = gko::config::registry();
     // Create the default type descriptor, which gives the default common type
     // (value/index) for solver generation. If the solver does not specify value
@@ -101,12 +102,11 @@ int main(int argc, char* argv[])
     auto solver_gen = gko::config::parse(config, reg, td).on(exec);
 
     // Create solver
-    std::chrono::nanoseconds gen_time(0);
-    auto gen_tic = std::chrono::steady_clock::now();
+    const auto gen_tic = std::chrono::steady_clock::now();
     auto solver = solver_gen->generate(A);
     exec->synchronize();
-    auto gen_toc = std::chrono::steady_clock::now();
-    gen_time +=
+    const auto gen_toc = std::chrono::steady_clock::now();
+    const auto gen_time =
         std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
     // Add logger
@@ -116,12 +116,12 @@ int main(int argc, char* argv[])
 
     // Solve system
     exec->synchronize();
-    std::chrono::nanoseconds time(0);
-    auto tic = std::chrono::steady_clock::now();
+    const auto tic = std::chrono::steady_clock::now();
     solver->apply(b, x);
     exec->synchronize();
-    auto toc = std::chrono::steady_clock::now();
-    time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+    const auto toc = std::chrono::steady_clock::now();
+    const auto time =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Print out the solver config
     std::cout << "Config file: " << configfile << std::endl;

@@ -13,9 +13,7 @@ target_link_libraries(file-config-solver Ginkgo::ginkgo nlohmann_json::nlohmann_
 # Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
 # Copy the config files to the execution directory
-configure_file(config/cg.json config/cg.json COPYONLY)
-configure_file(config/blockjacobi-cg.json config/blockjacobi-cg.json COPYONLY)
-configure_file(config/ir.json config/ir.json COPYONLY)
-configure_file(config/mixed-pgm-multigrid-cg.json config/mixed-pgm-multigrid-cg.json COPYONLY)
-configure_file(config/parilu-gmres.json config/parilu-gmres.json COPYONLY)
-configure_file(config/pgm-multigrid-cg.json config/pgm-multigrid-cg.json COPYONLY)
+file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" config/*.json)
+foreach(config IN LISTS config_list)
+    configure_file("${config}" "${config}" COPYONLY)
+endforeach()
