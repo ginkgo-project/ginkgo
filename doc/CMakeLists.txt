@@ -1,4 +1,4 @@
-add_subdirectory(doxygen)
+add_subdirectory(_doxygen)
 
 find_program(sphinx-build
     NAMES sphinx-build

@@ -81,5 +81,5 @@ myst_enable_extensions = [
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
 doxylink = {
-    'gko': ('doxygen/Ginkgo.tag', '../doxygen/usr')
+    'gko': ('_doxygen/Ginkgo.tag', '../_doxygen/usr')
 }
