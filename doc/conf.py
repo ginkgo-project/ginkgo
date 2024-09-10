@@ -32,6 +32,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_sitemap',
     'sphinx.ext.inheritance_diagram',
+    'sphinxcontrib.doxylink',
 ]
 
 templates_path = ['_templates']
@@ -57,6 +58,8 @@ html_theme_options = {
     'titles_only': False
 }
 html_static_path = ['_static']
+html_logo = '../assets/logo.png'
+html_title = f'Version {release}'
 
 html_baseurl = "https://greole.github.io/ginkgo"
 
@@ -74,12 +77,9 @@ myst_enable_extensions = [
     "smartquotes"
 ]
 
+# -- doxylink configuration -------------------------------------------------
+# https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
-# -- breathe configuration ---------------------------------------------------
-# https://breathe.readthedocs.io/en/latest/quickstart.html
-
-breathe_projects = {
-    "Ginkgo": "_build/xml/"
+doxylink = {
+    'gko': ('doxygen/Ginkgo.tag', '../doxygen/usr')
 }
-breathe_default_project = "Ginkgo"
-breathe_default_members = ('members', 'undoc-members')

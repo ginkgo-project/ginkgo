@@ -3,4 +3,4 @@ sphinx_sitemap
 furo
 myst-parser
 linkify-it-py
-breathe
+sphinxcontrib-doxylink
