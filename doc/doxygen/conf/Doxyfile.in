@@ -99,6 +99,8 @@ MAX_DOT_GRAPH_DEPTH    = 5
 
 DOT_CLEANUP            = YES
 
+GENERATE_TAGFILE       = Ginkgo.tag
+
 # HTML-specific configuration
 HTML_OUTPUT            = .
 HTML_FILE_EXTENSION    = .html
