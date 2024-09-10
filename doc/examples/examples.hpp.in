@@ -382,7 +382,14 @@
  *         @ref mixed_multigrid_solver
  *     </td>
  *   </tr>
-
+ * 
+ *   <tr valign="top">
+ *     <td> Configure a solver from a config file
+ *     </td>
+ *     <td>@ref file_config_solver
+ *     </td>
+ *   </tr>
+ * 
  *   <tr valign="top">
  *     <td> Distributed
  *     </td>
