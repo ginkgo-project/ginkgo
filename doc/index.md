@@ -24,9 +24,9 @@ The Ginkgo library can be grouped into {gko}`modules` and these modules form the
 % their full reference syntax in the toctree
 
 Tutorial <https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver>
-Examples <../_doxygen/usr/Examples.html#https://>
+Examples <_doxygen/usr/Examples.html#https://>
 Publications <publications>
 contributing
 Using Ginkgo <using-ginkgo>
-API <../_doxygen/usr/index.html#https://>
+API <_doxygen/usr/index.html#https://>
 :::
