@@ -1,5 +1,4 @@
 GENERATE_HTML          = YES
-GENERATE_XML           = YES
 
 # this is used to hide protected members
 PREDEFINED = @default_predefined_macros@ protected=private

@@ -113,6 +113,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         examples
         ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile.in
         ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile-${name}.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/header.html
         ${doxyfile}
         ${layout}
         ${doxygen_depend}

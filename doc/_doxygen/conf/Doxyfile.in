@@ -23,7 +23,6 @@ STRIP_FROM_PATH        = @DIR_BASE@/include
 STRIP_FROM_INC_PATH    = @DIR_BASE@/include
 EXCLUDE_PATTERNS       = */test/*
 PROJECT_LOGO           = @DIR_BASE@/assets/logo_doc.png
-PROJECT_ICON           = @DIR_BASE@/assets/favicon.ico
 USE_MDFILE_AS_MAINPAGE = @MAINPAGE@
 FILTER_PATTERNS        = *.cpp=@DIR_SCRIPT@/filter *.hpp=@DIR_SCRIPT@/filter *.cu*=@DIR_SCRIPT@/filter
 FILTER_SOURCE_FILES    = YES
@@ -115,7 +114,8 @@ HTML_EXTRA_STYLESHEET  = @DOC_BASE@/css/doxygen-awesome.css \
                          @DOC_BASE@/css/doxygen-awesome-sidebar-only.css \
                          @DOC_BASE@/css/doxygen-awesome-sidebar-only-darkmode-toggle.css \
                          @DOC_BASE@/stylesheet.css
-HTML_EXTRA_FILES       = @DOC_BASE@/css/doxygen-awesome-darkmode-toggle.js
+HTML_EXTRA_FILES       = @DOC_BASE@/css/doxygen-awesome-darkmode-toggle.js \
+                         @DIR_BASE@/assets/favicon.ico
 HTML_COLORSTYLE        = LIGHT
 DISABLE_INDEX          = NO
 FULL_SIDEBAR           = NO
