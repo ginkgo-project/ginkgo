@@ -65,7 +65,16 @@ html_logo = '../assets/logo_doc.png'
 html_favicon = '../assets/favicon.ico'
 html_title = f'{project} v{release}'
 
-html_baseurl = "https://greole.github.io/ginkgo"
+# Define the canonical URL if you are using a custom domain on Read the Docs
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+# Tell Jinja2 templates the build is running on Read the Docs
+if read_the_docs_build:
+    if "html_context" not in globals():
+        html_context = {}
+    html_context["READTHEDOCS"] = True
 
 
 # -- MyST configuration -------------------------------------------------------
@@ -83,8 +92,6 @@ myst_enable_extensions = [
 
 # -- doxylink configuration -------------------------------------------------
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
-
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
 if read_the_docs_build:
     doxygen_dir = os.environ['READTHEDOCS_OUTPUT']
