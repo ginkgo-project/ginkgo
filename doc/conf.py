@@ -2,6 +2,9 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+import os
+import subprocess
+from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -77,9 +80,29 @@ myst_enable_extensions = [
     "smartquotes"
 ]
 
+# -- Setup Doxygen ----------------------------------------------------------
+
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+if read_the_docs_build:
+    ginkgo_root = (Path(__file__) / "..").resolve()
+    ginkgo_include = (ginkgo_root / "include").resolve()
+    build_dir = (ginkgo_root / "build").resolve()
+
+    subprocess.run(['cmake', '--build', build_dir, '-t', 'usr'])
+else:
+    pass
+
+
 # -- doxylink configuration -------------------------------------------------
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
-doxylink = {
-    'gko': ('_doxygen/Ginkgo.tag', '../_doxygen/usr')
-}
+if read_the_docs_build:
+    doxylink = {
+        'gko': (f'{build_dir}/doc/_doxygen/Ginkgo.tag', f'{build_dir}/doc/_doxygen/usr')
+    }
+else:
+    doxylink = {
+        'gko': ('_doxygen/Ginkgo.tag', '../_doxygen/usr')
+    }
