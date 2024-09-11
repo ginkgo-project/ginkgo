@@ -101,7 +101,7 @@ myst_enable_extensions = [
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
 if read_the_docs_build:
-    doxygen_dir = os.environ['$READTHEDOCS_OUTPUT']
+    doxygen_dir = os.environ['READTHEDOCS_OUTPUT']
     doxylink = {
         'gko': (f'{doxygen_dir}/Ginkgo.tag', f'{doxygen_dir}/usr')
     }
