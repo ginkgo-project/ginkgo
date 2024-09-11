@@ -62,6 +62,7 @@ html_theme_options = {
 }
 html_static_path = ['_static']
 html_logo = '../assets/logo_doc.png'
+html_favicon = '../assets/favicon.ico'
 html_title = f'{project} v{release}'
 
 html_baseurl = "https://greole.github.io/ginkgo"
