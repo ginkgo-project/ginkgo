@@ -11,6 +11,7 @@ build:
   apt_packages:
     - doxygen
     - cmake
+    - graphviz
   tools:
     python: "3.11"
     # You can also specify other tool versions:
@@ -31,6 +32,7 @@ build:
         cmake --build build -t usr
         mkdir -p $READTHEDOCS_OUTPUT/html/
         mv build/doc/_doxygen $READTHEDOCS_OUTPUT/html/_doxygen
+        ls $READTHEDOCS_OUTPUT/html/_doxygen
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
