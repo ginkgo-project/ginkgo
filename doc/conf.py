@@ -102,6 +102,8 @@ read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
 if read_the_docs_build:
     doxygen_dir = os.environ['READTHEDOCS_OUTPUT']
+    if doxygen_dir is None:
+        raise RuntimeError()
     doxylink = {
         'gko': (f'{doxygen_dir}/Ginkgo.tag', f'{doxygen_dir}/usr')
     }
