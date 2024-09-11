@@ -79,28 +79,31 @@ myst_enable_extensions = [
     "replacements",
     "smartquotes"
 ]
-
-# -- Setup Doxygen ----------------------------------------------------------
-
-
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
-
-if read_the_docs_build:
-    ginkgo_root = (Path(__file__) / "..").resolve()
-    ginkgo_include = (ginkgo_root / "include").resolve()
-    build_dir = (ginkgo_root / "build").resolve()
-
-    subprocess.run(['cmake', '--build', build_dir, '-t', 'usr'])
-else:
-    pass
+#
+# # -- Setup Doxygen ----------------------------------------------------------
+#
+#
+# read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+#
+# if read_the_docs_build:
+#     ginkgo_root = (Path(__file__) / "..").resolve()
+#     ginkgo_include = (ginkgo_root / "include").resolve()
+#     build_dir = (ginkgo_root / "build").resolve()
+#
+#     subprocess.run(['cmake', '--build', build_dir, '-t', 'usr'])
+# else:
+#     pass
 
 
 # -- doxylink configuration -------------------------------------------------
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
 if read_the_docs_build:
+    doxygen_dir = os.environ['$READTHEDOCS_OUTPUT']
     doxylink = {
-        'gko': (f'{build_dir}/doc/_doxygen/Ginkgo.tag', f'{build_dir}/doc/_doxygen/usr')
+        'gko': (f'{doxygen_dir}/Ginkgo.tag', f'{doxygen_dir}/usr')
     }
 else:
     doxylink = {
