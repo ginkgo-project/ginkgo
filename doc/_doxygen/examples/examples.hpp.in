@@ -63,170 +63,200 @@
  *
  * <table align="center" width="90%">
  *   <tr valign="top">
- *       <td width="260px">@ref simple_solver</td>
+ *       <td width="260px">@subpage simple_solver</td>
  *       <td> A minimal CG solver in Ginkgo, which reads a matrix from a file.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref minimal_cuda_solver</td>
+ *       <td>@subpage minimal_cuda_solver</td>
  *       <td> A minimal solver on the CUDA executor than can be run on NVIDIA
  *            GPU's.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref poisson_solver</td>
+ *       <td>@subpage poisson_solver</td>
  *       <td> Solve an actual physically relevant problem, the poisson problem.
  *            The matrix is generated within Ginkgo.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref preconditioned_solver</td>
+ *       <td>@subpage preconditioned_solver</td>
  *       <td> Using a Jacobi preconditioner to solve a linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref ilu_preconditioned_solver</td>
+ *       <td>@subpage ilu_preconditioned_solver</td>
  *       <td> Using an ILU preconditioner to solve a linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref performance_debugging</td>
+ *       <td>@subpage performance_debugging</td>
  *       <td> Using Loggers to debug the performance within Ginkgo.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref three_pt_stencil_solver</td>
+ *       <td>@subpage three_pt_stencil_solver</td>
  *       <td> Using a three point stencil to solve the poisson equation with
  *            array views.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref nine_pt_stencil_solver</td>
+ *       <td>@subpage nine_pt_stencil_solver</td>
  *       <td> Using a nine point 2D stencil to solve the poisson equation with
  *            array views.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref external_lib_interfacing</td>
+ *       <td>@subpage external_lib_interfacing</td>
  *       <td> Using Ginkgo's solver with the external library deal.II.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td width="260px">@ref custom_logger</td>
+ *       <td width="260px">@subpage custom_logger</td>
  *       <td> Creating a custom logger specifically for comparing the recurrent
  *            and the real residual norms.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref custom_matrix_format</td>
+ *       <td>@subpage custom_matrix_format</td>
  *       <td> Creating a matrix-free stencil solver by using Ginkgo's advanced
  *            methods to build your own custom matrix format.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref inverse_iteration</td>
+ *       <td>@subpage inverse_iteration</td>
  *       <td> Using Ginkgo to compute eigenvalues of a matrix with the inverse
  *            iteration method.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref simple_solver_logging</td>
+ *       <td>@subpage simple_solver_logging</td>
  *       <td> Using the logging functionality in Ginkgo to get solver and other
  *            information to diagnose and debug your code.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref papi_logging</td>
+ *       <td>@subpage papi_logging</td>
  *       <td> Using the PAPI logging library in Ginkgo to get advanced
  *            information about your code
  *        and its behaviour.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref ginkgo_overhead</td>
+ *       <td>@subpage ginkgo_overhead</td>
  *       <td> Measuring the overhead of the Ginkgo library.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref custom_stopping_criterion</td>
+ *       <td>@subpage custom_stopping_criterion</td>
  *       <td> Creating a custom stopping criterion for the iterative solution
  *            process.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref ginkgo_ranges</td>
+ *       <td>@subpage ginkgo_ranges</td>
  *       <td> Using the ranges concept to factorize a matrix with the LU
  *            factorization.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref mixed_spmv</td>
+ *       <td>@subpage mixed_spmv</td>
  *       <td> Shows the Ginkgo mixed precision spmv functionality.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref mixed_precision_ir</td>
+ *       <td>@subpage mixed_precision_ir</td>
  *       <td> Manual implementation of a Mixed Precision Iterative Refinement
  *            (MPIR) solver.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref adaptiveprecision_blockjacobi</td>
+ *       <td>@subpage adaptiveprecision_blockjacobi</td>
  *       <td> Shows how to use the adaptive precision block-Jacobi
  *            preconditioner.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref cb_gmres</td>
+ *       <td>@subpage cb_gmres</td>
  *       <td> Using the Ginkgo CB-GMRES solver (Compressed Basis GMRES).
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref heat_equation</td>
+ *       <td>@subpage heat_equation</td>
  *       <td> Solving a 2D heat equation and showing matrix assembly, vector
  *            initialization and solver setup in a more complex setting with
  *            output visualization.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref iterative_refinement</td>
+ *       <td>@subpage iterative_refinement</td>
  *       <td> Using a low accuracy CG solver as an inner solver to an iterative
  *            refinement (IR) method which solves a linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref ir_ilu_preconditioned_solver</td>
+ *       <td>@subpage ir_ilu_preconditioned_solver</td>
  *       <td> Combining iterative refinement with the adaptive precision
  *            block-Jacobi preconditioner to approximate triangular systems
  *            occurring in ILU preconditioning.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref par_ilu_convergence</td>
+ *       <td>@subpage par_ilu_convergence</td>
  *       <td> Convergence analysis at the examples of parallel incomplete
  *            factorization solver.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref preconditioner_export</td>
+ *       <td>@subpage preconditioner_export</td>
  *       <td> Explicit generation and storage of preconditioners for given
  *            matrices.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref multigrid_preconditioned_solver</td>
+ *       <td>@subpage multigrid_preconditioned_solver</td>
  *       <td> Use multigrid as preconditioner to a solver.
  *       </td></tr>
  *
  *   <tr valign="top">
- *       <td>@ref mixed_multigrid_solver</td>
+ *       <td>@subpage mixed_multigrid_solver</td>
  *       <td> Use multigrid with different precision multigrid_level as a
  *            solver.
  *       </td></tr>
-
+ *
  *   <tr valign="top">
- *       <td>@ref distributed_solver</td>
+ *       <td>@subpage distributed_solver</td>
  *       <td> Use a distributed solver to solve a 1D Laplace equation.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage batched_solver</td>
+ *       <td> Using and interfacing with a batched solver.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage kokkos_assembly</td>
+ *       <td> Use Kokkos to assemble as simple linear system.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage mixed_multigrid_preconditioned_solver</td>
+ *       <td> Use mixed-precision multigrid preconditioner.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage multigrid_preconditioned_solver_customized</td>
+ *       <td> Use a customized multigrid preconditioner.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage reordered_preconditioned_solver</td>
+ *       <td> Use reordering to solve a linear system.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage schroedinger_splitting</td>
+ *       <td> Use the FFT and iFFT implementations to solve Schrödinger's equation.
  *       </td></tr>
  *
  * </table>

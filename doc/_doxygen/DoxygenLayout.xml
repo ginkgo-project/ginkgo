@@ -3,20 +3,7 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="user" visible="yes" title="Tutorial" url="https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver" />
-    <tab type="user" visible="yes" title="Examples" url="@ref Examples" />
-    <tab type="user" visible="yes" title="Publications" url="@ref citing_ginkgo" >
-      <tab type="user" visible="yes" title="Citing Ginkgo" url="@ref citing_ginkgo" />
-      <tab type="user" visible="yes" title="Ginkgo White Paper" url="https://www.arxiv-vanity.com/papers/2006.16852/" />
-      <tab type="user" visible="yes" title="Slides and Outreach" url="https://github.com/ginkgo-project/outreach" />
-    </tab>
-    <tab type="user" visible="yes" title="Contributing To Ginkgo" url="@ref contributing_guidelines" />
-    <tab type="user" visible="yes" title="Using Ginkgo" url="@ref install_ginkgo">
-      <tab type="user" visible="yes" title="Installing Ginkgo" url="@ref install_ginkgo" />
-      <tab type="user" visible="yes" title="Testing Ginkgo" url="@ref testing_ginkgo" />
-      <tab type="user" visible="yes" title="Benchmarking Ginkgo" url="@ref benchmarking_ginkgo" />
-    </tab>
-    <tab type="modules" visible="yes" title="" intro=""/>
+    <tab type="topics" visible="yes" title="" intro=""/>
     <tab type="namespaces" visible="yes" title="">
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>

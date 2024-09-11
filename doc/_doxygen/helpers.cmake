@@ -42,7 +42,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     set(DIR_BASE "${PROJECT_SOURCE_DIR}")
     set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
     set(DIR_SCRIPT "${DOC_BASE}/scripts")
-    set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/${name}")
+    set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen/${name}")
     set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
     set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
     set(layout "${DOC_BASE}/DoxygenLayout.xml")
@@ -101,17 +101,19 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     list(APPEND doxygen_dev_input
         ${doxygen_base_input}
         )
-    # pick some markdown files we want as pages
-    set(doxygen_markdown_files "${Ginkgo_SOURCE_DIR}/INSTALL.md ${Ginkgo_SOURCE_DIR}/TESTING.md ${Ginkgo_SOURCE_DIR}/BENCHMARKING.md ${Ginkgo_SOURCE_DIR}/CONTRIBUTING.md ${Ginkgo_SOURCE_DIR}/CITING.md")
     ginkgo_to_string(doxygen_base_input_str ${doxygen_base_input} )
     ginkgo_to_string(doxygen_dev_input_str ${doxygen_dev_input} )
     ginkgo_to_string(doxygen_image_path_str ${doxygen_image_path} )
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen)
     add_custom_target("${name}" ALL
         #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
         COMMAND "${DOXYGEN_EXECUTABLE}" ${doxyfile}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen
         DEPENDS
         examples
+        ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile-${name}.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/header.html
         ${doxyfile}
         ${layout}
         ${doxygen_depend}

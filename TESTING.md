@@ -1,5 +1,5 @@
-Testing Instructions                            {#testing_ginkgo}
--------------------------------------
+# Testing Instructions
+
 ### Running the unit tests
 You need to compile ginkgo with `-DGINKGO_BUILD_TESTS=ON` option to be able to
 run the tests. 

@@ -2,8 +2,8 @@ QUIET                  = YES
 
 # General project info
 PROJECT_NAME           = "@PROJECT_NAME@"
-PROJECT_NUMBER         = "Generated from @GINKGO_GIT_BRANCH@ branch based on @PROJECT_VERSION_TAG@. Ginkgo version @PROJECT_VERSION@ "
-PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
+PROJECT_NUMBER         = "v@PROJECT_VERSION@"
+PROJECT_BRIEF          =
 INLINE_INHERITED_MEMB  = NO
 
 # Paths and in/exclusion patterns
@@ -12,7 +12,7 @@ INPUT                  =
 
 INCLUDE_PATH           = @DIR_BASE@/include @DIR_BASE@
 OUTPUT_DIRECTORY       = @DIR_OUT@
-EXAMPLE_PATH           = @PROJECT_BINARY_DIR@/doc/examples
+EXAMPLE_PATH           = @PROJECT_BINARY_DIR@/doc/_doxygen/examples
 RECURSIVE              = YES
 EXAMPLE_RECURSIVE      = NO
 FILE_PATTERNS          = *.cpp *.cu *.hpp *.cuh *.md
@@ -91,7 +91,7 @@ DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
 GENERATE_LEGEND        = YES
 HAVE_DOT               = YES
-DOTFILE_DIRS           = @DIR_BASE@/doc/headers
+DOTFILE_DIRS           = @DOC_BASE@/headers
 TEMPLATE_RELATIONS     = YES
 INCLUDE_GRAPH          = YES
 INCLUDED_BY_GRAPH      = YES
@@ -99,12 +99,23 @@ MAX_DOT_GRAPH_DEPTH    = 5
 
 DOT_CLEANUP            = YES
 
+GENERATE_TAGFILE       = Ginkgo.tag
+GENERATE_TREEVIEW      = YES # required!
+
 # HTML-specific configuration
 HTML_OUTPUT            = .
 HTML_FILE_EXTENSION    = .html
-HTML_HEADER            =
+HTML_HEADER            = @DOC_BASE@/header.html
 HTML_FOOTER            =
 HTML_COLORSTYLE_HUE    = 220
 HTML_COLORSTYLE_SAT    = 200
 LAYOUT_FILE            = @DOC_BASE@/DoxygenLayout.xml
-HTML_EXTRA_STYLESHEET  = @DOC_BASE@/stylesheet.css
+HTML_EXTRA_STYLESHEET  = @DOC_BASE@/css/doxygen-awesome.css \
+                         @DOC_BASE@/css/doxygen-awesome-sidebar-only.css \
+                         @DOC_BASE@/css/doxygen-awesome-sidebar-only-darkmode-toggle.css \
+                         @DOC_BASE@/stylesheet.css
+HTML_EXTRA_FILES       = @DOC_BASE@/css/doxygen-awesome-darkmode-toggle.js \
+                         @DIR_BASE@/assets/favicon.ico
+HTML_COLORSTYLE        = LIGHT
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
