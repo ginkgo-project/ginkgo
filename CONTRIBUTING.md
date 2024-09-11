@@ -1,4 +1,4 @@
-# Contributing guidelines                         {#contributing_guidelines}
+# Contributing guidelines
 
 We are glad that you are interested in contributing to Ginkgo. Please have a
 look at our coding guidelines before proposing a pull request.

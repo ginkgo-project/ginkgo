@@ -1,0 +1,41 @@
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-24.04
+  apt_packages:
+    - doxygen
+    - cmake
+    - graphviz
+  tools:
+    python: "3.11"
+  jobs:
+    pre_build:
+      - |
+        cmake -S . -B build \
+        -DGINKGO_BUILD_DOC=ON \
+        -DGINKGO_DOC_GENERATE_PDF=OFF \
+        -DGINKGO_BUILD_EXAMPLES=ON \
+        -DGINKGO_BUILD_TESTS=OFF \
+        -DGINKGO_BUILD_BENCHMARKS=OFF \
+        -DGINKGO_BUILD_REFERENCE=ON \
+        -DGINKGO_BUILD_OMP=OFF \
+        -DGINKGO_BUILD_CUDA=OFF \
+        -DGINKGO_BUILD_HIP=OFF \
+        -DGINKGO_BUILD_SYCL=OFF \
+        -DGINKGO_BUILD_MPI=OFF
+        cmake --build build -t doxygen -- -j
+        mkdir -p $READTHEDOCS_OUTPUT/html/
+        mv build/doc/html/_doxygen $READTHEDOCS_OUTPUT/html/_doxygen
+
+# Build documentation in the "docs/" directory with Sphinx
+sphinx:
+   configuration: doc/conf.py
+
+# See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
+python:
+    install:
+    - requirements: doc/requirements.txt

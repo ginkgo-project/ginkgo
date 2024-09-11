@@ -1,24 +1,15 @@
-cmake_minimum_required(VERSION 3.16)
-include(helpers.cmake)
-find_package(Doxygen REQUIRED)
-find_package(Perl REQUIRED)
-option(GINKGO_DOC_GENERATE_PDF "Generate PDF documentation" OFF)
-option(GINKGO_DOC_GENERATE_DEV "Generate internal documentation" OFF)
-option(GINKGO_DOC_GENERATE_EXAMPLES "Generate example documentation" ON)
-if(GINKGO_DOC_GENERATE_EXAMPLES)
-    add_subdirectory(examples)
-endif()
+add_subdirectory(_doxygen)
 
-set(default_predefined_macros "GKO_HAVE_PAPI_SDE=1 GINKGO_BUILD_MPI=1")
+find_program(sphinx-build NAMES sphinx-build REQUIRED)
 
-if(GINKGO_DOC_GENERATE_PDF)
-    find_package(LATEX COMPONENTS PDFLATEX REQUIRED)
-endif()
-
-ginkgo_doc_gen(usr Doxyfile-usr.in OFF USR_DOC.md)
-if(GINKGO_DOC_GENERATE_DEV)
-    ginkgo_doc_gen(dev Doxyfile-dev.in OFF DEV_DOC.md)
-endif()
-if(GINKGO_DOC_GENERATE_PDF)
-    ginkgo_doc_gen(pdf Doxyfile-pdf.in ON PDF_DOC.md)
-endif()
+add_custom_target(
+    sphinx-doc
+    ALL
+    #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
+    COMMAND
+        "${sphinx-build}" -M html ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating sphinx documentation"
+    VERBATIM
+)

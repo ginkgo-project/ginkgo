@@ -1,0 +1,6 @@
+sphinx
+sphinx_sitemap
+furo
+myst-parser
+linkify-it-py
+sphinxcontrib-doxylink
