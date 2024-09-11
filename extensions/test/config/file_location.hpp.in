@@ -13,6 +13,13 @@ namespace config {
 
 const char* location_test_json =
     "@Ginkgo_BINARY_DIR@/extensions/test/config/test.json";
+const char* location_test_yaml =
+    "@Ginkgo_BINARY_DIR@/extensions/test/config/test.yaml";
+const char* location_alias_yaml =
+    "@Ginkgo_BINARY_DIR@/extensions/test/config/alias.yaml";
+const char* location_nested_alias_yaml =
+    "@Ginkgo_BINARY_DIR@/extensions/test/config/nested_alias.yaml";
+
 
 
 }  // namespace config
