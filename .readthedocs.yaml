@@ -29,6 +29,7 @@ build:
         -DGINKGO_BUILD_CUDA=OFF \
         -DGINKGO_BUILD_HIP=OFF \
         -DGINKGO_BUILD_SYCL=OFF
+        cmake --build build -t usr -- -j
         mkdir -p $READTHEDOCS_OUTPUT/html/
         mv build/doc/_doxygen $READTHEDOCS_OUTPUT/html/_doxygen
         echo $READTHEDOCS_OUTPUT

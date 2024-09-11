@@ -105,7 +105,7 @@ if read_the_docs_build:
     if doxygen_dir is None:
         raise RuntimeError()
     doxylink = {
-        'gko': (f'{doxygen_dir}/Ginkgo.tag', f'{doxygen_dir}/usr')
+        'gko': (f'{doxygen_dir}/html/_doxygen/Ginkgo.tag', f'{doxygen_dir}/html/_doxygen/usr')
     }
 else:
     doxylink = {
