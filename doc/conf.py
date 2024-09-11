@@ -58,8 +58,8 @@ html_theme_options = {
     'titles_only': False
 }
 html_static_path = ['_static']
-html_logo = '../assets/logo.png'
-html_title = f'Version {release}'
+html_logo = '../assets/logo_doc.png'
+html_title = f'{project} v{release}'
 
 html_baseurl = "https://greole.github.io/ginkgo"
 

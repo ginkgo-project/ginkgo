@@ -1,6 +1,6 @@
-### Modules
+## Topics
 
-The Ginkgo library can be grouped into [modules](modules.html) and these modules form the basic building blocks of Ginkgo. The modules can be summarized as follows:
+The Ginkgo library can be grouped into [topics](topics.html) and these topics form the basic building blocks of Ginkgo. The topics can be summarized as follows:
 
 *   @ref Executor : Where do you want your code to be executed ?
 *   @ref LinOp : What kind of operation do you want Ginkgo to perform ?
