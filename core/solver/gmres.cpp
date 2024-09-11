@@ -164,8 +164,8 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
             krylov_bases, dim<2>{num_rows, num_rhs},
             span{local_num_rows * i, local_num_rows * (i + 1)},
             span{0, num_rhs});
-        next_krylov->compute_conj_dot(krylov_basis, hessenberg_entry,
-                                      reduction_tmp);
+        krylov_basis->compute_conj_dot(next_krylov, hessenberg_entry,
+                                       reduction_tmp);
         next_krylov->sub_scaled(hessenberg_entry, krylov_basis);
     }
 }
