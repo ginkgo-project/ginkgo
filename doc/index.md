@@ -29,3 +29,11 @@ contributing
 Using Ginkgo <using-ginkgo>
 API <_doxygen/html/index.html#https://>
 :::
+
+:::{toctree}
+:hidden:
+:maxdepth: 2
+:caption: Developer Guide:
+
+developer-guide/documentation
+:::
