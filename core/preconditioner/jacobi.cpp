@@ -89,7 +89,9 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_accuracy(
             gko::config::get_value<remove_complex<ValueType>>(obj));
     }
-
+    if (auto& obj = config.get("aggregate_l1")) {
+        params.with_aggregate_l1(gko::config::get_value<bool>(obj));
+    }
     return params;
 }
 
@@ -331,7 +333,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
         std::shared_ptr<LinOp> diag = nullptr;
-        if (this->get_parameters().l1) {
+        if (this->get_parameters().aggregate_l1) {
             auto csr_mtx = convert_to_with_sorting<const csr_type>(
                 exec, system_matrix, skip_sorting);
             auto diagonal = share(csr_mtx->extract_diagonal());
@@ -362,7 +364,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         if (parameters_.block_pointers.get_data() == nullptr) {
             this->detect_blocks(csr_mtx.get());
         }
-        if (this->get_parameters().l1) {
+        if (this->get_parameters().aggregate_l1) {
             // It should be sorted in the convert_to_with_sorting
             // We only use it to generate the inversed block, so we do not need
             // to rebuild srow
