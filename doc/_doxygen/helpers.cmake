@@ -1,130 +1,47 @@
-# configures the file <in> into the variable <variable>
-function(ginkgo_configure_to_string in variable)
-    set(fin "${in}")
-    file(READ "${fin}" str)
-    string(CONFIGURE "${str}" str_conf)
-    set(${variable} "${str_conf}" PARENT_SCOPE)
-endfunction()
-
-macro(ginkgo_to_string variable)
-    set(${variable} "")
-    foreach(var  ${ARGN})
-        set(${variable} "${${variable}} ${var}")
-    endforeach()
-    string(STRIP "${${variable}}" ${variable})
-endmacro()
-
-# writes the concatenated configured files <in1,2>
-# in <base_in> into <out>
-function(ginkgo_file_concat base_path in1 in2 out)
-    ginkgo_configure_to_string("${base_path}/${in1}" s1)
-    ginkgo_configure_to_string("${base_path}/${in2}" s2)
-    string(CONCAT so "${s1}" "\n" "${s2}")
-    file(WRITE "${out}" "${so}")
-endfunction()
-
-# adds a pdflatex build step
-function(ginkgo_doc_pdf name path)
-    add_custom_command(TARGET "${name}" POST_BUILD
-        COMMAND make
-        COMMAND "${CMAKE_COMMAND}" -E copy refman.pdf
-        "${CMAKE_CURRENT_BINARY_DIR}/${name}.pdf"
-        WORKING_DIRECTORY "${path}"
-        COMMENT "Generating ${name} PDF from LaTeX"
-        VERBATIM
-        )
-endfunction()
-
-
-# generates the documentation named <name> with the additional
-# config file <in> in <pdf/html> format
-function(ginkgo_doc_gen name in pdf mainpage-in)
-    set(DIR_BASE "${PROJECT_SOURCE_DIR}")
-    set(DOC_BASE "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(DIR_SCRIPT "${DOC_BASE}/scripts")
-    set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen/${name}")
-    set(MAINPAGE "${DIR_OUT}/MAINPAGE-${name}.md")
-    set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile-${name}")
-    set(layout "${DOC_BASE}/DoxygenLayout.xml")
-    ginkgo_file_concat("${DOC_BASE}/pages"
-        "${mainpage-in}" BASE_DOC.md "${MAINPAGE}"
-        )
-    set(doxygen_base_input
-        "${DOC_BASE}/headers/"
-        )
-    list(APPEND doxygen_base_input
-        ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
-        ${DIR_BASE}/include
-        ${MAINPAGE}
-        )
-    if(GINKGO_DOC_GENERATE_EXAMPLES)
-        list(APPEND doxygen_base_input
-            ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
-            )
-    endif()
-    set(doxygen_dev_input
-        "${DIR_BASE}/core"
-        )
-    list(APPEND doxygen_dev_input
-        ${DIR_BASE}/omp
-        ${DIR_BASE}/cuda
-        ${DIR_BASE}/hip
-        ${DIR_BASE}/dpcpp
-        ${DIR_BASE}/reference
-        )
-    set(doxygen_image_path "")
+# generates the API documentation
+function(ginkgo_doc_gen)
+    set(GINKGO_DOXYGEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(DIR_OUT "${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen/html")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+    set(doxyfile "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
+    set(layout "${GINKGO_DOXYGEN_DIR}/DoxygenLayout.xml")
     file(GLOB doxygen_depend
-        ${DOC_BASE}/headers/*.hpp
-        ${DIR_BASE}/include/ginkgo/**/*.hpp
+        ${GINKGO_DOXYGEN_DIR}/headers/*.hpp
+        ${Ginkgo_SOURCE_DIR}/include/ginkgo/**/*.hpp
         )
     list(APPEND doxygen_depend
         ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
         )
-    if(GINKGO_DOC_GENERATE_EXAMPLES)
-        list(APPEND doxygen_depend
-            ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
-            )
-        FILE(GLOB _ginkgo_examples
-            ${DIR_BASE}/examples/*
-            )
-        LIST(REMOVE_ITEM _ginkgo_examples "${DIR_BASE}/examples/CMakeLists.txt" "${DIR_BASE}/examples/build-setup.sh" "${DIR_BASE}/examples/compare-output.py")
-        FOREACH(_ex ${_ginkgo_examples})
-            GET_FILENAME_COMPONENT(_ex "${_ex}" NAME)
-            LIST(APPEND doxygen_depend
-                ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
-                )
-            LIST(APPEND doxygen_base_input
-                ${CMAKE_CURRENT_BINARY_DIR}/examples/${_ex}.hpp
-                )
-        ENDFOREACH()
-    endif()
-    list(APPEND doxygen_dev_input
-        ${doxygen_base_input}
+    list(APPEND doxygen_depend
+        ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
         )
-    ginkgo_to_string(doxygen_base_input_str ${doxygen_base_input} )
-    ginkgo_to_string(doxygen_dev_input_str ${doxygen_dev_input} )
-    ginkgo_to_string(doxygen_image_path_str ${doxygen_image_path} )
+    FILE(GLOB _ginkgo_examples
+        ${Ginkgo_SOURCE_DIR}/examples/*.hpp
+        )
+    LIST(APPEND doxygen_depend ${_ginkgo_examples})
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen)
-    add_custom_target("${name}" ALL
-        #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
+    add_custom_target(doxygen ALL
         COMMAND "${DOXYGEN_EXECUTABLE}" ${doxyfile}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen
         DEPENDS
         examples
-        ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile.in
-        ${CMAKE_CURRENT_SOURCE_DIR}/conf/Doxyfile-${name}.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/mainpage.md
+        ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
         ${CMAKE_CURRENT_SOURCE_DIR}/header.html
         ${doxyfile}
         ${layout}
         ${doxygen_depend}
-        #COMMAND "${CMAKE_COMMAND}" cmake -E touch "${doxyfile}.stamp"
-        COMMENT "Generating ${name} documentation with Doxygen"
+        COMMENT "Generating API documentation with Doxygen"
         VERBATIM
         )
-    if(pdf)
-        ginkgo_doc_pdf("${name}" "${DIR_OUT}")
-    endif()
-    ginkgo_file_concat("${DOC_BASE}/conf"
-        Doxyfile.in "${in}" "${doxyfile}"
+    if(GINKGO_DOC_GENERATE_PDF)
+        add_custom_command(TARGET "doxygen" POST_BUILD
+        COMMAND make
+        COMMAND "${CMAKE_COMMAND}" -E copy refman.pdf
+        "${CMAKE_CURRENT_BINARY_DIR}/${name}.pdf"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../html/_doxygen/latex"
+        COMMENT "Generating ${name} PDF from LaTeX"
+        VERBATIM
         )
+    endif()
 endfunction()

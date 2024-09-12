@@ -1,3 +1,5 @@
+This is the main page for the Ginkgo library API documentation.
+
 ## Topics
 
 The Ginkgo library can be grouped into modules which form the basic building blocks of Ginkgo. The topics can be summarized as follows:

@@ -23,9 +23,9 @@ The Ginkgo library can be grouped into modules which form the basic building blo
 :caption: User Guide:
 
 Tutorial <https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver>
-Examples <_doxygen/usr/Examples.html#https://>
+Examples <_doxygen/html/Examples.html#https://>
 Publications <publications>
 contributing
 Using Ginkgo <using-ginkgo>
-API <_doxygen/usr/index.html#https://>
+API <_doxygen/html/index.html#https://>
 :::

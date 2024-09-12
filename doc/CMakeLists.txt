@@ -5,8 +5,6 @@ find_program(sphinx-build
     REQUIRED
 )
 
-set(default_predefined_macros "GKO_HAVE_PAPI_SDE=1 GINKGO_BUILD_MPI=1")
-
 add_custom_target(sphinx-doc ALL
     #DEPEND "${doxyfile}.stamp" Doxyfile.in ${in} ${in2}
     COMMAND "${sphinx-build}" -M html ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
