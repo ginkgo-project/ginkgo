@@ -1,4 +1,4 @@
-:::{include} ../INSTALL.md
+:::{include} ../../INSTALL.md
 :::
 
 :::{toctree}

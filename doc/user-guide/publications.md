@@ -1,4 +1,4 @@
-:::{include} ../CITING.md
+:::{include} ../../CITING.md
 :::
 
 :::{toctree}
