@@ -1,6 +1,6 @@
 # Installation Instructions
 
-### Building
+## Building
 
 Use the standard CMake build procedure:
 
@@ -129,7 +129,7 @@ Additionally, the following CMake options have effect on the build process:
 
 For example, to build everything (in debug mode), use:
 
-```cmake
+```bash
 cmake .. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
     -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
@@ -139,7 +139,7 @@ cmake --build Debug
 NOTE: Ginkgo is known to work with the `Unix Makefiles`, `Ninja`, `MinGW Makefiles` and `Visual Studio 16 2019` based
 generators. Other CMake generators are untested.
 
-### Building Ginkgo in Windows
+## Building Ginkgo in Windows
 Depending on the configuration settings, some manual work might be required:
 * Build Ginkgo with Debug mode:
   Some Debug build specific issues can appear depending on the machine and environment:
@@ -150,7 +150,7 @@ Depending on the configuration settings, some manual work might be required:
   [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
   or trying to compile ginkgo again might work.
 
-### Building Ginkgo with HIP support
+## Building Ginkgo with HIP support
 Ginkgo provides a [HIP](https://github.com/ROCm-Developer-Tools/HIP) backend.
 This allows to compile optimized versions of the kernels for either AMD or
 NVIDIA GPUs. The CMake configuration step will try to auto-detect the presence
@@ -158,7 +158,7 @@ of HIP either at `/opt/rocm/hip` or at the path specified by `HIP_PATH` as a
 CMake parameter (`-DHIP_PATH=`) or environment variable (`export HIP_PATH=`),
 unless `-DGINKGO_BUILD_HIP=ON/OFF` is set explicitly.
 
-#### Changing the paths to search for HIP and other packages
+### Changing the paths to search for HIP and other packages
 All HIP installation paths can be configured through the use of environment
 variables or CMake variables. This way of configuring the paths is currently
 imposed by the `HIP` tool suite. The variables are the following:
@@ -183,7 +183,7 @@ imposed by the `HIP` tool suite. The variables are the following:
   the default `/usr/local/cuda` path.
 
 
-#### HIP platform detection of AMD and NVIDIA
+### HIP platform detection of AMD and NVIDIA
 Ginkgo relies on CMake to decide which compiler to use for HIP.
 To choose `nvcc` instead of the default ROCm `clang++`, set the corresponding
 environment variable:
@@ -193,7 +193,7 @@ export HIPCXX=nvcc
 Note that this option is currently not being tested in our CI pipelines.
 
 
-### Third party libraries and packages
+## Third party libraries and packages
 
 Ginkgo relies on third party packages in different cases. These third party
 packages can be turned off by disabling the relevant options.
@@ -235,7 +235,7 @@ for details.
 For convenience, the options `GINKGO_INSTALL_RPATH[_.*]` can be used
 to bind the installed Ginkgo shared libraries to the path of its dependencies.
 
-### Installing Ginkgo
+## Installing Ginkgo
 
 To install Ginkgo into the specified folder, execute the following command in
 the build folder
@@ -249,4 +249,11 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`test_install`](test/test_install/CMakeLists.txt).
+An example can be found in the [`test_install`](../../test/test_install/CMakeLists.txt).
+
+:::{toctree}
+:hidden:
+self
+testing
+benchmarking
+:::

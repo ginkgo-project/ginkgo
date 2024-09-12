@@ -1,7 +1,7 @@
 About Licensing
 ===============
 
-Ginkgo is available under the [3-clause BSD license](LICENSE).
+Ginkgo is available under the [3-clause BSD license](../../LICENSE).
 
 If you want to use Ginkgo, but need a different license, please
 [contact us](https://github.com/ginkgo-project/ginkgo/wiki#contact-us).
@@ -94,7 +94,7 @@ nlohmann-json is available under the following license:
 > to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 > copies of the Software, and to permit persons to whom the Software is
 > furnished to do so, subject to the following conditions:
-
+>
 > The above copyright notice and this permission notice shall be included in all
 > copies or substantial portions of the Software.
 > 
@@ -230,7 +230,7 @@ For detecting the HWLOC library, we used a modified version of the FindHWLOC.cma
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
 third-party licensing. Refer to the [Installation section in
-INSTALL.md](INSTALL.md#Building) for more details.
+install.md](install.md#building) for more details.
 
 
 When using testing with MPI switched on, the gtest-mpi-listener header only library is used for testing MPI functionality. The repository is licensed triple licensed under BSD-3, MIT and Apache 2.0. The License duplicated below. More details on the License and the library are [available on github](https://github.com/LLNL/gtest-mpi-listener)

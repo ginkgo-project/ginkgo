@@ -35,10 +35,10 @@ Here is a short description of the content of this file:
 7. Available benchmark customization options with the script utility.
 
 
-### 1: Ginkgo setup and best practice guidelines
+## 1: Ginkgo setup and best practice guidelines
 
 Before benchmarking Ginkgo, make sure that you follow the general guidelines in
-order to ensure best performance.
+order to ensure the best performance.
 
 1. The code should be compiled in `Release` mode.
 2. Make sure the machine has no competing jobs. On a Linux machine multiple
@@ -62,7 +62,7 @@ In addition, the following specific options can be considered:
    try this mode.
 
 
-### 2: Using ssget to fetch the matrices
+## 2: Using ssget to fetch the matrices
 
 To benchmark `ginkgo`, matrices need to be provided as input in the `Matrix
 Market` format. A convenient way is to run benchmark with the [SuiteSparse
@@ -116,7 +116,7 @@ for i in $(seq 0 $(ssget -n)); do
 done
 ```
 
-### 3: Running benchmarks manually
+## 3: Running benchmarks manually
 When compiling Ginkgo with the flag `-DGINKGO_BUILD_BENCHMARKS=ON`, a suite of
 executables will be generated depending on the CMake configuration. These
 executables are the backbone of the benchmarking suite. Note that all of these
@@ -193,7 +193,7 @@ use the resulting output JSON as input to the `solver` benchmark, and finally
 use the resulting solver JSON output as input to the `preconditioner` benchmark.
 
 
-### 4: Benchmarking overview
+## 4: Benchmarking overview
 
 The benchmark suite is invoked using the `make benchmark` command in the build
 directory. Under the hood, this command simply calls the script
@@ -229,7 +229,7 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](### 6: Available
+collection. For details, see the [available benchmark options](## 6: Available
 benchmark options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be ran.
@@ -255,7 +255,7 @@ benchmark options). Here are the most important options:
     thermal2
     ```
 
-### 5: Publishing the results on Github and analyze the results with the GPE (optional)
+## 5: Publishing the results on Github and analyze the results with the GPE (optional)
 
 The previous experiments generated json files for each matrices, each containing
 timing, iteration count, achieved precision, ... depending on the type of
@@ -309,7 +309,7 @@ For the generating the plots in the GPE, here are the steps to go through:
    tabs allow to access the result of the processed data after invoking the
    processing script.
 
-### 6: Detailed performance analysis and debugging
+## 6: Detailed performance analysis and debugging
 
 Detailed performance analysis can be ran by passing the environment variable
 `DETAILED=1` to the benchmarking script. This detailed run is available for
@@ -324,7 +324,7 @@ important code location points which can be inspected thanks to the logger. In
 this fashion, it is easy to use these loggers also for tracking memory
 allocation sizes and other important library aspects.
 
-### 7: Available benchmark options
+## 7: Available benchmark options
 
 There are a set amount of options available for benchmarking. Most important
 options can be configured through the benchmarking script itself thanks to
