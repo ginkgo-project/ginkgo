@@ -30,7 +30,8 @@ protected:
         std::initializer_list<gko::precision_reduction> block_precisions,
         std::initializer_list<double> condition_numbers,
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
-        double accuracy = 0.1, bool skip_sorting = true, bool l1 = false)
+        double accuracy = 0.1, bool skip_sorting = true,
+        bool aggregate_l1 = false)
     {
         std::default_random_engine engine(42);
         const auto dim = *(end(block_pointers) - 1);
@@ -61,13 +62,13 @@ protected:
                     .with_max_block_stride(gko::uint32(exec->get_warp_size()))
 #endif
                     .with_skip_sorting(skip_sorting)
-                    .with_l1(l1)
+                    .with_aggregate_l1(aggregate_l1)
                     .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_skip_sorting(skip_sorting)
-                               .with_l1(l1)
+                               .with_aggregate_l1(aggregate_l1)
                                .on(exec);
         } else {
             bj_factory =
@@ -80,7 +81,7 @@ protected:
                     .with_storage_optimization(block_prec)
                     .with_accuracy(accuracy)
                     .with_skip_sorting(skip_sorting)
-                    .with_l1(l1)
+                    .with_aggregate_l1(aggregate_l1)
                     .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
@@ -88,7 +89,7 @@ protected:
                                .with_storage_optimization(block_prec)
                                .with_accuracy(accuracy)
                                .with_skip_sorting(skip_sorting)
-                               .with_l1(l1)
+                               .with_aggregate_l1(aggregate_l1)
                                .on(exec);
         }
         b = gko::test::generate_random_matrix<Vec>(
@@ -268,12 +269,16 @@ TEST_F(Jacobi, ScalarInLargeMatrixEquivalentToRef)
     mtx->read(data::diag({550, 550},
                          {{1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 1.0}}));
 
-    auto bj =
-        Bj::build().with_max_block_size(1u).with_l1(true).on(ref)->generate(
-            mtx);
-    auto d_bj =
-        Bj::build().with_max_block_size(1u).with_l1(true).on(exec)->generate(
-            mtx);
+    auto bj = Bj::build()
+                  .with_max_block_size(1u)
+                  .with_aggregate_l1(true)
+                  .on(ref)
+                  ->generate(mtx);
+    auto d_bj = Bj::build()
+                    .with_max_block_size(1u)
+                    .with_aggregate_l1(true)
+                    .on(exec)
+                    ->generate(mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
@@ -297,12 +302,16 @@ TEST_F(Jacobi, BlockL1InLargeMatrixEquivalentToRef)
                 {1.0, 0.0, 1.0, 1.0, 0.0},
                 {1.0, 0.0, 1.0, 0.0, 0.0}}});
 
-    auto bj =
-        Bj::build().with_max_block_size(3u).with_l1(true).on(ref)->generate(
-            mtx);
-    auto d_bj =
-        Bj::build().with_max_block_size(3u).with_l1(true).on(exec)->generate(
-            mtx);
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  .with_aggregate_l1(true)
+                  .on(ref)
+                  ->generate(mtx);
+    auto d_bj = Bj::build()
+                    .with_max_block_size(3u)
+                    .with_aggregate_l1(true)
+                    .on(exec)
+                    ->generate(mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
@@ -531,12 +540,16 @@ TEST_F(Jacobi, ScalarL1ApplyEquivalentToRef)
     d_smtx->copy_from(smtx);
     d_sb->copy_from(sb);
 
-    auto sj =
-        Bj::build().with_max_block_size(1u).with_l1(true).on(ref)->generate(
-            smtx);
-    auto d_sj =
-        Bj::build().with_max_block_size(1u).with_l1(true).on(exec)->generate(
-            d_smtx);
+    auto sj = Bj::build()
+                  .with_max_block_size(1u)
+                  .with_aggregate_l1(true)
+                  .on(ref)
+                  ->generate(smtx);
+    auto d_sj = Bj::build()
+                    .with_max_block_size(1u)
+                    .with_aggregate_l1(true)
+                    .on(exec)
+                    ->generate(d_smtx);
 
     sj->apply(sb, sx);
     d_sj->apply(d_sb, d_sx);
