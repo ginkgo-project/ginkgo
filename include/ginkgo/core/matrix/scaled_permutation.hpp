@@ -30,7 +30,6 @@ namespace matrix {
  *
  * @ingroup permutation
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation final

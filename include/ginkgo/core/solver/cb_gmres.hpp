@@ -90,7 +90,6 @@ enum class storage_precision {
  *                    elements
  *
  * @ingroup solvers
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class CbGmres : public EnableLinOp<CbGmres<ValueType>>,

@@ -357,7 +357,6 @@ namespace detail {
  * @note This class will replace SolverBase in a future release
  *
  * @ingroup solver
- * @ingroup LinOp
  */
 class SolverBaseLinOp {
 public:
@@ -535,7 +534,6 @@ protected:
  * @tparam MatrixType  the concrete matrix type to be stored as system_matrix
  *
  * @ingroup solver
- * @ingroup LinOp
  */
 template <typename DerivedType, typename MatrixType = LinOp>
 class EnableSolverBase : public SolverBase<MatrixType> {
@@ -659,7 +657,6 @@ private:
  * A LinOp implementing this interface stores a stopping criterion factory.
  *
  * @ingroup solver
- * @ingroup LinOp
  */
 class IterativeBase {
 public:
@@ -697,7 +694,6 @@ private:
  * @tparam DerivedType  the CRTP type that derives from this
  *
  * @ingroup solver
- * @ingroup LinOp
  */
 template <typename DerivedType>
 class EnableIterativeBase : public IterativeBase {
@@ -778,7 +774,6 @@ private:
  * @tparam DerivedType  the CRTP type that derives from this
  *
  * @ingroup solver
- * @ingroup LinOp
  */
 template <typename ValueType, typename DerivedType>
 class EnablePreconditionedIterativeSolver

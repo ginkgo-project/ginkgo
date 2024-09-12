@@ -114,7 +114,6 @@ typename Ilu::parameters_type ilu_parse(
  *                          both L and U factors. Irrelevant otherwise.
  *
  * @ingroup precond
- * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,

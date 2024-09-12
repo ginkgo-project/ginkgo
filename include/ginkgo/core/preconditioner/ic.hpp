@@ -107,7 +107,6 @@ typename Ic::parameters_type ic_parse(
  *                    the L and L^H factors. Irrelevant otherwise.
  *
  * @ingroup precond
- * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>, typename IndexType = int32>
 class Ic : public EnableLinOp<Ic<LSolverType, IndexType>>, public Transposable {

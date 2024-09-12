@@ -66,7 +66,6 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Gmres
