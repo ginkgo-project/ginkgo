@@ -32,7 +32,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = @PROJECT_NAME@"
+PROJECT_NAME           = "@PROJECT_NAME@"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -868,7 +868,6 @@ INPUT                  = @Ginkgo_BINARY_DIR@/include/ginkgo/config.hpp \
                          @Ginkgo_SOURCE_DIR@/include/ \
                          @GINKGO_DOXYGEN_DIR@/mainpage.md \
                          @GINKGO_DOXYGEN_DIR@/headers/ \
-                         @GINKGO_DOXYGEN_DIR@/examples/examples.hpp \
                          @Ginkgo_BINARY_DIR@/doc/_doxygen/examples/
 
 # This tag can be used to specify the character encoding of the source files
@@ -1208,9 +1207,9 @@ HTML_STYLESHEET        =
 # list). For an example see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = @GINKGO_DOXYGEN_DIR@/css/doxygen-awesome.css \
-                         @GINKGO_DOXYGEN_DIR@/css/doxygen-awesome-sidebar-only.css \
-                         @GINKGO_DOXYGEN_DIR@/css/doxygen-awesome-sidebar-only-darkmode-toggle.css \
+HTML_EXTRA_STYLESHEET  = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome.css \
+                         @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-sidebar-only.css \
+                         @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-sidebar-only-darkmode-toggle.css \
                          @GINKGO_DOXYGEN_DIR@/stylesheet.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
@@ -1221,7 +1220,7 @@ HTML_EXTRA_STYLESHEET  = @GINKGO_DOXYGEN_DIR@/css/doxygen-awesome.css \
 # files will be copied as-is; there are no commands or markers available.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_FILES       = @GINKGO_DOXYGEN_DIR@/css/doxygen-awesome-darkmode-toggle.js \
+HTML_EXTRA_FILES       = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-darkmode-toggle.js \
                          @Ginkgo_SOURCE_DIR@/assets/favicon.ico
 
 # The HTML_COLORSTYLE_HUE tag controls the color of the HTML output. Doxygen
