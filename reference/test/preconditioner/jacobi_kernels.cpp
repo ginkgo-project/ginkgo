@@ -1182,7 +1182,7 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
     auto bj_factory = Bj::build()
                           .with_max_block_size(3u)
                           .with_block_pointers(this->block_pointers)
-                          .with_l1(true)
+                          .with_aggregate_l1(true)
                           .on(this->exec);
     // after L1 modification, it will be the same as the matrix in other tests
     /* test matrix:
@@ -1229,7 +1229,7 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
                           // make sure group size is 1
                           .with_block_pointers(this->block_pointers)
                           .with_storage_optimization(this->block_precisions)
-                          .with_l1(true)
+                          .with_aggregate_l1(true)
                           .on(this->exec);
     // after L1 modification, it will be the same as the matrix in other tests
     /* test matrix:

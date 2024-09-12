@@ -120,9 +120,10 @@ TYPED_TEST(JacobiFactory, CanSetL1)
 {
     using Bj = typename TestFixture::Bj;
     auto bj_factory =
-        Bj::build().with_max_block_size(3u).with_l1(true).on(this->exec);
+        Bj::build().with_max_block_size(3u).with_aggregate_l1(true).on(
+            this->exec);
 
-    EXPECT_TRUE(bj_factory->get_parameters().l1);
+    EXPECT_TRUE(bj_factory->get_parameters().aggregate_l1);
 }
 
 
