@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,7 +105,6 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  *
  * @ingroup permutation
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,

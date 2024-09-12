@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,7 +73,6 @@ enum struct isai_type { lower, upper, general, spd };
  *
  * @ingroup isai
  * @ingroup precond
- * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,

@@ -254,6 +254,8 @@ class Vector;
  * @tparam ValueType  The underlying value type.
  * @tparam LocalIndexType  The index type used by the local matrices.
  * @tparam GlobalIndexType  The type for global indices.
+ *
+ * @ingroup mat_formats
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -114,7 +114,6 @@ typename Ilu::parameters_type ilu_parse(
  *                          both L and U factors. Irrelevant otherwise.
  *
  * @ingroup precond
- * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,

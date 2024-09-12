@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,7 +29,6 @@ namespace matrix {
  *
  * @ingroup identity
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>, public Transposable {
@@ -83,7 +82,6 @@ protected:
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class IdentityFactory

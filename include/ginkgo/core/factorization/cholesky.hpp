@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +30,8 @@ namespace factorization {
  * @tparam ValueType  the type used to store values of the system matrix
  * @tparam IndexType  the type used to store sparsity pattern indices of the
  *                    system matrix
+ *
+ * @ingroup factor
  */
 template <typename ValueType, typename IndexType>
 class Cholesky

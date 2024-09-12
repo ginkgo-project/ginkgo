@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,8 +36,7 @@ namespace matrix {
  * array of the rowgatherer indices.
  *
  * @ingroup rowgatherer
- * @ingroup matrix
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename IndexType = int32>
 class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {
