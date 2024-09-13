@@ -13,7 +13,7 @@ make test
 
 The output should contain several lines of the form:
 
-```
+```text
      Start  1: path/to/test
  1/13 Test  #1: path/to/test .............................   Passed    0.01 sec
 ```

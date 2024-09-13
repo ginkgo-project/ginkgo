@@ -126,7 +126,7 @@ Additionally, the following CMake options have effect on the build process:
 
 For example, to build everything (in debug mode), use:
 
-```cmake
+```bash
 cmake .. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
     -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
@@ -246,4 +246,11 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`test_install`](test/test_install/CMakeLists.txt).
+An example can be found in the [`test_install`](../../test/test_install/CMakeLists.txt).
+
+:::{toctree}
+:hidden:
+self
+TESTING
+BENCHMARKING
+:::
