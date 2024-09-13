@@ -161,7 +161,7 @@ to the project are added under this license.
 
 Depending on the configuration options used when building Ginkgo, third party
 software may be pulled as additional dependencies, which have their own
-licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
+licensing conditions. Refer to [ABOUT-LICENSING.md](doc/user-guide/ABOUT-LICENSING.md) for
 details.
 
 # Contributing to Ginkgo

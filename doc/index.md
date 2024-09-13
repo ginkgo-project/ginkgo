@@ -27,6 +27,7 @@ Examples <_doxygen/html/Examples.html#https://>
 Publications <user-guide/CITING>
 user-guide/CONTRIBUTING
 Using Ginkgo <user-guide/INSTALL>
+user-guide/ABOUT-LICENSING
 API <_doxygen/html/index.html#https://>
 :::
 
