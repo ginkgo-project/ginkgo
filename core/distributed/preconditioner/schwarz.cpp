@@ -70,10 +70,24 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     const VectorType* dense_b, VectorType* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
+    using dist_vec = experimental::distributed::Vector<ValueType>;
     auto exec = this->get_executor();
+
     if (this->local_solver_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
                                    gko::detail::get_local(dense_x));
+    }
+
+    if (this->coarse_solver_ != nullptr && this->galerkin_ops_ != nullptr) {
+        auto restrict = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                            ->get_restrict_op();
+        auto prolong = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                           ->get_prolong_op();
+        GKO_ASSERT(this->half_ != nullptr);
+
+        restrict->apply(dense_b, this->csol_);
+        this->coarse_solver_->apply(this->csol_, this->csol_);
+        prolong->apply(this->half_, this->csol_, this->half_, dense_x);
     }
 }
 
@@ -111,6 +125,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
+    using Vector = matrix::Dense<ValueType>;
+    using dist_vec = experimental::distributed::Vector<ValueType>;
     if (parameters_.local_solver && parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
             "Provided both a generated solver and a solver factory");
@@ -120,15 +136,44 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         GKO_INVALID_STATE(
             "Requires either a generated solver or an solver factory");
     }
+    auto dist_mat =
+        as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                             GlobalIndexType>>(system_matrix);
 
     if (parameters_.local_solver) {
-        this->set_solver(gko::share(parameters_.local_solver->generate(
-            as<experimental::distributed::Matrix<
-                ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
-                ->get_local_matrix())));
-
+        this->set_solver(gko::share(
+            parameters_.local_solver->generate(dist_mat->get_local_matrix())));
     } else {
         this->set_solver(parameters_.generated_local_solver);
+    }
+
+
+    if (parameters_.galerkin_ops && parameters_.coarse_solver) {
+        this->galerkin_ops_ =
+            share(parameters_.galerkin_ops->generate(system_matrix));
+        if (as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                ->get_coarse_op()) {
+            auto coarse =
+                as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                     GlobalIndexType>>(
+                    as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                        ->get_coarse_op());
+            auto exec = coarse->get_executor();
+            auto comm = coarse->get_communicator();
+            this->coarse_solver_ =
+                share(parameters_.coarse_solver->generate(coarse));
+            // TODO: Set correct rhs and stride.
+            auto cs_ncols = 1;  // dense_x->get_size()[1];
+            auto cs_local_nrows = coarse->get_local_matrix()->get_size()[0];
+            auto cs_global_nrows = coarse->get_size()[0];
+            auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
+            auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
+            this->csol_ = gko::share(
+                dist_vec::create(exec, comm, cs_global_size, cs_local_size,
+                                 1 /*dense_x->get_stride()*/));
+            // this->temp_ = this->csol->clone();
+            this->half_ = gko::share(gko::initialize<Vector>({0.5}, exec));
+        }
     }
 }
 
