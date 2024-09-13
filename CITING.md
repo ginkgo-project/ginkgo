@@ -26,7 +26,7 @@ pages = {2:1--2:33}
 Multiple topical papers exist on Ginkgo and its algorithms. The following papers
 can be used to cite specific aspects of the Ginkgo project.
 
-### The Ginkgo Software
+## The Ginkgo Software
 
 The Ginkgo software itself was reviewed and has a paper published in the Journal
 of Open Source Software, which can be cited with the following reference:
@@ -46,7 +46,7 @@ of Open Source Software, which can be cited with the following reference:
 }
 ```
 
-### On Portability
+## On Portability
 
 ``` bibtex
 @misc{tsai2020amdportability,
@@ -59,7 +59,7 @@ of Open Source Software, which can be cited with the following reference:
 }
 ```
 
-### On Software Sustainability
+## On Software Sustainability
 
 ``` bibtex
 @inproceedings{anzt2019pasccb,
@@ -80,7 +80,7 @@ series = {PASC ’19}
 }
 ```
 
-### On SpMV or solvers performance
+## On SpMV or solvers performance
 
 ``` bibtex
 @InProceedings{tsai2020amdspmv,
