@@ -81,5 +81,5 @@ if read_the_docs_build:
     }
 else:
     doxylink = {
-        'doxy': ('_doxygen/Ginkgo.tag', '../_doxygen/usr')
+        'doxy': ('@CMAKE_CURRENT_BINARY_DIR@/html/_doxygen/Ginkgo.tag', '@CMAKE_CURRENT_BINARY_DIR@/html/_doxygen/html')
     }
