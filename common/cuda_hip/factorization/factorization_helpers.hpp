@@ -107,6 +107,5 @@ __global__ __launch_bounds__(default_block_size) void initialize_l(
 }  // namespace helpers
 }  // namespace factorization
 }  // namespace GKO_DEVICE_NAMESPACE
-
 }  // namespace kernels
 }  // namespace gko
