@@ -1,7 +1,7 @@
 # User Guide
 
 This is the main page for the Ginkgo library user documentation. The repository is hosted on [github](https://github.com/ginkgo-project/ginkgo). 
-Documentation on aspects such as the build system, can be found at the [install page](user-guide/INSTALL.md). 
+Documentation on aspects such as the build system, can be found at the [install page](user-guide/install.md). 
 The {doxy}`Examples` can help you get started with using Ginkgo.
 
 The Ginkgo library can be grouped into modules which form the basic building blocks of Ginkgo. The modules can be summarized as follows:
@@ -24,10 +24,10 @@ The Ginkgo library can be grouped into modules which form the basic building blo
 
 Tutorial <https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver>
 Examples <_doxygen/html/Examples.html#https://>
-Publications <user-guide/CITING>
-user-guide/CONTRIBUTING
-Using Ginkgo <user-guide/INSTALL>
-user-guide/ABOUT-LICENSING
+Publications <user-guide/citing>
+user-guide/contributing
+Using Ginkgo <user-guide/install>
+user-guide/about-licensing
 API <_doxygen/html/index.html#https://>
 :::
 

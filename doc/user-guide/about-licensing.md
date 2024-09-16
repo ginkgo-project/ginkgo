@@ -230,7 +230,7 @@ For detecting the HWLOC library, we used a modified version of the FindHWLOC.cma
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
 third-party licensing. Refer to the [Installation section in
-INSTALL.md](INSTALL.md#building) for more details.
+install.md](install.md#building) for more details.
 
 
 When using testing with MPI switched on, the gtest-mpi-listener header only library is used for testing MPI functionality. The repository is licensed triple licensed under BSD-3, MIT and Apache 2.0. The License duplicated below. More details on the License and the library are [available on github](https://github.com/LLNL/gtest-mpi-listener)

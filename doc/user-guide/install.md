@@ -251,6 +251,6 @@ An example can be found in the [`test_install`](../../test/test_install/CMakeLis
 :::{toctree}
 :hidden:
 self
-TESTING
-BENCHMARKING
+testing
+benchmarking
 :::
