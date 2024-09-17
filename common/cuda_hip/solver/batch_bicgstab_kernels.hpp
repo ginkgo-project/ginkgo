@@ -5,6 +5,8 @@
 #ifndef GKO_COMMON_CUDA_HIP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
 #define GKO_COMMON_CUDA_HIP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
 
+#include "core/solver/batch_bicgstab_kernels.hpp"
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
