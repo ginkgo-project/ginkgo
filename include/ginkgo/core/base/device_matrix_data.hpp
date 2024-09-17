@@ -16,6 +16,14 @@
 
 namespace gko {
 
+/**
+ * Enum that describes how allocated data is filled
+ */
+enum class fill_mode {
+    uninitialized,  //!< no fill operation is done
+    zero            //!< fill with zeros
+};
+
 
 /**
  * This type is a device-side equivalent to matrix_data.
@@ -48,9 +56,11 @@ public:
      * @param exec  the executor to be used to store the matrix entries
      * @param size  the matrix dimensions
      * @param num_entries  the number of entries to be stored
+     * @param fm  describes how the data is filled
      */
     explicit device_matrix_data(std::shared_ptr<const Executor> exec,
-                                dim<2> size = {}, size_type num_entries = 0);
+                                dim<2> size = {}, size_type num_entries = 0,
+                                fill_mode fm = fill_mode::uninitialized);
 
     /**
      * Initializes a device_matrix_data object by copying an existing object on
@@ -113,6 +123,11 @@ public:
      */
     static device_matrix_data create_from_host(
         std::shared_ptr<const Executor> exec, const host_type& data);
+
+    /**
+     * Fills the matrix entries with zeros
+     */
+    void fill_zero();
 
     /**
      * Sorts the matrix entries in row-major order
