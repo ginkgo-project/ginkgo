@@ -29,9 +29,10 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     const int device_max_threads =
         ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 9, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>);
     const int num_regs_used = funcattr.numRegs;
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
@@ -53,13 +54,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        apply_kernel<StopType, 9, true, PrecType, LogType, BatchMatrixType,
-                     ValueType>,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>,
         cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 9, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
+                                           BatchMatrixType, ValueType>);
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -76,7 +78,7 @@ void launch_apply_kernel(
     ValueType* const __restrict__ workspace_data, const int& block_size,
     const size_t& shared_size)
 {
-    apply_kernel<StopType, n_shared, prec_shared>
+    batch_single_kernels::apply_kernel<StopType, n_shared, prec_shared>
         <<<mat.num_batch_items, block_size, shared_size, exec->get_stream()>>>(
             sconf, settings.max_iterations, as_cuda_type(settings.residual_tol),
             logger, prec, mat, b_values, x_values, workspace_data);
