@@ -116,6 +116,30 @@ TYPED_TEST(DeviceMatrixData, ConstructsCorrectly)
 }
 
 
+TYPED_TEST(DeviceMatrixData, ConstructsWithZerosCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    gko::device_matrix_data<value_type, index_type> local_data{
+        this->exec, gko::dim<2>{4, 3}, 10, gko::fill_mode::zero};
+
+    ASSERT_EQ((gko::dim<2>{4, 3}), local_data.get_size());
+    ASSERT_EQ(this->exec, local_data.get_executor());
+    ASSERT_EQ(local_data.get_num_stored_elements(), 10);
+    auto arrays = local_data.empty_out();
+    auto expected_row_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_col_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_values = gko::array<value_type>(this->exec, 10);
+    expected_row_idxs.fill(0);
+    expected_col_idxs.fill(0);
+    expected_values.fill(0.0);
+    GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, expected_row_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.values, expected_values);
+}
+
+
 TYPED_TEST(DeviceMatrixData, CopyConstructsOnOtherExecutorCorrectly)
 {
     using value_type = typename TestFixture::value_type;
@@ -238,6 +262,28 @@ TYPED_TEST(DeviceMatrixData, CopiesToHost)
 
     ASSERT_EQ(local_data.size, this->host_data.size);
     ASSERT_EQ(local_data.nonzeros, this->host_data.nonzeros);
+}
+
+
+TYPED_TEST(DeviceMatrixData, CanFillEntriesWithZeros)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
+    auto device_data = device_matrix_data{this->exec, gko::dim<2>{4, 3}, 10};
+
+    device_data.fill_zero();
+
+    auto arrays = device_data.empty_out();
+    auto expected_row_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_col_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_values = gko::array<value_type>(this->exec, 10);
+    expected_row_idxs.fill(0);
+    expected_col_idxs.fill(0);
+    expected_values.fill(0.0);
+    GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, expected_row_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.values, expected_values);
 }
 
 
