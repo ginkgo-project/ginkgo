@@ -3,6 +3,7 @@ add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/csr_kernels.instantiate.cpp CSR_INSTANTIATE)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kernels.instantiate.cpp FBCSR_INSTANTIATE)
+add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.cu BATCH_BICGSTAB_INSTANTIATE)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
@@ -21,6 +22,7 @@ target_sources(ginkgo_cuda
     matrix/fft_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
     solver/batch_bicgstab_kernels.cu
+    ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.cu
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
