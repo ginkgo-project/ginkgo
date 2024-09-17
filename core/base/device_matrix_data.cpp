@@ -29,12 +29,17 @@ GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
 
 template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>::device_matrix_data(
-    std::shared_ptr<const Executor> exec, dim<2> size, size_type num_entries)
+    std::shared_ptr<const Executor> exec, dim<2> size, size_type num_entries,
+    fill_mode fm)
     : size_{size},
       row_idxs_{exec, num_entries},
       col_idxs_{exec, num_entries},
       values_{exec, num_entries}
-{}
+{
+    if (fm == fill_mode::zero) {
+        fill_zero();
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -90,6 +95,15 @@ device_matrix_data<ValueType, IndexType>::create_from_host(
     exec->run(components::make_aos_to_soa(
         *make_temporary_clone(exec, &host_view), result));
     return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::fill_zero()
+{
+    row_idxs_.fill(0);
+    col_idxs_.fill(0);
+    values_.fill(ValueType{0});
 }
 
 
