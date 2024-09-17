@@ -91,6 +91,7 @@ TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
         reorder_type::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
+            .with_tolerance(1e-4)
             .on(this->exec)
             ->generate(this->not_id3_mtx);
 
@@ -123,7 +124,7 @@ TYPED_TEST(Mc64, CanBeCreatedWithTolerance)
     using real_type = typename TestFixture::real_type;
 
     auto mc64 = reorder_type::build()
-                    .with_tolerance(real_type{1e-10})
+                    .with_tolerance(real_type{1e-4})
                     .on(this->exec)
                     ->generate(this->id3_mtx);
 

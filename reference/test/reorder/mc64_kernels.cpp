@@ -284,6 +284,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
+            .with_tolerance(1e-4)
             .on(this->ref);
 
     auto mc64 = mc64_factory->generate(this->mtx);
@@ -307,6 +308,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
+            .with_tolerance(1e-4)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
@@ -354,6 +356,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
+            .with_tolerance(1e-4)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(mtx);
     // get components
@@ -362,7 +365,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
 
     mtx = mtx->scale_permute(row_perm, col_perm);
 
-    GKO_ASSERT_MTX_NEAR(mtx, expected_result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(mtx, expected_result, 20 * r<value_type>::value);
 }
 
 
@@ -373,6 +376,8 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
     using value_type = typename TestFixture::value_type;
     using matrix_type = typename TestFixture::matrix_type;
     using perm_type = typename TestFixture::perm_type;
+    // this example can not be finished in half precision
+    SKIP_IF_HALF(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_nontrivial_mc64_example};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));

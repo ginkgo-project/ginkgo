@@ -648,9 +648,17 @@ struct numeric_limits<gko::half> {
         return numeric_limits<float>::infinity();
     }
 
-    static constexpr float min() { return numeric_limits<float>::min(); }
+    static constexpr float min() { return 1.0f / (1ll << 14); }
 
-    static constexpr float max() { return numeric_limits<float>::max(); }
+    // The maximal exponent is 15, and the maximal significant is
+    // 1 + (2^-10 - 1) / 2^-10
+    static constexpr float max()
+    {
+        return (1ll << 15) *
+               (1.0f + static_cast<float>((1ll << 10) - 1) / (1ll << 10));
+    }
+
+    static constexpr float lowest() { return -max(); };
 
     static constexpr float quiet_NaN()
     {
