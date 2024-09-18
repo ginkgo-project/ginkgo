@@ -87,7 +87,7 @@ using DeviceValueType = gko::kernels::hip::hip_type<ValueType>;
 
 namespace gko {
 namespace kernels {
-namespace host {
+namespace dpcpp {
 
 
 template <typename T>
@@ -97,7 +97,7 @@ inline std::decay_t<T> as_device_type(T val)
 }
 
 
-}  // namespace host
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 
