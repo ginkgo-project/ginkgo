@@ -86,12 +86,13 @@ TYPED_TEST(Mc64, HasSensibleDefaults)
 TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
 {
     using reorder_type = typename TestFixture::reorder_type;
+    using real_type = typename TestFixture::real_type;
 
     auto mc64 =
         reorder_type::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
-            .with_tolerance(1e-4)
+            .with_tolerance(real_type{1e-4})
             .on(this->exec)
             ->generate(this->not_id3_mtx);
 
