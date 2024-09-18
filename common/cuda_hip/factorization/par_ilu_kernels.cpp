@@ -94,16 +94,26 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_elements, static_cast<size_type>(block_size)));
     if (grid_dim > 0) {
-        for (size_type i = 0; i < iterations; ++i) {
-            kernel::compute_l_u_factors<<<grid_dim, block_size, 0,
-                                          exec->get_stream()>>>(
-                num_elements, system_matrix->get_const_row_idxs(),
-                system_matrix->get_const_col_idxs(),
-                as_device_type(system_matrix->get_const_values()),
-                l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
-                as_device_type(l_factor->get_values()),
-                u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
-                as_device_type(u_factor->get_values()));
+#ifdef GKO_COMPILING_HIP
+        if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+            // HIP does not support 16bit atomic operation
+            GKO_NOT_SUPPORTED(system_matrix);
+        } else
+#endif
+        {
+            for (size_type i = 0; i < iterations; ++i) {
+                kernel::compute_l_u_factors<<<grid_dim, block_size, 0,
+                                              exec->get_stream()>>>(
+                    num_elements, system_matrix->get_const_row_idxs(),
+                    system_matrix->get_const_col_idxs(),
+                    as_device_type(system_matrix->get_const_values()),
+                    l_factor->get_const_row_ptrs(),
+                    l_factor->get_const_col_idxs(),
+                    as_device_type(l_factor->get_values()),
+                    u_factor->get_const_row_ptrs(),
+                    u_factor->get_const_col_idxs(),
+                    as_device_type(u_factor->get_values()));
+            }
         }
     }
 }
