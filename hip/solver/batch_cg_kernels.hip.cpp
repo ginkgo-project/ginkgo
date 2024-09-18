@@ -70,7 +70,7 @@ public:
     void launch_apply_kernel(
         const gko::kernels::batch_cg::storage_config& sconf, LogType& logger,
         PrecType& prec, const BatchMatrixType& mat,
-        const value_type* const __restrict__ b_values,
+        const hip_value_type* const __restrict__ b_values,
         hip_value_type* const __restrict__ x_values,
         hip_value_type* const __restrict__ workspace_data,
         const int& block_size, const size_t& shared_size) const
