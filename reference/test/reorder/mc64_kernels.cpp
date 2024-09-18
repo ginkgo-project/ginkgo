@@ -284,7 +284,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
-            .with_tolerance(1e-4)
+            .with_tolerance(real_type{1e-4})
             .on(this->ref);
 
     auto mc64 = mc64_factory->generate(this->mtx);
@@ -304,11 +304,12 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
-            .with_tolerance(1e-4)
+            .with_tolerance(real_type{1e-4})
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
@@ -356,7 +357,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
-            .with_tolerance(1e-4)
+            .with_tolerance(real_type{1e-4})
             .on(this->ref);
     auto mc64 = mc64_factory->generate(mtx);
     // get components
