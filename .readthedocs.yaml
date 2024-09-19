@@ -27,9 +27,7 @@ build:
         -DGINKGO_BUILD_HIP=OFF \
         -DGINKGO_BUILD_SYCL=OFF \
         -DGINKGO_BUILD_MPI=OFF
-        cmake --build build -t doxygen -- -j
-        mkdir -p $READTHEDOCS_OUTPUT/html/
-        mv build/doc/html/_doxygen $READTHEDOCS_OUTPUT/html/_doxygen
+        cmake --build build -t doxysphinx -- -j
         mv build/doc/conf.py doc/conf.py
 
 # Build documentation in the "docs/" directory with Sphinx

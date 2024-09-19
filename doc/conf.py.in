@@ -31,18 +31,23 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '_doxygen', 'joss']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'joss', "_doxygen"]
 
 highlight_language = 'c++'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
-html_theme_options = {}
+html_theme = 'sphinx_book_theme'
+html_theme_options = {
+    'repository_url': 'https://github.com/ginkgo-project/ginkgo/',
+    'use_repository_button': True,
+    'use_fullscreen_button': False,
+    'use_download_button': False
+}
 html_static_path = ['_static']
-html_logo = '../assets/logo_doc.png'
-html_favicon = '../assets/favicon.ico'
+html_logo = '@Ginkgo_SOURCE_DIR@/assets/logo.png'
+html_favicon = '@Ginkgo_SOURCE_DIR@/assets/favicon.ico'
 html_title = f'{project} v{release}'
 
 # Define the canonical URL if you are using a custom domain on Read the Docs
@@ -74,12 +79,6 @@ myst_heading_anchors = 3
 # -- doxylink configuration -------------------------------------------------
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
-if read_the_docs_build:
-    doxygen_dir = os.environ['READTHEDOCS_OUTPUT']
-    doxylink = {
-        'doxy': (f'{doxygen_dir}/html/_doxygen/Ginkgo.tag', f'{doxygen_dir}/html/_doxygen/usr')
-    }
-else:
-    doxylink = {
-        'doxy': ('@CMAKE_CURRENT_BINARY_DIR@/html/_doxygen/Ginkgo.tag', '@CMAKE_CURRENT_BINARY_DIR@/html/_doxygen/html')
-    }
+doxylink = {
+    'doxy': ('@Ginkgo_SOURCE_DIR@/doc/_build_doxygen/html/tagfile.xml', '_build_doxygen/html')
+}
