@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> tolerance = 1.0e-8;
 
     auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(100000u).on(exec));
+        gko::stop::Iteration::build().with_max_iters(1000000u).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
@@ -301,7 +301,8 @@ int main(int argc, char* argv[])
                        .with_max_levels(max_mg_levels)
                        .with_min_coarse_rows(2u)
                        .with_pre_smoother(smoother_gen)
-                       .with_post_uses_pre(true)
+                       .with_post_smoother(nullptr)
+                       .with_post_uses_pre(false)
                        .with_mg_level(mg_level_gen)
                        .with_coarsest_solver(coarsest_solver_gen)
                        .with_criteria(iter_stop, tol_stop)
@@ -339,12 +340,12 @@ int main(int argc, char* argv[])
             int n = op->get_size()[0];
             int num_stored_elements = 0;
             auto csr = gko::as<mtx>(op);
-            if (export_data) {
-                std::string filename =
-                    "data/A_mg_" + std::to_string(i) + ".mtx";
-                std::ofstream ofs(filename);
-                gko::write(ofs, csr);
-            }
+            // if (export_data) {
+            //     std::string filename =
+            //         "data/A_mg_" + std::to_string(i) + ".mtx";
+            //     std::ofstream ofs(filename);
+            //     gko::write(ofs, csr);
+            // }
             num_stored_elements = csr->get_num_stored_elements();
             std::cout << i << ", " << n << ", " << num_stored_elements << ", "
                       << float(n) / prev_n << ", "
@@ -366,15 +367,16 @@ int main(int argc, char* argv[])
                       << ", " << float(num_stored_elements) / prev_nnz << ", "
                       << float(n) / total_n << ", "
                       << float(num_stored_elements) / total_nnz << std::endl;
-            if (export_data) {
-                std::string filename = "data/A_mg_" +
-                                       std::to_string(mg_level_list.size()) +
-                                       ".mtx";
-                std::ofstream ofs(filename);
-                ofs << std::setprecision(std::numeric_limits<double>::digits10 +
-                                         1);
-                gko::write(ofs, csr);
-            }
+            // if (export_data) {
+            //     std::string filename = "data/A_mg_" +
+            //                            std::to_string(mg_level_list.size()) +
+            //                            ".mtx";
+            //     std::ofstream ofs(filename);
+            //     ofs <<
+            //     std::setprecision(std::numeric_limits<double>::digits10 +
+            //                              1);
+            //     gko::write(ofs, csr);
+            // }
         }
         if (export_data) {
             // for smoother
@@ -396,23 +398,24 @@ int main(int argc, char* argv[])
                                          1);
                 gko::write(ofs, l_matrix);
             }
-            {
-                // for Restrict/Prolong
-                auto mg_level_list = solver->get_mg_level_list();
-                for (int i = 0; i < mg_level_list.size(); i++) {
-                    auto op =
-                        gko::as<gko::matrix::SparsityCsr<ValueType, IndexType>>(
-                            mg_level_list.at(i)->get_restrict_op());
-                    if (export_data) {
-                        std::string filename =
-                            "data/A_mg_r_" + std::to_string(i) + ".mtx";
-                        std::ofstream ofs(filename);
-                        ofs << std::setprecision(
-                            std::numeric_limits<double>::digits10 + 1);
-                        gko::write(ofs, op);
-                    }
-                }
-            }
+            // {
+            //     // for Restrict/Prolong
+            //     auto mg_level_list = solver->get_mg_level_list();
+            //     for (int i = 0; i < mg_level_list.size(); i++) {
+            //         auto op =
+            //             gko::as<gko::matrix::SparsityCsr<ValueType,
+            //             IndexType>>(
+            //                 mg_level_list.at(i)->get_restrict_op());
+            //         if (export_data) {
+            //             std::string filename =
+            //                 "data/A_mg_r_" + std::to_string(i) + ".mtx";
+            //             std::ofstream ofs(filename);
+            //             ofs << std::setprecision(
+            //                 std::numeric_limits<double>::digits10 + 1);
+            //             gko::write(ofs, op);
+            //         }
+            //     }
+            // }
         }
     }
 
