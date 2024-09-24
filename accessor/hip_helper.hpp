@@ -21,6 +21,11 @@ struct __half;
 
 
 namespace gko {
+
+
+class half;
+
+
 namespace acc {
 namespace detail {
 

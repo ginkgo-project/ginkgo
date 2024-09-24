@@ -6,7 +6,6 @@
 #define GKO_CORE_MATRIX_COO_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>

@@ -128,6 +128,7 @@ constexpr UintType create_ones(int n)
            static_cast<UintType>(1);
 }
 
+
 template <typename T>
 struct float_traits {
     using type = typename basic_float_traits<T>::type;
@@ -354,13 +355,11 @@ public:
     template <typename T>                                                  \
     GKO_ATTRIBUTES friend std::enable_if_t<                                \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
-        typename std::conditional<std::is_floating_point<T>::value, T,     \
-                                  half>::type>                             \
+        std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const half hf, const T val)                               \
     {                                                                      \
         using type =                                                       \
-            typename std::conditional<std::is_floating_point<T>::value, T, \
-                                      half>::type;                         \
+            std::conditional_t<std::is_floating_point<T>::value, T, half>; \
         auto result = static_cast<type>(hf);                               \
         result _opeq static_cast<type>(val);                               \
         return result;                                                     \
@@ -368,13 +367,11 @@ public:
     template <typename T>                                                  \
     GKO_ATTRIBUTES friend std::enable_if_t<                                \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
-        typename std::conditional<std::is_floating_point<T>::value, T,     \
-                                  half>::type>                             \
+        std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const T val, const half hf)                               \
     {                                                                      \
         using type =                                                       \
-            typename std::conditional<std::is_floating_point<T>::value, T, \
-                                      half>::type;                         \
+            std::conditional_t<std::is_floating_point<T>::value, T, half>; \
         auto result = static_cast<type>(val);                              \
         result _opeq static_cast<type>(hf);                                \
         return result;                                                     \
