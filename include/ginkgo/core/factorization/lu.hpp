@@ -101,6 +101,15 @@ public:
          * incorrect results or crash.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * The symbolic factoization should contains the fill-in information. If
+         * it is not the case, users might face hang or illegal access issue.
+         * Please enable this option when the symbolic factorization does not
+         * contain the full fill-in information. Symbolic factorization must
+         * still contain the entry for the original matrix.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(checked_lookup, false);
     };
 
     /**

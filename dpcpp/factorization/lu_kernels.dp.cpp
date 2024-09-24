@@ -39,7 +39,7 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool checked_lookup,
                array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);

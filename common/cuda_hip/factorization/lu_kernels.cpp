@@ -85,7 +85,7 @@ __global__ __launch_bounds__(default_block_size) void initialize(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <bool checked_lookup, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void factorize(
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
     const IndexType* __restrict__ storage_offsets,
@@ -130,12 +130,14 @@ __global__ __launch_bounds__(default_block_size) void factorize(
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
             const auto upper_val = vals[upper_nz];
-            // const auto output_pos = lookup[upper_col];
-            const auto output_pos = lookup.lookup_unsafe(upper_col) + row_begin;
-            if (output_pos >= row_begin && output_pos < row_end &&
-                cols[output_pos] == upper_col) {
-                // if (output_pos != invalid_index<IndexType>()) {
-                // output_pos += row_begin;
+            if (checked_lookup) {
+                const auto pos = lookup[upper_col];
+                if (pos != invalid_index<IndexType>()) {
+                    vals[row_begin + pos] -= scale * upper_val;
+                }
+            } else {
+                const auto output_pos =
+                    lookup.lookup_unsafe(upper_col) + row_begin;
                 vals[output_pos] -= scale * upper_val;
             }
         }
@@ -258,7 +260,7 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool checked_lookup,
                array<int>& tmp_storage)
 {
     const auto num_rows = factors->get_size()[0];
@@ -266,11 +268,21 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::factorize<<<num_blocks, default_block_size, 0,
-                            exec->get_stream()>>>(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
-            as_device_type(factors->get_values()), storage, num_rows);
+        if (checked_lookup) {
+            kernel::factorize<true>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), lookup_offsets,
+                    lookup_storage, lookup_descs, diag_idxs,
+                    as_device_type(factors->get_values()), storage, num_rows);
+        } else {
+            kernel::factorize<false>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), lookup_offsets,
+                    lookup_storage, lookup_descs, diag_idxs,
+                    as_device_type(factors->get_values()), storage, num_rows);
+        }
     }
 }
 
