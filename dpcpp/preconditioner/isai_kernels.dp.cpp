@@ -365,7 +365,7 @@ void generate_general_inverse(
 
         if (spd) {
             auto diag = subwarp.shfl(sol, num_elems - 1);
-            sol /= std::sqrt(diag);
+            sol /= gko::sqrt(diag);
         }
 
         return sol;
@@ -531,7 +531,7 @@ void scale_excess_solution(const IndexType* __restrict__ excess_block_ptrs,
         return;
     }
     const auto diag = excess_solution[block_end - 1];
-    const ValueType scal = one<ValueType>() / std::sqrt(diag);
+    const ValueType scal = one<ValueType>() / gko::sqrt(diag);
 
     for (size_type i = block_begin + local_id; i < block_end;
          i += subwarp_size) {

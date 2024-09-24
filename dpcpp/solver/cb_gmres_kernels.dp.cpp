@@ -285,9 +285,9 @@ void multinorminf_without_stop_kernel(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_max =
-                (local_max >= std::abs(next_krylov_basis[next_krylov_idx]))
+                (local_max >= gko::abs(next_krylov_basis[next_krylov_idx]))
                     ? local_max
-                    : std::abs(next_krylov_basis[next_krylov_idx]);
+                    : gko::abs(next_krylov_basis[next_krylov_idx]);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_max;
@@ -373,7 +373,7 @@ void multinorm2_inf_kernel(
             local_res += squared_norm(num);
             if (compute_inf) {
                 local_max =
-                    ((local_max >= std::abs(num)) ? local_max : std::abs(num));
+                    ((local_max >= gko::abs(num)) ? local_max : gko::abs(num));
             }
         }
     }
@@ -729,8 +729,8 @@ void check_arnoldi_norms(
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
-        const auto num0 = (std::sqrt(eta_squared * arnoldi_norm[col_idx]));
-        const auto num11 = std::sqrt(arnoldi_norm[col_idx + stride_norm]);
+        const auto num0 = (gko::sqrt(eta_squared * arnoldi_norm[col_idx]));
+        const auto num11 = gko::sqrt(arnoldi_norm[col_idx + stride_norm]);
         const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
                                      : remove_complex<ValueType>{};
         if (num11 < num0) {

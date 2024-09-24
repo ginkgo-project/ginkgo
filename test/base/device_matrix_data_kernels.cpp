@@ -316,7 +316,7 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
     arrays.values.set_executor(this->exec->get_master());
     for (int i = 0; i < arrays.values.get_size(); i++) {
         max_error = std::max<double>(
-            max_error, std::abs(arrays.values.get_const_data()[i] -
+            max_error, gko::abs(arrays.values.get_const_data()[i] -
                                 ref_arrays.values.get_const_data()[i]));
     }
     // when Hip with GNU < 7, it will give a little difference.
