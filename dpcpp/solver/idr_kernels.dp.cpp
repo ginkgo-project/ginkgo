@@ -127,7 +127,7 @@ void orthonormalize_subspace_vectors_kernel(
                const remove_complex<ValueType>& b) { return a + b; });
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        norm = std::sqrt(reduction_helper_real[0]);
+        norm = gko::sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
             values[row * stride + j] /= norm;
         }
@@ -542,8 +542,8 @@ void compute_omega_kernel(
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
         omega[global_id] /= tht[global_id];
-        auto absrho = std::abs(
-            thr / (std::sqrt(real(tht[global_id])) * residual_norm[global_id]));
+        auto absrho = gko::abs(
+            thr / (gko::sqrt(real(tht[global_id])) * residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;

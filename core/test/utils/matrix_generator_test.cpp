@@ -278,8 +278,8 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
     // make diagonally dominant
-    auto diag = std::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
-                std::abs(lower) + std::abs(upper);
+    auto diag = gko::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
+                gko::abs(lower) + gko::abs(upper);
     gko::size_type size = 50;
     if (std::is_same<gko::half, gko::remove_complex<T>>::value) {
         // half precision can only handle small matrix

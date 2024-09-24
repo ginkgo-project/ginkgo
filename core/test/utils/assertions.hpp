@@ -259,7 +259,7 @@ void save_matrices_to_disk(Ostream& os, const MatrixData1& first,
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
-    using std::abs;
+    using gko::abs;
     using vt = typename detail::biggest_valuetype<
         typename MatrixData1::value_type,
         typename MatrixData2::value_type>::type;
