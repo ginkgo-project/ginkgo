@@ -30,28 +30,40 @@ class complex;
 
 
 }
-namespace std {
 
 
-inline gko::half abs(gko::half a) { return gko::half((a > 0) ? a : -a); }
+// when using gko, abs will be ambiguous. delete that, get_relative_error can
+// not find proper half
+namespace gko {
+using std::abs;
+using std::sqrt;
 
-inline gko::half abs(std::complex<gko::half> a)
+GKO_ATTRIBUTES GKO_INLINE gko::half abs(gko::half a)
+{
+    return gko::half((a > 0) ? a : -a);
+}
+
+GKO_ATTRIBUTES GKO_INLINE gko::half abs(std::complex<gko::half> a)
 {
     // Using float abs not sqrt on norm to avoid overflow
     return gko::half(abs(std::complex<float>(a)));
 }
 
 
-inline gko::half sqrt(gko::half a) { return gko::half(sqrt(float(a))); }
+GKO_ATTRIBUTES GKO_INLINE gko::half sqrt(gko::half a)
+{
+    return gko::half(std::sqrt(float(a)));
+}
 
-inline std::complex<gko::half> sqrt(std::complex<gko::half> a)
+GKO_ATTRIBUTES GKO_INLINE std::complex<gko::half> sqrt(
+    std::complex<gko::half> a)
 {
     return std::complex<gko::half>(sqrt(std::complex<float>(
         static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 
 
-}  // namespace std
+}  // namespace gko
 
 
 namespace gko {

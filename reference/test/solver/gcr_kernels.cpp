@@ -458,7 +458,7 @@ TYPED_TEST(Gcr, SolveWithImplicitResNormCritIsDisabled)
 template <typename T>
 gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 {
-    using std::abs;
+    using gko::abs;
     using no_cpx_t = gko::remove_complex<T>;
     no_cpx_t norm = 0.0;
     for (size_t i = 0; i < mat->get_size()[0]; ++i) {
