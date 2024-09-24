@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
