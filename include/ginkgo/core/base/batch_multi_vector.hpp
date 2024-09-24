@@ -447,7 +447,7 @@ protected:
 private:
     batch_dim<2> batch_size_;
     array<value_type> values_;
-};  // namespace batch
+};
 
 
 }  // namespace batch

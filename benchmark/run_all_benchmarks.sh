@@ -114,7 +114,7 @@ elif [ "${BENCHMARK_PRECISION}" == "half" ]; then
     BENCH_SUFFIX="_half"
 else
     echo "BENCHMARK_PRECISION is set to the not supported \"${BENCHMARK_PRECISION}\"." 1>&2
-    echo "Currently supported values: \"double\", \"single\", \"dcomplex\" and \"scomplex\"" 1>&2
+    echo "Currently supported values: \"double\", \"single\", \"half\", \"dcomplex\" and \"scomplex\"" 1>&2
     exit 1
 fi
 

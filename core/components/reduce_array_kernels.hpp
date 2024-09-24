@@ -10,7 +10,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/kernel_declaration.hpp"
