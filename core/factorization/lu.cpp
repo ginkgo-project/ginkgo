@@ -69,6 +69,9 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
+    if (auto& obj = config.get("checked_lookup")) {
+        params.with_checked_lookup(config::get_value<bool>(obj));
+    }
 
     return params;
 }
@@ -160,10 +163,10 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         storage.get_const_data(), diag_idxs.get_data(), factors.get()));
     // run numerical factorization
     array<int> tmp{exec};
-    exec->run(make_factorize(storage_offsets.get_const_data(),
-                             row_descs.get_const_data(),
-                             storage.get_const_data(),
-                             diag_idxs.get_const_data(), factors.get(), tmp));
+    exec->run(make_factorize(
+        storage_offsets.get_const_data(), row_descs.get_const_data(),
+        storage.get_const_data(), diag_idxs.get_const_data(), factors.get(),
+        parameters_.checked_lookup, tmp));
     return factorization_type::create_from_combined_lu(std::move(factors));
 }
 

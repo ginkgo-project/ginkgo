@@ -178,6 +178,8 @@ struct Lu : FactorizationConfigTest<
             gko::experimental::factorization::symbolic_type::near_symmetric);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
+        config_map["checked_lookup"] = pnode{true};
+        param.with_checked_lookup(true);
     }
 
     template <typename AnswerType>
@@ -190,6 +192,7 @@ struct Lu : FactorizationConfigTest<
                   ans_param.symbolic_factorization);
         ASSERT_EQ(res_param.symbolic_algorithm, ans_param.symbolic_algorithm);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.checked_lookup, ans_param.checked_lookup);
     }
 };
 

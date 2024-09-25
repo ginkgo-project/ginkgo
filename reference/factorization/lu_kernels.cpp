@@ -65,7 +65,7 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool checked_lookup,
                array<int>& tmp_storage)
 {
     const auto num_rows = factors->get_size()[0];
@@ -87,8 +87,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end; dep_nz++) {
                 const auto col = cols[dep_nz];
                 const auto val = vals[dep_nz];
-                const auto nz = row_begin + lookup.lookup_unsafe(col);
-                vals[nz] -= scale * val;
+                if (checked_lookup) {
+                    const auto idx = lookup[col];
+                    if (idx != invalid_index<IndexType>()) {
+                        vals[row_begin + idx] -= scale * val;
+                    }
+                } else {
+                    const auto nz = row_begin + lookup.lookup_unsafe(col);
+                    vals[nz] -= scale * val;
+                }
             }
         }
     }
