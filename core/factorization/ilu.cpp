@@ -10,6 +10,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/base/array_access.hpp"
 #include "core/config/config_helper.hpp"
@@ -52,6 +54,17 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
+    if (auto& obj = config.get("algorithm")) {
+        using gko::factorization::factorize_algorithm;
+        auto str = obj.get_string();
+        if (str == "sparselib") {
+            params.with_algorithm(factorize_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            params.with_algorithm(factorize_algorithm::syncfree);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("algorithm", str);
+        }
+    }
     return params;
 }
 
@@ -66,7 +79,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
-    auto local_system_matrix = matrix_type::create(exec);
+    auto local_system_matrix = share(matrix_type::create(exec));
+    std::shared_ptr<const matrix_type> ilu;
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
@@ -79,16 +93,36 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         local_system_matrix.get(), false));
 
     // Compute LU factorization
-    exec->run(ilu_factorization::make_compute_ilu(local_system_matrix.get()));
-
+    if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
+        parameters_.algorithm == factorize_algorithm::syncfree) {
+        auto sparsity =
+            share(gko::matrix::SparsityCsr<ValueType, IndexType>::create_const(
+                exec, local_system_matrix->get_size(),
+                make_const_array_view(
+                    exec, local_system_matrix->get_num_stored_elements(),
+                    local_system_matrix->get_const_col_idxs()),
+                make_const_array_view(
+                    exec, local_system_matrix->get_size()[0] + 1,
+                    local_system_matrix->get_const_row_ptrs())));
+        ilu =
+            gko::experimental::factorization::Lu<ValueType, IndexType>::build()
+                .with_checked_lookup(true)
+                .with_symbolic_factorization(sparsity)
+                .on(exec)
+                ->generate(local_system_matrix)
+                ->get_combined();
+    } else {
+        exec->run(
+            ilu_factorization::make_compute_ilu(local_system_matrix.get()));
+        ilu = local_system_matrix;
+    }
     // Separate L and U factors: nnz
-    const auto matrix_size = local_system_matrix->get_size();
+    const auto matrix_size = ilu->get_size();
     const auto num_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, num_rows + 1};
     array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(ilu_factorization::make_initialize_row_ptrs_l_u(
-        local_system_matrix.get(), l_row_ptrs.get_data(),
-        u_row_ptrs.get_data()));
+        ilu.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, num_rows));
@@ -107,8 +141,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), parameters_.u_strategy);
 
     // Separate L and U: columns and values
-    exec->run(ilu_factorization::make_initialize_l_u(
-        local_system_matrix.get(), l_factor.get(), u_factor.get()));
+    exec->run(ilu_factorization::make_initialize_l_u(ilu.get(), l_factor.get(),
+                                                     u_factor.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));
