@@ -26,6 +26,14 @@ namespace factorization {
 
 
 /**
+ * A helper for algorithm selection in the incomplete factorization.
+ * sparselib is only available for cuda and hip.
+ * syncfree is Ginkgo's implementation through the Lu factorization with given
+ * sparsity.
+ */
+enum class factorize_algorithm { sparselib, syncfree };
+
+/**
  * Represents an incomplete LU factorization -- ILU(0) -- of a sparse matrix.
  *
  * More specifically, it consists of a lower unitriangular factor $L$ and
@@ -94,6 +102,15 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * Select the implementation which is supposed to be used for
+         * the incomplete factorization. This only matters for the Cuda and Hip
+         * executor where the choice is between the Ginkgo (syncfree) and the
+         * cuSPARSE/hipSPARSE (sparselib) implementation. Default is sparselib.
+         */
+        factorize_algorithm GKO_FACTORY_PARAMETER_SCALAR(
+            algorithm, factorize_algorithm::sparselib);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
