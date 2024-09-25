@@ -183,7 +183,8 @@ struct device_sparsity_lookup {
             result = lookup_search_unsafe(col);
             break;
         }
-        GKO_ASSERT(local_cols[result] == col);
+        GKO_ASSERT(result >= 0 && result < row_nnz &&
+                   local_cols[result] == col);
         return result;
     }
 
@@ -230,7 +231,8 @@ private:
         const auto out_idx =
             block_bases[block] +
             gko::detail::popcount(block_bitmaps[block] & prefix_mask);
-        GKO_ASSERT(local_cols[out_idx] == col);
+        GKO_ASSERT(out_idx >= 0 && out_idx < row_nnz &&
+                   local_cols[out_idx] == col);
         return out_idx;
     }
 
@@ -262,15 +264,17 @@ private:
             (static_cast<unsigned_index_type>(col) * hash_param) % hashmap_size;
         GKO_ASSERT(hashmap[hash] >= 0);
         GKO_ASSERT(hashmap[hash] < row_nnz);
-        while (local_cols[hashmap[hash]] != col) {
+        auto out_idx = hashmap[hash];
+        // linear probing with invalid_index sentinel to avoid infinite loop
+        while (out_idx >= 0 && local_cols[out_idx] != col) {
             hash++;
             if (hash >= hashmap_size) {
                 hash = 0;
             }
-            GKO_ASSERT(hashmap[hash] >= 0);
+            out_idx = hashmap[hash];
             GKO_ASSERT(hashmap[hash] < row_nnz);
         }
-        const auto out_idx = hashmap[hash];
+        // out_idx is either correct or invalid_index, the hashmap sentinel
         return out_idx;
     }
 
