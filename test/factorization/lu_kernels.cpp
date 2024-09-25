@@ -196,11 +196,11 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
+            diag_idxs.get_const_data(), this->mtx_lu.get(), false, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
+            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), false, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
     });
@@ -374,10 +374,12 @@ TYPED_TEST(Lu, GenerateIluWithBitmapIsEquivalentToRef)
     auto factory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(sparsity)
+            .with_checked_lookup(true)
             .on(this->ref);
     auto dfactory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(dsparsity)
+            .with_checked_lookup(true)
             .on(this->exec);
 
     auto lu = factory->generate(mtx);
@@ -415,10 +417,12 @@ TYPED_TEST(Lu, GenerateIluWithHashmapIsEquivalentToRef)
     auto factory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(sparsity)
+            .with_checked_lookup(true)
             .on(this->ref);
     auto dfactory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(dsparsity)
+            .with_checked_lookup(true)
             .on(this->exec);
 
     auto lu = factory->generate(mtx);
