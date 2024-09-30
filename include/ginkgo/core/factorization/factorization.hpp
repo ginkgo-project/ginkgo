@@ -88,10 +88,21 @@ public:
      * for triangular solves to a composition representation that can also be
      * used to access individual factors and multiply with the factorization.
      *
+     * @param lower_factor_strategy  the Csr strategy for the lower factor and
+     *                               the transposed lower factor.
+     * @param upper_factor_strategy  the Csr strategy for the upper factor
+     *
      * @return  a new Factorization object containing this factorization
      *          represented as storage_type::composition.
+     *
+     * @note The strategy only has effect when it is unpacked from the combined
+     * matrix.
      */
-    std::unique_ptr<Factorization> unpack() const;
+    std::unique_ptr<Factorization> unpack(
+        std::shared_ptr<typename matrix_type::strategy_type>
+            lower_factor_strategy = nullptr,
+        std::shared_ptr<typename matrix_type::strategy_type>
+            upper_factor_strategy = nullptr) const;
 
     /** Returns the storage type used by this factorization. */
     storage_type get_storage_type() const;

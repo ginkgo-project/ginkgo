@@ -252,6 +252,31 @@ TYPED_TEST(Factorization, UnpackCombinedLUWorks)
 }
 
 
+TYPED_TEST(Factorization, UnpackCombinedLUWorksWithStrategy)
+{
+    using factorization_type = typename TestFixture::factorization_type;
+    using matrix_type = typename TestFixture::matrix_type;
+    auto fact = factorization_type::create_from_combined_lu(
+        this->combined_mtx->clone());
+
+    auto separated =
+        fact->unpack(std::make_shared<typename matrix_type::classical>(),
+                     std::make_shared<typename matrix_type::merge_path>());
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_mtx, 0.0);
+    GKO_ASSERT_MTX_NEAR(separated->get_upper_factor(), this->upper_nonunit_mtx,
+                        0.0);
+    ASSERT_EQ(separated->get_lower_factor()->get_strategy()->get_name(),
+              "classical");
+    ASSERT_EQ(separated->get_upper_factor()->get_strategy()->get_name(),
+              "merge_path");
+}
+
+
 TYPED_TEST(Factorization, UnpackSymmCombinedCholeskyWorks)
 {
     using matrix_type = typename TestFixture::matrix_type;
@@ -270,6 +295,35 @@ TYPED_TEST(Factorization, UnpackSymmCombinedCholeskyWorks)
     GKO_ASSERT_MTX_NEAR(
         separated->get_upper_factor(),
         gko::as<matrix_type>(this->lower_cholesky_mtx->conj_transpose()), 0.0);
+}
+
+
+TYPED_TEST(Factorization, UnpackSymmCombinedCholeskyWorksWithStrategy)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using factorization_type = typename TestFixture::factorization_type;
+    auto fact = factorization_type::create_from_combined_cholesky(
+        this->combined_mtx->clone());
+
+    // second one is ignored in cholesky to keep the same behavior as
+    // factorization::Ic
+    auto separated =
+        fact->unpack(std::make_shared<typename matrix_type::classical>(),
+                     std::make_shared<typename matrix_type::merge_path>());
+
+    ASSERT_EQ(separated->get_storage_type(),
+              gko::experimental::factorization::storage_type::symm_composition);
+    ASSERT_EQ(separated->get_combined(), nullptr);
+    ASSERT_EQ(separated->get_diagonal(), nullptr);
+    GKO_ASSERT_MTX_NEAR(separated->get_lower_factor(), this->lower_cholesky_mtx,
+                        0.0);
+    GKO_ASSERT_MTX_NEAR(
+        separated->get_upper_factor(),
+        gko::as<matrix_type>(this->lower_cholesky_mtx->conj_transpose()), 0.0);
+    ASSERT_EQ(separated->get_lower_factor()->get_strategy()->get_name(),
+              "classical");
+    ASSERT_EQ(separated->get_upper_factor()->get_strategy()->get_name(),
+              "classical");
 }
 
 
