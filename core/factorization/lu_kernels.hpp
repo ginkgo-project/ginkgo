@@ -33,7 +33,7 @@ namespace kernels {
                    const IndexType* lookup_offsets, const int64* lookup_descs, \
                    const int32* lookup_storage, const IndexType* diag_idxs,    \
                    matrix::Csr<ValueType, IndexType>* factors,                 \
-                   bool checked_lookup, array<int>& tmp_storage)
+                   bool has_all_fillin, array<int>& tmp_storage)
 
 
 #define GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE(IndexType)                  \

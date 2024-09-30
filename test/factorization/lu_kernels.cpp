@@ -376,12 +376,12 @@ TYPED_TEST(Lu, GenerateIluWithBitmapIsEquivalentToRef)
     auto factory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(sparsity)
-            .with_checked_lookup(true)
+            .with_has_all_fillin(false)
             .on(this->ref);
     auto dfactory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(dsparsity)
-            .with_checked_lookup(true)
+            .with_has_all_fillin(false)
             .on(this->exec);
 
     auto lu = factory->generate(mtx);
@@ -419,12 +419,12 @@ TYPED_TEST(Lu, GenerateIluWithHashmapIsEquivalentToRef)
     auto factory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(sparsity)
-            .with_checked_lookup(true)
+            .with_has_all_fillin(false)
             .on(this->ref);
     auto dfactory =
         gko::experimental::factorization::Lu<value_type, index_type>::build()
             .with_symbolic_factorization(dsparsity)
-            .with_checked_lookup(true)
+            .with_has_all_fillin(false)
             .on(this->exec);
 
     auto lu = factory->generate(mtx);
