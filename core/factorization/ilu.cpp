@@ -26,7 +26,7 @@ namespace ilu_factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::compute_lu);
+GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::sparselib_ilu);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
@@ -106,7 +106,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
                     local_system_matrix->get_const_row_ptrs())));
         ilu =
             gko::experimental::factorization::Lu<ValueType, IndexType>::build()
-                .with_checked_lookup(true)
+                .with_has_all_fillin(false)
                 .with_symbolic_factorization(sparsity)
                 .on(exec)
                 ->generate(local_system_matrix)
