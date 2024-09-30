@@ -31,10 +31,25 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Factorization<ValueType, IndexType>>
-Factorization<ValueType, IndexType>::unpack() const
+Factorization<ValueType, IndexType>::unpack(
+    std::shared_ptr<typename matrix_type::strategy_type> lower_factor_strategy,
+    std::shared_ptr<typename matrix_type::strategy_type> upper_factor_strategy)
+    const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size();
+    auto create_matrix = [](auto exec, auto size, auto vals, auto col_idxs,
+                            auto row_ptrs, auto strategy) {
+        if (strategy == nullptr) {
+            return matrix_type::create(exec, size, std::move(vals),
+                                       std::move(col_idxs),
+                                       std::move(row_ptrs));
+        } else {
+            return matrix_type::create(exec, size, std::move(vals),
+                                       std::move(col_idxs), std::move(row_ptrs),
+                                       strategy);
+        }
+    };
     switch (this->get_storage_type()) {
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
@@ -53,12 +68,14 @@ Factorization<ValueType, IndexType>::unpack() const
         const auto u_nnz =
             static_cast<size_type>(get_element(u_row_ptrs, size[0]));
         // create matrices
-        auto l_mtx = matrix_type::create(
-            exec, size, array<value_type>{exec, l_nnz},
-            array<index_type>{exec, l_nnz}, std::move(l_row_ptrs));
-        auto u_mtx = matrix_type::create(
-            exec, size, array<value_type>{exec, u_nnz},
-            array<index_type>{exec, u_nnz}, std::move(u_row_ptrs));
+        auto l_mtx =
+            create_matrix(exec, size, array<value_type>{exec, l_nnz},
+                          array<index_type>{exec, l_nnz}, std::move(l_row_ptrs),
+                          lower_factor_strategy);
+        auto u_mtx =
+            create_matrix(exec, size, array<value_type>{exec, u_nnz},
+                          array<index_type>{exec, u_nnz}, std::move(u_row_ptrs),
+                          upper_factor_strategy);
         // fill matrices
         exec->run(make_initialize_l_u(mtx.get(), l_mtx.get(), u_mtx.get()));
         return create_from_composition(
@@ -72,9 +89,10 @@ Factorization<ValueType, IndexType>::unpack() const
         const auto l_nnz =
             static_cast<size_type>(get_element(l_row_ptrs, size[0]));
         // create matrices
-        auto l_mtx = matrix_type::create(
-            exec, size, array<value_type>{exec, l_nnz},
-            array<index_type>{exec, l_nnz}, std::move(l_row_ptrs));
+        auto l_mtx =
+            create_matrix(exec, size, array<value_type>{exec, l_nnz},
+                          array<index_type>{exec, l_nnz}, std::move(l_row_ptrs),
+                          lower_factor_strategy);
         // fill matrices
         exec->run(make_initialize_l(mtx.get(), l_mtx.get(), false));
         auto u_mtx = l_mtx->conj_transpose();
