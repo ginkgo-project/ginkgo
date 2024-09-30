@@ -27,7 +27,7 @@ namespace factorization {
 
 /**
  * A helper for algorithm selection in the incomplete factorization.
- * sparselib is only available for cuda and hip.
+ * sparselib is only available for CUDA and HIP.
  * syncfree is Ginkgo's implementation through the Lu factorization with given
  * sparsity.
  */
@@ -105,9 +105,9 @@ public:
 
         /**
          * Select the implementation which is supposed to be used for
-         * the incomplete factorization. This only matters for the Cuda and Hip
+         * the incomplete factorization. This only matters for the CUDA and HIP
          * executor where the choice is between the Ginkgo (syncfree) and the
-         * cuSPARSE/hipSPARSE (sparselib) implementation. Default is sparselib.
+         * cuSPARSE/HIPSPARSE (sparselib) implementation. Default is sparselib.
          */
         factorize_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, factorize_algorithm::sparselib);
