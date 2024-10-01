@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_CUDA_SOLVER_BATCH_BICGSTAB_LAUNCH_CUH_
+#define GKO_CUDA_SOLVER_BATCH_BICGSTAB_LAUNCH_CUH_
+
+
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/types.hpp"
@@ -110,3 +114,6 @@ void launch_apply_kernel(
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif
