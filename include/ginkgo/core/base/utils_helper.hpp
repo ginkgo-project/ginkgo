@@ -173,7 +173,7 @@ template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(const Pointer& p)
 {
     static_assert(detail::is_cloneable<detail::pointee<Pointer>>(),
-                  "Object is not clonable");
+                  "Object is not cloneable");
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
             p->clone().release()));
@@ -200,7 +200,7 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
                                           const Pointer& p)
 {
     static_assert(detail::is_cloneable_to<detail::pointee<Pointer>>(),
-                  "Object is not clonable");
+                  "Object is not cloneable");
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
             p->clone(std::move(exec)).release()));
