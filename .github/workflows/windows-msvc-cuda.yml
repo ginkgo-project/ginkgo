@@ -28,9 +28,12 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {version: "latest", name: "cuda-latest/release/shared", "mixed": "ON"}
-    name: msvc/${{ matrix.config.name }} (only compile)
+        - {version: "latest", preset: "ci/cuda/msvc/nompi/release"}
+    name: ${{ matrix.config.preset }} (only compile)
     runs-on: [windows-2019]
+
+    env:
+      CUDA_ARCH: "60"
 
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -58,5 +61,5 @@ jobs:
         refreshenv
         mkdir build
         cd build
-        cmake -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_CUDA_ARCHITECTURES=60 ..
+        cmake -S .. -B . --preset ${{ matrix.config.preset }}
         cmake --build . -j4 --config Release

@@ -1,0 +1,76 @@
+{
+    "version": 4,
+    "include": ["cmake/presets/ci.json"],
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build-${presetName}"
+        },
+        {
+            "name": "base-dev",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GINKGO_DEVEL_TOOLS": "ON",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_COLOR_DIAGNOSTICS": "ON",
+                "CMAKE_LINK_DEPENDS_NO_SHARED": "ON"
+            },
+            "warnings": {
+                "dev": true,
+                "deprecated": true
+            }
+        },
+        {
+            "name": "base-dev-gcc-like",
+            "hidden": true,
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} -g -fno-omit-frame-pointer -Wpedantic -Wall -Wextra -Wconversion -Wunused"
+            },
+            "condition": {
+                "type": "notEquals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "warnings": {
+                "dev": false
+            }
+        },
+        {
+            "name": "develop-gcc",
+            "inherits": ["base", "base-dev", "base-dev-gcc-like"],
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "develop-clang",
+            "inherits": ["base", "base-dev", "base-dev-gcc-like"],
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "develop-msvc",
+            "inherits": ["base", "base-dev"],
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "msvc",
+                "CMAKE_CXX_FLAGS": "$env{CXXFLAGS} /permissive- /Oy-"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ]
+}

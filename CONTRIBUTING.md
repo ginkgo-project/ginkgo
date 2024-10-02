@@ -568,9 +568,14 @@ files.
 
 ### Warnings
 
-By default, the `-DCMAKE_CXX_FLAGS` should be set to `-Wpedantic` to emit
-pedantic warnings by default. The CI system additionally also has a step
-where it compiles for pedantic warnings to be errors.
+By default, the `-Wpedantic` (or `/permissive-` on MSVC) is added to `CMAKE_CXX_FLAGS`
+and hence pedantic warnings are emitted by default. Some of these warnings 
+are false positives and a complete list of the resolved warnings and their solutions
+is listed in [Issue 174](https://github.com/ginkgo-project/ginkgo/issues/174).
+Specifically, when macros are being used, we have the issue of having `extra ;`
+warnings, which is resolved by adding a `static_assert()`. The CI system
+additionally also has a step where it compiles for pedantic warnings to be
+errors.
 
 ### Avoiding circular dependencies
 

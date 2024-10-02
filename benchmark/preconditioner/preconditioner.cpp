@@ -22,11 +22,6 @@
 #include "benchmark/utils/types.hpp"
 
 
-#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-#include "benchmark/utils/tuning_variables.hpp"
-#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
-
-
 // preconditioner generation and application
 std::string encode_parameters(const char* precond_name)
 {

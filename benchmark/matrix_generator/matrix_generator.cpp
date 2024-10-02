@@ -13,11 +13,6 @@
 #include "benchmark/utils/types.hpp"
 
 
-#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
-#include "benchmark/utils/tuning_variables.hpp"
-#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
-
-
 namespace {
 std::string input_format =
     "  [\n"

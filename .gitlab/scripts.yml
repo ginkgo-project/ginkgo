@@ -15,6 +15,43 @@
     - git config --global user.name "${BOT_USER}"
     - git config --global user.email "${BOT_EMAIL}"
 
+.environment_script: &environment_script
+  - |
+    # extracts the value of the given CMake cache variable
+    function get_cache_val() {
+        cmake -S ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX} -B . -L -N | grep $1 | sed -e 's/.*=//'
+    }
+  - if [ -n "${CUDA_ARCH}" ]; then
+    export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
+    fi
+  - |
+    export OMPI_ALLOW_RUN_AS_ROOT=1;
+    export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+  - export CC=${C_COMPILER} CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+
+
+.configure_template:
+  stage: configure
+  extends:
+    - .before_script_template
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - *environment_script
+    - |
+      cmake -S ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX} -B . \
+      -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
+      -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_BUILD_CUDA=${BUILD_CUDA} \
+      -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL} \
+      -DGINKGO_MIXED_PRECISION=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON \
+      -DGINKGO_BUILD_TESTS=ON -DGINKGO_FAST_TESTS=ON -DGINKGO_BUILD_EXTLIB_EXAMPLE=OFF \
+      -DGINKGO_BUILD_BENCHMARKS=ON -DGINKGO_BENCHMARK_ENABLE_TUNING=ON \
+      -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_WITH_CLANG_TIDY=ON -DGINKGO_WITH_IWYU=ON \
+      -DGINKGO_CHECK_CIRCULAR_DEPS=ON -DGINKGO_WITH_CCACHE=ON \
+      -DGINKGO_BUILD_PAPI_SDE=OFF -DGINKGO_BUILD_HWLOC=ON \
+      -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON \
+      -DGINKGO_BUILD_DOC=OFF
+  dependencies: []
+
 .build_template:
   stage: build
   extends:
@@ -23,35 +60,8 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - mkdir install_prefix
     - export INSTALL_PREFIX=`pwd`/install_prefix
-    - if [ -n "${CUDA_ARCH}" ]; then
-      export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
-      fi
-    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
-      export OMPI_ALLOW_RUN_AS_ROOT=1;
-      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
-      fi
-    - if [[ "${BUILD_MPI}" == "ON" ]]; then
-      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
-      fi
-    - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
-    - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
-        -GNinja
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
-        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
-        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
-        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
-        -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
-        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
-        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
-        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-        -DGINKGO_FAST_TESTS=${FAST_TESTS}
-        -DGINKGO_TEST_NONDEFAULT_STREAM=${NONDEFAULT_STREAM}
-        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
-        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
-        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+    - *environment_script
+    - cmake -S ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX} -B . --preset ${CI_CMAKE_PRESET} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
   dependencies: []
@@ -64,36 +74,8 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - mkdir install_prefix
     - export INSTALL_PREFIX=`pwd`/install_prefix
-    - if [ -n "${CUDA_ARCH}" ]; then
-      export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
-      fi
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
-    - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
-    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
-      export OMPI_ALLOW_RUN_AS_ROOT=1;
-      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
-      fi
-    - if [[ "${BUILD_MPI}" == "ON" ]]; then
-      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
-      fi
-    - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
-    - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
-        -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
-        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
-        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
-        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
-        -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
-        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
-        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
-        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-        -DGINKGO_FAST_TESTS=${FAST_TESTS}
-        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
-        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
-        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+    - *environment_script
+    - cmake -S ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX} -B . --preset ${CI_CMAKE_PRESET} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
@@ -106,7 +88,8 @@
     - popd
     - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
-    - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
+    - if [ "$(get_cache_val GINKGO_EXPORT_BUILD_DIR)" == "ON" ]; then ninja test_exportbuild; fi
+    - if [[ "$(get_cache_val BUILD_SHARED_LIBS)" == "ON" || "$(get_cache_val GINKGO_BUILD_HIP)" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
   dependencies: []
