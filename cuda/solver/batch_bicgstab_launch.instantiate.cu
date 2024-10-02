@@ -27,20 +27,29 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int warp_sz = static_cast<int>(config::warp_size);
     const int min_block_size = 2 * warp_sz;
     const int device_max_threads =
-        ((std::max(num_rows, min_block_size)) / warp_sz) * warp_sz;
-    cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(
-        &funcattr,
-        batch_single_kernels::apply_kernel<StopType, 9, true, PrecType, LogType,
-                                           BatchMatrixType, ValueType>);
-    const int num_regs_used = funcattr.numRegs;
+        (std::max(num_rows, min_block_size) / warp_sz) * warp_sz;
+    auto get_num_regs = [](const auto func) {
+        cudaFuncAttributes funcattr;
+        cudaFuncGetAttributes(&funcattr, func);
+        return funcattr.numRegs;
+    };
+    const int num_regs_used = std::max(
+        get_num_regs(
+            batch_single_kernels::apply_kernel<StopType, 9, true, PrecType,
+                                               LogType, BatchMatrixType,
+                                               ValueType>),
+        get_num_regs(
+            batch_single_kernels::apply_kernel<StopType, 0, false, PrecType,
+                                               LogType, BatchMatrixType,
+                                               ValueType>));
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
     const int max_threads_regs =
         ((max_regs_blk / static_cast<int>(num_regs_used)) / warp_sz) * warp_sz;
     int max_threads = std::min(max_threads_regs, device_max_threads);
-    max_threads = max_threads <= 1024 ? max_threads : 1024;
+    max_threads = max_threads <= max_bicgstab_threads ? max_threads
+                                                      : max_bicgstab_threads;
     return std::max(std::min(num_warps * warp_sz, max_threads), min_block_size);
 }
 
