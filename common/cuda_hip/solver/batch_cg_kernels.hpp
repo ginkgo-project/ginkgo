@@ -29,6 +29,11 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
+
+
+constexpr int max_cg_threads = 1024;
+
+
 namespace batch_single_kernels {
 
 
@@ -115,14 +120,14 @@ __device__ __forceinline__ void update_x_and_r(
 template <typename StopType, const int n_shared, const bool prec_shared_bool,
           typename PrecType, typename LogType, typename BatchMatrixType,
           typename ValueType>
-__global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
-                             const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             LogType logger, PrecType prec_shared,
-                             const BatchMatrixType mat,
-                             const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x,
-                             ValueType* const __restrict__ workspace = nullptr)
+__global__ void __launch_bounds__(max_cg_threads)
+    apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
+                 const int max_iter, const gko::remove_complex<ValueType> tol,
+                 LogType logger, PrecType prec_shared,
+                 const BatchMatrixType mat,
+                 const ValueType* const __restrict__ b,
+                 ValueType* const __restrict__ x,
+                 ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto num_batch_items = mat.num_batch_items;
