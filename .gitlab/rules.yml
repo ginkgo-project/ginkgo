@@ -59,3 +59,8 @@
         # - common/unified/matrix/* # for now no SpMV there?
       when: manual
       allow_failure: true
+
+
+.disable_job_condition:
+  rules:
+    - when: never
