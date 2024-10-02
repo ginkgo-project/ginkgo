@@ -95,32 +95,32 @@ using pointee =
 
 
 template <typename T, typename = void>
-struct is_clonable_impl : std::false_type {};
+struct is_cloneable_impl : std::false_type {};
 
 template <typename T>
-struct is_clonable_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
+struct is_cloneable_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {};
 
 template <typename T>
-constexpr bool is_clonable()
+constexpr bool is_cloneable()
 {
-    return is_clonable_impl<std::decay_t<T>>::value;
+    return is_cloneable_impl<std::decay_t<T>>::value;
 }
 
 
 template <typename T, typename = void>
-struct is_clonable_to_impl : std::false_type {};
+struct is_cloneable_to_impl : std::false_type {};
 
 template <typename T>
-struct is_clonable_to_impl<
+struct is_cloneable_to_impl<
     T, std::void_t<decltype(std::declval<T>().clone(
            std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
 template <typename T>
-constexpr bool is_clonable_to()
+constexpr bool is_cloneable_to()
 {
-    return is_clonable_to_impl<std::decay_t<T>>::value;
+    return is_cloneable_to_impl<std::decay_t<T>>::value;
 }
 
 
@@ -172,7 +172,7 @@ using shared_type = std::shared_ptr<pointee<Pointer>>;
 template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(const Pointer& p)
 {
-    static_assert(detail::is_clonable<detail::pointee<Pointer>>(),
+    static_assert(detail::is_cloneable<detail::pointee<Pointer>>(),
                   "Object is not clonable");
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
@@ -199,7 +199,7 @@ template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
                                           const Pointer& p)
 {
-    static_assert(detail::is_clonable_to<detail::pointee<Pointer>>(),
+    static_assert(detail::is_cloneable_to<detail::pointee<Pointer>>(),
                   "Object is not clonable");
     return detail::cloned_type<Pointer>(
         static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
