@@ -359,6 +359,10 @@ struct float_to_unsigned_impl<float> {
     using type = uint32;
 };
 
+template <>
+struct float_to_unsigned_impl<__half> {
+    using type = uint16;
+};
 
 /**
  * Checks if a floating point number representation matches the representation
