@@ -239,6 +239,9 @@ TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
 
 TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() / 3);
 }
@@ -246,12 +249,18 @@ TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMinIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMaxIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() - 1);
 }
@@ -318,6 +327,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    SKIP_IF_HALF(value_type);
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->exec, this->mtx_size);
@@ -343,6 +353,9 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() / 2);
 }
@@ -350,12 +363,18 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxNoneLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxAllLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() - 1);
 }
