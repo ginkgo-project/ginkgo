@@ -433,10 +433,9 @@ warnings:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   allow_failure: yes
 
@@ -447,10 +446,9 @@ no-circular-deps:
     - .build_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   allow_failure: no
 
@@ -474,10 +472,9 @@ clang-tidy:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   allow_failure: yes
 
@@ -487,10 +484,9 @@ iwyu:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
   allow_failure: yes
 
@@ -502,7 +498,7 @@ sonarqube_cov_:
     - .default_variables
     - .quick_test_short_lived_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
   tags:
     - private_ci
     - controller
@@ -538,7 +534,7 @@ sonarqube_cov:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
   tags:
     - private_ci
     - controller
@@ -601,7 +597,7 @@ threadsanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     - LD_PRELOAD=/usr/local/lib/libomp.so
       CC=clang CXX=clang++
@@ -616,7 +612,7 @@ leaksanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
       -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
@@ -627,7 +623,7 @@ addresssanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
       -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
@@ -638,7 +634,7 @@ undefinedsanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
     # in the Ubuntu setup we are using.
