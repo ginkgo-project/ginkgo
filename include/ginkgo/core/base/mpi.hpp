@@ -454,6 +454,30 @@ public:
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
     }
 
+    static communicator create_owning(const MPI_Comm& comm,
+                                      bool force_host_buffer = false)
+    {
+        communicator comm_out(MPI_COMM_NULL, force_host_buffer);
+        comm_out.comm_.reset(new MPI_Comm(comm), comm_deleter{});
+        return comm_out;
+    }
+
+    communicator(const communicator& other) = default;
+
+    communicator(communicator&& other) { *this = std::move(other); }
+
+    communicator& operator=(const communicator& other) = default;
+
+    communicator& operator=(communicator&& other)
+    {
+        if (this != &other) {
+            comm_ = std::exchange(other.comm_,
+                                  std::make_shared<MPI_Comm>(MPI_COMM_NULL));
+            force_host_buffer_ = other.force_host_buffer_;
+        }
+        return *this;
+    }
+
     /**
      * Return the underlying MPI_Comm object.
      *
@@ -489,10 +513,7 @@ public:
      *
      * @return  if the two comm objects are equal
      */
-    bool operator==(const communicator& rhs) const
-    {
-        return compare(rhs.get());
-    }
+    bool operator==(const communicator& rhs) const { return is_identical(rhs); }
 
     /**
      * Compare two communicator objects for non-equality.
@@ -500,6 +521,39 @@ public:
      * @return  if the two comm objects are not equal
      */
     bool operator!=(const communicator& rhs) const { return !(*this == rhs); }
+
+    /**
+     * Checks if the rhs communicator is identical to this communicator.
+     *
+     * @return  true if rhs is identical to this
+     */
+    bool is_identical(const communicator& rhs) const
+    {
+        if (!get() || !rhs.get()) {
+            return get() == rhs.get();
+        }
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), rhs.get(), &flag));
+        return flag == MPI_IDENT;
+    }
+
+    /**
+     * Checks if the rhs communicator is congruent to this communicator.
+     *
+     * Congruent communicators are defined as having identical rank members and
+     * rank ordering.
+     *
+     * @return  true if rhs is congruent to this
+     */
+    bool is_congruent(const communicator& rhs) const
+    {
+        if (!get() || !rhs.get()) {
+            return get() == rhs.get();
+        }
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), rhs.get(), &flag));
+        return flag == MPI_CONGRUENT;
+    }
 
     /**
      * This function is used to synchronize the ranks in the communicator.
@@ -1467,13 +1521,6 @@ private:
         int size = 1;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(this->get(), &size));
         return size;
-    }
-
-    bool compare(const MPI_Comm& other) const
-    {
-        int flag;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), other, &flag));
-        return flag == MPI_IDENT;
     }
 };
 
