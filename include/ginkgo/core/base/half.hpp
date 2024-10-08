@@ -299,47 +299,47 @@ public:
     // TODO: NVHPC (host side) may not use zero initialization for the data
     // member by default constructor in some cases. Not sure whether it is
     // caused by something else in jacobi or isai.
-    GKO_ATTRIBUTES half() noexcept : data_(0){};
+    constexpr half() noexcept : data_(0){};
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
-    GKO_ATTRIBUTES half(const T val)
+    constexpr half(const T val)
     {
         this->float2half(static_cast<float>(val));
     }
 
-    GKO_ATTRIBUTES half(const half& val) = default;
+    constexpr half(const half& val) = default;
 
     template <typename V>
-    GKO_ATTRIBUTES half& operator=(const V val)
+    constexpr half& operator=(const V val)
     {
         this->float2half(static_cast<float>(val));
         return *this;
     }
 
-    GKO_ATTRIBUTES operator float() const noexcept
+    constexpr operator float() const noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        return __half2float(reinterpret_cast<const __half&>(data_));
-#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        //         return __half2float(reinterpret_cast<const __half&>(data_));
+        // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
         return reinterpret_cast<const float32&>(bits);
-#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     // can not use half operator _op(const half) for half + half
     // operation will cast it to float and then do float operation such that it
     // becomes float in the end.
-#define HALF_OPERATOR(_op, _opeq)                                           \
-    GKO_ATTRIBUTES friend half operator _op(const half lhf, const half rhf) \
-    {                                                                       \
-        return static_cast<half>(static_cast<float>(lhf)                    \
-                                     _op static_cast<float>(rhf));          \
-    }                                                                       \
-    GKO_ATTRIBUTES half& operator _opeq(const half& hf)                     \
-    {                                                                       \
-        auto result = *this _op hf;                                         \
-        this->float2half(result);                                           \
-        return *this;                                                       \
+#define HALF_OPERATOR(_op, _opeq)                                      \
+    friend constexpr half operator _op(const half lhf, const half rhf) \
+    {                                                                  \
+        return static_cast<half>(static_cast<float>(lhf)               \
+                                     _op static_cast<float>(rhf));     \
+    }                                                                  \
+    constexpr half& operator _opeq(const half& hf)                     \
+    {                                                                  \
+        auto result = *this _op hf;                                    \
+        this->float2half(result);                                      \
+        return *this;                                                  \
     }
     HALF_OPERATOR(+, +=)
     HALF_OPERATOR(-, -=)
@@ -351,7 +351,7 @@ public:
     // If it is integer, using half as type
 #define HALF_FRIEND_OPERATOR(_op, _opeq)                                   \
     template <typename T>                                                  \
-    GKO_ATTRIBUTES friend std::enable_if_t<                                \
+    constexpr friend std::enable_if_t<                                     \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const half hf, const T val)                               \
@@ -363,7 +363,7 @@ public:
         return result;                                                     \
     }                                                                      \
     template <typename T>                                                  \
-    GKO_ATTRIBUTES friend std::enable_if_t<                                \
+    constexpr friend std::enable_if_t<                                     \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const T val, const half hf)                               \
@@ -381,7 +381,7 @@ public:
     HALF_FRIEND_OPERATOR(/, /=)
 
     // the negative
-    GKO_ATTRIBUTES half operator-() const
+    constexpr half operator-() const
     {
         auto val = 0.0f - *this;
         return half(val);
@@ -393,17 +393,17 @@ private:
 
     // TODO: do we really need this one?
     // Without it, everything can be constexpr, which might make stuff easier.
-    GKO_ATTRIBUTES void float2half(float val) noexcept
+    constexpr void float2half(float val) noexcept
     {
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        const auto tmp = __float2half_rn(val);
-        data_ = reinterpret_cast<const uint16&>(tmp);
-#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        //         const auto tmp = __float2half_rn(val);
+        //         data_ = reinterpret_cast<const uint16&>(tmp);
+        // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         data_ = float2half(reinterpret_cast<const uint32&>(val));
-#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
-    static GKO_ATTRIBUTES uint16 float2half(uint32 data_) noexcept
+    static constexpr uint16 float2half(uint32 data_) noexcept
     {
         using conv = detail::precision_converter<float32, float16>;
         if (f32_traits::is_inf(data_)) {
@@ -434,7 +434,7 @@ private:
         }
     }
 
-    static GKO_ATTRIBUTES uint32 half2float(uint16 data_) noexcept
+    static constexpr uint32 half2float(uint16 data_) noexcept
     {
         using conv = detail::precision_converter<float16, float32>;
         if (f16_traits::is_inf(data_)) {
