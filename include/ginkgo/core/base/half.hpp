@@ -78,7 +78,6 @@ struct basic_float_traits<float16> {
     static constexpr bool rounds_to_nearest = true;
 };
 
-// #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
 template <>
 struct basic_float_traits<__half> {
     using type = __half;
@@ -87,7 +86,6 @@ struct basic_float_traits<__half> {
     static constexpr int exponent_bits = 5;
     static constexpr bool rounds_to_nearest = true;
 };
-// #endif
 
 template <>
 struct basic_float_traits<float32> {
@@ -424,10 +422,6 @@ private:
                 // Rounding to even
                 const auto result = conv::shift_sign(data_) | exp |
                                     conv::shift_significand(data_);
-                // return result + ((result & 1) &&
-                //        ((data_ >> (f32_traits::significand_bits -
-                //                    f16_traits::significand_bits - 1)) &
-                //         1));
                 const auto tail =
                     data_ & static_cast<f32_traits::bits_type>(
                                 (1 << conv::significand_offset) - 1);
@@ -504,18 +498,11 @@ public:
 
     value_type imag() const noexcept { return imag_; }
 
-
     operator std::complex<float>() const noexcept
     {
         return std::complex<float>(static_cast<float>(real_),
                                    static_cast<float>(imag_));
     }
-
-    // operator std::complex<double>() const noexcept
-    // {
-    //     return std::complex<double>(static_cast<double>(real_),
-    //                                 static_cast<double>(imag_));
-    // }
 
     template <typename V>
     complex& operator=(const V& val)
@@ -578,18 +565,11 @@ public:
         result_f *= val_f;
         real_ = result_f.real();
         imag_ = result_f.imag();
-        // auto tmp = real_;
-        // real_ = real_ * val.real() - imag_ * val.imag();
-        // imag_ = tmp * val.imag() + imag_ * val.real();
         return *this;
     }
     template <typename T>
     complex& operator/=(const complex<T>& val)
     {
-        // auto real = val.real();
-        // auto imag = val.imag();
-        // (*this) *= complex<T>{val.real(), -val.imag()};
-        // (*this) /= (real * real + imag * imag);
         auto val_f = static_cast<std::complex<float>>(val);
         auto result_f = static_cast<std::complex<float>>(*this);
         result_f /= val_f;
@@ -601,13 +581,13 @@ public:
 // It's for MacOS.
 // TODO: check whether mac compiler always use complex version even when real
 // half
-#define COMPLEX_HALF_OPERATOR(_op, _opeq)                           \
-    GKO_ATTRIBUTES friend complex<gko::half> operator _op(          \
-        const complex<gko::half> lhf, const complex<gko::half> rhf) \
-    {                                                               \
-        auto a = lhf;                                               \
-        a _opeq rhf;                                                \
-        return a;                                                   \
+#define COMPLEX_HALF_OPERATOR(_op, _opeq)                                \
+    friend complex<gko::half> operator _op(const complex<gko::half> lhf, \
+                                           const complex<gko::half> rhf) \
+    {                                                                    \
+        auto a = lhf;                                                    \
+        a _opeq rhf;                                                     \
+        return a;                                                        \
     }
 
     COMPLEX_HALF_OPERATOR(+, +=)
