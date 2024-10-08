@@ -82,6 +82,8 @@ private:
     /* one/neg_one for residual computation */
     std::shared_ptr<const Vector> one_{};
     std::shared_ptr<const Vector> neg_one_{};
+    // workspace for reduction
+    mutable gko::array<char> reduction_tmp_;
 };
 
 
