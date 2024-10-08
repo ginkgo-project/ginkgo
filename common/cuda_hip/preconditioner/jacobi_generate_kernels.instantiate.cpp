@@ -160,7 +160,7 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
                 accuracy, block_cond,
                 [&subwarp, &block_size, &row, &block_data, &storage_scheme,
                  &block_id] {
-                    using target = reduce_precision<ValueType>;
+                    using target = device_type<reduce_precision<ValueType>>;
                     return validate_precision_reduction_feasibility<
                         max_block_size, target>(
                         subwarp, block_size, row,
@@ -170,8 +170,8 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
                 },
                 [&subwarp, &block_size, &row, &block_data, &storage_scheme,
                  &block_id] {
-                    using target =
-                        reduce_precision<reduce_precision<ValueType>>;
+                    using target = device_type<
+                        reduce_precision<reduce_precision<ValueType>>>;
                     return validate_precision_reduction_feasibility<
                         max_block_size, target>(
                         subwarp, block_size, row,
@@ -195,7 +195,7 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
             ValueType, prec,
             copy_matrix<max_block_size, and_transpose>(
                 subwarp, block_size, row, 1, perm, trans_perm,
-                reinterpret_cast<resolved_precision*>(
+                reinterpret_cast<device_type<resolved_precision>*>(
                     block_data + storage_scheme.get_group_offset(block_id)) +
                     storage_scheme.get_block_offset(block_id),
                 storage_scheme.get_stride()));
