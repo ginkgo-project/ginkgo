@@ -14,6 +14,19 @@
 // Add the string manipulation header to handle strings.
 #include <string>
 
+#include "stencil_matrix.hpp"
+
+
+template <typename ValueType, typename IndexType>
+static std::unique_ptr<gko::matrix::Dense<ValueType>> create_multi_vector(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size,
+    ValueType value)
+{
+    auto res = gko::matrix::Dense<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType, IndexType>(size, value));
+    return res;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -75,10 +88,12 @@ int main(int argc, char* argv[])
     ValueType t_init = gko::experimental::mpi::get_walltime();
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    const auto grid_dim =
-        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
+    const auto stencil_name = argc >= 3 ? argv[2] : "7pt";
+    const auto local_size =
+        static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1024);
     const auto num_iters =
-        static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
+        static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
+    const auto comm_pattern = argc >= 6 ? argv[5] : "optimal";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -125,62 +140,46 @@ int main(int argc, char* argv[])
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
     // modes of creating a partition.
-    const auto num_rows = grid_dim;
-    auto partition = gko::share(part_type::build_from_global_size_uniform(
-        exec->get_master(), comm.size(),
-        static_cast<GlobalIndexType>(num_rows)));
 
-    // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
-    // with a sine value. The distributed matrix supports only constructing an
-    // empty matrix of zero size and filling in the values with
-    // gko::experimental::distributed::Matrix::read_distributed. Only the data
-    // that belongs to the rows by this rank will be assembled.
-    gko::matrix_data<ValueType, GlobalIndexType> A_data;
-    gko::matrix_data<ValueType, GlobalIndexType> b_data;
-    gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    A_data.size = {num_rows, num_rows};
-    b_data.size = {num_rows, 1};
-    x_data.size = {num_rows, 1};
-    const auto range_start = partition->get_range_bounds()[rank];
-    const auto range_end = partition->get_range_bounds()[rank + 1];
-    for (int i = range_start; i < range_end; i++) {
-        if (i > 0) {
-            A_data.nonzeros.emplace_back(i, i - 1, -1);
-        }
-        A_data.nonzeros.emplace_back(i, i, 2);
-        if (i < grid_dim - 1) {
-            A_data.nonzeros.emplace_back(i, i + 1, -1);
-        }
-        b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
-        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
-    }
+
+    auto data = generate_stencil<ValueType, GlobalIndexType>(
+        stencil_name, comm, local_size, comm_pattern == std::string("optimal"));
+    const auto num_rows = data.size[0];
+    auto partition = gko::share(part_type::build_from_global_size_uniform(
+        exec, comm.size(), static_cast<GlobalIndexType>(num_rows)));
 
     // Take timings.
     comm.synchronize();
     ValueType t_init_end = gko::experimental::mpi::get_walltime();
 
-    // Read the matrix data, currently this is only supported on CPU executors.
-    // This will also set up the communication pattern needed for the
-    // distributed matrix-vector multiplication.
-    auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
-    auto x_host = dist_vec::create(exec->get_master(), comm);
-    auto b_host = dist_vec::create(exec->get_master(), comm);
-    A_host->read_distributed(A_data, partition);
-    b_host->read_distributed(b_data, partition);
-    x_host->read_distributed(x_data, partition);
     // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
-    auto x = dist_vec::create(exec, comm);
-    auto b = dist_vec::create(exec, comm);
-    A->copy_from(A_host);
-    b->copy_from(b_host);
-    x->copy_from(x_host);
+    A->read_distributed(data, partition);
+    auto x = dist_vec::create(
+        exec, comm,
+        create_multi_vector<ValueType, GlobalIndexType>(
+            exec,
+            gko::dim<2>{static_cast<gko::size_type>(
+                            partition->get_part_size(comm.rank())),
+                        1},
+            0.0));
+    auto b = dist_vec::create(
+        exec, comm,
+        create_multi_vector<ValueType, GlobalIndexType>(
+            exec,
+            gko::dim<2>{static_cast<gko::size_type>(
+                            partition->get_part_size(comm.rank())),
+                        1},
+            2.0 + comm.rank() / comm.size()));
 
     // Take timings.
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
+    std::string fname = "distA_" + std::to_string(comm.rank()) + ".mtx";
+    auto fst = std::ofstream(fname);
+    gko::write_raw(fst, data);
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
