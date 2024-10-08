@@ -94,6 +94,8 @@ int main(int argc, char* argv[])
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 5 ? std::atoi(argv[4]) : 1000);
     const auto comm_pattern = argc >= 6 ? argv[5] : "optimal";
+    std::string print_mats_str = argc >= 7 ? argv[6] : "nopmats";
+    const bool print_mats = (print_mats_str.compare("pmats")) == 0;
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -177,9 +179,11 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
-    std::string fname = "distA_" + std::to_string(comm.rank()) + ".mtx";
-    auto fst = std::ofstream(fname);
-    gko::write_raw(fst, data);
+    if (print_mats) {
+        std::string fname = "distA_" + std::to_string(comm.rank()) + ".mtx";
+        auto fst = std::ofstream(fname);
+        gko::write_raw(fst, data);
+    }
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
@@ -209,14 +213,31 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
 
+    // warmup
+    {
+        auto x_clone = gko::clone(x);
+        Ainv->apply(b, x_clone);
+    }
+    Ainv->remove_logger(logger);
+    int num_reps = 5;
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
-    Ainv->apply(b, x);
+    ValueType t_apply_warmup = gko::experimental::mpi::get_walltime();
 
-    // Take timings.
-    comm.synchronize();
-    ValueType t_end = gko::experimental::mpi::get_walltime();
+    ValueType t_apply_begin = 0.0;
+    ValueType t_apply_end = 0.0;
+    ValueType t_apply = 0.0;
+    for (int rep = 0; rep < num_reps; rep++) {
+        auto x_clone = gko::clone(x);
+        comm.synchronize();
+        t_apply_begin = gko::experimental::mpi::get_walltime();
+        Ainv->apply(b, x_clone);
+        comm.synchronize();
+        t_apply_end = gko::experimental::mpi::get_walltime();
+        t_apply += t_apply_end - t_apply_begin;
+    }
 
+    t_apply = t_apply / num_reps;
     // Get the residual.
     auto res_norm = gko::clone(exec->get_master(),
                                gko::as<vec>(logger->get_residual_norm()));
@@ -225,15 +246,16 @@ int main(int argc, char* argv[])
     // Print the achieved residual norm and timings on rank 0.
     if (comm.rank() == 0) {
         // clang-format off
-        std::cout << "\nNum rows in matrix: " << num_rows
+        std::cout << "\nNum rows: " << num_rows
                   << "\nNum ranks: " << comm.size()
                   << "\nFinal Res norm: " << res_norm->at(0, 0)
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init
                   << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-                  << "\nSolver apply time: " << t_end - t_solver_generate_end
-                  << "\nTotal time: " << t_end - t_init
+                  << "\nSolver warmup time: " << t_apply_warmup - t_solver_generate_end
+                  << "\nSolver apply time: " << t_apply
+                  << "\nTotal time: " << t_apply + (t_solver_generate_end - t_read_setup_end)
                   << std::endl;
         // clang-format on
     }
