@@ -6,6 +6,8 @@
 #define GKO_REFERENCE_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
 
 
+#include "core/solver/batch_bicgstab_kernels.hpp"
+
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/batch_multi_vector_kernels.hpp"
