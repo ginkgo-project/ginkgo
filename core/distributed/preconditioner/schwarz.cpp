@@ -51,6 +51,13 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     return params;
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+bool Schwarz<ValueType, LocalIndexType,
+             GlobalIndexType>::apply_uses_initial_guess() const
+{
+    return this->local_solver_->apply_uses_initial_guess();
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
