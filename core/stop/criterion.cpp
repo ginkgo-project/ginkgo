@@ -23,7 +23,7 @@ GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
                                  array<stopping_status>* stop_status)
 {
-    this->get_executor()->run(criterion::make_set_all_statuses(
+    this->get_executor()->get_master()->run(criterion::make_set_all_statuses(
         stoppingId, setFinalized, stop_status));
 }
 

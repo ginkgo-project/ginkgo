@@ -75,18 +75,31 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
     *one_changed = false;
     // init_kernel<<<1, 1, 0, exec->get_stream()>>>(
     //     as_device_type(device_storage->get_data()));
+    if (tau->get_size()[1] == 1) {
+        if (tau->get_const_values()[0] <=
+            rel_residual_goal * orig_tau->get_const_values()[0]) {
+            stop_status->get_data()[0].converge(stoppingId, setFinalized);
+            *one_changed = true;
+        }
+        // because only false is written to all_converged, write conflicts
+        // should not cause any problem
+        else if (!stop_status->get_data()[0].has_stopped()) {
+            *all_converged = false;
+        }
+    } else {
+        const auto block_size = default_block_size;
+        const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
-
-    if (grid_size > 0) {
-        residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_device_type(stop_status->get_data()),
-            all_converged, one_changed);
-        exec->synchronize();
+        if (grid_size > 0) {
+            residual_norm_kernel<<<grid_size, block_size, 0,
+                                   exec->get_stream()>>>(
+                tau->get_size()[1], as_device_type(rel_residual_goal),
+                as_device_type(tau->get_const_values()),
+                as_device_type(orig_tau->get_const_values()), stoppingId,
+                setFinalized, as_device_type(stop_status->get_data()),
+                all_converged, one_changed);
+            exec->synchronize();
+        }
     }
 
     /* Represents all_converged, one_changed */
@@ -158,18 +171,31 @@ void implicit_residual_norm(
     *all_converged = true;
     *one_changed = false;
 
-    const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
+    if (tau->get_size()[1] == 1) {
+        if (sqrt(abs(tau->get_const_values()[0])) <=
+            rel_residual_goal * orig_tau->get_const_values()[0]) {
+            stop_status->get_data()[0].converge(stoppingId, setFinalized);
+            *one_changed = true;
+        }
+        // because only false is written to all_converged, write conflicts
+        // should not cause any problem
+        else if (!stop_status->get_data()[0].has_stopped()) {
+            *all_converged = false;
+        }
+    } else {
+        const auto block_size = default_block_size;
+        const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    if (grid_size > 0) {
-        implicit_residual_norm_kernel<<<grid_size, block_size, 0,
-                                        exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_device_type(stop_status->get_data()),
-            all_converged, one_changed);
-        exec->synchronize();
+        if (grid_size > 0) {
+            implicit_residual_norm_kernel<<<grid_size, block_size, 0,
+                                            exec->get_stream()>>>(
+                tau->get_size()[1], as_device_type(rel_residual_goal),
+                as_device_type(tau->get_const_values()),
+                as_device_type(orig_tau->get_const_values()), stoppingId,
+                setFinalized, as_device_type(stop_status->get_data()),
+                all_converged, one_changed);
+            exec->synchronize();
+        }
     }
 
     /* Represents all_converged, one_changed */

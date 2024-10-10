@@ -9,6 +9,7 @@
 #include <typeinfo>
 
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
 
 namespace gko {
@@ -132,8 +133,10 @@ public:
         GKO_ASSERT(array_id >= 0 && array_id < arrays_.size());
         auto& array = arrays_[array_id];
         if (array.empty()) {
-            auto& result =
-                array.template init<ValueType>(this->get_executor(), 0);
+            auto exec = std::is_same_v<ValueType, stopping_status>
+                            ? this->get_executor()->get_master()
+                            : this->get_executor();
+            auto& result = array.template init<ValueType>(exec, 0);
             return result;
         }
         // array types should not change!
