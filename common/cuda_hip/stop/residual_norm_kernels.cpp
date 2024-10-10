@@ -34,19 +34,19 @@ __global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
     size_type num_cols, ValueType rel_residual_goal,
     const ValueType* __restrict__ tau, const ValueType* __restrict__ orig_tau,
     uint8 stoppingId, bool setFinalized,
-    stopping_status* __restrict__ stop_status,
-    bool* __restrict__ device_storage)
+    stopping_status* __restrict__ stop_status, bool* __restrict__ all_converged,
+    bool* __restrict__ one_changed)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
         if (tau[tidx] <= rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
-            device_storage[1] = true;
+            *one_changed = true;
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
         else if (!stop_status[tidx].has_stopped()) {
-            device_storage[0] = false;
+            *all_converged = false;
         }
     }
 }
@@ -71,8 +71,10 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_device_type(device_storage->get_data()));
+    *all_converged = true;
+    *one_changed = false;
+    // init_kernel<<<1, 1, 0, exec->get_stream()>>>(
+    //     as_device_type(device_storage->get_data()));
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
@@ -83,12 +85,13 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
             as_device_type(tau->get_const_values()),
             as_device_type(orig_tau->get_const_values()), stoppingId,
             setFinalized, as_device_type(stop_status->get_data()),
-            as_device_type(device_storage->get_data()));
+            all_converged, one_changed);
+        exec->synchronize();
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    // *all_converged = get_element(*device_storage, 0);
+    // *one_changed = get_element(*device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -116,18 +119,18 @@ __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
     const ValueType* __restrict__ tau,
     const remove_complex<ValueType>* __restrict__ orig_tau, uint8 stoppingId,
     bool setFinalized, stopping_status* __restrict__ stop_status,
-    bool* __restrict__ device_storage)
+    bool* __restrict__ all_converged, bool* __restrict__ one_changed)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
         if (sqrt(abs(tau[tidx])) <= rel_residual_goal * orig_tau[tidx]) {
             stop_status[tidx].converge(stoppingId, setFinalized);
-            device_storage[1] = true;
+            *one_changed = true;
         }
         // because only false is written to all_converged, write conflicts
         // should not cause any problem
         else if (!stop_status[tidx].has_stopped()) {
-            device_storage[0] = false;
+            *all_converged = false;
         }
     }
 }
@@ -150,8 +153,10 @@ void implicit_residual_norm(
     bool setFinalized, array<stopping_status>* stop_status,
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
-    init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_device_type(device_storage->get_data()));
+    // init_kernel<<<1, 1, 0, exec->get_stream()>>>(
+    //     as_device_type(device_storage->get_data()));
+    *all_converged = true;
+    *one_changed = false;
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
@@ -163,12 +168,13 @@ void implicit_residual_norm(
             as_device_type(tau->get_const_values()),
             as_device_type(orig_tau->get_const_values()), stoppingId,
             setFinalized, as_device_type(stop_status->get_data()),
-            as_device_type(device_storage->get_data()));
+            all_converged, one_changed);
+        exec->synchronize();
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    // *all_converged = get_element(*device_storage, 0);
+    // *one_changed = get_element(*device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
