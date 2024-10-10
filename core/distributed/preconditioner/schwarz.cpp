@@ -167,6 +167,18 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+template <typename VectorType>
+void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_cache_to(
+    const VectorType* vec) const
+{
+    if (dynamic_cast<VectorType*>(cache_.intermediate.get()) == nullptr) {
+        cache_.intermediate = VectorType::create_with_config_of(vec);
+    }
+    cache_.intermediate->copy_from(vec);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_solver(
     std::shared_ptr<const LinOp> new_solver)
 {
