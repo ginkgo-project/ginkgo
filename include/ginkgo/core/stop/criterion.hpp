@@ -78,6 +78,8 @@ public:
             return converged;
         }
 
+        virtual void regenerate(const CriterionArgs&) = 0;
+
         /**
          * Helper macro to add parameters and setters to updater
          */
