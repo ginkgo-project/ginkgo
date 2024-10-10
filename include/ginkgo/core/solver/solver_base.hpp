@@ -698,9 +698,23 @@ public:
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory)
     {
         stop_factory_ = new_stop_factory;
+        stop_ = nullptr;
+    }
+
+protected:
+    std::shared_ptr<stop::Criterion> generate_stop(
+        const stop::CriterionArgs& args)
+    {
+        if (stop_) {
+            stop_->regenerate(args);
+        } else {
+            stop_ = stop_factory_->generate(args);
+        }
+        return stop_;
     }
 
 private:
+    std::shared_ptr<stop::Criterion> stop_;
     std::shared_ptr<const stop::CriterionFactory> stop_factory_;
 };
 
