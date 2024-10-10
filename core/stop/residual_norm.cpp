@@ -110,14 +110,19 @@ ResidualNormBase<ValueType>::ResidualNormBase(
             } else {
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-                auto b_clone = share(args.b->clone());
-                args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
+                norm_dispatch<ValueType>(
+                    [&](auto dense_b) {
+                        this->set_cache_to(dense_b);
+                        args.system_matrix->apply(neg_one_, args.x, one_,
+                                                  cache_.intermediate);
+                    },
+                    args.b.get());
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {
                         dense_r->compute_norm2(this->starting_tau_,
                                                reduction_tmp_);
                     },
-                    b_clone.get());
+                    cache_.intermediate.get());
             }
         } else {
             this->starting_tau_ = NormVector::create(
@@ -183,9 +188,11 @@ bool ResidualNormBase<ValueType>::check_impl(
         auto exec = this->get_executor();
         norm_dispatch<ValueType>(
             [&](auto dense_b, auto dense_x) {
-                auto dense_r = dense_b->clone();
-                system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
-                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
+                this->set_cache_to(dense_b);
+                system_matrix_->apply(neg_one_, dense_x, one_,
+                                      cache_.intermediate);
+                dynamic_cast<decltype(dense_b)>(cache_.intermediate.get())
+                    ->compute_norm2(u_dense_tau_, reduction_tmp_);
             },
             b_.get(), updater.solution_);
         dense_tau = u_dense_tau_.get();
@@ -202,6 +209,16 @@ bool ResidualNormBase<ValueType>::check_impl(
     return all_converged;
 }
 
+
+template <typename ValueType>
+template <typename VectorType>
+void ResidualNormBase<ValueType>::set_cache_to(const VectorType* vec) const
+{
+    if (dynamic_cast<VectorType*>(cache_.intermediate.get()) == nullptr) {
+        cache_.intermediate = VectorType::create_with_config_of(vec);
+    }
+    cache_.intermediate->copy_from(vec);
+}
 
 template <typename ValueType>
 bool ImplicitResidualNorm<ValueType>::check_impl(
