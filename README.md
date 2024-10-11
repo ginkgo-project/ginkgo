@@ -6,12 +6,8 @@
 |:-:|:-:|:-:|:-:|
 
 
-[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/pipelines?page=1&scope=branches&ref=develop)|[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)|[![Windows-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/windows-msvc-ref.yml)
-|:-:|:-:|:-:|
-
-
-[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)|[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
-|:-:|:-:|:-:|:-:|
+[![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/pipelines?page=1&scope=branches&ref=develop)|[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)|[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)|[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
+|:-:|:-:|:-:|:-:|:-:|:-:|
 
 </div>
 
