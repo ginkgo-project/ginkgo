@@ -67,3 +67,11 @@ test_framework.compare_output(
     expected_stdout="conversion.profile.stdout",
     expected_stderr="conversion.profile.stderr",
 )
+
+# complex
+test_framework.compare_output(
+    ["-input", '[{"size": 100, "stencil": "7pt"}]', "-formats", "coo,csr"],
+    expected_stdout="conversion_dcomplex.simple.stdout",
+    expected_stderr="conversion_dcomplex.simple.stderr",
+    use_complex=True
+)
