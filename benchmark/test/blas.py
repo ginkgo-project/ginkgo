@@ -30,3 +30,11 @@ test_framework.compare_output(
     expected_stdout="blas.profile.stdout",
     expected_stderr="blas.profile.stderr",
 )
+
+# complex
+test_framework.compare_output(
+    ["-input", '[{"n": 100}]'],
+    expected_stdout="blas_dcomplex.simple.stdout",
+    expected_stderr="blas_dcomplex.simple.stderr",
+    use_complex=True
+)

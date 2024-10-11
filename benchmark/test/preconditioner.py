@@ -66,3 +66,11 @@ test_framework.compare_output(
     expected_stderr="preconditioner.reordered.stderr",
     stdin='[{"size": 100, "stencil": "7pt"}]',
 )
+
+# complex
+test_framework.compare_output(
+    ["-input", '[{"size": 100, "stencil": "7pt"}]'],
+    expected_stdout="preconditioner_dcomplex.simple.stdout",
+    expected_stderr="preconditioner_dcomplex.simple.stderr",
+    use_complex=True
+)
