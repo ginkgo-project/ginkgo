@@ -204,13 +204,11 @@ public:
             gko::log::Logger::batch_linop_factory_generate_started>(
             this, input.get());
         const auto exec = this->get_executor();
-        std::unique_ptr<BatchLinOp> generated;
-        if (input->get_executor() == exec) {
-            generated = this->AbstractFactory::generate(input);
-        } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
+        if (input->get_executor() != exec) {
+            input = gko::clone(exec, input);
         }
+        std::unique_ptr<BatchLinOp> generated =
+            this->AbstractFactory::generate(input);
         this->template log<
             gko::log::Logger::batch_linop_factory_generate_completed>(
             this, input.get(), generated.get());
