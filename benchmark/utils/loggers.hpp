@@ -156,14 +156,14 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
         } else {
-            gko::detail::vector_dispatch<rc_vtype>(
+            gko::detail::vector_dispatch<ValueType>(
                 residual, [&](const auto v_residual) {
                     rec_res_norms->push_back(compute_norm2(v_residual));
                 });
         }
         if (solution) {
             gko::detail::vector_dispatch<
-                rc_vtype>(solution, [&](auto v_solution) {
+                ValueType>(solution, [&](auto v_solution) {
                 using concrete_type =
                     std::remove_pointer_t<std::decay_t<decltype(v_solution)>>;
                 true_res_norms->push_back(compute_residual_norm(
@@ -174,7 +174,9 @@ struct ResidualLogger : gko::log::Logger {
         }
         if (implicit_sq_residual_norm) {
             implicit_res_norms->push_back(std::sqrt(
-                get_norm(gko::as<vec<rc_vtype>>(implicit_sq_residual_norm))));
+                get_norm(gko::as<vec<ValueType>>(implicit_sq_residual_norm)
+                             ->compute_absolute()
+                             .get())));
             has_implicit_res_norm = true;
         } else {
             implicit_res_norms->push_back(-1.0);
