@@ -53,6 +53,9 @@ class ResidualNormBase
     friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
                                          Criterion>;
 
+public:
+    void regenerate(const CriterionArgs& args) override;
+
 protected:
     using absolute_type = remove_complex<ValueType>;
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;

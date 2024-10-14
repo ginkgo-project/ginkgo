@@ -125,9 +125,10 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(q), prev_rho, rho, &stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
-    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+    auto stop_criterion = this->generate_stop(stop::CriterionArgs{
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
+        r});
 
     int iter = -1;
     /* Memory movement summary:

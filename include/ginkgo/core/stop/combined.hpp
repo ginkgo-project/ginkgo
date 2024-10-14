@@ -70,6 +70,8 @@ public:
 
     const parameters_type& get_parameters() const { return parameters_; }
 
+    void regenerate(const CriterionArgs& args) override;
+
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,

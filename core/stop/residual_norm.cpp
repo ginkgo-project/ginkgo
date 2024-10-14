@@ -86,21 +86,12 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
     }
 }
 
-
 template <typename ValueType>
-ResidualNormBase<ValueType>::ResidualNormBase(
-    std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
-    remove_complex<ValueType> reduction_factor, mode baseline)
-    : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-      reduction_factor_{reduction_factor},
-      device_storage_{exec, 2},
-      baseline_{baseline},
-      system_matrix_{args.system_matrix},
-      b_{args.b},
-      one_{gko::initialize<Vector>({1}, exec)},
-      neg_one_{gko::initialize<Vector>({-1}, exec)},
-      reduction_tmp_{exec}
+void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
 {
+    system_matrix_ = args.system_matrix;
+    b_ = args.b;
+    auto exec = this->get_executor();
     switch (baseline_) {
     case mode::initial_resnorm: {
         if (args.initial_residual == nullptr) {
@@ -161,6 +152,23 @@ ResidualNormBase<ValueType>::ResidualNormBase(
         GKO_NOT_SUPPORTED(nullptr);
     }
     this->u_dense_tau_ = NormVector::create_with_config_of(this->starting_tau_);
+}
+
+template <typename ValueType>
+ResidualNormBase<ValueType>::ResidualNormBase(
+    std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
+    remove_complex<ValueType> reduction_factor, mode baseline)
+    : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
+      reduction_factor_{reduction_factor},
+      device_storage_{exec, 2},
+      baseline_{baseline},
+      system_matrix_{args.system_matrix},
+      b_{args.b},
+      one_{gko::initialize<Vector>({1}, exec)},
+      neg_one_{gko::initialize<Vector>({-1}, exec)},
+      reduction_tmp_{exec}
+{
+    this->regenerate(args);
 }
 
 

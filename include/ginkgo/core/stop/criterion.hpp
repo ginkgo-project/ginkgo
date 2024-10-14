@@ -24,6 +24,7 @@ namespace gko {
  */
 namespace stop {
 
+struct CriterionArgs;
 
 /**
  * The Criterion class is a base class for all stopping criteria. It
@@ -35,6 +36,8 @@ namespace stop {
  */
 class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
 public:
+    virtual void regenerate(const CriterionArgs& arg) = 0;
+
     /**
      * The Updater class serves for convenient argument passing to the
      * Criterion's check function. The pattern used is a Builder, except Updater
@@ -77,8 +80,6 @@ public:
                                             stop_status, one_changed, *this);
             return converged;
         }
-
-        virtual void regenerate(const CriterionArgs&) = 0;
 
         /**
          * Helper macro to add parameters and setters to updater

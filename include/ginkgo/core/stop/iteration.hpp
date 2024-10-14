@@ -35,6 +35,8 @@ public:
     GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    void regenerate(const CriterionArgs& args) override{};
+
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,

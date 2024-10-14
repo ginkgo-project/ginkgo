@@ -9,6 +9,8 @@ namespace gko {
 namespace stop {
 
 
+void Time::regenerate(const CriterionArgs& args) { start_ = clock::now(); }
+
 bool Time::check_impl(uint8 stoppingId, bool setFinalized,
                       array<stopping_status>* stop_status, bool* one_changed,
                       const Updater& updater)
