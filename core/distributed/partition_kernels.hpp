@@ -48,6 +48,12 @@ namespace kernels {
                                 comm_index_type& num_empty_parts,             \
                                 LocalIndexType* ranks, LocalIndexType* sizes)
 
+#define GKO_DECLARE_PARTITION_BUILD_RANGES_BY_PART                          \
+    void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,  \
+                              const int* range_parts, size_type num_ranges, \
+                              int num_parts, array<size_type>& range_ids,   \
+                              array<int64>& sizes)
+
 #define GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType, GlobalIndexType)   \
     void has_ordered_parts(std::shared_ptr<const DefaultExecutor> exec,     \
                            const experimental::distributed::Partition<      \
@@ -67,6 +73,7 @@ namespace kernels {
     template <typename LocalIndexType, typename GlobalIndexType>        \
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType,        \
                                                  GlobalIndexType);      \
+    GKO_DECLARE_PARTITION_BUILD_RANGES_BY_PART;                         \
     template <typename LocalIndexType, typename GlobalIndexType>        \
     GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType, GlobalIndexType)
 
