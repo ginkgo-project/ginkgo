@@ -23,6 +23,8 @@ class ByInteraction
     using Criterion = gko::stop::Criterion;
 
 public:
+    void regenerate(const gko::stop::CriterionArgs&) override {}
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

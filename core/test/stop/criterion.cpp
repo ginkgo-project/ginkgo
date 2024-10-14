@@ -48,6 +48,8 @@ class DummyCriterion
                                               gko::stop::Criterion>;
 
 public:
+    void regenerate(const gko::stop::CriterionArgs&) override {}
+
     explicit DummyCriterion(std::shared_ptr<const gko::Executor> exec)
         : gko::EnablePolymorphicObject<DummyCriterion, gko::stop::Criterion>(
               std::move(exec))

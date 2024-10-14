@@ -30,6 +30,13 @@ Combined::Combined(const Combined::Factory* factory, const CriterionArgs& args)
     }
 }
 
+void Combined::regenerate(const CriterionArgs& args)
+{
+    for (auto& c : criteria_) {
+        c->regenerate(args);
+    }
+}
+
 
 bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
                           array<stopping_status>* stop_status,
