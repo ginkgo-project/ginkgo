@@ -92,7 +92,7 @@ trigger_pipeline:
 
 
 # cuda 11.4 and friends
-build/cuda114/nompi/gcc/cuda/debug/shared:
+build/cuda114/nompi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -101,7 +101,7 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
+    BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
@@ -114,7 +114,7 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
     CXX_COMPILER: "nvc++"
@@ -133,7 +133,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
   variables:
     CXX_COMPILER: "nvc++"
@@ -178,7 +178,7 @@ build/amd/nompi/clang/rocm45/debug/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -203,7 +203,7 @@ build/amd/nompi/clang/rocm514/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     CXX_COMPILER: "clang++"
@@ -229,7 +229,7 @@ build/nocuda/nompi/gcc/core/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_TYPE: "Debug"
@@ -241,7 +241,7 @@ build/nocuda/nompi/clang/core/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -276,7 +276,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -292,7 +292,7 @@ build/nocuda/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
@@ -316,7 +316,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_MPI: "ON"
@@ -410,7 +410,7 @@ build/windows-cuda/release/shared:
 
 build/windows/release/shared:
   extends:
-    - .quick_test_condition
+    - .full_test_condition
   stage: build
   script:
     - if (Test-Path build) { rm -r -fo build }
@@ -445,7 +445,7 @@ no-circular-deps:
   extends:
     - .build_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
@@ -496,7 +496,7 @@ sonarqube_cov_:
   stage: code_quality
   extends:
     - .default_variables
-    - .quick_test_short_lived_condition
+    - .full_test_short_lived_condition
     - .before_script_template
     - .use_gko_cuda114-openmpi-gnu10-llvm12
   tags:
