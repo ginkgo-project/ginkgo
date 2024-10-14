@@ -138,7 +138,10 @@ def compare_output_impl(
     use_complex: bool
 ):
     base_file = sys.argv[1]
-    file = base_file if not use_complex else f"{base_file}_dcomplex"
+    if base_file.endswith(".exe"):
+        file = base_file if not use_complex else base_file.replace(".exe", "_dcomplex.exe")
+    else:
+        file = base_file if not use_complex else f"{base_file}_dcomplex"
     args = [file] + args
     expected_stdout = str(sourcepath / "reference" / expected_stdout)
     expected_stderr = str(sourcepath / "reference" / expected_stderr)
