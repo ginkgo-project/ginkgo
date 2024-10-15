@@ -671,9 +671,6 @@ GKO_INLINE constexpr T one(const T&)
 }
 
 
-#undef GKO_BIND_ZERO_ONE
-
-
 /**
  * Returns true if and only if the given value is zero.
  *
