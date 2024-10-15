@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_EXAMPLES_BATCHED - MATRIX - FREE - \
-    TEMPLATED_BATCHED_BATCH_LOGGER_HPP_
-#define GKO_EXAMPLES_BATCHED \
-    -MATRIX - FREE - TEMPLATED_BATCHED_BATCH_LOGGER_HPP_
+#pragma once
 
 
 #include <ginkgo/core/base/types.hpp>
@@ -61,6 +58,3 @@ private:
 
 }  // namespace batch_log
 }  // namespace gko
-
-
-#endif  // GKO_EXAMPLES_BATCHED-MATRIX-FREE-TEMPLATED_BATCHED_BATCH_LOGGER_HPP_
