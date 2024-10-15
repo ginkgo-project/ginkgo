@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,14 +33,14 @@ struct batch_dim {
      *
      * @return num_batch_items
      */
-    size_type get_num_batch_items() const { return num_batch_items_; }
+    constexpr size_type get_num_batch_items() const { return num_batch_items_; }
 
     /**
      * Get the common size of the batch items
      *
      * @return common_size
      */
-    dim<dimensionality, dimension_type> get_common_size() const
+    constexpr dim<dimensionality, dimension_type> get_common_size() const
     {
         return common_size_;
     }
@@ -53,7 +53,7 @@ struct batch_dim {
      *
      * @return true if and only if all dimensions of both objects are equal.
      */
-    friend bool operator==(const batch_dim& x, const batch_dim& y)
+    constexpr friend bool operator==(const batch_dim& x, const batch_dim& y)
     {
         return x.num_batch_items_ == y.num_batch_items_ &&
                x.common_size_ == y.common_size_;
@@ -71,8 +71,9 @@ struct batch_dim {
      *
      * @return `!(x == y)`
      */
-    friend bool operator!=(const batch_dim<Dimensionality, DimensionType>& x,
-                           const batch_dim<Dimensionality, DimensionType>& y)
+    constexpr friend bool operator!=(
+        const batch_dim<Dimensionality, DimensionType>& x,
+        const batch_dim<Dimensionality, DimensionType>& y)
     {
         return !(x == y);
     }
@@ -81,7 +82,7 @@ struct batch_dim {
     /**
      * The default constructor
      */
-    batch_dim()
+    constexpr batch_dim()
         : num_batch_items_(0),
           common_size_(dim<dimensionality, dimension_type>{})
     {}
@@ -95,8 +96,9 @@ struct batch_dim {
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    explicit batch_dim(const size_type num_batch_items,
-                       const dim<dimensionality, dimension_type>& common_size)
+    constexpr explicit batch_dim(
+        const size_type num_batch_items,
+        const dim<dimensionality, dimension_type>& common_size)
         : num_batch_items_(num_batch_items), common_size_(common_size)
     {}
 
