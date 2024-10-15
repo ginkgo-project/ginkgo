@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_EXAMPLES_BATCHED - MATRIX - FREE - \
-    TEMPLATED_BATCHED_BATCH_IDENTITY_HPP_
-#define GKO_EXAMPLES_BATCHED \
-    -MATRIX - FREE - TEMPLATED_BATCHED_BATCH_IDENTITY_HPP_
+#pragma once
 
 
 #include <batch_multi_vector.hpp>
@@ -63,6 +60,3 @@ public:
 
 }  // namespace batch_preconditioner
 }  // namespace gko
-
-
-#endif  // GKO_EXAMPLES_BATCHED-MATRIX-FREE-TEMPLATED_BATCHED_BATCH_IDENTITY_HPP_

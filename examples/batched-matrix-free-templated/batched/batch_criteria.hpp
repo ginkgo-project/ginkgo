@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_EXAMPLES_BATCHED - MATRIX - FREE - \
-    TEMPLATED_BATCHED_BATCH_CRITERIA_HPP_
-#define GKO_EXAMPLES_BATCHED \
-    -MATRIX - FREE - TEMPLATED_BATCHED_BATCH_CRITERIA_HPP_
+#pragma once
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -95,6 +92,3 @@ private:
 
 }  // namespace batch_stop
 }  // namespace gko
-
-
-#endif  // GKO_EXAMPLES_BATCHED-MATRIX-FREE-TEMPLATED_BATCHED_BATCH_CRITERIA_HPP_
