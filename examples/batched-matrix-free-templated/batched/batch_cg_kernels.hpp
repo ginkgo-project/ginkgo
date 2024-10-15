@@ -5,12 +5,6 @@
 #pragma once
 
 
-#include <batch_criteria.hpp>
-#include <batch_identity.hpp>
-#include <batch_logger.hpp>
-#include <batch_multi_vector.hpp>
-
-
 #include <hip/hip_runtime.h>
 
 
@@ -26,6 +20,12 @@
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
+#include "batch_criteria.hpp"
+#include "batch_identity.hpp"
+#include "batch_logger.hpp"
+#include "batch_multi_vector.hpp"
+
+#include "backend/reference/batch_cg_kernels.hpp"
 
 // TODO: update when splitting compilation
 constexpr bool cg_no_shared_vecs = true;
