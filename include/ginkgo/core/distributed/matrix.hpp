@@ -14,6 +14,7 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
@@ -55,7 +56,7 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    std::void_t<
+    xstd::void_t<
         decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
