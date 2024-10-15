@@ -2,6 +2,7 @@ option(GINKGO_BUILD_EXTLIB_EXAMPLE "Build the external-lib-interfacing with deal
 
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
+    batched-matrix-free-templated
     batched-solver
     cb-gmres
     custom-logger

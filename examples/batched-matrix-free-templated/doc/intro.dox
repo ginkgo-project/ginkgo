@@ -1,0 +1,9 @@
+<a name="Batched Solver"></a>
+<h1>Using batched solvers</h1>
+This example shows how to use Ginkgo batched solvers with data coming from an
+application. The "application" in this case is just a function in the example
+itself; nevertheless, the steps to be taken are shown.
+
+A `batch' here means a set of small linear systems that can be solved
+independently, but each system is too small to use an entire computing device.
+A requirement is that all the systems need to have the same sparsity pattern.
