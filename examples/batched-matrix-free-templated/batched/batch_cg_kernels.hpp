@@ -5,12 +5,9 @@
 #pragma once
 
 
-#include <hip/hip_runtime.h>
+#include "backend/reference/batch_cg_kernels.hpp"
 
-#include <batch_criteria.hpp>
-#include <batch_identity.hpp>
-#include <batch_logger.hpp>
-#include <batch_multi_vector.hpp>
+#include <hip/hip_runtime.h>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
@@ -18,11 +15,14 @@
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
+#include "batch_criteria.hpp"
+#include "batch_identity.hpp"
+#include "batch_logger.hpp"
+#include "batch_multi_vector.hpp"
 #include "core/base/kernel_declaration.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
-
 
 // TODO: update when splitting compilation
 constexpr bool cg_no_shared_vecs = true;

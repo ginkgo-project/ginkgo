@@ -4,11 +4,7 @@
 
 #pragma once
 
-
 #include <vector>
-
-#include <batch_cg_kernels.hpp>
-#include <batch_multi_vector.hpp>
 
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -17,6 +13,9 @@
 #include <ginkgo/core/log/batch_logger.hpp>
 #include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
+
+#include "batch_cg_kernels.hpp"
+#include "batch_multi_vector.hpp"
 
 
 namespace gko::batch_template::solver {

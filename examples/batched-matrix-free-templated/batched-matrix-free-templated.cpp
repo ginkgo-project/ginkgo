@@ -13,9 +13,9 @@
 #include <cxxopts.hpp>
 
 // This is the main ginkgo header file.
-#include <batched/batch_cg.hpp>
-
 #include <ginkgo/ginkgo.hpp>
+
+#include "batched/batch_cg.hpp"
 
 
 class CustomOperator : public gko::EnablePolymorphicObject<CustomOperator> {
