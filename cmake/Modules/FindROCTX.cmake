@@ -26,11 +26,11 @@
 # ``ROCTX_FOUND``
 #   If false, do not try to use the ROCTX library.
 
-find_path(ROCTX_INCLUDE_DIR NAMES roctx.h HINTS ${ROCTRACER_PATH}/include)
+find_path(ROCTX_INCLUDE_DIR NAMES roctx.h HINTS ${ROCTRACER_PATH}/include ${ROCM_PATH}/include/roctracer)
 mark_as_advanced(ROCTX_INCLUDE_DIR)
 
 if(NOT ROCTX_LIBRARY)
-    find_library(ROCTX_LIBRARY NAMES roctx64 HINTS ${ROCTRACER_PATH}/lib)
+    find_library(ROCTX_LIBRARY NAMES roctx64 HINTS ${ROCTRACER_PATH}/lib ${ROCM_PATH}/lib)
 endif()
 
 include(FindPackageHandleStandardArgs)
