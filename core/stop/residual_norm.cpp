@@ -92,6 +92,12 @@ void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
     system_matrix_ = args.system_matrix;
     b_ = args.b;
     auto exec = this->get_executor();
+    dim<2> column_size{1, b_->get_size()[1]};
+    if (!this->starting_tau_ || starting_tau_->get_size() != column_size) {
+        this->starting_tau_ = NormVector::create(exec, column_size);
+        this->u_dense_tau_ =
+            NormVector::create_with_config_of(this->starting_tau_);
+    }
     switch (baseline_) {
     case mode::initial_resnorm: {
         if (args.initial_residual == nullptr) {
@@ -99,8 +105,6 @@ void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
                 args.x == nullptr) {
                 GKO_NOT_SUPPORTED(nullptr);
             } else {
-                this->starting_tau_ =
-                    NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
                 norm_dispatch<ValueType>(
                     [&](auto dense_b) {
                         this->set_cache_to(dense_b);
@@ -116,8 +120,6 @@ void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
                     cache_.intermediate.get());
             }
         } else {
-            this->starting_tau_ = NormVector::create(
-                exec, dim<2>{1, args.initial_residual->get_size()[1]});
             norm_dispatch<ValueType>(
                 [&](auto dense_r) {
                     dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
@@ -130,8 +132,6 @@ void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
         if (args.b == nullptr) {
             GKO_NOT_SUPPORTED(nullptr);
         }
-        this->starting_tau_ =
-            NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         norm_dispatch<ValueType>(
             [&](auto dense_r) {
                 dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
@@ -143,15 +143,12 @@ void ResidualNormBase<ValueType>::regenerate(const CriterionArgs& args)
         if (args.b == nullptr) {
             GKO_NOT_SUPPORTED(nullptr);
         }
-        this->starting_tau_ =
-            NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         this->starting_tau_->fill(gko::one<remove_complex<ValueType>>());
         break;
     }
     default:
         GKO_NOT_SUPPORTED(nullptr);
     }
-    this->u_dense_tau_ = NormVector::create_with_config_of(this->starting_tau_);
 }
 
 template <typename ValueType>
