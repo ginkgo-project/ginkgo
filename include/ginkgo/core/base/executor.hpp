@@ -424,52 +424,68 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
         return ::gko::detail::make_register_operation(                         \
             #_kernel, [&args...](auto exec) {                                  \
                 using exec_type = decltype(exec);                              \
-                if constexpr (::gko::ginkgo_build_reference_v &&               \
-                              std::is_same<                                    \
+                if constexpr (std::is_same<                                    \
                                   exec_type,                                   \
                                   std::shared_ptr<                             \
                                       const ::gko::ReferenceExecutor>>::       \
                                   value) {                                     \
-                    ::gko::kernels::reference::_kernel(                        \
-                        std::dynamic_pointer_cast<                             \
-                            const ::gko::ReferenceExecutor>(exec),             \
-                        std::forward<Args>(args)...);                          \
+                    if constexpr (::gko::ginkgo_build_reference_v) {           \
+                        ::gko::kernels::reference::_kernel(                    \
+                            std::dynamic_pointer_cast<                         \
+                                const ::gko::ReferenceExecutor>(exec),         \
+                            std::forward<Args>(args)...);                      \
+                    } else {                                                   \
+                        GKO_KERNEL_NOT_COMPILED(reference, #_kernel);          \
+                    }                                                          \
                 } else if constexpr (                                          \
-                    ::gko::ginkgo_build_omp_v &&                               \
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::OmpExecutor>>::value) {   \
-                    ::gko::kernels::omp::_kernel(                              \
-                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
+                    if constexpr (::gko::ginkgo_build_omp_v) {                 \
+                        ::gko::kernels::omp::_kernel(                          \
+                            std::dynamic_pointer_cast<                         \
+                                const ::gko::OmpExecutor>(exec),               \
+                            std::forward<Args>(args)...);                      \
+                    } else {                                                   \
+                        GKO_KERNEL_NOT_COMPILED(omp, #_kernel);                \
+                    }                                                          \
                 } else if constexpr (                                          \
-                    ::gko::ginkgo_build_cuda_v &&                              \
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::CudaExecutor>>::value) {  \
-                    ::gko::kernels::cuda::_kernel(                             \
-                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
+                    if constexpr (::gko::ginkgo_build_cuda_v) {                \
+                        ::gko::kernels::cuda::_kernel(                         \
+                            std::dynamic_pointer_cast<                         \
+                                const ::gko::CudaExecutor>(exec),              \
+                            std::forward<Args>(args)...);                      \
+                    } else {                                                   \
+                        GKO_KERNEL_NOT_COMPILED(cuda, #_kernel);               \
+                    }                                                          \
                 } else if constexpr (                                          \
-                    ::gko::ginkgo_build_hip_v &&                               \
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::HipExecutor>>::value) {   \
-                    ::gko::kernels::hip::_kernel(                              \
-                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
+                    if constexpr (::gko::ginkgo_build_hip_v) {                 \
+                        ::gko::kernels::hip::_kernel(                          \
+                            std::dynamic_pointer_cast<                         \
+                                const ::gko::HipExecutor>(exec),               \
+                            std::forward<Args>(args)...);                      \
+                    } else {                                                   \
+                        GKO_KERNEL_NOT_COMPILED(hip, #_kernel);                \
+                    }                                                          \
                 } else if constexpr (                                          \
-                    ::gko::ginkgo_build_sycl_v &&                              \
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::DpcppExecutor>>::value) { \
-                    ::gko::kernels::dpcpp::_kernel(                            \
-                        std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
-                            exec),                                             \
-                        std::forward<Args>(args)...);                          \
+                    if constexpr (::gko::ginkgo_build_sycl_v) {                \
+                        ::gko::kernels::dpcpp::_kernel(                        \
+                            std::dynamic_pointer_cast<                         \
+                                const ::gko::DpcppExecutor>(exec),             \
+                            std::forward<Args>(args)...);                      \
+                    } else {                                                   \
+                        GKO_KERNEL_NOT_COMPILED(sycl, #_kernel);               \
+                    }                                                          \
+                                                                               \
                 } else {                                                       \
                     GKO_NOT_IMPLEMENTED;                                       \
                 }                                                              \

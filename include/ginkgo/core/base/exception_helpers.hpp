@@ -61,6 +61,25 @@ namespace gko {
                   "semi-colon warnings")
 
 
+/**
+ * Marks a kernel as not compiled.
+ *
+ * The same behavior as GKO_NOT_COMPILED, except that the kernel name is
+ * explicitly specified, instead of based on the __func__ macro.
+ *
+ * @param _module the module which should be compiled to enable the kernel
+ * @param _kernel the name of the kernel
+ */
+#define GKO_KERNEL_NOT_COMPILED(_module, _kernel)                            \
+    {                                                                        \
+        throw ::gko::NotCompiled(__FILE__, __LINE__, _kernel,                \
+                                 GKO_QUOTE(_module));                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 namespace detail {
 
 
