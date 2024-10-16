@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 project(batched-solver LANGUAGES CXX)
 
-add_subdirectory(dummy)
-
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.9.0 REQUIRED)
