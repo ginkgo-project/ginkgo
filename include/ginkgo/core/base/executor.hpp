@@ -429,7 +429,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                                   std::shared_ptr<                             \
                                       const ::gko::ReferenceExecutor>>::       \
                                   value) {                                     \
-                    if constexpr (::gko::ginkgo_build_reference_v) {           \
+                    if constexpr (GINKGO_BUILD_REFERENCE) {                    \
                         ::gko::kernels::reference::_kernel(                    \
                             std::dynamic_pointer_cast<                         \
                                 const ::gko::ReferenceExecutor>(exec),         \
@@ -441,7 +441,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::OmpExecutor>>::value) {   \
-                    if constexpr (::gko::ginkgo_build_omp_v) {                 \
+                    if constexpr (GINKGO_BUILD_OMP) {                          \
                         ::gko::kernels::omp::_kernel(                          \
                             std::dynamic_pointer_cast<                         \
                                 const ::gko::OmpExecutor>(exec),               \
@@ -453,7 +453,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::CudaExecutor>>::value) {  \
-                    if constexpr (::gko::ginkgo_build_cuda_v) {                \
+                    if constexpr (GINKGO_BUILD_CUDA) {                         \
                         ::gko::kernels::cuda::_kernel(                         \
                             std::dynamic_pointer_cast<                         \
                                 const ::gko::CudaExecutor>(exec),              \
@@ -465,7 +465,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::HipExecutor>>::value) {   \
-                    if constexpr (::gko::ginkgo_build_hip_v) {                 \
+                    if constexpr (GINKGO_BUILD_HIP) {                          \
                         ::gko::kernels::hip::_kernel(                          \
                             std::dynamic_pointer_cast<                         \
                                 const ::gko::HipExecutor>(exec),               \
@@ -477,7 +477,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                     std::is_same<                                              \
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::DpcppExecutor>>::value) { \
-                    if constexpr (::gko::ginkgo_build_sycl_v) {                \
+                    if constexpr (GINKGO_BUILD_SYCL) {                         \
                         ::gko::kernels::dpcpp::_kernel(                        \
                             std::dynamic_pointer_cast<                         \
                                 const ::gko::DpcppExecutor>(exec),             \
