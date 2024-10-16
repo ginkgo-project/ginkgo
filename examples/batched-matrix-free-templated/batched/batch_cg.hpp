@@ -14,7 +14,11 @@
 #include <ginkgo/core/solver/batch_solver_base.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
-#include "batch_cg_kernels.hpp"
+#include "backend/cuda/batch_cg_kernels.hpp"
+#include "backend/hip/batch_cg_kernels.hpp"
+#include "backend/omp/batch_cg_kernels.hpp"
+#include "backend/reference/batch_cg_kernels.hpp"
+#include "backend/sycl/batch_cg_kernels.hpp"
 #include "batch_multi_vector.hpp"
 
 
