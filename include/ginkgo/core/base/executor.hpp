@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
@@ -423,42 +424,48 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
         return ::gko::detail::make_register_operation(                         \
             #_kernel, [&args...](auto exec) {                                  \
                 using exec_type = decltype(exec);                              \
-                if (std::is_same<                                              \
-                        exec_type,                                             \
-                        std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
-                        value) {                                               \
+                if constexpr (::gko::ginkgo_build_reference_v &&               \
+                              std::is_same<                                    \
+                                  exec_type,                                   \
+                                  std::shared_ptr<                             \
+                                      const ::gko::ReferenceExecutor>>::       \
+                                  value) {                                     \
                     ::gko::kernels::reference::_kernel(                        \
                         std::dynamic_pointer_cast<                             \
                             const ::gko::ReferenceExecutor>(exec),             \
                         std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::OmpExecutor>>::    \
-                               value) {                                        \
+                } else if constexpr (                                          \
+                    ::gko::ginkgo_build_omp_v &&                               \
+                    std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::OmpExecutor>>::value) {   \
                     ::gko::kernels::omp::_kernel(                              \
                         std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::CudaExecutor>>::   \
-                               value) {                                        \
+                } else if constexpr (                                          \
+                    ::gko::ginkgo_build_cuda_v &&                              \
+                    std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::CudaExecutor>>::value) {  \
                     ::gko::kernels::cuda::_kernel(                             \
                         std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::HipExecutor>>::    \
-                               value) {                                        \
+                } else if constexpr (                                          \
+                    ::gko::ginkgo_build_hip_v &&                               \
+                    std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::HipExecutor>>::value) {   \
                     ::gko::kernels::hip::_kernel(                              \
                         std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
                             exec),                                             \
                         std::forward<Args>(args)...);                          \
-                } else if (std::is_same<                                       \
-                               exec_type,                                      \
-                               std::shared_ptr<const ::gko::DpcppExecutor>>::  \
-                               value) {                                        \
+                } else if constexpr (                                          \
+                    ::gko::ginkgo_build_sycl_v &&                              \
+                    std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::DpcppExecutor>>::value) { \
                     ::gko::kernels::dpcpp::_kernel(                            \
                         std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
                             exec),                                             \

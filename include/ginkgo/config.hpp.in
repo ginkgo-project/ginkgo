@@ -104,6 +104,29 @@
 // clang-format on
 
 
+/* Describe which backends are enabled. */
+// clang-format off
+#cmakedefine01 GINKGO_BUILD_CUDA
+#cmakedefine01 GINKGO_BUILD_HIP
+#cmakedefine01 GINKGO_BUILD_OMP
+#cmakedefine01 GINKGO_BUILD_REFERENCE
+#cmakedefine01 GINKGO_BUILD_SYCL
+// clang-format on
+
+
+namespace gko{
+
+/* Provide non-macro access to which backends are available. */
+constexpr bool ginkgo_build_cuda_v = GINKGO_BUILD_CUDA;
+constexpr bool ginkgo_build_hip_v = GINKGO_BUILD_HIP;
+constexpr bool ginkgo_build_omp_v = GINKGO_BUILD_OMP;
+constexpr bool ginkgo_build_reference_v = GINKGO_BUILD_REFERENCE;
+constexpr bool ginkgo_build_sycl_v = GINKGO_BUILD_SYCL;
+
+
+}
+
+
 /* Is MPI available ? */
 // clang-format off
 #cmakedefine01 GINKGO_BUILD_MPI
