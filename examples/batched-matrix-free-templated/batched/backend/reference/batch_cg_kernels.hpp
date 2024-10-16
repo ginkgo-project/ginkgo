@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <ginkgo/config.hpp>
+
+#if GINKGO_BUILD_REFERENCE
 
 #include <ginkgo/core/log/batch_logger.hpp>
 
@@ -172,3 +175,5 @@ void apply(
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
+
+#endif

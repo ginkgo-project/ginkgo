@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <ginkgo/config.hpp>
+
+#if GINKGO_BUILD_SYCL
 
 #include <ginkgo/core/log/batch_logger.hpp>
 
@@ -36,3 +39,5 @@ void apply(
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
+
+#endif

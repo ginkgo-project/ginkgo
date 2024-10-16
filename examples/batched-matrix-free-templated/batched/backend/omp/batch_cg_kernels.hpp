@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <ginkgo/config.hpp>
+
+#if GINKGO_BUILD_OMP
 
 #include <ginkgo/core/log/batch_logger.hpp>
 
@@ -36,3 +39,5 @@ void apply(
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
+
+#endif

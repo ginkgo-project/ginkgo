@@ -5,7 +5,9 @@
 #pragma once
 
 
-#include "backend/reference/batch_cg_kernels.hpp"
+#include <ginkgo/config.hpp>
+
+#if GINKGO_BUILD_HIP
 
 #include <hip/hip_runtime.h>
 
@@ -32,55 +34,6 @@ namespace config {
 constexpr int warp_size = 32;
 
 
-}
-
-
-struct storage_config {
-    // preconditioner storage
-    bool prec_shared;
-    // total number of shared vectors
-    int n_shared;
-    // number of vectors in global memory
-    int n_global;
-    // global stride from one batch entry to the next
-    int gmem_stride_bytes;
-    // padded vector length
-    int padded_vec_len;
-};
-
-
-template <int align_bytes>
-void set_gmem_stride_bytes(storage_config& sconf,
-                           const int multi_vector_size_bytes,
-                           const int prec_storage_bytes)
-{
-    int gmem_stride = sconf.n_global * multi_vector_size_bytes;
-    if (!sconf.prec_shared) {
-        gmem_stride += prec_storage_bytes;
-    }
-    // align global memory chunks
-    sconf.gmem_stride_bytes = ceildiv(gmem_stride, align_bytes) * align_bytes;
-}
-
-
-template <typename Prectype, typename ValueType, int align_bytes = 32>
-storage_config compute_shared_storage(const int available_shared_mem,
-                                      const int num_rows, const int num_nz,
-                                      const int num_rhs)
-{
-    using real_type = remove_complex<ValueType>;
-    const int vec_bytes = num_rows * num_rhs * sizeof(ValueType);
-    const int num_main_vecs = 5;
-    const int prec_storage = Prectype::dynamic_work_size(num_rows, num_nz);
-    int rem_shared = available_shared_mem;
-    // Set default values. Initially all vecs are in global memory.
-    // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}
-    storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
-    // If available shared mem is zero, set all vecs to global.
-    if (rem_shared <= 0 || true) {
-        set_gmem_stride_bytes<align_bytes>(sconf, vec_bytes, prec_storage);
-        return sconf;
-    }
 }
 
 
@@ -112,7 +65,8 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
 template <typename StopType, const int n_shared, const bool prec_shared_bool,
           typename PrecType, typename LogType, typename BatchMatrixType,
           typename ValueType>
-__global__ void apply_kernel(const storage_config sconf, const int max_iter,
+__global__ void apply_kernel(const kernels::batch_cg::storage_config sconf,
+                             const int max_iter,
                              const gko::remove_complex<ValueType> tol,
                              LogType logger, PrecType prec_shared,
                              const BatchMatrixType mat,
@@ -232,3 +186,19 @@ void apply(
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+#else
+
+
+namespace gko::kernels::hip::batch_tempalte::batch_cg {
+template <typename ValueType, typename Op>
+void apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const kernels::batch_cg::settings<remove_complex<ValueType>>& settings,
+    const Op* mat, multi_vector_view<const ValueType> b,
+    multi_vector_view<ValueType> x,
+    batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
+    GKO_NOT_IMPLEMENTED;
+}  // namespace gko::kernels::hip::batch_tempalte::batch_cg
+
+#endif
