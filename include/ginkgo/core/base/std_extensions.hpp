@@ -27,8 +27,24 @@ namespace gko {
  * @ingroup xstd
  */
 namespace xstd {
+namespace detail {
+
+
 template <typename... Ts>
-using void_t = std::void_t<Ts...>;
+struct make_void {
+    using type = void;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Use the custom implementation, since the std::void_t used in
+ * is_matrix_type_builder seems to trigger a compiler bug in GCC 7.5.
+ */
+template <typename... Ts>
+using void_t = typename detail::make_void<Ts...>::type;
 
 
 GKO_DEPRECATED("use std::uncaught_exceptions")
