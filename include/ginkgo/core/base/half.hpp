@@ -7,6 +7,7 @@
 
 
 #include <complex>
+#include <cstring>
 #include <type_traits>
 
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -285,6 +286,29 @@ private:
     }
 };
 
+template <int size>
+constexpr void copy_by_char_impl(char* dst, const char* src)
+{
+    *dst = *src;
+    copy_by_char_impl<size - 1>(dst + 1, src + 1);
+}
+
+template <>
+constexpr void copy_by_char_impl<1>(char* dst, const char* src)
+{
+    *dst = *src;
+}
+
+template <typename DstType, typename SrcType>
+constexpr void copy_by_char(DstType& dst, const SrcType& src)
+{
+    static_assert(sizeof(DstType) == sizeof(SrcType),
+                  "Type size must be the same.");
+    static_assert(sizeof(DstType) % sizeof(char) == 0,
+                  "Type size must be divisible by char");
+    copy_by_char_impl<sizeof(DstType)>((char*)(&dst), (const char*)(&src));
+}
+
 
 }  // namespace detail
 
@@ -302,44 +326,46 @@ public:
     constexpr half() noexcept : data_(0){};
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
-    constexpr half(const T val)
+    half(const T val) : data_(0)
     {
         this->float2half(static_cast<float>(val));
     }
 
-    constexpr half(const half& val) = default;
+    half(const half& val) { data_ = val.data_; };
 
     template <typename V>
-    constexpr half& operator=(const V val)
+    half& operator=(const V val)
     {
         this->float2half(static_cast<float>(val));
         return *this;
     }
 
-    constexpr operator float() const noexcept
+    operator float() const noexcept
     {
         // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         //         return __half2float(reinterpret_cast<const __half&>(data_));
         // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
-        return reinterpret_cast<const float32&>(bits);
+        float ans(0);
+        detail::copy_by_char(ans, bits);
+        return ans;
         // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     // can not use half operator _op(const half) for half + half
     // operation will cast it to float and then do float operation such that it
     // becomes float in the end.
-#define HALF_OPERATOR(_op, _opeq)                                      \
-    friend constexpr half operator _op(const half lhf, const half rhf) \
-    {                                                                  \
-        return static_cast<half>(static_cast<float>(lhf)               \
-                                     _op static_cast<float>(rhf));     \
-    }                                                                  \
-    constexpr half& operator _opeq(const half& hf)                     \
-    {                                                                  \
-        auto result = *this _op hf;                                    \
-        this->float2half(result);                                      \
-        return *this;                                                  \
+#define HALF_OPERATOR(_op, _opeq)                                  \
+    friend half operator _op(const half lhf, const half rhf)       \
+    {                                                              \
+        return static_cast<half>(static_cast<float>(lhf)           \
+                                     _op static_cast<float>(rhf)); \
+    }                                                              \
+    half& operator _opeq(const half& hf)                           \
+    {                                                              \
+        auto result = *this _op hf;                                \
+        this->float2half(result);                                  \
+        return *this;                                              \
     }
     HALF_OPERATOR(+, +=)
     HALF_OPERATOR(-, -=)
@@ -351,7 +377,7 @@ public:
     // If it is integer, using half as type
 #define HALF_FRIEND_OPERATOR(_op, _opeq)                                   \
     template <typename T>                                                  \
-    constexpr friend std::enable_if_t<                                     \
+    friend std::enable_if_t<                                               \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const half hf, const T val)                               \
@@ -363,7 +389,7 @@ public:
         return result;                                                     \
     }                                                                      \
     template <typename T>                                                  \
-    constexpr friend std::enable_if_t<                                     \
+    friend std::enable_if_t<                                               \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
     operator _op(const T val, const half hf)                               \
@@ -381,7 +407,7 @@ public:
     HALF_FRIEND_OPERATOR(/, /=)
 
     // the negative
-    constexpr half operator-() const
+    half operator-() const
     {
         auto val = 0.0f - *this;
         return half(val);
@@ -392,14 +418,18 @@ private:
     using f32_traits = detail::float_traits<float32>;
 
     // TODO: do we really need this one?
-    // Without it, everything can be constexpr, which might make stuff easier.
-    constexpr void float2half(float val) noexcept
+    // Without it, everything can be GKO_INLINE GKO_ATTRIBUTES, which might make
+    // stuff easier.
+    void float2half(float val) noexcept
     {
         // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         //         const auto tmp = __float2half_rn(val);
         //         data_ = reinterpret_cast<const uint16&>(tmp);
         // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        data_ = float2half(reinterpret_cast<const uint32&>(val));
+        uint32 bit_val(0);
+        detail::copy_by_char(bit_val, val);
+        // std::memcpy(&bit_val, &val, sizeof(float));
+        data_ = float2half(bit_val);
         // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
@@ -617,20 +647,28 @@ struct numeric_limits<gko::half> {
     //       a constexpr constructor.
     static constexpr float epsilon()
     {
+        // 0x1400
+        // 0b0 00101 0000 000000
         return gko::detail::float_traits<gko::half>::eps;
     }
 
     static constexpr float infinity()
     {
+        // 0b0 11111 0000000000
         return numeric_limits<float>::infinity();
     }
 
-    static constexpr float min() { return 1.0f / (1ll << 14); }
+    static constexpr float min()
+    {
+        // 0b0 00001 0000000000
+        return 1.0f / (1ll << 14);
+    }
 
     // The maximal exponent is 15, and the maximal significant is
     // 1 + (2^-10 - 1) / 2^-10
     static constexpr float max()
     {
+        // 0b0 11110 1111111111
         return (1ll << 15) *
                (1.0f + static_cast<float>((1ll << 10) - 1) / (1ll << 10));
     }
@@ -639,6 +677,7 @@ struct numeric_limits<gko::half> {
 
     static constexpr float quiet_NaN()
     {
+        // 0x7FFF
         return numeric_limits<float>::quiet_NaN();
     }
 };
