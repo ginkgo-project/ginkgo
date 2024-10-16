@@ -4,9 +4,11 @@
 
 #pragma once
 
+#include <ginkgo/config.hpp>
+
+#if GINKGO_BUILD_CUDA
 
 #include <ginkgo/core/log/batch_logger.hpp>
-
 
 #include "../../batch_cg_settings.hpp"
 #include "../../batch_criteria.hpp"
@@ -37,3 +39,6 @@ void apply(
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif
