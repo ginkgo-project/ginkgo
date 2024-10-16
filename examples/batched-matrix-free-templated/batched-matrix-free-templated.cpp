@@ -4,16 +4,16 @@
 
 // @sect3{Include files}
 
-#include <cxxopts.hpp>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <random>
 #include <string>
 
+#include <cxxopts.hpp>
+
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
-
 
 #include "batched/batch_cg.hpp"
 
@@ -52,7 +52,6 @@ using size_type = gko::size_type;
 using vec_type = gko::batch::MultiVector<value_type>;
 using real_vec_type = gko::batch::MultiVector<real_type>;
 using mtx_type = gko::batch::matrix::Csr<value_type, index_type>;
-using ext_type = gko::batch::matrix::External<value_type>;
 using cg = gko::batch_template::solver::Cg<CustomOperator>;
 
 
