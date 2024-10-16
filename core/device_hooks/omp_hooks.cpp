@@ -31,8 +31,3 @@ int OmpExecutor::get_num_omp_threads() { return 1; }
 
 
 }  // namespace gko
-
-
-#define GKO_HOOK_MODULE omp
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE

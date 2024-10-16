@@ -252,8 +252,3 @@ void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
 
 }  // namespace log
 }  // namespace gko
-
-
-#define GKO_HOOK_MODULE hip
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE

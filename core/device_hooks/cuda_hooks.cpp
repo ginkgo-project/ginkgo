@@ -257,8 +257,3 @@ void end_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
 
 }  // namespace log
 }  // namespace gko
-
-
-#define GKO_HOOK_MODULE cuda
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE

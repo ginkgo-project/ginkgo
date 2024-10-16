@@ -150,8 +150,3 @@ std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
 
 
 }  // namespace gko
-
-
-#define GKO_HOOK_MODULE dpcpp
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
