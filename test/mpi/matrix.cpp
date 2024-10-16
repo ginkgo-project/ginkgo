@@ -207,6 +207,8 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     using Partition = typename TestFixture::Partition;
     using local_index_type = typename TestFixture::local_index_type;
     using matrix_data = gko::matrix_data<value_type, local_index_type>;
+    using input_triple =
+        gko::detail::input_triple<value_type, local_index_type>;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using comm_index_type = gko::experimental::distributed::comm_index_type;
@@ -214,18 +216,16 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
     std::array<gko::dim<2>, 3> size_local{{{2, 2}, {2, 2}, {1, 1}}};
     std::array<matrix_data, 3> dist_input_local{
-        {{size_local[0], {{0, 0, 2}}},
-         {size_local[1], {{0, 1, 5}}},
-         {size_local[2],
-          std::initializer_list<
-              gko::detail::input_triple<value_type, local_index_type>>{}}}};
+        {{size_local[0], I<input_triple>{{0, 0, 2}}},
+         {size_local[1], I<input_triple>{{0, 1, 5}}},
+         {size_local[2]}}};
     I<I<value_type>> res_non_local[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
     std::array<gko::dim<2>, 3> size_non_local{{{2, 2}, {2, 3}, {1, 2}}};
     std::array<matrix_data, 3> dist_input_non_local{
-        {{size_non_local[0], {{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
-         {size_non_local[1], {{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
-         {size_non_local[2], {{0, 0, 10}, {0, 1, 9}}}}};
+        {{size_non_local[0], I<input_triple>{{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
+         {size_non_local[1], I<input_triple>{{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
+         {size_non_local[2], I<input_triple>{{0, 0, 10}, {0, 1, 9}}}}};
     std::array<std::vector<comm_index_type>, 3> recv_sizes{
         {{0, 1, 1}, {2, 0, 1}, {1, 1, 0}}};
     std::array<std::vector<comm_index_type>, 3> recv_offsets{
