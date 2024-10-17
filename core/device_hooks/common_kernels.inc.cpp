@@ -48,6 +48,7 @@
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/preconditioner/sor_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
@@ -817,6 +818,16 @@ GKO_STUB(GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL);
 
 
 }  // namespace jacobi
+
+
+namespace sor {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U);
+
+
+}  // namespace sor
 
 
 namespace isai {
