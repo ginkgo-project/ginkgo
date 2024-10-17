@@ -9,7 +9,7 @@ function(add_benchmark_test test_name)
                       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.py $<TARGET_FILE:${test_name}> --generate
                       COMMENT "Regenerating reference output for ${test_name}"
                       WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>")
-    add_dependencies(${regenerate_target} ${test_name})
+    add_dependencies(${regenerate_target} ${test_name} ${test_name}_dcomplex)
     add_dependencies(benchmark_test_regenerate ${regenerate_target})
 endfunction()
 add_custom_target(benchmark_test_regenerate)

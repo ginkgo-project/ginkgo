@@ -51,3 +51,11 @@ test_framework.compare_output(
     expected_stderr="spmv.reordered.stderr",
     stdin='[{"size": 100, "stencil": "7pt"}]',
 )
+
+# complex
+test_framework.compare_output(
+    ["-input", '[{"size": 100, "stencil": "7pt"}]'],
+    expected_stdout="spmv_dcomplex.simple.stdout",
+    expected_stderr="spmv_dcomplex.simple.stderr",
+    use_complex=True
+)
