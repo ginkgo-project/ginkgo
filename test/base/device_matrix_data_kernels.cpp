@@ -241,6 +241,28 @@ TYPED_TEST(DeviceMatrixData, CopiesToHost)
 }
 
 
+TYPED_TEST(DeviceMatrixData, CanFillEntriesWithZeros)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
+    auto device_data = device_matrix_data{this->exec, gko::dim<2>{4, 3}, 10};
+
+    device_data.fill_zero();
+
+    auto arrays = device_data.empty_out();
+    auto expected_row_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_col_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_values = gko::array<value_type>(this->exec, 10);
+    expected_row_idxs.fill(0);
+    expected_col_idxs.fill(0);
+    expected_values.fill(0.0);
+    GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, expected_row_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.values, expected_values);
+}
+
+
 TYPED_TEST(DeviceMatrixData, SortsRowMajor)
 {
     using value_type = typename TestFixture::value_type;
