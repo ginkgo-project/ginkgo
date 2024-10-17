@@ -32,8 +32,8 @@ inline void initialize(
     const BatchMatrixType_entry& A_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& b_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& x_entry,
-    const gko::batch::multi_vector::batch_item<ValueType>& rho_new_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& rho_old_entry,
+    const gko::batch::multi_vector::batch_item<ValueType>& rho_new_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& r_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& p_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& z_entry,
@@ -86,7 +86,7 @@ inline void update_p(
 
 template <typename ValueType>
 inline void update_x_and_r(
-    const gko::batch::multi_vector::batch_item<const ValueType>& rho_old_entry,
+    const gko::batch::multi_vector::batch_item<const ValueType>& rho_new_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& p_entry,
     const gko::batch::multi_vector::batch_item<const ValueType>& Ap_entry,
     const gko::batch::multi_vector::batch_item<ValueType>& alpha_entry,
@@ -96,7 +96,7 @@ inline void update_x_and_r(
     batch_single_kernels::compute_conj_dot_product_kernel<ValueType>(
         p_entry, Ap_entry, alpha_entry);
 
-    const ValueType temp = rho_old_entry.values[0] / alpha_entry.values[0];
+    const ValueType temp = rho_new_entry.values[0] / alpha_entry.values[0];
     for (int row = 0; row < r_entry.num_rows; row++) {
         x_entry.values[row * x_entry.stride] +=
             temp * p_entry.values[row * p_entry.stride];
