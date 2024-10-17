@@ -5,10 +5,12 @@
 #include "core/base/extended_float.hpp"
 
 #include <bitset>
+#include <complex>
 #include <string>
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/math.hpp>
 
 namespace {
 
@@ -110,7 +112,13 @@ TEST_F(FloatToHalf, ConvertsNan)
 {
     half x = create_from_bits("0" "11111111" "00000000000000000000001");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1111111111"));
+    #endif
 }
 
 
@@ -118,7 +126,13 @@ TEST_F(FloatToHalf, ConvertsNegNan)
 {
     half x = create_from_bits("1" "11111111" "00010000000000000000000");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1111111111"));
+    #endif
 }
 
 
@@ -162,14 +176,38 @@ TEST_F(FloatToHalf, TruncatesSmallNumber)
 }
 
 
-TEST_F(FloatToHalf, TruncatesLargeNumber)
+TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
 {
-    half x = create_from_bits("1" "10001110" "10010011111000010000100");
+    half neg_x = create_from_bits("1" "10001110" "10010011111000010000100");
+    half neg_x2 = create_from_bits("1" "10001110" "10010011101000010000100");
+    half x = create_from_bits("0" "10001110" "10010011111000010000100");
+    half x2 = create_from_bits("0" "10001110" "10010011101000010000100");
+    half x3 = create_from_bits("0" "10001110" "10010011101000000000000");
+    half x4 = create_from_bits("0" "10001110" "10010011111000000000000");
 
-    ASSERT_EQ(get_bits(x), get_bits("1" "11110" "1001001111"));
-
+    EXPECT_EQ(get_bits(x), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(x2), get_bits("0" "11110" "1001001111"));
+    EXPECT_EQ(get_bits(x3), get_bits("0" "11110" "1001001110"));
+    EXPECT_EQ(get_bits(x4), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x), get_bits("1" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
 }
 
+
+TEST_F(FloatToHalf, Convert)
+{
+    float rho = 86.25;
+    float beta = 1110;
+    auto float_res = rho/beta;
+    gko::half rho_h = rho;
+    gko::half beta_h = beta;
+    auto half_res = rho_h/beta_h;
+    std::cout << float_res << std::endl;
+    std::cout << float(half_res) << std::endl;
+
+    std::complex<gko::half> cpx{100.0, 0.0};
+    std::cout << float(gko::squared_norm(cpx)) << std::endl;
+}
 
 // clang-format on
 
@@ -216,7 +254,13 @@ TEST_F(HalfToFloat, ConvertsNan)
 {
     float x = create_from_bits("0" "11111" "0001001000");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "00010010000000000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "11111111111111111111111"));
+    #endif
 }
 
 
@@ -224,7 +268,13 @@ TEST_F(HalfToFloat, ConvertsNegNan)
 {
     float x = create_from_bits("1" "11111" "0000000001");
 
+    #if defined(SYCL_LANGUAGE_VERSION) && \
+    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "00000000010000000000000"));
+    #else
     ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "11111111111111111111111"));
+    #endif
 }
 
 

@@ -17,7 +17,15 @@
 #include "utils.hpp"
 
 
+struct __half;
+
+
 namespace gko {
+
+
+class half;
+
+
 namespace acc {
 namespace detail {
 
@@ -25,6 +33,11 @@ namespace detail {
 template <typename T>
 struct cuda_type {
     using type = T;
+};
+
+template <>
+struct cuda_type<gko::half> {
+    using type = __half;
 };
 
 // Unpack cv and reference / pointer qualifiers
@@ -57,7 +70,7 @@ struct cuda_type<T&&> {
 // Transform std::complex to thrust::complex
 template <typename T>
 struct cuda_type<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename cuda_type<T>::type>;
 };
 
 

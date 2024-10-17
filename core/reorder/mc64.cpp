@@ -37,8 +37,8 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
                         array<remove_complex<ValueType>>& row_maxima_array,
                         gko::experimental::reorder::mc64_strategy strategy)
 {
-    constexpr auto inf =
-        std::numeric_limits<remove_complex<ValueType>>::infinity();
+    auto inf = static_cast<remove_complex<ValueType>>(
+        std::numeric_limits<remove_complex<ValueType>>::infinity());
     const auto num_rows = host_mtx->get_size()[0];
     const auto row_ptrs = host_mtx->get_const_row_ptrs();
     const auto col_idxs = host_mtx->get_const_col_idxs();
@@ -50,7 +50,7 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
         for (IndexType row = 0; row < num_rows; row++) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            auto row_max = -inf;
+            auto row_max = static_cast<remove_complex<ValueType>>(-inf);
             for (IndexType idx = row_begin; idx < row_end; idx++) {
                 const auto weight = calculate_weight(values[idx]);
                 weights[idx] = weight;
@@ -67,11 +67,13 @@ void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
             }
         }
     };
-    if (strategy ==
-        gko::experimental::reorder::mc64_strategy::max_diagonal_sum) {
-        run_computation([](ValueType a) { return abs(a); });
+    if (strategy == mc64_strategy::max_diagonal_sum) {
+        run_computation(
+            [](ValueType a) -> remove_complex<ValueType> { return abs(a); });
     } else {
-        run_computation([](ValueType a) { return std::log2(abs(a)); });
+        run_computation([](ValueType a) -> remove_complex<ValueType> {
+            return std::log2(abs(a));
+        });
     }
 }
 
@@ -179,7 +181,8 @@ void shortest_augmenting_path(
     addressable_priority_queue<ValueType, IndexType>& queue,
     std::vector<IndexType>& q_j, ValueType tolerance)
 {
-    constexpr auto inf = std::numeric_limits<ValueType>::infinity();
+    auto inf =
+        static_cast<ValueType>(std::numeric_limits<ValueType>::infinity());
     auto weights = weights_array.get_data();
     auto dual_u = dual_u_array.get_data();
     auto distance = distance_array.get_data();
@@ -433,8 +436,8 @@ void compute_scaling(const matrix::Csr<ValueType, IndexType>* host_mtx,
                      mc64_strategy strategy, ValueType* row_scaling,
                      ValueType* col_scaling)
 {
-    constexpr auto inf =
-        std::numeric_limits<remove_complex<ValueType>>::infinity();
+    auto inf = static_cast<remove_complex<ValueType>>(
+        std::numeric_limits<remove_complex<ValueType>>::infinity());
     const auto num_rows = host_mtx->get_size()[0];
     const auto weights = weights_array.get_const_data();
     const auto dual_u = dual_u_array.get_const_data();
@@ -538,8 +541,8 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
     marked_cols.fill(0);
     matched_idxs.fill(0);
     unmatched_rows.fill(0);
-    constexpr auto inf =
-        std::numeric_limits<remove_complex<ValueType>>::infinity();
+    auto inf = static_cast<remove_complex<ValueType>>(
+        std::numeric_limits<remove_complex<ValueType>>::infinity());
     dual_u.fill(inf);
     distance.fill(inf);
 
