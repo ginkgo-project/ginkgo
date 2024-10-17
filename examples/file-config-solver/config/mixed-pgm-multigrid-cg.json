@@ -1,0 +1,84 @@
+{
+    "type": "solver::Cg",
+    "preconditioner": {
+        "type": "solver::Multigrid",
+        "max_levels": 10,
+        "min_coarse_rows": 2,
+        "pre_smoother": [
+            {
+                "type": "solver::Ir",
+                "relaxation_factor": 0.9,
+                "solver": {
+                    "type": "preconditioner::Jacobi",
+                    "max_block_size": 1
+                },
+                "criteria": [
+                    {
+                        "type": "Iteration",
+                        "max_iters": 1
+                    }
+                ]
+            },
+            {
+                "type": "solver::Ir",
+                "value_type": "float32",
+                "relaxation_factor": 0.9,
+                "solver": {
+                    "type": "preconditioner::Jacobi",
+                    "max_block_size": 1
+                },
+                "criteria": [
+                    {
+                        "type": "Iteration",
+                        "max_iters": 1
+                    }
+                ]
+            }
+        ],
+        "post_uses_pre": true,
+        "mg_level": [
+            {
+                "type": "multigrid::Pgm",
+                "deterministic": true
+            },
+            {
+                "type": "multigrid::Pgm",
+                "value_type": "float32",
+                "deterministic": true
+            }
+        ],
+        "coarsest_solver": {
+            "type": "solver::Ir",
+            "value_type": "float32",
+            "relaxation_factor": 0.9,
+            "solver": {
+                    "type": "preconditioner::Jacobi",
+                    "max_block_size": 1
+                },
+            "criteria": [
+                {
+                    "type": "Iteration",
+                    "max_iters": 4
+                }
+            ]
+        },
+        "default_initial_guess": "zero",
+        "criteria": [
+            {
+                "type": "Iteration",
+                "max_iters": 1
+            }
+        ]
+    },
+    "criteria": [
+        {
+            "type": "Iteration",
+            "max_iters": 100
+        },
+        {
+            "type": "ResidualNorm",
+            "reduction_factor": 1e-8,
+            "baseline": "absolute"
+        }
+    ]
+}
