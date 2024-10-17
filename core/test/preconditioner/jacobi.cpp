@@ -116,6 +116,17 @@ TYPED_TEST(JacobiFactory, CanMoveBlockPrecisions)
 }
 
 
+TYPED_TEST(JacobiFactory, CanSetL1)
+{
+    using Bj = typename TestFixture::Bj;
+    auto bj_factory =
+        Bj::build().with_max_block_size(3u).with_aggregate_l1(true).on(
+            this->exec);
+
+    EXPECT_TRUE(bj_factory->get_parameters().aggregate_l1);
+}
+
+
 template <typename T>
 class BlockInterleavedStorageScheme : public ::testing::Test {
 protected:
