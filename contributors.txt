@@ -24,4 +24,5 @@ Nguyen Phuong <phuong.nguyen@icl.utk.edu> University of Tennessee, Knoxville
 Olenik Gregor <go@hpsim.de> HPSim
 Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Riemer Lukas <lksriemer@gmail.com> Karlsruhe Institute of Technology
+Luka Stanisic <luka.stanisic@huawei.com> Huawei Technologies Duesseldorf GmbH
 Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
