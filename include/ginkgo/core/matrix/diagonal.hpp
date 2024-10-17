@@ -34,7 +34,6 @@ class Dense;
  *
  * @ingroup diagonal
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Diagonal

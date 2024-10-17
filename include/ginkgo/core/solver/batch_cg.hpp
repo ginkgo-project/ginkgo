@@ -44,7 +44,6 @@ namespace solver {
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers
- * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
 class Cg final : public EnableBatchSolver<Cg<ValueType>, ValueType> {

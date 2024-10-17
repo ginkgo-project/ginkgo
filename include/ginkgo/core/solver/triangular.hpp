@@ -59,7 +59,6 @@ class UpperTrs;
  * @tparam IndexType  precision of matrix indices
  *
  * @ingroup solvers
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
@@ -227,7 +226,6 @@ struct workspace_traits<LowerTrs<ValueType, IndexType>> {
  * @tparam IndexType  precision of matrix indices
  *
  * @ingroup solvers
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,

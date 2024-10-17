@@ -1,4 +1,4 @@
-# Citing Ginkgo                                           {#citing_ginkgo}
+# Citing Ginkgo
 
 The main Ginkgo paper describing Ginkgo's purpose, design and interface is
 available through the following reference:

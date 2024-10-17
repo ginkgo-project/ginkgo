@@ -36,8 +36,7 @@ namespace matrix {
  * array of the rowgatherer indices.
  *
  * @ingroup rowgatherer
- * @ingroup matrix
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename IndexType = int32>
 class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {

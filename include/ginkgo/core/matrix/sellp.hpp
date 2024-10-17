@@ -37,7 +37,6 @@ class Csr;
  *
  * @ingroup sellp
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,

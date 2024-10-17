@@ -1,6 +1,8 @@
-### Modules
+This is the main page for the Ginkgo library API documentation.
 
-The Ginkgo library can be grouped into [modules](modules.html) and these modules form the basic building blocks of Ginkgo. The modules can be summarized as follows:
+## Topics
+
+The Ginkgo library can be grouped into modules which form the basic building blocks of Ginkgo. The topics can be summarized as follows:
 
 *   @ref Executor : Where do you want your code to be executed ?
 *   @ref LinOp : What kind of operation do you want Ginkgo to perform ?

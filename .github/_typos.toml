@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["third_party/*", "*.svg"]
+extend-exclude = ["third_party/*", "*.svg", "Doxyfile.in"]
 
 [default.extend-words]
 dout = "dout"

@@ -100,9 +100,7 @@ class MultigridState;
  * the coarsest level (the coarsest solver), and its level counts is N (N
  * multigrid level generation).
  *
- * @ingroup Multigrid
  * @ingroup solvers
- * @ingroup LinOp
  */
 class Multigrid : public EnableLinOp<Multigrid>,
                   public EnableSolverBase<Multigrid>,

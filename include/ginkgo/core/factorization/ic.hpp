@@ -37,7 +37,6 @@ namespace factorization {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  *
  * @ingroup factor
- * @ingroup LinOp
  */
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>

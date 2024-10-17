@@ -64,7 +64,6 @@ namespace factorization {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  *
  * @ingroup factor
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ParIlu : public Composition<ValueType> {

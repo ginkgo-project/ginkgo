@@ -45,7 +45,6 @@ class Fbcsr;
  *
  * @ingroup sparsity
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
