@@ -32,9 +32,6 @@ struct ihipEvent_t;
 #endif
 
 
-// after intel/llvm September'22 release, which uses major version 6, they
-// introduce another inline namespace _V1.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
 namespace sycl {
 inline namespace _V1 {
 
@@ -45,18 +42,6 @@ class event;
 
 }  // namespace _V1
 }  // namespace sycl
-#else  // GINKGO_DPCPP_MAJOR_VERSION < 6
-inline namespace cl {
-namespace sycl {
-
-
-class queue;
-class event;
-
-
-}  // namespace sycl
-}  // namespace cl
-#endif
 
 
 #endif  // GKO_PUBLIC_CORE_BASE_FWD_DECLS_HPP_
