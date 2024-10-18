@@ -146,7 +146,7 @@ protected:
         auto& krylov_bases = range_helper.get_bases();
         d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
-        using std::abs;
+        using gko::abs;
         for (gko::size_type i = 0; i < krylov_bases.get_size(); ++i) {
             const auto ref_value = krylov_bases.get_const_data()[i];
             const auto dev_value = d_to_host.get_const_data()[i];

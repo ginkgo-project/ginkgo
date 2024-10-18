@@ -450,7 +450,7 @@ void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
         l_col_idxs[l_diag_idx] = row;
         // compute square root with sentinel
         if (use_sqrt) {
-            diag_val = std::sqrt(diag_val);
+            diag_val = gko::sqrt(diag_val);
             if (!is_finite(diag_val)) {
                 diag_val = one<ValueType>();
             }

@@ -123,14 +123,23 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto nnz = l->get_num_stored_elements();
     auto num_blocks = ceildiv(nnz, default_block_size);
     if (num_blocks > 0) {
-        for (size_type i = 0; i < iterations; ++i) {
-            kernel::ic_sweep<<<num_blocks, default_block_size, 0,
-                               exec->get_stream()>>>(
-                a_lower->get_const_row_idxs(), a_lower->get_const_col_idxs(),
-                as_device_type(a_lower->get_const_values()),
-                l->get_const_row_ptrs(), l->get_const_col_idxs(),
-                as_device_type(l->get_values()),
-                static_cast<IndexType>(l->get_num_stored_elements()));
+#ifdef GKO_COMPILING_HIP
+        if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+            // HIP does not support 16bit atomic operation
+            GKO_NOT_SUPPORTED(a_lower);
+        } else
+#endif
+        {
+            for (size_type i = 0; i < iterations; ++i) {
+                kernel::ic_sweep<<<num_blocks, default_block_size, 0,
+                                   exec->get_stream()>>>(
+                    a_lower->get_const_row_idxs(),
+                    a_lower->get_const_col_idxs(),
+                    as_device_type(a_lower->get_const_values()),
+                    l->get_const_row_ptrs(), l->get_const_col_idxs(),
+                    as_device_type(l->get_values()),
+                    static_cast<IndexType>(l->get_num_stored_elements()));
+            }
         }
     }
 }

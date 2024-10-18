@@ -14,8 +14,52 @@
 #include <utility>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+
+
+class __half;
+
+
+namespace thrust {
+
+
+template <typename T>
+class complex;
+
+
+}
+
+
+namespace gko {
+
+
+using std::abs;
+using std::sqrt;
+
+GKO_INLINE gko::half abs(gko::half a) { return gko::half((a > 0) ? a : -a); }
+
+GKO_INLINE gko::half abs(std::complex<gko::half> a)
+{
+    // Using float abs not sqrt on norm to avoid overflow
+    return gko::half(abs(std::complex<float>(a)));
+}
+
+
+GKO_INLINE gko::half sqrt(gko::half a)
+{
+    return gko::half(std::sqrt(float(a)));
+}
+
+GKO_INLINE std::complex<gko::half> sqrt(std::complex<gko::half> a)
+{
+    return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
+}
+
+
+}  // namespace gko
 
 
 namespace gko {
@@ -147,12 +191,27 @@ template <typename T>
 struct is_complex_impl<std::complex<T>>
     : public std::integral_constant<bool, true> {};
 
+template <typename T>
+struct is_complex_impl<thrust::complex<T>>
+    : public std::integral_constant<bool, true> {};
+
 
 template <typename T>
 struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
+template <>
+struct is_complex_or_scalar_impl<half> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<__half> : std::true_type {};
+
 template <typename T>
-struct is_complex_or_scalar_impl<std::complex<T>> : std::is_scalar<T> {};
+struct is_complex_or_scalar_impl<std::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
+
+template <typename T>
+struct is_complex_or_scalar_impl<thrust::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
 
 
 /**
@@ -360,6 +419,13 @@ namespace detail {
 template <typename T>
 struct next_precision_impl {};
 
+#if GINKGO_ENABLE_HALF
+template <>
+struct next_precision_impl<half> {
+    using type = float;
+};
+#endif
+
 template <>
 struct next_precision_impl<float> {
     using type = double;
@@ -367,8 +433,13 @@ struct next_precision_impl<float> {
 
 template <>
 struct next_precision_impl<double> {
+#if GINKGO_ENABLE_HALF
+    using type = half;
+#else
     using type = float;
+#endif
 };
+
 
 template <typename T>
 struct next_precision_impl<std::complex<T>> {
@@ -419,10 +490,26 @@ struct increase_precision_impl<half> {
 
 
 template <typename T>
+struct arth_type {
+    using type = T;
+};
+
+template <>
+struct arth_type<half> {
+    using type = float;
+};
+
+template <typename T>
+struct arth_type<std::complex<T>> {
+    using type = std::complex<typename arth_type<T>::type>;
+};
+
+template <typename T>
 struct infinity_impl {
     // CUDA doesn't allow us to call std::numeric_limits functions
     // so we need to store the value instead.
-    static constexpr auto value = std::numeric_limits<T>::infinity();
+    static constexpr auto value =
+        std::numeric_limits<typename arth_type<T>::type>::infinity();
 };
 
 
@@ -467,8 +554,13 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  * @note Currently our lists contains only two elements, so this is the same as
  *       next_precision.
  */
+#if GINKGO_ENABLE_HALF
+template <typename T>
+using previous_precision = next_precision<next_precision<T>>;
+#else
 template <typename T>
 using previous_precision = next_precision<T>;
+#endif
 
 
 /**
@@ -773,7 +865,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T&)
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one()
 {
-    return T(1);
+    return T(1.0);
 }
 
 
@@ -969,7 +1061,7 @@ template <typename T>
 GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
 imag_impl(const T&)
 {
-    return T{};
+    return T(0.0);
 }
 
 template <typename T>
@@ -1168,7 +1260,8 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_finite(const T& value)
 {
-    constexpr T infinity{detail::infinity_impl<T>::value};
+    constexpr typename detail::arth_type<T>::type infinity{
+        detail::infinity_impl<T>::value};
     return abs(value) < infinity;
 }
 
@@ -1259,12 +1352,12 @@ GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
  * @return NaN.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
+    !is_complex_s<T>::value, typename detail::arth_type<T>::type>
 nan()
 {
     return std::numeric_limits<T>::quiet_NaN();
 }
-
 
 /**
  * Returns a complex with both components quiet NaN.
@@ -1274,7 +1367,8 @@ nan()
  * @return complex{NaN, NaN}.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<is_complex_s<T>::value, T>
+GKO_INLINE GKO_ATTRIBUTES constexpr std::enable_if_t<
+    is_complex_s<T>::value, typename detail::arth_type<T>::type>
 nan()
 {
     return T{nan<remove_complex<T>>(), nan<remove_complex<T>>()};

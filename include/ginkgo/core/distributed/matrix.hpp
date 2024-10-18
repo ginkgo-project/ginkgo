@@ -250,11 +250,16 @@ class Matrix
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
+                                  LocalIndexType, GlobalIndexType>>,
+#endif
       public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
-    friend class Matrix<next_precision<ValueType>, LocalIndexType,
+    friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+
 
 public:
     using value_type = ValueType;
@@ -277,7 +282,23 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
+#if GINKGO_ENABLE_HALF
+    friend class Matrix<previous_precision<previous_precision<ValueType>>,
+                        LocalIndexType, GlobalIndexType>;
+    using ConvertibleTo<
+        Matrix<next_precision<next_precision<value_type>>, local_index_type,
+               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<next_precision<value_type>>,
+                               local_index_type, global_index_type>>::move_to;
 
+    void convert_to(
+        Matrix<next_precision<next_precision<value_type>>, local_index_type,
+               global_index_type>* result) const override;
+
+    void move_to(Matrix<next_precision<next_precision<value_type>>,
+                        local_index_type, global_index_type>* result) override;
+
+#endif
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
      * partition.
