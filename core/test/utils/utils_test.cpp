@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/test/utils.hpp"
+
 #include <complex>
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
-
-#include "core/test/utils.hpp"
 
 
 namespace {
