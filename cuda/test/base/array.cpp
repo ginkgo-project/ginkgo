@@ -32,7 +32,7 @@ protected:
     gko::array<T> x;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Array, gko::test::ComplexAndPODTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Array, CanCreateTemporaryCloneOnDifferentExecutor)
