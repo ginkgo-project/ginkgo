@@ -53,13 +53,13 @@ struct input_type {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void count_overlap_entries(
+void count_non_owning_entries(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part, array<comm_index_type>& overlap_count,
-    array<GlobalIndexType>& overlap_positions,
+    comm_index_type local_part, array<comm_index_type>& send_count,
+    array<GlobalIndexType>& send_positions,
     array<GlobalIndexType>& original_positions)
 {
     auto row_part_ids = row_partition->get_part_ids();
@@ -96,13 +96,13 @@ void count_overlap_entries(
         original_positions.get_data());
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto orig_positions, auto overl_positions) {
-            overl_positions[i] = orig_positions[i] >= 0 ? 1 : 0;
+        [] GKO_KERNEL(auto i, auto orig_positions, auto s_positions) {
+            s_positions[i] = orig_positions[i] >= 0 ? 1 : 0;
         },
         num_input_elements, original_positions.get_const_data(),
-        overlap_positions.get_data());
+        send_positions.get_data());
 
-    components::prefix_sum_nonnegative(exec, overlap_positions.get_data(),
+    components::prefix_sum_nonnegative(exec, send_positions.get_data(),
                                        num_input_elements);
     size_type num_parts = row_partition->get_num_parts();
     array<comm_index_type> row_part_ptrs{exec, num_parts + 1};
@@ -116,24 +116,23 @@ void count_overlap_entries(
         [] GKO_KERNEL(auto i, auto part_id, auto part_ptrs, auto count) {
             count[i] = i == part_id ? 0 : part_ptrs[i + 1] - part_ptrs[i];
         },
-        num_parts, local_part, row_part_ptrs.get_data(),
-        overlap_count.get_data());
+        num_parts, local_part, row_part_ptrs.get_data(), send_count.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_COUNT_OVERLAP_ENTRIES);
+    GKO_DECLARE_COUNT_NON_OWNING_ENTRIES);
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void fill_overlap_send_buffers(
+void fill_send_buffers(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part, const array<GlobalIndexType>& overlap_positions,
+    comm_index_type local_part, const array<GlobalIndexType>& send_positions,
     const array<GlobalIndexType>& original_positions,
-    array<GlobalIndexType>& overlap_row_idxs,
-    array<GlobalIndexType>& overlap_col_idxs, array<ValueType>& overlap_values)
+    array<GlobalIndexType>& send_row_idxs,
+    array<GlobalIndexType>& send_col_idxs, array<ValueType>& send_values)
 {
     auto num_entries = input.get_num_stored_elements();
     auto input_row_idxs = input.get_const_row_idxs();
@@ -152,13 +151,13 @@ void fill_overlap_send_buffers(
             }
         },
         num_entries, input_row_idxs, input_col_idxs, input_values,
-        original_positions.get_const_data(), overlap_positions.get_const_data(),
-        overlap_row_idxs.get_data(), overlap_col_idxs.get_data(),
-        overlap_values.get_data());
+        original_positions.get_const_data(), send_positions.get_const_data(),
+        send_row_idxs.get_data(), send_col_idxs.get_data(),
+        send_values.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS);
+    GKO_DECLARE_FILL_SEND_BUFFERS);
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
