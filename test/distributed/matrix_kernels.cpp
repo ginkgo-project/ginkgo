@@ -63,55 +63,50 @@ protected:
             gko::array<local_index_type> d_non_local_row_idxs{exec};
             gko::array<global_index_type> d_non_local_col_idxs{exec};
             gko::array<value_type> d_non_local_values{exec};
-            gko::array<comm_index_type> overlap_count{ref, num_parts};
-            overlap_count.fill(0);
-            gko::array<comm_index_type> d_overlap_count{exec, num_parts};
-            d_overlap_count.fill(0);
-            gko::array<global_index_type> overlap_positions{ref, num_entries};
-            gko::array<global_index_type> d_overlap_positions{exec,
-                                                              num_entries};
+            gko::array<comm_index_type> send_count{ref, num_parts};
+            send_count.fill(0);
+            gko::array<comm_index_type> d_send_count{exec, num_parts};
+            d_send_count.fill(0);
+            gko::array<global_index_type> send_positions{ref, num_entries};
+            gko::array<global_index_type> d_send_positions{exec, num_entries};
             gko::array<global_index_type> original_positions{ref, num_entries};
             gko::array<global_index_type> d_original_positions{exec,
                                                                num_entries};
 
-            gko::kernels::reference::distributed_matrix::count_overlap_entries(
-                ref, input, row_partition.get(), part, overlap_count,
-                overlap_positions, original_positions);
-            gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
-                count_overlap_entries(
-                    exec, d_input, d_row_partition.get(), part, d_overlap_count,
-                    d_overlap_positions, d_original_positions);
-
-            gko::array<global_index_type> overlap_offsets{ref, num_parts + 1};
-            std::partial_sum(overlap_count.get_data(),
-                             overlap_count.get_data() + num_parts,
-                             overlap_offsets.get_data() + 1);
-            overlap_offsets.get_data()[0] = 0;
-            gko::array<global_index_type> d_overlap_offsets{exec,
-                                                            overlap_offsets};
-            gko::size_type num_overlap_entries =
-                overlap_offsets.get_data()[num_parts];
-            gko::array<global_index_type> overlap_row_idxs{ref,
-                                                           num_overlap_entries};
-            gko::array<global_index_type> overlap_col_idxs{ref,
-                                                           num_overlap_entries};
-            gko::array<value_type> overlap_values{ref, num_overlap_entries};
-            gko::array<global_index_type> d_overlap_row_idxs{
-                exec, num_overlap_entries};
-            gko::array<global_index_type> d_overlap_col_idxs{
-                exec, num_overlap_entries};
-            gko::array<value_type> d_overlap_values{exec, num_overlap_entries};
-
             gko::kernels::reference::distributed_matrix::
-                fill_overlap_send_buffers(ref, input, row_partition.get(), part,
-                                          overlap_positions, original_positions,
-                                          overlap_row_idxs, overlap_col_idxs,
-                                          overlap_values);
+                count_non_owning_entries(ref, input, row_partition.get(), part,
+                                         send_count, send_positions,
+                                         original_positions);
             gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
-                fill_overlap_send_buffers(
-                    exec, d_input, d_row_partition.get(), part,
-                    d_overlap_positions, d_original_positions,
-                    d_overlap_row_idxs, d_overlap_col_idxs, d_overlap_values);
+                count_non_owning_entries(exec, d_input, d_row_partition.get(),
+                                         part, d_send_count, d_send_positions,
+                                         d_original_positions);
+
+            gko::array<global_index_type> send_offsets{ref, num_parts + 1};
+            std::partial_sum(send_count.get_data(),
+                             send_count.get_data() + num_parts,
+                             send_offsets.get_data() + 1);
+            send_offsets.get_data()[0] = 0;
+            gko::array<global_index_type> d_send_offsets{exec, send_offsets};
+            gko::size_type num_send_entries =
+                send_offsets.get_data()[num_parts];
+            gko::array<global_index_type> send_row_idxs{ref, num_send_entries};
+            gko::array<global_index_type> send_col_idxs{ref, num_send_entries};
+            gko::array<value_type> send_values{ref, num_send_entries};
+            gko::array<global_index_type> d_send_row_idxs{exec,
+                                                          num_send_entries};
+            gko::array<global_index_type> d_send_col_idxs{exec,
+                                                          num_send_entries};
+            gko::array<value_type> d_send_values{exec, num_send_entries};
+
+            gko::kernels::reference::distributed_matrix::fill_send_buffers(
+                ref, input, row_partition.get(), part, send_positions,
+                original_positions, send_row_idxs, send_col_idxs, send_values);
+            gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
+                fill_send_buffers(exec, d_input, d_row_partition.get(), part,
+                                  d_send_positions, d_original_positions,
+                                  d_send_row_idxs, d_send_col_idxs,
+                                  d_send_values);
 
             gko::kernels::reference::distributed_matrix::
                 separate_local_nonlocal(
@@ -125,12 +120,12 @@ protected:
                     d_non_local_row_idxs, d_non_local_col_idxs,
                     d_non_local_values);
 
-            GKO_ASSERT_ARRAY_EQ(overlap_positions, d_overlap_positions);
+            GKO_ASSERT_ARRAY_EQ(send_positions, d_send_positions);
             GKO_ASSERT_ARRAY_EQ(original_positions, d_original_positions);
-            GKO_ASSERT_ARRAY_EQ(overlap_count, d_overlap_count);
-            GKO_ASSERT_ARRAY_EQ(overlap_row_idxs, d_overlap_row_idxs);
-            GKO_ASSERT_ARRAY_EQ(overlap_col_idxs, d_overlap_col_idxs);
-            GKO_ASSERT_ARRAY_EQ(overlap_values, d_overlap_values);
+            GKO_ASSERT_ARRAY_EQ(send_count, d_send_count);
+            GKO_ASSERT_ARRAY_EQ(send_row_idxs, d_send_row_idxs);
+            GKO_ASSERT_ARRAY_EQ(send_col_idxs, d_send_col_idxs);
+            GKO_ASSERT_ARRAY_EQ(send_values, d_send_values);
             GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
             GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
             GKO_ASSERT_ARRAY_EQ(local_values, d_local_values);

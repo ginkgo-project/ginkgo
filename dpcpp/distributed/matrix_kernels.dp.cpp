@@ -14,33 +14,33 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void count_overlap_entries(
+void non_owningverlap_entries(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part, array<comm_index_type>& overlap_count,
-    array<GlobalIndexType>& overlap_positions,
+    comm_index_type local_part, array<comm_index_type>& send_count,
+    array<GlobalIndexType>& send_positions,
     array<GlobalIndexType>& original_positions) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_COUNT_OVERLAP_ENTRIES);
+    GKO_DECLARE_COUNT_NON_OWNING_ENTRIES);
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void fill_overlap_send_buffers(
+void fill_send_buffers(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
-    comm_index_type local_part, const array<GlobalIndexType>& overlap_positions,
+    comm_index_type local_part, const array<GlobalIndexType>& send_positions,
     const array<GlobalIndexType>& original_positions,
-    array<GlobalIndexType>& overlap_row_idxs,
-    array<GlobalIndexType>& overlap_col_idxs,
-    array<ValueType>& overlap_values) GKO_NOT_IMPLEMENTED;
+    array<GlobalIndexType>& send_row_idxs,
+    array<GlobalIndexType>& send_col_idxs,
+    array<ValueType>& send_values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_FILL_OVERLAP_SEND_BUFFERS);
+    GKO_DECLARE_FILL_SEND_BUFFERS);
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
