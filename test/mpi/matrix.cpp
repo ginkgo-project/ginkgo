@@ -60,9 +60,16 @@ protected:
                      {3, 4, 7},
                      {4, 0, 9},
                      {4, 4, 10}}},
-          dist_input{{{size, {{0, 1, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}},
-                      {size, {{2, 1, 5}, {2, 2, 6}, {3, 3, 8}, {3, 4, 7}}},
-                      {size, {{4, 0, 9}, {4, 4, 10}}}}},
+          dist_input{
+              {{size,
+                {{0, 1, 1},
+                 {0, 3, 2},
+                 {1, 1, 3},
+                 {1, 2, 4},
+                 {2, 0, 1},
+                 {2, 3, 1}}},
+               {size, {{0, 0, 1}, {2, 1, 5}, {2, 2, 6}, {3, 3, 8}, {3, 4, 7}}},
+               {size, {{2, 2, 1}, {3, 3, -1}, {4, 0, 9}, {4, 4, 10}}}}},
           engine(42)
     {
         row_part = Partition::build_from_contiguous(
@@ -134,6 +141,26 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 }
 
 
+TYPED_TEST(MatrixCreation, ReadsDistributedLocalDataWithCommunicate)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    I<I<value_type>> res_local[] = {{{1, 1}, {0, 3}}, {{7, 1}, {0, 7}}, {{10}}};
+    I<I<value_type>> res_non_local[] = {
+        {{0, 2}, {4, 0}}, {{1, 5, 0}, {0, 0, 7}}, {{9}}};
+    auto rank = this->dist_mat->get_communicator().rank();
+
+    this->dist_mat->read_distributed(
+        this->dist_input[rank], this->row_part,
+        gko::experimental::distributed::assembly_mode::communicate);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_non_local[rank], 0);
+}
+
+
 TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 {
     using value_type = typename TestFixture::value_type;
@@ -145,6 +172,26 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 
     this->dist_mat->read_distributed(this->mat_input, this->row_part,
                                      this->col_part);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_non_local[rank], 0);
+}
+
+
+TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartitionAndCommunicate)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{1, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_non_local[] = {
+        {{1, 1, 0}, {0, 3, 4}}, {{1, 0, 7}, {7, 7, 0}}, {{10, 9}}};
+    auto rank = this->dist_mat->get_communicator().rank();
+
+    this->dist_mat->read_distributed(
+        this->dist_input[rank], this->row_part, this->col_part,
+        gko::experimental::distributed::assembly_mode::communicate);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);
