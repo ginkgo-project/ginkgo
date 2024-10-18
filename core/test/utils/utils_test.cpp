@@ -11,9 +11,6 @@
 #include <gtest/gtest.h>
 
 
-namespace {
-
-
 using i_type = std::integral_constant<int, 42>;
 using t_type = std::tuple<int>;
 
@@ -317,6 +314,3 @@ TEST(TypeListHelper, AddToCartesianTypeProductLeftEmpty)
         gko::test::add_to_cartesian_type_product_left_t<tuple_empty, tlist3>,
         tuple_empty>();
 }
-
-
-}  // namespace
