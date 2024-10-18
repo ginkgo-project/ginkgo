@@ -203,6 +203,7 @@ template <typename LeftList, typename RightList>
 using cartesian_type_product_t =
     typename detail::cartesian_type_product<LeftList, RightList>::type;
 
+
 /**
  * This type alias is intended to be used with cartesian_type_product_t in order
  * to create a more than two dimensional cartesian product by adding one element
@@ -235,6 +236,7 @@ using add_to_cartesian_type_product_t =
     typename detail::add_to_cartesian_type_product<ExistingCombinationList,
                                                    NewElementList>::type;
 
+
 /**
  * This type alias is very similar to add_to_cartesian_type_product_t. It only
  * differs in where the new element is added to the `std::tuple`, which is to
@@ -261,6 +263,7 @@ using add_to_cartesian_type_product_left_t =
     typename detail::add_to_cartesian_type_product_left<
         NewElementList, ExistingCombinationList>::type;
 
+
 /**
  * Merges two lists into a single list.
  * The left and right list need to use the same type wrapper, which will also be
@@ -275,6 +278,7 @@ using add_to_cartesian_type_product_left_t =
 template <typename FirstList, typename SecondList>
 using merge_type_list_t =
     typename detail::merge_type_list<FirstList, SecondList>::type;
+
 
 /**
  * This type alias can change the outer type wrapper to the new, given one.
@@ -295,6 +299,7 @@ using merge_type_list_t =
 template <template <typename...> class NewOuterWrapper, typename ListType>
 using change_outer_wrapper_t =
     typename detail::change_outer_wrapper<NewOuterWrapper, ListType>::type;
+
 
 /**
  * Creates a type list (the outer wrapper stays the same) where each original
