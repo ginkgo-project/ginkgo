@@ -1,5 +1,5 @@
 <a name="File Config Solver"></a>
 <h1>This example shows how to use file to configure solver.</h1>
 
-<h3> In this example, we first read in a matrix from a file. We read the file to configure the solver. The example features the generating time and runtime of the solver.</h3>
+<h3>In this example, we first read in a matrix from a file. Then we read the config file to configure the solver. The example application reports the generation and run time of the solver.</h3>
 
