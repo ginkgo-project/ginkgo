@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <memory>
 #include <numeric>
@@ -24,11 +25,14 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/reorder/amd.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+
+#include "parmetis.h"
 
 
 namespace gko {
@@ -70,8 +74,9 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
 
     std::shared_ptr<
         const gko::experimental::distributed::Partition<IndexType, IndexType>>
-        partition = share(
-            clone(exec, global_system_matrix_->get_row_partition().get()));
+        partition =
+            share(clone(exec->get_master(),
+                        global_system_matrix_->get_row_partition().get()));
 
     // Find owning and non wonind interface idxs, count how many are shared with
     // each rank.
@@ -230,6 +235,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
 
     // Generate local matrix data and communication pattern
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
+    mat_data.remove_zeros();
     mat_data.sort_row_major();
     matrix_data<ValueType, IndexType> local_data(dim<2>(cnt, cnt));
 
@@ -262,67 +268,68 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<std::vector<IndexType>> interface_dofs;
     std::vector<std::vector<IndexType>> interface_dof_ranks;
     for (size_type i = 0; i < n_edges; i++) {
-        interface_dofs.emplace_back(edge_dofs[i]);
-        interface_dof_ranks.emplace_back(edge_ranks[i]);
-        /* auto edge = edge_dofs[i]; */
-        /* auto ranks = edge_ranks[i]; */
-        /* auto esize = edge.size(); */
-        /* auto ematrix = local->create_submatrix(span{start, start + esize}, */
-        /*                                        span{start, start + esize});
-         */
-        /* ValueType min_val = one<ValueType>(); */
-        /* IndexType min_idx = -1; */
-        /* IndexType min_component = -1; */
-        /* std::vector<int> edge_map(esize, -1); */
-        /* const auto row_ptrs = ematrix->get_const_row_ptrs(); */
-        /* const auto col_idxs = ematrix->get_const_col_idxs(); */
-        /* const auto vals = ematrix->get_const_values(); */
-        /* std::vector<IndexType> component_vec{}; */
-        /* int num_corners = 0; */
-        /* for (size_type j = 0; j < esize; j++) { */
-        /*     if (edge_map[j] == -1) { */
-        /*         std::set<IndexType> work_set{}; */
-        /*         std::set<IndexType> component{}; */
-        /*         for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1]; */
-        /*              idx++) { */
-        /*             if (col_idxs[idx] == j) { */
-        /*                 if (std::abs(vals[idx]) < std::abs(min_val)) { */
-        /*                     min_val = vals[idx]; */
-        /*                     min_idx = j; */
-        /*                     min_component = connected_components; */
-        /*                 } */
-        /*             } */
-        /*             work_set.insert(col_idxs[idx]); */
-        /*             edge_map[col_idxs[idx]] = connected_components; */
-        /*         } */
-        /*         while (!work_set.empty()) { */
-        /*             auto current = *work_set.begin(); */
-        /*             work_set.erase(current); */
-        /*             component.insert(edge[current]); */
-        /*             for (IndexType idx = row_ptrs[current]; */
-        /*                  idx < row_ptrs[current + 1]; idx++) { */
-        /*                 if (edge_map[col_idxs[idx]] == -1) { */
-        /*                     work_set.insert(col_idxs[idx]); */
-        /*                     edge_map[col_idxs[idx]] = connected_components;
-         */
-        /*                 } */
-        /*             } */
-        /*         } */
-        /*         component_vec.clear(); */
-        /*         for (auto const& idx : component) { */
-        /*             component_vec.emplace_back(idx); */
-        /*         } */
-        /*         if (component.size() == 1) { */
-        /*             num_corners++; */
-        /*         } */
-        /*         if (component_vec.size() > 0) { */
-        /*             interface_dofs.emplace_back(component_vec); */
-        /*             interface_dof_ranks.emplace_back(ranks); */
-        /*             connected_components++; */
-        /*         } */
-        /*     } */
-        /* } */
-        /* start += esize; */
+        if (parameters_.connected_components_analysis) {
+            auto edge = edge_dofs[i];
+            auto ranks = edge_ranks[i];
+            auto esize = edge.size();
+            auto ematrix = local->create_submatrix(span{start, start + esize},
+                                                   span{start, start + esize});
+            ValueType min_val = one<ValueType>();
+            IndexType min_idx = -1;
+            IndexType min_component = -1;
+            std::vector<int> edge_map(esize, -1);
+            const auto row_ptrs = ematrix->get_const_row_ptrs();
+            const auto col_idxs = ematrix->get_const_col_idxs();
+            const auto vals = ematrix->get_const_values();
+            std::vector<IndexType> component_vec{};
+            int num_corners = 0;
+            for (size_type j = 0; j < esize; j++) {
+                if (edge_map[j] == -1) {
+                    std::set<IndexType> work_set{};
+                    std::set<IndexType> component{};
+                    for (IndexType idx = row_ptrs[j]; idx < row_ptrs[j + 1];
+                         idx++) {
+                        if (col_idxs[idx] == j) {
+                            if (std::abs(vals[idx]) < std::abs(min_val)) {
+                                min_val = vals[idx];
+                                min_idx = j;
+                                min_component = connected_components;
+                            }
+                        }
+                        work_set.insert(col_idxs[idx]);
+                        edge_map[col_idxs[idx]] = connected_components;
+                    }
+                    while (!work_set.empty()) {
+                        auto current = *work_set.begin();
+                        work_set.erase(current);
+                        component.insert(edge[current]);
+                        for (IndexType idx = row_ptrs[current];
+                             idx < row_ptrs[current + 1]; idx++) {
+                            if (edge_map[col_idxs[idx]] == -1) {
+                                work_set.insert(col_idxs[idx]);
+                                edge_map[col_idxs[idx]] = connected_components;
+                            }
+                        }
+                    }
+                    component_vec.clear();
+                    for (auto const& idx : component) {
+                        component_vec.emplace_back(idx);
+                    }
+                    if (component.size() == 1) {
+                        num_corners++;
+                    }
+                    if (component_vec.size() > 0) {
+                        interface_dofs.emplace_back(component_vec);
+                        interface_dof_ranks.emplace_back(ranks);
+                        connected_components++;
+                    }
+                }
+            }
+            start += esize;
+        } else {
+            interface_dofs.emplace_back(edge_dofs[i]);
+            interface_dof_ranks.emplace_back(edge_ranks[i]);
+        }
     }
     for (size_type i = 0; i < n_corners; i++) {
         interface_dofs.emplace_back(corner_dofs[i]);
@@ -437,7 +444,8 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::iota(order.begin(), order.end(), 0);
     std::sort(order.begin(), order.end(),
               [&](const IndexType& a, const IndexType& b) {
-                  return idofs[a].size() > idofs[b].size();
+                  /* return idofs[a].size() > idofs[b].size(); */
+                  return iranks[a][0] < iranks[b][0];
               });
     for (size_type i = 0; i < idofs.size(); i++) {
         interface_dofs_.emplace_back(idofs[order[i]]);
@@ -503,6 +511,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
 template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
 {
+    auto start = std::chrono::high_resolution_clock::now();
     auto exec = this->get_executor();
     auto rhs = as<const global_vec_type>(b);
     auto sol = as<global_vec_type>(x);
@@ -526,14 +535,21 @@ void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
                         schur_solution->get_local_values()),
         1);
     comm.synchronize();
-    if (inner_solver->apply_uses_initial_guess()) {
-        if (parameters_.use_amd) {
-            inner_buf2->fill(zero<ValueType>());
-        } else {
-            inner_intermediate->fill(zero<ValueType>());
-        }
-    }
+    /* if (inner_solver->apply_uses_initial_guess()) { */
     if (parameters_.use_amd) {
+        inner_buf2->fill(zero<ValueType>());
+    } else {
+        inner_intermediate->fill(zero<ValueType>());
+    }
+    /* } */
+    /* if (parameters_.multilevel && active) { */
+    /*     auto inner_res = vec_type::create(exec->get_master(), dim<2>{1,1});
+     */
+    /*     inner_rhs->compute_norm2(inner_res); */
+    /*     std::cout << "RANK " << comm.rank() << " INNER RHS NORM " <<
+     * inner_res->at(0,0) << std::endl; */
+    /* } */
+    if (parameters_.use_amd && inner_solver->get_size()[0] > 0) {
         inner_rhs->permute(AMD_inner, inner_buf1, matrix::permute_mode::rows);
         inner_solver->apply(inner_buf1, inner_buf2);
         inner_buf2->permute(AMD_inner, inner_intermediate,
@@ -541,16 +557,30 @@ void Bddc<ValueType, IndexType>::pre_solve(const LinOp* b, LinOp* x) const
     } else {
         inner_solver->apply(inner_rhs, inner_intermediate);
     }
+    /* if (parameters_.multilevel && active) { */
+    /*     auto inner_res = vec_type::create(exec->get_master(), dim<2>{1,1});
+     */
+    /*     inner_intermediate->compute_norm2(inner_res); */
+    /*     std::cout << "RANK " << comm.rank() << " INNER SOL NORM " <<
+     * inner_res->at(0,0) << std::endl; */
+    /* } */
     A_gi->apply(inner_intermediate, local_schur_sol);
     comm.synchronize();
     RGT->apply(neg_one_op, schur_solution, one_op, sol);
     comm.synchronize();
+    auto end = std::chrono::high_resolution_clock::now();
+    if (comm.rank() == 0) {
+        /* std::cout << "PRE SOLVE: " <<
+         * std::chrono::duration_cast<std::chrono::microseconds>(end -
+         * start).count() << std::endl; */
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
 void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
 {
+    auto start = std::chrono::high_resolution_clock::now();
     auto exec = this->get_executor();
     auto rhs = as<const global_vec_type>(b);
     auto sol = as<global_vec_type>(x);
@@ -577,14 +607,14 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
         span{inner_idxs_.size(), local_sol->get_size()[0]}, span{0, 1});
     comm.synchronize();
     A_ig->apply(neg_one_op, bound_sol, one_op, inner_rhs);
-    if (inner_solver->apply_uses_initial_guess()) {
-        if (parameters_.use_amd) {
-            inner_buf2->fill(zero<ValueType>());
-        } else {
-            inner_sol->fill(zero<ValueType>());
-        }
-    }
+    /* if (inner_solver->apply_uses_initial_guess()) { */
     if (parameters_.use_amd) {
+        inner_buf2->fill(zero<ValueType>());
+    } else {
+        inner_sol->fill(zero<ValueType>());
+    }
+    /* } */
+    if (parameters_.use_amd && inner_solver->get_size()[0] > 0) {
         inner_rhs->permute(AMD_inner, inner_buf1, matrix::permute_mode::rows);
         inner_solver->apply(inner_buf1, inner_buf2);
         inner_buf2->permute(AMD_inner, inner_sol,
@@ -599,6 +629,12 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
         sol->compute_dot(nullspace, scale_op);
         sol->add_scaled(scale_op, neg_nullspace);
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    if (comm.rank() == 0) {
+        /* std::cout << "POST SOLVE: " <<
+         * std::chrono::duration_cast<std::chrono::microseconds>(end -
+         * start).count() << std::endl; */
+    }
 }
 
 
@@ -612,7 +648,11 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     auto rhs = static_condensate.get();
     auto comm = rhs->get_communicator();
     dense_x->fill(zero<ValueType>());
-    pre_solve(dense_b, rhs);
+    if (!parameters_.skip_static_condensation) {
+        pre_solve(dense_b, rhs);
+    } else {
+        rhs->copy_from(dense_b);
+    }
 
     // Coarse grid correction
     auto coarse_rhs = vec_type::create(
@@ -639,28 +679,48 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
     phi_t->apply(coarse_1, coarse_rhs);
     comm.synchronize();
     RCT->apply(coarse_residual, coarse_b);
-    if (coarse_solver->apply_uses_initial_guess()) {
-        coarse_x->fill(zero<ValueType>());
-    }
+    /* if (coarse_solver->apply_uses_initial_guess()) { */
+    coarse_x->fill(zero<ValueType>());
+    /* } */
+    auto start = std::chrono::high_resolution_clock::now();
     coarse_solver->apply(coarse_b, coarse_x);
+    auto end = std::chrono::high_resolution_clock::now();
+    if (comm.rank() == 0) {
+        /* std::cout << "COARSE SOLVE: " <<
+         * std::chrono::duration_cast<std::chrono::microseconds>(end -
+         * start).count() << ", ITERATIONS: " <<
+         * coarse_logger->get_num_iterations() << std::endl; */
+    }
+    comm.synchronize();
     RC->apply(coarse_x, coarse_solution);
     phi->apply(coarse_sol, coarse_2);
 
+    start = std::chrono::high_resolution_clock::now();
     // Subdomain correction
     if (fallback) {
-        auto ge =
-            coarse_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
-        auto qe =
-            coarse_3->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
-        e_perm->apply(ge, constrained_buf2);
-        constrained_buf2->scale_permute(
-            as<scale_perm>(mc64->get_operators()[0]), constrained_buf1,
-            matrix::permute_mode::rows);
-        constrained_solver->apply(constrained_buf1, constrained_buf2);
-        constrained_buf2->scale_permute(
-            as<scale_perm>(mc64->get_operators()[1]), constrained_buf1,
-            matrix::permute_mode::rows);
-        e_perm_t->apply(constrained_buf1, qe);
+        /* auto local_size = constrained_buf1->get_size()[0] -
+         * inner_idxs_.size(); */
+        /* auto ge = */
+        /*     coarse_1->create_submatrix(span{0, local_size}, span{0, 1}); */
+        /* auto qe = */
+        /*     coarse_3->create_submatrix(span{0, local_size}, span{0, 1}); */
+        e_perm->apply(coarse_1, constrained_buf2);
+        if (active) {
+            constrained_buf2->scale_permute(
+                as<scale_perm>(mc64->get_operators()[0]), constrained_buf1,
+                matrix::permute_mode::rows);
+            constrained_buf1->permute(AMD, constrained_buf2,
+                                      matrix::permute_mode::rows);
+            constrained_solver->apply(constrained_buf2, constrained_buf1);
+            constrained_buf1->permute(AMD, constrained_buf2,
+                                      matrix::permute_mode::inverse_rows);
+            constrained_buf2->scale_permute(
+                as<scale_perm>(mc64->get_operators()[1]), constrained_buf1,
+                matrix::permute_mode::rows);
+        } else {
+            constrained_solver->apply(constrained_buf2, constrained_buf1);
+        }
+        e_perm_t->apply(constrained_buf1, coarse_3);
     } else {
         auto qe =
             coarse_3->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
@@ -672,9 +732,9 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         auto im =
             local_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
         if (c->get_size()[0] > 0) {
-            if (edge_solver->apply_uses_initial_guess()) {
-                edge_buf2->fill(zero<ValueType>());
-            }
+            /* if (edge_solver->apply_uses_initial_guess()) { */
+            edge_buf2->fill(zero<ValueType>());
+            /* } */
             e_perm->apply(ge, edge_buf1);
             edge_solver->apply(edge_buf1, edge_buf2);
             e_perm_t->apply(edge_buf2, im);
@@ -683,18 +743,24 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
             auto mue = local_3->create_submatrix(span{0, c->get_size()[0]},
                                                  span{0, 1});
             c->apply(im, schur_rhs);
-            if (local_schur_solver->apply_uses_initial_guess()) {
-                mue->fill(zero<ValueType>());
-            }
+            /* if (local_schur_solver->apply_uses_initial_guess()) { */
+            mue->fill(zero<ValueType>());
+            /* } */
             local_schur_solver->apply(schur_rhs, mue);
             cT->apply(neg_one_op, mue, one_op, ge);
         }
-        if (edge_solver->apply_uses_initial_guess()) {
-            edge_buf2->fill(zero<ValueType>());
-        }
+        /* if (edge_solver->apply_uses_initial_guess()) { */
+        edge_buf2->fill(zero<ValueType>());
+        /* } */
         e_perm->apply(ge, edge_buf1);
         edge_solver->apply(edge_buf1, edge_buf2);
         e_perm_t->apply(edge_buf2, qe);
+    }
+    end = std::chrono::high_resolution_clock::now();
+    if (comm.rank() == 0) {
+        /* std::cout << "LOCAL SOLVE: " <<
+         * std::chrono::duration_cast<std::chrono::microseconds>(end -
+         * start).count() << std::endl; */
     }
     coarse_2->add_scaled(one_op, coarse_3);
 
@@ -741,16 +807,18 @@ void Bddc<ValueType, IndexType>::generate()
     auto host = exec->get_master();
     auto comm = global_system_matrix_->get_communicator();
     auto rank = comm.rank();
-    for (auto bdry_idx : parameters_.boundary_idxs) {
-        std::cout << "RANK " << rank << ": " << bdry_idx << std::endl;
-    }
+    std::shared_ptr<
+        const gko::experimental::distributed::Partition<IndexType, IndexType>>
+        h_partition = share(
+            clone(host, global_system_matrix_->get_row_partition().get()));
     std::shared_ptr<
         const gko::experimental::distributed::Partition<IndexType, IndexType>>
         partition = share(
-            clone(host, global_system_matrix_->get_row_partition().get()));
+            clone(exec, global_system_matrix_->get_row_partition().get()));
     inner_idxs_ = parameters_.interior_dofs;
     interf_idxs_ = parameters_.interf_dofs;
     auto mat_data = global_system_matrix_->get_matrix_data().copy_to_host();
+    mat_data.remove_zeros();
     mat_data.sort_row_major();
     if (inner_idxs_.size() == 0 || interf_idxs_.size() == 0) {
         std::set<IndexType> local_idxs;
@@ -758,7 +826,7 @@ void Bddc<ValueType, IndexType>::generate()
         std::vector<int> non_local_cnts(comm.size(), 0);
         for (auto entry : mat_data.nonzeros) {
             auto idx = entry.row;
-            auto owner = find_part(partition, idx);
+            auto owner = find_part(h_partition, idx);
             if (owner == rank) {
                 local_idxs.insert(idx);
             } else {
@@ -773,8 +841,9 @@ void Bddc<ValueType, IndexType>::generate()
             non_local_vec.emplace_back(non_local_idx);
         }
         std::sort(non_local_vec.begin(), non_local_vec.end(),
-                  [partition](auto a, auto b) {
-                      return find_part(partition, a) < find_part(partition, b);
+                  [h_partition](auto a, auto b) {
+                      return find_part(h_partition, a) <
+                             find_part(h_partition, b);
                   });
         std::vector<int> non_local_offsets(comm.size() + 1, 0);
         std::partial_sum(non_local_cnts.begin(), non_local_cnts.end(),
@@ -806,7 +875,6 @@ void Bddc<ValueType, IndexType>::generate()
     comm.synchronize();
     auto n_inner = inner_idxs_.size();
 
-
     size_type n_interfaces = interfaces_.size();
     size_type n_edges = edges.size();
     size_type n_corners = corners.size();
@@ -825,8 +893,14 @@ void Bddc<ValueType, IndexType>::generate()
         global_to_local.emplace(corner_idxs[i], n_inner + n_e_idxs + i);
     }
 
-    if (n_corners == 0) {
+    if (n_inner + n_interface_idxs == 0) {
+        std::cout << "RANK " << comm.rank() << " IS INACTIVE." << std::endl;
+        active = false;
+    }
+
+    if (n_corners == 0 && active) {
         std::cout << "No corners found on rank " << rank << std::endl;
+        fallback = true;
     }
 
     // Set up Restriction Operator
@@ -843,14 +917,16 @@ void Bddc<ValueType, IndexType>::generate()
                      schur_range_bounds.begin() + 1);
     auto ranges_array =
         array<IndexType>(host, range_bounds.begin(), range_bounds.end());
+    ranges_array.set_executor(exec);
     auto R_part = gko::share(
         gko::experimental::distributed::Partition<
-            IndexType, IndexType>::build_from_contiguous(host, ranges_array));
+            IndexType, IndexType>::build_from_contiguous(exec, ranges_array));
     auto schur_ranges_array = array<IndexType>(host, schur_range_bounds.begin(),
                                                schur_range_bounds.end());
+    schur_ranges_array.set_executor(exec);
     auto schur_part = gko::share(
         gko::experimental::distributed::Partition<
-            IndexType, IndexType>::build_from_contiguous(host,
+            IndexType, IndexType>::build_from_contiguous(exec,
                                                          schur_ranges_array));
     matrix_data<ValueType, IndexType> R_data(dim<2>{
         range_bounds[comm.size()], global_system_matrix_->get_size()[0]});
@@ -924,19 +1000,6 @@ void Bddc<ValueType, IndexType>::generate()
     IDG = global_matrix_type::create(exec, comm);
     IDG->read_distributed(IDG_data, partition);
 
-    // Set up coarse partition
-    gko::array<gko::experimental::distributed::comm_index_type> mapping{
-        host, n_interfaces};
-    for (size_type i = 0; i < n_interfaces; i++) {
-        auto ranks = interface_dof_ranks_[interfaces_[i]];
-        auto owner = *std::min_element(ranks.begin(), ranks.end());
-        mapping.get_data()[i] = 0;  // owner;
-    }
-    auto part =
-        gko::share(gko::experimental::distributed::Partition<
-                   IndexType, IndexType>::build_from_mapping(host, mapping,
-                                                             comm.size()));
-
     // Generate local matrix data and communication pattern
     matrix_data<ValueType, IndexType> local_data(
         dim<2>(n_inner + n_interface_idxs, n_inner + n_interface_idxs));
@@ -1000,6 +1063,11 @@ void Bddc<ValueType, IndexType>::generate()
 
     auto A_ii =
         share(local->create_submatrix(span{0, n_inner}, span{0, n_inner}));
+    /* if (!parameters_.multilevel && active) { */
+    /*     std::ofstream out_inner{"inner_" + std::to_string(comm.rank()) +
+     * ".mtx"}; */
+    /*     write(out_inner, A_ii); */
+    /* } */
     A_ig = local->create_submatrix(span{0, n_inner},
                                    span{n_inner, n_inner + n_interface_idxs});
     A_gi = local->create_submatrix(span{n_inner, n_inner + n_interface_idxs},
@@ -1020,19 +1088,28 @@ void Bddc<ValueType, IndexType>::generate()
         span{n_inner + n_e_idxs, n_inner + n_interface_idxs}));
 
     // Generate inner solver and define Schur complement action
-    if (parameters_.use_amd) {
-        AMD_inner = share(
-            experimental::reorder::Amd<IndexType>::build().on(exec)->generate(
-                A_ii));
-        auto A_ii_amd = share(A_ii->permute(AMD_inner));
-        std::swap(A_ii, A_ii_amd);
+    if (n_inner > 0) {
+        if (parameters_.use_amd) {
+            AMD_inner = share(experimental::reorder::Amd<IndexType>::build()
+                                  .on(exec)
+                                  ->generate(A_ii));
+            auto A_ii_amd = share(A_ii->permute(AMD_inner));
+            std::swap(A_ii, A_ii_amd);
+        }
+        inner_solver = share(parameters_.inner_solver_factory->generate(A_ii));
+    } else {
+        inner_solver = gko::matrix::Identity<ValueType>::create(exec, 0);
     }
-    inner_solver = share(parameters_.local_solver_factory->generate(A_ii));
     one_op = share(initialize<vec_type>({one<ValueType>()}, exec));
     neg_one_op = share(initialize<vec_type>({-one<ValueType>()}, exec));
     auto zero_op = share(initialize<vec_type>({zero<ValueType>()}, exec));
 
-    if (n_corners > 0) {
+    matrix_data<ValueType, IndexType> coarse_data(
+        dim<2>{n_interfaces, n_interfaces});
+    /* fallback = true; */
+    if (!fallback) {
+        /* std::cout << "RANK " << comm.rank() << " STARTING DEFAULT SETUP" <<
+         * std::endl; */
         // Generate edge constraints
         matrix_data<ValueType, IndexType> C_data(
             dim<2>{n_edges, n_inner + n_e_idxs});
@@ -1058,8 +1135,7 @@ void Bddc<ValueType, IndexType>::generate()
         // Generate edge and local Schur complement solvers
         matrix_data<ValueType, IndexType> e_perm_data(
             dim<2>{n_e_idxs, n_inner + n_e_idxs});
-        std::shared_ptr<perm_type> AMD;
-        if (parameters_.use_amd) {
+        if (parameters_.use_amd && active) {
             AMD = share(experimental::reorder::Amd<IndexType>::build()
                             .on(exec)
                             ->generate(A_ee));
@@ -1077,11 +1153,14 @@ void Bddc<ValueType, IndexType>::generate()
                                                   one<ValueType>());
             }
         }
+        e_perm_data.sort_row_major();
         e_perm_t = share(matrix_type::create(exec));
         e_perm_t->read(e_perm_data);
         e_perm = share(as<matrix_type>(e_perm_t->transpose()));
 
-        edge_solver = share(parameters_.local_solver_factory->generate(A_ee));
+        edge_solver =
+            active ? share(parameters_.local_solver_factory->generate(A_ee))
+                   : share(gko::matrix::Identity<ValueType>::create(exec, 0));
 
         auto interm =
             vec_type::create(exec, dim<2>{n_inner + n_e_idxs, n_edges});
@@ -1094,18 +1173,18 @@ void Bddc<ValueType, IndexType>::generate()
                                                   span{edge, edge + 1});
             auto interm_edge = interm->create_submatrix(
                 span{0, n_inner + n_e_idxs}, span{edge, edge + 1});
-            if (parameters_.use_amd) {
+            if (parameters_.use_amd && active) {
                 CCT_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
-                if (edge_solver->apply_uses_initial_guess()) {
-                    edge_buf2->fill(zero<ValueType>());
-                }
+                /* if (edge_solver->apply_uses_initial_guess()) { */
+                edge_buf2->fill(zero<ValueType>());
+                /* } */
                 edge_solver->apply(edge_buf1, edge_buf2);
                 edge_buf2->permute(AMD, interm_edge,
                                    matrix::permute_mode::inverse_rows);
             } else {
-                if (edge_solver->apply_uses_initial_guess()) {
-                    interm_edge->fill(zero<ValueType>());
-                }
+                /* if (edge_solver->apply_uses_initial_guess()) { */
+                interm_edge->fill(zero<ValueType>());
+                /* } */
                 edge_solver->apply(CCT_edge, interm_edge);
             }
         }
@@ -1159,19 +1238,19 @@ void Bddc<ValueType, IndexType>::generate()
                     span{0, n_inner + n_e_idxs}, span{i, i + 1});
                 auto interm_edge = schur_interm->create_submatrix(
                     span{0, n_inner + n_e_idxs}, span{i, i + 1});
-                if (parameters_.use_amd) {
+                if (parameters_.use_amd && active) {
                     rhs_edge->permute(AMD, edge_buf1,
                                       matrix::permute_mode::rows);
-                    if (edge_solver->apply_uses_initial_guess()) {
-                        edge_buf2->fill(zero<ValueType>());
-                    }
+                    /* if (edge_solver->apply_uses_initial_guess()) { */
+                    edge_buf2->fill(zero<ValueType>());
+                    /* } */
                     edge_solver->apply(edge_buf1, edge_buf2);
                     edge_buf2->permute(AMD, interm_edge,
                                        matrix::permute_mode::inverse_rows);
                 } else {
-                    if (edge_solver->apply_uses_initial_guess()) {
-                        interm_edge->fill(zero<ValueType>());
-                    }
+                    /* if (edge_solver->apply_uses_initial_guess()) { */
+                    interm_edge->fill(zero<ValueType>());
+                    /* } */
                     edge_solver->apply(rhs_edge, interm_edge);
                 }
             }
@@ -1196,18 +1275,18 @@ void Bddc<ValueType, IndexType>::generate()
                                                   span{i, i + 1});
             auto phi_edge = phi_e->create_submatrix(span{0, n_inner + n_e_idxs},
                                                     span{i, i + 1});
-            if (parameters_.use_amd) {
+            if (parameters_.use_amd && active) {
                 rhs_edge->permute(AMD, edge_buf1, matrix::permute_mode::rows);
-                if (edge_solver->apply_uses_initial_guess()) {
-                    edge_buf2->fill(zero<ValueType>());
-                }
+                /* if (edge_solver->apply_uses_initial_guess()) { */
+                edge_buf2->fill(zero<ValueType>());
+                /* } */
                 edge_solver->apply(edge_buf1, edge_buf2);
                 edge_buf2->permute(AMD, phi_edge,
                                    matrix::permute_mode::inverse_rows);
             } else {
-                if (edge_solver->apply_uses_initial_guess()) {
-                    phi_edge->fill(zero<ValueType>());
-                }
+                /* if (edge_solver->apply_uses_initial_guess()) { */
+                phi_edge->fill(zero<ValueType>());
+                /* } */
                 edge_solver->apply(rhs_edge, phi_edge);
             }
         }
@@ -1220,36 +1299,62 @@ void Bddc<ValueType, IndexType>::generate()
             span{0, n_corners + n_edges}));
         phi_t = as<vec_type>(phi->transpose());
         auto h_lambda = clone(host, lambda);
-        matrix_data<ValueType, IndexType> coarse_data(
-            dim<2>{n_interfaces, n_interfaces});
         for (size_type i = 0; i < n_edges; i++) {
-            for (size_type j = 0; j < n_edges; j++) {
+            coarse_data.nonzeros.emplace_back(edges[i], edges[i],
+                                              -h_lambda->at(i, i));
+            for (size_type j = i + 1; j < n_edges; j++) {
                 coarse_data.nonzeros.emplace_back(edges[i], edges[j],
                                                   -h_lambda->at(i, j));
+                coarse_data.nonzeros.emplace_back(edges[j], edges[i],
+                                                  -h_lambda->at(j, i));
             }
+            /* for (size_type j = 0; j < n_edges; j++) { */
+            /*     coarse_data.nonzeros.emplace_back(edges[i], edges[j], */
+            /*                                       -h_lambda->at(i, j)); */
+            /* } */
             for (size_type j = 0; j < n_corners; j++) {
                 coarse_data.nonzeros.emplace_back(
                     edges[i], corners[j], -h_lambda->at(i, n_edges + j));
                 coarse_data.nonzeros.emplace_back(
-                    corners[j], edges[i], -h_lambda->at(i, n_edges + j));
+                    corners[j], edges[i], -h_lambda->at(n_edges + j, i));
             }
         }
         for (size_type i = 0; i < n_corners; i++) {
-            for (size_type j = 0; j < n_corners; j++) {
+            coarse_data.nonzeros.emplace_back(
+                corners[i], corners[i],
+                -h_lambda->at(n_edges + i, n_edges + i));
+            for (size_type j = i + 1; j < n_corners; j++) {
                 coarse_data.nonzeros.emplace_back(
                     corners[i], corners[j],
                     -h_lambda->at(n_edges + i, n_edges + j));
+                coarse_data.nonzeros.emplace_back(
+                    corners[j], corners[i],
+                    -h_lambda->at(n_edges + j, n_edges + i));
             }
+            /* for (size_type j = 0; j < n_corners; j++) { */
+            /*     coarse_data.nonzeros.emplace_back( */
+            /*         corners[i], corners[j], */
+            /*         -h_lambda->at(n_edges + i, n_edges + j)); */
+            /* } */
         }
-        global_coarse_matrix_ = global_matrix_type::create(exec, comm);
-        global_coarse_matrix_->read_distributed(
-            coarse_data, part,
-            gko::experimental::distributed::assembly::communicate);
+        /* if (comm.rank() == 0) { */
+        /*     std::ofstream out_coarse{"coarse.mtx"}; */
+        /*     gko::write(out_coarse,
+         * as<matrix_type>(global_coarse_matrix_->get_local_matrix())); */
+        /*     out_coarse << std::flush; */
+        /* } */
+        /* std::cout << "RANK " << comm.rank() << " DONE WITH DEFAULT SETUP" <<
+         * std::endl; */
     } else {
+        /* std::cout << "RANK " << comm.rank() << " STARTING FALLBACK SETUP" <<
+         * std::endl; */
+        if (!parameters_.use_corners) {
+            n_corners = 0;
+        }
         auto n_rows = local->get_size()[0];
-        local_data.size = dim<2>{n_rows + n_edges, n_rows + n_edges};
+        local_data.size =
+            dim<2>{n_rows + n_edges + n_corners, n_rows + n_edges + n_corners};
         for (size_type i = 0; i < n_edges; i++) {
-            std::cout << n_rows + i << std::endl;
             auto edge = interface_dofs_[interfaces_[edges[i]]];
             ValueType val =
                 one<ValueType>() / static_cast<ValueType>(edge.size());
@@ -1259,6 +1364,15 @@ void Bddc<ValueType, IndexType>::generate()
                 local_data.nonzeros.emplace_back(global_to_local.at(edge[j]),
                                                  n_rows + i, val);
             }
+        }
+        for (size_type i = 0; i < n_corners; i++) {
+            auto corner =
+                global_to_local.at(interface_dofs_[interfaces_[corners[i]]][0]);
+            auto constraint = n_rows + n_edges + i;
+            local_data.nonzeros.emplace_back(constraint, corner,
+                                             one<ValueType>());
+            local_data.nonzeros.emplace_back(corner, constraint,
+                                             one<ValueType>());
         }
         auto constrained_mat = share(matrix_type::create(exec));
         local_data.sort_row_major();
@@ -1271,85 +1385,266 @@ void Bddc<ValueType, IndexType>::generate()
         auto perm_constrained_mat =
             share(constrained_mat->scale_permute(row_op, col_op));
         std::swap(constrained_mat, perm_constrained_mat);
-        auto phi_whole =
-            vec_type::create(exec, dim<2>{n_rows + n_edges, n_edges});
+        if (active) {
+            AMD = share(experimental::reorder::Amd<IndexType>::build()
+                            .on(exec)
+                            ->generate(constrained_mat));
+            auto h_AMD_inv = clone(host, AMD)->compute_inverse();
+            perm_constrained_mat = share(constrained_mat->permute(AMD));
+            std::swap(constrained_mat, perm_constrained_mat);
+            constrained_solver =
+                gko::experimental::solver::Direct<ValueType, IndexType>::build()
+                    .with_factorization(
+                        gko::experimental::factorization::Lu<ValueType,
+                                                             IndexType>::build()
+                            .on(exec))
+                    .on(exec)
+                    ->generate(constrained_mat);
+        } else {
+            constrained_solver =
+                gko::matrix::Identity<ValueType>::create(exec, 0);
+        }
+        auto phi_whole = vec_type::create(
+            exec, dim<2>{n_rows + n_edges + n_corners, n_edges + n_corners});
         phi_whole->fill(zero<ValueType>());
         auto h_constrained_rhs = vec_type::create(
-            exec->get_master(), dim<2>{n_rows + n_edges, n_edges});
+            exec->get_master(),
+            dim<2>{n_rows + n_edges + n_corners, n_edges + n_corners});
         h_constrained_rhs->fill(zero<ValueType>());
-        for (size_type i = 0; i < n_edges; i++) {
+        for (size_type i = 0; i < n_edges + n_corners; i++) {
             h_constrained_rhs->at(n_rows + i, i) = one<ValueType>();
         }
         auto constrained_rhs = clone(exec, h_constrained_rhs);
-        constrained_solver =
-            gko::experimental::solver::Direct<ValueType, IndexType>::build()
-                .with_factorization(
-                    gko::experimental::factorization::Lu<ValueType,
-                                                         IndexType>::build()
-                        .on(exec))
-                .on(exec)
-                ->generate(constrained_mat);
-        constrained_buf1 = vec_type::create(exec, dim<2>{n_rows + n_edges, 1});
-        constrained_buf2 = vec_type::create(exec, dim<2>{n_rows + n_edges, 1});
+        constrained_buf1 =
+            vec_type::create(exec, dim<2>{n_rows + n_edges + n_corners, 1});
+        constrained_buf2 =
+            vec_type::create(exec, dim<2>{n_rows + n_edges + n_corners, 1});
 
-        for (size_type i = 0; i < n_edges; i++) {
+        for (size_type i = 0; i < n_edges + n_corners; i++) {
             auto e_rhs = constrained_rhs->create_submatrix(
-                span{0, n_rows + n_edges}, span{i, i + 1});
-            auto e_sol = phi_whole->create_submatrix(span{0, n_rows + n_edges},
-                                                     span{i, i + 1});
-            /* constrained_solver->apply(e_rhs, e_sol); */
-            e_rhs->scale_permute(row_op, constrained_buf1,
+                span{0, n_rows + n_edges + n_corners}, span{i, i + 1});
+            auto e_sol = phi_whole->create_submatrix(
+                span{0, n_rows + n_edges + n_corners}, span{i, i + 1});
+            e_rhs->scale_permute(row_op, constrained_buf2,
                                  matrix::permute_mode::rows);
+            constrained_buf2->permute(AMD, constrained_buf1,
+                                      matrix::permute_mode::rows);
             constrained_solver->apply(constrained_buf1, constrained_buf2);
-            constrained_buf2->scale_permute(col_op, e_sol,
+            constrained_buf2->permute(AMD, constrained_buf1,
+                                      matrix::permute_mode::inverse_rows);
+            constrained_buf1->scale_permute(col_op, e_sol,
                                             matrix::permute_mode::rows);
         }
         phi = clone(phi_whole->create_submatrix(span{n_inner, n_rows},
-                                                span{0, n_edges}));
+                                                span{0, n_edges + n_corners}));
         phi_t = as<vec_type>(phi->transpose());
         auto lambda =
             clone(host, phi_whole->create_submatrix(
-                            span{n_rows, n_rows + n_edges}, span{0, n_edges}));
-        matrix_data<ValueType, IndexType> coarse_data(
-            dim<2>{n_interfaces, n_interfaces});
+                            span{n_rows, n_rows + n_edges + n_corners},
+                            span{0, n_edges + n_corners}));
         for (size_type i = 0; i < n_edges; i++) {
             for (size_type j = 0; j < n_edges; j++) {
                 coarse_data.nonzeros.emplace_back(edges[i], edges[j],
                                                   -lambda->at(i, j));
             }
+            for (size_type j = 0; j < n_corners; j++) {
+                coarse_data.nonzeros.emplace_back(edges[i], corners[j],
+                                                  -lambda->at(i, n_edges + j));
+                coarse_data.nonzeros.emplace_back(corners[j], edges[i],
+                                                  -lambda->at(n_edges + j, i));
+            }
         }
-        global_coarse_matrix_ = global_matrix_type::create(exec, comm);
-        global_coarse_matrix_->read_distributed(
-            coarse_data, part,
-            gko::experimental::distributed::assembly::communicate);
+        for (size_type i = 0; i < n_corners; i++) {
+            coarse_data.nonzeros.emplace_back(
+                corners[i], corners[i], -lambda->at(n_edges + i, n_edges + i));
+            for (size_type j = i + 1; j < n_corners; j++) {
+                coarse_data.nonzeros.emplace_back(
+                    corners[i], corners[j],
+                    -lambda->at(n_edges + i, n_edges + j));
+                coarse_data.nonzeros.emplace_back(
+                    corners[j], corners[i],
+                    -lambda->at(n_edges + j, n_edges + i));
+            }
+        }
         matrix_data<ValueType, IndexType> e_perm_data(
-            dim<2>{n_rows + n_edges, n_e_idxs});
+            dim<2>{n_rows + n_edges + n_corners, n_e_idxs + n_corners});
         matrix_data<ValueType, IndexType> e_perm_t_data(
-            dim<2>{n_e_idxs, n_rows + n_edges});
+            dim<2>{n_e_idxs + n_corners, n_rows + n_edges + n_corners});
         auto h_mc64 = clone(exec, mc64);
         auto h_row_op = as<scale_perm>(h_mc64->get_operators()[0]);
         auto h_col_op = as<scale_perm>(h_mc64->get_operators()[1]);
         auto h_row_inv = h_row_op->compute_inverse();
         auto h_col_inv = h_col_op->compute_inverse();
-        for (size_type i = 0; i < n_e_idxs; i++) {
+        for (size_type i = 0; i < n_e_idxs + n_corners; i++) {
             e_perm_data.nonzeros.emplace_back(n_inner + i, i, one<ValueType>());
             e_perm_t_data.nonzeros.emplace_back(i, n_inner + i,
                                                 one<ValueType>());
-            /* e_perm_data.nonzeros.emplace_back(h_row_op->get_const_permutation()[n_inner
-             * + i], i, h_row_op->get_const_scaling_factors()[n_inner + i]); */
-            /* e_perm_t_data.nonzeros.emplace_back(i,
-             * h_col_inv->get_const_permutation()[n_inner + i],
-             * h_col_inv->get_const_scaling_factors()[n_inner + i]); */
         }
+        e_perm_data.sort_row_major();
+        e_perm_t_data.sort_row_major();
         e_perm_t = share(matrix_type::create(exec));
         e_perm_t->read(e_perm_t_data);
         e_perm = share(matrix_type::create(exec));
         e_perm->read(e_perm_data);
-        fallback = true;
+        /* std::cout << "RANK " << comm.rank() << " DONE WITH FALLBACK SETUP" <<
+         * std::endl; */
     }
+    coarse_data.remove_zeros();
+    coarse_data.sort_row_major();
+
+    gko::array<gko::experimental::distributed::comm_index_type> mapping{
+        host, n_interfaces};
+    /* std::cout << "RANK " << comm.rank() << " STARTING COARSE SETUP" <<
+     * std::endl; */
+    if (parameters_.multilevel) {
+        // Set up coarse mesh for ParMETIS
+        std::vector<int> elmdist(comm.size() + 1);
+        std::iota(elmdist.begin(), elmdist.end(), 0);
+        std::vector<int> eptr{0, n_edges + n_corners};
+        std::vector<int> eind(n_edges + n_corners);
+        for (size_type i = 0; i < n_edges; i++) {
+            eind[i] = edges[i];
+        }
+        for (size_type i = 0; i < n_corners; i++) {
+            eind[n_edges + i] = corners[i];
+        }
+        int elmwgt = 0;
+        int numflag = 0;
+        int ncon = 1;
+        int ncommonnodes = 2;
+        int nparts = comm.size() / parameters_.coarsening_ratio;
+        std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
+        std::vector<float> ubvec(ncon, 1.05);
+        int options = 0;
+        int edgecut;
+        int new_part = comm.rank();
+        MPI_Comm commptr = comm.get();
+
+        int ret = ParMETIS_V3_PartMeshKway(
+            elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
+            &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
+            &options, &edgecut, &new_part, &commptr);
+
+        /* std::cout << "METIS RETURNED WITH " << ret << " ON RANK " <<
+         * comm.rank() << ", IS GOING TO PART " << new_part << std::endl; */
+
+        std::vector<int> new_parts(comm.size());
+        comm.all_gather(exec, &new_part, 1, new_parts.data(), 1);
+        comm.synchronize();
+
+        int elem_size = coarse_data.nonzeros.size();
+        int elem_cnt = 0;
+        for (auto p : new_parts) {
+            if (p == comm.rank()) {
+                elem_cnt++;
+            }
+        }
+        std::vector<int> elem_sizes(elem_cnt);
+        comm.i_send(exec, &elem_size, 1, new_part, 0);
+        size_type i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, elem_sizes.data() + i, 1, j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+
+        std::vector<int> elem_offsets(elem_cnt + 1, 0);
+        std::partial_sum(elem_sizes.begin(), elem_sizes.end(),
+                         elem_offsets.begin() + 1);
+
+        std::vector<IndexType> send_row_idxs(elem_size);
+        std::vector<IndexType> send_col_idxs(elem_size);
+        std::vector<ValueType> send_values(elem_size);
+        for (size_type i = 0; i < elem_size; i++) {
+            send_row_idxs[i] = coarse_data.nonzeros[i].row;
+            send_col_idxs[i] = coarse_data.nonzeros[i].column;
+            send_values[i] = coarse_data.nonzeros[i].value;
+        }
+        std::vector<IndexType> recv_row_idxs(elem_offsets.back());
+        std::vector<IndexType> recv_col_idxs(elem_offsets.back());
+        std::vector<ValueType> recv_values(elem_offsets.back());
+
+        comm.i_send(exec, send_row_idxs.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_row_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_col_idxs.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_col_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_values.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_values.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+
+        matrix_data<ValueType, IndexType> complete_coarse_data(
+            coarse_data.size);
+        for (size_type i = 0; i < elem_offsets.back(); i++) {
+            complete_coarse_data.nonzeros.emplace_back(
+                recv_row_idxs[i], recv_col_idxs[i], recv_values[i]);
+        }
+        complete_coarse_data.sum_duplicates();
+
+        for (size_type i = 0; i < n_interfaces; i++) {
+            auto ranks = interface_dof_ranks_[interfaces_[i]];
+            auto owner = new_parts[ranks[0]];
+            /* std::cout << owner << std::endl; */
+            mapping.get_data()[i] = owner;
+        }
+        coarse_data = complete_coarse_data;
+    } else {
+        for (size_type i = 0; i < n_interfaces; i++) {
+            auto ranks = interface_dof_ranks_[interfaces_[i]];
+            auto owner = ranks[0];
+            /* std::cout << owner << std::endl; */
+            mapping.get_data()[i] = owner;
+        }
+    }
+    /* std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SETUP" <<
+     * std::endl; */
+    // Set up coarse partition
+    mapping.set_executor(exec);
+    auto part =
+        gko::share(gko::experimental::distributed::Partition<
+                   IndexType, IndexType>::build_from_mapping(exec, mapping,
+                                                             comm.size()));
+
+
+    global_coarse_matrix_ = global_matrix_type::create(exec, comm);
+    global_coarse_matrix_->read_distributed(
+        coarse_data, part,
+        gko::experimental::distributed::assembly::communicate);
     coarse_solver =
         parameters_.coarse_solver_factory->generate(global_coarse_matrix_);
+    coarse_logger = gko::log::Convergence<ValueType>::create();
+    coarse_solver->add_logger(coarse_logger);
 
+    /* std::cout << "RANK " << comm.rank() << " STARTING COARSE RESTRICTION" <<
+     * std::endl; */
     // Set up coarse restriction operator
     IndexType coarse_local_size = n_edges + n_corners;
     std::vector<IndexType> coarse_local_sizes(comm.size());
@@ -1357,11 +1652,13 @@ void Bddc<ValueType, IndexType>::generate()
     std::vector<IndexType> coarse_range_bounds(comm.size() + 1, 0);
     std::partial_sum(coarse_local_sizes.begin(), coarse_local_sizes.end(),
                      coarse_range_bounds.begin() + 1);
-    auto coarse_ranges_array = array<IndexType>(
+    auto h_coarse_ranges_array = array<IndexType>(
         host, coarse_range_bounds.begin(), coarse_range_bounds.end());
+    auto coarse_ranges_array = array<IndexType>(exec);
+    coarse_ranges_array = h_coarse_ranges_array;
     auto RC_part = gko::share(
         gko::experimental::distributed::Partition<
-            IndexType, IndexType>::build_from_contiguous(host,
+            IndexType, IndexType>::build_from_contiguous(exec,
                                                          coarse_ranges_array));
     matrix_data<ValueType, IndexType> RC_data(
         dim<2>{coarse_range_bounds[comm.size()],
@@ -1390,9 +1687,12 @@ void Bddc<ValueType, IndexType>::generate()
     RCT->read_distributed(
         RCT_data, part, RC_part,
         gko::experimental::distributed::assembly::communicate);
+    /* std::cout << "RANK " << comm.rank() << " DONE WITH COARSE RESTRICTION" <<
+     * std::endl; */
 
+    /* std::cout << "RANK " << comm.rank() << " STARTING WEIGHTS" << std::endl;
+     */
     // Generate weights
-    // auto diag = clone(host, global_coarse_matrix_->extract_diagonal());
     auto diag = global_system_matrix_->extract_diagonal();
     auto diag_array = make_const_array_view(exec, diag->get_size()[0],
                                             diag->get_const_values());
@@ -1413,33 +1713,14 @@ void Bddc<ValueType, IndexType>::generate()
     auto local_diag_vec = vec_type::create_const(
         exec, dim<2>{n_interface_idxs, 1}, std::move(local_diag_array), 1);
 
-    /* auto diag_max = std::max_element(local_diag_array.get_const_data(), */
-    /*                                  local_diag_array.get_const_data() +
-     * n_interface_idxs, */
-    /*                                  [](const ValueType& a, const ValueType&
-     * b) { */
-    /*                                      return std::abs(a) < std::abs(b); */
-    /*                                  }); */
-    /* auto local_v = restricted_residual->clone(); */
-    /* auto global_v = global_diag_vec->clone(); */
-    /* local_v->fill(*diag_max); */
-    /* RGT->apply(local_v, global_v); */
-    /* RG->apply(global_v, local_v); */
-    /* auto local_weights = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
-     */
-    /* local_weights->fill(*diag_max); */
-    /* auto gda = make_const_array_view(exec, n_interface_idxs,
-     * local_v->get_const_local_values()); */
-    /* auto gd  = diag_type::create_const(exec, n_interface_idxs,
-     * std::move(gda)); */
-
     auto weights_vec = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
     global_diag->inverse_apply(local_diag_vec, weights_vec);
-    // gd->inverse_apply(local_weights, weights_vec);
     auto weights_array = make_const_array_view(exec, n_interface_idxs,
                                                weights_vec->get_const_values());
     weights = clone(diag_type::create_const(exec, n_interface_idxs,
                                             std::move(weights_array)));
+    /* std::cout << "RANK " << comm.rank() << " DONE WITH WEIGHTS" << std::endl;
+     */
 
 
     comm.synchronize();

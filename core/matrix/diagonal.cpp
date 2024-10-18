@@ -338,6 +338,7 @@ Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Diagonal>(exec, dim<2>(size)),
       values_{exec, std::move(values)}
 {
+    if (size == 0) return;
     GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
 }
 
