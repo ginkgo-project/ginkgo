@@ -152,7 +152,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalDataWithCommunicate)
 
     this->dist_mat->read_distributed(
         this->dist_input[rank], this->row_part,
-        gko::experimental::distributed::assembly::communicate);
+        gko::experimental::distributed::assembly_mode::communicate);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);
@@ -191,7 +191,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartitionAndCommunicate)
 
     this->dist_mat->read_distributed(
         this->dist_input[rank], this->row_part, this->col_part,
-        gko::experimental::distributed::assembly::communicate);
+        gko::experimental::distributed::assembly_mode::communicate);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local[rank], 0);

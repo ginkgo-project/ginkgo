@@ -134,7 +134,7 @@ namespace distributed {
 
 
 /**
- * assembly defines how the read_distributed function of the distributed
+ * assembly_mode defines how the read_distributed function of the distributed
  * matrix treats non-local indices in the (device_)matrix_data:
  * - communicate communicates the overlap between ranks and adds up all local
  *   contributions. Indices smaller than 0 or larger than the global size
@@ -142,7 +142,7 @@ namespace distributed {
  * - local_only does not communicate any overlap but ignores all non-local
  *   indices.
  */
-enum class assembly { communicate, local_only };
+enum class assembly_mode { communicate, local_only };
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -310,7 +310,7 @@ public:
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
-        assembly assembly_type = assembly::local_only);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -325,7 +325,7 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
-        assembly assembly_type = assembly::local_only);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -350,7 +350,7 @@ public:
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
-        assembly assembly_type = assembly::local_only);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -367,7 +367,7 @@ public:
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
-        assembly assembly_type = assembly::local_only);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Get read access to the stored local matrix.
