@@ -25,7 +25,7 @@ namespace kernel {
 template <typename T, typename FuncType>
 __device__ bool test_real_is_finite_function(FuncType isfin)
 {
-    constexpr T inf = gko::device_numeric_limits<T>::inf;
+    constexpr T inf = gko::device_numeric_limits<T>::inf();
     constexpr T quiet_nan = NAN;
     bool test_true{};
     bool test_false{};
@@ -45,7 +45,7 @@ __device__ bool test_complex_is_finite_function(FuncType isfin)
                   "Template type must be a complex type.");
     using T = gko::remove_complex<ComplexType>;
     using c_type = gko::kernels::cuda::cuda_type<ComplexType>;
-    constexpr T inf = gko::device_numeric_limits<T>::inf;
+    constexpr T inf = gko::device_numeric_limits<T>::inf();
     constexpr T quiet_nan = NAN;
     bool test_true{};
     bool test_false{};

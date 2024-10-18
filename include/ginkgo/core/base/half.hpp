@@ -14,25 +14,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 
-#ifdef __CUDA_ARCH__
-
-
-#include <cuda_fp16.h>
-
-
-#elif defined(__HIP_DEVICE_COMPILE__)
-
-
-#include <hip/hip_fp16.h>
-
-
-#else
-
-
 class __half;
-
-
-#endif  // __CUDA_ARCH__
 
 
 namespace gko {
@@ -286,29 +268,6 @@ private:
     }
 };
 
-template <int size>
-constexpr void copy_by_char_impl(char* dst, const char* src)
-{
-    *dst = *src;
-    copy_by_char_impl<size - 1>(dst + 1, src + 1);
-}
-
-template <>
-constexpr void copy_by_char_impl<1>(char* dst, const char* src)
-{
-    *dst = *src;
-}
-
-template <typename DstType, typename SrcType>
-constexpr void copy_by_char(DstType& dst, const SrcType& src)
-{
-    static_assert(sizeof(DstType) == sizeof(SrcType),
-                  "Type size must be the same.");
-    static_assert(sizeof(DstType) % sizeof(char) == 0,
-                  "Type size must be divisible by char");
-    copy_by_char_impl<sizeof(DstType)>((char*)(&dst), (const char*)(&src));
-}
-
 
 }  // namespace detail
 
@@ -320,6 +279,14 @@ constexpr void copy_by_char(DstType& dst, const SrcType& src)
  */
 class half {
 public:
+    // create half value from the bits directly.
+    static constexpr half create_from_bits(uint16 bits) noexcept
+    {
+        half result;
+        result.data_ = bits;
+        return result;
+    }
+
     // TODO: NVHPC (host side) may not use zero initialization for the data
     // member by default constructor in some cases. Not sure whether it is
     // caused by something else in jacobi or isai.
@@ -331,7 +298,7 @@ public:
         this->float2half(static_cast<float>(val));
     }
 
-    half(const half& val) { data_ = val.data_; };
+    constexpr half(const half& val) : data_(0) { data_ = val.data_; };
 
     template <typename V>
     half& operator=(const V val)
@@ -342,14 +309,10 @@ public:
 
     operator float() const noexcept
     {
-        // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        //         return __half2float(reinterpret_cast<const __half&>(data_));
-        // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
         float ans(0);
-        detail::copy_by_char(ans, bits);
+        std::memcpy(&ans, &bits, sizeof(float));
         return ans;
-        // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     // can not use half operator _op(const half) for half + half
@@ -417,20 +380,11 @@ private:
     using f16_traits = detail::float_traits<float16>;
     using f32_traits = detail::float_traits<float32>;
 
-    // TODO: do we really need this one?
-    // Without it, everything can be GKO_INLINE GKO_ATTRIBUTES, which might make
-    // stuff easier.
     void float2half(float val) noexcept
     {
-        // #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        //         const auto tmp = __float2half_rn(val);
-        //         data_ = reinterpret_cast<const uint16&>(tmp);
-        // #else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         uint32 bit_val(0);
-        detail::copy_by_char(bit_val, val);
-        // std::memcpy(&bit_val, &val, sizeof(float));
+        std::memcpy(&bit_val, &val, sizeof(float));
         data_ = float2half(bit_val);
-        // #endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     static constexpr uint16 float2half(uint32 data_) noexcept
@@ -643,42 +597,46 @@ struct numeric_limits<gko::half> {
     // 3/10 is approx. log_10(2)
     static constexpr int digits10{digits * 3 / 10};
 
-    // Note: gko::half can't return gko::half here because it does not have
-    //       a constexpr constructor.
-    static constexpr float epsilon()
+    static constexpr gko::half epsilon()
     {
-        // 0x1400
         // 0b0 00101 0000 000000
-        return gko::detail::float_traits<gko::half>::eps;
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'00101'0000000000u);
+        return gko::half::create_from_bits(bits);
     }
 
-    static constexpr float infinity()
+    static constexpr gko::half infinity()
     {
         // 0b0 11111 0000000000
-        return numeric_limits<float>::infinity();
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'11111'0000000000u);
+        return gko::half::create_from_bits(bits);
     }
 
-    static constexpr float min()
+    static constexpr gko::half min()
     {
-        // 0b0 00001 0000000000
-        return 1.0f / (1ll << 14);
+        // 0b0 00001 0000000000 (normal value)
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'00001'0000000000u);
+        return gko::half::create_from_bits(bits);
     }
 
-    // The maximal exponent is 15, and the maximal significant is
-    // 1 + (2^-10 - 1) / 2^-10
-    static constexpr float max()
+    static constexpr gko::half max()
     {
         // 0b0 11110 1111111111
-        return (1ll << 15) *
-               (1.0f + static_cast<float>((1ll << 10) - 1) / (1ll << 10));
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'11110'1111111111u);
+        return gko::half::create_from_bits(bits);
     }
 
-    static constexpr float lowest() { return -max(); };
-
-    static constexpr float quiet_NaN()
+    static constexpr gko::half lowest()
     {
-        // 0x7FFF
-        return numeric_limits<float>::quiet_NaN();
+        // 0b1 11110 1111111111
+        constexpr auto bits = static_cast<std::uint16_t>(0b1'11110'1111111111u);
+        return gko::half::create_from_bits(bits);
+    };
+
+    static constexpr gko::half quiet_NaN()
+    {
+        // 0b0 11111 1111111111
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'11111'1111111111u);
+        return gko::half::create_from_bits(bits);
     }
 };
 

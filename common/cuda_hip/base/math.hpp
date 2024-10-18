@@ -11,6 +11,21 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+#ifdef GKO_COMPILING_CUDA
+
+
+#include <cuda_fp16.h>
+
+
+#elif defined(GKO_COMPILING_HIP)
+
+
+#include <hip/hip_fp16.h>
+
+
+#endif
+
+
 namespace gko {
 
 
@@ -18,16 +33,35 @@ namespace gko {
 // __device__ function (even though it is constexpr)
 template <typename T>
 struct device_numeric_limits {
-    static constexpr auto inf = std::numeric_limits<T>::infinity();
-    static constexpr auto max = std::numeric_limits<T>::max();
-    static constexpr auto min = std::numeric_limits<T>::min();
+    static constexpr auto inf() { return std::numeric_limits<T>::infinity(); }
+    static constexpr auto max() { return std::numeric_limits<T>::max(); }
+    static constexpr auto min() { return std::numeric_limits<T>::min(); }
 };
 
 template <>
 struct device_numeric_limits<__half> {
-    static constexpr auto inf = std::numeric_limits<gko::half>::infinity();
-    static constexpr auto max = std::numeric_limits<gko::half>::max();
-    static constexpr auto min = std::numeric_limits<gko::half>::min();
+    // from __half documentation, it accepts unsigned short
+    // __half does not have constexpr
+    static GKO_ATTRIBUTES GKO_INLINE auto inf()
+    {
+        __half_raw bits;
+        bits.x = static_cast<unsigned short>(0b0111110000000000u);
+        return __half{bits};
+    }
+
+    static GKO_ATTRIBUTES GKO_INLINE auto max()
+    {
+        __half_raw bits;
+        bits.x = static_cast<unsigned short>(0b0111101111111111u);
+        return __half{bits};
+    }
+
+    static GKO_ATTRIBUTES GKO_INLINE auto min()
+    {
+        __half_raw bits;
+        bits.x = static_cast<unsigned short>(0b0000010000000000u);
+        return __half{bits};
+    }
 };
 
 

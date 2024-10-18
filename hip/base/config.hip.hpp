@@ -6,9 +6,9 @@
 #define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 
 

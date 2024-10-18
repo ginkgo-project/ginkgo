@@ -1193,7 +1193,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
             const auto i = base_i + lane;
             const auto col = i < row_len
                                  ? local_cols[i]
-                                 : device_numeric_limits<IndexType>::max;
+                                 : device_numeric_limits<IndexType>::max();
             const auto rel_col = static_cast<int32>(col - min_col);
             const auto block = rel_col / bitmap_block_size;
             const auto col_in_block = rel_col % bitmap_block_size;
