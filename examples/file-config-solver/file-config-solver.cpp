@@ -78,7 +78,8 @@ int main(int argc, char* argv[])
     // Copy b again
     b->copy_from(host_b);
 
-    // Read the json file into ginkgo structure
+    // Read the json config file to configure the ginkgo solver. The following
+    // files, which are mapped to corresponding examples, are available
     // cg.json: simple-solver
     // blockjacobi-cg.json: preconditioned-solver
     // ir.json: iterative-refinement
@@ -106,8 +107,8 @@ int main(int argc, char* argv[])
     auto solver = solver_gen->generate(A);
     exec->synchronize();
     const auto gen_toc = std::chrono::steady_clock::now();
-    const auto gen_time =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
+    const auto gen_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+        gen_toc - gen_tic);
 
     // Add logger
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
@@ -121,7 +122,7 @@ int main(int argc, char* argv[])
     exec->synchronize();
     const auto toc = std::chrono::steady_clock::now();
     const auto time =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+        std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic);
 
     // Print out the solver config
     std::cout << "Config file: " << configfile << std::endl;
@@ -140,11 +141,11 @@ int main(int argc, char* argv[])
     std::cout << "Solver iteration count:     " << logger->get_num_iterations()
               << std::endl;
     std::cout << "Solver generation time [ms]: "
-              << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
+              << static_cast<double>(gen_time.count()) << std::endl;
     std::cout << "Solver execution time [ms]: "
-              << static_cast<double>(time.count()) / 1000000.0 << std::endl;
+              << static_cast<double>(time.count()) << std::endl;
     std::cout << "Solver execution time per iteration[ms]: "
-              << static_cast<double>(time.count()) / 1000000.0 /
+              << static_cast<double>(time.count()) /
                      logger->get_num_iterations()
               << std::endl;
 }
