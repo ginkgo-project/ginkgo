@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
@@ -134,8 +135,8 @@ protected:
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         for (gko::size_type i = 0; i < a.get_size(); i++) {
-            if (std::isfinite(a.get_const_data()[i]) ||
-                std::isfinite(b.get_const_data()[i])) {
+            if (gko::is_finite(a.get_const_data()[i]) ||
+                gko::is_finite(b.get_const_data()[i])) {
                 ASSERT_NEAR(a.get_const_data()[i], b.get_const_data()[i],
                             r<value_type>::value)
                     << name << '[' << i << ']';

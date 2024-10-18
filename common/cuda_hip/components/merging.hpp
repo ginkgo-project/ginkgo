@@ -131,7 +131,7 @@ __forceinline__ __device__ void group_merge(const ValueType* __restrict__ a,
     IndexType a_begin{};
     IndexType b_begin{};
     auto lane = static_cast<IndexType>(group.thread_rank());
-    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto sentinel = device_numeric_limits<IndexType>::max();
     auto a_cur = checked_load(a, a_begin + lane, a_size, sentinel);
     auto b_cur = checked_load(b, b_begin + lane, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin += group_size) {
@@ -240,7 +240,7 @@ __forceinline__ __device__ void sequential_merge(
     auto c_size = a_size + b_size;
     IndexType a_begin{};
     IndexType b_begin{};
-    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto sentinel = device_numeric_limits<IndexType>::max();
     auto a_cur = checked_load(a, a_begin, a_size, sentinel);
     auto b_cur = checked_load(b, b_begin, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin++) {
