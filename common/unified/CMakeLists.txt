@@ -19,6 +19,7 @@ set(UNIFIED_SOURCES
     matrix/diagonal_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    preconditioner/sor_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp

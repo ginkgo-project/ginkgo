@@ -40,10 +40,13 @@ configuration_map generate_config_map()
             {"factorization::ParIct", parse<LinOpFactoryType::ParIct>},
             {"factorization::ParIlu", parse<LinOpFactoryType::ParIlu>},
             {"factorization::ParIlut", parse<LinOpFactoryType::ParIlut>},
+            {"preconditioner::GaussSeidel",
+             parse<LinOpFactoryType::GaussSeidel>},
             {"preconditioner::Ic", parse<LinOpFactoryType::Ic>},
             {"preconditioner::Ilu", parse<LinOpFactoryType::Ilu>},
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
             {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
+            {"preconditioner::Sor", parse<LinOpFactoryType::Sor>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
             {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
 #if GINKGO_BUILD_MPI
