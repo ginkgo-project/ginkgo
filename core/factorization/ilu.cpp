@@ -10,6 +10,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/base/array_access.hpp"
 #include "core/config/config_helper.hpp"
@@ -24,7 +26,7 @@ namespace ilu_factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::compute_lu);
+GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::sparselib_ilu);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
@@ -52,6 +54,17 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
+    if (auto& obj = config.get("algorithm")) {
+        using gko::factorization::factorize_algorithm;
+        auto str = obj.get_string();
+        if (str == "sparselib") {
+            params.with_algorithm(factorize_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            params.with_algorithm(factorize_algorithm::syncfree);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("algorithm", str);
+        }
+    }
     return params;
 }
 
@@ -66,7 +79,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
-    auto local_system_matrix = matrix_type::create(exec);
+    auto local_system_matrix = share(matrix_type::create(exec));
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
@@ -79,6 +92,27 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         local_system_matrix.get(), false));
 
     // Compute LU factorization
+    if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
+        parameters_.algorithm == factorize_algorithm::syncfree) {
+        auto sparsity =
+            share(gko::matrix::SparsityCsr<ValueType, IndexType>::create_const(
+                exec, local_system_matrix->get_size(),
+                make_const_array_view(
+                    exec, local_system_matrix->get_num_stored_elements(),
+                    local_system_matrix->get_const_col_idxs()),
+                make_const_array_view(
+                    exec, local_system_matrix->get_size()[0] + 1,
+                    local_system_matrix->get_const_row_ptrs())));
+        auto unpack =
+            gko::experimental::factorization::Lu<ValueType, IndexType>::build()
+                .with_has_all_fillin(false)
+                .with_symbolic_factorization(sparsity)
+                .on(exec)
+                ->generate(local_system_matrix)
+                ->unpack(parameters_.l_strategy, parameters_.u_strategy);
+        return Composition<ValueType>::create(unpack->get_lower_factor(),
+                                              unpack->get_upper_factor());
+    }
     exec->run(ilu_factorization::make_compute_ilu(local_system_matrix.get()));
 
     // Separate L and U factors: nnz
