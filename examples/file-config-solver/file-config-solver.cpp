@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -30,6 +31,7 @@ int main(int argc, char* argv[])
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto configfile = argc >= 3 ? argv[2] : "config/cg.json";
+
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -53,8 +55,19 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+// Read data
+// Due to Windows, we execute the example from library path.
+// To adapt the data location, we use filesystem to get correct path to A
+// matrix. MSVC is multi-configuration, so the file is in parent folder.
+#ifdef _MSVC_LANG
+    const std::string relative_path = "../data/A.mtx";
+#else
+    const std::string relative_path = "data/A.mtx";
+#endif
+    const auto file_path =
+        std::filesystem::path(argv[0]).replace_filename(relative_path);
+    std::cout << file_path << std::endl;
+    auto A = share(gko::read<mtx>(std::ifstream(file_path), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
