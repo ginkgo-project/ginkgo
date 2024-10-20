@@ -11,7 +11,7 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 source ${THIS_DIR}/../build-setup.sh
 
 # build
-${CXX} -std=c++14 -o ${THIS_DIR}/heat-equation \
+${CXX} -std=c++17 -o ${THIS_DIR}/heat-equation \
        ${THIS_DIR}/heat-equation.cpp \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
        `pkg-config --cflags opencv4` \
