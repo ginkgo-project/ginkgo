@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 
-#include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
 #include "reference/base/batch_multi_vector_kernels.hpp"
 #include "reference/base/batch_struct.hpp"
 

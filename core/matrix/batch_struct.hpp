@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,9 +8,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/batch_csr.hpp>
-#include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
 
 
 namespace gko {
@@ -183,36 +180,6 @@ to_const(const csr::uniform_batch<ValueType, IndexType>& ub)
 }
 
 
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
-extract_batch_item(const csr::uniform_batch<ValueType, IndexType>& batch,
-                   const size_type batch_idx)
-{
-    return {batch.values + batch_idx * batch.num_nnz_per_item,
-            batch.col_idxs,
-            batch.row_ptrs,
-            batch.num_rows,
-            batch.num_cols,
-            batch.num_nnz_per_item};
-}
-
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
-extract_batch_item(ValueType* const batch_values,
-                   IndexType* const batch_col_idxs,
-                   IndexType* const batch_row_ptrs, const int num_rows,
-                   const int num_cols, int num_nnz_per_item,
-                   const size_type batch_idx)
-{
-    return {batch_values + batch_idx * num_nnz_per_item,
-            batch_col_idxs,
-            batch_row_ptrs,
-            num_rows,
-            num_cols,
-            num_nnz_per_item};
-}
-
-
 template <typename ValueType>
 GKO_ATTRIBUTES GKO_INLINE dense::batch_item<const ValueType> to_const(
     const dense::batch_item<ValueType>& b)
@@ -226,24 +193,6 @@ GKO_ATTRIBUTES GKO_INLINE dense::uniform_batch<const ValueType> to_const(
     const dense::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_cols};
-}
-
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
-    const dense::uniform_batch<ValueType>& batch, const size_type batch_idx)
-{
-    return {batch.values + batch_idx * batch.stride * batch.num_rows,
-            batch.stride, batch.num_rows, batch.num_cols};
-}
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
-    ValueType* const batch_values, const int32 stride, const int32 num_rows,
-    const int32 num_cols, const size_type batch_idx)
-{
-    return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
-            num_cols};
 }
 
 
@@ -265,37 +214,121 @@ to_const(const ell::uniform_batch<ValueType, IndexType>& ub)
 }
 
 
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType, IndexType>
-extract_batch_item(const ell::uniform_batch<ValueType, IndexType>& batch,
-                   const size_type batch_idx)
-{
-    return {batch.values +
-                batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
-            batch.col_idxs,
-            batch.stride,
-            batch.num_rows,
-            batch.num_cols,
-            batch.num_stored_elems_per_row};
-}
-
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType, IndexType>
-extract_batch_item(ValueType* const batch_values,
-                   IndexType* const batch_col_idxs, const int stride,
-                   const int num_rows, const int num_cols,
-                   int num_elems_per_row, const size_type batch_idx)
-{
-    return {batch_values + batch_idx * num_elems_per_row * num_rows,
-            batch_col_idxs,
-            stride,
-            num_rows,
-            num_cols,
-            num_elems_per_row};
-}
-
-
 }  // namespace matrix
+
+
+struct extract_batch_item_fn {
+    template <typename ValueType, typename IndexType>
+    constexpr matrix::csr::batch_item<ValueType, IndexType> operator()(
+        const matrix::csr::uniform_batch<ValueType, IndexType>& batch,
+        const size_type batch_idx) const
+    {
+        return {batch.values + batch_idx * batch.num_nnz_per_item,
+                batch.col_idxs,
+                batch.row_ptrs,
+                batch.num_rows,
+                batch.num_cols,
+                batch.num_nnz_per_item};
+    }
+
+    template <typename ValueType, typename IndexType>
+    constexpr matrix::csr::batch_item<ValueType, IndexType> operator()(
+        ValueType* const batch_values, IndexType* const batch_col_idxs,
+        IndexType* const batch_row_ptrs, const int num_rows, const int num_cols,
+        int num_nnz_per_item, const size_type batch_idx) const
+    {
+        return {batch_values + batch_idx * num_nnz_per_item,
+                batch_col_idxs,
+                batch_row_ptrs,
+                num_rows,
+                num_cols,
+                num_nnz_per_item};
+    }
+
+    template <typename ValueType>
+    constexpr matrix::dense::batch_item<ValueType> operator()(
+        const matrix::dense::uniform_batch<ValueType>& batch,
+        const size_type batch_idx) const
+    {
+        return {batch.values + batch_idx * batch.stride * batch.num_rows,
+                batch.stride, batch.num_rows, batch.num_cols};
+    }
+
+    template <typename ValueType>
+    constexpr matrix::dense::batch_item<ValueType> operator()(
+        ValueType* const batch_values, const int32 stride, const int32 num_rows,
+        const int32 num_cols, const size_type batch_idx) const
+    {
+        return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
+                num_cols};
+    }
+
+
+    template <typename ValueType, typename IndexType>
+    constexpr matrix::ell::batch_item<ValueType, IndexType> operator()(
+        const matrix::ell::uniform_batch<ValueType, IndexType>& batch,
+        const size_type batch_idx) const
+    {
+        return {batch.values +
+                    batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
+                batch.col_idxs,
+                batch.stride,
+                batch.num_rows,
+                batch.num_cols,
+                batch.num_stored_elems_per_row};
+    }
+
+    template <typename ValueType, typename IndexType>
+    constexpr matrix::ell::batch_item<ValueType, IndexType> operator()(
+        ValueType* const batch_values, IndexType* const batch_col_idxs,
+        const int stride, const int num_rows, const int num_cols,
+        int num_elems_per_row, const size_type batch_idx) const
+    {
+        return {batch_values + batch_idx * num_elems_per_row * num_rows,
+                batch_col_idxs,
+                stride,
+                num_rows,
+                num_cols,
+                num_elems_per_row};
+    }
+
+    /**
+     * Extract one object (matrix, vector etc.) from a batch of objects
+     *
+     * This overload is for batch multi-vectors.
+     * These overloads are intended to be called from within a kernel.
+     *
+     * @param batch  The batch of objects to extract from
+     * @param batch_idx  The position of the desired object in the batch
+     */
+    template <typename ValueType>
+    constexpr multi_vector::batch_item<ValueType> operator()(
+        const multi_vector::uniform_batch<ValueType>& batch,
+        const size_type batch_idx) const
+    {
+        return {batch.values + batch_idx * batch.stride * batch.num_rows,
+                batch.stride, batch.num_rows, batch.num_rhs};
+    }
+
+    template <typename ValueType>
+    constexpr multi_vector::batch_item<ValueType> operator()(
+        ValueType* const batch_values, const int32 stride, const int32 num_rows,
+        const int32 num_rhs, const size_type batch_idx) const
+    {
+        return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
+                num_rhs};
+    }
+
+    template <typename T>
+    constexpr auto operator()(const T& batch, const size_type batch_idx) const
+    {
+        return extract_batch_item(batch, batch_idx);
+    }
+};
+
+inline constexpr extract_batch_item_fn extract_batch_item{};
+
+
 }  // namespace batch
 }  // namespace gko
 

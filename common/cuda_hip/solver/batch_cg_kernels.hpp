@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -187,8 +187,7 @@ __global__ void __launch_bounds__(max_cg_threads)
         __shared__ real_type norms_rhs_sh[1];
         __shared__ real_type norms_res_sh[1];
 
-        const auto mat_entry =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto mat_entry = gko::batch::extract_batch_item(mat, batch_id);
         const ValueType* const b_global_entry =
             gko::batch::multi_vector::batch_item_ptr(b, 1, num_rows, batch_id);
         ValueType* const x_global_entry =

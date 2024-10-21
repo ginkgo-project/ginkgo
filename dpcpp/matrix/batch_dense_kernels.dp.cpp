@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,7 +69,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                        batch::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
                     batch_single_kernels::simple_apply(mat_b, b_b.values,
@@ -117,7 +117,7 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                        batch::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
                     const auto alpha_b =
@@ -159,19 +159,16 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    auto group = item_ct1.get_group();
-                    auto group_id = group.get_group_linear_id();
-                    const auto col_scale_b =
-                        col_scale_vals + num_cols * group_id;
-                    const auto row_scale_b =
-                        row_scale_vals + num_rows * group_id;
-                    auto input_mat =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
-                    batch_single_kernels::scale(col_scale_b, row_scale_b,
-                                                input_mat, item_ct1);
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                auto group = item_ct1.get_group();
+                auto group_id = group.get_group_linear_id();
+                const auto col_scale_b = col_scale_vals + num_cols * group_id;
+                const auto row_scale_b = row_scale_vals + num_rows * group_id;
+                auto input_mat = batch::extract_batch_item(mat_ub, group_id);
+                batch_single_kernels::scale(col_scale_b, row_scale_b, input_mat,
+                                            item_ct1);
+            });
     });
 }
 
@@ -206,11 +203,10 @@ void scale_add(std::shared_ptr<const DefaultExecutor> exec,
                     auto group_id = group.get_group_linear_id();
                     const auto alpha_b =
                         gko::batch::extract_batch_item(alpha_ub, group_id);
-                    const auto mat_b = gko::batch::matrix::extract_batch_item(
-                        mat_ub, group_id);
+                    const auto mat_b =
+                        gko::batch::extract_batch_item(mat_ub, group_id);
                     const auto in_out_b =
-                        gko::batch::matrix::extract_batch_item(in_out_ub,
-                                                               group_id);
+                        gko::batch::extract_batch_item(in_out_ub, group_id);
                     batch_single_kernels::scale_add(alpha_b.values[0], mat_b,
                                                     in_out_b, item_ct1);
                 });
@@ -250,8 +246,8 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                         gko::batch::extract_batch_item(alpha_ub, group_id);
                     const auto beta_b =
                         gko::batch::extract_batch_item(beta_ub, group_id);
-                    const auto mat_b = gko::batch::matrix::extract_batch_item(
-                        mat_ub, group_id);
+                    const auto mat_b =
+                        gko::batch::extract_batch_item(mat_ub, group_id);
                     batch_single_kernels::add_scaled_identity(
                         alpha_b.values[0], beta_b.values[0], mat_b, item_ct1);
                 });

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,35 +75,6 @@ GKO_ATTRIBUTES GKO_INLINE multi_vector::uniform_batch<const ValueType> to_const(
     const multi_vector::uniform_batch<ValueType>& ub)
 {
     return {ub.values, ub.num_batch_items, ub.stride, ub.num_rows, ub.num_rhs};
-}
-
-
-/**
- * Extract one object (matrix, vector etc.) from a batch of objects
- *
- * This overload is for batch multi-vectors.
- * These overloads are intended to be called from within a kernel.
- *
- * @param batch  The batch of objects to extract from
- * @param batch_idx  The position of the desired object in the batch
- */
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(const multi_vector::uniform_batch<ValueType>& batch,
-                   const size_type batch_idx)
-{
-    return {batch.values + batch_idx * batch.stride * batch.num_rows,
-            batch.stride, batch.num_rows, batch.num_rhs};
-}
-
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE multi_vector::batch_item<ValueType>
-extract_batch_item(ValueType* const batch_values, const int32 stride,
-                   const int32 num_rows, const int32 num_rhs,
-                   const size_type batch_idx)
-{
-    return {batch_values + batch_idx * stride * num_rows, stride, num_rows,
-            num_rhs};
 }
 
 

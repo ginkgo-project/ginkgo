@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,7 +88,7 @@ void compute_block_jacobi(
     for (size_type batch_idx = 0; batch_idx < nbatch; batch_idx++) {
         for (size_type k = 0; k < num_blocks; k++) {
             const auto A_entry =
-                gko::batch::matrix::extract_batch_item(A_batch, batch_idx);
+                gko::batch::extract_batch_item(A_batch, batch_idx);
             batch_single_kernels::compute_block_jacobi_impl(
                 batch_idx, k, A_entry, num_blocks, cumulative_block_storage,
                 block_pointers, blocks_pattern, blocks);

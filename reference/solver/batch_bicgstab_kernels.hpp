@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -208,7 +208,7 @@ inline void batch_entry_bicgstab_impl(
     real_type norms_rhs[max_num_rhs];
     real_type norms_res[max_num_rhs];
 
-    const auto A_entry = gko::batch::matrix::extract_batch_item(
+    const auto A_entry = gko::batch::extract_batch_item(
         gko::batch::matrix::to_const(a), batch_item_id);
     const gko::batch::multi_vector::batch_item<const ValueType> b_entry =
         gko::batch::extract_batch_item(gko::batch::to_const(b), batch_item_id);

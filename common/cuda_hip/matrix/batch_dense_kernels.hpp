@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,8 +67,7 @@ __global__ __launch_bounds__(default_block_size) void simple_apply_kernel(
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
-        const auto mat_b =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto mat_b = gko::batch::extract_batch_item(mat, batch_id);
         const auto b_b = gko::batch::extract_batch_item(b, batch_id);
         const auto x_b = gko::batch::extract_batch_item(x, batch_id);
         simple_apply(mat_b, b_b.values, x_b.values);
@@ -118,8 +117,7 @@ __global__ __launch_bounds__(default_block_size) void advanced_apply_kernel(
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
-        const auto mat_b =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto mat_b = gko::batch::extract_batch_item(mat, batch_id);
         const auto b_b = gko::batch::extract_batch_item(b, batch_id);
         const auto x_b = gko::batch::extract_batch_item(x, batch_id);
         const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
@@ -159,8 +157,7 @@ __global__ void scale_kernel(
          batch_id += gridDim.x) {
         const auto col_scale_b = col_scale_vals + num_cols * batch_id;
         const auto row_scale_b = row_scale_vals + num_rows * batch_id;
-        const auto mat_b =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto mat_b = gko::batch::extract_batch_item(mat, batch_id);
         scale(num_rows, stride, num_cols, col_scale_b, row_scale_b,
               mat_b.values);
     }
@@ -195,10 +192,8 @@ __global__ void scale_add_kernel(
     for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
          batch_id += gridDim.x) {
         const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
-        const auto in_out_b =
-            gko::batch::matrix::extract_batch_item(in_out, batch_id);
-        const auto mat_b =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto in_out_b = gko::batch::extract_batch_item(in_out, batch_id);
+        const auto mat_b = gko::batch::extract_batch_item(mat, batch_id);
         scale_add(alpha_b.values[0], mat_b, in_out_b);
     }
 }
@@ -233,8 +228,7 @@ __global__ void add_scaled_identity_kernel(
          batch_id += gridDim.x) {
         const auto alpha_b = gko::batch::extract_batch_item(alpha, batch_id);
         const auto beta_b = gko::batch::extract_batch_item(beta, batch_id);
-        const auto mat_b =
-            gko::batch::matrix::extract_batch_item(mat, batch_id);
+        const auto mat_b = gko::batch::extract_batch_item(mat, batch_id);
         add_scaled_identity(alpha_b.values[0], beta_b.values[0], mat_b);
     }
 }

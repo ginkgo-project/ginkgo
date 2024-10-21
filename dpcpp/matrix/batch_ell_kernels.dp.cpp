@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,7 +66,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                        batch::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
                     batch_single_kernels::simple_apply(mat_b, b_b.values,
@@ -115,7 +115,7 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
                     auto group = item_ct1.get_group();
                     auto group_id = group.get_group_linear_id();
                     const auto mat_b =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                        batch::extract_batch_item(mat_ub, group_id);
                     const auto b_b = batch::extract_batch_item(b_ub, group_id);
                     const auto x_b = batch::extract_batch_item(x_ub, group_id);
                     const auto alpha_b =
@@ -164,8 +164,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                         col_scale_vals + num_cols * group_id;
                     const auto row_scale_b =
                         row_scale_vals + num_rows * group_id;
-                    auto mat_item =
-                        batch::matrix::extract_batch_item(mat_ub, group_id);
+                    auto mat_item = batch::extract_batch_item(mat_ub, group_id);
                     batch_single_kernels::scale(col_scale_b, row_scale_b,
                                                 mat_item, item_ct1);
                 });
@@ -206,8 +205,8 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                         gko::batch::extract_batch_item(alpha_ub, group_id);
                     const auto beta_b =
                         gko::batch::extract_batch_item(beta_ub, group_id);
-                    const auto mat_b = gko::batch::matrix::extract_batch_item(
-                        mat_ub, group_id);
+                    const auto mat_b =
+                        gko::batch::extract_batch_item(mat_ub, group_id);
                     batch_single_kernels::add_scaled_identity(
                         alpha_b.values[0], beta_b.values[0], mat_b, item_ct1);
                 });
