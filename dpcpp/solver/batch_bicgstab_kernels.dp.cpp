@@ -86,7 +86,7 @@ public:
                     subgroup_size)]] [[intel::kernel_args_restrict]] {
                     auto batch_id = item_ct1.get_group_linear_id();
                     const auto mat_global_entry =
-                        gko::batch::matrix::extract_batch_item(mat, batch_id);
+                        gko::batch::extract_batch_item(mat, batch_id);
                     const ValueType* const b_global_entry =
                         gko::batch::multi_vector::batch_item_ptr(
                             b_values, 1, num_rows, batch_id);

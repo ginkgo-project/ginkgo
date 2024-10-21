@@ -95,8 +95,7 @@ void compute_block_jacobi(
         size_type block_idx = i % num_blocks;
         size_type batch_idx = i / num_blocks;
 
-        const auto A_entry =
-            gko::batch::matrix::extract_batch_item(A_batch, batch_idx);
+        const auto A_entry = gko::batch::extract_batch_item(A_batch, batch_idx);
         batch_single_kernels::compute_block_jacobi_impl(
             batch_idx, block_idx, A_entry, num_blocks, cumulative_block_storage,
             block_pointers, blocks_pattern, blocks);
