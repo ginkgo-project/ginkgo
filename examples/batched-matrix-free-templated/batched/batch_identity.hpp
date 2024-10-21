@@ -47,8 +47,8 @@ public:
      * Applies the preconditioner to the vector. For the identity
      * preconditioner, this is equivalent to a copy.
      */
-    constexpr void apply(kernels::multi_vector_view_item<const ValueType> r,
-                         kernels::multi_vector_view_item<ValueType> z) const
+    constexpr void apply(batch::multi_vector::batch_item<const ValueType> r,
+                         batch::multi_vector::batch_item<ValueType> z) const
     {
         for (int i = 0; i < r.num_rows; i++) {
             z.values[i * z.stride] = r.values[i * r.stride];

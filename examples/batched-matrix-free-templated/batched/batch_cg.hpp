@@ -124,8 +124,8 @@ public:
 
     static auto build() -> parameters_type { return {}; }
 
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x) const
+    void apply(ptr_param<const batch::MultiVector<value_type>> b,
+               ptr_param<batch::MultiVector<value_type>> x) const
     {
         // this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
@@ -153,17 +153,17 @@ private:
           parameters_{factory->get_parameters()}
     {}
 
-    void solver_apply(const MultiVector<value_type>* b,
-                      MultiVector<value_type>* x,
+    void solver_apply(const batch::MultiVector<value_type>* b,
+                      batch::MultiVector<value_type>* x,
                       batch::log::detail::log_data<real_type>* log_data) const
     {
         const kernels::batch_cg::settings<remove_complex<value_type>> settings{
             this->max_iterations_, static_cast<real_type>(this->residual_tol_),
             parameters_.tolerance_type};
         auto exec = this->get_executor();
-        exec->run(cg::make_apply(settings, this->system_matrix_.get(),
-                                 b->create_view(), x->create_view(),
-                                 *log_data));
+        exec->run(
+            cg::make_apply(settings, this->system_matrix_.get()->create_view(),
+                           b->create_view(), x->create_view(), *log_data));
     }
 
     parameters_type parameters_;
