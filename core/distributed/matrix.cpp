@@ -275,7 +275,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         array<comm_index_type> send_sizes{exec, num_parts};
         array<global_index_type> send_positions{exec, num_entries};
         array<global_index_type> original_positions{exec, num_entries};
-        send_sizes.fill(0);
+        send_sizes.fill(zero<comm_index_type>());
         exec->run(matrix::make_count_non_owning_entries(
             data, tmp_row_partition.get(), local_part, send_sizes,
             send_positions, original_positions));
