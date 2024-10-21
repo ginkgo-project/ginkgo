@@ -20,7 +20,7 @@
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace batch_tempalte {
+namespace batch_template {
 namespace batch_cg {
 
 
@@ -35,9 +35,37 @@ void apply(
 
 
 }  // namespace batch_cg
-}  // namespace batch_tempalte
+}  // namespace batch_template
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
+
+
+#else
+
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+namespace batch_template {
+namespace batch_cg {
+
+
+template <typename ValueType, typename Op>
+void apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const kernels::batch_cg::settings<remove_complex<ValueType>>& options,
+    const Op mat, batch::multi_vector::uniform_batch<const ValueType> b,
+    batch::multi_vector::uniform_batch<ValueType> x,
+    batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
+    GKO_NOT_IMPLEMENTED;
+
+
+}  // namespace batch_cg
+}  // namespace batch_template
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
 
 #endif
