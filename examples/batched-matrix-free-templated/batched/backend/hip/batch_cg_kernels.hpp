@@ -26,7 +26,7 @@
 namespace gko {
 namespace kernels {
 namespace hip {
-namespace batch_tempalte {
+namespace batch_template {
 namespace batch_cg {
 namespace config {
 
@@ -182,13 +182,18 @@ void apply(
                                  x, workspace_data);
 }
 }  // namespace batch_cg
-}  // namespace batch_tempalte
+}  // namespace batch_template
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 #else
 
+namespace gko {
+namespace kernels {
+namespace hip {
+namespace batch_template {
+namespace batch_cg {
 
 namespace gko::kernels::hip::batch_tempalte::batch_cg {
 template <typename ValueType, typename Op>
@@ -199,6 +204,12 @@ void apply(
     multi_vector_view<ValueType> x,
     batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
     GKO_NOT_IMPLEMENTED;
-}  // namespace gko::kernels::hip::batch_tempalte::batch_cg
+
+
+}  // namespace batch_cg
+}  // namespace batch_template
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko
 
 #endif
