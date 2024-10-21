@@ -25,7 +25,7 @@ void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,
     assert(m1->get_size()[1] == m2->get_size()[1]);
     for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
         for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-            assert(std::abs(m1->at(i, j) - m2->at(i, j)) < prec);
+            assert(gko::abs(m1->at(i, j) - m2->at(i, j)) < prec);
         }
     }
 }

@@ -520,7 +520,7 @@ protected:
     using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
     using value_type = typename Mtx::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
@@ -549,10 +549,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {
-            size,
-            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
-            rand_engine};
+        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename VecType = Vec, typename MtxOrSolver>
@@ -573,10 +570,7 @@ protected:
         return {gko::initialize<VecType>(
                     {gko::test::detail::get_rand_value<
                         typename VecType::value_type>(
-                        std::normal_distribution<
-                            gko::remove_complex<typename VecType::value_type>>(
-                            0.0, 1.0),
-                        rand_engine)},
+                        std::normal_distribution<>(0.0, 1.0), rand_engine)},
                     ref),
                 exec};
     }
@@ -961,6 +955,7 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
                 solver.ref->apply(b.ref, x.ref);
                 solver.dev->apply(b.dev, x.dev);
 
+                // TODO: in double with half, 4 iterations leads inf
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
     });
@@ -979,6 +974,7 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
                 solver.ref->apply(alpha.ref, b.ref, beta.ref, x.ref);
                 solver.dev->apply(alpha.dev, b.dev, beta.dev, x.dev);
 
+                // TODO: in double with half, 4 iterations leads inf
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
             });
     });

@@ -22,6 +22,15 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
+// __half != only in __device__
+// Although gko::is_nonzero is constexpr, it still shows calling __device__ in
+// __host__
+template <typename T>
+GKO_INLINE __device__ constexpr bool is_nonzero(T value)
+{
+    return value != zero<T>();
+}
+
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
