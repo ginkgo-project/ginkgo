@@ -5,11 +5,11 @@
 #include "core/distributed/matrix_kernels.hpp"
 
 #include <algorithm>
-#include <numeric>
 
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "reference/distributed/partition_helpers.hpp"
 
 
@@ -63,9 +63,8 @@ void count_non_owning_entries(
             original_positions.get_const_data()[i] == -1 ? 0 : 1;
     }
 
-    std::exclusive_scan(send_positions.get_data(),
-                        send_positions.get_data() + num_input_elements,
-                        send_positions.get_data(), 0);
+    components::prefix_sum_nonnegative(exec, send_positions.get_data(),
+                                       num_input_elements);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
