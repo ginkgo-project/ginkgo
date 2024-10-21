@@ -131,7 +131,7 @@ void batch_entry_cg_impl(
     real_type norms_rhs[max_num_rhs];
     real_type norms_res[max_num_rhs];
 
-    const auto A_entry = batch::matrix::extract_batch_item(a, batch_item_id);
+    const auto A_entry = batch::extract_batch_item(a, batch_item_id);
     const auto b_entry = b;
     const auto x_entry = x;
 
