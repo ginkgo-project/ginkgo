@@ -20,6 +20,8 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/batch_struct.hpp"
+
 
 namespace gko {
 namespace batch {
@@ -68,6 +70,22 @@ public:
     using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
+
+    constexpr multi_vector::uniform_batch<value_type> create_view()
+    {
+        return {this->get_values(), this->get_num_batch_items(),
+                static_cast<index_type>(this->get_common_size()[1]),
+                static_cast<index_type>(this->get_common_size()[0]),
+                static_cast<index_type>(this->get_common_size()[1])};
+    }
+    constexpr multi_vector::uniform_batch<const value_type> create_view() const
+    {
+        return {this->get_const_values(), this->get_num_batch_items(),
+                static_cast<index_type>(this->get_common_size()[1]),
+                static_cast<index_type>(this->get_common_size()[0]),
+                static_cast<index_type>(this->get_common_size()[1])};
+    }
+
 
     /**
      * Creates a MultiVector with the configuration of another
@@ -366,7 +384,6 @@ public:
      * @param exec  the executor to create the vector on
      * @param size  the dimensions of the vector
      * @param values  the value array of the vector
-     * @param stride  the row-stride of the vector
      *
      * @return A smart pointer to the constant multi-vector wrapping the input
      * array (if it resides on the same executor as the vector) or a copy of the

@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/matrix/batch_struct.hpp"
 
 namespace gko {
 namespace batch {
@@ -67,6 +68,29 @@ public:
         Csr<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+
+    constexpr csr::uniform_batch<const ValueType, const IndexType> create_view()
+        const
+    {
+        return {this->get_const_values(),
+                this->get_const_col_idxs(),
+                this->get_const_row_ptrs(),
+                this->get_num_batch_items(),
+                static_cast<IndexType>(this->get_common_size()[0]),
+                static_cast<IndexType>(this->get_common_size()[1]),
+                static_cast<IndexType>(this->get_num_elements_per_item())};
+    }
+
+    constexpr csr::uniform_batch<ValueType, IndexType> create_view()
+    {
+        return {this->get_values(),
+                this->get_col_idxs(),
+                this->get_row_ptrs(),
+                this->get_num_batch_items(),
+                static_cast<IndexType>(this->get_common_size()[0]),
+                static_cast<IndexType>(this->get_common_size()[1]),
+                static_cast<IndexType>(this->get_num_elements_per_item())};
+    }
 
     /**
      * Creates a mutable view (of matrix::Csr type) of one item of the
