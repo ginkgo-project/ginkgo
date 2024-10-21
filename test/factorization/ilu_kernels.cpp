@@ -55,6 +55,26 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 }
 
 
+TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
+{
+    auto fact = gko::factorization::Ilu<>::build()
+                    .with_skip_sorting(true)
+                    .on(ref)
+                    ->generate(mtx);
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(exec)
+            ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
+}
+
+
 TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
 {
     gko::test::unsort_matrix(mtx, rand_engine);
@@ -74,11 +94,19 @@ TEST_F(Ilu, SetsCorrectStrategy)
 {
     auto dfact = gko::factorization::Ilu<>::build()
                      .with_l_strategy(std::make_shared<Csr::merge_path>())
+#ifdef GKO_COMPILING_OMP
+                     .with_u_strategy(std::make_shared<Csr::merge_path>())
+#else
                      .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
+#endif
                      .on(exec)
                      ->generate(dmtx);
 
     ASSERT_EQ(dfact->get_l_factor()->get_strategy()->get_name(), "merge_path");
+#ifdef GKO_COMPILING_OMP
+    ASSERT_EQ(dfact->get_u_factor()->get_strategy()->get_name(), "merge_path");
+#else
     ASSERT_EQ(dfact->get_u_factor()->get_strategy()->get_name(),
               "load_balance");
+#endif
 }
