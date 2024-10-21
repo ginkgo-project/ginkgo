@@ -164,12 +164,16 @@ enum class log_type { simple_convergence_completion };
 }  // namespace log
 
 
-#define GKO_BATCH_INSTANTIATE_STOP(macro, ...)                          \
-    macro(__VA_ARGS__,                                                  \
-          ::gko::batch::solver::device::batch_stop::SimpleAbsResidual); \
-    template macro(                                                     \
-        __VA_ARGS__,                                                    \
-        ::gko::batch::solver::device::batch_stop::SimpleRelResidual)
+#define GKO_INDIRECT(...) __VA_ARGS__
+
+
+#define GKO_BATCH_INSTANTIATE_STOP(macro, ...)                               \
+    GKO_INDIRECT(                                                            \
+        macro(__VA_ARGS__,                                                   \
+              ::gko::batch::solver::device::batch_stop::SimpleAbsResidual)); \
+    template GKO_INDIRECT(                                                   \
+        macro(__VA_ARGS__,                                                   \
+              ::gko::batch::solver::device::batch_stop::SimpleRelResidual))
 
 #define GKO_BATCH_INSTANTIATE_PRECONDITIONER(macro, ...)                   \
     GKO_BATCH_INSTANTIATE_STOP(                                            \
