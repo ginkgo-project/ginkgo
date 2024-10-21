@@ -34,7 +34,7 @@ std::vector<gko::matrix_data<ValueType, IndexType>> read_input(
         }
         ValueType rhs_val = 0.0;
         fstream >> rhs_val;
-        mat_data[1].nonzeros.emplace_back(row, 1, rhs_val);
+        mat_data[1].nonzeros.emplace_back(row, 0, rhs_val);
     }
     return mat_data;
 }
