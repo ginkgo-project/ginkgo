@@ -20,10 +20,10 @@ namespace batch_single_kernels {
 
 
 template <typename ValueType, typename IndexType>
-inline void simple_apply(
-    const gko::batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const gko::batch::multi_vector::batch_item<ValueType>& c)
+inline void simple_apply_impl(
+    const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
+    const batch::multi_vector::batch_item<const ValueType>& b,
+    const batch::multi_vector::batch_item<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < b.num_rhs; ++j) {
@@ -42,12 +42,11 @@ inline void simple_apply(
 
 
 template <typename ValueType, typename IndexType>
-inline void advanced_apply(
+inline void advanced_apply_impl(
     const ValueType alpha,
-    const gko::batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-    const gko::batch::multi_vector::batch_item<const ValueType>& b,
-    const ValueType beta,
-    const gko::batch::multi_vector::batch_item<ValueType>& c)
+    const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
+    const batch::multi_vector::batch_item<const ValueType>& b,
+    const ValueType beta, const batch::multi_vector::batch_item<ValueType>& c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < c.num_rhs; ++j) {
@@ -68,7 +67,7 @@ inline void advanced_apply(
 template <typename ValueType, typename IndexType>
 inline void scale(
     const ValueType* const col_scale, const ValueType* const row_scale,
-    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+    const batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
 {
     for (int row = 0; row < mat.num_rows; row++) {
         const ValueType r_scalar = row_scale[row];
@@ -82,7 +81,7 @@ inline void scale(
 template <typename ValueType, typename IndexType>
 inline void add_scaled_identity(
     const ValueType alpha, const ValueType beta,
-    const gko::batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
+    const batch::matrix::csr::batch_item<ValueType, IndexType>& mat)
 {
     for (int row = 0; row < mat.num_rows; row++) {
         for (int nnz = mat.row_ptrs[row]; nnz < mat.row_ptrs[row + 1]; nnz++) {
@@ -93,6 +92,51 @@ inline void add_scaled_identity(
         }
     }
 }
+
+
+struct simple_apply_fn {
+    template <typename ValueType, typename IndexType>
+    void operator()(
+        const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
+        const batch::multi_vector::batch_item<const ValueType>& b,
+        const batch::multi_vector::batch_item<ValueType>& c) const
+    {
+        simple_apply_impl(a, b, c);
+    }
+
+    template <typename T, typename ValueType>
+    inline void operator()(
+        const T& a, const batch::multi_vector::batch_item<const ValueType>& b,
+        const batch::multi_vector::batch_item<ValueType>& c) const
+    {
+        simple_apply(a, b, c);
+    }
+};
+
+inline constexpr simple_apply_fn simple_apply{};
+
+
+struct advanced_apply_fn {
+    template <typename ValueType, typename IndexType>
+    void operator()(
+        const ValueType alpha,
+        const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
+        const batch::multi_vector::batch_item<const ValueType>& b,
+        const ValueType beta,
+        const batch::multi_vector::batch_item<ValueType>& c) const
+    {
+        advanced_apply_impl(alpha, a, b, beta, c);
+    }
+
+    template <typename T, typename ValueType>
+    void operator()(const ValueType alpha, const T& a,
+                    const batch::multi_vector::batch_item<const ValueType>& b,
+                    const ValueType beta,
+                    const batch::multi_vector::batch_item<ValueType>& c) const
+    {
+        advanced_apply(alpha, a, b, beta, c);
+    }
+};
 
 
 }  // namespace batch_single_kernels
