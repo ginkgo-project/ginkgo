@@ -139,13 +139,8 @@ using uint64 = std::uint64_t;
  */
 using uintptr = std::uintptr_t;
 
-// #if defined(SYCL_LANGUAGE_VERSION) && \
-//     (__LIBSYCL_MAJOR_VERSION > 5 ||   \
-//      (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
-// using half = sycl::half;
-// #else
+
 class half;
-// #endif
 
 
 /**

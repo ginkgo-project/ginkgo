@@ -746,6 +746,13 @@ GKO_INLINE constexpr T one()
     return T(1);
 }
 
+template <>
+GKO_INLINE constexpr half one<half>()
+{
+    constexpr auto bits = static_cast<uint16>(0b0'01111'0000000000u);
+    return half::create_from_bits(bits);
+}
+
 
 /**
  * Returns the multiplicative identity for T.

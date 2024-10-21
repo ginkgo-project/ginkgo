@@ -534,6 +534,7 @@ public:
         imag_ += val.imag();
         return *this;
     }
+
     template <typename T>
     complex& operator-=(const complex<T>& val)
     {
@@ -541,6 +542,7 @@ public:
         imag_ -= val.imag();
         return *this;
     }
+
     template <typename T>
     complex& operator*=(const complex<T>& val)
     {
@@ -551,6 +553,7 @@ public:
         imag_ = result_f.imag();
         return *this;
     }
+
     template <typename T>
     complex& operator/=(const complex<T>& val)
     {

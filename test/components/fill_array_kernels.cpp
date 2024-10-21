@@ -57,9 +57,6 @@ TYPED_TEST(FillArray, FillSeqEqualsReference)
         this->exec, this->dvals.get_data(), this->total_size);
 
     this->dvals.set_executor(this->ref);
-    for (gko::size_type i = 2000; i < this->total_size; i++) {
-        std::cout << i << " " << this->seqs.get_data()[i] << " device "
-                  << this->dvals.get_data()[i] << std::endl;
-    }
+
     GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);
 }

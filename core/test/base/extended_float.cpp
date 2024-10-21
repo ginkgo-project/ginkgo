@@ -112,8 +112,7 @@ TEST_F(FloatToHalf, ConvertsNan)
 {
     half x = create_from_bits("0" "11111111" "00000000000000000000001");
 
-    #if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    #if defined(SYCL_LANGUAGE_VERSION) 
     // Sycl put the 1000000000, but ours put mask
     ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1000000000"));
     #else
@@ -126,8 +125,7 @@ TEST_F(FloatToHalf, ConvertsNegNan)
 {
     half x = create_from_bits("1" "11111111" "00010000000000000000000");
 
-    #if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    #if defined(SYCL_LANGUAGE_VERSION)
     // Sycl put the 1000000000, but ours put mask
     ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1000000000"));
     #else
@@ -254,8 +252,7 @@ TEST_F(HalfToFloat, ConvertsNan)
 {
     float x = create_from_bits("0" "11111" "0001001000");
 
-    #if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    #if defined(SYCL_LANGUAGE_VERSION) 
     // sycl keeps significand
     ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "00010010000000000000000"));
     #else
@@ -268,8 +265,7 @@ TEST_F(HalfToFloat, ConvertsNegNan)
 {
     float x = create_from_bits("1" "11111" "0000000001");
 
-    #if defined(SYCL_LANGUAGE_VERSION) && \
-    (__LIBSYCL_MAJOR_VERSION > 5 || (__LIBSYCL_MAJOR_VERSION == 5 && __LIBSYCL_MINOR_VERSION >= 7))
+    #if defined(SYCL_LANGUAGE_VERSION) 
     // sycl keeps significand
     ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "00000000010000000000000"));
     #else

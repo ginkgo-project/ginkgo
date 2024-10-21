@@ -13,19 +13,21 @@
 
 
 namespace gko {
+
+
 /**
  * The Error class is used to report exceptional behaviour in library
  * functions. Ginkgo uses C++ exception mechanism to this end, and the
- * Error class represents a base class for all types of errors. The exact
- * list of errors which could occur during the execution of a certain
- * library routine is provided in the documentation of that routine, along
- * with a short description of the situation when that error can occur.
- * During runtime, these errors can be detected by using standard C++
- * try-catch blocks, and a human-readable error description can be obtained
- * by calling the Error::what() method.
+ * Error class represents a base class for all types of errors. The exact list
+ * of errors which could occur during the execution of a certain library
+ * routine is provided in the documentation of that routine, along with a short
+ * description of the situation when that error can occur.
+ * During runtime, these errors can be detected by using standard C++ try-catch
+ * blocks, and a human-readable error description can be obtained by calling
+ * the Error::what() method.
  *
- * As an example, trying to compute a matrix-vector product with arguments
- * of incompatible size will result in a DimensionMismatch error, which is
+ * As an example, trying to compute a matrix-vector product with arguments of
+ * incompatible size will result in a DimensionMismatch error, which is
  * demonstrated in the following program.
  *
  * ```cpp
@@ -66,8 +68,8 @@ public:
     {}
 
     /**
-     * Returns a human-readable string with a more detailed description of
-     * the error.
+     * Returns a human-readable string with a more detailed description of the
+     * error.
      */
     virtual const char* what() const noexcept override { return what_.c_str(); }
 
@@ -96,8 +98,8 @@ public:
 
 
 /**
- * NotCompiled is thrown when attempting to call an operation which is a
- * part of a module that was not compiled on the system.
+ * NotCompiled is thrown when attempting to call an operation which is a part of
+ * a module that was not compiled on the system.
  */
 class NotCompiled : public Error {
 public:
@@ -234,8 +236,7 @@ private:
 
 
 /**
- * CusparseError is thrown when a cuSPARSE routine throws a non-zero error
- * code.
+ * CusparseError is thrown when a cuSPARSE routine throws a non-zero error code.
  */
 class CusparseError : public Error {
 public:
@@ -304,8 +305,7 @@ private:
 
 
 /**
- * HipblasError is thrown when a hipBLAS routine throws a non-zero error
- * code.
+ * HipblasError is thrown when a hipBLAS routine throws a non-zero error code.
  */
 class HipblasError : public Error {
 public:
@@ -328,8 +328,7 @@ private:
 
 
 /**
- * HiprandError is thrown when a hipRAND routine throws a non-zero error
- * code.
+ * HiprandError is thrown when a hipRAND routine throws a non-zero error code.
  */
 class HiprandError : public Error {
 public:
@@ -436,8 +435,7 @@ public:
      * @param second_name  The name of the second operator
      * @param second_rows  The output dimension of the second operator
      * @param second_cols  The input dimension of the second operator
-     * @param clarification  An additional message describing the error
-     * further
+     * @param clarification  An additional message describing the error further
      */
     DimensionMismatch(const std::string& file, int line,
                       const std::string& func, const std::string& first_name,
@@ -469,8 +467,7 @@ public:
      * @param op_name  The name of the operator
      * @param op_num_rows  The row dimension of the operator
      * @param op_num_cols  The column dimension of the operator
-     * @param clarification  An additional message further describing the
-     * error
+     * @param clarification  An additional message further describing the error
      */
     BadDimension(const std::string& file, int line, const std::string& func,
                  const std::string& op_name, size_type op_num_rows,
@@ -486,8 +483,8 @@ public:
 /**
  * Error that denotes issues between block sizes and matrix dimensions
  *
- * \tparam IndexType  Type of index used by the linear algebra object that
- * is incompatible with the required block size.
+ * \tparam IndexType  Type of index used by the linear algebra object that is
+ *                    incompatible with the required block size.
  */
 template <typename IndexType>
 class BlockSizeError : public Error {
@@ -520,8 +517,7 @@ public:
      * @param func  The function name where the error occurred
      * @param val1  The first value to be compared.
      * @param val2  The second value to be compared.
-     * @param clarification  An additional message further describing the
-     * error
+     * @param clarification  An additional message further describing the error
      */
     ValueMismatch(const std::string& file, int line, const std::string& func,
                   size_type val1, size_type val2,
@@ -580,9 +576,8 @@ public:
 
 
 /**
- * OverflowError is thrown when an index calculation for storage
- * requirements overflows. This most likely means that the index type is too
- * small.
+ * OverflowError is thrown when an index calculation for storage requirements
+ * overflows. This most likely means that the index type is too small.
  */
 class OverflowError : public Error {
 public:
@@ -619,8 +614,8 @@ public:
 
 
 /**
- * KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies
- * the criteria imposed by the input arguments.
+ * KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the
+ * criteria imposed by the input arguments.
  */
 class KernelNotFound : public Error {
 public:
