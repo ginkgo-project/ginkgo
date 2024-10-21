@@ -100,10 +100,6 @@ __device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
 #endif
 
 
-namespace kernels {
-namespace cuda {
-
-
 #ifdef __CUDACC__
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
 
@@ -138,6 +134,9 @@ __device__ __forceinline__ __half sqrt(const __half& val)
 #endif
 #endif
 
+
+namespace kernels {
+namespace cuda {
 namespace detail {
 
 /**

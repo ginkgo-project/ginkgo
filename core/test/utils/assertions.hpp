@@ -140,7 +140,6 @@ template <typename Ostream, typename MatrixData1, typename MatrixData2>
 void print_componentwise_error(Ostream& os, const MatrixData1& first,
                                const MatrixData2& second)
 {
-    using std::abs;
     using vt = typename detail::biggest_valuetype<
         typename MatrixData1::value_type,
         typename MatrixData2::value_type>::type;

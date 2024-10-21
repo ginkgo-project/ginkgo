@@ -88,35 +88,8 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 
 
 namespace gko {
-#if GINKGO_HIP_PLATFORM_NVCC
-// from the cuda_fp16.hpp
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530
-__device__ __forceinline__ bool is_nan(const __half& val)
-{
-    return __hisnan(val);
-}
 
-#if CUDA_VERSION >= 10020
-__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
-#else
-__device__ __forceinline__ __half abs(const __half& val)
-{
-    return abs(static_cast<float>(val));
-}
-#endif
-#else
-__device__ __forceinline__ bool is_nan(const __half& val)
-{
-    return is_nan(static_cast<float>(val));
-}
 
-__device__ __forceinline__ __half abs(const __half& val)
-{
-    return abs(static_cast<float>(val));
-}
-#endif
-
-#else  // Not nvidia device
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
     return __hisnan(val);
@@ -124,8 +97,6 @@ __device__ __forceinline__ bool is_nan(const __half& val)
 
 // rocm40 __habs is not constexpr
 __device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
-
-#endif
 
 
 namespace kernels {
