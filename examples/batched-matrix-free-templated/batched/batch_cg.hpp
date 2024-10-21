@@ -26,7 +26,7 @@ namespace gko::batch_template::solver {
 namespace cg {
 
 
-GKO_REGISTER_OPERATION(apply, batch_tempalte::batch_cg::apply);
+GKO_REGISTER_OPERATION(apply, batch_template::batch_cg::apply);
 
 
 }
@@ -129,13 +129,15 @@ public:
     {
         // this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
-        array<unsigned char> workspace_{exec};
+        auto view = workspace_.as_view();
         auto log_data_ =
             std::make_unique<batch::log::detail::log_data<real_type>>(
-                exec, b->get_num_batch_items(), workspace_);
+                exec, b->get_num_batch_items(), view);
         this->solver_apply(make_temporary_clone(exec, b).get(),
                            make_temporary_clone(exec, x).get(),
                            log_data_.get());
+        this->template log<log::Logger::batch_solver_completed>(
+            log_data_->iter_counts, log_data_->res_norms);
     }
 
 private:
@@ -144,13 +146,14 @@ private:
     {}
 
     explicit Cg(const Factory* factory, std::shared_ptr<const T> system_matrix)
-        : BatchSolver<T>(std::move(system_matrix),
-                         factory->get_parameters().tolerance,
+        : BatchSolver<T>(system_matrix, factory->get_parameters().tolerance,
                          factory->get_parameters().max_iterations,
                          factory->get_parameters().tolerance_type),
           batch::EnableBatchLinOp<Cg>(factory->get_executor(),
                                       transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          workspace_(factory->get_executor(),
+                     system_matrix->get_num_batch_items() * 32)
     {}
 
     void solver_apply(const batch::MultiVector<value_type>* b,
@@ -167,6 +170,7 @@ private:
     }
 
     parameters_type parameters_;
+    mutable array<unsigned char> workspace_;
 };
 
 
