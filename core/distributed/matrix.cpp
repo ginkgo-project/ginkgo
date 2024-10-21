@@ -4,6 +4,7 @@
 
 #include "ginkgo/core/distributed/matrix.hpp"
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
