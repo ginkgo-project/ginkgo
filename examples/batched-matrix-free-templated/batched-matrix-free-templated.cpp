@@ -18,29 +18,95 @@
 #include "batched/batch_cg.hpp"
 
 
+namespace dummy {
+struct custom_operator_view {
+    gko::size_type num_batch_items;
+    gko::int32 num_rows;
+    gko::int32 num_cols;
+};
+
 class CustomOperator : public gko::EnablePolymorphicObject<CustomOperator> {
 public:
     using value_type = double;
 
     struct const_item {};
 
-    explicit CustomOperator(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject(std::move(exec))
+    explicit CustomOperator(std::shared_ptr<const gko::Executor> exec,
+                            gko::batch_dim<2> size = {})
+        : EnablePolymorphicObject(std::move(exec)), size_(size)
     {}
 
-    constexpr const_item extract_batch_item(gko::size_type id) const
+    [[nodiscard]] constexpr custom_operator_view create_view() const
     {
-        return {};
+        return {this->get_num_batch_items(),
+                static_cast<gko::int32>(this->get_common_size()[0]),
+                static_cast<gko::int32>(this->get_common_size()[1])};
     }
 
-    constexpr gko::batch_dim<2> get_size() const { return {}; }
+    [[nodiscard]] constexpr gko::batch_dim<2> get_size() const { return size_; }
+
+    [[nodiscard]] constexpr gko::dim<2> get_common_size() const
+    {
+        return size_.get_common_size();
+    }
+
+    [[nodiscard]] constexpr gko::size_type get_num_batch_items() const
+    {
+        return size_.get_num_batch_items();
+    }
+
+private:
+    gko::batch_dim<2> size_;
 };
 
+struct custom_operator_item {
+    gko::size_type num_batches;
+    gko::size_type batch_id;
+    gko::int32 num_rows;
+    gko::int32 num_cols;
+};
 
-constexpr void apply(CustomOperator::const_item a,
-                     gko::kernels::multi_vector_view_item<const double> b,
-                     gko::kernels::multi_vector_view_item<double> x)
-{}
+constexpr custom_operator_item extract_batch_item(custom_operator_view op,
+                                                  gko::size_type batch_id)
+{
+    return {op.num_batch_items, batch_id, op.num_rows, op.num_cols};
+}
+
+
+constexpr void advanced_apply(
+    double alpha, custom_operator_item a,
+    gko::batch::multi_vector::batch_item<const double> b, double beta,
+    gko::batch::multi_vector::batch_item<double> x)
+{
+    auto num_batches = a.num_batches;
+    for (gko::size_type row = 0; row < a.num_rows; ++row) {
+        double acc{};
+
+        if (row > 0) {
+            acc += -gko::one<double>() * b.values[row - 1];
+        }
+        acc +=
+            (static_cast<double>(2.0) + static_cast<double>(a.batch_id) /
+                                            static_cast<double>(num_batches)) *
+            b.values[row];
+        if (row < a.num_rows - 1) {
+            acc += -gko::one<double>() * b.values[row + 1];
+        }
+        x.values[row] = alpha * acc + beta * x.values[row];
+    }
+}
+
+
+constexpr void simple_apply(
+    const custom_operator_item& a,
+    const gko::batch::multi_vector::batch_item<const double>& b,
+    const gko::batch::multi_vector::batch_item<double>& x)
+{
+    advanced_apply(1.0, a, b, 0.0, x);
+}
+
+
+}  // namespace dummy
 
 
 // @sect3{Type aliases for convenience}
@@ -52,7 +118,9 @@ using size_type = gko::size_type;
 using vec_type = gko::batch::MultiVector<value_type>;
 using real_vec_type = gko::batch::MultiVector<real_type>;
 using mtx_type = gko::batch::matrix::Csr<value_type, index_type>;
-using cg = gko::batch_template::solver::Cg<CustomOperator>;
+using op_type = dummy::CustomOperator;
+using cg = gko::batch_template::solver::Cg<mtx_type>;
+using cg_op = gko::batch_template::solver::Cg<op_type>;
 
 
 // @sect3{Convenience functions}
@@ -164,6 +232,7 @@ int main(int argc, char* argv[])
 
     auto A_mtx =
         gko::share(mtx_type::create(exec->get_master(), batch_mat_size, nnz));
+    auto A_op = std::make_shared<op_type>(exec, batch_mat_size);
 
     if (args["print-residuals"].as<bool>() || !args["matrix-free"].as<bool>()) {
         gko::matrix_data<value_type, index_type> md(
@@ -204,12 +273,12 @@ int main(int argc, char* argv[])
     const real_type reduction_factor{1e-10};
     // Create a batched solver factory with relevant parameters.
     auto solver =
-        cg::build()
+        cg_op::build()
             .with_max_iterations(500)
             .with_tolerance(reduction_factor)
             .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
             .on(exec)
-            ->generate(std::make_shared<CustomOperator>(exec));
+            ->generate(A_op);
 
     // @sect3{Batch logger}
     // Create a logger to obtain the iteration counts and "implicit" residual
@@ -224,9 +293,7 @@ int main(int argc, char* argv[])
     exec->synchronize();
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    auto bt = gko::batch_template::MultiVector<value_type>::create(exec);
-    auto xt = gko::batch_template::MultiVector<value_type>::create(exec);
-    solver->apply(bt, xt);
+    solver->apply(b, x);
 
     exec->synchronize();
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
