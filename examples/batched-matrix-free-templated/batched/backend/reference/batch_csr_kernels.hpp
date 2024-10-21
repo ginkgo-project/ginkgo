@@ -138,6 +138,8 @@ struct advanced_apply_fn {
     }
 };
 
+inline constexpr advanced_apply_fn advanced_apply{};
+
 
 }  // namespace batch_single_kernels
 }  // namespace batch_template
