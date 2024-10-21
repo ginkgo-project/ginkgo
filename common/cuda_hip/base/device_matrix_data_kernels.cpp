@@ -22,6 +22,15 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
+// __half != only in __device__
+// Although gko::is_nonzero is constexpr, it still shows calling __device__ in
+// __host__
+template <typename T>
+GKO_INLINE __device__ constexpr bool is_nonzero(T value)
+{
+    return value != zero<T>();
+}
+
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
@@ -31,13 +40,9 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     auto value_ptr = as_device_type(values.get_const_data());
     auto size = values.get_size();
     // count nonzeros
-    // __half != is only device, can not call __device__ from a __host__
-    // __device__ (is_nonzero)
-    auto nnz =
-        thrust::count_if(thrust_policy(exec), value_ptr, value_ptr + size,
-                         [] __device__(device_value_type value) {
-                             return value != zero(value);
-                         });
+    auto nnz = thrust::count_if(
+        thrust_policy(exec), value_ptr, value_ptr + size,
+        [] __device__(device_value_type value) { return is_nonzero(value); });
     if (nnz < size) {
         using tuple_type =
             thrust::tuple<IndexType, IndexType, device_value_type>;
@@ -53,8 +58,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                                as_device_type(new_values.get_data())));
         thrust::copy_if(thrust_policy(exec), it, it + size, out_it,
                         [] __device__(tuple_type entry) {
-                            return thrust::get<2>(entry) !=
-                                   zero(thrust::get<2>(entry));
+                            return is_nonzero(thrust::get<2>(entry));
                         });
         // swap out storage
         values = std::move(new_values);
