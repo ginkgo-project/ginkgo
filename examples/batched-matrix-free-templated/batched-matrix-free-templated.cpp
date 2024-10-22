@@ -113,7 +113,26 @@ constexpr void advanced_apply(
     gko::batch::multi_vector::batch_item<const double> b, double beta,
     gko::batch::multi_vector::batch_item<double> x,
     [[maybe_unused]] std::variant<gko::cuda_kernel, gko::hip_kernel>)
-{}
+{
+    auto tidx = threadIdx.x;
+    auto num_batches = a.num_batches;
+    for (gko::size_type row = tidx; row < a.num_rows; row += blockDim.x) {
+        double acc{};
+
+        if (row > 0) {
+            acc += -gko::one<double>() * b.values[row - 1];
+        }
+        acc +=
+            (static_cast<double>(2.0) + static_cast<double>(a.batch_id) /
+                                            static_cast<double>(num_batches)) *
+            b.values[row];
+        if (row < a.num_rows - 1) {
+            acc += -gko::one<double>() * b.values[row + 1];
+        }
+        // auto dummy = alpha * acc + beta * x[row];
+        x.values[row] = alpha * acc + beta * x.values[row];
+    }
+}
 
 constexpr void simple_apply(
     const custom_operator_item& a,
