@@ -82,16 +82,6 @@ struct dim {
     }
 
     /**
-     * @copydoc operator[]() const
-     */
-    GKO_ATTRIBUTES dimension_type& operator[](
-        const size_type& dimension) noexcept
-    {
-        return GKO_ASSERT(dimension < dimensionality),
-               dimension == 0 ? first_ : rest_[dimension - 1];
-    }
-
-    /**
      * Checks if all dimensions evaluate to true.
      *
      * For standard arithmetic types, this is equivalent to all dimensions being
