@@ -21,6 +21,9 @@
 namespace gko {
 
 
+class half;
+
+
 // HIP should not see std::abs or std::sqrt, we want the custom implementation.
 // Hence, provide the using declaration only for some cases
 namespace kernels {
@@ -151,8 +154,12 @@ struct is_complex_impl<std::complex<T>>
 template <typename T>
 struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
+template <>
+struct is_complex_or_scalar_impl<half> : std::true_type {};
+
 template <typename T>
-struct is_complex_or_scalar_impl<std::complex<T>> : std::is_scalar<T> {};
+struct is_complex_or_scalar_impl<std::complex<T>>
+    : is_complex_or_scalar_impl<T> {};
 
 
 /**
