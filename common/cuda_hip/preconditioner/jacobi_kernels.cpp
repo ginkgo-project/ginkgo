@@ -206,11 +206,11 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
     GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
         ValueType, block_precisions[block_id],
         auto local_block =
-            reinterpret_cast<const resolved_precision*>(
+            reinterpret_cast<const device_type<resolved_precision>*>(
                 blocks + storage_scheme.get_group_offset(block_id)) +
             storage_scheme.get_block_offset(block_id);
         auto local_out_block =
-            reinterpret_cast<resolved_precision*>(
+            reinterpret_cast<device_type<resolved_precision>*>(
                 out_blocks + storage_scheme.get_group_offset(block_id)) +
             storage_scheme.get_block_offset(block_id);
         for (int i = rank; i < block_size * block_size; i += subwarp_size) {
