@@ -9,6 +9,7 @@
 #include <map>
 #include <random>
 #include <string>
+#include <variant>
 
 #include <cxxopts.hpp>
 
@@ -76,7 +77,8 @@ constexpr custom_operator_item extract_batch_item(custom_operator_view op,
 constexpr void advanced_apply(
     double alpha, custom_operator_item a,
     gko::batch::multi_vector::batch_item<const double> b, double beta,
-    gko::batch::multi_vector::batch_item<double> x)
+    gko::batch::multi_vector::batch_item<double> x,
+    [[maybe_unused]] std::variant<gko::reference_kernel, gko::omp_kernel>)
 {
     auto num_batches = a.num_batches;
     for (gko::size_type row = 0; row < a.num_rows; ++row) {
@@ -100,9 +102,10 @@ constexpr void advanced_apply(
 constexpr void simple_apply(
     const custom_operator_item& a,
     const gko::batch::multi_vector::batch_item<const double>& b,
-    const gko::batch::multi_vector::batch_item<double>& x)
+    const gko::batch::multi_vector::batch_item<double>& x,
+    [[maybe_unused]] std::variant<gko::reference_kernel, gko::omp_kernel>)
 {
-    advanced_apply(1.0, a, b, 0.0, x);
+    advanced_apply(1.0, a, b, 0.0, x, gko::reference_kernel{});
 }
 
 
@@ -197,17 +200,18 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0,
-                                                  gko::OmpExecutor::create());
+                 return gko::CudaExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create());
+                 return gko::HipExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"dpcpp",
              [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
+                 return gko::DpcppExecutor::create(
+                     0, gko::ReferenceExecutor::create());
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
