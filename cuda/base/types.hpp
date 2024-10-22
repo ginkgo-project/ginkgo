@@ -14,19 +14,16 @@
 #include <cusparse.h>
 #include <thrust/complex.h>
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 
-
 namespace kernels {
 namespace cuda {
-
-
 namespace detail {
-
 
 /**
  * @internal
@@ -124,6 +121,17 @@ struct culibs_type_impl<std::complex<double>> {
     using type = cuDoubleComplex;
 };
 
+
+template <>
+struct culibs_type_impl<half> {
+    using type = __half;
+};
+
+template <>
+struct culibs_type_impl<std::complex<half>> {
+    using type = __half2;
+};
+
 template <typename T>
 struct culibs_type_impl<thrust::complex<T>> {
     using type = typename culibs_type_impl<std::complex<T>>::type;
@@ -154,9 +162,14 @@ struct cuda_type_impl<volatile T> {
     using type = volatile typename cuda_type_impl<T>::type;
 };
 
+template <>
+struct cuda_type_impl<half> {
+    using type = __half;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
-    using type = thrust::complex<T>;
+    using type = thrust::complex<typename cuda_type_impl<T>::type>;
 };
 
 template <>
@@ -169,6 +182,11 @@ struct cuda_type_impl<cuComplex> {
     using type = thrust::complex<float>;
 };
 
+template <>
+struct cuda_type_impl<__half2> {
+    using type = thrust::complex<__half>;
+};
+
 template <typename T>
 struct cuda_struct_member_type_impl {
     using type = T;
@@ -176,7 +194,12 @@ struct cuda_struct_member_type_impl {
 
 template <typename T>
 struct cuda_struct_member_type_impl<std::complex<T>> {
-    using type = fake_complex<T>;
+    using type = fake_complex<typename cuda_struct_member_type_impl<T>::type>;
+};
+
+template <>
+struct cuda_struct_member_type_impl<gko::half> {
+    using type = __half;
 };
 
 template <typename ValueType, typename IndexType>
@@ -200,6 +223,7 @@ GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
+GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 
