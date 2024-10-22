@@ -8,6 +8,7 @@ namespace gko {
 
 struct reference_kernel {};
 struct omp_kernel {};
+struct cuda_hip_kernel {};
 struct cuda_kernel {};
 struct hip_kernel {};
 struct sycl_kernel {};

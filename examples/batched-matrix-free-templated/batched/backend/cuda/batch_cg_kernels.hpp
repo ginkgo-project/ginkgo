@@ -15,7 +15,9 @@
 #include "../../batch_criteria.hpp"
 #include "../../batch_identity.hpp"
 #include "../../batch_logger.hpp"
-#include "../../batch_multi_vector.hpp"
+#include "../cuda_hip/batch_cg_kernels.hpp"
+#include "../cuda_hip/batch_csr_kernels.hpp"
+#include "../cuda_hip/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
@@ -29,77 +31,6 @@ namespace batch_template {
 namespace batch_cg {
 
 
-template <typename StopType, const int n_shared, const bool prec_shared_bool,
-          typename PrecType, typename LogType, typename BatchMatrixType,
-          typename ValueType>
-__global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
-                             const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             LogType logger, PrecType prec_shared,
-                             const BatchMatrixType mat,
-                             multi_vector_view<const ValueType> b,
-                             multi_vector_view<ValueType> x,
-                             ValueType* const __restrict__ workspace = nullptr)
-{
-    using real_type = typename gko::remove_complex<ValueType>;
-    const auto num_batch_items =
-        static_cast<int32>(mat.get_size().get_num_batch_items());
-    const auto num_rows =
-        static_cast<int32>(mat.get_size().get_common_size()[0]);
-    const auto num_rhs = static_cast<int32>(b.num_rhs);
-
-    constexpr auto tile_size = config::warp_size;
-    auto thread_block = group::this_thread_block();
-    auto subgroup = group::tiled_partition<tile_size>(thread_block);
-
-    for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
-         batch_id += gridDim.x) {
-        const int gmem_offset =
-            batch_id * sconf.gmem_stride_bytes / sizeof(ValueType);
-        extern __shared__ char local_mem_sh[];
-
-        const multi_vector_view_item<ValueType> r_sh{
-            workspace + gmem_offset, num_rhs, num_rows, num_rhs};
-        const multi_vector_view_item<ValueType> z_sh{
-            r_sh.values + sconf.padded_vec_len, num_rhs, num_rows, num_rhs};
-        const multi_vector_view_item<ValueType> p_sh{
-            z_sh.values + sconf.padded_vec_len, num_rhs, num_rows, num_rhs};
-        const multi_vector_view_item<ValueType> Ap_sh{
-            p_sh.values + sconf.padded_vec_len, num_rhs, num_rows, num_rhs};
-        const multi_vector_view_item<ValueType> x_sh{
-            Ap_sh.values + sconf.padded_vec_len, num_rhs, num_rows, num_rhs};
-
-        ValueType* prec_work_sh = x_sh.values + sconf.padded_vec_len;
-
-        __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
-        __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
-        __shared__ uninitialized_array<ValueType, 1> alpha_sh;
-        __shared__ real_type norms_rhs_sh[1];
-        __shared__ real_type norms_res_sh[1];
-
-        const auto mat_entry = mat.extract_batch_item(batch_id);
-        const auto b_global_entry = b.extract_batch_item(batch_id);
-        auto x_global_entry = x.extract_batch_item(batch_id);
-
-        // generate preconditioner
-        prec_shared.generate(batch_id, mat_entry, prec_work_sh);
-
-        // stopping criterion object
-        StopType stop(tol, norms_rhs_sh);
-
-        int iter = 0;
-        for (; iter < max_iter; iter++) {
-            // Ap = A * p
-            apply(mat_entry, p_sh, Ap_sh);
-            __syncthreads();
-        }
-
-        logger.log_iteration(batch_id, iter, norms_res_sh[0]);
-        __syncthreads();
-    }
-}
-
-
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
@@ -111,9 +42,10 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     const int device_max_threads =
         (std::max(num_rows, min_block_size) / warp_sz) * warp_sz;
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 5, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::batch_cg::apply_kernel<
+            StopType, 5, true, PrecType, LogType, BatchMatrixType, ValueType>);
     const int num_regs_used = funcattr.numRegs;
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
@@ -135,13 +67,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        apply_kernel<StopType, 5, true, PrecType, LogType, BatchMatrixType,
-                     ValueType>,
+        batch_single_kernels::batch_cg::apply_kernel<
+            StopType, 5, true, PrecType, LogType, BatchMatrixType, ValueType>,
         cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
-    cudaFuncGetAttributes(&funcattr,
-                          apply_kernel<StopType, 5, true, PrecType, LogType,
-                                       BatchMatrixType, ValueType>);
+    cudaFuncGetAttributes(
+        &funcattr,
+        batch_single_kernels::batch_cg::apply_kernel<
+            StopType, 5, true, PrecType, LogType, BatchMatrixType, ValueType>);
     return funcattr.maxDynamicSharedSizeBytes;
 }
 
@@ -150,25 +83,24 @@ template <typename ValueType, typename Op>
 void apply(
     std::shared_ptr<const DefaultExecutor> exec,
     const kernels::batch_cg::settings<remove_complex<ValueType>>& options,
-    const Op* mat, multi_vector_view<const ValueType> b,
-    multi_vector_view<ValueType> x,
+    const Op mat, batch::multi_vector::uniform_batch<const ValueType> b,
+    batch::multi_vector::uniform_batch<ValueType> x,
     batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     using real_type = gko::remove_complex<ValueType>;
     using PrecType = batch_preconditioner::Identity<ValueType>;
     using StopType = batch_stop::SimpleAbsResidual<ValueType>;
     using LogType = batch_log::SimpleFinalLogger<real_type>;
-    const size_type num_batch_items = mat->get_size().get_num_batch_items();
+    const size_type num_batch_items = mat.num_batch_items;
     constexpr int align_multiple = 8;
     const int padded_num_rows =
-        ceildiv(mat->get_size().get_common_size()[0], align_multiple) *
-        align_multiple;
+        ceildiv(mat.num_rows, align_multiple) * align_multiple;
     const int shmem_per_blk =
         get_max_dynamic_shared_memory<StopType, PrecType, LogType, Op,
                                       ValueType>(exec);
     const int block_size =
         get_num_threads_per_block<StopType, PrecType, LogType, Op, ValueType>(
-            exec, mat->get_size().get_common_size()[0]);
+            exec, mat.num_rows);
     GKO_ASSERT(block_size >= 2 * config::warp_size);
 
     const size_t prec_size = PrecType::dynamic_work_size(padded_num_rows, -1);
@@ -187,11 +119,10 @@ void apply(
     auto prec = PrecType();
     auto logger =
         LogType(logdata.res_norms.get_data(), logdata.iter_counts.get_data());
-    apply_kernel<StopType, 0, false>
-        <<<mat->get_size().get_num_batch_items(), block_size, shared_size,
-           exec->get_stream()>>>(sconf, options.max_iterations,
-                                 options.residual_tol, logger, prec, *mat, b, x,
-                                 workspace_data);
+    batch_single_kernels::batch_cg::apply_kernel<StopType, 0, false>
+        <<<mat.num_batch_items, block_size, shared_size, exec->get_stream()>>>(
+            sconf, options.max_iterations, options.residual_tol, logger, prec,
+            mat, b, x, workspace_data);
 }
 
 

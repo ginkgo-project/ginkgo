@@ -22,7 +22,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 namespace batch_template {
 namespace batch_single_kernels {
 
@@ -84,6 +84,6 @@ __device__ __forceinline__ void single_rhs_copy(
 
 }  // namespace batch_single_kernels
 }  // namespace batch_template
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

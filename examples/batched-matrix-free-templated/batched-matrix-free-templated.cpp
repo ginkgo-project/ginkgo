@@ -108,11 +108,11 @@ constexpr void simple_apply(
 }
 
 
-constexpr void advanced_apply(
+__device__ void advanced_apply(
     double alpha, custom_operator_item a,
     gko::batch::multi_vector::batch_item<const double> b, double beta,
     gko::batch::multi_vector::batch_item<double> x,
-    [[maybe_unused]] std::variant<gko::cuda_kernel, gko::hip_kernel>)
+    [[maybe_unused]] gko::cuda_hip_kernel)
 {
     auto tidx = threadIdx.x;
     auto num_batches = a.num_batches;
@@ -134,11 +134,11 @@ constexpr void advanced_apply(
     }
 }
 
-constexpr void simple_apply(
+__device__ void simple_apply(
     const custom_operator_item& a,
     const gko::batch::multi_vector::batch_item<const double>& b,
     const gko::batch::multi_vector::batch_item<double>& x,
-    [[maybe_unused]] std::variant<gko::cuda_kernel, gko::hip_kernel> tag)
+    [[maybe_unused]] gko::cuda_hip_kernel tag)
 {
     advanced_apply(1.0, a, b, 0.0, x, tag);
 }

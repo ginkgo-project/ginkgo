@@ -24,7 +24,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 namespace batch_template {
 namespace batch_single_kernels {
 
@@ -84,11 +84,11 @@ struct simple_apply_fn {
         const T a, const batch::multi_vector::batch_item<const ValueType> b,
         batch::multi_vector::batch_item<ValueType> c) const
     {
-        simple_apply(a, b, c, hip_kernel{});
+        simple_apply(a, b, c, cuda_hip_kernel{});
     }
 };
 
-inline constexpr simple_apply_fn simple_apply{};
+GKO_CPO_STORAGE constexpr simple_apply_fn simple_apply{};
 
 
 struct advanced_apply_fn {
@@ -110,15 +110,15 @@ struct advanced_apply_fn {
         const ValueType beta,
         batch::multi_vector::batch_item<ValueType> c) const
     {
-        advanced_apply(alpha, a, b, beta, c, hip_kernel{});
+        advanced_apply(alpha, a, b, beta, c, cuda_hip_kernel{});
     }
 };
 
-inline constexpr advanced_apply_fn advanced_apply{};
+GKO_CPO_STORAGE constexpr advanced_apply_fn advanced_apply{};
 
 
 }  // namespace batch_single_kernels
 }  // namespace batch_template
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
