@@ -26,79 +26,7 @@
 
 #include "common/cuda_hip/base/runtime.hpp"
 
-
-// thrust calls the c function not the function from std
-// Maybe override the function from thrust directlry
-__device__ __forceinline__ __half hypot(__half a, __half b)
-{
-    return hypot(static_cast<float>(a), static_cast<float>(b));
-}
-
-__device__ __forceinline__ thrust::complex<__half> sqrt(
-    thrust::complex<__half> a)
-{
-    return sqrt(static_cast<thrust::complex<float>>(a));
-}
-
-__device__ __forceinline__ thrust::complex<float> sqrt(
-    thrust::complex<float> val)
-{
-    return thrust::sqrt(val);
-}
-__device__ __forceinline__ thrust::complex<double> sqrt(
-    thrust::complex<double> val)
-{
-    return thrust::sqrt(val);
-}
-
-#if GINKGO_HIP_PLATFORM_NVCC && defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 530
-__device__ __forceinline__ __half sqrt(__half val)
-{
-    return sqrt(static_cast<float>(val));
-}
-#else
-__device__ __forceinline__ __half sqrt(__half val) { return hsqrt(val); }
-#endif
-
-
-namespace thrust {
-
-
-// Dircetly call float versrion from here?
-template <>
-GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
-{
-    return hypot(static_cast<float>(z.real()), static_cast<float>(z.imag()));
-}
-
-
-}  // namespace thrust
-
-#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
-    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
-        const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
-    {                                                                         \
-        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
-    }
-
-THRUST_HALF_FRIEND_OPERATOR(+, +=)
-THRUST_HALF_FRIEND_OPERATOR(-, -=)
-THRUST_HALF_FRIEND_OPERATOR(*, *=)
-THRUST_HALF_FRIEND_OPERATOR(/, /=)
-
-
 namespace gko {
-
-
-__device__ __forceinline__ bool is_nan(const __half& val)
-{
-    return __hisnan(val);
-}
-
-// rocm40 __habs is not constexpr
-__device__ __forceinline__ __half abs(const __half& val) { return __habs(val); }
-
-
 namespace kernels {
 namespace hip {
 namespace detail {

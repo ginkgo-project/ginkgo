@@ -84,4 +84,71 @@ struct truncate_type_impl<thrust::complex<T>> {
 }  // namespace gko
 
 
+namespace thrust {
+
+
+GKO_ATTRIBUTES GKO_INLINE complex<__half> sqrt(const complex<__half>& a)
+{
+    return sqrt(static_cast<complex<float>>(a));
+}
+
+
+// Dircetly call float versrion from here?
+template <>
+GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
+{
+    return abs(static_cast<complex<float>>(z));
+}
+
+
+}  // namespace thrust
+
+
+namespace gko {
+// It is required by NVHPC 23.3, isnan is undefined when NVHPC are only as host
+// compiler.
+#if defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
+
+__device__ __forceinline__ bool is_nan(const __half& val)
+{
+    // from the cuda_fp16.hpp
+#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+    return __hisnan(val);
+#else
+    return isnan(static_cast<float>(val));
+#endif
+}
+
+__device__ __forceinline__ bool is_nan(const thrust::complex<__half>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+
+__device__ __forceinline__ __half abs(const __half& val)
+{
+#if GINKGO_HIP_PLATFORM_HCC || \
+    (CUDA_VERSION >= 10020 && defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+    return __habs(val);
+#else
+    return abs(static_cast<float>(val));
+#endif
+}
+
+__device__ __forceinline__ __half sqrt(const __half& val)
+{
+#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+    return hsqrt(val);
+#else
+    return sqrt(static_cast<float>(val));
+#endif
+}
+
+
+#endif
+
+
+}  // namespace gko
+
+
 #endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_
