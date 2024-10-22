@@ -98,7 +98,6 @@ constexpr void advanced_apply(
     }
 }
 
-
 constexpr void simple_apply(
     const custom_operator_item& a,
     const gko::batch::multi_vector::batch_item<const double>& b,
@@ -106,6 +105,23 @@ constexpr void simple_apply(
     [[maybe_unused]] std::variant<gko::reference_kernel, gko::omp_kernel>)
 {
     advanced_apply(1.0, a, b, 0.0, x, gko::reference_kernel{});
+}
+
+
+constexpr void advanced_apply(
+    double alpha, custom_operator_item a,
+    gko::batch::multi_vector::batch_item<const double> b, double beta,
+    gko::batch::multi_vector::batch_item<double> x,
+    [[maybe_unused]] std::variant<gko::cuda_kernel, gko::hip_kernel>)
+{}
+
+constexpr void simple_apply(
+    const custom_operator_item& a,
+    const gko::batch::multi_vector::batch_item<const double>& b,
+    const gko::batch::multi_vector::batch_item<double>& x,
+    [[maybe_unused]] std::variant<gko::cuda_kernel, gko::hip_kernel> tag)
+{
+    advanced_apply(1.0, a, b, 0.0, x, tag);
 }
 
 
@@ -165,8 +181,7 @@ int main(int argc, char* argv[])
         cxxopts::value<size_type>()->default_value("32"))(
         "print-residuals", "Print the final residuals",
         cxxopts::value<bool>()->default_value("false")->implicit_value("true"))(
-        "matrix-free",
-        "Use external matrix format, incompatible with --matrix-based",
+        "matrix-free", "Use external matrix format",
         cxxopts::value<bool>()->default_value("true")->implicit_value("true"))(
         "h,help", "Show this message");
     options.parse_positional("executor");
@@ -175,11 +190,6 @@ int main(int argc, char* argv[])
 
     if (args.count("help") || !args.unmatched().empty()) {
         std::cout << options.help() << std::endl;
-        std::exit(0);
-    }
-    if (args.count("matrix-free") && args.count("matrix-based")) {
-        std::cout << "Got incompatible options --matrix-free and --matrix-based"
-                  << std::endl;
         std::exit(0);
     }
 
@@ -276,13 +286,24 @@ int main(int argc, char* argv[])
     // @sect3{Create the batch solver factory}
     const real_type reduction_factor{1e-10};
     // Create a batched solver factory with relevant parameters.
-    auto solver =
-        cg_op::build()
-            .with_max_iterations(500)
-            .with_tolerance(reduction_factor)
-            .with_tolerance_type(gko::batch::stop::tolerance_type::relative)
-            .on(exec)
-            ->generate(A_op);
+    using SolverVariant =
+        std::variant<std::shared_ptr<cg>, std::shared_ptr<cg_op>>;
+    auto solver{
+        args["matrix-free"].as<bool>()
+            ? SolverVariant(cg_op::build()
+                                .with_max_iterations(500)
+                                .with_tolerance(reduction_factor)
+                                .with_tolerance_type(
+                                    gko::batch::stop::tolerance_type::relative)
+                                .on(exec)
+                                ->generate(A_op))
+            : SolverVariant(cg::build()
+                                .with_max_iterations(500)
+                                .with_tolerance(reduction_factor)
+                                .with_tolerance_type(
+                                    gko::batch::stop::tolerance_type::relative)
+                                .on(exec)
+                                ->generate(A_mtx))};
 
     // @sect3{Batch logger}
     // Create a logger to obtain the iteration counts and "implicit" residual
@@ -292,12 +313,14 @@ int main(int argc, char* argv[])
 
     // @sect3{Generate and solve}
     // add the logger to the solver
-    solver->add_logger(logger);
+    std::visit([logger](auto& solver_v) { solver_v->add_logger(logger); },
+               solver);
+
 
     exec->synchronize();
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    solver->apply(b, x);
+    std::visit([&b, &x](auto& solver_v) { solver_v->apply(b, x); }, solver);
 
     exec->synchronize();
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
