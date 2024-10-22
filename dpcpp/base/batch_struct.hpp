@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_strucht.hpp"
 #include "dpcpp/base/config.hpp"
 
 
