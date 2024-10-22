@@ -26,10 +26,12 @@ int main(int argc, char* argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
     // Print usage
-    std::cout << argv[0] << " executor configfile" << std::endl;
+    std::cout << argv[0] << " executor configfile matrix" << std::endl;
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto configfile = argc >= 3 ? argv[2] : "config/cg.json";
+    const std::string matrix_path = argc >= 4 ? argv[3] : "data/A.mtx";
+
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -54,7 +56,7 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));

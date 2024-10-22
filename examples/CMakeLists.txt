@@ -111,9 +111,10 @@ if(GINKGO_BUILD_TESTS)
             add_test(NAME example_file-config-solver_${config_name}_${executor} 
                      COMMAND 
                      "$<TARGET_FILE:file-config-solver>"
-                     "${executor}" "config/${config_name}.json"
+                     "${executor}" "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
                      WORKING_DIRECTORY
-                     "${CMAKE_CURRENT_BINARY_DIR}/file-config-solver")
+                     "$<TARGET_FILE_DIR:ginkgo>")
         endforeach()    
     endforeach()
         
