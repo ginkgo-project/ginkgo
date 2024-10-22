@@ -1,0 +1,285 @@
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include <bitset>
+#include <cstring>
+#include <string>
+
+#include <gtest/gtest.h>
+
+#include <ginkgo/core/base/half.hpp>
+
+
+template <std::size_t N>
+struct floating_impl;
+
+template <>
+struct floating_impl<16> {
+    using type = gko::half;
+};
+
+template <>
+struct floating_impl<32> {
+    using type = float;
+};
+
+template <>
+struct floating_impl<64> {
+    using type = double;
+};
+
+template <std::size_t N>
+using floating = typename floating_impl<N>::type;
+
+
+class ExtendedFloatTestBase : public ::testing::Test {
+protected:
+    using half = gko::half;
+
+    static constexpr auto byte_size = gko::byte_size;
+
+    template <std::size_t N>
+    static floating<N - 1> create_from_bits(const char (&s)[N])
+    {
+        auto bits = std::bitset<N - 1>(s).to_ullong();
+        // We cast to the same size of integer type first.
+        // Otherwise, the first memory chunk is different when we use
+        // reinterpret_cast or memcpy to get the smaller type out of unsigned
+        // long long.
+        using bits_type =
+            typename gko::detail::float_traits<floating<N - 1>>::bits_type;
+        auto bits_val = static_cast<bits_type>(bits);
+        floating<N - 1> result;
+        static_assert(sizeof(floating<N - 1>) == sizeof(bits_type),
+                      "the type should have the same size as its bits_type");
+        std::memcpy(&result, &bits_val, sizeof(bits_type));
+        return result;
+    }
+
+    template <typename T>
+    static std::bitset<sizeof(T) * byte_size> get_bits(T val)
+    {
+        using bits_type = typename gko::detail::float_traits<T>::bits_type;
+        bits_type bits;
+        static_assert(sizeof(T) == sizeof(bits_type),
+                      "the type should have the same size as its bits_type");
+        std::memcpy(&bits, &val, sizeof(T));
+        return std::bitset<sizeof(T) * byte_size>(bits);
+    }
+
+    template <std::size_t N>
+    static std::bitset<N - 1> get_bits(const char (&s)[N])
+    {
+        return std::bitset<N - 1>(s);
+    }
+};
+
+
+class FloatToHalf : public ExtendedFloatTestBase {};
+
+
+// clang-format does terrible formatting of string literal concatenation
+// clang-format off
+
+
+TEST_F(FloatToHalf, ConvertsOne)
+{
+    half x = create_from_bits("0" "01111111" "00000000000000000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01111" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, ConvertsZero)
+{
+    half x = create_from_bits("0" "00000000" "00000000000000000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, ConvertsInf)
+{
+    half x = create_from_bits("0" "11111111" "00000000000000000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, ConvertsNegInf)
+{
+    half x = create_from_bits("1" "11111111" "00000000000000000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, ConvertsNan)
+{
+    half x = create_from_bits("0" "11111111" "00000000000000000000001");
+
+    #if defined(SYCL_LANGUAGE_VERSION) 
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1000000000"));
+    #else
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "1111111111"));
+    #endif
+}
+
+
+TEST_F(FloatToHalf, ConvertsNegNan)
+{
+    half x = create_from_bits("1" "11111111" "00010000000000000000000");
+
+    #if defined(SYCL_LANGUAGE_VERSION)
+    // Sycl put the 1000000000, but ours put mask
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1000000000"));
+    #else
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "1111111111"));
+    #endif
+}
+
+
+TEST_F(FloatToHalf, FlushesToZero)
+{
+    half x = create_from_bits("0" "00000111" "00010001000100000001000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, FlushesToNegZero)
+{
+    half x = create_from_bits("1" "00000010" "00010001000100000001000");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "00000" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, FlushesToInf)
+{
+    half x = create_from_bits("0" "10100000" "10010000000000010000100");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, FlushesToNegInf)
+{
+    half x = create_from_bits("1" "11000000" "10010000000000010000100");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111" "0000000000"));
+}
+
+
+TEST_F(FloatToHalf, TruncatesSmallNumber)
+{
+    half x = create_from_bits("0" "01110001" "10010000000000010000100");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00001" "1001000000"));
+}
+
+
+TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
+{
+    half neg_x = create_from_bits("1" "10001110" "10010011111000010000100");
+    half neg_x2 = create_from_bits("1" "10001110" "10010011101000010000100");
+    half x = create_from_bits("0" "10001110" "10010011111000010000100");
+    half x2 = create_from_bits("0" "10001110" "10010011101000010000100");
+    half x3 = create_from_bits("0" "10001110" "10010011101000000000000");
+    half x4 = create_from_bits("0" "10001110" "10010011111000000000000");
+
+    EXPECT_EQ(get_bits(x), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(x2), get_bits("0" "11110" "1001001111"));
+    EXPECT_EQ(get_bits(x3), get_bits("0" "11110" "1001001110"));
+    EXPECT_EQ(get_bits(x4), get_bits("0" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x), get_bits("1" "11110" "1001010000"));
+    EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
+}
+
+
+// clang-format on
+
+
+class HalfToFloat : public ExtendedFloatTestBase {};
+
+
+// clang-format off
+
+
+TEST_F(HalfToFloat, ConvertsOne)
+{
+    float x = create_from_bits("0" "01111" "0000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01111111" "00000000000000000000000"));
+}
+
+
+TEST_F(HalfToFloat, ConvertsZero)
+{
+    float x = create_from_bits("0" "00000" "0000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00000000" "00000000000000000000000"));
+}
+
+
+TEST_F(HalfToFloat, ConvertsInf)
+{
+    float x = create_from_bits("0" "11111" "0000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "00000000000000000000000"));
+}
+
+
+TEST_F(HalfToFloat, ConvertsNegInf)
+{
+    float x = create_from_bits("1" "11111" "0000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "00000000000000000000000"));
+}
+
+
+TEST_F(HalfToFloat, ConvertsNan)
+{
+    float x = create_from_bits("0" "11111" "0001001000");
+
+    #if defined(SYCL_LANGUAGE_VERSION) 
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "00010010000000000000000"));
+    #else
+    ASSERT_EQ(get_bits(x), get_bits("0" "11111111" "11111111111111111111111"));
+    #endif
+}
+
+
+TEST_F(HalfToFloat, ConvertsNegNan)
+{
+    float x = create_from_bits("1" "11111" "0000000001");
+
+    #if defined(SYCL_LANGUAGE_VERSION) 
+    // sycl keeps significand
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "00000000010000000000000"));
+    #else
+    ASSERT_EQ(get_bits(x), get_bits("1" "11111111" "11111111111111111111111"));
+    #endif
+}
+
+
+TEST_F(HalfToFloat, ExtendsSmallNumber)
+{
+    float x = create_from_bits("0" "00001" "1000010001");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01110001" "10000100010000000000000"));
+}
+
+
+TEST_F(HalfToFloat, ExtendsLargeNumber)
+{
+    float x = create_from_bits("1" "11110" "1001001111");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "10001110" "10010011110000000000000"));
+}
+
+
+// clang-format on
