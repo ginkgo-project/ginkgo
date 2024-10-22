@@ -10,6 +10,13 @@
 #include <ginkgo/core/base/types.hpp>
 
 
+#if defined(GKO_COMPILING_CUDA)
+#define GKO_CPO_STORAGE __device__
+#else
+#define GKO_CPO_STORAGE inline
+#endif
+
+
 namespace gko {
 namespace batch {
 namespace matrix {
@@ -326,7 +333,7 @@ struct extract_batch_item_fn {
     }
 };
 
-inline constexpr extract_batch_item_fn extract_batch_item{};
+GKO_CPO_STORAGE constexpr extract_batch_item_fn extract_batch_item{};
 
 
 }  // namespace batch
