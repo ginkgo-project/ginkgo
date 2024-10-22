@@ -24,9 +24,9 @@ struct batch_item {
     using value_type = ValueType;
     using index_type = IndexType;
 
-    ValueType* values;
-    const index_type* col_idxs;
-    const index_type* row_ptrs;
+    ValueType* __restrict__ values;
+    const index_type* __restrict__ col_idxs;
+    const index_type* __restrict__ row_ptrs;
     index_type num_rows;
     index_type num_cols;
     index_type num_nnz_per_item;
@@ -47,9 +47,9 @@ struct uniform_batch {
     using index_type = IndexType;
     using entry_type = batch_item<value_type, index_type>;
 
-    ValueType* values;
-    const index_type* col_idxs;
-    const index_type* row_ptrs;
+    ValueType* __restrict__ values;
+    const index_type* __restrict__ col_idxs;
+    const index_type* __restrict__ row_ptrs;
     size_type num_batch_items;
     index_type num_rows;
     index_type num_cols;

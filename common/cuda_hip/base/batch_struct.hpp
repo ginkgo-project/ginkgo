@@ -13,6 +13,7 @@
 #include "common/cuda_hip/base/types.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/batch_struct.hpp"
+#include "core/matrix/batch_struct.hpp"
 
 
 namespace gko {
