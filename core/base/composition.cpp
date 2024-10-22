@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,7 +74,7 @@ std::unique_ptr<LinOp> apply_inner_operators(
         auto in = std::move(out);
         // build new intermediate vector
         op_size = operators[i]->get_size();
-        out_dim[0] = op_size[0];
+        out_dim = {op_size[0], out_dim[1]};
         out_size = out_dim[0] * num_rhs;
         auto out_data =
             data + (reversed_storage ? storage_size - out_size : size_type{});

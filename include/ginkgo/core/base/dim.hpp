@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -76,16 +76,6 @@ struct dim {
      */
     constexpr GKO_ATTRIBUTES const dimension_type& operator[](
         const size_type& dimension) const noexcept
-    {
-        return GKO_ASSERT(dimension < dimensionality),
-               dimension == 0 ? first_ : rest_[dimension - 1];
-    }
-
-    /**
-     * @copydoc operator[]() const
-     */
-    GKO_ATTRIBUTES dimension_type& operator[](
-        const size_type& dimension) noexcept
     {
         return GKO_ASSERT(dimension < dimensionality),
                dimension == 0 ? first_ : rest_[dimension - 1];
