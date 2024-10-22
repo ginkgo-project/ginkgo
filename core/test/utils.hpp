@@ -344,6 +344,9 @@ using ComplexValueTypesNoHalf =
 
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
 
+using ValueTypesNoHalf =
+    merge_type_list_t<RealValueTypesNoHalf, ComplexValueTypesNoHalf>;
+
 using IndexTypes = ::testing::Types<int32, int64>;
 
 using IntegerTypes = merge_type_list_t<IndexTypes, ::testing::Types<size_type>>;
