@@ -2,12 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_
-#define GKO_REFERENCE_MATRIX_BATCH_CSR_KERNELS_HPP_
+#pragma once
 
-
-#include <algorithm>
-
+#include "../../kernel_tags.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 
@@ -21,9 +18,9 @@ namespace batch_single_kernels {
 
 template <typename ValueType, typename IndexType>
 inline void simple_apply_impl(
-    const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-    const batch::multi_vector::batch_item<const ValueType>& b,
-    const batch::multi_vector::batch_item<ValueType>& c)
+    const batch::matrix::csr::batch_item<const ValueType, IndexType> a,
+    const batch::multi_vector::batch_item<const ValueType> b,
+    batch::multi_vector::batch_item<ValueType> c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < b.num_rhs; ++j) {
@@ -44,9 +41,9 @@ inline void simple_apply_impl(
 template <typename ValueType, typename IndexType>
 inline void advanced_apply_impl(
     const ValueType alpha,
-    const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-    const batch::multi_vector::batch_item<const ValueType>& b,
-    const ValueType beta, const batch::multi_vector::batch_item<ValueType>& c)
+    const batch::matrix::csr::batch_item<const ValueType, IndexType> a,
+    const batch::multi_vector::batch_item<const ValueType> b,
+    const ValueType beta, batch::multi_vector::batch_item<ValueType> c)
 {
     for (int row = 0; row < a.num_rows; ++row) {
         for (int j = 0; j < c.num_rhs; ++j) {
@@ -97,19 +94,19 @@ inline void add_scaled_identity(
 struct simple_apply_fn {
     template <typename ValueType, typename IndexType>
     void operator()(
-        const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-        const batch::multi_vector::batch_item<const ValueType>& b,
-        const batch::multi_vector::batch_item<ValueType>& c) const
+        const batch::matrix::csr::batch_item<const ValueType, IndexType> a,
+        const batch::multi_vector::batch_item<const ValueType> b,
+        batch::multi_vector::batch_item<ValueType> c) const
     {
         simple_apply_impl(a, b, c);
     }
 
     template <typename T, typename ValueType>
-    inline void operator()(
-        const T& a, const batch::multi_vector::batch_item<const ValueType>& b,
-        const batch::multi_vector::batch_item<ValueType>& c) const
+    void operator()(const T a,
+                    const batch::multi_vector::batch_item<const ValueType> b,
+                    batch::multi_vector::batch_item<ValueType> c) const
     {
-        simple_apply(a, b, c);
+        simple_apply(a, b, c, reference_kernel{});
     }
 };
 
@@ -120,21 +117,21 @@ struct advanced_apply_fn {
     template <typename ValueType, typename IndexType>
     void operator()(
         const ValueType alpha,
-        const batch::matrix::csr::batch_item<const ValueType, IndexType>& a,
-        const batch::multi_vector::batch_item<const ValueType>& b,
+        const batch::matrix::csr::batch_item<const ValueType, IndexType> a,
+        const batch::multi_vector::batch_item<const ValueType> b,
         const ValueType beta,
-        const batch::multi_vector::batch_item<ValueType>& c) const
+        batch::multi_vector::batch_item<ValueType> c) const
     {
         advanced_apply_impl(alpha, a, b, beta, c);
     }
 
     template <typename T, typename ValueType>
     void operator()(const ValueType alpha, const T& a,
-                    const batch::multi_vector::batch_item<const ValueType>& b,
+                    const batch::multi_vector::batch_item<const ValueType> b,
                     const ValueType beta,
-                    const batch::multi_vector::batch_item<ValueType>& c) const
+                    batch::multi_vector::batch_item<ValueType> c) const
     {
-        advanced_apply(alpha, a, b, beta, c);
+        advanced_apply(alpha, a, b, beta, c, reference_kernel{});
     }
 };
 
@@ -146,6 +143,3 @@ inline constexpr advanced_apply_fn advanced_apply{};
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif
