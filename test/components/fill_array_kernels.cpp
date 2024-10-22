@@ -36,7 +36,7 @@ protected:
     gko::array<value_type> seqs;
 };
 
-TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes,
+TYPED_TEST_SUITE(FillArray, gko::test::ComplexAndPODTypes,
                  TypenameNameGenerator);
 
 
