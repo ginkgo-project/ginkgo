@@ -85,9 +85,10 @@ TYPED_TEST(Coo, ConvertsToPrecision)
     auto tmp = OtherCoo::create(this->exec);
     auto res = Coo::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     this->mtx->convert_to(tmp);
     tmp->convert_to(res);
@@ -106,9 +107,10 @@ TYPED_TEST(Coo, MovesToPrecision)
     auto tmp = OtherCoo::create(this->exec);
     auto res = Coo::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     this->mtx->move_to(tmp);
     tmp->move_to(res);
