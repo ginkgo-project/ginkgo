@@ -176,7 +176,7 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
-    Sellp<next_precision<ValueType>, IndexType>* result) const
+    Sellp<next_precision_with_half<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -190,10 +190,36 @@ void Sellp<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(
-    Sellp<next_precision<ValueType>, IndexType>* result)
+    Sellp<next_precision_with_half<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::convert_to(
+    Sellp<next_precision_with_half<next_precision_with_half<ValueType>>,
+          IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->slice_lengths_ = this->slice_lengths_;
+    result->slice_sets_ = this->slice_sets_;
+    result->slice_size_ = this->slice_size_;
+    result->stride_factor_ = this->stride_factor_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::move_to(
+    Sellp<next_precision_with_half<next_precision_with_half<ValueType>>,
+          IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType, typename IndexType>
@@ -363,7 +389,8 @@ Sellp<ValueType, IndexType>::compute_absolute() const
 
 #define GKO_DECLARE_SELLP_MATRIX(ValueType, IndexType) \
     class Sellp<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_SELLP_MATRIX);
 
 
 }  // namespace matrix

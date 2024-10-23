@@ -185,7 +185,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     spmv_blocked<4>(exec, a, b, c, out);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
@@ -228,7 +228,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     spmv_blocked<4>(exec, a, b, c, out);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

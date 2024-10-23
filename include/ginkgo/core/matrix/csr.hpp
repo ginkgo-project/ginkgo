@@ -98,23 +98,29 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ConvertibleTo<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
-            public ConvertibleTo<Hybrid<ValueType, IndexType>>,
-            public ConvertibleTo<Sellp<ValueType, IndexType>>,
-            public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable,
-            public Permutable<IndexType>,
-            public EnableAbsoluteComputation<
-                remove_complex<Csr<ValueType, IndexType>>>,
-            public ScaledIdentityAddable {
+class Csr
+    : public EnableLinOp<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Csr<next_precision_with_half<ValueType>, IndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+              IndexType>>,
+#endif
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Ell<ValueType, IndexType>>,
+      public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
+      public ConvertibleTo<Hybrid<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable,
+      public Permutable<IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Csr<ValueType, IndexType>>>,
+      public ScaledIdentityAddable {
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -130,8 +136,10 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
 public:
     using EnableLinOp<Csr>::convert_to;
     using EnableLinOp<Csr>::move_to;
-    using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
-    using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
@@ -688,12 +696,33 @@ public:
         index_type max_length_per_row_;
     };
 
-    friend class Csr<next_precision<ValueType>, IndexType>;
+    friend class Csr<previous_precision_with_half<ValueType>, IndexType>;
+
+    void convert_to(Csr<next_precision_with_half<ValueType>, IndexType>* result)
+        const override;
+
+    void move_to(
+        Csr<next_precision_with_half<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Csr<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>,
+        IndexType>;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::convert_to;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::move_to;
 
     void convert_to(
-        Csr<next_precision<ValueType>, IndexType>* result) const override;
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+    void move_to(
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) override;
+#endif
 
     void convert_to(Dense<ValueType>* other) const override;
 

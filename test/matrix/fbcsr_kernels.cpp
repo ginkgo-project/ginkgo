@@ -37,7 +37,7 @@ protected:
 
     std::unique_ptr<const Mtx> rsorted;
 
-    std::normal_distribution<gko::remove_complex<T>> distb;
+    std::normal_distribution<> distb;
     std::default_random_engine engine;
 
     value_type get_random_value()
@@ -123,6 +123,9 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
+    if (this->exec->get_master() != this->exec) {
+        SKIP_IF_HALF(value_type);
+    }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
@@ -145,6 +148,9 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
+    if (this->exec->get_master() != this->exec) {
+        SKIP_IF_HALF(value_type);
+    }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
@@ -168,6 +174,9 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
+    if (this->exec->get_master() != this->exec) {
+        SKIP_IF_HALF(value_type);
+    }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
@@ -198,6 +207,9 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
+    if (this->exec->get_master() != this->exec) {
+        SKIP_IF_HALF(value_type);
+    }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
         Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
