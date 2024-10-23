@@ -22,7 +22,7 @@ namespace multi_vector {
 template <typename ValueType>
 struct batch_item {
     using value_type = ValueType;
-    ValueType* values;
+    ValueType* __restrict__ values;
     int32 stride;
     int32 num_rows;
     int32 num_rhs;
@@ -37,7 +37,7 @@ struct uniform_batch {
     using value_type = ValueType;
     using entry_type = batch_item<ValueType>;
 
-    ValueType* values;
+    ValueType* __restrict__ values;
     size_type num_batch_items;
     int32 stride;
     int32 num_rows;
