@@ -1340,9 +1340,9 @@ void row_scatter_impl(const IndexContainer* row_idxs,
         make_temporary_clone(exec, row_idxs).get(), orig,
         make_temporary_clone(exec, target).get(), invalid_access));
 
+    // TODO: find a uniform way to handle device-side errors
     if (invalid_access) {
-        GKO_INVALID_STATE(
-            "Out-of-bounds access detected during kernel execution.");
+        GKO_INVALID_STATE("Out-of-bounds scatter index detected.");
     }
 }
 
