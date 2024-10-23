@@ -788,7 +788,7 @@ TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -814,7 +814,7 @@ TYPED_TEST(Csr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -992,7 +992,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -1011,7 +1011,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);

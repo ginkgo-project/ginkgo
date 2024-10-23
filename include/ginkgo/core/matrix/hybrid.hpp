@@ -41,7 +41,13 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
     : public EnableLinOp<Hybrid<ValueType, IndexType>>,
-      public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<
+          Hybrid<next_precision_with_half<ValueType>, IndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+                 IndexType>>,
+#endif
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
@@ -59,8 +65,9 @@ public:
     using EnableLinOp<Hybrid>::convert_to;
     using EnableLinOp<Hybrid>::move_to;
     using ConvertibleTo<
-        Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
-    using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;
+        Hybrid<next_precision_with_half<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Hybrid<next_precision_with_half<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
@@ -355,12 +362,33 @@ public:
         imbalance_bounded_limit strategy_;
     };
 
-    friend class Hybrid<next_precision<ValueType>, IndexType>;
+    friend class Hybrid<previous_precision_with_half<ValueType>, IndexType>;
+
+    void convert_to(Hybrid<next_precision_with_half<ValueType>, IndexType>*
+                        result) const override;
+
+    void move_to(Hybrid<next_precision_with_half<ValueType>, IndexType>* result)
+        override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Hybrid<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>,
+        IndexType>;
+    using ConvertibleTo<
+        Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+               IndexType>>::convert_to;
+    using ConvertibleTo<
+        Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+               IndexType>>::move_to;
 
     void convert_to(
-        Hybrid<next_precision<ValueType>, IndexType>* result) const override;
+        Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+               IndexType>* result) const override;
 
-    void move_to(Hybrid<next_precision<ValueType>, IndexType>* result) override;
+    void move_to(
+        Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+               IndexType>* result) override;
+#endif
 
     void convert_to(Dense<ValueType>* other) const override;
 

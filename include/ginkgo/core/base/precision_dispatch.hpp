@@ -48,13 +48,15 @@ make_temporary_conversion(Ptr&& matrix)
 {
     using Pointee = detail::pointee<Ptr>;
     using Dense = matrix::Dense<ValueType>;
-    using NextDense = matrix::Dense<next_precision<ValueType>>;
+    using NextDense = matrix::Dense<next_precision_with_half<ValueType>>;
+    using NextNextDense = matrix::Dense<
+        next_precision_with_half<next_precision_with_half<ValueType>>>;
     using MaybeConstDense =
         std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
     auto result = detail::temporary_conversion<
-        MaybeConstDense>::template create<NextDense>(matrix);
+        MaybeConstDense>::template create<NextDense, NextNextDense>(matrix);
     if (!result) {
-        GKO_NOT_SUPPORTED(*matrix);
+        GKO_NOT_SUPPORTED(matrix);
     }
     return result;
 }
@@ -226,23 +228,26 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     using fst_type = matrix::Dense<ValueType>;
-    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    using snd_type = matrix::Dense<next_precision_with_half<ValueType>>;
+    using trd_type = matrix::Dense<
+        next_precision_with_half<next_precision_with_half<ValueType>>>;
+    auto dispatch_out_vector = [&](auto dense_in) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<trd_type*>(out)) {
+            fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    };
     if (auto dense_in = dynamic_cast<const fst_type*>(in)) {
-        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
-            fn(dense_in, dense_out);
-        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
-            fn(dense_in, dense_out);
-        } else {
-            GKO_NOT_SUPPORTED(out);
-        }
+        dispatch_out_vector(dense_in);
     } else if (auto dense_in = dynamic_cast<const snd_type*>(in)) {
-        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
-            fn(dense_in, dense_out);
-        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
-            fn(dense_in, dense_out);
-        } else {
-            GKO_NOT_SUPPORTED(out);
-        }
+        dispatch_out_vector(dense_in);
+    } else if (auto dense_in = dynamic_cast<const trd_type*>(in)) {
+        dispatch_out_vector(dense_in);
     } else {
         GKO_NOT_SUPPORTED(in);
     }

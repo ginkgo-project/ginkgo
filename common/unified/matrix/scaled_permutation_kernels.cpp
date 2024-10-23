@@ -32,7 +32,7 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
         size, input_scale, input_permutation, output_scale, output_permutation);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SCALED_PERMUTATION_INVERT_KERNEL);
 
 
@@ -58,7 +58,7 @@ void compose(std::shared_ptr<const DefaultExecutor> exec,
         output_permutation, output_scale);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SCALED_PERMUTATION_COMPOSE_KERNEL);
 
 

@@ -67,7 +67,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         output->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
@@ -94,7 +94,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
         source->get_const_values(), result);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
 
 
@@ -121,7 +121,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
         result->get_col_idxs(), result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_ELL_COPY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -150,7 +151,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         result->get_col_idxs(), result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
 
 
@@ -172,7 +173,7 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
         static_cast<int64>(source->get_stride()), source->get_const_col_idxs());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
@@ -198,7 +199,7 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
         orig->get_const_values(), diag->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 

@@ -203,7 +203,7 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Hybrid<next_precision<ValueType>, IndexType>* result) const
+    Hybrid<next_precision_with_half<ValueType>, IndexType>* result) const
 {
     this->ell_->convert_to(result->ell_);
     this->coo_->convert_to(result->coo_);
@@ -216,10 +216,35 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(
-    Hybrid<next_precision<ValueType>, IndexType>* result)
+    Hybrid<next_precision_with_half<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+           IndexType>* result) const
+{
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
+    // TODO set strategy correctly
+    // There is no way to correctly clone the strategy like in
+    // Csr::convert_to
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(
+    Hybrid<next_precision_with_half<next_precision_with_half<ValueType>>,
+           IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType, typename IndexType>
@@ -418,7 +443,8 @@ Hybrid<ValueType, IndexType>::compute_absolute() const
 
 #define GKO_DECLARE_HYBRID_MATRIX(ValueType, IndexType) \
     class Hybrid<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_HYBRID_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_HYBRID_MATRIX);
 
 
 }  // namespace matrix

@@ -36,7 +36,8 @@ void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
         b->get_size(), a->get_const_values(), b, c, inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
 
 template <typename ValueType>
@@ -53,7 +54,7 @@ void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
         b->get_size(), a->get_const_values(), b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
 
 
@@ -74,7 +75,7 @@ void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         c->get_const_col_idxs());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
 
 
@@ -95,7 +96,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         output->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
@@ -120,7 +121,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         result->get_col_idxs(), result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
 
 
@@ -137,7 +138,8 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
         orig->get_size()[0], orig->get_const_values(), trans->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace diagonal

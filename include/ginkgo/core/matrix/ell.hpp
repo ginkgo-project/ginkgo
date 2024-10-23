@@ -49,28 +49,36 @@ class Hybrid;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public EnableAbsoluteComputation<
-                remove_complex<Ell<ValueType, IndexType>>> {
+class Ell
+    : public EnableLinOp<Ell<ValueType, IndexType>>,
+      public ConvertibleTo<Ell<next_precision_with_half<ValueType>, IndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+              IndexType>>,
+#endif
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Ell<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Ell<to_complex<ValueType>, IndexType>;
-    friend class Ell<next_precision<ValueType>, IndexType>;
+    friend class Ell<previous_precision_with_half<ValueType>, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
     using EnableLinOp<Ell>::move_to;
-    using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
-    using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
@@ -83,10 +91,31 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
 
-    void convert_to(
-        Ell<next_precision<ValueType>, IndexType>* result) const override;
+    void convert_to(Ell<next_precision_with_half<ValueType>, IndexType>* result)
+        const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
+    void move_to(
+        Ell<next_precision_with_half<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Ell<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>,
+        IndexType>;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::convert_to;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::move_to;
+
+    void convert_to(
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) const override;
+
+    void move_to(
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) override;
+#endif
 
     void convert_to(Dense<ValueType>* other) const override;
 

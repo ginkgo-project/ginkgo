@@ -214,7 +214,7 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Coo<next_precision<ValueType>, IndexType>* result) const
+    Coo<next_precision_with_half<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->row_idxs_ = this->row_idxs_;
@@ -225,10 +225,33 @@ void Coo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(
-    Coo<next_precision<ValueType>, IndexType>* result)
+    Coo<next_precision_with_half<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
+        IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->row_idxs_ = this->row_idxs_;
+    result->col_idxs_ = this->col_idxs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(
+    Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
+        IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType, typename IndexType>
@@ -404,7 +427,7 @@ Coo<ValueType, IndexType>::compute_absolute() const
 
 #define GKO_DECLARE_COO_MATRIX(ValueType, IndexType) \
     class Coo<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_COO_MATRIX);
 
 
 }  // namespace matrix
