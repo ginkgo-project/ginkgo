@@ -14,5 +14,17 @@
 #error "Executor definition missing"
 #endif
 
+#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
+    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
+        const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
+    {                                                                         \
+        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
+    }
+
+THRUST_HALF_FRIEND_OPERATOR(+, +=)
+THRUST_HALF_FRIEND_OPERATOR(-, -=)
+THRUST_HALF_FRIEND_OPERATOR(*, *=)
+THRUST_HALF_FRIEND_OPERATOR(/, /=)
+
 
 #endif  // GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
