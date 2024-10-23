@@ -1339,19 +1339,6 @@ TEST_F(Dense, CanScatterRowsIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSet)
-{
-    set_up_apply_data();
-    auto rindices = std::make_unique<gko::index_set<index_type>>(
-        ref, x->get_size()[0], *rscatter_idxs);
-
-    u->row_scatter(rindices.get(), x);
-    du->row_scatter(rindices.get(), dx);
-
-    GKO_ASSERT_MTX_NEAR(x, dx, 0);
-}
-
-
 #ifdef NDEBUG
 // this test can only be run if C asserts are disabled. Otherwise,
 // an assert in the constructor of index_set may fail.

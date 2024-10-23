@@ -975,35 +975,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ROW_SCATTER_KERNEL);
 
 
-template <typename ValueType, typename OutputType, typename IndexType>
-void row_scatter(std::shared_ptr<const ReferenceExecutor> exec,
-                 const index_set<IndexType>* row_idxs,
-                 const matrix::Dense<ValueType>* orig,
-                 matrix::Dense<OutputType>* target, bool& invalid_access)
-{
-    auto set_begins = row_idxs->get_subsets_begin();
-    auto set_ends = row_idxs->get_subsets_end();
-    auto set_offsets = row_idxs->get_superset_indices();
-    invalid_access = false;
-    for (size_type set = 0; set < row_idxs->get_num_subsets(); ++set) {
-        for (int target_row = set_begins[set]; target_row < set_ends[set];
-             ++target_row) {
-            if (target_row >= target->get_size()[0]) {
-                invalid_access = true;
-                return;
-            }
-            auto orig_row = target_row - set_begins[set] + set_offsets[set];
-            for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-                target->at(target_row, j) = orig->at(orig_row, j);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
-    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void col_permute(std::shared_ptr<const ReferenceExecutor> exec,
                  const IndexType* perm, const matrix::Dense<ValueType>* orig,

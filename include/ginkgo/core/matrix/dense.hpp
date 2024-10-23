@@ -735,22 +735,6 @@ public:
     void row_scatter(const array<IndexType>* scatter_indices,
                      ptr_param<LinOp> target) const;
 
-    /**
-     * Copies this matrix into the given rows of the target matrix.
-     *
-     * @tparam IndexType  the index type, either int32 or int64
-     *
-     * @param scatter_indices  row indices of the target matrix. It must
-     *                         have the same number of indices as rows in
-     *                         this matrix.
-     * @param target  matrix where the scattered rows are stored, i.e.
-     *                `target(scatter_indices.get_global_index(i), j)
-     *                   = this(i, j)`
-     */
-    template <typename IndexType>
-    void row_scatter(const index_set<IndexType>* scatter_indices,
-                     ptr_param<LinOp> target) const;
-
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
 

@@ -170,51 +170,6 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
                                dcfg_sq_list);
 
 
-template <typename ValueType, typename OutputType, typename IndexType>
-void row_scatter_impl(std::shared_ptr<const DefaultExecutor> exec,
-                      const index_set<IndexType>* row_idxs,
-                      const matrix::Dense<ValueType>* orig,
-                      matrix::Dense<OutputType>* target, bool* invalid_access)
-{
-    const auto num_sets = row_idxs->get_num_subsets();
-    const auto num_rows = row_idxs->get_num_elems();
-    const auto num_cols = orig->get_size()[1];
-
-    const auto* row_set_begins = row_idxs->get_subsets_begin();
-    const auto* row_set_offsets = row_idxs->get_superset_indices();
-
-    const auto orig_stride = orig->get_stride();
-    const auto* orig_values = orig->get_const_values();
-
-    const auto target_stride = target->get_stride();
-    auto* target_values = target->get_values();
-
-    exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            static_cast<size_type>(num_rows * num_cols),
-            [=](sycl::item<1> item) {
-                const auto row = static_cast<size_type>(item[0]) / num_cols;
-                const auto col = static_cast<size_type>(item[0]) % num_cols;
-
-                if (row >= num_rows) {
-                    return;
-                }
-
-                auto set_id =
-                    binary_search<size_type>(
-                        0, num_sets + 1,
-                        [=](auto i) { return row < row_set_offsets[i]; }) -
-                    1;
-                auto set_local_row = row - row_set_offsets[set_id];
-                auto target_row = set_local_row + row_set_begins[set_id];
-
-                target_values[target_row * target_stride + col] =
-                    orig_values[row * orig_stride + col];
-            });
-    });
-}
-
-
 }  // namespace kernel
 
 
@@ -631,24 +586,6 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename OutputType, typename IndexType>
-void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
-                 const index_set<IndexType>* row_idxs,
-                 const matrix::Dense<ValueType>* orig,
-                 matrix::Dense<OutputType>* target, bool& invalid_access)
-{
-    array<bool> invalid_access_arr{exec, {false}};
-
-    kernel::row_scatter_impl(exec, row_idxs, orig, target,
-                             invalid_access_arr.get_data());
-
-    invalid_access = exec->copy_val_to_host(invalid_access_arr.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
-    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
 
 
 }  // namespace dense
