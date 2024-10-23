@@ -83,6 +83,17 @@ struct truncate_type_impl<thrust::complex<T>> {
 };
 
 
+template <typename T>
+struct is_complex_impl<thrust::complex<T>> : public std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<__half> : public std::true_type {};
+
+template <typename T>
+struct is_complex_or_scalar_impl<thrust::complex<T>>
+    : public is_complex_or_scalar_impl<T> {};
+
+
 }  // namespace detail
 }  // namespace gko
 

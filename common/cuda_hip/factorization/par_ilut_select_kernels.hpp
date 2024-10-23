@@ -254,7 +254,7 @@ __global__ __launch_bounds__(basecase_block_size) void basecase_select(
     const ValueType* __restrict__ input, IndexType size, IndexType rank,
     ValueType* __restrict__ out)
 {
-    constexpr auto sentinel = device_numeric_limits<ValueType>::inf;
+    constexpr auto sentinel = device_numeric_limits<ValueType>::inf();
     ValueType local[basecase_local_size];
     __shared__ ValueType sh_local[basecase_size];
     for (int i = 0; i < basecase_local_size; ++i) {
