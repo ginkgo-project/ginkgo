@@ -271,16 +271,17 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
     auto res = Fbcsr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual =
-        r<OtherType>::value < r<ValueType>::value
-            ? gko::remove_complex<ValueType>{0}
-            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     this->mtx->convert_to(tmp);
     tmp->convert_to(res);
@@ -293,17 +294,17 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
     auto res = Fbcsr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual =
-        r<OtherType>::value < r<ValueType>::value
-            ? gko::remove_complex<ValueType>{0}
-            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
-    ;
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     this->mtx->move_to(tmp);
     tmp->move_to(res);
@@ -392,7 +393,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -411,7 +412,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);

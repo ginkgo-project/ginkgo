@@ -75,8 +75,7 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-            rand_engine, exec);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, exec);
     }
 };
 
@@ -751,9 +750,11 @@ TYPED_TEST(Dense, ConvertsToPrecision)
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->convert_to(tmp);
     tmp->convert_to(res);
@@ -771,9 +772,11 @@ TYPED_TEST(Dense, MovesToPrecision)
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->move_to(tmp);
     tmp->move_to(res);
@@ -3549,7 +3552,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes,
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypesWithHalf,
                  TypenameNameGenerator);
 
 
