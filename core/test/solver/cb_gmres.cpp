@@ -87,9 +87,10 @@ using st_ir2 = st_helper_type<st_enum::ireduce2>;
 
 using TestTypes = gko::test::merge_type_list_t<
     gko::test::cartesian_type_product_t<
-        gko::test::ValueTypes, ::testing::Types<st_keep, st_r1, st_r2>>,
+        gko::test::ValueTypesNoHalf, ::testing::Types<st_keep, st_r1, st_r2>>,
     gko::test::cartesian_type_product_t<
-        gko::test::RealValueTypes, ::testing::Types<st_i, st_ir1, st_ir2>>>;
+        gko::test::RealValueTypesNoHalf,
+        ::testing::Types<st_i, st_ir1, st_ir2>>>;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 
