@@ -1662,17 +1662,6 @@ void Dense<ValueType>::row_scatter(const array<IndexType>* row_idxs,
 
 
 template <typename ValueType>
-template <typename IndexType>
-void Dense<ValueType>::row_scatter(const index_set<IndexType>* row_idxs,
-                                   ptr_param<LinOp> row_collection) const
-{
-    gather_mixed_real_complex<ValueType>(
-        [&](auto dense) { row_scatter_impl(row_idxs, this, dense); },
-        row_collection.get());
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const array<int32>* permutation_indices) const
 {
@@ -2122,12 +2111,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
                                     ptr_param<LinOp> row_collection) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_ROW_SCATTER_ARRAY);
-
-#define GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET(_vtype, _itype)        \
-    void Dense<_vtype>::row_scatter(const index_set<_itype>* row_idxs, \
-                                    ptr_param<LinOp> row_collection) const
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET);
 
 
 }  // namespace matrix
