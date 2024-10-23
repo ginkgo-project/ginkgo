@@ -17,10 +17,10 @@ namespace experimental {
 namespace distributed {
 
 
-#if GINKGO_HAVE_OPENMPI_POST_4_1_X
-using DefaultCollComm = mpi::NeighborhoodCommunicator;
-#else
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
 using DefaultCollComm = mpi::DenseCommunicator;
+#else
+using DefaultCollComm = mpi::NeighborhoodCommunicator;
 #endif
 
 
@@ -85,9 +85,9 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                         !use_host_buffer || mpi_exec->memory_accessible(
                                                 x_local->get_executor()),
                         "The receive buffer uses device memory, but MPI "
-                        "support of device memory is not available. Please "
-                        "provide a host buffer or enable MPI support for "
-                        "device memory.");
+                        "support of device memory is not available or host "
+                        "buffer were explicitly requested. Please provide a "
+                        "host buffer or enable MPI support for device memory.");
 
                     auto b_local = b_global->get_local_vector();
 
