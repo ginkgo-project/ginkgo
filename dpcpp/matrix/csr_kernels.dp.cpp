@@ -31,6 +31,7 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -266,7 +267,7 @@ void abstract_spmv(
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     using output_type = typename output_accessor::storage_type;
-    const arithmetic_type scale_factor = alpha[0];
+    const arithmetic_type scale_factor = static_cast<arithmetic_type>(alpha[0]);
     spmv_kernel(
         nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
         [&scale_factor](const arithmetic_type& x) {
@@ -479,8 +480,8 @@ void abstract_merge_path_spmv(
     sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const type alpha_val = static_cast<type>(alpha[0]);
+    const type beta_val = static_cast<type>(beta[0]);
     merge_path_spmv<items_per_thread>(
         num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
         [&alpha_val](const type& x) { return alpha_val * x; },
@@ -566,7 +567,7 @@ void abstract_reduce(
     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
     uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
 {
-    const arithmetic_type alpha_val = alpha[0];
+    const arithmetic_type alpha_val = static_cast<arithmetic_type>(alpha[0]);
     merge_path_reduce(
         nwarps, last_val, last_row, c,
         [&alpha_val](const arithmetic_type& x) { return alpha_val * x; },
@@ -694,8 +695,8 @@ void abstract_classical_spmv(
     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const type alpha_val = static_cast<type>(alpha[0]);
+    const type beta_val = static_cast<type>(beta[0]);
     device_classical_spmv<subgroup_size>(
         num_rows, val, col_idxs, row_ptrs, b, c,
         [&alpha_val, &beta_val](const type& x, const type& y) {
@@ -1393,8 +1394,9 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                 const ValueType host_beta,
                                 matrix::Dense<ValueType>* c)
 {
-    bool try_sparselib = !is_complex<ValueType>();
-    if (try_sparselib) {
+    constexpr bool try_sparselib =
+        !is_complex<ValueType>() && !std::is_same<ValueType, gko::half>::value;
+    if constexpr (try_sparselib) {
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
@@ -1525,7 +1527,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
@@ -1597,7 +1599,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -1677,7 +1679,7 @@ void calculate_nonzeros_per_row_in_span(
                              row_nnz->get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
 
 
@@ -1689,7 +1691,7 @@ void calculate_nonzeros_per_row_in_index_set(
     const gko::index_set<IndexType>& col_index_set,
     IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL);
 
 
@@ -1716,7 +1718,7 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
         result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
 
 
@@ -1728,7 +1730,7 @@ void compute_submatrix_from_index_set(
     const gko::index_set<IndexType>& col_index_set,
     matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
 
 
@@ -1990,7 +1992,8 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
+    GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -2123,7 +2126,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
 
 
@@ -2209,7 +2212,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
+    GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -2230,7 +2234,7 @@ void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
                           result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL);
 
 
@@ -2240,7 +2244,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
                       array<ValueType>& values) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
 
 
@@ -2303,7 +2307,8 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
     generic_transpose<false>(exec, orig, trans);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
+    GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -2314,7 +2319,7 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
     generic_transpose<true>(exec, orig, trans);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -2340,7 +2345,7 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
         permuted->get_col_idxs(), permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_SYMM_PERMUTE_KERNEL);
 
 
@@ -2367,7 +2372,7 @@ void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
         permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_NONSYMM_PERMUTE_KERNEL);
 
 
@@ -2393,7 +2398,7 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
         row_permuted->get_col_idxs(), row_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
 
 
@@ -2419,7 +2424,7 @@ void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
         row_permuted->get_col_idxs(), row_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_ROW_PERMUTE_KERNEL);
 
 
@@ -2445,7 +2450,7 @@ void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         permuted->get_col_idxs(), permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_SYMM_SCALE_PERMUTE_KERNEL);
 
 
@@ -2475,7 +2480,7 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_NONSYMM_SCALE_PERMUTE_KERNEL);
 
 
@@ -2501,7 +2506,7 @@ void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         row_permuted->get_col_idxs(), row_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_ROW_SCALE_PERMUTE_KERNEL);
 
 
@@ -2527,7 +2532,7 @@ void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         row_permuted->get_col_idxs(), row_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_INV_ROW_SCALE_PERMUTE_KERNEL);
 
 
@@ -2585,7 +2590,7 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -2617,7 +2622,7 @@ void is_sorted_by_column_index(
     *is_sorted = get_element(is_sorted_device_array, 0);
 };
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
@@ -2641,7 +2646,8 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
                              orig_row_ptrs, orig_col_idxs, diag_values);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
+    GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
@@ -2665,7 +2671,7 @@ void check_diagonal_entries_exist(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
 
 
@@ -2688,7 +2694,7 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
         mtx->get_const_col_idxs(), mtx->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF_WITH_HALF(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
@@ -2817,7 +2823,8 @@ void build_lookup(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
 
 }  // namespace csr

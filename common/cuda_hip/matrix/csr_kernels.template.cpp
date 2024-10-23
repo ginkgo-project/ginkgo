@@ -278,7 +278,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     using output_type = typename output_accessor::storage_type;
-    const arithmetic_type scale_factor = alpha[0];
+    const auto scale_factor = static_cast<arithmetic_type>(alpha[0]);
     spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
                 [&scale_factor](const arithmetic_type& x) {
                     return static_cast<output_type>(scale_factor * x);
@@ -486,7 +486,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
     const IndexType* __restrict__ last_row,
     const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c)
 {
-    const arithmetic_type alpha_val = alpha[0];
+    const auto alpha_val = static_cast<arithmetic_type>(alpha[0]);
     merge_path_reduce(
         nwarps, last_val, last_row, c,
         [&alpha_val](const arithmetic_type& x) { return alpha_val * x; });
@@ -1193,7 +1193,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
             const auto i = base_i + lane;
             const auto col = i < row_len
                                  ? local_cols[i]
-                                 : device_numeric_limits<IndexType>::max;
+                                 : device_numeric_limits<IndexType>::max();
             const auto rel_col = static_cast<int32>(col - min_col);
             const auto block = rel_col / bitmap_block_size;
             const auto col_in_block = rel_col % bitmap_block_size;

@@ -788,17 +788,17 @@ TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
     auto res = Csr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual =
-        r<OtherType>::value < r<ValueType>::value
-            ? gko::remove_complex<ValueType>{0}
-            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
-
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->convert_to(tmp);
@@ -815,17 +815,17 @@ TYPED_TEST(Csr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
     auto res = Csr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual =
-        r<OtherType>::value < r<ValueType>::value
-            ? gko::remove_complex<ValueType>{0}
-            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
-    ;
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->move_to(tmp);
@@ -994,7 +994,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -1013,7 +1013,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
