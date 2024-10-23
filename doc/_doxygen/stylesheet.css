@@ -1,0 +1,8 @@
+html {
+    --primary-color: #F7A71E;
+    --top-height: 150px;
+}
+
+html.dark-mode {
+    --primary-color: #F7A71E;
+}

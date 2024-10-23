@@ -105,7 +105,6 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  *
  * @ingroup permutation
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,

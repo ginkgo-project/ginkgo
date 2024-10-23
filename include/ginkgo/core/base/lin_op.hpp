@@ -677,7 +677,6 @@ public:
  * A LinOp implementing this interface can be preconditioned.
  *
  * @ingroup precond
- * @ingroup LinOp
  */
 class Preconditionable {
 public:

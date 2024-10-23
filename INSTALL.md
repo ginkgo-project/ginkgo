@@ -1,5 +1,5 @@
-Installation Instructions                      {#install_ginkgo}
--------------------------------------
+# Installation Instructions
+
 ### Building
 
 Use the standard CMake build procedure:

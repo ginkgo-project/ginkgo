@@ -46,7 +46,6 @@ class Hybrid;
  *
  * @ingroup ell
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,

@@ -1,5 +1,4 @@
-Running the benchmarks                         {#benchmarking_ginkgo}
-----------------------
+# Running the benchmarks
 
 In addition to the unit tests designed to verify correctness, Ginkgo also
 includes an extensive benchmark suite for checking its performance on all Ginkgo

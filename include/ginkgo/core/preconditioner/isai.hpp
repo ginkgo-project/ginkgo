@@ -73,7 +73,6 @@ enum struct isai_type { lower, upper, general, spd };
  *
  * @ingroup isai
  * @ingroup precond
- * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,

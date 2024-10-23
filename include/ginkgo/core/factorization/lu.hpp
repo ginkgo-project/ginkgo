@@ -47,6 +47,8 @@ enum class symbolic_type {
  * @tparam ValueType  the type used to store values of the system matrix
  * @tparam IndexType  the type used to store sparsity pattern indices of the
  *                    system matrix
+ *
+ * @ingroup factor
  */
 template <typename ValueType, typename IndexType>
 class Lu
