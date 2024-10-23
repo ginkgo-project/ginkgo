@@ -14,84 +14,12 @@
 #include <utility>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
-
-
-class half;
-
-
-// HIP should not see std::abs or std::sqrt, we want the custom implementation.
-// Hence, provide the using declaration only for some cases
-namespace kernels {
-namespace reference {
-
-
-using std::abs;
-
-
-using std::sqrt;
-
-
-}  // namespace reference
-}  // namespace kernels
-
-
-namespace kernels {
-namespace omp {
-
-
-using std::abs;
-
-
-using std::sqrt;
-
-
-}  // namespace omp
-}  // namespace kernels
-
-
-namespace kernels {
-namespace cuda {
-
-
-using std::abs;
-
-
-using std::sqrt;
-
-
-}  // namespace cuda
-}  // namespace kernels
-
-
-namespace kernels {
-namespace dpcpp {
-
-
-using std::abs;
-
-
-using std::sqrt;
-
-
-}  // namespace dpcpp
-}  // namespace kernels
-
-
-namespace test {
-
-
-using std::abs;
-
-
-using std::sqrt;
-
-
-}  // namespace test
 
 
 // type manipulations
@@ -706,6 +634,13 @@ GKO_INLINE constexpr T one()
     return T(1);
 }
 
+template <>
+GKO_INLINE constexpr half one<half>()
+{
+    constexpr auto bits = static_cast<uint16>(0b0'01111'0000000000u);
+    return half::create_from_bits(bits);
+}
+
 
 /**
  * Returns the multiplicative identity for T.
@@ -983,6 +918,7 @@ GKO_INLINE constexpr auto squared_norm(const T& x)
     return real(conj(x) * x);
 }
 
+using std::abs;
 
 /**
  * Returns the absolute value of the object.
@@ -1006,6 +942,27 @@ GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value, remove_complex<T>>
 abs(const T& x)
 {
     return sqrt(squared_norm(x));
+}
+
+// increase the priority in function lookup
+GKO_INLINE gko::half abs(const std::complex<gko::half>& x)
+{
+    // Using float abs not sqrt on norm to avoid overflow
+    return static_cast<gko::half>(abs(std::complex<float>(x)));
+}
+
+
+using std::sqrt;
+
+GKO_INLINE gko::half sqrt(gko::half a)
+{
+    return gko::half(std::sqrt(float(a)));
+}
+
+GKO_INLINE std::complex<gko::half> sqrt(std::complex<gko::half> a)
+{
+    return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 
 
