@@ -51,7 +51,7 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
     void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
                                 const From*, To*)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
+GKO_INSTANTIATE_FOR_EACH_POD_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
 
 }  // namespace detail
