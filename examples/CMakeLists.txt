@@ -20,6 +20,7 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
+    file-config-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
@@ -102,4 +103,19 @@ if(GINKGO_BUILD_TESTS)
                      "${CMAKE_CURRENT_SOURCE_DIR}/${example}")
         endforeach()
     endforeach()
+
+    file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
+    foreach(config IN LISTS config_list)
+        get_filename_component(config_name "${config}" NAME_WE)
+        foreach(executor IN LISTS executors)
+            add_test(NAME example_file-config-solver_${config_name}_${executor} 
+                     COMMAND 
+                     "$<TARGET_FILE:file-config-solver>"
+                     "${executor}" "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
+                     "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
+                     WORKING_DIRECTORY
+                     "$<TARGET_FILE_DIR:ginkgo>")
+        endforeach()    
+    endforeach()
+        
 endif()
