@@ -76,25 +76,36 @@
 
 #define GKO_STUB(_macro) _macro GKO_NOT_COMPILED(GKO_HOOK_MODULE)
 
-#define GKO_STUB_VALUE_CONVERSION(_macro)                             \
-    template <typename SourceType, typename TargetType>               \
-    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
 
 #define GKO_STUB_NON_COMPLEX_VALUE_TYPE(_macro)          \
     template <typename ValueType>                        \
     _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro)
 
+#define GKO_STUB_NON_COMPLEX_VALUE_TYPE_WITH_HALF(_macro) \
+    template <typename ValueType>                         \
+    _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE);  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_TYPE(_macro)                      \
     template <typename ValueType>                        \
     _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)
 
+#define GKO_STUB_VALUE_TYPE_WITH_HALF(_macro)            \
+    template <typename ValueType>                        \
+    _macro(ValueType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_AND_SCALAR_TYPE(_macro)                       \
     template <typename ValueType, typename ScalarType>               \
     _macro(ValueType, ScalarType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)
+
+#define GKO_STUB_VALUE_AND_SCALAR_TYPE_WITH_HALF(_macro)             \
+    template <typename ValueType, typename ScalarType>               \
+    _macro(ValueType, ScalarType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_WITH_HALF(_macro)
 
 #define GKO_STUB_INDEX_TYPE(_macro)                      \
     template <typename IndexType>                        \
@@ -111,15 +122,30 @@
     _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro)
 
+#define GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro) \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_AND_INDEX_TYPE(_macro)                       \
     template <typename ValueType, typename IndexType>               \
     _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)
 
+#define GKO_STUB_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro)             \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_AND_INT32_TYPE(_macro)                       \
     template <typename ValueType, typename IndexType>               \
     _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro)
+
+#define GKO_STUB_VALUE_AND_INT32_TYPE_WITH_HALF(_macro)             \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(_macro)
 
 #define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE(_macro)                     \
     template <typename InputValueType, typename MatrixValueType,        \
@@ -128,12 +154,26 @@
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                              \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro)
 
+#define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro)           \
+    template <typename InputValueType, typename MatrixValueType,        \
+              typename OutputValueType, typename IndexType>             \
+    _macro(InputValueType, MatrixValueType, OutputValueType, IndexType) \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                              \
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)            \
     template <typename InputValueType, typename OutputValueType, \
               typename IndexType>                                \
     _macro(InputValueType, OutputValueType, IndexType)           \
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)
+
+#define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2_WITH_HALF(_macro)  \
+    template <typename InputValueType, typename OutputValueType, \
+              typename IndexType>                                \
+    _macro(InputValueType, OutputValueType, IndexType)           \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2_WITH_HALF(_macro)
 
 #define GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
     template <typename ValueType, typename LocalIndexType, \
@@ -147,15 +187,30 @@
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro)
 
+#define GKO_STUB_TEMPLATE_TYPE_WITH_HALF(_macro)         \
+    template <typename IndexType>                        \
+    _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_CONVERSION(_macro)                             \
     template <typename SourceType, typename TargetType>               \
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
 
+#define GKO_STUB_VALUE_CONVERSION_WITH_HALF(_macro)                   \
+    template <typename SourceType, typename TargetType>               \
+    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_WITH_HALF(_macro)
+
 #define GKO_STUB_VALUE_CONVERSION_OR_COPY(_macro)                     \
     template <typename SourceType, typename TargetType>               \
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro)
+
+#define GKO_STUB_VALUE_CONVERSION_OR_COPY_WITH_HALF(_macro)           \
+    template <typename SourceType, typename TargetType>               \
+    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY_WITH_HALF(_macro)
 
 #define GKO_STUB_CB_GMRES(_macro)                                              \
     template <typename ValueType, typename ValueTypeKrylovBases>               \
