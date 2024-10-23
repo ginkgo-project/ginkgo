@@ -384,6 +384,31 @@ struct next_precision_impl<std::complex<T>> {
 
 
 template <typename T>
+struct next_precision_with_half_impl {};
+
+
+template <>
+struct next_precision_with_half_impl<gko::half> {
+    using type = float;
+};
+
+template <>
+struct next_precision_with_half_impl<float> {
+    using type = double;
+};
+
+template <>
+struct next_precision_with_half_impl<double> {
+    using type = gko::half;
+};
+
+template <typename T>
+struct next_precision_with_half_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_with_half_impl<T>::type>;
+};
+
+
+template <typename T>
 struct reduce_precision_impl {
     using type = T;
 };
@@ -476,6 +501,26 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  */
 template <typename T>
 using previous_precision = next_precision<T>;
+
+/**
+ * Obtains the next type in the singly-linked precision list with half.
+ */
+#if GINKGO_ENABLE_HALF
+template <typename T>
+using next_precision_with_half =
+    typename detail::next_precision_with_half_impl<T>::type;
+
+template <typename T>
+using previous_precision_with_half =
+    next_precision_with_half<next_precision_with_half<T>>;
+#else
+// fallback to float/double list
+template <typename T>
+using next_precision_with_half = next_precision<T>;
+
+template <typename T>
+using previous_precision_with_half = previous_precision<T>;
+#endif
 
 
 /**
