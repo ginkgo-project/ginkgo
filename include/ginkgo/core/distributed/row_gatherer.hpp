@@ -32,19 +32,18 @@ namespace distributed {
  * Example usage:
  * ```c++
  * auto coll_comm = std::make_shared<mpi::neighborhood_communicator>(comm,
- * imap); auto rg = distributed::RowGatherer<int32>::create(exec, coll_comm,
- * imap);
+ *                                                                   imap);
+ * auto rg = distributed::RowGatherer<int32>::create(exec, coll_comm, imap);
  *
  * auto b = distributed::Vector<double>::create(...);
  * auto x = matrix::Dense<double>::create(...);
  *
- * auto future = rg->apply_async(b, x);
+ * auto req = rg->apply_async(b, x);
  * // do some computation that doesn't modify b, or access x
- * future.wait();
+ * req.wait();
  * // x now contains the gathered rows of b
  * ```
- * Using the apply instead of the apply_async will lead to a blocking
- * communication.
+ * Using apply instead of apply_async will lead to a blocking communication.
  *
  * @note Objects of this class are only available as shared_ptr, since the class
  *       is derived from std::enable_shared_from_this.
