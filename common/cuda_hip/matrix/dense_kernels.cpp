@@ -433,39 +433,6 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
 }
 
 
-template <typename ValueType, typename OutputType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void row_scatter(
-    size_type num_sets, IndexType* __restrict__ row_set_begins,
-    IndexType* __restrict__ row_set_offsets, size_type target_num_rows,
-    size_type num_cols, size_type orig_num_rows, size_type orig_stride,
-    const ValueType* __restrict__ orig_values, size_type target_stride,
-    OutputType* __restrict__ target_values, bool* __restrict__ invalid_access)
-{
-    auto id = thread::get_thread_id_flat();
-    auto row = id / num_cols;
-    auto col = id % num_cols;
-
-    if (row >= orig_num_rows || *invalid_access) {
-        return;
-    }
-
-    auto set_id =
-        binary_search<size_type>(
-            0, num_sets + 1, [=](auto i) { return row < row_set_offsets[i]; }) -
-        1;
-    auto set_local_row = row - row_set_offsets[set_id];
-    auto target_row = set_local_row + row_set_begins[set_id];
-
-    if (target_row >= target_num_rows) {
-        *invalid_access = true;
-        return;
-    }
-
-    target_values[target_row * target_stride + col] =
-        orig_values[row * orig_stride + col];
-}
-
-
 }  // namespace kernel
 
 
@@ -872,38 +839,6 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename OutputType, typename IndexType>
-void row_scatter(std::shared_ptr<const DefaultExecutor> exec,
-                 const index_set<IndexType>* row_idxs,
-                 const matrix::Dense<ValueType>* orig,
-                 matrix::Dense<OutputType>* target, bool& invalid_access)
-{
-    auto orig_size = orig->get_size();
-    auto target_size = target->get_size();
-
-    array<bool> invalid_access_arr(exec, {false});
-
-    if (orig_size) {
-        constexpr auto block_size = default_block_size;
-        auto num_blocks = ceildiv(orig_size[0] * orig_size[1], block_size);
-        kernel::row_scatter<<<num_blocks, block_size, 0, exec->get_stream()>>>(
-            row_idxs->get_num_subsets(),
-            as_device_type(row_idxs->get_subsets_begin()),
-            as_device_type(row_idxs->get_superset_indices()), target_size[0],
-            target_size[1], orig_size[0], orig->get_stride(),
-            as_device_type(orig->get_const_values()), target->get_stride(),
-            as_device_type(target->get_values()),
-            as_device_type(invalid_access_arr.get_data()));
-    }
-
-    invalid_access =
-        exec->copy_val_to_host(invalid_access_arr.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
-    GKO_DECLARE_DENSE_ROW_SCATTER_INDEX_SET_KERNEL);
 
 
 }  // namespace dense
