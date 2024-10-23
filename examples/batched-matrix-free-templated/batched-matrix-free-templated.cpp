@@ -108,6 +108,8 @@ constexpr void simple_apply(
 }
 
 
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+
 __device__ void advanced_apply(
     double alpha, custom_operator_item a,
     gko::batch::multi_vector::batch_item<const double> b, double beta,
@@ -142,6 +144,8 @@ __device__ void simple_apply(
 {
     advanced_apply(1.0, a, b, 0.0, x, tag);
 }
+
+#endif
 
 
 }  // namespace dummy
