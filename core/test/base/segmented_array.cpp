@@ -27,7 +27,8 @@ public:
     std::shared_ptr<gko::Executor> exec = gko::ReferenceExecutor::create();
 };
 
-TYPED_TEST_SUITE(SegmentedArray, gko::test::PODTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(SegmentedArray, gko::test::PODTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(SegmentedArray, CanConstructFromExecutor)

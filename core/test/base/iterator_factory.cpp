@@ -78,7 +78,7 @@ protected:
     const std::vector<value_type> ordered_value;
 };
 
-TYPED_TEST_SUITE(ZipIterator, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ZipIterator, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
@@ -366,7 +366,7 @@ protected:
     using value_type = ValueType;
 };
 
-TYPED_TEST_SUITE(PermuteIterator, gko::test::ComplexAndPODTypes,
+TYPED_TEST_SUITE(PermuteIterator, gko::test::ComplexAndPODTypesWithHalf,
                  TypenameNameGenerator);
 
 
