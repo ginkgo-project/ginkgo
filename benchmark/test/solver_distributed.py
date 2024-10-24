@@ -46,3 +46,14 @@ test_framework.compare_output(
     expected_stdout="distributed_solver.profile.stdout",
     expected_stderr="distributed_solver.profile.stderr",
 )
+
+# complex
+test_framework.compare_output(
+    [
+        "-input",
+        '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil", "optimal": {"spmv": "csr-csr"}}]',
+    ],
+    expected_stdout="distributed_solver_dcomplex.simple.stdout",
+    expected_stderr="distributed_solver_dcomplex.simple.stderr",
+    use_complex=True
+)

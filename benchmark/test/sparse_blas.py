@@ -64,3 +64,12 @@ test_framework.compare_output(
     expected_stderr="sparse_blas.reordered.stderr",
     stdin='[{"size": 100, "stencil": "7pt"}]',
 )
+
+# complex
+test_framework.compare_output(
+    ["-operations", "transpose", "-input",
+        '[{"size": 100, "stencil": "7pt"}]'],
+    expected_stdout="sparse_blas_dcomplex.simple.stdout",
+    expected_stderr="sparse_blas_dcomplex.simple.stderr",
+    use_complex=True
+)

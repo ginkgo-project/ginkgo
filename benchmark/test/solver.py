@@ -51,3 +51,11 @@ test_framework.compare_output(
     expected_stderr="solver.reordered.stderr",
     stdin='[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
 )
+
+# complex input
+test_framework.compare_output(
+    ["-input", '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]'],
+    expected_stdout="solver_dcomplex.simple.stdout",
+    expected_stderr="solver_dcomplex.simple.stderr",
+    use_complex=True
+)
