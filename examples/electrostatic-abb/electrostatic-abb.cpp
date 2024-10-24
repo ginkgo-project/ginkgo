@@ -16,7 +16,7 @@ template <typename ValueType, typename IndexType>
 std::vector<gko::matrix_data<ValueType, IndexType>> read_input(
     std::string fstring)
 {
-    std::string fname = "data/" + fstring + ".asc";
+    std::string fname = "data/" + fstring + "amtx";
     std::ifstream fstream;
     fstream.open(fname);
     int num_rows = 0;
