@@ -2,88 +2,22 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <bitset>
-#include <cstring>
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/half.hpp>
 
-
-template <std::size_t N>
-struct floating_impl;
-
-template <>
-struct floating_impl<16> {
-    using type = gko::half;
-};
-
-template <>
-struct floating_impl<32> {
-    using type = float;
-};
-
-template <>
-struct floating_impl<64> {
-    using type = double;
-};
-
-template <std::size_t N>
-using floating = typename floating_impl<N>::type;
+#include "core/test/base/floating_bit_helper.hpp"
 
 
-class ExtendedFloatTestBase : public ::testing::Test {
-protected:
-    using half = gko::half;
-
-    static constexpr auto byte_size = gko::detail::byte_size;
-
-    template <std::size_t N>
-    static floating<N - 1> create_from_bits(const char (&s)[N])
-    {
-        auto bits = std::bitset<N - 1>(s).to_ullong();
-        // We cast to the same size of integer type first.
-        // Otherwise, the first memory chunk is different when we use
-        // reinterpret_cast or memcpy to get the smaller type out of unsigned
-        // long long.
-        using bits_type =
-            typename gko::detail::float_traits<floating<N - 1>>::bits_type;
-        auto bits_val = static_cast<bits_type>(bits);
-        floating<N - 1> result;
-        static_assert(sizeof(floating<N - 1>) == sizeof(bits_type),
-                      "the type should have the same size as its bits_type");
-        std::memcpy(&result, &bits_val, sizeof(bits_type));
-        return result;
-    }
-
-    template <typename T>
-    static std::bitset<sizeof(T) * byte_size> get_bits(T val)
-    {
-        using bits_type = typename gko::detail::float_traits<T>::bits_type;
-        bits_type bits;
-        static_assert(sizeof(T) == sizeof(bits_type),
-                      "the type should have the same size as its bits_type");
-        std::memcpy(&bits, &val, sizeof(T));
-        return std::bitset<sizeof(T) * byte_size>(bits);
-    }
-
-    template <std::size_t N>
-    static std::bitset<N - 1> get_bits(const char (&s)[N])
-    {
-        return std::bitset<N - 1>(s);
-    }
-};
-
-
-class FloatToHalf : public ExtendedFloatTestBase {};
+using half = gko::half;
+using namespace floating_bit_helper;
 
 
 // clang-format does terrible formatting of string literal concatenation
 // clang-format off
 
 
-TEST_F(FloatToHalf, ConvertsOne)
+TEST(FloatToHalf, ConvertsOne)
 {
     half x = create_from_bits("0" "01111111" "00000000000000000000000");
 
@@ -91,7 +25,7 @@ TEST_F(FloatToHalf, ConvertsOne)
 }
 
 
-TEST_F(FloatToHalf, ConvertsZero)
+TEST(FloatToHalf, ConvertsZero)
 {
     half x = create_from_bits("0" "00000000" "00000000000000000000000");
 
@@ -99,7 +33,7 @@ TEST_F(FloatToHalf, ConvertsZero)
 }
 
 
-TEST_F(FloatToHalf, ConvertsInf)
+TEST(FloatToHalf, ConvertsInf)
 {
     half x = create_from_bits("0" "11111111" "00000000000000000000000");
 
@@ -107,7 +41,7 @@ TEST_F(FloatToHalf, ConvertsInf)
 }
 
 
-TEST_F(FloatToHalf, ConvertsNegInf)
+TEST(FloatToHalf, ConvertsNegInf)
 {
     half x = create_from_bits("1" "11111111" "00000000000000000000000");
 
@@ -115,7 +49,7 @@ TEST_F(FloatToHalf, ConvertsNegInf)
 }
 
 
-TEST_F(FloatToHalf, ConvertsNan)
+TEST(FloatToHalf, ConvertsNan)
 {
     half x = create_from_bits("0" "11111111" "00000000000000000000001");
 
@@ -128,7 +62,7 @@ TEST_F(FloatToHalf, ConvertsNan)
 }
 
 
-TEST_F(FloatToHalf, ConvertsNegNan)
+TEST(FloatToHalf, ConvertsNegNan)
 {
     half x = create_from_bits("1" "11111111" "00010000000000000000000");
 
@@ -141,7 +75,7 @@ TEST_F(FloatToHalf, ConvertsNegNan)
 }
 
 
-TEST_F(FloatToHalf, FlushesToZero)
+TEST(FloatToHalf, FlushesToZero)
 {
     half x = create_from_bits("0" "00000111" "00010001000100000001000");
 
@@ -149,7 +83,7 @@ TEST_F(FloatToHalf, FlushesToZero)
 }
 
 
-TEST_F(FloatToHalf, FlushesToNegZero)
+TEST(FloatToHalf, FlushesToNegZero)
 {
     half x = create_from_bits("1" "00000010" "00010001000100000001000");
 
@@ -157,7 +91,7 @@ TEST_F(FloatToHalf, FlushesToNegZero)
 }
 
 
-TEST_F(FloatToHalf, FlushesToInf)
+TEST(FloatToHalf, FlushesToInf)
 {
     half x = create_from_bits("0" "10100000" "10010000000000010000100");
 
@@ -165,7 +99,7 @@ TEST_F(FloatToHalf, FlushesToInf)
 }
 
 
-TEST_F(FloatToHalf, FlushesToNegInf)
+TEST(FloatToHalf, FlushesToNegInf)
 {
     half x = create_from_bits("1" "11000000" "10010000000000010000100");
 
@@ -173,7 +107,7 @@ TEST_F(FloatToHalf, FlushesToNegInf)
 }
 
 
-TEST_F(FloatToHalf, TruncatesSmallNumber)
+TEST(FloatToHalf, TruncatesSmallNumber)
 {
     half x = create_from_bits("0" "01110001" "10010000000000010000100");
 
@@ -181,7 +115,7 @@ TEST_F(FloatToHalf, TruncatesSmallNumber)
 }
 
 
-TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
+TEST(FloatToHalf, TruncatesLargeNumberRoundToEven)
 {
     half neg_x = create_from_bits("1" "10001110" "10010011111000010000100");
     half neg_x2 = create_from_bits("1" "10001110" "10010011101000010000100");
@@ -199,16 +133,7 @@ TEST_F(FloatToHalf, TruncatesLargeNumberRoundToEven)
 }
 
 
-// clang-format on
-
-
-class HalfToFloat : public ExtendedFloatTestBase {};
-
-
-// clang-format off
-
-
-TEST_F(HalfToFloat, ConvertsOne)
+TEST(HalfToFloat, ConvertsOne)
 {
     float x = create_from_bits("0" "01111" "0000000000");
 
@@ -216,7 +141,7 @@ TEST_F(HalfToFloat, ConvertsOne)
 }
 
 
-TEST_F(HalfToFloat, ConvertsZero)
+TEST(HalfToFloat, ConvertsZero)
 {
     float x = create_from_bits("0" "00000" "0000000000");
 
@@ -224,7 +149,7 @@ TEST_F(HalfToFloat, ConvertsZero)
 }
 
 
-TEST_F(HalfToFloat, ConvertsInf)
+TEST(HalfToFloat, ConvertsInf)
 {
     float x = create_from_bits("0" "11111" "0000000000");
 
@@ -232,7 +157,7 @@ TEST_F(HalfToFloat, ConvertsInf)
 }
 
 
-TEST_F(HalfToFloat, ConvertsNegInf)
+TEST(HalfToFloat, ConvertsNegInf)
 {
     float x = create_from_bits("1" "11111" "0000000000");
 
@@ -240,7 +165,7 @@ TEST_F(HalfToFloat, ConvertsNegInf)
 }
 
 
-TEST_F(HalfToFloat, ConvertsNan)
+TEST(HalfToFloat, ConvertsNan)
 {
     float x = create_from_bits("0" "11111" "0001001000");
 
@@ -253,7 +178,7 @@ TEST_F(HalfToFloat, ConvertsNan)
 }
 
 
-TEST_F(HalfToFloat, ConvertsNegNan)
+TEST(HalfToFloat, ConvertsNegNan)
 {
     float x = create_from_bits("1" "11111" "0000000001");
 
@@ -266,7 +191,7 @@ TEST_F(HalfToFloat, ConvertsNegNan)
 }
 
 
-TEST_F(HalfToFloat, ExtendsSmallNumber)
+TEST(HalfToFloat, ExtendsSmallNumber)
 {
     float x = create_from_bits("0" "00001" "1000010001");
 
@@ -274,7 +199,7 @@ TEST_F(HalfToFloat, ExtendsSmallNumber)
 }
 
 
-TEST_F(HalfToFloat, ExtendsLargeNumber)
+TEST(HalfToFloat, ExtendsLargeNumber)
 {
     float x = create_from_bits("1" "11110" "1001001111");
 
