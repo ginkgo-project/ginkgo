@@ -65,6 +65,16 @@ public:
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
 
+    /**
+     * Return whether the local solvers use the data in x as an initial guess.
+     *
+     * @return true when the local solvers use the data in x as an initial
+     * guess. otherwise, false.
+     *
+     * @note TODO: after adding refining step, need to revisit this.
+     */
+    bool apply_uses_initial_guess() const override;
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -141,6 +151,15 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    /**
+     * Prepares the intermediate vector in workspace
+     *
+     * @param vec  vector of the first apply. the intermediate is a copy of vec
+     *             in the return.
+     */
+    template <typename VectorType>
+    void set_cache_to(const VectorType* b) const;
+
 private:
     /**
      * Sets the solver operator used as the local solver.
@@ -150,6 +169,26 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+
+    /**
+     * Manages a vector as a cache, so there is no need to allocate one every
+     * time an intermediate vector is required.
+     * Copying an instance will only yield an empty object since copying the
+     * cached vector would not make sense.
+     *
+     * @internal  The struct is present so the whole class can be copyable
+     *            (could also be done with writing `operator=` and copy
+     *            constructor of the enclosing class by hand)
+     */
+    mutable struct cache_struct {
+        cache_struct() = default;
+        ~cache_struct() = default;
+        cache_struct(const cache_struct&) {}
+        cache_struct(cache_struct&&) {}
+        cache_struct& operator=(const cache_struct&) { return *this; }
+        cache_struct& operator=(cache_struct&&) { return *this; }
+        std::unique_ptr<LinOp> intermediate{};
+    } cache_;
 };
 
 
