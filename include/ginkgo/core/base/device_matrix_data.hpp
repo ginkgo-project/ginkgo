@@ -115,6 +115,11 @@ public:
         std::shared_ptr<const Executor> exec, const host_type& data);
 
     /**
+     * Fills the matrix entries with zeros
+     */
+    void fill_zero();
+
+    /**
      * Sorts the matrix entries in row-major order
      * This means that they will be sorted by row index first, and then by
      * column index inside each row.

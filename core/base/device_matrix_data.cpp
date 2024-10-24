@@ -94,6 +94,15 @@ device_matrix_data<ValueType, IndexType>::create_from_host(
 
 
 template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::fill_zero()
+{
+    row_idxs_.fill(0);
+    col_idxs_.fill(0);
+    values_.fill(ValueType{0});
+}
+
+
+template <typename ValueType, typename IndexType>
 void device_matrix_data<ValueType, IndexType>::sort_row_major()
 {
     this->values_.get_executor()->run(components::make_sort_row_major(*this));
