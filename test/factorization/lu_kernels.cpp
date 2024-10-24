@@ -12,6 +12,8 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -194,11 +196,11 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
+            diag_idxs.get_const_data(), this->mtx_lu.get(), false, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
+            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), false, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
     });
@@ -348,4 +350,85 @@ TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
         GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
                             r<value_type>::value);
     });
+}
+
+
+TYPED_TEST(Lu, GenerateIluWithBitmapIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using matrix_type = typename TestFixture::matrix_type;
+    using sparsity_pattern_type = typename TestFixture::sparsity_pattern_type;
+    // diag + full first row and column
+    // the third and forth row use bitmap for lookup table
+    auto mtx = gko::share(gko::initialize<matrix_type>({{1.0, 1.0, 1.0, 1.0},
+                                                        {1.0, 1.0, 0.0, 0.0},
+                                                        {1.0, 0.0, 1.0, 0.0},
+                                                        {1.0, 0.0, 0.0, 1.0}},
+                                                       this->ref));
+    auto dmtx = gko::share(mtx->clone(this->exec));
+    auto sparsity = gko::share(sparsity_pattern_type::create(this->ref));
+    mtx->convert_to(sparsity);
+    auto dsparsity = gko::share(sparsity->clone(this->exec));
+
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(sparsity)
+            .with_has_all_fillin(false)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(dsparsity)
+            .with_has_all_fillin(false)
+            .on(this->exec);
+
+    auto lu = factory->generate(mtx);
+    auto dlu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateIluWithHashmapIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using matrix_type = typename TestFixture::matrix_type;
+    using sparsity_pattern_type = typename TestFixture::sparsity_pattern_type;
+    int n = 68;
+    // the first row and second last row use hashmap for lookup table
+    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+    for (int i = 0; i < n; i++) {
+        data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+    }
+    // add dependence
+    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    // add a entry whose col idx is not shown in the above row
+    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    data.sort_row_major();
+    auto mtx = gko::share(matrix_type::create(this->ref));
+    mtx->read(data);
+    auto dmtx = gko::share(mtx->clone(this->exec));
+    auto sparsity = gko::share(sparsity_pattern_type::create(this->ref));
+    mtx->convert_to(sparsity);
+    auto dsparsity = gko::share(sparsity->clone(this->exec));
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(sparsity)
+            .with_has_all_fillin(false)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(dsparsity)
+            .with_has_all_fillin(false)
+            .on(this->exec);
+
+    auto lu = factory->generate(mtx);
+    auto dlu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
 }
