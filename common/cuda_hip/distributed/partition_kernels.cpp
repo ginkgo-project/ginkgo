@@ -4,14 +4,17 @@
 
 #include "core/distributed/partition_kernels.hpp"
 
+#include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/scan.h>
+#include <thrust/sequence.h>
 #include <thrust/sort.h>
 
 #include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
@@ -130,6 +133,36 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
+
+
+void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,
+                          const int* range_parts, size_type num_ranges,
+                          int num_parts, array<size_type>& range_ids,
+                          array<int64>& sizes)
+{
+    auto policy = thrust_policy(exec);
+
+    range_ids.resize_and_reset(num_ranges);
+    auto range_ids_ptr = range_ids.get_data();
+    thrust::sequence(policy, range_ids_ptr, range_ids_ptr + num_ranges);
+
+    // mutable copy of range_parts such that it can be used as keys for sorting
+    array<int> range_parts_copy{exec, num_ranges};
+    thrust::copy_n(policy, range_parts, num_ranges,
+                   range_parts_copy.get_data());
+    auto range_parts_ptr = range_parts_copy.get_data();
+
+    thrust::stable_sort_by_key(policy, range_parts_ptr,
+                               range_parts_ptr + num_ranges, range_ids_ptr);
+
+    sizes.resize_and_reset(num_parts);
+    auto sizes_ptr = sizes.get_data();
+    thrust::fill_n(policy, sizes_ptr, num_parts, 0);
+    thrust::for_each_n(policy, range_parts_ptr, num_ranges,
+                       [sizes_ptr] __device__(const size_type pid) {
+                           atomic_add(sizes_ptr + pid, int64(1));
+                       });
+}
 
 
 }  // namespace partition
