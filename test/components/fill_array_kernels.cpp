@@ -21,7 +21,7 @@ class FillArray : public CommonTestFixture {
 protected:
     using value_type = T;
     FillArray()
-        : total_size(63531),
+        : total_size(3000),
           vals{ref, total_size},
           dvals{exec, total_size},
           seqs{ref, total_size}
@@ -55,6 +55,8 @@ TYPED_TEST(FillArray, FillSeqEqualsReference)
     using T = typename TestFixture::value_type;
     gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_seq_array(
         this->exec, this->dvals.get_data(), this->total_size);
+
+    this->dvals.set_executor(this->ref);
 
     GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);
 }

@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -320,7 +321,16 @@ using add_inner_wrapper_t =
     typename detail::add_inner_wrapper<NewInnerWrapper, ListType>::type;
 
 
-using RealValueTypes =
+using RealValueTypes = ::testing::Types<
+#if GINKGO_ENABLE_HALF
+    gko::half,
+#endif
+#if GINKGO_DPCPP_SINGLE_MODE
+    double,
+#endif
+    float>;
+
+using RealValueTypesNoHalf =
 #if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<float>;
 #else
@@ -329,7 +339,13 @@ using RealValueTypes =
 
 using ComplexValueTypes = add_inner_wrapper_t<std::complex, RealValueTypes>;
 
+using ComplexValueTypesNoHalf =
+    add_inner_wrapper_t<std::complex, RealValueTypesNoHalf>;
+
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
+
+using ValueTypesNoHalf =
+    merge_type_list_t<RealValueTypesNoHalf, ComplexValueTypesNoHalf>;
 
 using IndexTypes = ::testing::Types<int32, int64>;
 
@@ -358,22 +374,22 @@ using TwoValueIndexType = add_to_cartesian_type_product_t<
     IndexTypes>;
 
 using ValueLocalGlobalIndexTypes =
-    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
+    add_to_cartesian_type_product_left_t<ValueTypesNoHalf,
+                                         LocalGlobalIndexTypes>;
 
 
 template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
     using nc_precision = remove_complex<Precision>;
-    static constexpr nc_output value{
-        std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
-        (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>())};
+    static nc_output value;
 };
 
 
 template <typename Precision, typename OutputType>
-constexpr remove_complex<OutputType>
-    reduction_factor<Precision, OutputType>::value;
+remove_complex<OutputType> reduction_factor<Precision, OutputType>::value =
+    std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
+    (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>());
 
 
 }  // namespace test
@@ -453,6 +469,50 @@ struct TupleTypenameNameGenerator {
                ">";
     }
 };
+
+
+namespace temporary_test {
+
+
+// singly linked list of all our supported precisions
+template <typename T>
+struct next_precision_impl {};
+
+template <>
+struct next_precision_impl<gko::half> {
+    using type = float;
+};
+
+template <>
+struct next_precision_impl<float> {
+    using type = double;
+};
+
+template <>
+struct next_precision_impl<double> {
+    using type = float;
+};
+
+
+template <typename T>
+struct next_precision_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_impl<T>::type>;
+};
+
+
+}  // namespace temporary_test
+
+template <typename T>
+using next_precision = typename temporary_test::next_precision_impl<T>::type;
+
+
+#define SKIP_IF_HALF(type)                                                   \
+    if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
+        GTEST_SKIP() << "Skip due to half mode";                             \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

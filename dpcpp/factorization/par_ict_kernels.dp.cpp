@@ -356,7 +356,7 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
 
     if (subwarp.thread_rank() == 0) {
         auto to_write = row == col
-                            ? std::sqrt(a_val - sum)
+                            ? gko::sqrt(a_val - sum)
                             : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
         if (is_finite(to_write)) {
             l_vals[l_nz] = to_write;
