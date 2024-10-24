@@ -58,7 +58,7 @@ protected:
     std::unique_ptr<Mtx> perm2;
 };
 
-TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

@@ -47,7 +47,7 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

@@ -48,18 +48,23 @@ protected:
     void generate_sin(gko::ptr_param<Dense> x)
     {
         value_type* const xarr = x->get_values();
+        // we do not have sin for half, so we compute sin in double or
+        // complex<double>
+        using working_type = std::conditional_t<gko::is_complex<value_type>(),
+                                                std::complex<double>, double>;
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
-            xarr[i] =
-                static_cast<real_type>(2.0) *
-                std::sin(static_cast<real_type>(i / 2.0) + get_random_value());
+            xarr[i] = static_cast<value_type>(
+                2.0 * std::sin(i / 2.0 +
+                               static_cast<working_type>(get_random_value())));
         }
     }
 };
 
 #ifdef GKO_COMPILING_HIP
-TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypesWithHalf,
+                 TypenameNameGenerator);
 #else
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 #endif
 
 TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
@@ -124,6 +129,8 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
+        // FBCSR on accelerator does not have half precision apply through
+        // vendor libraries.
         SKIP_IF_HALF(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
@@ -149,6 +156,8 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
+        // FBCSR on accelerator does not have half precision apply through
+        // vendor libraries.
         SKIP_IF_HALF(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
@@ -175,6 +184,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
+        // FBCSR on accelerator does not have half precision apply through
+        // vendor libraries.
         SKIP_IF_HALF(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
@@ -208,6 +219,8 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
+        // FBCSR on accelerator does not have half precision apply through
+        // vendor libraries.
         SKIP_IF_HALF(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
