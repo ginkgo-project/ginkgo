@@ -9,86 +9,22 @@
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/half.hpp>
+#include "core/test/base/floating_bit_helper.hpp"
 
 
-namespace {
+using namespace floating_bit_helper;
 
+using half = gko::half;
 
-template <std::size_t N>
-struct floating_impl;
+template <typename T, std::size_t NumComponents, std::size_t ComponentId>
+using truncated = gko::truncated<T, NumComponents, ComponentId>;
 
-template <>
-struct floating_impl<16> {
-    using type = gko::half;
-};
-
-template <>
-struct floating_impl<32> {
-    using type = float;
-};
-
-template <>
-struct floating_impl<64> {
-    using type = double;
-};
-
-template <std::size_t N>
-using floating = typename floating_impl<N>::type;
-
-
-class ExtendedFloatTestBase : public ::testing::Test {
-protected:
-    using half = gko::half;
-    template <typename T, std::size_t NumComponents, std::size_t ComponentId>
-    using truncated = gko::truncated<T, NumComponents, ComponentId>;
-
-    static constexpr auto byte_size = gko::byte_size;
-
-    template <std::size_t N>
-    static floating<N - 1> create_from_bits(const char (&s)[N])
-    {
-        auto bits = std::bitset<N - 1>(s).to_ullong();
-        // We cast to the same size of integer type first.
-        // Otherwise, the first memory chunk is different when we use
-        // reinterpret_cast or memcpy to get the smaller type out of unsigned
-        // long long.
-        using bits_type =
-            typename gko::detail::float_traits<floating<N - 1>>::bits_type;
-        auto bits_val = static_cast<bits_type>(bits);
-        floating<N - 1> result;
-        static_assert(sizeof(floating<N - 1>) == sizeof(bits_type),
-                      "the type should have the same size as its bits_type");
-        std::memcpy(&result, &bits_val, sizeof(bits_type));
-        return result;
-    }
-
-    template <typename T>
-    static std::bitset<sizeof(T) * byte_size> get_bits(T val)
-    {
-        using bits_type = typename gko::detail::float_traits<T>::bits_type;
-        bits_type bits;
-        static_assert(sizeof(T) == sizeof(bits_type),
-                      "the type should have the same size as its bits_type");
-        std::memcpy(&bits, &val, sizeof(T));
-        return std::bitset<sizeof(T) * byte_size>(bits);
-    }
-
-    template <std::size_t N>
-    static std::bitset<N - 1> get_bits(const char (&s)[N])
-    {
-        return std::bitset<N - 1>(s);
-    }
-};
-
-
-class TruncatedDouble : public ExtendedFloatTestBase {};
 
 // clang-format does terrible formatting of string literal concatenation
 // clang-format off
 
 
-TEST_F(TruncatedDouble, SplitsDoubleToHalves)
+TEST(TruncatedDouble, SplitsDoubleToHalves)
 {
     double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
@@ -102,7 +38,7 @@ TEST_F(TruncatedDouble, SplitsDoubleToHalves)
 }
 
 
-TEST_F(TruncatedDouble, AssemblesDoubleFromHalves)
+TEST(TruncatedDouble, AssemblesDoubleFromHalves)
 {
     double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
@@ -121,7 +57,7 @@ TEST_F(TruncatedDouble, AssemblesDoubleFromHalves)
 }
 
 
-TEST_F(TruncatedDouble, SplitsDoubleToQuarters)
+TEST(TruncatedDouble, SplitsDoubleToQuarters)
 {
     double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
@@ -138,7 +74,7 @@ TEST_F(TruncatedDouble, SplitsDoubleToQuarters)
 }
 
 
-TEST_F(TruncatedDouble, AssemblesDoubleFromQuarters)
+TEST(TruncatedDouble, AssemblesDoubleFromQuarters)
 {
     double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
@@ -167,16 +103,7 @@ TEST_F(TruncatedDouble, AssemblesDoubleFromQuarters)
 }
 
 
-// clang-format on
-
-
-class TruncatedFloat : public ExtendedFloatTestBase {};
-
-
-// clang-format off
-
-
-TEST_F(TruncatedFloat, SplitsFloatToHalves)
+TEST(TruncatedFloat, SplitsFloatToHalves)
 {
     float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
 
@@ -188,7 +115,7 @@ TEST_F(TruncatedFloat, SplitsFloatToHalves)
 }
 
 
-TEST_F(TruncatedFloat, AssemblesFloatFromHalves)
+TEST(TruncatedFloat, AssemblesFloatFromHalves)
 {
     float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
     auto p1 = static_cast<truncated<float, 2, 0>>(x);
@@ -205,6 +132,3 @@ TEST_F(TruncatedFloat, AssemblesFloatFromHalves)
 
 
 // clang-format on
-
-
-}  // namespace
