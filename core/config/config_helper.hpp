@@ -60,10 +60,12 @@ enum class LinOpFactoryType : int {
     ParIct,
     ParIlu,
     ParIlut,
+    GaussSeidel,
     Ic,
     Ilu,
     Isai,
     Jacobi,
+    Sor,
     Multigrid,
     Pgm,
     Schwarz
