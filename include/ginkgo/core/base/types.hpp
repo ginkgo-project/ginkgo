@@ -17,6 +17,8 @@
 #include <string>
 #include <type_traits>
 
+#include <ginkgo/core/base/half.hpp>
+
 
 #ifdef __HIPCC__
 #include <hip/hip_runtime.h>
@@ -136,9 +138,6 @@ using uint64 = std::uint64_t;
  * Unsigned integer type capable of holding a pointer to void
  */
 using uintptr = std::uintptr_t;
-
-
-class half;
 
 
 /**
