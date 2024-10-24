@@ -37,7 +37,7 @@ class ExtendedFloatTestBase : public ::testing::Test {
 protected:
     using half = gko::half;
 
-    static constexpr auto byte_size = gko::byte_size;
+    static constexpr auto byte_size = gko::detail::byte_size;
 
     template <std::size_t N>
     static floating<N - 1> create_from_bits(const char (&s)[N])

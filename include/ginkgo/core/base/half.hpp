@@ -6,12 +6,11 @@
 #define GKO_PUBLIC_CORE_BASE_HALF_HPP_
 
 
+#include <climits>
 #include <complex>
+#include <cstdint>
 #include <cstring>
 #include <type_traits>
-
-#include <ginkgo/core/base/std_extensions.hpp>
-#include <ginkgo/core/base/types.hpp>
 
 
 class __half;
@@ -20,29 +19,34 @@ class __half;
 namespace gko {
 
 
-template <typename, size_type, size_type>
+template <typename, std::size_t, std::size_t>
 class truncated;
+
+
+class half;
 
 
 namespace detail {
 
+
+constexpr std::size_t byte_size = CHAR_BIT;
 
 template <std::size_t, typename = void>
 struct uint_of_impl {};
 
 template <std::size_t Bits>
 struct uint_of_impl<Bits, std::enable_if_t<(Bits <= 16)>> {
-    using type = uint16;
+    using type = std::uint16_t;
 };
 
 template <std::size_t Bits>
 struct uint_of_impl<Bits, std::enable_if_t<(16 < Bits && Bits <= 32)>> {
-    using type = uint32;
+    using type = std::uint32_t;
 };
 
 template <std::size_t Bits>
 struct uint_of_impl<Bits, std::enable_if_t<(32 < Bits) && (Bits <= 64)>> {
-    using type = uint64;
+    using type = std::uint64_t;
 };
 
 template <std::size_t Bits>
@@ -53,8 +57,8 @@ template <typename T>
 struct basic_float_traits {};
 
 template <>
-struct basic_float_traits<float16> {
-    using type = float16;
+struct basic_float_traits<half> {
+    using type = half;
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 10;
     static constexpr int exponent_bits = 5;
@@ -71,8 +75,8 @@ struct basic_float_traits<__half> {
 };
 
 template <>
-struct basic_float_traits<float32> {
-    using type = float32;
+struct basic_float_traits<float> {
+    using type = float;
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 23;
     static constexpr int exponent_bits = 8;
@@ -80,15 +84,16 @@ struct basic_float_traits<float32> {
 };
 
 template <>
-struct basic_float_traits<float64> {
-    using type = float64;
+struct basic_float_traits<double> {
+    using type = double;
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 52;
     static constexpr int exponent_bits = 11;
     static constexpr bool rounds_to_nearest = true;
 };
 
-template <typename FloatType, size_type NumComponents, size_type ComponentId>
+template <typename FloatType, std::size_t NumComponents,
+          std::size_t ComponentId>
 struct basic_float_traits<truncated<FloatType, NumComponents, ComponentId>> {
     using type = truncated<FloatType, NumComponents, ComponentId>;
     static constexpr int sign_bits = ComponentId == 0 ? 1 : 0;
@@ -281,7 +286,7 @@ private:
 class half {
 public:
     // create half value from the bits directly.
-    static constexpr half create_from_bits(uint16 bits) noexcept
+    static constexpr half create_from_bits(std::uint16_t bits) noexcept
     {
         half result;
         result.data_ = bits;
@@ -376,19 +381,19 @@ public:
     }
 
 private:
-    using f16_traits = detail::float_traits<float16>;
-    using f32_traits = detail::float_traits<float32>;
+    using f16_traits = detail::float_traits<half>;
+    using f32_traits = detail::float_traits<float>;
 
     void float2half(float val) noexcept
     {
-        uint32 bit_val(0);
+        std::uint32_t bit_val(0);
         std::memcpy(&bit_val, &val, sizeof(float));
         data_ = float2half(bit_val);
     }
 
-    static constexpr uint16 float2half(uint32 data_) noexcept
+    static constexpr std::uint16_t float2half(std::uint32_t data_) noexcept
     {
-        using conv = detail::precision_converter<float32, float16>;
+        using conv = detail::precision_converter<float, half>;
         if (f32_traits::is_inf(data_)) {
             return conv::shift_sign(data_) | f16_traits::exponent_mask;
         } else if (f32_traits::is_nan(data_)) {
@@ -417,9 +422,9 @@ private:
         }
     }
 
-    static constexpr uint32 half2float(uint16 data_) noexcept
+    static constexpr std::uint32_t half2float(std::uint16_t data_) noexcept
     {
-        using conv = detail::precision_converter<float16, float32>;
+        using conv = detail::precision_converter<half, float>;
         if (f16_traits::is_inf(data_)) {
             return conv::shift_sign(data_) | f32_traits::exponent_mask;
         } else if (f16_traits::is_nan(data_)) {
@@ -434,7 +439,7 @@ private:
         }
     }
 
-    uint16 data_;
+    std::uint16_t data_;
 };
 
 
