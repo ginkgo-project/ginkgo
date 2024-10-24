@@ -334,10 +334,13 @@ public:
         data_ = result.data_;                                      \
         return *this;                                              \
     }
+
     HALF_OPERATOR(+, +=)
     HALF_OPERATOR(-, -=)
     HALF_OPERATOR(*, *=)
     HALF_OPERATOR(/, /=)
+
+#undef HALF_OPERATOR
 
     // Do operation with different type
     // If it is floating point, using floating point as type.
@@ -372,6 +375,8 @@ public:
     HALF_FRIEND_OPERATOR(-, -=)
     HALF_FRIEND_OPERATOR(*, *=)
     HALF_FRIEND_OPERATOR(/, /=)
+
+#undef HALF_FRIEND_OPERATOR
 
     // the negative
     half operator-() const
@@ -587,6 +592,8 @@ public:
     COMPLEX_HALF_OPERATOR(-, -=)
     COMPLEX_HALF_OPERATOR(*, *=)
     COMPLEX_HALF_OPERATOR(/, /=)
+
+#undef COMPLEX_HALF_OPERATOR
 
 private:
     value_type real_;
