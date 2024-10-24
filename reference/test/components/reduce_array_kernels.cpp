@@ -31,7 +31,7 @@ protected:
     gko::array<value_type> vals;
 };
 
-TYPED_TEST_SUITE(ReduceArray, gko::test::ComplexAndPODTypes,
+TYPED_TEST_SUITE(ReduceArray, gko::test::ComplexAndPODTypesWithHalf,
                  TypenameNameGenerator);
 
 
