@@ -32,7 +32,8 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Mtx = gko::matrix::Coo<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using MixedVec =
+        gko::matrix::Dense<gko::next_precision_with_half<value_type>>;
 
     Coo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
@@ -72,14 +73,15 @@ protected:
     std::unique_ptr<Mtx> uns_mtx;
 };
 
-TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Coo, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Coo = typename TestFixture::Mtx;
     using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
     auto tmp = OtherCoo::create(this->exec);
@@ -101,7 +103,7 @@ TYPED_TEST(Coo, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Coo = typename TestFixture::Mtx;
     using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
     auto tmp = OtherCoo::create(this->exec);
@@ -111,11 +113,12 @@ TYPED_TEST(Coo, MovesToPrecision)
         r<OtherType>::value < r<ValueType>::value
             ? gko::remove_complex<ValueType>{0}
             : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
-    ;
 
     this->mtx->move_to(tmp);
     tmp->move_to(res);
 
+    // TODO: When use move_to to the different precision, it will keep the
+    // original data
     GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
 }
 
@@ -215,7 +218,7 @@ TYPED_TEST(Coo, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Coo = typename TestFixture::Mtx;
     using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
     auto empty = OtherCoo::create(this->exec);
@@ -232,7 +235,7 @@ TYPED_TEST(Coo, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Coo = typename TestFixture::Mtx;
     using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
     auto empty = OtherCoo::create(this->exec);
@@ -703,7 +706,7 @@ TYPED_TEST(Coo, AppliesToComplex)
 TYPED_TEST(Coo, AppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -759,7 +762,7 @@ TYPED_TEST(Coo, AdvancedAppliesToComplex)
 TYPED_TEST(Coo, AdvancedAppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
@@ -817,7 +820,7 @@ TYPED_TEST(Coo, ApplyAddsToComplex)
 TYPED_TEST(Coo, ApplyAddsToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedVec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -874,7 +877,7 @@ TYPED_TEST(Coo, ApplyAddsScaledToComplex)
 TYPED_TEST(Coo, ApplyAddsScaledToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;

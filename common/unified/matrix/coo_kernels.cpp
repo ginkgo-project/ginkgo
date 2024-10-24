@@ -38,7 +38,7 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
         diag->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 
@@ -58,7 +58,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
         orig->get_const_row_idxs(), orig->get_const_col_idxs(), result);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL);
 
 
