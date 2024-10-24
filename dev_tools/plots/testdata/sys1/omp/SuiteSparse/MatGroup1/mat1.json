@@ -1,0 +1,323 @@
+[
+    {
+        "filename": "Mat1.mtx",
+        "problem": {
+            "id": 1421,
+            "group": "AMD",
+            "name": "Mat1",
+            "rows": 1585478,
+            "cols": 1585478,
+            "nonzeros": 7660826,
+            "real": true,
+            "binary": false,
+            "2d3d": false,
+            "posdef": true,
+            "psym": 1,
+            "nsym": 1,
+            "kind": "circuit simulation problem",
+            "columns": 1585478,
+            "row_distribution": {
+                "min": 2,
+                "q1": 5.0,
+                "median": 5.0,
+                "q3": 5.0,
+                "max": 6,
+                "mean": 4.831871523918969,
+                "variance": 0.4120113939641734,
+                "skewness": -0.7514079487508694,
+                "kurtosis": 4.28282640007319,
+                "hyperskewness": -6.6135071757493339,
+                "hyperflatness": 27.278212633379785
+            },
+            "col_distribution": {
+                "min": 2,
+                "q1": 5.0,
+                "median": 5.0,
+                "q3": 5.0,
+                "max": 6,
+                "mean": 4.831871523918969,
+                "variance": 0.4120113939641734,
+                "skewness": -0.7514079487508694,
+                "kurtosis": 4.28282640007319,
+                "hyperskewness": -6.6135071757493339,
+                "hyperflatness": 27.278212633379785
+            }
+        },
+        "spmv": {
+            "csr": {
+                "storage": 98271828,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.002,
+                "repetitions": 10,
+                "completed": true
+            },
+            "coo": {
+                "storage": 122573216,
+                "max_relative_norm2": 0.0,
+                "time": 0.003,
+                "repetitions": 10,
+                "completed": true
+            },
+            "ell": {
+                "storage": 114154416,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0016,
+                "repetitions": 10,
+                "completed": true
+            },
+            "hybrid": {
+                "storage": 97557560,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0027,
+                "repetitions": 10,
+                "completed": true
+            },
+            "sellp": {
+                "storage": 94528616,
+                "max_relative_norm2": 6.669855766599258e-20,
+                "time": 0.0008,
+                "repetitions": 10,
+                "completed": true
+            }
+        },
+        "optimal": {
+            "spmv": "sellp"
+        },
+        "solver": {
+            "bicgstab": {
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00001818
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00006101,
+                        "bicgstab::initialize#16": 0.01427447,
+                        "bicgstab::step_1#8": 0.00204689,
+                        "bicgstab::step_2#7": 0.00179872,
+                        "bicgstab::step_3#11": 0.00345634,
+                        "coo::advanced_spmv2#4": 0.0003239,
+                        "coo::spmv2#3": 0.00635636,
+                        "copy": 0.00000331,
+                        "dense::compute_conj_dot#3": 0.19597434,
+                        "dense::compute_norm2#2": 0.07708383,
+                        "dense::copy#2": 0.0014627,
+                        "ell::advanced_spmv#5": 0.00333004,
+                        "ell::spmv#3": 0.06602941,
+                        "free": 0.00921202,
+                        "residual_norm::residual_norm#9": 0.00129101,
+                        "set_all_statuses::set_all_statuses#3": 0.0000268
+                    },
+                    "iterations": 10,
+                    "time": 0.39507873
+                },
+                "preconditioner": {},
+                "residual_norm": 13477.396942281928,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cg": {
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00002952
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.000054697,
+                        "cg::initialize#8": 0.0071973,
+                        "cg::step_1#5": 0.001130863,
+                        "cg::step_2#7": 0.00270213,
+                        "coo::advanced_spmv2#4": 0.00030327,
+                        "coo::spmv2#3": 0.00269607,
+                        "copy": 0.00000275,
+                        "dense::compute_conj_dot#3": 0.10120465,
+                        "dense::compute_norm2#2": 0.03974784,
+                        "dense::copy#2": 0.000774291,
+                        "ell::advanced_spmv#5": 0.00324723,
+                        "ell::spmv#3": 0.044079793,
+                        "free": 0.00483809,
+                        "residual_norm::residual_norm#9": 0.00061778,
+                        "set_all_statuses::set_all_statuses#3": 0.00002823
+                    },
+                    "iterations": 10,
+                    "time": 0.17930695
+                },
+                "preconditioner": {},
+                "residual_norm": 50298.150552097635,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cgs": {
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00001846
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00006323,
+                        "cgs::initialize#15": 0.01404799,
+                        "cgs::step_1#8": 0.0017607,
+                        "cgs::step_2#8": 0.003390968,
+                        "cgs::step_3#6": 0.00235694,
+                        "coo::advanced_spmv2#4": 0.00023586,
+                        "coo::spmv2#3": 0.00493818,
+                        "copy": 0.00000265,
+                        "dense::compute_conj_dot#3": 0.10639034,
+                        "dense::compute_norm2#2": 0.0418882,
+                        "dense::copy#2": 0.00137059,
+                        "ell::advanced_spmv#5": 0.00280956,
+                        "ell::spmv#3": 0.06152125,
+                        "free": 0.009940948,
+                        "residual_norm::residual_norm#9": 0.00057854,
+                        "set_all_statuses::set_all_statuses#3": 0.00002663
+                    },
+                    "iterations": 10,
+                    "time": 0.23278807
+                },
+                "preconditioner": {},
+                "residual_norm": 1875222394.9218646,
+                "repetitions": 1,
+                "completed": true
+            },
+            "fcg": {
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00001978
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00004111,
+                        "coo::advanced_spmv2#4": 0.00023372,
+                        "coo::spmv2#3": 0.00315367,
+                        "copy": 0.0000027,
+                        "dense::compute_conj_dot#3": 0.15185558,
+                        "dense::compute_norm2#2": 0.04217892,
+                        "dense::copy#2": 0.00070966,
+                        "ell::advanced_spmv#5": 0.0024403,
+                        "ell::spmv#3": 0.033372688,
+                        "fcg::initialize#10": 0.00728434,
+                        "fcg::step_1#5": 0.00130854,
+                        "fcg::step_2#8": 0.00295464,
+                        "free": 0.0048454,
+                        "residual_norm::residual_norm#9": 0.00064012,
+                        "set_all_statuses::set_all_statuses#3": 0.00002932
+                    },
+                    "iterations": 10,
+                    "time": 0.23843361
+                },
+                "preconditioner": {},
+                "residual_norm": 50298.150552097504,
+                "repetitions": 1,
+                "completed": true
+            },
+            "gmres": {
+                "preconditioner": {},
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00001799
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00007448,
+                        "coo::advanced_spmv2#4": 0.00023636,
+                        "coo::spmv2#3": 0.0080149,
+                        "copy": 0.000002268,
+                        "dense::add_scaled#3": 0.00075981,
+                        "dense::compute_norm2#2": 0.00343347,
+                        "dense::copy#2": 0.00935479,
+                        "ell::advanced_spmv#5": 0.00239343,
+                        "ell::spmv#3": 0.03040352,
+                        "free": 0.01613415,
+                        "gmres::initialize_1#6": 0.00196887,
+                        "gmres::initialize_2#6": 0.00234809,
+                        "gmres::step_1#10": 0.11881495,
+                        "gmres::step_2#6": 0.0034344,
+                        "residual_norm::residual_norm#9": 0.01189996,
+                        "set_all_statuses::set_all_statuses#3": 0.00072153
+                    },
+                    "iterations": 10,
+                    "time": 0.08855554
+                },
+                "residual_norm": 1104.1045390767304,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cb_gmres_reduce1": {
+                "preconditioner": {},
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00001754
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00008109,
+                        "cb_gmres::initialize_1#6": 0.00048418,
+                        "cb_gmres::initialize_2#8": 0.08773086,
+                        "cb_gmres::step_1#14": 0.11180756,
+                        "cb_gmres::step_2#6": 0.00195539,
+                        "coo::advanced_spmv2#4": 0.0003298,
+                        "coo::spmv2#3": 0.003338464,
+                        "copy": 0.00000378,
+                        "dense::add_scaled#3": 0.0001597,
+                        "dense::compute_norm2#2": 0.00347904,
+                        "dense::copy#2": 0.00453477,
+                        "ell::advanced_spmv#5": 0.0055971,
+                        "ell::spmv#3": 0.03059874,
+                        "free": 0.05157629,
+                        "residual_norm::residual_norm#9": 0.00062263,
+                        "set_all_statuses::set_all_statuses#3": 0.00002865
+                    },
+                    "iterations": 10,
+                    "time": 0.46850213
+                },
+                "residual_norm": 1104.1045390274242,
+                "repetitions": 1,
+                "completed": true
+            },
+            "idr": {
+                "preconditioner": {},
+                "rhs_norm": 1108.171918070477,
+                "generate": {
+                    "components": {},
+                    "time": 0.00002396
+                },
+                "apply": {
+                    "components": {
+                        "allocate": 0.00004904,
+                        "components::fill_array#3": 0.00754432,
+                        "coo::advanced_spmv2#4": 0.00028676,
+                        "coo::spmv2#3": 0.01062265,
+                        "copy": 0.0000031,
+                        "dense::add_scaled#3": 0.00279654,
+                        "dense::compute_conj_dot#3": 0.08970721,
+                        "dense::compute_norm2#2": 0.04512073,
+                        "dense::copy#2": 0.00449856,
+                        "dense::scale#2": 0.00086024,
+                        "dense::simple_apply#3": 0.23602924,
+                        "ell::advanced_spmv#5": 0.00232226,
+                        "ell::spmv#3": 0.10437250000000001,
+                        "free": 0.008841676,
+                        "idr::compute_omega#6": 0.00026846,
+                        "idr::initialize#5": 1.55424497,
+                        "idr::step_1#9": 0.00839414,
+                        "idr::step_2#7": 0.003342894,
+                        "idr::step_3#12": 0.42771016,
+                        "residual_norm::residual_norm#9": 0.00219459,
+                        "set_all_statuses::set_all_statuses#3": 0.00003228
+                    },
+                    "iterations": 10,
+                    "time": 2.6883887
+                },
+                "residual_norm": 2432.921168533838,
+                "repetitions": 1,
+                "completed": true
+            }
+	}
+    }
+]
