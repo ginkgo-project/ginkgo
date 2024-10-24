@@ -114,7 +114,7 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
 {
     using RT = gko::remove_complex<T>;
     std::default_random_engine engine(39);
-    std::normal_distribution<RT> dist(0.0, 5.0);
+    std::normal_distribution<> dist(0.0, 5.0);
     std::uniform_int_distribution<> nnzdist(1, nrhs);
     return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
         nrows, nrhs, nnzdist, dist, engine, exec);
@@ -271,7 +271,7 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
@@ -294,7 +294,7 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
@@ -393,7 +393,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -412,7 +412,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);

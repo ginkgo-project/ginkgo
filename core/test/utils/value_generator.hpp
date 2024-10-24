@@ -33,7 +33,7 @@ template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
-    return value_dist(gen);
+    return static_cast<ValueType>(value_dist(gen));
 }
 
 /**
@@ -45,7 +45,9 @@ template <typename ValueType, typename ValueDistribution, typename Engine>
 typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 {
-    return ValueType(value_dist(gen), value_dist(gen));
+    using real_type = remove_complex<ValueType>;
+    return ValueType(static_cast<real_type>(value_dist(gen)),
+                     static_cast<real_type>(value_dist(gen)));
 }
 
 
