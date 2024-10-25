@@ -132,7 +132,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
@@ -364,6 +364,9 @@ TYPED_TEST(ScaledReordered, AppliesWithRcmReordering)
 TYPED_TEST(ScaledReordered, SolvesSingleRhsWithOnlyInnerOperator)
 {
     using SR = typename TestFixture::SR;
+    using value_type = typename TestFixture::value_type;
+    // Need to solve them with scaling when using half
+    SKIP_IF_HALF(value_type);
     auto scaled_reordered_fact =
         SR::build().with_inner_operator(this->solver_factory).on(this->exec);
     auto scaled_reordered = scaled_reordered_fact->generate(this->rcm_mtx);
@@ -410,6 +413,9 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithColScaling)
 TYPED_TEST(ScaledReordered, SolvesSingleRhsWithRcmReordering)
 {
     using SR = typename TestFixture::SR;
+    using value_type = typename TestFixture::value_type;
+    // Need to solve them with scaling when using half
+    SKIP_IF_HALF(value_type);
     auto scaled_reordered_fact = SR::build()
                                      .with_reordering(this->rcm_factory)
                                      .with_inner_operator(this->solver_factory)
@@ -445,7 +451,8 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using Vec = gko::matrix::Dense<gko::next_precision<T>>;
+    using OtherT = gko::next_precision_with_half<T>;
+    using Vec = gko::matrix::Dense<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)
@@ -459,7 +466,10 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
 
     scaled_reordered->apply(b, res);
 
-    GKO_ASSERT_MTX_NEAR(res, x, 1e-5);
+    auto tol = std::max(static_cast<double>(r<OtherT>::value),
+                        static_cast<double>(r<T>::value)) *
+               15;
+    GKO_ASSERT_MTX_NEAR(res, x, tol);
 }
 
 
@@ -467,6 +477,7 @@ TYPED_TEST(ScaledReordered, AdvancedSolvesSingleRhsWithScalingAndRcmReordering)
 {
     using SR = typename TestFixture::SR;
     using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
     const auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     const auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto scaled_reordered_fact = SR::build()
@@ -489,8 +500,8 @@ TYPED_TEST(ScaledReordered,
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using value_type = gko::next_precision<T>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using OtherT = gko::next_precision_with_half<T>;
+    using Vec = gko::matrix::Dense<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)
@@ -506,7 +517,10 @@ TYPED_TEST(ScaledReordered,
 
     scaled_reordered->apply(alpha, b, beta, res);
 
-    GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), 1e-5);
+    auto tol = std::max(static_cast<double>(r<OtherT>::value),
+                        static_cast<double>(r<T>::value)) *
+               15;
+    GKO_ASSERT_MTX_NEAR(res, l({-8.3, -12.5, -5.9, -2., 2.9}), tol);
 }
 
 

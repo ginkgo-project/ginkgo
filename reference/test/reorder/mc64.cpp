@@ -70,7 +70,8 @@ protected:
     std::unique_ptr<reorder_type> mc64_factory;
 };
 
-TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Mc64, HasSensibleDefaults)
@@ -86,11 +87,13 @@ TYPED_TEST(Mc64, HasSensibleDefaults)
 TYPED_TEST(Mc64, CanBeCreatedWithReorderingStrategy)
 {
     using reorder_type = typename TestFixture::reorder_type;
+    using real_type = typename TestFixture::real_type;
 
     auto mc64 =
         reorder_type::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
+            .with_tolerance(real_type{1e-4})
             .on(this->exec)
             ->generate(this->not_id3_mtx);
 
@@ -123,7 +126,7 @@ TYPED_TEST(Mc64, CanBeCreatedWithTolerance)
     using real_type = typename TestFixture::real_type;
 
     auto mc64 = reorder_type::build()
-                    .with_tolerance(real_type{1e-10})
+                    .with_tolerance(real_type{1e-4})
                     .on(this->exec)
                     ->generate(this->id3_mtx);
 
