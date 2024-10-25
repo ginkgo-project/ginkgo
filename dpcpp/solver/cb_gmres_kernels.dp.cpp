@@ -939,11 +939,11 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
 
     initialize_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), b->get_size()[0],
-        b->get_size()[1], krylov_dim, b->get_const_values(), b->get_stride(),
-        residual->get_values(), residual->get_stride(),
-        givens_sin->get_values(), givens_sin->get_stride(),
-        givens_cos->get_values(), givens_cos->get_stride(),
-        stop_status->get_data());
+        b->get_size()[1], krylov_dim, as_device_type(b->get_const_values()),
+        b->get_stride(), as_device_type(residual->get_values()),
+        residual->get_stride(), givens_sin->get_values(),
+        givens_sin->get_stride(), givens_cos->get_values(),
+        givens_cos->get_stride(), stop_status->get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
@@ -990,7 +990,8 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
         multinorminf_without_stop_kernel(
             grid_size_nrm, block_size_nrm, 0, exec->get_queue(), num_rows,
-            num_rhs, residual->get_const_values(), residual->get_stride(),
+            num_rhs, as_device_type(residual->get_const_values()),
+            residual->get_stride(),
             arnoldi_norm->get_values() + 2 * stride_arnoldi, 0);
     }
 
@@ -1009,7 +1010,7 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     restart_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
-        residual->get_size()[1], residual->get_const_values(),
+        residual->get_size()[1], as_device_type(residual->get_const_values()),
         residual->get_stride(), residual_norm->get_const_values(),
         residual_norm_collection->get_values(), krylov_bases,
         next_krylov_basis->get_values(), next_krylov_basis->get_stride(),
@@ -1255,9 +1256,10 @@ void solve_upper_triangular(
     solve_upper_triangular_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), hessenberg->get_size()[1],
         num_rhs, residual_norm_collection->get_const_values(),
-        residual_norm_collection->get_stride(), hessenberg->get_const_values(),
-        hessenberg->get_stride(), y->get_values(), y->get_stride(),
-        final_iter_nums->get_const_data());
+        residual_norm_collection->get_stride(),
+        as_device_type(hessenberg->get_const_values()),
+        hessenberg->get_stride(), as_device_type(y->get_values()),
+        y->get_stride(), final_iter_nums->get_const_data());
 }
 
 
@@ -1283,7 +1285,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
     calculate_Qy_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-        krylov_bases, y->get_const_values(), y->get_stride(),
+        krylov_bases, as_device_type(y->get_const_values()), y->get_stride(),
         before_preconditioner->get_values(), stride_before_preconditioner,
         final_iter_nums->get_const_data());
     // Calculate qy

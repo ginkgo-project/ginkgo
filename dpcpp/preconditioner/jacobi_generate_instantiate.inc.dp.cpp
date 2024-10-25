@@ -365,14 +365,15 @@ void generate(syn::value_list<int, max_block_size>,
                                   warps_per_block>(
             grid_size, block_size, 0, exec->get_queue(), mtx->get_size()[0],
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            mtx->get_const_values(), accuracy, block_data, storage_scheme,
-            conditioning, block_precisions, block_ptrs, num_blocks);
+            as_device_type(mtx->get_const_values()), accuracy, block_data,
+            storage_scheme, conditioning, block_precisions, block_ptrs,
+            num_blocks);
     } else {
         kernel::generate<max_block_size, subwarp_size, warps_per_block>(
             grid_size, block_size, 0, exec->get_queue(), mtx->get_size()[0],
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            mtx->get_const_values(), block_data, storage_scheme, block_ptrs,
-            num_blocks);
+            as_device_type(mtx->get_const_values()), block_data, storage_scheme,
+            block_ptrs, num_blocks);
     }
 }
 
