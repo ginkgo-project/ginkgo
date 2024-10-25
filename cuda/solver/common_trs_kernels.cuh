@@ -212,12 +212,16 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
 
         size_type work_size{};
 
+        // nullptr is considered nullptr_t not casted to the function signature
+        // automatically Explicitly cast `nullptr` to `const ValueType*` to
+        // prevent compiler issues with gnu/llvm 9
         sparselib::buffer_size_ext(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
             SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
+            matrix->get_const_col_idxs(),
+            static_cast<const ValueType*>(nullptr), num_rhs, solve_info, policy,
             &work_size);
 
         // allocate workspace
@@ -228,7 +232,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), nullptr, num_rhs, solve_info, policy,
+            matrix->get_const_col_idxs(),
+            static_cast<const ValueType*>(nullptr), num_rhs, solve_info, policy,
             work.get_data());
     }
 
@@ -357,6 +362,10 @@ struct float_to_unsigned_impl<float> {
     using type = uint32;
 };
 
+template <>
+struct float_to_unsigned_impl<__half> {
+    using type = uint16;
+};
 
 /**
  * Checks if a floating point number representation matches the representation
@@ -503,7 +512,7 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = 0.0;
+    ValueType sum = zero<ValueType>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {

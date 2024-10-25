@@ -45,7 +45,7 @@ protected:
     std::unique_ptr<Solver> upper_trs_solver;
 };
 
-TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
