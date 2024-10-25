@@ -389,7 +389,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         u_new);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL);
 
 
