@@ -46,7 +46,7 @@ protected:
     std::unique_ptr<gko::LinOp> solver;
 };
 
-TYPED_TEST_SUITE(Cgs, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Cgs, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Cgs, CgsFactoryKnowsItsExecutor)
