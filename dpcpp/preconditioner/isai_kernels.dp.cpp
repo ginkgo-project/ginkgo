@@ -365,7 +365,7 @@ void generate_general_inverse(
 
         if (spd) {
             auto diag = subwarp.shfl(sol, num_elems - 1);
-            sol /= std::sqrt(diag);
+            sol /= gko::sqrt(diag);
         }
 
         return sol;
@@ -531,7 +531,7 @@ void scale_excess_solution(const IndexType* __restrict__ excess_block_ptrs,
         return;
     }
     const auto diag = excess_solution[block_end - 1];
-    const ValueType scal = one<ValueType>() / std::sqrt(diag);
+    const ValueType scal = one<ValueType>() / gko::sqrt(diag);
 
     for (size_type i = block_begin + local_id; i < block_end;
          i += subwarp_size) {
@@ -642,7 +642,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
 
 
@@ -669,7 +669,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
 
 
@@ -699,7 +699,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
 
 
@@ -718,7 +718,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
 
 
@@ -742,7 +742,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 

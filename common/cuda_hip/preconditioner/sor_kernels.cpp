@@ -26,7 +26,7 @@ void initialize_weighted_l(
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
-    auto inv_weight = one(weight) / weight;
+    auto inv_weight = as_device_type(one(weight) / weight);
 
     if (grid_dim > 0) {
         using namespace gko::factorization;
@@ -46,7 +46,7 @@ void initialize_weighted_l(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L);
 
 
@@ -62,9 +62,10 @@ void initialize_weighted_l_u(
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
-    auto inv_weight = one(weight) / weight;
-    auto inv_two_minus_weight =
-        one(weight) / (static_cast<remove_complex<ValueType>>(2.0) - weight);
+    auto inv_weight = as_device_type(one(weight) / weight);
+    auto inv_two_minus_weight = as_device_type(
+        one(weight) / (static_cast<remove_complex<ValueType>>(2.0) - weight));
+    auto d_weight = as_device_type(weight);
 
     if (grid_dim > 0) {
         using namespace gko::factorization;
@@ -87,13 +88,13 @@ void initialize_weighted_l_u(
                     [inv_two_minus_weight] __device__(auto val) {
                         return val * inv_two_minus_weight;
                     },
-                    [weight, inv_two_minus_weight] __device__(auto val) {
-                        return val * weight * inv_two_minus_weight;
+                    [d_weight, inv_two_minus_weight] __device__(auto val) {
+                        return val * d_weight * inv_two_minus_weight;
                     }));
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U);
 
 
