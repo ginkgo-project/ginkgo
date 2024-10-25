@@ -57,7 +57,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
 {
     auto old_row_ptrs = a->get_const_row_ptrs();
     auto old_col_idxs = a->get_const_col_idxs();
-    auto old_vals = a->get_const_values();
+    auto old_vals = as_device_type(a->get_const_values());
     // compute nnz for each row
     auto num_rows = static_cast<IndexType>(a->get_size()[0]);
     auto block_size = default_block_size / subgroup_size;

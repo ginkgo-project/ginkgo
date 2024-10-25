@@ -356,16 +356,16 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     matrix::CsrBuilder<ValueType, IndexType> u_new_builder(u_new);
     auto lu_row_ptrs = lu->get_const_row_ptrs();
     auto lu_col_idxs = lu->get_const_col_idxs();
-    auto lu_vals = lu->get_const_values();
+    auto lu_vals = as_device_type(lu->get_const_values());
     auto a_row_ptrs = a->get_const_row_ptrs();
     auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = a->get_const_values();
+    auto a_vals = as_device_type(a->get_const_values());
     auto l_row_ptrs = l->get_const_row_ptrs();
     auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_const_values();
+    auto l_vals = as_device_type(l->get_const_values());
     auto u_row_ptrs = u->get_const_row_ptrs();
     auto u_col_idxs = u->get_const_col_idxs();
-    auto u_vals = u->get_const_values();
+    auto u_vals = as_device_type(u->get_const_values());
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     // count non-zeros per row

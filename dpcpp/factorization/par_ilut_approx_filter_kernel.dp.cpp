@@ -58,7 +58,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
-    auto values = m->get_const_values();
+    auto values = as_device_type(m->get_const_values());
     IndexType size = m->get_num_stored_elements();
     using AbsType = remove_complex<ValueType>;
     constexpr auto bucket_count = kernel::searchtree_width;
@@ -102,7 +102,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
     // filter the elements
     auto old_row_ptrs = m->get_const_row_ptrs();
     auto old_col_idxs = m->get_const_col_idxs();
-    auto old_vals = m->get_const_values();
+    auto old_vals = as_device_type(m->get_const_values());
     // compute nnz for each row
     auto num_rows = static_cast<IndexType>(m->get_size()[0]);
     auto block_size = default_block_size / subgroup_size;

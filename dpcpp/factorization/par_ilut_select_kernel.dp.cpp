@@ -61,7 +61,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       array<remove_complex<ValueType>>& tmp2,
                       remove_complex<ValueType>& threshold)
 {
-    auto values = m->get_const_values();
+    auto values = as_device_type(m->get_const_values());
     IndexType size = m->get_num_stored_elements();
     using AbsType = remove_complex<ValueType>;
     constexpr auto bucket_count = kernel::searchtree_width;
