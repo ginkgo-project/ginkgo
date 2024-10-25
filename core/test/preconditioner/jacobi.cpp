@@ -43,7 +43,7 @@ protected:
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
 
-TYPED_TEST_SUITE(JacobiFactory, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(JacobiFactory, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

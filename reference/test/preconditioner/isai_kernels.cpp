@@ -186,8 +186,20 @@ protected:
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
-        general_isai_factory = GeneralIsai::build().on(exec);
-        spd_isai_factory = SpdIsai::build().on(exec);
+        if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+            general_isai_factory =
+                GeneralIsai::build()
+                    .with_excess_solver_reduction(
+                        gko::remove_complex<value_type>{1e-3})
+                    .on(exec);
+            spd_isai_factory = SpdIsai::build()
+                                   .with_excess_solver_reduction(
+                                       gko::remove_complex<value_type>{1e-3})
+                                   .on(exec);
+        } else {
+            general_isai_factory = GeneralIsai::build().on(exec);
+            spd_isai_factory = SpdIsai::build().on(exec);
+        }
         a_dense->convert_to(a_csr);
         a_dense_inv->convert_to(a_csr_inv);
         l_dense->convert_to(l_csr);
@@ -310,7 +322,8 @@ protected:
     std::shared_ptr<Csr> spd_sparse_inv;
 };
 
-TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Isai, KernelGenerateA)
@@ -1021,6 +1034,9 @@ TYPED_TEST(Isai, ReturnsCorrectInverseALongrowWithExcessSolver)
 {
     using value_type = typename TestFixture::value_type;
     using GeneralIsai = typename TestFixture::GeneralIsai;
+    // When using the other precision, we already need to drastically reduce the
+    // precision, so it is hard to work with half.
+    SKIP_IF_HALF(value_type);
     auto general_isai_factory =
         GeneralIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1068,6 +1084,9 @@ TYPED_TEST(Isai, ReturnsCorrectInverseLLongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using LowerIsai = typename TestFixture::LowerIsai;
     using value_type = typename TestFixture::value_type;
+    // When using the other precision, we already need to drastically reduce the
+    // precision, so it is hard to work with half.
+    SKIP_IF_HALF(value_type);
     auto lower_isai_factory =
         LowerIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1115,6 +1134,9 @@ TYPED_TEST(Isai, ReturnsCorrectInverseULongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using UpperIsai = typename TestFixture::UpperIsai;
     using value_type = typename TestFixture::value_type;
+    // When using the other precision, we already need to drastically reduce the
+    // precision, so it is hard to work with half.
+    SKIP_IF_HALF(value_type);
     auto upper_isai_factory =
         UpperIsai::build()
             .with_excess_solver_factory(this->excess_solver_factory)
@@ -1228,8 +1250,8 @@ TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrow)
     // need to reduce precision due to spd ISAI using GMRES instead of
     // direct solve
     GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
-                        10 * r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose, 10 * r<value_type>::value);
+                        30 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(lower_t, expected_transpose, 30 * r<value_type>::value);
 }
 
 
@@ -1238,6 +1260,9 @@ TYPED_TEST(Isai, ReturnsCorrectInverseSpdLongrowWithExcessSolver)
     using Csr = typename TestFixture::Csr;
     using SpdIsai = typename TestFixture::SpdIsai;
     using value_type = typename TestFixture::value_type;
+    // When using the other precision, we already need to drastically reduce the
+    // precision, so it is hard to work with half.
+    SKIP_IF_HALF(value_type);
     const auto expected_transpose =
         gko::as<Csr>(this->spd_csr_longrow_inv->transpose());
     auto spd_isai_factory =

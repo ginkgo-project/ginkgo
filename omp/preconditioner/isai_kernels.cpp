@@ -230,7 +230,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
                      trs_solve, true);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
 
 
@@ -324,7 +324,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
                      general_solve, false);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
 
 
@@ -388,7 +388,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     e_row_ptrs[e_dim] = excess_nz_ptrs[e_end] - excess_nz_ptrs[e_start];
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
 
 
@@ -415,7 +415,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
 
 
@@ -441,7 +441,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 

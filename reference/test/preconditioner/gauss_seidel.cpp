@@ -47,7 +47,7 @@ public:
     std::shared_ptr<csr_type> mtx = csr_type::create(exec);
 };
 
-TYPED_TEST_SUITE(GaussSeidel, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(GaussSeidel, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
