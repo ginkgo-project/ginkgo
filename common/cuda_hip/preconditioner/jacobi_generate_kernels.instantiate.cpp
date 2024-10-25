@@ -268,7 +268,7 @@ void generate(syn::value_list<int, max_block_size>,
         remove_complex<ValueType>*, precision_reduction*, const IndexType*,  \
         size_type)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     DECLARE_JACOBI_GENERATE_INSTANTIATION);
 
 

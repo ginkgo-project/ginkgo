@@ -144,7 +144,8 @@ protected:
     std::unique_ptr<Bj> adaptive_bj;
 };
 
-TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
@@ -477,7 +478,7 @@ TYPED_TEST(Jacobi, ScalarJacobiGeneratesOnDifferentPrecision)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using next_type = gko::next_precision<value_type>;
+    using next_type = gko::next_precision_with_half<value_type>;
     using Bj = typename TestFixture::Bj;
     auto csr =
         gko::share(gko::matrix::Csr<next_type, index_type>::create(this->exec));

@@ -86,7 +86,8 @@ protected:
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Jacobi, CanBeGenerated)
@@ -561,11 +562,14 @@ TYPED_TEST(Jacobi, SelectsCorrectBlockPrecisions)
 
     auto prec =
         bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    auto precision2 = std::is_same<gko::remove_complex<T>, float>::value
-                          ? gko::precision_reduction(0, 0)   // float
-                          : gko::precision_reduction(0, 1);  // double
-    EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));  // u * cond = ~1.2e-3
-    ASSERT_EQ(prec[1], precision2);                      // u * cond = ~2.0e-3
+    auto precision1 = std::is_same<gko::remove_complex<T>, gko::half>::value
+                          ? gko::precision_reduction(2, 0)
+                          : gko::precision_reduction(0, 2);
+    auto precision2 = std::is_same<gko::remove_complex<T>, double>::value
+                          ? gko::precision_reduction(0, 1)   // double
+                          : gko::precision_reduction(0, 0);  // float, half
+    EXPECT_EQ(prec[0], precision1);  // u * cond = ~1.2e-3
+    ASSERT_EQ(prec[1], precision2);  // u * cond = ~2.0e-3
 }
 
 
@@ -606,6 +610,9 @@ TYPED_TEST(Jacobi, AvoidsPrecisionsThatOverflow)
     auto precision = std::is_same<gko::remove_complex<T>, float>::value
                          ? gko::precision_reduction(0, 2)   // float
                          : gko::precision_reduction(1, 1);  // double
+    if (std::is_same<gko::remove_complex<T>, gko::half>::value) {
+        precision = gko::precision_reduction(2, 0);
+    }
     EXPECT_EQ(prec[0], precision);
     ASSERT_EQ(prec[1], precision);
 }
@@ -642,7 +649,8 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesToVector)
 
 TYPED_TEST(Jacobi, AppliesToMixedVector)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
@@ -682,8 +690,8 @@ TYPED_TEST(Jacobi, AppliesToComplexVector)
 
 TYPED_TEST(Jacobi, AppliesToMixedComplexVector)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using value_type = gko::to_complex<
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Vec = gko::matrix::Dense<value_type>;
     auto x = gko::initialize<Vec>(
         {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
@@ -888,7 +896,8 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesLinearCombinationToVector)
 
 TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
@@ -931,7 +940,8 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
 
 TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedComplexVector)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using MixedDense = gko::matrix::Dense<value_type>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;
     using T = gko::to_complex<value_type>;
