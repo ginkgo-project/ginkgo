@@ -21,6 +21,7 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
@@ -189,8 +190,9 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, DeviceConfig::block_size>, 0>
+        sycl::local_accessor<uninitialized_array<device_type<ValueType>,
+                                                 DeviceConfig::block_size>,
+                             0>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
@@ -198,8 +200,8 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             [=](sycl::nd_item<3> item_ct1)
                 [[sycl::reqd_sub_group_size(DeviceConfig::subgroup_size)]] {
                     reduce_add_array<DeviceConfig>(
-                        size, source, result, item_ct1,
-                        *block_sum_acc_ct1.get_pointer());
+                        size, as_device_type(source), as_device_type(result),
+                        item_ct1, *block_sum_acc_ct1.get_pointer());
                 });
     });
 }
