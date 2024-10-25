@@ -121,7 +121,8 @@ protected:
     std::unique_ptr<typename Solver::Factory> bicgstab_factory_precision;
 };
 
-TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(Bicgstab, KernelInitialize)
@@ -383,7 +384,8 @@ TYPED_TEST(Bicgstab, SolvesDenseSystem)
 
 TYPED_TEST(Bicgstab, SolvesDenseSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -419,8 +421,8 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemComplex)
 
 TYPED_TEST(Bicgstab, SolvesDenseSystemMixedComplex)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using value_type = gko::to_complex<
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -489,13 +491,14 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
 
     solver->apply(alpha, b, beta, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}), 2 * r<value_type>::value);
 }
 
 
 TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -506,7 +509,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixed)
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}),
-                        (r_mixed<value_type, TypeParam>()));
+                        (2 * r_mixed<value_type, TypeParam>()));
 }
 
 
@@ -522,14 +525,14 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyComplex)
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
     auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        {value_type{0.5, -0.5}, value_type{1.0, 0.5}, value_type{2.0, -1.0}},
         this->exec);
 
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
-                           value_type{6.0, -12.0}}),
+                        l({value_type{-8.5, 16.5}, value_type{-3.0, 3.5},
+                           value_type{6.0, -15.0}}),
                         r<value_type>::value);
 }
 
@@ -537,7 +540,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyComplex)
 TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 {
     using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->bicgstab_factory->generate(this->mtx);
@@ -547,14 +550,14 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
     auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        {value_type{0.5, -0.5}, value_type{1.0, 0.5}, value_type{2.0, -1.0}},
         this->exec);
 
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
-                           value_type{6.0, -12.0}}),
+                        l({value_type{-8.5, 16.5}, value_type{-3.0, 3.5},
+                           value_type{6.0, -15.0}}),
                         (r_mixed<value_type, TypeParam>()));
 }
 
@@ -585,6 +588,9 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // beta encounters huge value out of the half-precision range in the first
+    // part of the second iteration
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
@@ -613,6 +619,9 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // beta encounters huge value out of the half-precision range in the first
+    // part of second iteration
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
@@ -642,6 +651,9 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
+    // beta encounters huge value out of the half-precision range in the first
+    // part of second iteration
+    SKIP_IF_HALF(value_type);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
                               {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},

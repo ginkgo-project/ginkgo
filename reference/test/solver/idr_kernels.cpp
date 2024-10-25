@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <iostream>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/solver_progress.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -57,7 +60,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> idr_factory_precision;
 };
 
-TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Idr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Idr, SolvesDenseSystem)
@@ -76,7 +79,8 @@ TYPED_TEST(Idr, SolvesDenseSystem)
 
 TYPED_TEST(Idr, SolvesDenseSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using T = typename TestFixture::value_type;
+    using value_type = gko::next_precision_with_half<T>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -91,6 +95,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixed)
 
 TYPED_TEST(Idr, SolvesDenseSystemComplex)
 {
+    using T = typename TestFixture::value_type;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->idr_factory->generate(this->mtx);
@@ -112,8 +117,8 @@ TYPED_TEST(Idr, SolvesDenseSystemComplex)
 
 TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using T = typename TestFixture::value_type;
+    using value_type = gko::to_complex<gko::next_precision_with_half<T>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -137,6 +142,7 @@ TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
+    // intermediate value is too small to represent in half
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver_factory =
         Solver::build()
@@ -231,7 +237,8 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
 
 TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -273,7 +280,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyComplex)
 TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 {
     using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->idr_factory->generate(this->mtx);
@@ -321,6 +328,9 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the internal vector t will be too large in the first run and then out of
+    // the half precision range.
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
@@ -357,6 +367,9 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the internal vector t will be too large in the first run and then out of
+    // the half precision range.
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
@@ -386,6 +399,9 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
+    // the internal vector t will be too large in the first run and then out of
+    // the half precision range.
+    SKIP_IF_HALF(value_type);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
                               {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},

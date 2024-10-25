@@ -44,7 +44,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_GCR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -78,7 +79,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_GCR_RESTART_KERNEL);
 
 
 template <typename ValueType>
@@ -104,7 +105,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_GCR_STEP_1_KERNEL);
 
 }  // namespace gcr
 }  // namespace GKO_DEVICE_NAMESPACE
