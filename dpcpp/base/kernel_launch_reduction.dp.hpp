@@ -239,7 +239,8 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 
@@ -261,7 +262,8 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 
@@ -658,8 +660,8 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, result_stride, size, tmp,
-        map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result),
+        result_stride, size, tmp, map_to_device(args)...);
 }
 
 
@@ -681,7 +683,8 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 

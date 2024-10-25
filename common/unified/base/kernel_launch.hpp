@@ -76,16 +76,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-
-
-template <typename T>
-using device_type = T;
-
-template <typename T>
-device_type<T> as_device_type(T value)
-{
-    return value;
-}
+#include "dpcpp/base/types.hpp"
 
 
 template <typename T>
@@ -96,6 +87,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 {
     return value;
 }
+
 
 }  // namespace dpcpp
 }  // namespace kernels
