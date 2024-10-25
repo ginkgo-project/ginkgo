@@ -40,7 +40,7 @@ protected:
     std::unique_ptr<typename MgLevel::Factory> pgm_factory;
 };
 
-TYPED_TEST_SUITE(PgmFactory, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(PgmFactory, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
