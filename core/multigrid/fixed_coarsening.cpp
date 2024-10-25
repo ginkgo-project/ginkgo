@@ -90,7 +90,8 @@ void FixedCoarsening<ValueType, IndexType>::generate()
 
 #define GKO_DECLARE_FIXED_COARSENING(_vtype, _itype) \
     class FixedCoarsening<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_FIXED_COARSENING);
 
 
 }  // namespace multigrid

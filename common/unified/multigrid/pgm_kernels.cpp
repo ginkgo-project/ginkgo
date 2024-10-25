@@ -217,7 +217,7 @@ void find_strongest_neighbor(
         strongest_neighbor.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR);
 
 template <typename ValueType, typename IndexType>
@@ -305,7 +305,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 
 
