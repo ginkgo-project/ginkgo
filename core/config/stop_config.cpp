@@ -87,7 +87,8 @@ deferred_factory_parameter<stop::CriterionFactory> configure_residual(
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ResidualNormConfigurer>(
         config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()));
+        make_type_selector(updated.get_value_typestr(),
+                           value_type_list_with_half()));
 }
 
 
@@ -119,7 +120,8 @@ deferred_factory_parameter<stop::CriterionFactory> configure_implicit_residual(
     auto updated = update_type(config, td);
     return dispatch<stop::CriterionFactory, ImplicitResidualNormConfigurer>(
         config, context, updated,
-        make_type_selector(updated.get_value_typestr(), value_type_list()));
+        make_type_selector(updated.get_value_typestr(),
+                           value_type_list_with_half()));
 }
 
 
