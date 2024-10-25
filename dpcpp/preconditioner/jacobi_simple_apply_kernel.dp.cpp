@@ -56,8 +56,8 @@ void simple_apply(
             syn::type_list<>(), exec, num_blocks,
             block_precisions.get_const_data(), block_pointers.get_const_data(),
             blocks.get_const_data(), storage_scheme,
-            b->get_const_values() + col, b->get_stride(), x->get_values() + col,
-            x->get_stride());
+            as_device_type(b->get_const_values()) + col, b->get_stride(),
+            as_device_type(x->get_values()) + col, x->get_stride());
     }
 }
 

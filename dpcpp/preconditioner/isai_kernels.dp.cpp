@@ -626,16 +626,20 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
             kernel::generate_l_inverse<subwarp_size, subwarps_per_block>(
                 grid, block, 0, exec->get_queue(),
                 static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
-                input->get_const_col_idxs(), input->get_const_values(),
+                input->get_const_col_idxs(),
+                as_device_type(input->get_const_values()),
                 inverse->get_row_ptrs(), inverse->get_col_idxs(),
-                inverse->get_values(), excess_rhs_ptrs, excess_nz_ptrs);
+                as_device_type(inverse->get_values()), excess_rhs_ptrs,
+                excess_nz_ptrs);
         } else {
             kernel::generate_u_inverse<subwarp_size, subwarps_per_block>(
                 grid, block, 0, exec->get_queue(),
                 static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
-                input->get_const_col_idxs(), input->get_const_values(),
+                input->get_const_col_idxs(),
+                as_device_type(input->get_const_values()),
                 inverse->get_row_ptrs(), inverse->get_col_idxs(),
-                inverse->get_values(), excess_rhs_ptrs, excess_nz_ptrs);
+                as_device_type(inverse->get_values()), excess_rhs_ptrs,
+                excess_nz_ptrs);
         }
     }
     components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
@@ -661,9 +665,9 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
         kernel::generate_general_inverse<subwarp_size, subwarps_per_block>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
             input->get_const_row_ptrs(), input->get_const_col_idxs(),
-            input->get_const_values(), inverse->get_row_ptrs(),
-            inverse->get_col_idxs(), inverse->get_values(), excess_rhs_ptrs,
-            excess_nz_ptrs, spd);
+            as_device_type(input->get_const_values()), inverse->get_row_ptrs(),
+            inverse->get_col_idxs(), as_device_type(inverse->get_values()),
+            excess_rhs_ptrs, excess_nz_ptrs, spd);
     }
     components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
@@ -691,11 +695,11 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
         kernel::generate_excess_system<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
             input->get_const_row_ptrs(), input->get_const_col_idxs(),
-            input->get_const_values(), inverse->get_const_row_ptrs(),
-            inverse->get_const_col_idxs(), excess_rhs_ptrs, excess_nz_ptrs,
-            excess_system->get_row_ptrs(), excess_system->get_col_idxs(),
-            excess_system->get_values(), excess_rhs->get_values(), e_start,
-            e_end);
+            as_device_type(input->get_const_values()),
+            inverse->get_const_row_ptrs(), inverse->get_const_col_idxs(),
+            excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
+            excess_system->get_col_idxs(), excess_system->get_values(),
+            excess_rhs->get_values(), e_start, e_end);
     }
 }
 
@@ -737,8 +741,8 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
         kernel::copy_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
             inverse->get_const_row_ptrs(), excess_rhs_ptrs,
-            excess_solution->get_const_values(), inverse->get_values(), e_start,
-            e_end);
+            excess_solution->get_const_values(),
+            as_device_type(inverse->get_values()), e_start, e_end);
     }
 }
 
