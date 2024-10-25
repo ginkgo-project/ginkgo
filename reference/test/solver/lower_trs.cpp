@@ -45,7 +45,7 @@ protected:
     std::unique_ptr<Solver> solver;
 };
 
-TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
