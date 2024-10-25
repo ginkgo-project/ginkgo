@@ -22,6 +22,7 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -103,9 +104,9 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
             uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
-        auto in = orig->get_const_values();
+        auto in = as_device_type(orig->get_const_values());
         auto in_stride = orig->get_stride();
-        auto out = trans->get_values();
+        auto out = as_device_type(trans->get_values());
         auto out_stride = trans->get_stride();
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -223,9 +224,11 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
                     transpose::nontrans, c->get_size()[0], c->get_size()[1],
-                    a->get_size()[1], one<ValueType>(), a->get_const_values(),
-                    a->get_stride(), b->get_const_values(), b->get_stride(),
-                    zero<ValueType>(), c->get_values(), c->get_stride());
+                    a->get_size()[1], one<ValueType>(),
+                    as_device_type(a->get_const_values()), a->get_stride(),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    zero<ValueType>(), as_device_type(c->get_values()),
+                    c->get_stride());
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -254,10 +257,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
                     transpose::nontrans, c->get_size()[0], c->get_size()[1],
                     a->get_size()[1],
                     exec->copy_val_to_host(alpha->get_const_values()),
-                    a->get_const_values(), a->get_stride(),
-                    b->get_const_values(), b->get_stride(),
+                    as_device_type(a->get_const_values()), a->get_stride(),
+                    as_device_type(b->get_const_values()), b->get_stride(),
                     exec->copy_val_to_host(beta->get_const_values()),
-                    c->get_values(), c->get_stride());
+                    as_device_type(c->get_values()), c->get_stride());
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -278,12 +281,12 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
     const auto stride = source->get_stride();
 
     auto rows = result->get_row_idxs();
     auto cols = result->get_col_idxs();
-    auto vals = result->get_values();
+    auto vals = as_device_type(result->get_values());
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
@@ -313,12 +316,12 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
     const auto stride = source->get_stride();
 
     const auto row_ptrs = result->get_const_row_ptrs();
     auto cols = result->get_col_idxs();
-    auto vals = result->get_values();
+    auto vals = as_device_type(result->get_values());
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
@@ -348,11 +351,11 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
     const auto in_stride = source->get_stride();
 
     auto cols = result->get_col_idxs();
-    auto vals = result->get_values();
+    auto vals = as_device_type(result->get_values());
     const auto stride = result->get_stride();
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
@@ -408,14 +411,14 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
     const auto in_stride = source->get_stride();
     const auto ell_stride = result->get_ell_stride();
     auto ell_cols = result->get_ell_col_idxs();
-    auto ell_vals = result->get_ell_values();
+    auto ell_vals = as_device_type(result->get_ell_values());
     auto coo_rows = result->get_coo_row_idxs();
     auto coo_cols = result->get_coo_col_idxs();
-    auto coo_vals = result->get_coo_values();
+    auto coo_vals = as_device_type(result->get_coo_values());
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
@@ -463,11 +466,11 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto stride = source->get_stride();
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
 
     const auto slice_sets = result->get_const_slice_sets();
     const auto slice_size = result->get_slice_size();
-    auto vals = result->get_values();
+    auto vals = as_device_type(result->get_values());
     auto col_idxs = result->get_col_idxs();
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
@@ -505,7 +508,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = source->get_const_values();
+    const auto in_vals = as_device_type(source->get_const_values());
     const auto stride = source->get_stride();
 
     const auto row_ptrs = result->get_const_row_ptrs();
@@ -571,9 +574,10 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     const auto sg_size = DCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
-    kernel::conj_transpose_call(cfg, grid, block, 0, queue, size[0], size[1],
-                                orig->get_const_values(), orig->get_stride(),
-                                trans->get_values(), trans->get_stride());
+    kernel::conj_transpose_call(
+        cfg, grid, block, 0, queue, size[0], size[1],
+        as_device_type(orig->get_const_values()), orig->get_stride(),
+        as_device_type(trans->get_values()), trans->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(

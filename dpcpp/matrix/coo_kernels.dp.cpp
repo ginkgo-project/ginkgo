@@ -294,20 +294,22 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_lines, a->get_const_values(),
+                          num_lines, as_device_type(a->get_const_values()),
                           a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          b->get_const_values(), b->get_stride(),
-                          c->get_values(), c->get_stride());
+                          as_device_type(b->get_const_values()),
+                          b->get_stride(), as_device_type(c->get_values()),
+                          c->get_stride());
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_elems, a->get_const_values(),
+                          num_elems, as_device_type(a->get_const_values()),
                           a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          b_ncols, b->get_const_values(), b->get_stride(),
-                          c->get_values(), c->get_stride());
+                          b_ncols, as_device_type(b->get_const_values()),
+                          b->get_stride(), as_device_type(c->get_values()),
+                          c->get_stride());
         }
     }
 }
@@ -333,21 +335,24 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_lines, alpha->get_const_values(),
-                          a->get_const_values(), a->get_const_col_idxs(),
-                          a->get_const_row_idxs(), b->get_const_values(),
-                          b->get_stride(), c->get_values(), c->get_stride());
+                          num_lines, as_device_type(alpha->get_const_values()),
+                          as_device_type(a->get_const_values()),
+                          a->get_const_col_idxs(), a->get_const_row_idxs(),
+                          as_device_type(b->get_const_values()),
+                          b->get_stride(), as_device_type(c->get_values()),
+                          c->get_stride());
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_elems, alpha->get_const_values(),
-                          a->get_const_values(), a->get_const_col_idxs(),
-                          a->get_const_row_idxs(), b_ncols,
-                          b->get_const_values(), b->get_stride(),
-                          c->get_values(), c->get_stride());
+                          num_elems, as_device_type(alpha->get_const_values()),
+                          as_device_type(a->get_const_values()),
+                          a->get_const_col_idxs(), a->get_const_row_idxs(),
+                          b_ncols, as_device_type(b->get_const_values()),
+                          b->get_stride(), as_device_type(c->get_values()),
+                          c->get_stride());
         }
     }
 }
