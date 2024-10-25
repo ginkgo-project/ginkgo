@@ -117,24 +117,28 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ic>(
         return dispatch<gko::LinOpFactory,
                         IcHelper2<solver::LowerTrs>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_with_half()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "solver::Ir") {
         return dispatch<gko::LinOpFactory, IcHelper1<solver::Ir>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_with_half()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "preconditioner::LowerIsai") {
         return dispatch<gko::LinOpFactory,
                         IcHelper2<preconditioner::LowerIsai>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_with_half()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "solver::Gmres") {
         return dispatch<gko::LinOpFactory,
                         IcHelper1<solver::Gmres>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_with_half()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else {
         GKO_INVALID_CONFIG_VALUE("l_solver_type", str);
@@ -194,7 +198,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "solver::Ir") {
@@ -204,7 +208,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "preconditioner::LowerIsai") {
@@ -214,7 +218,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "solver::Gmres") {
@@ -224,7 +228,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {
@@ -256,7 +260,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::lower>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "upper") {
@@ -265,7 +269,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::upper>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "general") {
@@ -274,7 +278,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::general>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "spd") {
@@ -283,7 +287,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::spd>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list()),
+                                   value_type_list_with_half()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {
@@ -296,7 +300,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
 
 
 GKO_PARSE_VALUE_AND_INDEX_TYPE(GaussSeidel, gko::preconditioner::GaussSeidel);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Jacobi, gko::preconditioner::Jacobi);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Jacobi, gko::preconditioner::Jacobi);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Sor, gko::preconditioner::Sor);
 
 
