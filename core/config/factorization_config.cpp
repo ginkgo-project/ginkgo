@@ -23,15 +23,18 @@ namespace gko {
 namespace config {
 
 
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Factorization_Ic, gko::factorization::Ic);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Factorization_Ilu, gko::factorization::Ilu);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Cholesky,
-                               gko::experimental::factorization::Cholesky);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Lu, gko::experimental::factorization::Lu);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(ParIlu, gko::factorization::ParIlu);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(ParIlut, gko::factorization::ParIlut);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(ParIc, gko::factorization::ParIc);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(ParIct, gko::factorization::ParIct);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Factorization_Ic,
+                                         gko::factorization::Ic);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Factorization_Ilu,
+                                         gko::factorization::Ilu);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    Cholesky, gko::experimental::factorization::Cholesky);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Lu,
+                                         gko::experimental::factorization::Lu);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(ParIlu, gko::factorization::ParIlu);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(ParIlut, gko::factorization::ParIlut);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(ParIc, gko::factorization::ParIc);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(ParIct, gko::factorization::ParIct);
 
 
 }  // namespace config
