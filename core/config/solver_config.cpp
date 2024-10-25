@@ -40,9 +40,10 @@ GKO_PARSE_VALUE_TYPE_WITH_HALF(Idr, gko::solver::Idr);
 GKO_PARSE_VALUE_TYPE_WITH_HALF(Gcr, gko::solver::Gcr);
 GKO_PARSE_VALUE_TYPE_WITH_HALF(Gmres, gko::solver::Gmres);
 GKO_PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Direct,
+                                         gko::experimental::solver::Direct);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(LowerTrs, gko::solver::LowerTrs);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(UpperTrs, gko::solver::UpperTrs);
 
 
 template <>
