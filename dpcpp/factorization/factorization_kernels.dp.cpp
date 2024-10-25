@@ -428,7 +428,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
-    auto dpcpp_old_values = mtx->get_const_values();
+    auto dpcpp_old_values = as_device_type(mtx->get_const_values());
     auto dpcpp_old_col_idxs = mtx->get_const_col_idxs();
     auto dpcpp_old_row_ptrs = mtx->get_row_ptrs();
     auto dpcpp_row_ptrs_add = row_ptrs_addition.get_data();
