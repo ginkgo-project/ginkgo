@@ -72,12 +72,12 @@ void calculate_sin_and_cos_kernel(size_type col_idx, size_type num_cols,
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
     } else {
-        const auto scale = std::abs(this_hess) + std::abs(next_hess);
+        const auto scale = gko::abs(this_hess) + gko::abs(next_hess);
         const auto hypotenuse =
             scale *
-            std::sqrt(
-                std::abs(this_hess / scale) * std::abs(this_hess / scale) +
-                std::abs(next_hess / scale) * std::abs(next_hess / scale));
+            gko::sqrt(
+                gko::abs(this_hess / scale) * gko::abs(this_hess / scale) +
+                gko::abs(next_hess / scale) * gko::abs(next_hess / scale));
         register_cos = conj(this_hess) / hypotenuse;
         register_sin = conj(next_hess) / hypotenuse;
     }
@@ -102,7 +102,7 @@ void calculate_residual_norm_kernel(size_type col_idx, size_type num_cols,
     const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
-    residual_norm[col_idx] = std::abs(next_rnc);
+    residual_norm[col_idx] = gko::abs(next_rnc);
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] = next_rnc;
 }

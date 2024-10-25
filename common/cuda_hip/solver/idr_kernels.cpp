@@ -344,9 +344,13 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
 
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
+        const auto normt = sqrt(real(tht[global_id]));
+        if (normt == zero<remove_complex<ValueType>>()) {
+            omega[global_id] = zero<ValueType>();
+            return;
+        }
         omega[global_id] /= tht[global_id];
-        auto absrho =
-            abs(thr / (sqrt(real(tht[global_id])) * residual_norm[global_id]));
+        auto absrho = abs(thr / (normt * residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;
@@ -555,7 +559,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -582,7 +587,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -609,7 +614,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
@@ -626,7 +631,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
     update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>
@@ -644,7 +649,8 @@ void compute_omega(
         as_device_type(omega->get_values()), stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
 }  // namespace idr
