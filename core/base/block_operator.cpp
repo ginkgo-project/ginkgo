@@ -19,8 +19,12 @@ namespace {
 template <typename Fn>
 auto dispatch_dense(Fn&& fn, LinOp* v)
 {
-    return run<matrix::Dense, float, double, std::complex<float>,
-               std::complex<double>>(v, std::forward<Fn>(fn));
+    return run<matrix::Dense, float, double,
+#if GINKGO_ENABLE_HALF
+               half, std::complex<half>,
+#endif
+               std::complex<float>, std::complex<double>>(v,
+                                                          std::forward<Fn>(fn));
 }
 
 

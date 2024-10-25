@@ -182,7 +182,7 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 #define GKO_DECLARE_PERTURBATION(_type) class Perturbation<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PERTURBATION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_PERTURBATION);
 
 
 }  // namespace gko

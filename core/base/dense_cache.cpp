@@ -33,7 +33,7 @@ void DenseCache<ValueType>::init_from(
 
 
 #define GKO_DECLARE_DENSE_CACHE(_type) struct DenseCache<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_DENSE_CACHE);
 
 
 }  // namespace detail
