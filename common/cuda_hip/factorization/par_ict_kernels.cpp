@@ -390,13 +390,21 @@ void compute_factor(syn::value_list<int, subwarp_size>,
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     if (num_blocks > 0) {
-        kernel::ict_sweep<subwarp_size>
-            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                a->get_const_row_ptrs(), a->get_const_col_idxs(),
-                as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
-                l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
-                as_device_type(l->get_values()),
-                static_cast<IndexType>(l->get_num_stored_elements()));
+#ifdef GKO_COMPILING_HIP
+        if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+            // HIP does not support 16bit atomic operation
+            GKO_NOT_SUPPORTED(l);
+        } else
+#endif
+        {
+            kernel::ict_sweep<subwarp_size>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    a->get_const_row_ptrs(), a->get_const_col_idxs(),
+                    as_device_type(a->get_const_values()),
+                    l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
+                    l->get_const_col_idxs(), as_device_type(l->get_values()),
+                    static_cast<IndexType>(l->get_num_stored_elements()));
+        }
     }
 }
 
@@ -427,7 +435,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL);
 
 
@@ -449,7 +457,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL);
 
 

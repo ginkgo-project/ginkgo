@@ -127,7 +127,7 @@ void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
     mtx_builder.get_col_idx_array() = std::move(new_col_idxs_array);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL);
 
 
@@ -159,7 +159,7 @@ void initialize_row_ptrs_l_u(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
@@ -177,7 +177,7 @@ void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
                                         helpers::identity{}));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
 
 
@@ -204,7 +204,7 @@ void initialize_row_ptrs_l(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
 
 
@@ -227,7 +227,7 @@ void initialize_l(std::shared_ptr<const ReferenceExecutor> exec,
                               helpers::identity{}));
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
 

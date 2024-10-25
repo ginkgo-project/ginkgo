@@ -141,13 +141,22 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
 
     // base case
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
-    kernel::basecase_select<<<1, kernel::basecase_block_size, 0,
-                              exec->get_stream()>>>(
-        as_device_type(tmp22), bucket.size, rank, as_device_type(out_ptr));
-    threshold = exec->copy_val_to_host(out_ptr);
+
+#ifdef GKO_COMPILING_HIP
+    if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+        // HIP does not support 16bit atomic operation
+        GKO_NOT_SUPPORTED(m);
+    } else
+#endif
+    {
+        kernel::basecase_select<<<1, kernel::basecase_block_size, 0,
+                                  exec->get_stream()>>>(
+            as_device_type(tmp22), bucket.size, rank, as_device_type(out_ptr));
+        threshold = exec->copy_val_to_host(out_ptr);
+    }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
 
 
