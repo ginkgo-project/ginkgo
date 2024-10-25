@@ -98,7 +98,8 @@ protected:
     gko::array<gko::int64> row_descs;
 };
 
-TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Lu, SymbolicCholeskyWorks)
@@ -219,7 +220,7 @@ TYPED_TEST(Lu, KernelFactorizeWorks)
             diag_idxs.get_const_data(), this->mtx_lu.get(), true, tmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, mtx_lu_ref,
-                            15 * r<value_type>::value);
+                            30 * r<value_type>::value);
     });
 }
 
@@ -268,7 +269,7 @@ TYPED_TEST(Lu, FactorizeNonsymmetricWorks)
 
         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
         GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
-                            15 * r<value_type>::value);
+                            30 * r<value_type>::value);
         ASSERT_EQ(lu->get_storage_type(),
                   gko::experimental::factorization::storage_type::combined_lu);
         ASSERT_EQ(lu->get_lower_factor(), nullptr);
@@ -294,7 +295,7 @@ TYPED_TEST(Lu, FactorizeNearSymmetricWorks)
 
         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
         GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
-                            15 * r<value_type>::value);
+                            30 * r<value_type>::value);
         ASSERT_EQ(lu->get_storage_type(),
                   gko::experimental::factorization::storage_type::combined_lu);
         ASSERT_EQ(lu->get_lower_factor(), nullptr);
@@ -321,7 +322,7 @@ TYPED_TEST(Lu, FactorizeWithKnownSparsityWorks)
         auto lu = factory->generate(this->mtx);
 
         GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu,
-                            15 * r<value_type>::value);
+                            30 * r<value_type>::value);
         ASSERT_EQ(lu->get_storage_type(),
                   gko::experimental::factorization::storage_type::combined_lu);
         ASSERT_EQ(lu->get_lower_factor(), nullptr);

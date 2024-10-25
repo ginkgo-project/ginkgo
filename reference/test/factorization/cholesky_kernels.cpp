@@ -245,7 +245,7 @@ protected:
     std::shared_ptr<matrix_type> combined_ref;
 };
 
-TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

@@ -253,7 +253,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_INITIALIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_LU_INITIALIZE);
 
 
 template <typename ValueType, typename IndexType>
@@ -286,7 +287,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_LU_FACTORIZE);
 
 
 template <typename IndexType>

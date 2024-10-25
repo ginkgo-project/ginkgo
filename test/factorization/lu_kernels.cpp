@@ -129,7 +129,7 @@ protected:
 };
 
 #ifdef GKO_COMPILING_OMP
-using Types = gko::test::ValueIndexTypes;
+using Types = gko::test::ValueIndexTypesWithHalf;
 #elif defined(GKO_COMPILING_CUDA)
 // CUDA don't support long indices for sorting, and the triangular solvers
 // seem broken

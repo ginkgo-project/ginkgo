@@ -54,7 +54,7 @@ void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec,
     sparselib::destroy(desc);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_IC_SPARSELIB_IC_KERNEL);
 
 

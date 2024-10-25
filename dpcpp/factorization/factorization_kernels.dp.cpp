@@ -393,7 +393,7 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                                   helpers::triangular_mtx_closure(
                                       [use_sqrt](auto val) {
                                           if (use_sqrt) {
-                                              val = sqrt(val);
+                                              val = gko::sqrt(val);
                                               if (!is_finite(val)) {
                                                   val = one<ValueType>();
                                               }
@@ -482,7 +482,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     mtx_builder.get_col_idx_array() = std::move(new_col_idxs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL);
 
 
@@ -509,7 +509,7 @@ void initialize_row_ptrs_l_u(
     components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
@@ -534,7 +534,7 @@ void initialize_l_u(std::shared_ptr<const DpcppExecutor> exec,
                            csr_u->get_col_idxs(), csr_u->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
 
 
@@ -559,7 +559,7 @@ void initialize_row_ptrs_l(
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
 
 
@@ -582,7 +582,7 @@ void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
                          csr_l->get_values(), diag_sqrt);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
 

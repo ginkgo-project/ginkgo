@@ -203,7 +203,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
 
 
 #define GKO_DECLARE_IC(ValueType, IndexType) class Ic<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_IC);
 
 
 }  // namespace factorization

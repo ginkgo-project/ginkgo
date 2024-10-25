@@ -300,7 +300,7 @@ void ParIctState<ValueType, IndexType>::iterate()
 
 #define GKO_DECLARE_PAR_ICT(ValueType, IndexType) \
     class ParIct<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PAR_ICT);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_PAR_ICT);
 
 
 }  // namespace factorization
