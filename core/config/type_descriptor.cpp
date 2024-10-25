@@ -50,7 +50,7 @@ type_descriptor make_type_descriptor()
                                          GlobalIndexType)           \
     type_descriptor                                                 \
     make_type_descriptor<ValueType, LocalIndexType, GlobalIndexType>()
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_MAKE_TYPE_DESCRIPTOR);
 
 #define GKO_DECLARE_MAKE_VOID_TYPE_DESCRIPTOR(LocalIndexType, GlobalIndexType) \
