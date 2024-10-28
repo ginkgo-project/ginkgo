@@ -280,90 +280,10 @@ struct is_synchronizable_group_impl<coalesced_group> : std::true_type {};
 }  // namespace detail
 
 
-namespace detail {
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-// Adds generalized shuffles that support any type to the group.
-template <typename Group>
-class enable_extended_shuffle : public Group {
-public:
-    using Group::Group;
-    using Group::shfl;
-    using Group::shfl_down;
-    using Group::shfl_up;
-    using Group::shfl_xor;
-
-#define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
-    template <typename ValueType>                                           \
-    __device__ __forceinline__ ValueType _name(const ValueType& var,        \
-                                               SelectorType selector) const \
-    {                                                                       \
-        return shuffle_impl(                                                \
-            [this](uint32 v, SelectorType s) {                              \
-                return static_cast<const Group*>(this)->_name(v, s);        \
-            },                                                              \
-            var, selector);                                                 \
-    }
-
-    GKO_ENABLE_SHUFFLE_OPERATION(shfl, int32)
-    GKO_ENABLE_SHUFFLE_OPERATION(shfl_up, uint32)
-    GKO_ENABLE_SHUFFLE_OPERATION(shfl_down, uint32)
-    GKO_ENABLE_SHUFFLE_OPERATION(shfl_xor, int32)
-
-#undef GKO_ENABLE_SHUFFLE_OPERATION
-
-private:
-    template <typename ShuffleOperator, typename ValueType,
-              typename SelectorType>
-    static __device__ __forceinline__ ValueType
-    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType var,
-                 SelectorType selector)
-    {
-        static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
-                      "Unable to shuffle sizes which are not 4-byte multiples");
-        constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
-        ValueType result;
-        auto var_array = reinterpret_cast<const uint32*>(&var);
-        auto result_array = reinterpret_cast<uint32*>(&result);
-#pragma unroll
-        for (std::size_t i = 0; i < value_size; ++i) {
-            result_array[i] = intrinsic_shuffle(var_array[i], selector);
-        }
-        return result;
-    }
-};
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-}  // namespace detail
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-// Implementing this as a using directive messes up with SFINAE for some reason,
-// probably a bug in NVCC. If it is a complete type, everything works fine.
-template <unsigned Size>
-struct thread_block_tile : detail::enable_extended_shuffle<
-                               cooperative_groups::thread_block_tile<Size>> {
-    using detail::enable_extended_shuffle<
-        cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
-};
-
-
-#else  // CUDA_VERSION >= 11000
-
-
 // Cuda11 cooperative group's shuffle supports complex
 using cooperative_groups::thread_block_tile;
 
 
-#endif
 // inherits thread_group
 //
 // public API:
@@ -385,28 +305,6 @@ using cooperative_groups::thread_block_tile;
 namespace detail {
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-template <unsigned Size>
-struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
-template <unsigned Size>
-struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
-};
-template <unsigned Size>
-struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
-// make sure the original CUDA group is recognized whenever possible
-template <unsigned Size>
-struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
-    : std::true_type {};
-template <unsigned Size>
-struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
-    : std::true_type {};
-
-
-#else  // CUDA_VERSION >= 11000
-
-
 // thread_block_tile is same as cuda11's
 template <unsigned Size, typename Group>
 struct is_group_impl<thread_block_tile<Size, Group>> : std::true_type {};
@@ -416,9 +314,6 @@ struct is_synchronizable_group_impl<thread_block_tile<Size, Group>>
 template <unsigned Size, typename Group>
 struct is_communicator_group_impl<thread_block_tile<Size, Group>>
     : std::true_type {};
-
-
-#endif
 
 
 }  // namespace detail
@@ -471,24 +366,6 @@ __device__ __forceinline__ auto tiled_partition(const Group& g)
 // Only support tile_partition with 1, 2, 4, 8, 16, 32.
 // Reference:
 // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-notes
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-// cooperative group before cuda11 does not contain parent group in template
-template <size_type Size, typename Group>
-__device__ __forceinline__
-    std::enable_if_t<(Size <= kernels::cuda::config::warp_size) && (Size > 0) &&
-                         (kernels::cuda::config::warp_size % Size == 0),
-                     thread_block_tile<Size>>
-    tiled_partition(const Group&)
-{
-    return thread_block_tile<Size>();
-}
-
-
-#else  // CUDA_VERSION >= 11000
-
-
 // cooperative group after cuda11 contain parent group in template.
 // we remove the information because we do not restrict cooperative group by its
 // parent group type.
@@ -498,9 +375,6 @@ __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
 {
     return cooperative_groups::tiled_partition<Size>(g);
 }
-
-
-#endif
 
 
 }  // namespace group
