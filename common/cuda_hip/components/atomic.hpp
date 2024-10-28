@@ -101,10 +101,11 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
-#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
-// CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
+#if defined(CUDA_VERSION)
+// Support 16-bit ATOMIC_ADD and ATOMIC_MAX only on CUDA
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
-#endif  // !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
+#endif
+
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
@@ -142,32 +143,26 @@ GKO_BIND_ATOMIC_ADD(double);
 #else  // NVIDIA
 
 
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
-// CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
+#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
+// CUDA supports 64-bit double atomicAdd on devices of compute
 // capability 6.x and higher
 GKO_BIND_ATOMIC_ADD(double);
-#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) ||
-        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
+#endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
-// CUDA 10.0 starts supporting 16-bit __half floating-point atomicAdd on devices
+#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700))
+// CUDA supports 16-bit __half floating-point atomicAdd on devices
 // of compute capability 7.x and higher.
 GKO_BIND_ATOMIC_ADD(__half);
-#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) ||
-        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
+#endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700))
 
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
-// CUDA 10.0 starts supporting 32-bit __half2 floating-point atomicAdd on
+#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
+// CUDA supports 32-bit __half2 floating-point atomicAdd on
 // devices of compute capability 6.x and higher. note: The atomicity of the
 // __half2 add operation is guaranteed separately for each of the two __half
 // elements; the entire __half2 is not guaranteed to be atomic as a single
 // 32-bit access.
 GKO_BIND_ATOMIC_ADD(__half2);
-#endif  // !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) ||
-        // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
+#endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 
 
 #endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
