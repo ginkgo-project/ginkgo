@@ -91,7 +91,7 @@ protected:
     int eventset;
 };
 
-TYPED_TEST_SUITE(Papi, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Papi, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Papi, CatchesAllocationStarted)
