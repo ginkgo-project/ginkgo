@@ -26,7 +26,7 @@ constexpr int num_iters = 10;
 template <typename T>
 class Stream : public ::testing::Test {};
 
-TYPED_TEST_SUITE(Stream, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Stream, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Stream, CatchesAllocationStarted)
@@ -380,17 +380,17 @@ TYPED_TEST(Stream, CatchesLinOpApplyStartedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_started_mask, out, true);
-    auto A = gko::initialize<Dense>({1.1}, exec);
-    auto b = gko::initialize<Dense>({-2.2}, exec);
-    auto x = gko::initialize<Dense>({3.3}, exec);
+    auto A = gko::initialize<Dense>({1.5}, exec);
+    auto b = gko::initialize<Dense>({-2.25}, exec);
+    auto x = gko::initialize<Dense>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_apply_started>(A.get(), b.get(),
                                                                x.get());
 
     auto os = out.str();
-    GKO_ASSERT_STR_CONTAINS(os, "1.1");
-    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
-    GKO_ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.5");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.25");
+    GKO_ASSERT_STR_CONTAINS(os, "3.125");
 }
 
 
@@ -429,17 +429,17 @@ TYPED_TEST(Stream, CatchesLinOpApplyCompletedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_completed_mask, out, true);
-    auto A = gko::initialize<Dense>({1.1}, exec);
-    auto b = gko::initialize<Dense>({-2.2}, exec);
-    auto x = gko::initialize<Dense>({3.3}, exec);
+    auto A = gko::initialize<Dense>({1.5}, exec);
+    auto b = gko::initialize<Dense>({-2.25}, exec);
+    auto x = gko::initialize<Dense>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_apply_completed>(
         A.get(), b.get(), x.get());
 
     auto os = out.str();
-    GKO_ASSERT_STR_CONTAINS(os, "1.1");
-    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
-    GKO_ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "1.5");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.25");
+    GKO_ASSERT_STR_CONTAINS(os, "3.125");
 }
 
 
@@ -486,21 +486,21 @@ TYPED_TEST(Stream, CatchesLinOpAdvancedApplyStartedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_started_mask, out, true);
-    auto A = gko::initialize<Dense>({1.1}, exec);
-    auto alpha = gko::initialize<Dense>({-4.4}, exec);
-    auto b = gko::initialize<Dense>({-2.2}, exec);
+    auto A = gko::initialize<Dense>({1.5}, exec);
+    auto alpha = gko::initialize<Dense>({-4.75}, exec);
+    auto b = gko::initialize<Dense>({-2.25}, exec);
     auto beta = gko::initialize<Dense>({-5.5}, exec);
-    auto x = gko::initialize<Dense>({3.3}, exec);
+    auto x = gko::initialize<Dense>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_advanced_apply_started>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    GKO_ASSERT_STR_CONTAINS(os, "1.1");
-    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
-    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "1.5");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.75");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.25");
     GKO_ASSERT_STR_CONTAINS(os, "-5.5");
-    GKO_ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "3.125");
 }
 
 
@@ -547,21 +547,21 @@ TYPED_TEST(Stream, CatchesLinOpAdvancedApplyCompletedWithVerbose)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_completed_mask, out, true);
-    auto A = gko::initialize<Dense>({1.1}, exec);
-    auto alpha = gko::initialize<Dense>({-4.4}, exec);
-    auto b = gko::initialize<Dense>({-2.2}, exec);
+    auto A = gko::initialize<Dense>({1.5}, exec);
+    auto alpha = gko::initialize<Dense>({-4.75}, exec);
+    auto b = gko::initialize<Dense>({-2.25}, exec);
     auto beta = gko::initialize<Dense>({-5.5}, exec);
-    auto x = gko::initialize<Dense>({3.3}, exec);
+    auto x = gko::initialize<Dense>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_advanced_apply_completed>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
 
     auto os = out.str();
-    GKO_ASSERT_STR_CONTAINS(os, "1.1");
-    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
-    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
+    GKO_ASSERT_STR_CONTAINS(os, "1.5");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.75");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.25");
     GKO_ASSERT_STR_CONTAINS(os, "-5.5");
-    GKO_ASSERT_STR_CONTAINS(os, "3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "3.125");
 }
 
 
@@ -782,11 +782,11 @@ TYPED_TEST(Stream, CatchesIterationsWithVerbose)
         gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
-    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
+    auto solver = factory->generate(gko::initialize<Dense>({1.25}, exec));
     auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);
-    auto residual = gko::initialize<Dense>({-4.4}, exec);
-    auto solution = gko::initialize<Dense>({-2.2}, exec);
-    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
+    auto residual = gko::initialize<Dense>({-4.5}, exec);
+    auto solution = gko::initialize<Dense>({-2.25}, exec);
+    auto residual_norm = gko::initialize<Dense>({-3.125}, exec);
     gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->template on<gko::log::Logger::iteration_complete>(
@@ -795,9 +795,9 @@ TYPED_TEST(Stream, CatchesIterationsWithVerbose)
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "-5.5");
-    GKO_ASSERT_STR_CONTAINS(os, "-4.4");
-    GKO_ASSERT_STR_CONTAINS(os, "-2.2");
-    GKO_ASSERT_STR_CONTAINS(os, "-3.3");
+    GKO_ASSERT_STR_CONTAINS(os, "-4.5");
+    GKO_ASSERT_STR_CONTAINS(os, "-2.25");
+    GKO_ASSERT_STR_CONTAINS(os, "-3.125");
     GKO_ASSERT_STR_CONTAINS(os, "Finalized:")
 }
 

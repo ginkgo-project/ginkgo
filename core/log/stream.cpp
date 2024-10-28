@@ -482,7 +482,7 @@ void Stream<ValueType>::on_iteration_complete(
 
 
 #define GKO_DECLARE_STREAM(_type) class Stream<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_STREAM);
 
 
 }  // namespace log

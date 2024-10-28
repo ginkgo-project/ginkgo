@@ -19,7 +19,8 @@ namespace {
 template <typename T>
 class Convergence : public ::testing::Test {};
 
-TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Convergence, gko::test::ValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
