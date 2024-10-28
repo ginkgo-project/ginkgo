@@ -10,34 +10,7 @@
 #include <ginkgo/ginkgo.hpp>
 
 #include "ginkgo/core/base/matrix_data.hpp"
-
-
-template <typename ValueType, typename IndexType>
-std::vector<gko::matrix_data<ValueType, IndexType>> read_input(
-    std::string fstring)
-{
-    std::string fname = "data/" + fstring + "amtx";
-    std::ifstream fstream;
-    fstream.open(fname);
-    int num_rows = 0;
-    fstream >> num_rows;
-    std::vector<gko::matrix_data<ValueType, IndexType>> mat_data{
-        gko::matrix_data<ValueType, IndexType>(gko::dim<2>(num_rows)),
-        gko::matrix_data<ValueType, IndexType>(gko::dim<2>(num_rows, 1))};
-    for (auto row = 0; row < num_rows; row++) {
-        int temp = 0;
-        fstream >> temp;
-        for (auto col = 0; col < num_rows; col++) {
-            ValueType mat_val = 0.0;
-            fstream >> mat_val;
-            mat_data[0].nonzeros.emplace_back(row, col, mat_val);
-        }
-        ValueType rhs_val = 0.0;
-        fstream >> rhs_val;
-        mat_data[1].nonzeros.emplace_back(row, 0, rhs_val);
-    }
-    return mat_data;
-}
+#include "utils.hpp"
 
 
 int main(int argc, char* argv[])
@@ -54,7 +27,13 @@ int main(int argc, char* argv[])
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using ilu = gko::preconditioner::Ilu<>;
 
+
+    std::vector<gko::matrix_data<ValueType, IndexType>> data;
+
+    std::vector<std::string> config_strings;
+    std::string executor_string, solver_string, problem_string, mode_string;
     std::cout << gko::version_info::get() << std::endl;
+
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] [mat_name] "
@@ -62,9 +41,13 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
-    std::string solver_string = argc >= 3 ? argv[2] : "gmres";
-    const auto fname_string = argc >= 4 ? argv[3] : "sphere";
+    // assigning configuration parameters
+    config_strings = read_config();
+    executor_string = config_strings[0];
+    solver_string = config_strings[1];
+    problem_string = config_strings[2];
+    mode_string = config_strings[3];
+
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -84,19 +67,21 @@ int main(int argc, char* argv[])
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
+
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    auto data = read_input<ValueType, IndexType>(fname_string);
+    if (mode_string.compare("ascii") == 0) {
+        data = read_inputAscii<ValueType, IndexType>(problem_string);
+    } else {
+        data = read_inputBinary<ValueType, IndexType>(problem_string);
+    }
     auto A = gko::share(mtx::create(exec));
     A->read(data[0]);
     std::cout << "Matrix size: " << A->get_size() << std::endl;
     auto b = gko::share(mtx::create(exec));
     b->read(data[1]);
     auto x = gko::clone(b);
-    // std::ofstream fout("sphere.mtx");
-    // std::ofstream fout2("sphere_b.mtx");
-    // gko::write(fout, A);
-    // gko::write(fout2, b);
+
 
     const RealValueType reduction_factor{1e-16};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
