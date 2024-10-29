@@ -51,10 +51,16 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
     : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
-      public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>> {
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+              IndexType>>,
+#endif
+      public ConvertibleTo<
+          Ell<next_precision_with_half<ValueType>, IndexType>> {
     friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
-    friend class Ell<next_precision<ValueType>, IndexType>;
+    friend class Ell<previous_precision_with_half<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 
@@ -68,10 +74,31 @@ public:
     using absolute_type = remove_complex<Ell>;
     using complex_type = to_complex<Ell>;
 
-    void convert_to(
-        Ell<next_precision<ValueType>, IndexType>* result) const override;
+    void convert_to(Ell<next_precision_with_half<ValueType>, IndexType>* result)
+        const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
+    void move_to(
+        Ell<next_precision_with_half<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Ell<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>,
+        IndexType>;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::convert_to;
+    using ConvertibleTo<
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::move_to;
+
+    void convert_to(
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) const override;
+
+    void move_to(
+        Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) override;
+#endif
 
     /**
      * Creates a mutable view (of matrix::Ell type) of one item of the

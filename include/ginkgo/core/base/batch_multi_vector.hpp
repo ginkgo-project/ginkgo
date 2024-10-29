@@ -52,16 +52,22 @@ template <typename ValueType = default_precision>
 class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
-      public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<MultiVector<
+          next_precision_with_half<next_precision_with_half<ValueType>>>>,
+#endif
+      public ConvertibleTo<MultiVector<next_precision_with_half<ValueType>>> {
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
-    friend class MultiVector<next_precision<ValueType>>;
+    friend class MultiVector<previous_precision_with_half<ValueType>>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
     using EnablePolymorphicAssignment<MultiVector>::move_to;
-    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
-    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
+    using ConvertibleTo<
+        MultiVector<next_precision_with_half<ValueType>>>::convert_to;
+    using ConvertibleTo<
+        MultiVector<next_precision_with_half<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -78,10 +84,28 @@ public:
     static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
 
-    void convert_to(
-        MultiVector<next_precision<ValueType>>* result) const override;
+    void convert_to(MultiVector<next_precision_with_half<ValueType>>* result)
+        const override;
 
-    void move_to(MultiVector<next_precision<ValueType>>* result) override;
+    void move_to(
+        MultiVector<next_precision_with_half<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class MultiVector<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>>;
+    using ConvertibleTo<MultiVector<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::move_to;
+
+    void convert_to(
+        MultiVector<
+            next_precision_with_half<next_precision_with_half<ValueType>>>*
+            result) const override;
+
+    void move_to(MultiVector<next_precision_with_half<
+                     next_precision_with_half<ValueType>>>* result) override;
+#endif
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch

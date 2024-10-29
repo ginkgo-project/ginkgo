@@ -105,7 +105,7 @@ void extract_common_blocks_pattern(
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_EXTRACT_PATTERN_KERNEL);
 
 
@@ -175,7 +175,7 @@ void compute_block_jacobi(
         cumulative_block_storage, block_pointers, blocks_pattern, blocks, exec);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_BLOCK_JACOBI_COMPUTE_KERNEL);
 
 

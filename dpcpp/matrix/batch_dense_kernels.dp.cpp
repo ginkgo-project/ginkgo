@@ -76,7 +76,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_DENSE_SIMPLE_APPLY_KERNEL);
 
 
@@ -129,7 +129,7 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_DENSE_ADVANCED_APPLY_KERNEL);
 
 
@@ -173,7 +173,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
@@ -215,7 +216,8 @@ void scale_add(std::shared_ptr<const DefaultExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_BATCH_DENSE_SCALE_ADD_KERNEL);
 
 
 template <typename ValueType>
@@ -256,7 +258,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
 
 

@@ -246,7 +246,7 @@ void Csr<ValueType, IndexType>::add_scaled_identity(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Csr<next_precision<ValueType>, IndexType>* result) const
+    Csr<next_precision_with_half<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -257,14 +257,37 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
-    Csr<next_precision<ValueType>, IndexType>* result)
+    Csr<next_precision_with_half<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+        IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(
+    Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+        IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class Csr<ValueType, int32>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_BATCH_CSR_MATRIX);
 
 
 }  // namespace matrix

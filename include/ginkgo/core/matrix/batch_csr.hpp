@@ -46,10 +46,16 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+              IndexType>>,
+#endif
+      public ConvertibleTo<
+          Csr<next_precision_with_half<ValueType>, IndexType>> {
     friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
-    friend class Csr<next_precision<ValueType>, IndexType>;
+    friend class Csr<previous_precision_with_half<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 
@@ -63,10 +69,31 @@ public:
     using absolute_type = remove_complex<Csr>;
     using complex_type = to_complex<Csr>;
 
-    void convert_to(
-        Csr<next_precision<ValueType>, IndexType>* result) const override;
+    void convert_to(Csr<next_precision_with_half<ValueType>, IndexType>* result)
+        const override;
 
-    void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+    void move_to(
+        Csr<next_precision_with_half<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Csr<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>,
+        IndexType>;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::convert_to;
+    using ConvertibleTo<
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>>::move_to;
+
+    void convert_to(
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) const override;
+
+    void move_to(
+        Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
+            IndexType>* result) override;
+#endif
 
     /**
      * Creates a mutable view (of matrix::Csr type) of one item of the
