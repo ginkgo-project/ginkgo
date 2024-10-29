@@ -87,6 +87,23 @@ using DeviceValueType = gko::kernels::hip::hip_type<ValueType>;
 
 
 namespace gko {
+namespace kernels {
+namespace dpcpp {
+
+
+template <typename T>
+inline std::decay_t<T> as_device_type(T val)
+{
+    return val;
+}
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
+
+namespace gko {
 namespace batch {
 namespace solver {
 
@@ -113,6 +130,23 @@ using DeviceValueType = ValueType;
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_scalar_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace host {
+
+
+template <typename T>
+inline std::decay_t<T> as_device_type(T val)
+{
+    return val;
+}
+
+
+}  // namespace host
+}  // namespace kernels
+}  // namespace gko
 
 
 namespace gko {
@@ -205,7 +239,7 @@ enum class log_type { simple_convergence_completion };
     GKO_CALL(GKO_BATCH_INSTANTIATE_MATRIX_BATCH, GKO_BATCH_INSTANTIATE_LOGGER, \
              GKO_BATCH_INSTANTIATE_DEVICE_PRECONDITIONER,                      \
              GKO_BATCH_INSTANTIATE_STOP,                                       \
-             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS, __VA_ARGS__)
+             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_WITH_HALF, __VA_ARGS__)
 
 
 /**
@@ -226,6 +260,7 @@ public:
     using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
     using real_type = remove_complex<value_type>;
+    using device_real_type = DeviceValueType<real_type>;
 
     batch_solver_dispatch(
         const KernelCaller& kernel_caller, const SettingsType& settings,
@@ -316,8 +351,9 @@ public:
     {
         if (logger_type_ ==
             log::detail::log_type::simple_convergence_completion) {
-            device::batch_log::SimpleFinalLogger<real_type> logger(
-                log_data.res_norms.get_data(), log_data.iter_counts.get_data());
+            device::batch_log::SimpleFinalLogger<device_real_type> logger(
+                device::as_device_type(log_data.res_norms.get_data()),
+                log_data.iter_counts.get_data());
             dispatch_on_preconditioner(logger, amat, b_item, x_item);
         } else {
             GKO_NOT_IMPLEMENTED;
