@@ -20,6 +20,7 @@
 #include "core/components/range_minimum_query_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/assembly_kernels.hpp"
+#include "core/distributed/dd_matrix_kernels.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
@@ -380,6 +381,14 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
 
 
 }  // namespace distributed_matrix
+
+namespace distributed_dd_matrix {
+
+
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_FILTER_NON_OWNING_IDXS);
+
+
+}  // namespace distributed_dd_matrix
 
 
 namespace batch_multi_vector {
