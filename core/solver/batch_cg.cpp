@@ -69,7 +69,7 @@ void Cg<ValueType>::solver_apply(
 
 
 #define GKO_DECLARE_BATCH_CG(_type) class Cg<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_BATCH_CG);
 
 
 }  // namespace solver
