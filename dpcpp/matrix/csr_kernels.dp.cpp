@@ -1398,7 +1398,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
-            mat_handle, IndexType(a->get_size()[0]),
+            *exec->get_queue(), mat_handle, IndexType(a->get_size()[0]),
             IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
             const_cast<IndexType*>(a->get_const_row_ptrs()),
             const_cast<IndexType*>(a->get_const_col_idxs()),
@@ -1417,7 +1417,8 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 const_cast<ValueType*>(b->get_const_values()), b->get_size()[1],
                 b->get_stride(), host_beta, c->get_values(), c->get_stride());
         }
-        oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
+        oneapi::mkl::sparse::release_matrix_handle(*exec->get_queue(),
+                                                   &mat_handle);
     }
     return try_sparselib;
 }
