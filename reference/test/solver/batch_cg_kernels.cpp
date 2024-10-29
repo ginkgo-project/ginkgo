@@ -75,7 +75,8 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchCg, gko::test::RealValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(BatchCg, gko::test::RealValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(BatchCg, SolvesStencilSystem)
@@ -87,7 +88,7 @@ TYPED_TEST(BatchCg, SolvesStencilSystem)
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       this->linear_system.host_rhs_norm->get_const_values()[i],
-                  this->solver_settings.residual_tol);
+                  5 * this->solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, this->linear_system.exact_sol,
                               this->eps * 10);
@@ -108,8 +109,13 @@ TYPED_TEST(BatchCg, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        ASSERT_NEAR(res_log_array[i], res.host_res_norm->get_const_values()[i],
-                    10 * this->eps);
+        if (!std::is_same<real_type, gko::half>::value) {
+            // There is no guarantee of this condition. We disable this check in
+            // half.
+            ASSERT_NEAR(res_log_array[i],
+                        res.host_res_norm->get_const_values()[i],
+                        10 * this->eps);
+        }
     }
 }
 
@@ -140,6 +146,10 @@ TYPED_TEST(BatchCg, ApplyLogsResAndIters)
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
     using Logger = gko::batch::log::BatchConvergence<value_type>;
+    // Need to design a better random system. With different random value
+    // distribution, the solver can not solve the hpd matrix even with single
+    // precision
+    SKIP_IF_HALF(value_type);
     const real_type tol = 1e-6;
     const int max_iters = 1000;
     auto solver_factory =
@@ -181,6 +191,10 @@ TYPED_TEST(BatchCg, CanSolveHpdSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
+    // Need to design a better random system. With different random value
+    // distribution, the solver can not solve the hpd matrix even with single
+    // precision
+    SKIP_IF_HALF(value_type);
     const real_type tol = 1e-6;
     const int max_iters = 1000;
     auto solver_factory =

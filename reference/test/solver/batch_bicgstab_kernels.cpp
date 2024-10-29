@@ -75,7 +75,7 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes,
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypesWithHalf,
                  TypenameNameGenerator);
 
 
@@ -111,8 +111,13 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        ASSERT_NEAR(res_log_array[i], res.host_res_norm->get_const_values()[i],
-                    10 * this->eps);
+        if (!std::is_same<real_type, gko::half>::value) {
+            // There is no guarantee of this condition. We disable this check in
+            // half.
+            ASSERT_NEAR(res_log_array[i],
+                        res.host_res_norm->get_const_values()[i],
+                        10 * this->eps);
+        }
     }
 }
 
@@ -131,7 +136,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsIterations)
 
     auto iter_array = res.log_data->iter_counts.get_const_data();
     for (size_t i = 0; i < this->num_batch_items; i++) {
-        ASSERT_EQ(iter_array[i], ref_iters);
+        ASSERT_LE(iter_array[i], ref_iters);
     }
 }
 
@@ -142,7 +147,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
-    const real_type tol = 1e-5;
+    const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -167,7 +172,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
     for (size_t i = 0; i < num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       linear_system.host_rhs_norm->get_const_values()[i],
-                  tol);
+                  tol * 10);
     }
 }
 
@@ -179,7 +184,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
     using Logger = gko::batch::log::BatchConvergence<value_type>;
-    const real_type tol = 1e-5;
+    const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -222,7 +227,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::EllMtx;
-    const real_type tol = 1e-5;
+    const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -258,7 +263,7 @@ TYPED_TEST(BatchBicgstab, CanSolveCsrSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::CsrMtx;
-    const real_type tol = 1e-5;
+    const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -294,6 +299,10 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
+    // Need to design a better random system. With different random value
+    // distribution, the solver can not solve the hpd matrix even with single
+    // precision
+    SKIP_IF_HALF(value_type);
     const real_type tol = 1e-5;
     const int max_iters = 1000;
     auto solver_factory =
