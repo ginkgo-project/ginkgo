@@ -142,6 +142,7 @@ if(GINKGO_BUILD_MPI)
         distributed/vector_cache.cpp
         mpi/exception.cpp
         distributed/assembly.cpp
+        distributed/dd_matrix.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp
