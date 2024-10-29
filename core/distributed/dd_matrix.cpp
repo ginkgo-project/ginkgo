@@ -245,7 +245,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     prolongation_ =
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
     prolongation_->read_distributed(prolongate_data, row_partition,
-                                    large_partition);
+                                    large_partition,
+                                    assembly_mode::communicate);
 }
 
 
