@@ -47,12 +47,13 @@ protected:
         GKO_NOT_IMPLEMENTED;
     }
 
-    void initialize_mat_handle()
+    void initialize_mat_handle(std::shared_ptr<const gko::DpcppExecutor> exec)
     {
         mat_handle_ = handle_manager<oneapi::mkl::sparse::matrix_handle>(
             create_mat_handle(),
-            [](oneapi::mkl::sparse::matrix_handle_t mat_handle) {
-                oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
+            [exec](oneapi::mkl::sparse::matrix_handle_t mat_handle) {
+                oneapi::mkl::sparse::release_matrix_handle(*exec->get_queue(),
+                                                           &mat_handle);
             });
     }
 
@@ -63,7 +64,8 @@ protected:
         if (this->get_device_exec() == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
-        this->initialize_mat_handle();
+        this->initialize_mat_handle(
+            this->get_device_exec());
     }
 
     ~OnemklBase() = default;
@@ -74,7 +76,7 @@ protected:
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
-            this->initialize_mat_handle();
+            this->initialize_mat_handle(this->get_device_exec());
         }
         return *this;
     }
@@ -106,7 +108,8 @@ public:
         this->set_size(csr_->get_size());
 
         oneapi::mkl::sparse::set_csr_data(
-            this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
+            *(this->get_device_exec()->get_queue()), this->get_mat_handle(),
+            static_cast<int>(this->get_size()[0]),
             static_cast<int>(this->get_size()[1]),
             oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
             csr_->get_col_idxs(), csr_->get_values());
