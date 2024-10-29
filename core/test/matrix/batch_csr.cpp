@@ -114,7 +114,7 @@ protected:
     std::unique_ptr<CsrMtx> sp_csr_mtx;
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Csr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Csr, KnowsItsSizeAndValues)
