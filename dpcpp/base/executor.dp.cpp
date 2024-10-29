@@ -50,7 +50,7 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
-    return device.is_host() || device.is_cpu();
+    return device.is_cpu();
 }
 
 
@@ -88,7 +88,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 #endif  // GKO_VERBOSE_LEVEL >= 1
         // OpenCL error code use 0 for CL_SUCCESS and negative number for others
         // error. if the error is not from OpenCL, it will return CL_SUCCESS.
-        int err_code = err.get_cl_code();
+        int err_code = err.code().value();
         // if return CL_SUCCESS, exit 1 as DPCPP error.
         if (err_code == 0) {
             err_code = 1;
@@ -142,8 +142,7 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
         auto dest_queue = dest->get_queue();
         auto device = queue->get_device();
         auto dest_device = dest_queue->get_device();
-        if (((device.is_host() || device.is_cpu()) &&
-             (dest_device.is_host() || dest_device.is_cpu())) ||
+        if ((device.is_cpu() && dest_device.is_cpu()) ||
             (queue == dest_queue)) {
             dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
         } else {
@@ -183,7 +182,7 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         get_exec_info().device_type)[get_exec_info().device_id];
-    return device.is_host() || device.is_cpu();
+    return device.is_cpu();
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
@@ -195,9 +194,7 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
     auto dest_queue = dest_exec->get_queue();
     auto device = queue->get_device();
     auto dest_device = dest_queue->get_device();
-    return ((device.is_host() || device.is_cpu()) &&
-            (dest_device.is_host() || dest_device.is_cpu())) ||
-           (queue == dest_queue);
+    return (device.is_cpu() && dest_device.is_cpu()) || (queue == dest_queue);
 }
 
 
@@ -234,16 +231,14 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
            DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
     auto device = detail::get_devices(
         this->get_exec_info().device_type)[this->get_exec_info().device_id];
-    if (!device.is_host()) {
-        try {
-            auto subgroup_sizes =
-                device.get_info<sycl::info::device::sub_group_sizes>();
-            for (auto& i : subgroup_sizes) {
-                this->get_exec_info().subgroup_sizes.push_back(i);
-            }
-        } catch (sycl::exception& err) {
-            GKO_NOT_SUPPORTED(device);
+    try {
+        auto subgroup_sizes =
+            device.get_info<sycl::info::device::sub_group_sizes>();
+        for (auto& i : subgroup_sizes) {
+            this->get_exec_info().subgroup_sizes.push_back(i);
         }
+    } catch (sycl::exception& err) {
+        GKO_NOT_SUPPORTED(device);
     }
     this->get_exec_info().num_computing_units = static_cast<int>(
         device.get_info<sycl::info::device::max_compute_units>());
