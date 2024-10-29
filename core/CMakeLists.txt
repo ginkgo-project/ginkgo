@@ -148,6 +148,7 @@ if(GINKGO_BUILD_MPI)
         PRIVATE
             distributed/assembly.cpp
             distributed/collective_communicator.cpp
+            distributed/dd_matrix.cpp
             distributed/dense_communicator.cpp
             distributed/matrix.cpp
             distributed/neighborhood_communicator.cpp

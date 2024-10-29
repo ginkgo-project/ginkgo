@@ -18,6 +18,7 @@ target_sources(
         base/version.cpp
         components/prefix_sum_kernels.cpp
         distributed/assembly_kernels.cpp
+        distributed/dd_matrix_kernels.cpp
         distributed/index_map_kernels.cpp
         distributed/matrix_kernels.cpp
         distributed/partition_helpers_kernels.cpp
