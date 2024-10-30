@@ -101,9 +101,13 @@ NeighborhoodCommunicator::create_inverse() const
         comm_.get(), num_sources, sources.data(), MPI_UNWEIGHTED,
         num_destinations, destinations.data(), MPI_UNWEIGHTED));
 
-    return std::make_unique<NeighborhoodCommunicator>(
-        base_comm, destinations, send_sizes_, send_offsets_, sources,
-        recv_sizes_, recv_offsets_);
+    auto inv = std::make_unique<NeighborhoodCommunicator>(base_comm);
+    inv->comm_ = create_neighborhood_comm(base_comm, destinations, sources);
+    inv->send_sizes_ = recv_sizes_;
+    inv->send_offsets_ = recv_offsets_;
+    inv->recv_sizes_ = send_sizes_;
+    inv->recv_offsets_ = send_offsets_;
+    return inv;
 }
 
 
@@ -116,23 +120,6 @@ comm_index_type NeighborhoodCommunicator::get_recv_size() const
 comm_index_type NeighborhoodCommunicator::get_send_size() const
 {
     return send_offsets_.back();
-}
-
-
-NeighborhoodCommunicator::NeighborhoodCommunicator(
-    communicator base, const std::vector<comm_index_type>& sources,
-    const std::vector<comm_index_type>& recv_sizes,
-    const std::vector<comm_index_type>& recv_offsets,
-    const std::vector<comm_index_type>& destinations,
-    const std::vector<comm_index_type>& send_sizes,
-    const std::vector<comm_index_type>& send_offsets)
-    : CollectiveCommunicator(base), comm_(MPI_COMM_NULL)
-{
-    comm_ = create_neighborhood_comm(base, sources, destinations);
-    send_sizes_ = send_sizes;
-    send_offsets_ = send_offsets;
-    recv_sizes_ = recv_sizes;
-    recv_offsets_ = recv_offsets;
 }
 
 

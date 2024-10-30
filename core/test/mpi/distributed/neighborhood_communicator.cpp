@@ -68,31 +68,6 @@ TEST_F(NeighborhoodCommunicator, CanConstructFromIndexMap)
 }
 
 
-TEST_F(NeighborhoodCommunicator, CanConstructFromEnvelopData)
-{
-    std::vector<comm_index_type> sources[] = {{1, 2}, {0, 2, 4}, {1, 5},
-                                              {0, 4}, {1, 3, 5}, {2, 4}};
-    std::vector<comm_index_type> recv_sizes[] = {{2, 2}, {2, 1, 2}, {2, 1},
-                                                 {2, 2}, {2, 2, 2}, {1, 3}};
-    std::vector<comm_index_type> destinations = sources[rank];
-    std::vector<comm_index_type> send_sizes[] = {{2, 2}, {2, 2, 2}, {1, 1},
-                                                 {2, 2}, {2, 2, 3}, {1, 2}};
-    std::vector<comm_index_type> recv_offsets(recv_sizes[rank].size() + 1);
-    std::vector<comm_index_type> send_offsets(send_sizes[rank].size() + 1);
-    std::partial_sum(recv_sizes[rank].begin(), recv_sizes[rank].end(),
-                     recv_offsets.begin() + 1);
-    std::partial_sum(send_sizes[rank].begin(), send_sizes[rank].end(),
-                     send_offsets.begin() + 1);
-
-    gko::experimental::mpi::NeighborhoodCommunicator spcomm{
-        comm,         sources[rank],    recv_sizes[rank], recv_offsets,
-        destinations, send_sizes[rank], send_offsets};
-
-    ASSERT_EQ(spcomm.get_recv_size(), recv_offsets.back());
-    ASSERT_EQ(spcomm.get_send_size(), send_offsets.back());
-}
-
-
 TEST_F(NeighborhoodCommunicator, CanConstructFromEmptyIndexMap)
 {
     auto imap = map_type{ref};
@@ -111,24 +86,6 @@ TEST_F(NeighborhoodCommunicator, CanConstructFromIndexMapWithoutConnection)
     auto imap = map_type{ref, part, comm.rank(), {ref, 0}};
 
     gko::experimental::mpi::NeighborhoodCommunicator spcomm{comm, imap};
-
-    ASSERT_EQ(spcomm.get_recv_size(), 0);
-    ASSERT_EQ(spcomm.get_send_size(), 0);
-}
-
-
-TEST_F(NeighborhoodCommunicator, CanConstructFromEmptyEnvelopData)
-{
-    std::vector<comm_index_type> sources;
-    std::vector<comm_index_type> recv_sizes;
-    std::vector<comm_index_type> destinations;
-    std::vector<comm_index_type> send_sizes;
-    std::vector<comm_index_type> recv_offsets{0};
-    std::vector<comm_index_type> send_offsets{0};
-
-    gko::experimental::mpi::NeighborhoodCommunicator spcomm{
-        comm,         sources,    send_sizes,  send_offsets,
-        destinations, recv_sizes, recv_offsets};
 
     ASSERT_EQ(spcomm.get_recv_size(), 0);
     ASSERT_EQ(spcomm.get_send_size(), 0);
