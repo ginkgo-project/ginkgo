@@ -450,8 +450,8 @@ private:
     std::shared_ptr<global_matrix_type> restriction_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<global_matrix_type> prolongation_;
-    std::shared_ptr<global_vector_type> lhs_buffer_;
-    std::shared_ptr<global_vector_type> rhs_buffer_;
+    mutable std::shared_ptr<global_vector_type> lhs_buffer_;
+    mutable std::shared_ptr<global_vector_type> rhs_buffer_;
 };
 
 

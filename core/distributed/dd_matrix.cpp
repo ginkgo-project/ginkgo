@@ -10,9 +10,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/dd_matrix_kernels.hpp"
-
 
 namespace gko {
 namespace experimental {
@@ -23,6 +23,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(filter_non_owning_idxs,
                        distributed_dd_matrix::filter_non_owning_idxs);
+GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 
@@ -149,9 +150,23 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         col_partition)
 {
+    const auto comm = this->get_communicator();
+    GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
+    GKO_ASSERT_EQ(data.get_size()[1], col_partition->get_size());
+    GKO_ASSERT_EQ(comm.size(), row_partition->get_num_parts());
+    GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
-    auto comm = this->get_communicator();
     auto local_part = comm.rank();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    auto tmp_row_partition = make_temporary_clone(exec, row_partition);
+    auto tmp_col_partition = make_temporary_clone(exec, col_partition);
+
+    // set up LinOp sizes
+    auto global_num_rows = row_partition->get_size();
+    auto global_num_cols = col_partition->get_size();
+    dim<2> global_dim{global_num_rows, global_num_cols};
+    this->set_size(global_dim);
+
     size_type num_parts = comm.size();
     array<GlobalIndexType> non_owning_row_idxs{exec};
     array<GlobalIndexType> non_owning_col_idxs{exec};
@@ -185,78 +200,69 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         dim<2>{static_cast<size_type>(local_num_rows),
                static_cast<size_type>(local_num_cols)},
         local_row_idxs, local_col_idxs, arrays.values};
+    local_data.sort_row_major();
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
         ->read(std::move(local_data));
 
-    // // Gather local sizes from all ranks and build the partition in the
-    // enriched
-    // // space.
-    // array<GlobalIndexType> range_bounds{exec, num_parts + 1};
-    // comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
-    // exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
-    //                                                  num_parts + 1));
-    // auto large_partition =
-    //     share(Partition<LocalIndexType,
-    //     GlobalIndexType>::build_from_contiguous(
-    //         exec, range_bounds));
+    // Gather local sizes from all ranks and build the partition in the enriched
+    // space.
+    array<GlobalIndexType> range_bounds{exec, num_parts + 1};
+    comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
+    exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
+                                                     num_parts + 1));
+    auto large_partition =
+        share(Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
+            exec, range_bounds));
 
-    // // Build the restricion and prolongation operators.
-    // array<GlobalIndexType> remote_idxs{exec, 0};
-    // auto enriched_map =
-    //     gko::experimental::distributed::index_map<LocalIndexType,
-    //                                               GlobalIndexType>(
-    //         exec, large_partition, local_part, remote_idxs);
-    // auto restrict_col_idxs =
-    //     make_const_array_view(
-    //         exec, static_cast<size_type>(local_num_cols),
-    //         col_map.get_remote_global_idxs().get_const_flat_data())
-    //         .copy_to_array();
-    // auto restrict_row_idxs =
-    //     make_const_array_view(
-    //         exec, static_cast<size_type>(local_num_rows),
-    //         enriched_map.get_remote_global_idxs().get_const_flat_data())
-    //         .copy_to_array();
-    // array<ValueType> restrict_values{exec,
-    //                                  static_cast<size_type>(local_num_rows)};
-    // restrict_values.fill(one<ValueType>());
-    // device_matrix_data<ValueType, GlobalIndexType> restrict_data{
-    //     exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
-    //     std::move(restrict_row_idxs), std::move(restrict_col_idxs),
-    //     std::move(restrict_values)};
-    // restriction_ =
-    //     Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec,
-    //     comm);
-    // restriction_->read_distributed(restrict_data, large_partition,
-    //                                col_partition);
-    // auto prolongate_col_idxs =
-    //     make_const_array_view(
-    //         exec, static_cast<size_type>(local_num_rows),
-    //         enriched_map.get_remote_global_idxs().get_const_flat_data())
-    //         .copy_to_array();
-    // auto prolongate_row_idxs =
-    //     make_const_array_view(
-    //         exec, static_cast<size_type>(local_num_cols),
-    //         row_map.get_remote_global_idxs().get_const_flat_data())
-    //         .copy_to_array();
-    // array<ValueType> prolongate_values{exec,
-    //                                    static_cast<size_type>(local_num_rows)};
-    // prolongate_values.fill(one<ValueType>());
-    // device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
-    //     exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
-    //     std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
-    //     std::move(prolongate_values)};
-    // prolongation_ =
-    //     Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec,
-    //     comm);
-    // prolongation_->read_distributed(prolongate_data, row_partition,
-    //                                 large_partition,
-    //                                 assembly_mode::communicate);
+    // Build the restricion and prolongation operators.
+    array<GlobalIndexType> remote_idxs{exec, 0};
+    auto enriched_map =
+        gko::experimental::distributed::index_map<LocalIndexType,
+                                                  GlobalIndexType>(
+            exec, large_partition, local_part, remote_idxs);
+    array<LocalIndexType> local_idxs{exec,
+                                     static_cast<size_type>(local_num_rows)};
+    exec->run(dd_matrix::make_fill_seq_array(
+        local_idxs.get_data(), static_cast<size_type>(local_num_rows)));
+    auto restrict_col_idxs =
+        col_map.map_to_global(local_idxs, index_space::combined);
+    auto restrict_row_idxs =
+        enriched_map.map_to_global(local_idxs, index_space::combined);
+    array<ValueType> restrict_values{exec,
+                                     static_cast<size_type>(local_num_rows)};
+    restrict_values.fill(one<ValueType>());
+    device_matrix_data<ValueType, GlobalIndexType> restrict_data{
+        exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
+        std::move(restrict_row_idxs), std::move(restrict_col_idxs),
+        std::move(restrict_values)};
+    restriction_ =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
+    restriction_->read_distributed(restrict_data, large_partition,
+                                   col_partition);
+    auto prolongate_col_idxs =
+        enriched_map.map_to_global(local_idxs, index_space::combined);
+    auto prolongate_row_idxs =
+        row_map.map_to_global(local_idxs, index_space::combined);
+    array<ValueType> prolongate_values{exec,
+                                       static_cast<size_type>(local_num_rows)};
+    prolongate_values.fill(one<ValueType>());
+    device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
+        exec, dim<2>{row_partition->get_size(), large_partition->get_size()},
+        std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
+        std::move(prolongate_values)};
+    prolongation_ =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
+    prolongation_->read_distributed(prolongate_data, row_partition,
+                                    large_partition,
+                                    assembly_mode::communicate);
 
-    // dim<2> global_buffer_size{large_partition->get_size(), 1u};
-    // dim<2> local_buffer_size{static_cast<size_type>(local_num_rows), 1u};
-    // lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
-    // local_buffer_size); rhs_buffer_ = Vector<ValueType>::create(exec, comm,
-    // global_buffer_size, local_buffer_size);
+    // Create buffers for SpMV
+    dim<2> global_buffer_size{large_partition->get_size(), 1u};
+    dim<2> local_buffer_size{static_cast<size_type>(local_num_rows), 1u};
+    lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                            local_buffer_size);
+    rhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                            local_buffer_size);
 }
 
 
@@ -301,13 +307,91 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
-{}
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    const auto nrhs = x->get_size()[1];
+    if (nrhs != rhs_buffer_->get_size()[1]) {
+        dim<2> local_buffer_size{rhs_buffer_->get_local_vector()->get_size()[0],
+                                 nrhs};
+        dim<2> global_buffer_size{rhs_buffer_->get_size()[0], nrhs};
+        lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                                local_buffer_size);
+        rhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                                local_buffer_size);
+    }
+    distributed::precision_dispatch_real_complex<ValueType>(
+        [this](const auto dense_b, auto dense_x) {
+            auto exec = this->get_executor();
+            this->restriction_->apply(dense_b, lhs_buffer_);
+
+            auto local_b = gko::matrix::Dense<ValueType>::create(
+                exec, lhs_buffer_->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    exec,
+                    lhs_buffer_->get_local_vector()->get_num_stored_elements(),
+                    lhs_buffer_->get_local_values()),
+                lhs_buffer_->get_local_vector()->get_stride());
+            auto local_x = gko::matrix::Dense<ValueType>::create(
+                exec, rhs_buffer_->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    exec,
+                    rhs_buffer_->get_local_vector()->get_num_stored_elements(),
+                    rhs_buffer_->get_local_values()),
+                rhs_buffer_->get_local_vector()->get_stride());
+
+            local_mtx_->apply(local_b, local_x);
+
+            this->prolongation_->apply(rhs_buffer_, dense_x);
+        },
+        b, x);
+}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
-{}
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    const auto nrhs = x->get_size()[1];
+    if (nrhs != rhs_buffer_->get_size()[1]) {
+        dim<2> local_buffer_size{rhs_buffer_->get_local_vector()->get_size()[0],
+                                 nrhs};
+        dim<2> global_buffer_size{rhs_buffer_->get_size()[0], nrhs};
+        lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                                local_buffer_size);
+        rhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+                                                local_buffer_size);
+    }
+    distributed::precision_dispatch_real_complex<ValueType>(
+        [this](const auto local_alpha, const auto dense_b,
+               const auto local_beta, auto dense_x) {
+            auto exec = this->get_executor();
+            this->restriction_->apply(dense_b, lhs_buffer_);
+
+            auto local_b = gko::matrix::Dense<ValueType>::create(
+                exec, lhs_buffer_->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    exec,
+                    lhs_buffer_->get_local_vector()->get_num_stored_elements(),
+                    lhs_buffer_->get_local_values()),
+                lhs_buffer_->get_local_vector()->get_stride());
+            auto local_x = gko::matrix::Dense<ValueType>::create(
+                exec, rhs_buffer_->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    exec,
+                    rhs_buffer_->get_local_vector()->get_num_stored_elements(),
+                    rhs_buffer_->get_local_values()),
+                rhs_buffer_->get_local_vector()->get_stride());
+
+            local_mtx_->apply(local_b, local_x);
+
+            this->prolongation_->apply(local_alpha, rhs_buffer_, local_beta,
+                                       dense_x);
+        },
+        alpha, b, beta, x);
+}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
