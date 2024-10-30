@@ -62,24 +62,6 @@ public:
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
     /**
-     * Create a DenseCommunicator by explicitly defining the
-     * neighborhood lists and sizes/offsets.
-     *
-     * @param base  the base communicator
-     * @param sources  the ranks to receive from
-     * @param recv_sizes  the number of elements to recv for each source
-     * @param recv_offsets  the offset for each source
-     * @param destinations  the ranks to send to
-     * @param send_sizes  the number of elements to send for each destination
-     * @param send_offsets  the offset for each destination
-     */
-    DenseCommunicator(communicator base,
-                      const std::vector<comm_index_type>& recv_sizes,
-                      const std::vector<comm_index_type>& recv_offsets,
-                      const std::vector<comm_index_type>& send_sizes,
-                      const std::vector<comm_index_type>& send_offsets);
-
-    /**
      * @copydoc collective_communicator::create_with_same_type
      */
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_with_same_type(
@@ -141,10 +123,10 @@ protected:
 private:
     communicator comm_;
 
-    std::vector<distributed::comm_index_type> send_sizes_;
-    std::vector<distributed::comm_index_type> send_offsets_;
-    std::vector<distributed::comm_index_type> recv_sizes_;
-    std::vector<distributed::comm_index_type> recv_offsets_;
+    std::vector<comm_index_type> send_sizes_;
+    std::vector<comm_index_type> send_offsets_;
+    std::vector<comm_index_type> recv_sizes_;
+    std::vector<comm_index_type> recv_offsets_;
 };
 
 

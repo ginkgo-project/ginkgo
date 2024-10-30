@@ -69,52 +69,6 @@ TEST_F(DenseCommunicator, CanConstructFromIndexMap)
 }
 
 
-TEST_F(DenseCommunicator, CanConstructFromEnvelopData)
-{
-    // clang-format off
-    std::vector<comm_index_type> recv_sizes[] = {
-        {0, 2, 2,
-         0, 0, 0},
-        {2, 0, 1,
-         2, 0, 0},
-        {0, 2, 0,
-         0, 0, 1},
-        {2, 0, 0,
-         0, 2, 0},
-        {0, 2, 0,
-         2, 0, 2},
-        {0, 0, 1,
-         0, 3, 0}};
-    std::vector<comm_index_type> send_sizes[] = {
-        {0, 2, 0,
-         2, 0, 0},
-        {2, 0, 2,
-         0, 2, 0},
-        {0, 1, 0,
-         0, 0, 1},
-        {2, 0, 0,
-         0, 2, 0},
-        {0, 2, 0,
-         2, 0, 3},
-        {0, 0, 1,
-         0, 2, 0}};
-    // clang-format on
-    std::vector<comm_index_type> recv_offsets(recv_sizes[rank].size() + 1);
-    std::vector<comm_index_type> send_offsets(send_sizes[rank].size() + 1);
-    std::partial_sum(recv_sizes[rank].begin(), recv_sizes[rank].end(),
-                     recv_offsets.begin() + 1);
-    std::partial_sum(send_sizes[rank].begin(), send_sizes[rank].end(),
-                     send_offsets.begin() + 1);
-
-    gko::experimental::mpi::DenseCommunicator dcomm{
-        comm, recv_sizes[rank], recv_offsets, send_sizes[rank], send_offsets,
-    };
-
-    ASSERT_EQ(dcomm.get_recv_size(), recv_offsets.back());
-    ASSERT_EQ(dcomm.get_send_size(), send_offsets.back());
-}
-
-
 TEST_F(DenseCommunicator, CanConstructFromEmptyIndexMap)
 {
     auto imap = map_type{ref};
@@ -133,22 +87,6 @@ TEST_F(DenseCommunicator, CanConstructFromIndexMapWithoutConnection)
     auto imap = map_type{ref, part, comm.rank(), {ref, 0}};
 
     gko::experimental::mpi::DenseCommunicator dcomm{comm, imap};
-
-    ASSERT_EQ(dcomm.get_recv_size(), 0);
-    ASSERT_EQ(dcomm.get_send_size(), 0);
-}
-
-
-TEST_F(DenseCommunicator, CanConstructFromEmptyEnvelopData)
-{
-    std::vector<comm_index_type> recv_sizes;
-    std::vector<comm_index_type> send_sizes;
-    std::vector<comm_index_type> recv_offsets{0};
-    std::vector<comm_index_type> send_offsets{0};
-
-    gko::experimental::mpi::DenseCommunicator dcomm{
-        comm, recv_sizes, recv_offsets, send_sizes, send_offsets,
-    };
 
     ASSERT_EQ(dcomm.get_recv_size(), 0);
     ASSERT_EQ(dcomm.get_send_size(), 0);
