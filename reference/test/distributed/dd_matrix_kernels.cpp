@@ -49,15 +49,15 @@ protected:
             gko::device_matrix_data<value_type, global_index_type>{
                 ref, gko::dim<2>{num_rows, num_rows},
                 gko::array<global_index_type>{
-                    ref, I<global_index_type>{0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3,
-                                              3, 4, 4, 4, 4, 5, 5, 5}},
+                    ref, I<global_index_type>{0, 0, 0, 1, 1, 1, 1, 2, 2, 2,
+                                              3, 3, 3, 4, 4, 4, 4, 5, 5, 5}},
                 gko::array<global_index_type>{
-                    ref, I<global_index_type>{0, 1, 3, 0, 1, 2, 4, 1, 5, 0, 3,
-                                              4, 1, 3, 4, 5, 2, 4, 5}},
+                    ref, I<global_index_type>{0, 1, 3, 0, 1, 2, 4, 1, 2, 5,
+                                              0, 3, 4, 1, 3, 4, 5, 2, 4, 5}},
                 gko::array<value_type>{
-                    ref,
-                    I<value_type>{2, -1, -1, -1, 3, -1, -1, -1, -1, -1, 1.5,
-                                  -0.5, -1, -0.5, 2, -0.5, -1, -0.5, 1.5}}});
+                    ref, I<value_type>{2,    -1, -1,   -1, 3,    -1,   -1,
+                                       -1,   2,  -1,   -1, 1.5,  -0.5, -1,
+                                       -0.5, 2,  -0.5, -1, -0.5, 1.5}}});
 
         // Matrix on rank 1
         local_contributions.emplace_back(
