@@ -1,4 +1,5 @@
 add_subdirectory(distributed)
+ginkgo_create_common_and_reference_test(dd_matrix MPI_SIZE 3)
 add_subdirectory(preconditioner)
 add_subdirectory(solver)
 add_subdirectory(multigrid)

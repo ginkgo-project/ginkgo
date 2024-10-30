@@ -188,65 +188,75 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
         ->read(std::move(local_data));
 
-    // Gather local sizes from all ranks and build the partition in the enriched
-    // space.
-    array<GlobalIndexType> range_bounds{exec, num_parts + 1};
-    comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
-    exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
-                                                     num_parts + 1));
-    auto large_partition =
-        share(Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
-            exec, range_bounds));
+    // // Gather local sizes from all ranks and build the partition in the
+    // enriched
+    // // space.
+    // array<GlobalIndexType> range_bounds{exec, num_parts + 1};
+    // comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
+    // exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
+    //                                                  num_parts + 1));
+    // auto large_partition =
+    //     share(Partition<LocalIndexType,
+    //     GlobalIndexType>::build_from_contiguous(
+    //         exec, range_bounds));
 
-    // Build the restricion and prolongation operators.
-    array<GlobalIndexType> remote_idxs{exec};
-    auto enriched_map =
-        gko::experimental::distributed::index_map<LocalIndexType,
-                                                  GlobalIndexType>(
-            exec, large_partition, local_part, remote_idxs);
-    auto restrict_col_idxs =
-        make_const_array_view(
-            exec, static_cast<size_type>(local_num_cols),
-            col_map.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
-    auto restrict_row_idxs =
-        make_const_array_view(
-            exec, static_cast<size_type>(local_num_rows),
-            enriched_map.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
-    array<ValueType> restrict_values{exec,
-                                     static_cast<size_type>(local_num_rows)};
-    restrict_values.fill(one<ValueType>());
-    device_matrix_data<ValueType, GlobalIndexType> restrict_data{
-        exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
-        std::move(restrict_row_idxs), std::move(restrict_col_idxs),
-        std::move(restrict_values)};
-    restriction_ =
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
-    restriction_->read_distributed(restrict_data, large_partition,
-                                   col_partition);
-    auto prolongate_col_idxs =
-        make_const_array_view(
-            exec, static_cast<size_type>(local_num_rows),
-            enriched_map.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
-    auto prolongate_row_idxs =
-        make_const_array_view(
-            exec, static_cast<size_type>(local_num_cols),
-            row_map.get_remote_global_idxs().get_const_flat_data())
-            .copy_to_array();
-    array<ValueType> prolongate_values{exec,
-                                       static_cast<size_type>(local_num_rows)};
-    prolongate_values.fill(one<ValueType>());
-    device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
-        exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
-        std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
-        std::move(prolongate_values)};
-    prolongation_ =
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
-    prolongation_->read_distributed(prolongate_data, row_partition,
-                                    large_partition,
-                                    assembly_mode::communicate);
+    // // Build the restricion and prolongation operators.
+    // array<GlobalIndexType> remote_idxs{exec, 0};
+    // auto enriched_map =
+    //     gko::experimental::distributed::index_map<LocalIndexType,
+    //                                               GlobalIndexType>(
+    //         exec, large_partition, local_part, remote_idxs);
+    // auto restrict_col_idxs =
+    //     make_const_array_view(
+    //         exec, static_cast<size_type>(local_num_cols),
+    //         col_map.get_remote_global_idxs().get_const_flat_data())
+    //         .copy_to_array();
+    // auto restrict_row_idxs =
+    //     make_const_array_view(
+    //         exec, static_cast<size_type>(local_num_rows),
+    //         enriched_map.get_remote_global_idxs().get_const_flat_data())
+    //         .copy_to_array();
+    // array<ValueType> restrict_values{exec,
+    //                                  static_cast<size_type>(local_num_rows)};
+    // restrict_values.fill(one<ValueType>());
+    // device_matrix_data<ValueType, GlobalIndexType> restrict_data{
+    //     exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
+    //     std::move(restrict_row_idxs), std::move(restrict_col_idxs),
+    //     std::move(restrict_values)};
+    // restriction_ =
+    //     Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec,
+    //     comm);
+    // restriction_->read_distributed(restrict_data, large_partition,
+    //                                col_partition);
+    // auto prolongate_col_idxs =
+    //     make_const_array_view(
+    //         exec, static_cast<size_type>(local_num_rows),
+    //         enriched_map.get_remote_global_idxs().get_const_flat_data())
+    //         .copy_to_array();
+    // auto prolongate_row_idxs =
+    //     make_const_array_view(
+    //         exec, static_cast<size_type>(local_num_cols),
+    //         row_map.get_remote_global_idxs().get_const_flat_data())
+    //         .copy_to_array();
+    // array<ValueType> prolongate_values{exec,
+    //                                    static_cast<size_type>(local_num_rows)};
+    // prolongate_values.fill(one<ValueType>());
+    // device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
+    //     exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
+    //     std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
+    //     std::move(prolongate_values)};
+    // prolongation_ =
+    //     Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec,
+    //     comm);
+    // prolongation_->read_distributed(prolongate_data, row_partition,
+    //                                 large_partition,
+    //                                 assembly_mode::communicate);
+
+    // dim<2> global_buffer_size{large_partition->get_size(), 1u};
+    // dim<2> local_buffer_size{static_cast<size_type>(local_num_rows), 1u};
+    // lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
+    // local_buffer_size); rhs_buffer_ = Vector<ValueType>::create(exec, comm,
+    // global_buffer_size, local_buffer_size);
 }
 
 
