@@ -93,20 +93,6 @@ DenseCommunicator& DenseCommunicator::operator=(DenseCommunicator&& other)
 }
 
 
-DenseCommunicator::DenseCommunicator(
-    communicator base, const std::vector<comm_index_type>& recv_sizes,
-    const std::vector<comm_index_type>& recv_offsets,
-    const std::vector<comm_index_type>& send_sizes,
-    const std::vector<comm_index_type>& send_offsets)
-    : CollectiveCommunicator(base),
-      comm_(base),
-      recv_sizes_(recv_sizes),
-      recv_offsets_(recv_offsets),
-      send_sizes_(send_sizes),
-      send_offsets_(send_offsets)
-{}
-
-
 request DenseCommunicator::i_all_to_all_v_impl(
     std::shared_ptr<const Executor> exec, const void* send_buffer,
     MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
@@ -139,8 +125,12 @@ DenseCommunicator::create_with_same_type(
 std::unique_ptr<CollectiveCommunicator> DenseCommunicator::create_inverse()
     const
 {
-    return std::make_unique<DenseCommunicator>(
-        comm_, send_sizes_, send_offsets_, recv_sizes_, recv_offsets_);
+    auto inv = std::make_unique<DenseCommunicator>(comm_);
+    inv->send_sizes_ = recv_sizes_;
+    inv->send_offsets_ = recv_offsets_;
+    inv->recv_sizes_ = send_sizes_;
+    inv->recv_offsets_ = send_offsets_;
+    return inv;
 }
 
 
