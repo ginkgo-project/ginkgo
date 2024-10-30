@@ -66,26 +66,6 @@ public:
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
     /**
-     * Create a NeighborhoodCommunicator by explicitly defining the
-     * neighborhood lists and sizes/offsets.
-     *
-     * @param base  the base communicator
-     * @param sources  the ranks to receive from
-     * @param recv_sizes  the number of elements to recv for each source
-     * @param recv_offsets  the offset for each source
-     * @param destinations  the ranks to send to
-     * @param send_sizes  the number of elements to send for each destination
-     * @param send_offsets  the offset for each destination
-     */
-    NeighborhoodCommunicator(communicator base,
-                             const std::vector<comm_index_type>& sources,
-                             const std::vector<comm_index_type>& recv_sizes,
-                             const std::vector<comm_index_type>& recv_offsets,
-                             const std::vector<comm_index_type>& destinations,
-                             const std::vector<comm_index_type>& send_sizes,
-                             const std::vector<comm_index_type>& send_offsets);
-
-    /**
      * @copydoc collective_communicator::create_with_same_type
      */
     std::unique_ptr<CollectiveCommunicator> create_with_same_type(
