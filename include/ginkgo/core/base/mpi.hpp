@@ -454,6 +454,16 @@ public:
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
     }
 
+    /**
+     * Creates a new communicator and takes ownership of the MPI_Comm.
+     *
+     * The ownership is shared with all communicators that are created as a
+     * copy from the new communicator.
+     * The underlying MPI_Comm will be freed when the last communicator with
+     * ownership is destroyed.
+     *
+     * @see communicator(const MPI_Comm&, bool)
+     */
     static communicator create_owning(const MPI_Comm& comm,
                                       bool force_host_buffer = false)
     {
@@ -462,12 +472,29 @@ public:
         return comm_out;
     }
 
+    /**
+     * Create a copy of a communicator.
+     *
+     * Potential ownership of the underlying MPI_Comm will be shared.
+     */
     communicator(const communicator& other) = default;
 
+    /**
+     * Move constructor.
+     *
+     * The other communicator will relinquish any potential ownership and use
+     * MPI_COMM_NULL as underlying MPI_Comm after the move operation.
+     */
     communicator(communicator&& other) { *this = std::move(other); }
 
+    /**
+     * @see communicator(const communicator&)
+     */
     communicator& operator=(const communicator& other) = default;
 
+    /**
+     * @see communicator(communicator&&)
+     */
     communicator& operator=(communicator&& other)
     {
         if (this != &other) {
