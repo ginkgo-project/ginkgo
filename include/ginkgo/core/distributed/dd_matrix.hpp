@@ -183,6 +183,8 @@ public:
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
+    using global_matrix_type =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>;
     using global_vector_type =
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
@@ -281,6 +283,26 @@ public:
      * @return  Shared pointer to the stored local matrix
      */
     std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+
+    /**
+     * Get read access to the stored restriction operator.
+     *
+     * @return  Shared pointer to the stored restriction operator.
+     */
+    std::shared_ptr<const global_matrix_type> get_restriction() const
+    {
+        return restriction_;
+    }
+
+    /**
+     * Get read access to the stored prolongation operator.
+     *
+     * @return  Shared pointer to the stored prolongation operator.
+     */
+    std::shared_ptr<const global_matrix_type> get_prolongation() const
+    {
+        return prolongation_;
+    }
 
     /**
      * Copy constructs a Matrix.
@@ -425,11 +447,11 @@ private:
     gko::detail::DenseCache<value_type> host_recv_buffer_;
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
-    std::shared_ptr<Matrix<value_type, local_index_type, global_index_type>>
-        restriction_;
+    std::shared_ptr<global_matrix_type> restriction_;
     std::shared_ptr<LinOp> local_mtx_;
-    std::shared_ptr<Matrix<value_type, local_index_type, global_index_type>>
-        prolongation_;
+    std::shared_ptr<global_matrix_type> prolongation_;
+    std::shared_ptr<global_vector_type> lhs_buffer_;
+    std::shared_ptr<global_vector_type> rhs_buffer_;
 };
 
 
