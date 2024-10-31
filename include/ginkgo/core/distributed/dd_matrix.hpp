@@ -436,6 +436,8 @@ protected:
                     LinOp* x) const override;
 
 private:
+    void check_and_adjust_buffer_size(const size_type nrhs) const;
+
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;

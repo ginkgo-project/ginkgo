@@ -167,6 +167,7 @@ TYPED_TEST(DdMatrix, ReadsDistributed)
         non_local_prolongation[rank], 0);
 }
 
+
 TYPED_TEST(DdMatrix, CanApplyToSingleVector)
 {
     using value_type = typename TestFixture::value_type;
@@ -184,6 +185,38 @@ TYPED_TEST(DdMatrix, CanApplyToSingleVector)
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }
+
+
+TYPED_TEST(DdMatrix, CanApplyToMultipleVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    auto vec_md =
+        gko::matrix_data<value_type, index_type>{I<I<value_type>>{{1, 2},
+                                                                  {2, 4},
+                                                                  {3, 6},
+                                                                  {4, 8},
+                                                                  {5, 10},
+                                                                  {6, 12},
+                                                                  {7, 14},
+                                                                  {8, 16},
+                                                                  {9, 18},
+                                                                  {10, 20},
+                                                                  {11, 22},
+                                                                  {12, 24}}};
+    I<I<value_type>> result[3] = {{{-4, -8}, {-3, -6}, {-2, -4}, {-1, -2}},
+                                  {{0, 0}, {1, 2}, {-1, -2}, {0, 0}},
+                                  {{1, 2}, {2, 4}, {3, 6}, {4, 8}}};
+    auto rank = this->comm.rank();
+    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->x->read_distributed(vec_md, this->row_part);
+    this->y->read_distributed(vec_md, this->row_part);
+
+    this->dist_mat->apply(this->x, this->y);
+
+    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+}
+
 
 TYPED_TEST(DdMatrix, CanAdvancedApplyToSingleVector)
 {
@@ -205,5 +238,116 @@ TYPED_TEST(DdMatrix, CanAdvancedApplyToSingleVector)
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }
+
+
+TYPED_TEST(DdMatrix, CanAdvancedApplyToMultipleVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using dense_vec_type = typename TestFixture::dense_vec_type;
+    auto vec_md =
+        gko::matrix_data<value_type, index_type>{I<I<value_type>>{{1, 2},
+                                                                  {2, 4},
+                                                                  {3, 6},
+                                                                  {4, 8},
+                                                                  {5, 10},
+                                                                  {6, 12},
+                                                                  {7, 14},
+                                                                  {8, 16},
+                                                                  {9, 18},
+                                                                  {10, 20},
+                                                                  {11, 22},
+                                                                  {12, 24}}};
+    I<I<value_type>> result[3] = {{{-3, -6}, {-1, -2}, {1, 2}, {3, 6}},
+                                  {{5, 10}, {7, 14}, {6, 12}, {8, 16}},
+                                  {{10, 20}, {12, 24}, {14, 28}, {16, 32}}};
+    auto rank = this->comm.rank();
+    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->x->read_distributed(vec_md, this->row_part);
+    this->y->read_distributed(vec_md, this->row_part);
+    auto alpha = gko::initialize<dense_vec_type>({1.0}, this->exec);
+    auto beta = gko::initialize<dense_vec_type>({1.0}, this->exec);
+
+    this->dist_mat->apply(alpha, this->x, beta, this->y);
+
+    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+}
+
+
+TYPED_TEST(DdMatrix, CanColScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using matrix_data = typename TestFixture::local_matrix_data;
+    using csr = typename TestFixture::local_matrix_type;
+    auto local_size = gko::dim<2>{6, 6};
+    auto vec_md = gko::matrix_data<value_type, index_type>{I<I<value_type>>{
+        {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}}};
+    std::array<matrix_data, 3> scaled_result{
+        {{local_size,
+          {{0, 0, 2},  {0, 1, -2}, {0, 3, -4},   {1, 0, -1},   {1, 1, 6},
+           {1, 2, -3}, {1, 4, -5}, {2, 1, -2},   {2, 2, 6},    {2, 5, -6},
+           {3, 0, -1}, {3, 3, 6},  {3, 4, -2.5}, {4, 1, -2},   {4, 3, -2},
+           {4, 4, 10}, {4, 5, -3}, {5, 2, -3},   {5, 4, -2.5}, {5, 5, 9}}},
+         {local_size,
+          {{0, 0, 10}, {0, 1, -3},   {0, 3, -8},   {0, 4, -2},   {1, 0, -2.5},
+           {1, 1, 9},  {1, 5, -9},   {2, 2, 10.5}, {2, 3, -4},   {2, 4, -4},
+           {3, 0, -5}, {3, 2, -3.5}, {3, 3, 16},   {3, 5, -4.5}, {4, 0, -2.5},
+           {4, 2, -7}, {4, 4, 6},    {5, 1, -6},   {5, 3, -4},   {5, 5, 13.5}}},
+         {local_size, {{0, 0, 13.5}, {0, 3, -12}, {0, 5, -4},   {1, 1, 20},
+                       {1, 2, -11},  {1, 4, -7},  {2, 1, -10},  {2, 2, 33},
+                       {2, 3, -12},  {2, 5, -8},  {3, 0, -9},   {3, 2, -11},
+                       {3, 3, 24},   {4, 1, -10}, {4, 4, 10.5}, {4, 5, -4},
+                       {5, 0, -4.5}, {5, 2, -11}, {5, 4, -3.5}, {5, 5, 16}}}}};
+    auto rank = this->comm.rank();
+    auto res_local = csr::create(this->exec);
+    res_local->read(scaled_result[rank]);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->x->read_distributed(vec_md, this->row_part);
+
+    this->dist_mat->col_scale(this->x);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_local, 0);
+}
+
+
+TYPED_TEST(DdMatrix, CanRowScale)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    using matrix_data = typename TestFixture::local_matrix_data;
+    using csr = typename TestFixture::local_matrix_type;
+    auto local_size = gko::dim<2>{6, 6};
+    auto vec_md = gko::matrix_data<value_type, index_type>{I<I<value_type>>{
+        {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}}};
+    std::array<matrix_data, 3> scaled_result{
+        {{local_size,
+          {{0, 0, 2},  {0, 1, -1},   {0, 3, -1}, {1, 0, -2}, {1, 1, 6},
+           {1, 2, -2}, {1, 4, -2},   {2, 1, -3}, {2, 2, 6},  {2, 5, -3},
+           {3, 0, -4}, {3, 3, 6},    {3, 4, -2}, {4, 1, -5}, {4, 3, -2.5},
+           {4, 4, 10}, {4, 5, -2.5}, {5, 2, -6}, {5, 4, -3}, {5, 5, 9}}},
+         {local_size,
+          {{0, 0, 10}, {0, 1, -2.5}, {0, 3, -5},   {0, 4, -2.5}, {1, 0, -3},
+           {1, 1, 9},  {1, 5, -6},   {2, 2, 10.5}, {2, 3, -3.5}, {2, 4, -7},
+           {3, 0, -8}, {3, 2, -4},   {3, 3, 16},   {3, 5, -4},   {4, 0, -2},
+           {4, 2, -4}, {4, 4, 6},    {5, 1, -9},   {5, 3, -4.5}, {5, 5, 13.5}}},
+         {local_size,
+          {{0, 0, 13.5}, {0, 3, -9},  {0, 5, -4.5}, {1, 1, 20},  {1, 2, -10},
+           {1, 4, -10},  {2, 1, -11}, {2, 2, 33},   {2, 3, -11}, {2, 5, -11},
+           {3, 0, -12},  {3, 2, -12}, {3, 3, 24},   {4, 1, -7},  {4, 4, 10.5},
+           {4, 5, -3.5}, {5, 0, -4},  {5, 2, -8},   {5, 4, -4},  {5, 5, 16}}}}};
+    auto rank = this->comm.rank();
+    auto res_local = csr::create(this->exec);
+    res_local->read(scaled_result[rank]);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->x->read_distributed(vec_md, this->row_part);
+
+    this->dist_mat->row_scale(this->x);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_local, 0);
+}
+
 
 #endif
