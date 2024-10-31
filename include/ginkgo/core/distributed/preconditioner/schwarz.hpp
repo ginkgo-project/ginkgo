@@ -78,6 +78,16 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_local_solver, nullptr);
+
+        /**
+         * Enable l1 smoother.
+         *
+         * This creates a diagonal matrix from the row-wise absolute
+         * sum of the non-local matrix entries. The diagonal matrix
+         * is then added to the system matrix when generating the
+         * local solver.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(l1_smoother, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

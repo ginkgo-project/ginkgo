@@ -348,6 +348,14 @@ Diagonal<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
+std::unique_ptr<Diagonal<ValueType>> Diagonal<ValueType>::extract_diagonal()
+    const
+{
+    return Diagonal::create(this->get_executor(), this->get_size()[0], values_);
+}
+
+
+template <typename ValueType>
 Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
                               size_type size)
     : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
