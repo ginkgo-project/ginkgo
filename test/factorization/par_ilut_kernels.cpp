@@ -48,39 +48,27 @@ protected:
         mtx1 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(10, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(0, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_square = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[0],
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
         dmtx1 = gko::clone(exec, mtx1);
         dmtx2 = gko::clone(exec, mtx2);
@@ -134,7 +122,7 @@ protected:
                      const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto size = index_type(mtx->get_num_stored_elements());
         using ValueType = typename Mtx::value_type;
 
@@ -189,7 +177,7 @@ protected:
                             const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto res = Mtx::create(ref, mtx_size);
         auto dres = Mtx::create(exec, mtx_size);
         auto res_coo = Coo::create(ref, mtx_size);
@@ -245,12 +233,15 @@ protected:
     std::unique_ptr<Csr> dmtx_u;
 };
 
-TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() / 3);
 }
@@ -258,12 +249,18 @@ TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMinIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMaxIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() - 1);
 }
@@ -330,6 +327,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    SKIP_IF_HALF(value_type);
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->exec, this->mtx_size);
@@ -355,6 +353,9 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() / 2);
 }
@@ -362,12 +363,18 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxNoneLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxAllLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() - 1);
 }
@@ -377,6 +384,8 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    // there's one value larger than half range
+    SKIP_IF_HALF(value_type);
     auto square_size = this->mtx_square->get_size();
     auto mtx_lu = Csr::create(this->ref, square_size);
     this->mtx_l2->apply(this->mtx_u, mtx_lu);
@@ -405,6 +414,8 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     auto mtx_u_coo = Coo::create(this->ref, square_size);

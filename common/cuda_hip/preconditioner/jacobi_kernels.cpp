@@ -206,11 +206,11 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
     GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
         ValueType, block_precisions[block_id],
         auto local_block =
-            reinterpret_cast<const resolved_precision*>(
+            reinterpret_cast<const device_type<resolved_precision>*>(
                 blocks + storage_scheme.get_group_offset(block_id)) +
             storage_scheme.get_block_offset(block_id);
         auto local_out_block =
-            reinterpret_cast<resolved_precision*>(
+            reinterpret_cast<device_type<resolved_precision>*>(
                 out_blocks + storage_scheme.get_group_offset(block_id)) +
             storage_scheme.get_block_offset(block_id);
         for (int i = rank; i < block_size * block_size; i += subwarp_size) {
@@ -297,7 +297,7 @@ void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
         exec, max_block_size, num_natural_blocks, block_pointers.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 
@@ -364,7 +364,7 @@ void transpose_jacobi(
         storage_scheme, out_blocks.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
 
 
@@ -388,7 +388,7 @@ void conj_transpose_jacobi(
         storage_scheme, out_blocks.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -401,7 +401,7 @@ void convert_to_dense(
         storage_scheme,
     ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 

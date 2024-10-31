@@ -58,7 +58,7 @@ protected:
     std::unique_ptr<Mtx> perm2;
 };
 
-TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(ScaledPermutation, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
@@ -145,8 +145,7 @@ TYPED_TEST(ScaledPermutation, CombineWithInverse)
     using index_type = typename TestFixture::index_type;
     const gko::size_type size = 20;
     auto rng = std::default_random_engine{3754};
-    auto dist = std::uniform_real_distribution<gko::remove_complex<value_type>>{
-        1.0, 2.0};
+    auto dist = std::uniform_real_distribution<>{1.0, 2.0};
     auto perm = gko::matrix::ScaledPermutation<value_type, index_type>::create(
         this->exec, size);
     std::iota(perm->get_permutation(), perm->get_permutation() + size, 0);

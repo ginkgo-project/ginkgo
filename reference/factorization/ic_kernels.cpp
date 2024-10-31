@@ -69,7 +69,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_COMPUTE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_IC_COMPUTE_KERNEL);
 
 
 }  // namespace ic_factorization

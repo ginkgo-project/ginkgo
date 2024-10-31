@@ -441,7 +441,7 @@ protected:
     generate_default_solver(const std::shared_ptr<const Executor>& exec,
                             const std::shared_ptr<const LinOp>& mtx)
     {
-        constexpr gko::remove_complex<value_type> default_reduce_residual{1e-4};
+        const gko::remove_complex<value_type> default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
             static_cast<unsigned int>(mtx->get_size()[0])};
 

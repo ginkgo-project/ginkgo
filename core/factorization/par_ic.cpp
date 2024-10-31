@@ -146,7 +146,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
 
 #define GKO_DECLARE_PAR_IC(ValueType, IndexType) \
     class ParIc<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PAR_IC);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_PAR_IC);
 
 
 }  // namespace factorization

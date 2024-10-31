@@ -190,7 +190,7 @@ void apply(syn::value_list<int, max_block_size>,
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,   \
         const ValueType*, size_type, ValueType*, size_type)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     DECLARE_JACOBI_SIMPLE_APPLY_INSTANTIATION);
 
 

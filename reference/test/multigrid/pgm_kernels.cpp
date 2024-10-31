@@ -187,7 +187,8 @@ protected:
     std::unique_ptr<MgLevel> mg_level;
 };
 
-TYPED_TEST_SUITE(Pgm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Pgm, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Pgm, CanBeCopied)

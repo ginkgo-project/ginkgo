@@ -202,7 +202,9 @@ get_value(const pnode& config)
  * This is specialization for floating point type
  */
 template <typename ValueType>
-inline std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+inline std::enable_if_t<std::is_floating_point<ValueType>::value ||
+                            std::is_same<ValueType, half>::value,
+                        ValueType>
 get_value(const pnode& config)
 {
     auto val = config.get_real();

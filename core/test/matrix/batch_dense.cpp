@@ -68,7 +68,7 @@ protected:
     std::unique_ptr<gko::matrix::Dense<value_type>> dense_mtx;
 };
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, KnowsItsSizeAndValues)

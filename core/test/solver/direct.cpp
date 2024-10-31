@@ -35,7 +35,8 @@ protected:
     std::unique_ptr<typename Solver::Factory> factory;
 };
 
-TYPED_TEST_SUITE(Direct, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Direct, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Direct, FactoryKnowsItsExecutor)

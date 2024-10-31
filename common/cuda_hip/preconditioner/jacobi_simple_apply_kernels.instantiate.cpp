@@ -84,7 +84,7 @@ __global__ void __launch_bounds__(warps_per_block* config::warp_size)
         ValueType, block_precisions[block_id],
         multiply_vec<max_block_size>(
             subwarp, block_size, v,
-            reinterpret_cast<const resolved_precision*>(
+            reinterpret_cast<const device_type<resolved_precision>*>(
                 blocks + storage_scheme.get_group_offset(block_id)) +
                 storage_scheme.get_block_offset(block_id) +
                 subwarp.thread_rank(),
@@ -151,7 +151,7 @@ void apply(syn::value_list<int, max_block_size>,
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,   \
         const ValueType*, size_type, ValueType*, size_type)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     DECLARE_JACOBI_SIMPLE_APPLY_INSTANTIATION);
 
 

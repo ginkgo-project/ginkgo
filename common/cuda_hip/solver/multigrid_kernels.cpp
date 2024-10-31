@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
@@ -140,7 +141,8 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -173,7 +175,8 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
 
 
 template <typename ValueType>
@@ -191,13 +194,13 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
         kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
                                            exec->get_stream()>>>(
             nrhs, as_device_type(old_norm->get_const_values()),
-            as_device_type(new_norm->get_const_values()), rel_tol,
-            as_device_type(dis_stop.get_data()));
+            as_device_type(new_norm->get_const_values()),
+            as_device_type(rel_tol), as_device_type(dis_stop.get_data()));
     }
     is_stop = get_element(dis_stop, 0);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL);
 
 

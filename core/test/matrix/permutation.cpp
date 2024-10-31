@@ -52,7 +52,7 @@ protected:
     std::unique_ptr<gko::matrix::Permutation<index_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

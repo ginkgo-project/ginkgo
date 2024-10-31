@@ -18,6 +18,7 @@
 
 namespace gko {
 
+class half;
 
 /* Eliminate circular dependencies the hard way */
 template <typename ValueType>
@@ -577,6 +578,17 @@ protected:
      */
     virtual void on_batch_solver_completed(
         const array<int>& iters, const array<float>& residual_norms) const
+    {}
+
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<gko::half>& residual_norms) const
     {}
 
 public:

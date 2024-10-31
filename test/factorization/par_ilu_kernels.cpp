@@ -59,8 +59,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(0, num_cols - 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
@@ -145,7 +144,8 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
@@ -237,6 +237,8 @@ TYPED_TEST(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};
@@ -255,6 +257,7 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};

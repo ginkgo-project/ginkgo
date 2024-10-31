@@ -78,7 +78,7 @@ protected:
     std::ranlux48 rand_engine;
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Csr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Csr, AppliesToBatchMultiVector)

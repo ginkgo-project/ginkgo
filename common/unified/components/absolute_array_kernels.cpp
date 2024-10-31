@@ -23,7 +23,8 @@ void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
         data);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
 template <typename ValueType>
@@ -37,7 +38,8 @@ void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
         n, in, out);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
 
 
 }  // namespace components

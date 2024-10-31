@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/array.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
@@ -354,7 +355,7 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     mtx_builder.get_col_idx_array() = std::move(new_col_idx_array);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL);
 
 
@@ -384,7 +385,7 @@ void initialize_row_ptrs_l_u(
     components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
@@ -417,7 +418,7 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
 
 
@@ -445,7 +446,7 @@ void initialize_row_ptrs_l(
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
 
 
@@ -480,7 +481,7 @@ void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
 

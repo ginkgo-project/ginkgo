@@ -121,7 +121,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> cgs_factory_big2;
 };
 
-TYPED_TEST_SUITE(Cgs, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Cgs, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Cgs, KernelInitialize)
@@ -293,7 +293,8 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
 
 TYPED_TEST(Cgs, SolvesDenseSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -329,8 +330,8 @@ TYPED_TEST(Cgs, SolvesDenseSystemComplex)
 
 TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using value_type = gko::to_complex<
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -386,7 +387,8 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
 
 TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -406,6 +408,8 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
     using Scalar = typename TestFixture::Mtx;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
+    // different initial guess leads complex<double> divergent.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
@@ -428,9 +432,11 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
 TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 {
     using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+        gko::next_precision_with_half<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
+    // different initial guess leads complex<double> divergent.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
@@ -475,6 +481,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -491,6 +498,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystemWithImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {17356.0, 5466.0, 748.0, -456.0, 3434.0, -7020.0}, this->exec);
@@ -507,6 +515,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {17356.0, 5466.0, 748.0, -456.0, 3434.0, -7020.0}, this->exec);
@@ -523,6 +532,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -589,6 +599,7 @@ TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big->transpose());
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -605,6 +616,7 @@ TYPED_TEST(Cgs, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
     auto solver =
         this->cgs_factory_big->generate(this->mtx_big->conj_transpose());
     auto b = gko::initialize<Mtx>(

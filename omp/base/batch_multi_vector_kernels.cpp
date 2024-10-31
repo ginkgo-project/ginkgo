@@ -37,7 +37,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_MULTI_VECTOR_SCALE_KERNEL);
 
 
@@ -59,7 +59,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_MULTI_VECTOR_ADD_SCALED_KERNEL);
 
 
@@ -81,7 +81,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_DOT_KERNEL);
 
 
@@ -103,7 +103,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_CONJ_DOT_KERNEL);
 
 
@@ -122,7 +122,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_MULTI_VECTOR_COMPUTE_NORM2_KERNEL);
 
 
@@ -141,7 +141,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector

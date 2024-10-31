@@ -45,11 +45,16 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
-                    public ConvertibleTo<Dense<next_precision<ValueType>>> {
+class Dense final
+    : public EnableBatchLinOp<Dense<ValueType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Dense<next_precision_with_half<next_precision_with_half<ValueType>>>>,
+#endif
+      public ConvertibleTo<Dense<next_precision_with_half<ValueType>>> {
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
-    friend class Dense<next_precision<ValueType>>;
+    friend class Dense<previous_precision_with_half<ValueType>>;
 
 public:
     using EnableBatchLinOp<Dense>::convert_to;
@@ -62,9 +67,27 @@ public:
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
 
-    void convert_to(Dense<next_precision<ValueType>>* result) const override;
+    void convert_to(
+        Dense<next_precision_with_half<ValueType>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType>>* result) override;
+    void move_to(Dense<next_precision_with_half<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Dense<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>>;
+    using ConvertibleTo<Dense<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::move_to;
+
+    void convert_to(
+        Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
+            result) const override;
+
+    void move_to(
+        Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
+            result) override;
+#endif
 
     /**
      * Creates a mutable view (of gko::matrix::Dense type) of one item of the

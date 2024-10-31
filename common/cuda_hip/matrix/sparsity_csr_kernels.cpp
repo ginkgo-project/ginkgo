@@ -72,11 +72,11 @@ __device__ void device_classical_spmv(const size_type num_rows,
     const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
     const auto subid = subwarp_tile.thread_rank();
     const IndexType column_id = blockIdx.y;
-    const arithmetic_type value = val[0];
+    const auto value = static_cast<arithmetic_type>(val[0]);
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
-        arithmetic_type temp_val = zero<arithmetic_type>();
+        auto temp_val = zero<arithmetic_type>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
              ind += subwarp_size) {
             temp_val += value * b(col_idxs[ind], column_id);
@@ -138,7 +138,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
                matrix::SparsityCsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
 
 
@@ -246,7 +246,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
@@ -264,7 +264,7 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha, beta);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -297,7 +297,7 @@ void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -320,7 +320,7 @@ void is_sorted_by_column_index(
     cpu_array = gpu_array;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
