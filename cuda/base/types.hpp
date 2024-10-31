@@ -206,11 +206,6 @@ GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 #undef GKO_CUDA_DATA_TYPE
 
 
-#if defined(CUDA_VERSION) &&  \
-    (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
-
-
 template <typename T>
 struct cusparse_index_type_impl {};
 
@@ -225,10 +220,6 @@ GKO_CUDA_INDEX_TYPE(int32, CUSPARSE_INDEX_32I);
 GKO_CUDA_INDEX_TYPE(int64, CUSPARSE_INDEX_64I);
 
 #undef GKO_CUDA_INDEX_TYPE
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 }  // namespace detail
@@ -249,11 +240,6 @@ constexpr cudaDataType_t cuda_data_type()
 }
 
 
-#if defined(CUDA_VERSION) &&  \
-    (CUDA_VERSION >= 11000 || \
-     ((CUDA_VERSION >= 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
-
-
 /**
  * This is an alias for the `cudaIndexType_t` equivalent of `T`. By default,
  * CUSPARSE_INDEX_16U is returned.
@@ -267,10 +253,6 @@ constexpr cusparseIndexType_t cusparse_index_type()
 {
     return detail::cusparse_index_type_impl<T>::value;
 }
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
-        // 10020) && !(defined(_WIN32) || defined(__CYGWIN__))))
 
 
 /**
