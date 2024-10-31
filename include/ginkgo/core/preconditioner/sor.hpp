@@ -26,16 +26,16 @@ namespace preconditioner {
  * $A = D + L + U$, where $L$ contains all entries below the diagonal, and $U$
  * contains all entries above the diagonal. The application of the
  * preconditioner is then defined as solving $M x = y$ with
- * $$
+ * \f[
  * M = \frac{1}{\omega} (D + \omega L), \quad 0 < \omega < 2.
- * $$
+ * \f]
  * $\omega$ is known as the relaxation factor.
  * The preconditioner can be made symmetric, leading to the SSOR preconitioner.
  * Here, $M$ is defined as
- * $$
+ * \f[
  * M = \frac{1}{\omega (2 - \omega)} (D + \omega L) D^{-1} (D + \omega U) ,
  * \quad 0 < \omega < 2.
- * $$
+ * \f]
  * A detailed description can be found in Iterative Methods for Sparse Linear
  * Systems (Y. Saad) ch. 4.1.
  *
@@ -44,6 +44,8 @@ namespace preconditioner {
  *
  * @tparam ValueType  The value type of the internally used CSR matrix
  * @tparam IndexType  The index type of the internally used CSR matrix
+ *
+ * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sor
