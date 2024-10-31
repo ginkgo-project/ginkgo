@@ -26,6 +26,8 @@ namespace preconditioner {
  * preconditioner.
  *
  * @see Sor
+ *
+ * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class GaussSeidel
