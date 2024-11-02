@@ -11,16 +11,15 @@
 
 #include "ginkgo/core/base/matrix_data.hpp"
 /**
- * Reads an input file
+ * Reads an input file in ascii format
  *
  *
- * This read an electrostatic input matrix file and returns a matrix, and a load
- * vector
+ * This read an electrostatic input matrix file in ascii
+ * and returns a pair of ginkgo matrix, and a load vector
  *
  *
  * @param fstring filename contating the matrix
- * @param mode either binary or ascii 0 for binary 1 for ascii
- * @return sum of `values`, or 0.0 if `values` is empty.
+ * @return pair of ginkgo matrix, and rhs
  */
 
 template <typename ValueType, typename IndexType>
@@ -51,11 +50,20 @@ std::vector<gko::matrix_data<ValueType, IndexType>> read_inputAscii(
     return mat_data;
 }
 
-
+/**
+ * same as read_inputAscii but for binary files
+ *
+ *
+ * @param fstring filename contating the matrix
+ * @return pair of ginkgo matrix, and rhs
+ */
 template <typename ValueType, typename IndexType>
 std::vector<gko::matrix_data<ValueType, IndexType>> read_inputBinary(
     std::string fstring)
 {
+    auto ValueTypeSize = sizeof(ValueType);
+    auto IndexTypeSize = sizeof(IndexType);
+
     int num_rows, index_placeholder;
     std::string fname = "data/" + fstring + ".bmtx";
 
@@ -67,7 +75,7 @@ std::vector<gko::matrix_data<ValueType, IndexType>> read_inputBinary(
     // skipping 4 initial padding bytes given by the fortran formatting
     fstream.seekg(4, std::ios::cur);
 
-    fstream.read(reinterpret_cast<char*>(&num_rows), sizeof(IndexType));
+    fstream.read(reinterpret_cast<char*>(&num_rows), IndexTypeSize);
 
 
     std::vector<gko::matrix_data<ValueType, IndexType>> mat_data{
@@ -82,19 +90,19 @@ std::vector<gko::matrix_data<ValueType, IndexType>> read_inputBinary(
         fstream.seekg(8, std::ios::cur);
 
         fstream.read(reinterpret_cast<char*>(&index_placeholder),
-                     sizeof(IndexType));
+                     IndexTypeSize);
 
         // skipping 4 bytes
         fstream.seekg(4, std::ios::cur);
 
         for (auto col = 0; col < num_rows; col++) {
-            float mat_val = 0.0;
-            fstream.read(reinterpret_cast<char*>(&mat_val), sizeof(float));
-            mat_data[0].nonzeros.emplace_back(row, col, (double)mat_val);
+            ValueType mat_val = 0.0;
+            fstream.read(reinterpret_cast<char*>(&mat_val), ValueTypeSize);
+            mat_data[0].nonzeros.emplace_back(row, col, mat_val);
         }
-        float rhs_val = 0.0;
-        fstream.read(reinterpret_cast<char*>(&rhs_val), sizeof(float));
-        mat_data[1].nonzeros.emplace_back(row, 0, (double)rhs_val);
+        ValueType rhs_val = 0.0;
+        fstream.read(reinterpret_cast<char*>(&rhs_val), ValueTypeSize);
+        mat_data[1].nonzeros.emplace_back(row, 0, rhs_val);
     }
     fstream.close();
     return mat_data;
@@ -109,12 +117,12 @@ std::vector<gko::matrix_data<ValueType, IndexType>> read_inputBinary(
  * @return vector of strings containing parameters value: executor, solver,
  * problem_name, input_mode
  */
-std::vector<std::string> read_config(std::string fstring = "electro.config")
+std::map<std::string, std::string> read_config(
+    std::string fstring = "electro.config")
 {
-    std::string tmp_string;
-    std::vector<std::string> config_strings;
+    std::string parameter_string, value_string;
+    std::map<std::string, std::string> config_parameters;
 
-    int i;
     // parse config file to get different parameters for the solver instance
 
     std::ifstream fstream_config;
@@ -125,34 +133,33 @@ std::vector<std::string> read_config(std::string fstring = "electro.config")
                      "to run Ginkgo for electrostatic casopt problems";
         exit(1);
     }
-    for (i = 0; i < 4; i++) {
-        if (!fstream_config.eof()) {
-            fstream_config >> tmp_string;
-        } else {
-            switch (i) {
-            case 0:
-                tmp_string = "reference";
-
-            case 1:
-                tmp_string = "gmres";
-
-            case 2:
-                tmp_string = "sphere";
-            default:
-                tmp_string = "ascii";
-            }
+    while (!fstream_config.eof()) {
+        fstream_config >> parameter_string;
+        fstream_config >> value_string;
+        if (parameter_string.compare("executor") == 0) {
+            config_parameters["executor"] = value_string;
+        } else if (parameter_string.compare("solver") == 0) {
+            config_parameters["solver"] = value_string;
+        } else if (parameter_string.compare("problem") == 0) {
+            config_parameters["problem"] = value_string;
+        } else if (parameter_string.compare("mode") == 0) {
+            config_parameters["mode"] = value_string;
+        } else if (parameter_string.compare("encoding") == 0) {
+            config_parameters["encoding"] = value_string;
+        } else if (parameter_string.compare("writeResult") == 0) {
+            config_parameters["writeResult"] = value_string;
         }
-        config_strings.push_back(tmp_string);
     }
 
     // display configuration
-
     std::cout << "Current Ginkgo configuration for electrostatic" << std::endl
-              << "    exectutor: " << config_strings[0] << std::endl
-              << "    solver: " << config_strings[1] << std::endl
-              << "    problem name: " << config_strings[2] << std::endl
-              << "    input mode: " << config_strings[3] << std::endl;
+              << "    exectutor: " << config_parameters["executor"] << std::endl
+              << "    solver: " << config_parameters["solver"] << std::endl
+              << "    problem name: " << config_parameters["problem"]
+              << std::endl
+              << "    input mode: " << config_parameters["mode"] << std::endl
+              << "    write result to file " << config_parameters["mode"]
+              << std::endl;
 
-
-    return config_strings;
+    return config_parameters;
 }

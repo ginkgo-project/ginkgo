@@ -10,4 +10,5 @@ add_executable(electrostatic-abb electrostatic-abb.cpp)
 target_link_libraries(electrostatic-abb Ginkgo::ginkgo)
 
 # Copy the data files to the execution directory
-configure_file(data/sphere.asc data/sphere.asc COPYONLY)
+configure_file(data/sphere.amtx data/sphere.amtx COPYONLY)
+configure_file(data/sphere.bmtx data/sphere.bmtx COPYONLY)

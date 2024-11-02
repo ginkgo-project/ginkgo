@@ -10,11 +10,12 @@
  
 ## Usage
 
+### Building and running
 After building, the executable `electrostatic-abb` should be generated in the build folder
 
-the working directory should include a config file, config file name set to `electro.config` can be changed in the code.
+the working directory should include a config file, config file name set to `electro.config` can be changed in the code - check config file format for further description of the config file.
 
-config file format:
+- config file format:
 
 ```
 <executor>
@@ -32,9 +33,7 @@ The matching file should be found in /data. Check field input mode on how to spe
 
 **input mode**: ascii or binary, depending on type of matrix file to read - default ascii
 
-## Further notes
-
-- Todo: verify double and single precision. Not consistant in input files due to fortran print.
+### Further specifications
 
 
 
