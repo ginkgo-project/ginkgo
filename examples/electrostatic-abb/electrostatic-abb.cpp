@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <type_traits>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -15,7 +16,26 @@
 
 int main(int argc, char* argv[])
 {
-    using ValueType = double;
+    std::string executor_string, solver_string, problem_string, mode_string,
+        writeResult_string;
+
+    std::map<std::string, std::string> config_strings;
+    config_strings = read_config();
+    executor_string = config_strings.count("executor") > 0
+                          ? config_strings["executor"]
+                          : "reference";
+    solver_string =
+        config_strings.count("solver") > 0 ? config_strings["solver"] : "gmres";
+    problem_string = config_strings.count("problem") > 0
+                         ? config_strings["problem"]
+                         : "sphere";
+    mode_string =
+        config_strings.count("mode") > 0 ? config_strings["mode"] : "binary";
+    writeResult_string = config_strings.count("writeResult") > 0
+                             ? config_strings["writeResult"]
+                             : "true";
+
+    using ValueType = float;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
@@ -25,13 +45,13 @@ int main(int argc, char* argv[])
     using bicgstab = gko::solver::Bicgstab<ValueType>;
     using gmres = gko::solver::Gmres<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using ilu = gko::preconditioner::Ilu<>;
+    // using ilu = gko::preconditioner::Ilu<>; ==>Not used for now, (only works
+    // when ValueType is double)
 
 
     std::vector<gko::matrix_data<ValueType, IndexType>> data;
 
-    std::vector<std::string> config_strings;
-    std::string executor_string, solver_string, problem_string, mode_string;
+
     std::cout << gko::version_info::get() << std::endl;
 
 
@@ -41,12 +61,6 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    // assigning configuration parameters
-    config_strings = read_config();
-    executor_string = config_strings[0];
-    solver_string = config_strings[1];
-    problem_string = config_strings[2];
-    mode_string = config_strings[3];
 
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -80,10 +94,12 @@ int main(int argc, char* argv[])
     std::cout << "Matrix size: " << A->get_size() << std::endl;
     auto b = gko::share(mtx::create(exec));
     b->read(data[1]);
+
+
     auto x = gko::clone(b);
 
 
-    const RealValueType reduction_factor{1e-16};
+    const RealValueType reduction_factor{1e-6};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     auto gmres_gen =
@@ -92,7 +108,6 @@ int main(int argc, char* argv[])
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor))
             // .with_preconditioner(bj::build().with_max_block_size(1u))
-            .with_preconditioner(ilu::build())
             .on(exec);
     auto bicgstab_gen =
         bicgstab::build()
@@ -100,7 +115,6 @@ int main(int argc, char* argv[])
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor))
             // .with_preconditioner(bj::build().with_max_block_size(1u))
-            .with_preconditioner(ilu::build())
             .on(exec);
     std::shared_ptr<gko::LinOp> solver;
     if (solver_string.compare("gmres") == 0) {
@@ -114,6 +128,7 @@ int main(int argc, char* argv[])
         throw("Invalid solver");
     }
     solver->add_logger(logger);
+    double apply_time = 0.0;
 
     auto x_clone = gko::clone(x);
     // Warmup
@@ -121,8 +136,6 @@ int main(int argc, char* argv[])
         x_clone->copy_from(x.get());
         solver->apply(b, x_clone);
     }
-
-    double apply_time = 0.0;
 
     int num_reps = 3;
     for (int i = 0; i < num_reps; ++i) {
@@ -140,13 +153,27 @@ int main(int argc, char* argv[])
     }
     x->copy_from(x_clone.get());
 
+
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
+    auto real_time = apply_time / num_reps;
     A->apply(one, x, neg_one, b);
     b->compute_norm2(res);
 
+    if (writeResult_string.compare("true") == 0) {
+        std::string solution_fileName =
+            problem_string + solver_string + "_sol.mtx";
+        std::ofstream outFile(solution_fileName);
+        gko::write(outFile, x);
+    }
     std::cout << "Residual norm sqrt(r^T r): " << res->get_values()[0]
               << "\nIteration count: " << logger->get_num_iterations()
-              << "\nApply time: " << apply_time / num_reps << std::endl;
+              << "\nApply time: " << real_time << std::endl;
+
+    std::ofstream logFile;
+    logFile.open("log_ginkgo.txt", std::ios_base::app);
+    logFile << problem_string << " " << A->get_size()[0] << " " << real_time
+            << "\n";
+    logFile.close();
 }
