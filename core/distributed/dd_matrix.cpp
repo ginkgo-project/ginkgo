@@ -206,8 +206,10 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // Gather local sizes from all ranks and build the partition in the enriched
     // space.
-    array<GlobalIndexType> range_bounds{exec, num_parts + 1};
+    array<GlobalIndexType> range_bounds{
+        use_host_buffer ? exec->get_master() : exec, num_parts + 1};
     comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
+    range_bounds.set_executor(exec);
     exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
                                                      num_parts + 1));
     auto large_partition =
