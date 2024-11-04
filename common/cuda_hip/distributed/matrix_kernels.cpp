@@ -107,8 +107,6 @@ void count_non_owning_entries(
                                        num_input_elements);
     size_type num_parts = row_partition->get_num_parts();
     array<comm_index_type> row_part_ptrs{exec, num_parts + 1};
-    components::fill_array(exec, row_part_ptrs.get_data(), num_parts + 1,
-                           zero<comm_index_type>());
 
     components::convert_idxs_to_ptrs(
         exec, row_part_ids_per_entry.get_const_data(), num_input_elements,

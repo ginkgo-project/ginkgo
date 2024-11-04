@@ -48,7 +48,7 @@ void count_non_owning_entries(
         }
     }
 
-    auto comp = [row_part_ids_per_entry, local_part](auto i, auto j) {
+    auto comp = [&row_part_ids_per_entry, local_part](auto i, auto j) {
         comm_index_type a =
             i == -1 ? local_part : row_part_ids_per_entry.get_const_data()[i];
         comm_index_type b =
