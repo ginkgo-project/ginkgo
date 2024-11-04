@@ -213,7 +213,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         size_type work_size{};
 
         // nullptr is considered nullptr_t not casted to the function signature
-        // automatically Explicitly cast `nullptr` to `const ValueType*` to
+        // automatically explicitly cast `nullptr` to `const ValueType*` to
         // prevent compiler issues with gnu/llvm 9
         sparselib::buffer_size_ext(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
@@ -406,7 +406,16 @@ __global__ void sptrsv_naive_caching_kernel(
     const size_type nrhs, bool unit_diag, bool* nan_produced,
     IndexType* atomic_counter)
 {
-    __shared__ uninitialized_array<ValueType, default_block_size> x_s_array;
+    // TODO: need to investigate
+    // memory operation on the half-precision shared_memory seem to give
+    // wrong result. we use float in shared_memory.
+    using SharedValueType = std::conditional_t<
+        std::is_same<remove_complex<ValueType>, __half>::value,
+        std::conditional_t<is_complex<ValueType>(), thrust::complex<float>,
+                           float>,
+        ValueType>;
+    __shared__ uninitialized_array<SharedValueType, default_block_size>
+        x_s_array;
     __shared__ IndexType block_base_idx;
 
     if (threadIdx.x == 0) {
@@ -426,8 +435,8 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto self_shmem_id = full_gid / default_block_size;
     const auto self_shid = full_gid % default_block_size;
 
-    ValueType* x_s = x_s_array;
-    x_s[self_shid] = nan<ValueType>();
+    SharedValueType* x_s = x_s_array;
+    x_s[self_shid] = nan<SharedValueType>();
 
     __syncthreads();
 
@@ -439,20 +448,19 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    auto sum = zero<ValueType>();
+    auto sum = zero<SharedValueType>();
     auto i = row_begin;
     for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
         if (is_upper ? dependency <= row : dependency >= row) {
             break;
         }
-        auto x_p = &x[dependency * x_stride + rhs];
 
         const auto dependency_gid = is_upper ? (n - 1 - dependency) * nrhs + rhs
                                              : dependency * nrhs + rhs;
         const bool shmem_possible =
             (dependency_gid / default_block_size) == self_shmem_id;
-        ValueType val{};
+        SharedValueType val{};
         if (shmem_possible) {
             const auto dependency_shid = dependency_gid % default_block_size;
             while (is_nan_exact(
@@ -464,15 +472,17 @@ __global__ void sptrsv_naive_caching_kernel(
             }
         }
 
-        sum += val * vals[i];
+        sum += val * static_cast<SharedValueType>(vals[i]);
     }
 
     // The first entry past the triangular part will be the diagonal
-    const auto diag = unit_diag ? one<ValueType>() : vals[i];
-    const auto r = (b[row * b_stride + rhs] - sum) / diag;
+    const auto diag = unit_diag ? one<SharedValueType>()
+                                : static_cast<SharedValueType>(vals[i]);
+    const auto r =
+        (static_cast<SharedValueType>(b[row * b_stride + rhs]) - sum) / diag;
 
     store_relaxed_shared(x_s + self_shid, r);
-    store_relaxed(x + row * x_stride + rhs, r);
+    store_relaxed(x + row * x_stride + rhs, static_cast<ValueType>(r));
 
     // This check to ensure no infinite loops happen.
     if (is_nan_exact(r)) {
