@@ -31,3 +31,7 @@ ginkgo_create_test(segmented_range)
 ginkgo_create_test(types)
 ginkgo_create_test(utils)
 ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
+
+if(GINKGO_BUILD_MPI)
+    ginkgo_create_test(vector_cache MPI_SIZE 3)
+endif()

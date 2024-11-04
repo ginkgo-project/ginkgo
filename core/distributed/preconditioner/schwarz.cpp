@@ -89,26 +89,16 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
+    // only dispatch distributed case
+    experimental::distributed::precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            set_cache_to(dense_x);
-            this->apply_impl(dense_b, cache_.intermediate.get());
+            cache_.init_from(dense_x);
+            cache_->copy_from(dense_x);
+            this->apply_impl(dense_b, cache_.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, cache_.intermediate.get());
+            dense_x->add_scaled(dense_alpha, cache_.get());
         },
         alpha, b, beta, x);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-template <typename VectorType>
-void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_cache_to(
-    const VectorType* b) const
-{
-    if (dynamic_cast<VectorType*>(cache_.intermediate.get()) == nullptr) {
-        cache_.intermediate = VectorType::create_with_config_of(b);
-    }
-    cache_.intermediate->copy_from(b);
 }
 
 
