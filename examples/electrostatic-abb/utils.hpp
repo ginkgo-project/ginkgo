@@ -155,11 +155,10 @@ std::map<std::string, std::string> read_config(
 
     // display configuration
     std::cout << "Current Ginkgo configuration for electrostatic" << std::endl;
-    for (const auto &param : config_parameters) {
+    for (const auto& param : config_parameters) {
         std::cout << param.first << ":  " << param.second << std::endl;
     }
 
-              
 
     return config_parameters;
 }
