@@ -148,18 +148,18 @@ std::map<std::string, std::string> read_config(
             config_parameters["encoding"] = value_string;
         } else if (parameter_string.compare("writeResult") == 0) {
             config_parameters["writeResult"] = value_string;
+        } else if (parameter_string.compare("initialGuess") == 0) {
+            config_parameters["initialGuess"] = value_string;
         }
     }
 
     // display configuration
-    std::cout << "Current Ginkgo configuration for electrostatic" << std::endl
-              << "    exectutor: " << config_parameters["executor"] << std::endl
-              << "    solver: " << config_parameters["solver"] << std::endl
-              << "    problem name: " << config_parameters["problem"]
-              << std::endl
-              << "    input mode: " << config_parameters["mode"] << std::endl
-              << "    write result to file " << config_parameters["mode"]
-              << std::endl;
+    std::cout << "Current Ginkgo configuration for electrostatic" << std::endl;
+    for (const auto &param : config_parameters) {
+        std::cout << param.first << ":  " << param.second << std::endl;
+    }
+
+              
 
     return config_parameters;
 }

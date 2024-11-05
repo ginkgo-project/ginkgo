@@ -17,7 +17,7 @@
 int main(int argc, char* argv[])
 {
     std::string executor_string, solver_string, problem_string, mode_string,
-        writeResult_string;
+        writeResult_string, initialGuess_string;
 
     std::map<std::string, std::string> config_strings;
     config_strings = read_config();
@@ -25,17 +25,25 @@ int main(int argc, char* argv[])
                           ? config_strings["executor"]
                           : "reference";
     solver_string =
-        config_strings.count("solver") > 0 ? config_strings["solver"] : "gmres";
-    problem_string = config_strings.count("problem") > 0
+        config_strings.count("solver") > 0
+                         ? config_strings["solver"] : "gmres";
+    problem_string = 
+        config_strings.count("problem") > 0
                          ? config_strings["problem"]
                          : "sphere";
     mode_string =
-        config_strings.count("mode") > 0 ? config_strings["mode"] : "binary";
+        config_strings.count("mode") > 0 
+                         ? config_strings["mode"]
+                          : "binary";
     writeResult_string = config_strings.count("writeResult") > 0
                              ? config_strings["writeResult"]
                              : "true";
+    initialGuess_string = config_strings.count("initialGuess") > 0
+                             ? config_strings["initialGuess"]
+                             : "rhs";
+    
 
-    using ValueType = float;
+    using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
@@ -48,6 +56,7 @@ int main(int argc, char* argv[])
     // using ilu = gko::preconditioner::Ilu<>; ==>Not used for now, (only works
     // when ValueType is double)
 
+    gko::detail::shared_type<std::unique_ptr<vec>> x;
 
     std::vector<gko::matrix_data<ValueType, IndexType>> data;
 
@@ -96,8 +105,14 @@ int main(int argc, char* argv[])
     b->read(data[1]);
 
 
-    auto x = gko::clone(b);
-
+    if ( initialGuess_string.compare("zero") ) {
+        x = gko::clone(b);
+    }
+    else {
+        auto x_data = gko::matrix_data<ValueType, IndexType>(gko::dim<2>(A->get_size()[0], 1), 1);
+        x = gko::share(mtx::create(exec));
+        x->read(x_data);
+    }
 
     const RealValueType reduction_factor{1e-6};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
@@ -155,7 +170,7 @@ int main(int argc, char* argv[])
 
 
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+    auto neg_one = gko::initialize  <vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto real_time = apply_time / num_reps;
     A->apply(one, x, neg_one, b);
