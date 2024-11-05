@@ -437,7 +437,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
-              typename = std::enable_if_t<detail::is_matrix_type_builder<
+              typename = std::enable_if_t<gko::detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType>::value>>
     static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm,
@@ -478,10 +478,10 @@ public:
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType,
               typename = std::enable_if_t<
-                  detail::is_matrix_type_builder<LocalMatrixType, ValueType,
-                                                 LocalIndexType>::value &&
-                  detail::is_matrix_type_builder<NonLocalMatrixType, ValueType,
-                                                 LocalIndexType>::value>>
+                  gko::detail::is_matrix_type_builder<
+                      LocalMatrixType, ValueType, LocalIndexType>::value &&
+                  gko::detail::is_matrix_type_builder<
+                      NonLocalMatrixType, ValueType, LocalIndexType>::value>>
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         LocalMatrixType local_matrix_template,

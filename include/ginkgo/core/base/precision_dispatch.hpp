@@ -327,18 +327,16 @@ namespace distributed {
  * @throws NotSupported  if the input matrix cannot be converted to
  *                       experimental::distributed::Vector<ValueType>
  *
- * @tparam ValueType  the value type into whose associated
- * experimental::distributed::Vector type to convert the input LinOp.
+ * @tparam ValueType  the value type into whose associated Vector type to
+ *                    convert the input LinOp.
  */
 template <typename ValueType>
-detail::temporary_conversion<experimental::distributed::Vector<ValueType>>
-make_temporary_conversion(LinOp* matrix)
+gko::detail::temporary_conversion<Vector<ValueType>> make_temporary_conversion(
+    LinOp* matrix)
 {
-    auto result = detail::temporary_conversion<
-        experimental::distributed::Vector<ValueType>>::
-        template create<
-            experimental::distributed::Vector<next_precision<ValueType>>>(
-            matrix);
+    auto result =
+        gko::detail::temporary_conversion<Vector<ValueType>>::template create<
+            Vector<next_precision<ValueType>>>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -350,14 +348,11 @@ make_temporary_conversion(LinOp* matrix)
  * @copydoc make_temporary_conversion
  */
 template <typename ValueType>
-detail::temporary_conversion<const experimental::distributed::Vector<ValueType>>
+gko::detail::temporary_conversion<const Vector<ValueType>>
 make_temporary_conversion(const LinOp* matrix)
 {
-    auto result = detail::temporary_conversion<
-        const experimental::distributed::Vector<ValueType>>::
-        template create<
-            experimental::distributed::Vector<next_precision<ValueType>>>(
-            matrix);
+    auto result = gko::detail::temporary_conversion<const Vector<ValueType>>::
+        template create<Vector<next_precision<ValueType>>>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }

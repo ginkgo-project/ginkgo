@@ -14,12 +14,12 @@
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/vector_cache.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {

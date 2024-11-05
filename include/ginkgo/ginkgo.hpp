@@ -51,7 +51,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
-#include <ginkgo/core/base/vector_cache.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 #include <ginkgo/core/config/config.hpp>
@@ -70,6 +69,7 @@
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
