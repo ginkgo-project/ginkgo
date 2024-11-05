@@ -238,7 +238,10 @@ TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+#endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};
@@ -257,7 +260,10 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+#endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};
