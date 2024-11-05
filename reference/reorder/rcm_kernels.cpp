@@ -191,7 +191,7 @@ void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
     for (IndexType i = 0; i < num_vertices; ++i) {
         degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
-    // Storing vertices left to proceess.
+    // Storing vertices left to process.
     array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
     IndexType head_offset = 0;
