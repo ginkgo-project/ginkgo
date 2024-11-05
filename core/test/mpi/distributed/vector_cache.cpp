@@ -7,8 +7,8 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/base/vector_cache.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -32,7 +32,7 @@ protected:
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    gko::detail::VectorCache<value_type> cache;
+    gko::experimental::distributed::detail::VectorCache<value_type> cache;
     gko::experimental::mpi::communicator comm;
     int rank;
     int num;
@@ -48,7 +48,7 @@ TYPED_TEST_SUITE(VectorCache, gko::test::ValueTypes, TypenameNameGenerator);
 TYPED_TEST(VectorCache, CanDefaultConstruct)
 {
     using value_type = typename TestFixture::value_type;
-    gko::detail::VectorCache<value_type> cache;
+    gko::experimental::distributed::detail::VectorCache<value_type> cache;
 
     ASSERT_EQ(cache.get(), nullptr);
 }
@@ -264,7 +264,8 @@ TYPED_TEST(VectorCache, VectorIsNotCopied)
     using value_type = typename TestFixture::value_type;
     this->cache.init(this->ref, this->comm, this->default_global_size,
                      this->default_local_size);
-    gko::detail::VectorCache<value_type> cache(this->cache);
+    gko::experimental::distributed::detail::VectorCache<value_type> cache(
+        this->cache);
 
     ASSERT_EQ(cache.get(), nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(),
@@ -279,7 +280,8 @@ TYPED_TEST(VectorCache, VectorIsNotMoved)
     using value_type = typename TestFixture::value_type;
     this->cache.init(this->ref, this->comm, this->default_global_size,
                      this->default_local_size);
-    gko::detail::VectorCache<value_type> cache(std::move(this->cache));
+    gko::experimental::distributed::detail::VectorCache<value_type> cache(
+        std::move(this->cache));
 
     ASSERT_EQ(cache.get(), nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(),
@@ -294,7 +296,7 @@ TYPED_TEST(VectorCache, VectorIsNotCopyAssigned)
     using value_type = typename TestFixture::value_type;
     this->cache.init(this->ref, this->comm, this->default_global_size,
                      this->default_local_size);
-    gko::detail::VectorCache<value_type> cache;
+    gko::experimental::distributed::detail::VectorCache<value_type> cache;
     cache = this->cache;
 
     ASSERT_EQ(cache.get(), nullptr);
@@ -310,7 +312,7 @@ TYPED_TEST(VectorCache, VectorIsNotMoveAssigned)
     using value_type = typename TestFixture::value_type;
     this->cache.init(this->ref, this->comm, this->default_global_size,
                      this->default_local_size);
-    gko::detail::VectorCache<value_type> cache;
+    gko::experimental::distributed::detail::VectorCache<value_type> cache;
     cache = std::move(this->cache);
 
     ASSERT_EQ(cache.get(), nullptr);

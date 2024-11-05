@@ -22,6 +22,14 @@
 namespace gko {
 namespace experimental {
 namespace distributed {
+namespace detail {
+
+
+template <typename ValueType>
+class VectorCache;
+
+
+}  // namespace detail
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -65,6 +73,7 @@ class Vector
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;
+    friend class detail::VectorCache<ValueType>;
 
 public:
     using EnableDistributedLinOp<Vector>::convert_to;

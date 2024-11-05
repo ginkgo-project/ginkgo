@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_BASE_VECTOR_CACHE_HPP_
-#define GKO_PUBLIC_CORE_BASE_VECTOR_CACHE_HPP_
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_CACHE_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_CACHE_HPP_
 
 
 #include <memory>
@@ -18,6 +18,8 @@
 
 
 namespace gko {
+namespace experimental {
+namespace distributed {
 namespace detail {
 
 
@@ -38,7 +40,7 @@ struct VectorCache {
     VectorCache(VectorCache&&) noexcept {}
     VectorCache& operator=(const VectorCache&) { return *this; }
     VectorCache& operator=(VectorCache&&) noexcept { return *this; }
-    mutable std::unique_ptr<experimental::distributed::Vector<ValueType>> vec{};
+    mutable std::unique_ptr<Vector<ValueType>> vec{};
 
 
     /**
@@ -55,8 +57,7 @@ struct VectorCache {
      * @param template_vec  Defines the configuration (executor, size, stride)
      *                      of the buffered vector.
      */
-    void init_from(
-        const experimental::distributed::Vector<ValueType>* template_vec) const;
+    void init_from(const Vector<ValueType>* template_vec) const;
 
     /**
      * Initializes the buffered vector, if
@@ -79,34 +80,27 @@ struct VectorCache {
      *
      * @return  Reference to the stored vector.
      */
-    experimental::distributed::Vector<ValueType>& operator*() const
-    {
-        return *vec;
-    }
+    Vector<ValueType>& operator*() const { return *vec; }
 
     /**
      * Pointer access to the underlying vector.
      * @return  Pointer to the stored vector.
      */
-    experimental::distributed::Vector<ValueType>* operator->() const
-    {
-        return vec.get();
-    }
+    Vector<ValueType>* operator->() const { return vec.get(); }
 
     /**
      * Pointer access to the underlying vector.
      * @return  Pointer to the stored vector.
      */
-    experimental::distributed::Vector<ValueType>* get() const
-    {
-        return vec.get();
-    }
+    Vector<ValueType>* get() const { return vec.get(); }
 };
 
 
 }  // namespace detail
+}  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
 #endif  // GINKGO_BUILD_MPI
-#endif  // GKO_PUBLIC_CORE_BASE_VECTOR_CACHE_HPP_
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_CACHE_HPP_

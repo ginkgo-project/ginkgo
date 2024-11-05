@@ -2,12 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "ginkgo/core/base/vector_cache.hpp"
+#include "ginkgo/core/distributed/vector_cache.hpp"
 
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 namespace gko {
+namespace experimental {
+namespace distributed {
 namespace detail {
 
 
@@ -17,8 +20,7 @@ void VectorCache<ValueType>::init(std::shared_ptr<const Executor> exec,
                                   dim<2> global_size, dim<2> local_size) const
 {
     if (!vec || vec->get_size() != global_size || vec->get_executor() != exec) {
-        vec = experimental::distributed::Vector<ValueType>::create(
-            exec, comm, global_size, local_size);
+        vec = Vector<ValueType>::create(exec, comm, global_size, local_size);
     } else if (vec->get_local_vector()->get_size() != local_size) {
         // handle locally to eliminate the mpi call
         vec->local_ =
@@ -29,13 +31,11 @@ void VectorCache<ValueType>::init(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 void VectorCache<ValueType>::init_from(
-    const experimental::distributed::Vector<ValueType>* template_vec) const
+    const Vector<ValueType>* template_vec) const
 {
     if (!vec || vec->get_size() != template_vec->get_size() ||
         vec->get_executor() != template_vec->get_executor()) {
-        vec =
-            experimental::distributed::Vector<ValueType>::create_with_config_of(
-                template_vec);
+        vec = Vector<ValueType>::create_with_config_of(template_vec);
     } else if (vec->get_local_vector()->get_size() !=
                template_vec->get_local_vector()->get_size()) {
         // handle locally to eliminate the mpi call
@@ -52,4 +52,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_CACHE);
 
 
 }  // namespace detail
+}  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
