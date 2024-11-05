@@ -25,23 +25,19 @@ int main(int argc, char* argv[])
                           ? config_strings["executor"]
                           : "reference";
     solver_string =
-        config_strings.count("solver") > 0
-                         ? config_strings["solver"] : "gmres";
-    problem_string = 
-        config_strings.count("problem") > 0
+        config_strings.count("solver") > 0 ? config_strings["solver"] : "gmres";
+    problem_string = config_strings.count("problem") > 0
                          ? config_strings["problem"]
                          : "sphere";
     mode_string =
-        config_strings.count("mode") > 0 
-                         ? config_strings["mode"]
-                          : "binary";
+        config_strings.count("mode") > 0 ? config_strings["mode"] : "binary";
     writeResult_string = config_strings.count("writeResult") > 0
                              ? config_strings["writeResult"]
                              : "true";
     initialGuess_string = config_strings.count("initialGuess") > 0
-                             ? config_strings["initialGuess"]
-                             : "rhs";
-    
+                              ? config_strings["initialGuess"]
+                              : "rhs";
+
 
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
@@ -105,11 +101,11 @@ int main(int argc, char* argv[])
     b->read(data[1]);
 
 
-    if ( initialGuess_string.compare("zero") ) {
+    if (initialGuess_string.compare("zero")) {
         x = gko::clone(b);
-    }
-    else {
-        auto x_data = gko::matrix_data<ValueType, IndexType>(gko::dim<2>(A->get_size()[0], 1), 1);
+    } else {
+        auto x_data = gko::matrix_data<ValueType, IndexType>(
+            gko::dim<2>(A->get_size()[0], 1), 0);
         x = gko::share(mtx::create(exec));
         x->read(x_data);
     }
@@ -146,11 +142,11 @@ int main(int argc, char* argv[])
     double apply_time = 0.0;
 
     auto x_clone = gko::clone(x);
+
     // Warmup
-    for (int i = 0; i < 3; ++i) {
-        x_clone->copy_from(x.get());
-        solver->apply(b, x_clone);
-    }
+    x_clone->copy_from(x.get());
+    solver->apply(b, x_clone);
+
 
     int num_reps = 3;
     for (int i = 0; i < num_reps; ++i) {
@@ -170,7 +166,7 @@ int main(int argc, char* argv[])
 
 
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize  <vec>({-1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto real_time = apply_time / num_reps;
     A->apply(one, x, neg_one, b);
