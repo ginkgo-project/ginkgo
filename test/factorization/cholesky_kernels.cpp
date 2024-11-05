@@ -115,7 +115,7 @@ using Types = gko::test::ValueIndexTypes;
 #elif defined(GKO_COMPILING_CUDA)
 // CUDA doesn't support long indices for sorting, and the triangular solvers
 // seem broken
-using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypes,
+using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypesWithHalf,
                                                   ::testing::Types<gko::int32>>;
 #else
 // HIP only supports real types and int32

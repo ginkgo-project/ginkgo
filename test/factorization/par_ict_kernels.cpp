@@ -125,7 +125,10 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+#endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     this->mtx_l_ani->convert_to(mtx_l_coo);

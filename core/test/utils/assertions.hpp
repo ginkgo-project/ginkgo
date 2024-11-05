@@ -259,9 +259,12 @@ template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
     using std::abs;
-    using vt = typename detail::biggest_valuetype<
+    using biggest_vt = typename detail::biggest_valuetype<
         typename MatrixData1::value_type,
         typename MatrixData2::value_type>::type;
+    // using the double or complex<double> to check the error
+    using vt = std::conditional_t<is_complex<biggest_vt>(),
+                                  std::complex<double>, double>;
     using real_vt = remove_complex<vt>;
 
     real_vt diff = 0.0;
