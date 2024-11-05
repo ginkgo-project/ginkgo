@@ -11,29 +11,27 @@
 ## Usage
 
 ### Building and running
-After building, the executable `electrostatic-abb` should be generated in the build folder
+After building, the executable `electrostatic-abb` should be generated in the corresponding build folder
 
 the working directory should include a config file, config file name set to `electro.config` can be changed in the code - check config file format for further description of the config file.
 
-- config file format:
+- config file format: multiple lines with format `'option' 'value'`
 
+available options can set from the config file, not all options should be included, but then the default value will be used
+
+*possible options*
 ```
-<executor>
-<solver>
-<problem name>
-<input mode>
+<executor> <executor module (default reference)>
+<solver> <algebraic solver (default gmres)>
+<problem name> <name of existing .bmtx/.amtx file in data/ folderm >
+<input mode> <binary/ascii depending on type of method used>
+<writeResult> <true/false, write output file>
+<initialGuess> <zero/rhs initial vector guess used>
 ```
-**Executor**: module to be used by ginkgo - default reference
 
-**algorithm**: solver, supported so far are gmres and bicgstab - default gmres
+### Chanding ValueType
 
-**problem name**: name of problem to be solved, a matching file with name  *<problem_name>* with extension either or *".amtx"* for ASCII file format or *"bmtx"* for binary format. 
-
-The matching file should be found in /data. Check field input mode on how to specify which reader to use - default sphere
-
-**input mode**: ascii or binary, depending on type of matrix file to read - default ascii
-
-### Further specifications
+In this example, the valueType is defined as runtime. To switch between double and float, that should be done in the source, and then recompiling/rebuilding the electrostatic module.
 
 
 

@@ -9,6 +9,9 @@ endif()
 add_executable(electrostatic-abb electrostatic-abb.cpp)
 target_link_libraries(electrostatic-abb Ginkgo::ginkgo)
 
+# Copy config file 
+configure_file(electro.config electro.config COPYONLY)
+
 # Copy the data files to the execution directory
 configure_file(data/sphere.amtx data/sphere.amtx COPYONLY)
 configure_file(data/sphere.bmtx data/sphere.bmtx COPYONLY)
