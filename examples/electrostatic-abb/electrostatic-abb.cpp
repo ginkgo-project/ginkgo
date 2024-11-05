@@ -21,27 +21,24 @@ int main(int argc, char* argv[])
 
     std::map<std::string, std::string> config_strings;
     config_strings = read_config();
+
     executor_string = config_strings.count("executor") > 0
                           ? config_strings["executor"]
                           : "reference";
     solver_string =
-        config_strings.count("solver") > 0
-                         ? config_strings["solver"] : "gmres";
-    problem_string = 
-        config_strings.count("problem") > 0
+        config_strings.count("solver") > 0 ? config_strings["solver"] : "gmres";
+    problem_string = config_strings.count("problem") > 0
                          ? config_strings["problem"]
                          : "sphere";
     mode_string =
-        config_strings.count("mode") > 0 
-                         ? config_strings["mode"]
-                          : "binary";
+        config_strings.count("mode") > 0 ? config_strings["mode"] : "binary";
     writeResult_string = config_strings.count("writeResult") > 0
                              ? config_strings["writeResult"]
                              : "true";
     initialGuess_string = config_strings.count("initialGuess") > 0
-                             ? config_strings["initialGuess"]
-                             : "rhs";
-    
+                              ? config_strings["initialGuess"]
+                              : "rhs";
+
 
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
@@ -56,7 +53,6 @@ int main(int argc, char* argv[])
     // using ilu = gko::preconditioner::Ilu<>; ==>Not used for now, (only works
     // when ValueType is double)
 
-    gko::detail::shared_type<std::unique_ptr<vec>> x;
 
     std::vector<gko::matrix_data<ValueType, IndexType>> data;
 
@@ -93,25 +89,28 @@ int main(int argc, char* argv[])
 
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
+    // reading data from input files
     if (mode_string.compare("ascii") == 0) {
         data = read_inputAscii<ValueType, IndexType>(problem_string);
     } else {
         data = read_inputBinary<ValueType, IndexType>(problem_string);
     }
+
+    // initialising matrix
     auto A = gko::share(mtx::create(exec));
     A->read(data[0]);
     std::cout << "Matrix size: " << A->get_size() << std::endl;
+
+    // initialising rhs
     auto b = gko::share(mtx::create(exec));
     b->read(data[1]);
 
-
-    if ( initialGuess_string.compare("zero") ) {
+    // initialising initial guess
+    auto x = gko::share(mtx::create(exec, gko::dim<2>(A->get_size()[0], 1)));
+    if (initialGuess_string.compare("zero") == 0) {
+        x->fill(ValueType(0.0));
+    } else {
         x = gko::clone(b);
-    }
-    else {
-        auto x_data = gko::matrix_data<ValueType, IndexType>(gko::dim<2>(A->get_size()[0], 1), 1);
-        x = gko::share(mtx::create(exec));
-        x->read(x_data);
     }
 
     const RealValueType reduction_factor{1e-6};
@@ -131,6 +130,8 @@ int main(int argc, char* argv[])
                                .with_reduction_factor(reduction_factor))
             // .with_preconditioner(bj::build().with_max_block_size(1u))
             .on(exec);
+
+
     std::shared_ptr<gko::LinOp> solver;
     if (solver_string.compare("gmres") == 0) {
         std::cout << "Using " << solver_string << std::endl;
@@ -143,15 +144,16 @@ int main(int argc, char* argv[])
         throw("Invalid solver");
     }
     solver->add_logger(logger);
+
     double apply_time = 0.0;
 
     auto x_clone = gko::clone(x);
-    // Warmup
-    for (int i = 0; i < 3; ++i) {
-        x_clone->copy_from(x.get());
-        solver->apply(b, x_clone);
-    }
 
+    // Warmpu
+    x_clone->copy_from(x.get());
+    solver->apply(b, x_clone);
+
+    // Solving
     int num_reps = 3;
     for (int i = 0; i < num_reps; ++i) {
         x_clone->copy_from(x.get());
@@ -168,14 +170,15 @@ int main(int argc, char* argv[])
     }
     x->copy_from(x_clone.get());
 
-
+    // getting results
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize  <vec>({-1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec->get_master());
     auto real_time = apply_time / num_reps;
     A->apply(one, x, neg_one, b);
     b->compute_norm2(res);
 
+    // writing resutlts
     if (writeResult_string.compare("true") == 0) {
         std::string solution_fileName =
             problem_string + solver_string + "_sol.mtx";
