@@ -171,10 +171,6 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda --expt-relaxed-constexpr>)
     endif()
-    # we handle CUDA architecture flags for now, disable CMake handling
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-        set_target_properties(${test_target_name} PROPERTIES CUDA_ARCHITECTURES OFF)
-    endif()
     ginkgo_set_test_target_properties(${test_target_name} "_cuda" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cudagpu)
 endfunction(ginkgo_create_cuda_test_internal)

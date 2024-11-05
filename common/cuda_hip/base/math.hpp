@@ -162,6 +162,18 @@ __device__ __forceinline__ __half sqrt(const __half& val)
 }
 
 
+// using overload here. Otherwise, compiler still think the is_finite
+// specialization is still __host__ __device__ function.
+__device__ __forceinline__ bool is_finite(const __half& value)
+{
+    return abs(value) < device_numeric_limits<__half>::inf();
+}
+
+__device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
+{
+    return is_finite(value.real()) && is_finite(value.imag());
+}
+
 #endif
 
 
