@@ -51,6 +51,13 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     return params;
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+bool Schwarz<ValueType, LocalIndexType,
+             GlobalIndexType>::apply_uses_initial_guess() const
+{
+    return this->local_solver_->apply_uses_initial_guess();
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
@@ -82,12 +89,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
+    // only dispatch distributed case
+    experimental::distributed::precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            cache_.init_from(dense_x);
+            cache_->copy_from(dense_x);
+            this->apply_impl(dense_b, cache_.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, cache_.get());
         },
         alpha, b, beta, x);
 }

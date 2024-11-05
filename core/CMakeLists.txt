@@ -134,6 +134,7 @@ endif()
 if(GINKGO_BUILD_MPI)
     target_sources(${ginkgo_core}
         PRIVATE
+        distributed/vector_cache.cpp
         mpi/exception.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp

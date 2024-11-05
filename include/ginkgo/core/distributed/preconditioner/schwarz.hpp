@@ -19,6 +19,7 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -64,6 +65,16 @@ public:
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
+
+    /**
+     * Return whether the local solvers use the data in x as an initial guess.
+     *
+     * @return true when the local solvers use the data in x as an initial
+     * guess. otherwise, false.
+     *
+     * @note TODO: after adding refining step, need to revisit this.
+     */
+    bool apply_uses_initial_guess() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -150,6 +161,8 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+
+    detail::VectorCache<ValueType> cache_;
 };
 
 

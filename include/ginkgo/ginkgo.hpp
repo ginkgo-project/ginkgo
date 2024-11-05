@@ -69,6 +69,7 @@
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
