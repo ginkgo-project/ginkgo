@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/factorization/incompleted_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -24,14 +25,6 @@ namespace gko {
  */
 namespace factorization {
 
-
-/**
- * A helper for algorithm selection in the incomplete factorization.
- * sparselib is only available for CUDA and HIP.
- * syncfree is Ginkgo's implementation through the Lu factorization with given
- * sparsity.
- */
-enum class factorize_algorithm { sparselib, syncfree };
 
 /**
  * Represents an incomplete LU factorization -- ILU(0) -- of a sparse matrix.
