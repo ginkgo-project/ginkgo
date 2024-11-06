@@ -181,7 +181,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
                const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage)
 {
     const auto num_rows = factors->get_size()[0];
@@ -204,8 +204,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 const auto col = cols[dep_nz];
                 if (col < row) {
                     const auto val = vals[dep_nz];
-                    const auto nz = row_begin + lookup.lookup_unsafe(col);
-                    vals[nz] -= scale * val;
+                    if (!full_fillin) {
+                        const auto idx = lookup[col];
+                        if (idx != invalid_index<IndexType>()) {
+                            vals[row_begin + idx] -= scale * val;
+                        }
+                    } else {
+                        const auto nz = row_begin + lookup.lookup_unsafe(col);
+                        vals[nz] -= scale * val;
+                    }
                 }
             }
         }

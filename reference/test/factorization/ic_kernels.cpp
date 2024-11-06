@@ -188,4 +188,22 @@ TYPED_TEST(Ic, GenerateGeneral)
 }
 
 
+TYPED_TEST(Ic, GenerateGeneralBySyncfree)
+{
+    using factorization_type = typename TestFixture::factorization_type;
+    using Csr = typename TestFixture::Csr;
+
+    auto fact =
+        factorization_type::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->exec)
+            ->generate(this->mtx_system);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->mtx_l_it_expect, this->tol);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(),
+                        gko::as<Csr>(this->mtx_l_it_expect->conj_transpose()),
+                        this->tol);
+}
+
+
 }  // namespace
