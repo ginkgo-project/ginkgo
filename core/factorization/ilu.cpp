@@ -106,7 +106,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
                     local_system_matrix->get_const_row_ptrs())));
         ilu =
             gko::experimental::factorization::Lu<ValueType, IndexType>::build()
-                .with_has_all_fillin(false)
+                .with_full_fillin(false)
                 .with_symbolic_factorization(sparsity)
                 .on(exec)
                 ->generate(local_system_matrix)

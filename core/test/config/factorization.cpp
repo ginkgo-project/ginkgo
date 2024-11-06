@@ -181,8 +181,8 @@ struct Lu : FactorizationConfigTest<
             gko::experimental::factorization::symbolic_type::near_symmetric);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config_map["has_all_fillin"] = pnode{false};
-        param.with_has_all_fillin(false);
+        config_map["full_fillin"] = pnode{false};
+        param.with_full_fillin(false);
     }
 
     template <typename AnswerType>
@@ -195,7 +195,7 @@ struct Lu : FactorizationConfigTest<
                   ans_param.symbolic_factorization);
         ASSERT_EQ(res_param.symbolic_algorithm, ans_param.symbolic_algorithm);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        ASSERT_EQ(res_param.has_all_fillin, ans_param.has_all_fillin);
+        ASSERT_EQ(res_param.full_fillin, ans_param.full_fillin);
     }
 };
 
