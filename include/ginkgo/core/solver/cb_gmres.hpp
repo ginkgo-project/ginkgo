@@ -174,15 +174,17 @@ protected:
                     LinOp* x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<CbGmres>(std::move(exec))
+        : EnableLinOp<CbGmres>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, CbGmres>(exec)
     {}
 
     explicit CbGmres(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<CbGmres>(factory->get_executor(),
                                transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, CbGmres>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

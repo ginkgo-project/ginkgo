@@ -222,15 +222,17 @@ protected:
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
     explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ir>(std::move(exec))
+        : EnableLinOp<Ir>(exec), EnableSolverBase<Ir>(exec)
     {}
 
     explicit Ir(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ir>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(system_matrix)},
+          EnableSolverBase<Ir>{factory->get_executor(),
+                               std::move(system_matrix)},
           EnableIterativeBase<Ir>{
+              factory->get_executor(),
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {

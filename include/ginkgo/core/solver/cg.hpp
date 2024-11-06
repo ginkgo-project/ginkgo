@@ -103,15 +103,17 @@ protected:
                     LinOp* x) const override;
 
     explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cg>(std::move(exec))
+        : EnableLinOp<Cg>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Cg>(exec)
     {}
 
     explicit Cg(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Cg>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, Cg>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

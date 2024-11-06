@@ -169,14 +169,16 @@ protected:
     void generate();
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<LowerTrs>(std::move(exec))
+        : EnableLinOp<LowerTrs>(exec),
+          EnableSolverBase<LowerTrs, CsrMatrix>(exec)
     {}
 
     explicit LowerTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<LowerTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+          EnableSolverBase<LowerTrs, CsrMatrix>{
+              factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},
           parameters_{factory->get_parameters()}
@@ -337,14 +339,16 @@ protected:
     void generate();
 
     explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<UpperTrs>(std::move(exec))
+        : EnableLinOp<UpperTrs>(std::move(exec)),
+          EnableSolverBase<UpperTrs, CsrMatrix>(exec)
     {}
 
     explicit UpperTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<UpperTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
+          EnableSolverBase<UpperTrs, CsrMatrix>{
+              factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},
           parameters_{factory->get_parameters()}

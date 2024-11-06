@@ -49,7 +49,10 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : EnableLinOp<Direct>{other.get_executor()}
+    : EnableLinOp<Direct>{other.get_executor()},
+      gko::solver::EnableSolverBase<
+          Direct, factorization::Factorization<ValueType, IndexType>>(
+          other.get_executor())
 {
     *this = other;
 }
@@ -97,7 +100,9 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Direct>{exec}
+    : EnableLinOp<Direct>{exec},
+      gko::solver::EnableSolverBase<
+          Direct, factorization::Factorization<ValueType, IndexType>>{exec}
 {}
 
 
@@ -124,6 +129,7 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size()},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
+          factory->get_executor(),
           generate_factorization<ValueType, IndexType>(
               factory->get_parameters().factorization, system_matrix)}
 {

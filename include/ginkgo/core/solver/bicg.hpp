@@ -109,15 +109,17 @@ protected:
                     LinOp* x) const override;
 
     explicit Bicg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicg>(std::move(exec))
+        : EnableLinOp<Bicg>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Bicg>(exec)
     {}
 
     explicit Bicg(const Factory* factory,
                   std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Bicg>(factory->get_executor(),
                             gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, Bicg>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

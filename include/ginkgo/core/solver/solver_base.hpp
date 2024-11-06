@@ -277,15 +277,8 @@ public:
      */
     void set_preconditioner(std::shared_ptr<const LinOp> new_precond) override
     {
-        auto exec = self()->get_executor();
-        if (new_precond) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_precond);
-            GKO_ASSERT_IS_SQUARE_MATRIX(new_precond);
-            if (new_precond->get_executor() != exec) {
-                new_precond = gko::clone(exec, new_precond);
-            }
-        }
-        Preconditionable::set_preconditioner(new_precond);
+        EnablePreconditionable::set_preconditioner(self()->get_executor(),
+                                                   new_precond);
     }
 
     /**
@@ -316,9 +309,10 @@ public:
 
     EnablePreconditionable() = default;
 
-    EnablePreconditionable(std::shared_ptr<const LinOp> preconditioner)
+    EnablePreconditionable(std::shared_ptr<const Executor> exec,
+                           std::shared_ptr<const LinOp> preconditioner)
     {
-        set_preconditioner(std::move(preconditioner));
+        set_preconditioner(std::move(exec), std::move(preconditioner));
     }
 
     /**
@@ -344,6 +338,25 @@ private:
     const DerivedType* self() const
     {
         return static_cast<const DerivedType*>(this);
+    }
+
+    /**
+     * Sets the preconditioner operator used by the Preconditionable.
+     *
+     * @param new_precond  the new preconditioner operator used by the
+     *                     Preconditionable
+     */
+    void set_preconditioner(std::shared_ptr<const Executor> target_exec,
+                            std::shared_ptr<const LinOp> new_precond)
+    {
+        if (new_precond) {
+            GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_precond);
+            GKO_ASSERT_IS_SQUARE_MATRIX(new_precond);
+            if (new_precond->get_executor() != target_exec) {
+                new_precond = gko::clone(std::move(target_exec), new_precond);
+            }
+        }
+        Preconditionable::set_preconditioner(new_precond);
     }
 };
 
@@ -565,12 +578,15 @@ public:
         return *this;
     }
 
-    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
+    EnableSolverBase(std::shared_ptr<const Executor> exec)
+        : SolverBase<MatrixType>{std::move(exec)}
+    {}
 
-    EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
-        : SolverBase<MatrixType>{self()->get_executor()}
+    EnableSolverBase(std::shared_ptr<const Executor> exec,
+                     std::shared_ptr<const MatrixType> system_matrix)
+        : SolverBase<MatrixType>{exec}
     {
-        set_system_matrix(std::move(system_matrix));
+        set_system_matrix(std::move(exec), std::move(system_matrix));
     }
 
     /**
@@ -625,9 +641,9 @@ public:
     }
 
 protected:
-    void set_system_matrix(std::shared_ptr<const MatrixType> new_system_matrix)
+    void set_system_matrix(std::shared_ptr<const Executor> exec,
+                           std::shared_ptr<const MatrixType> new_system_matrix)
     {
-        auto exec = self()->get_executor();
         if (new_system_matrix) {
             GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_system_matrix);
             GKO_ASSERT_IS_SQUARE_MATRIX(new_system_matrix);
@@ -636,6 +652,11 @@ protected:
             }
         }
         this->set_system_matrix_base(new_system_matrix);
+    }
+
+    void set_system_matrix(std::shared_ptr<const MatrixType> new_system_matrix)
+    {
+        set_system_matrix(self()->get_executor(), std::move(new_system_matrix));
     }
 
     void setup_workspace() const
@@ -731,9 +752,10 @@ public:
     EnableIterativeBase() = default;
 
     EnableIterativeBase(
+        std::shared_ptr<const Executor> exec,
         std::shared_ptr<const stop::CriterionFactory> stop_factory)
     {
-        set_stop_criterion_factory(std::move(stop_factory));
+        set_stop_criterion_factory(std::move(exec), std::move(stop_factory));
     }
 
     /**
@@ -753,11 +775,8 @@ public:
     void set_stop_criterion_factory(
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory) override
     {
-        auto exec = self()->get_executor();
-        if (new_stop_factory && new_stop_factory->get_executor() != exec) {
-            new_stop_factory = gko::clone(exec, new_stop_factory);
-        }
-        IterativeBase::set_stop_criterion_factory(new_stop_factory);
+        EnableIterativeBase::set_stop_criterion_factory(self()->get_executor(),
+                                                        new_stop_factory);
     }
 
 private:
@@ -766,6 +785,16 @@ private:
     const DerivedType* self() const
     {
         return static_cast<const DerivedType*>(this);
+    }
+
+    void set_stop_criterion_factory(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const stop::CriterionFactory> new_stop_factory)
+    {
+        if (new_stop_factory && new_stop_factory->get_executor() != exec) {
+            new_stop_factory = gko::clone(std::move(exec), new_stop_factory);
+        }
+        IterativeBase::set_stop_criterion_factory(new_stop_factory);
     }
 };
 
@@ -786,23 +815,28 @@ class EnablePreconditionedIterativeSolver
       public EnableIterativeBase<DerivedType>,
       public EnablePreconditionable<DerivedType> {
 public:
-    EnablePreconditionedIterativeSolver() = default;
+    explicit EnablePreconditionedIterativeSolver(
+        std::shared_ptr<const Executor> exec)
+        : EnableSolverBase<DerivedType>(exec)
+    {}
 
     EnablePreconditionedIterativeSolver(
+        std::shared_ptr<const Executor> exec,
         std::shared_ptr<const LinOp> system_matrix,
         std::shared_ptr<const stop::CriterionFactory> stop_factory,
         std::shared_ptr<const LinOp> preconditioner)
-        : EnableSolverBase<DerivedType>(std::move(system_matrix)),
-          EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
+        : EnableSolverBase<DerivedType>(exec, std::move(system_matrix)),
+          EnableIterativeBase<DerivedType>{exec, std::move(stop_factory)},
+          EnablePreconditionable<DerivedType>{exec, std::move(preconditioner)}
     {}
 
     template <typename FactoryParameters>
     EnablePreconditionedIterativeSolver(
+        std::shared_ptr<const Executor> exec,
         std::shared_ptr<const LinOp> system_matrix,
         const FactoryParameters& params)
         : EnablePreconditionedIterativeSolver{
-              system_matrix, stop::combine(params.criteria),
+              exec, system_matrix, stop::combine(params.criteria),
               generate_preconditioner(system_matrix, params)}
     {}
 

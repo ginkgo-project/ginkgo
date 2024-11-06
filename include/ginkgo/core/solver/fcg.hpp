@@ -108,15 +108,17 @@ protected:
                     LinOp* x) const override;
 
     explicit Fcg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fcg>(std::move(exec))
+        : EnableLinOp<Fcg>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Fcg>(exec)
     {}
 
     explicit Fcg(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Fcg>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, Fcg>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

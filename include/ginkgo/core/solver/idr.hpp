@@ -223,15 +223,17 @@ protected:
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Idr>(std::move(exec))
+        : EnableLinOp<Idr>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Idr>(exec)
     {}
 
     explicit Idr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Idr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, Idr>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

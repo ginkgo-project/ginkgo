@@ -120,15 +120,17 @@ protected:
                     LinOp* x) const override;
 
     explicit Gcr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gcr>(std::move(exec))
+        : EnableLinOp<Gcr>(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Gcr>(exec)
     {}
 
     explicit Gcr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gcr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+          EnablePreconditionedIterativeSolver<ValueType, Gcr>{
+              factory->get_executor(), std::move(system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
