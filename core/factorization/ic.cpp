@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/factorization/cholesky.hpp>
 
 #include "core/base/array_access.hpp"
 #include "core/config/config_helper.hpp"
@@ -52,6 +53,17 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("both_factors")) {
         params.with_both_factors(config::get_value<bool>(obj));
     }
+    if (auto& obj = config.get("algorithm")) {
+        using gko::factorization::factorize_algorithm;
+        auto str = obj.get_string();
+        if (str == "sparselib") {
+            params.with_algorithm(factorize_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            params.with_algorithm(factorize_algorithm::syncfree);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("algorithm", str);
+        }
+    }
     return params;
 }
 
@@ -67,7 +79,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
-    auto local_system_matrix = matrix_type::create(exec);
+    auto local_system_matrix = share(matrix_type::create(exec));
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
@@ -79,15 +91,39 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     exec->run(ic_factorization::make_add_diagonal_elements(
         local_system_matrix.get(), false));
 
+    std::shared_ptr<const matrix_type> ic;
     // Compute LC factorization
-    exec->run(ic_factorization::make_compute(local_system_matrix.get()));
+    if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
+        parameters_.algorithm == factorize_algorithm::syncfree) {
+        auto sparsity =
+            share(gko::matrix::SparsityCsr<ValueType, IndexType>::create_const(
+                exec, local_system_matrix->get_size(),
+                make_const_array_view(
+                    exec, local_system_matrix->get_num_stored_elements(),
+                    local_system_matrix->get_const_col_idxs()),
+                make_const_array_view(
+                    exec, local_system_matrix->get_size()[0] + 1,
+                    local_system_matrix->get_const_row_ptrs())));
+        ic = gko::experimental::factorization::Cholesky<ValueType,
+                                                        IndexType>::build()
+                 .with_full_fillin(false)
+                 .with_symbolic_factorization(sparsity)
+                 .with_skip_sorting(
+                     true)  // we have decided sort or not in earlir stage
+                 .on(exec)
+                 ->generate(local_system_matrix)
+                 ->get_combined();
+    } else {
+        exec->run(ic_factorization::make_compute(local_system_matrix.get()));
+        ic = local_system_matrix;
+    }
 
     // Extract lower factor: compute non-zeros
-    const auto matrix_size = local_system_matrix->get_size();
+    const auto matrix_size = ic->get_size();
     const auto num_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, num_rows + 1};
     exec->run(ic_factorization::make_initialize_row_ptrs_l(
-        local_system_matrix.get(), l_row_ptrs.get_data()));
+        ic.get(), l_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, num_rows));
@@ -100,8 +136,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         std::move(l_row_ptrs), parameters_.l_strategy);
 
     // Extract lower factor: columns and values
-    exec->run(ic_factorization::make_initialize_l(local_system_matrix.get(),
-                                                  l_factor.get(), false));
+    exec->run(
+        ic_factorization::make_initialize_l(ic.get(), l_factor.get(), false));
 
     if (both_factors) {
         auto lh_factor = l_factor->conj_transpose();

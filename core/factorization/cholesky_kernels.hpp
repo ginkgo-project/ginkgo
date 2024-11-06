@@ -61,7 +61,8 @@ namespace kernels {
         const int32* lookup_storage, const IndexType* diag_idxs,         \
         const IndexType* transpose_idxs,                                 \
         const gko::factorization::elimination_forest<IndexType>& forest, \
-        matrix::Csr<ValueType, IndexType>* factors, array<int>& tmp_storage)
+        matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,    \
+        array<int>& tmp_storage)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \

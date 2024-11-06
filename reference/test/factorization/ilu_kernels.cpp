@@ -351,6 +351,23 @@ TYPED_TEST(Ilu, GenerateForCsrSmall)
 }
 
 
+TYPED_TEST(Ilu, GenerateForCsrSmallBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using ilu_type = typename TestFixture::ilu_type;
+    auto factors =
+        ilu_type::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->exec)
+            ->generate(this->mtx_csr_small);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, this->small_l_expected, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_factor, this->small_u_expected, r<value_type>::value);
+}
+
+
 TYPED_TEST(Ilu, GenerateForCsrSmall2ZeroDiagonal)
 {
     using value_type = typename TestFixture::value_type;

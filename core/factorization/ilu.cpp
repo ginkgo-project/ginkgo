@@ -80,7 +80,6 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
     auto local_system_matrix = share(matrix_type::create(exec));
-    std::shared_ptr<const matrix_type> ilu;
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
@@ -92,6 +91,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     exec->run(ilu_factorization::make_add_diagonal_elements(
         local_system_matrix.get(), false));
 
+    std::shared_ptr<const matrix_type> ilu;
     // Compute LU factorization
     if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
         parameters_.algorithm == factorize_algorithm::syncfree) {
@@ -108,6 +108,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
             gko::experimental::factorization::Lu<ValueType, IndexType>::build()
                 .with_full_fillin(false)
                 .with_symbolic_factorization(sparsity)
+                .with_skip_sorting(
+                    true)  // we have decided sort or not in earlir stage
                 .on(exec)
                 ->generate(local_system_matrix)
                 ->get_combined();

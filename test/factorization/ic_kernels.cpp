@@ -55,6 +55,26 @@ TEST_F(Ic, ComputeICIsEquivalentToRefSorted)
 }
 
 
+TEST_F(Ic, ComputeICBySyncfreeIsEquivalentToRefSorted)
+{
+    auto fact = gko::factorization::Ic<>::build()
+                    .with_skip_sorting(true)
+                    .on(ref)
+                    ->generate(mtx);
+    auto dfact =
+        gko::factorization::Ic<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(exec)
+            ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_lt_factor(), dfact->get_lt_factor());
+}
+
+
 TEST_F(Ic, ComputeICIsEquivalentToRefUnsorted)
 {
     gko::test::unsort_matrix(mtx, rand_engine);

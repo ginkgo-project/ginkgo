@@ -67,6 +67,17 @@ public:
          * incorrect results or crash.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * If the user provides the symbolic factorization, it should contain
+         * the fill-in for the matrix. i.e., When this is true, the symbolic
+         * factorization must contain the non-zero locations in the original
+         * matrix and the corresponding fill-in locations during factorization.
+         * If it does not have full fill-in, as in Ilu, this parameter must be
+         * set to false in order to avoid the possibility of hanging or illegal
+         * memory accesses during the factorization process.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(full_fillin, true);
     };
 
     /**

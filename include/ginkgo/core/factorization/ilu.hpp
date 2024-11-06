@@ -100,7 +100,7 @@ public:
          * Select the implementation which is supposed to be used for
          * the incomplete factorization. This only matters for the CUDA and HIP
          * executor where the choice is between the Ginkgo (syncfree) and the
-         * cuSPARSE/HIPSPARSE (sparselib) implementation. Default is sparselib.
+         * cuSPARSE/hipSPARSE (sparselib) implementation. Default is sparselib.
          */
         factorize_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, factorize_algorithm::sparselib);

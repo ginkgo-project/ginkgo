@@ -75,6 +75,8 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         param.with_skip_sorting(true);
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
+        config_map["algorithm"] = pnode{"syncfree"};
+        param.with_algorithm(gko::factorization::factorize_algorithm::syncfree);
     }
 
     template <typename AnswerType>
@@ -86,6 +88,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         check_strategy(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
+        ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
     }
 };
 
@@ -146,6 +149,8 @@ struct Cholesky : FactorizationConfigTest<
             detail::registry_accessor::get_data<Sparsity>(reg, "sparsity"));
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
+        config_map["full_fillin"] = pnode{false};
+        param.with_full_fillin(false);
     }
 
     template <typename AnswerType>
@@ -157,6 +162,7 @@ struct Cholesky : FactorizationConfigTest<
         ASSERT_EQ(res_param.symbolic_factorization,
                   ans_param.symbolic_factorization);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.full_fillin, ans_param.full_fillin);
     }
 };
 
