@@ -101,6 +101,8 @@ if(GINKGO_BUILD_TESTS)
                      "${executor}"
                      WORKING_DIRECTORY
                      "${CMAKE_CURRENT_SOURCE_DIR}/${example}")
+            # Prevent performance issues with high core counts
+            set_property(TEST example_${example}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
         endforeach()
     endforeach()
 
@@ -115,6 +117,8 @@ if(GINKGO_BUILD_TESTS)
                      "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
                      WORKING_DIRECTORY
                      "$<TARGET_FILE_DIR:ginkgo>")
+            # Prevent performance issues with high core counts
+            set_property(TEST example_file-config-solver_${config_name}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
         endforeach()    
     endforeach()
         
