@@ -50,17 +50,14 @@
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest
   tags:
-    - private_ci
-    - intel-igpu
+    - intel-gpus
 
 .use_gko-oneapi20231-igpu:
   image: ginkgohub/spack-oneapi:20231-openmpi
   tags:
-    - private_ci
-    - intel-igpu
+    - intel-gpus
 
 .use_gko-oneapi-dgpu:
   image: ginkgohub/oneapi:latest
   tags:
-    - private_ci
-    - intel-dgpu
+    - intel-gpus
