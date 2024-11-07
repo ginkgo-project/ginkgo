@@ -3,8 +3,10 @@ add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/csr_kernels.instantiate.cpp CSR_INSTANTIATE)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kernels.instantiate.cpp FBCSR_INSTANTIATE)
-add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.cu BATCH_BICGSTAB_INSTANTIATE)
-add_instantiation_files(. solver/batch_cg_launch.instantiate.cu BATCH_CG_INSTANTIATE)
+add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_bicgstab_launch.instantiate.cpp BATCH_BICGSTAB_INSTANTIATE1)
+add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.cu BATCH_BICGSTAB_INSTANTIATE2)
+add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_cg_launch.instantiate.cpp BATCH_CG_INSTANTIATE1)
+add_instantiation_files(. solver/batch_cg_launch.instantiate.cu BATCH_CG_INSTANTIATE2)
 # we don't split up the dense kernels into distinct compilations
 list(APPEND GKO_UNIFIED_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp)
 target_sources(ginkgo_cuda
@@ -23,9 +25,11 @@ target_sources(ginkgo_cuda
     matrix/fft_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
     solver/batch_bicgstab_kernels.cu
-    ${BATCH_BICGSTAB_INSTANTIATE}
+    ${BATCH_BICGSTAB_INSTANTIATE1}
+    ${BATCH_BICGSTAB_INSTANTIATE2}
     solver/batch_cg_kernels.cu
-    ${BATCH_CG_INSTANTIATE}
+    ${BATCH_CG_INSTANTIATE1}
+    ${BATCH_CG_INSTANTIATE2}
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
@@ -41,7 +45,8 @@ else()
 endif()
 jacobi_generated_files(GKO_CUDA_JACOBI_SOURCES "${GKO_CUDA_JACOBI_BLOCK_SIZES}")
 # override the default language mapping for the common files, set them to CUDA
-foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES GKO_CUDA_JACOBI_SOURCES CSR_INSTANTIATE FBCSR_INSTANTIATE)
+foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES GKO_CUDA_HIP_COMMON_SOURCES GKO_CUDA_JACOBI_SOURCES
+                             CSR_INSTANTIATE FBCSR_INSTANTIATE BATCH_BICGSTAB_INSTANTIATE1 BATCH_CG_INSTANTIATE1)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
 endforeach(source_file)
 target_sources(ginkgo_cuda PRIVATE ${GKO_CUDA_JACOBI_SOURCES})

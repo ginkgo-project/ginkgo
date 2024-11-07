@@ -9,9 +9,9 @@
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp"
+#include "common/cuda_hip/solver/batch_cg_launch.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
-#include "hip/solver/batch_cg_launch.hip.hpp"
 
 
 namespace gko {
@@ -97,38 +97,38 @@ public:
         // Template parameters launch_apply_kernel<ValueType, n_shared,
         // prec_shared, StopType>
         if (sconf.prec_shared) {
-            launch_apply_kernel<ValueType, 5, true, StopType>(
+            launch_apply_kernel<hip_value_type, 5, true, StopType>(
                 exec_, sconf, settings_, logger, prec, mat, b.values, x.values,
                 workspace_data, block_size, shared_size);
         } else {
             switch (sconf.n_shared) {
             case 0:
-                launch_apply_kernel<ValueType, 0, false, StopType>(
+                launch_apply_kernel<hip_value_type, 0, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<ValueType, 1, false, StopType>(
+                launch_apply_kernel<hip_value_type, 1, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<ValueType, 2, false, StopType>(
+                launch_apply_kernel<hip_value_type, 2, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<ValueType, 3, false, StopType>(
+                launch_apply_kernel<hip_value_type, 3, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<ValueType, 4, false, StopType>(
+                launch_apply_kernel<hip_value_type, 4, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<ValueType, 5, false, StopType>(
+                launch_apply_kernel<hip_value_type, 5, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
@@ -153,9 +153,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            batch::MultiVector<ValueType>* const x,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
-    using hip_value_type = hip_type<ValueType>;
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        kernel_caller<hip_value_type>(exec, settings), settings, mat, precon);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precon);
     dispatcher.apply(b, x, logdata);
 }
 
