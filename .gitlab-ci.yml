@@ -344,7 +344,6 @@ build/icpx20231/igpu/release/shared:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .disable_job_condition
     - .use_gko-oneapi20231-igpu
   variables:
     CXX_COMPILER: "icpx"
@@ -378,7 +377,6 @@ build/icpx/igpu/release/static:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .disable_job_condition
     - .use_gko-oneapi-igpu
   variables:
     CXX_COMPILER: "dpcpp"
