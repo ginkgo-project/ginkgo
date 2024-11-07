@@ -51,7 +51,11 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.msystem }}
-          install: git python base-devel cmake ninja
+          install: git python base-devel
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
           update: true
           release: ${{ runner.arch != 'ARM64' }}
           location: 'D:\M'
@@ -77,7 +81,7 @@ jobs:
           unset VCPKG_ROOT
           mkdir build
           cd build
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
 
 
       - name: "Clean up runner"
