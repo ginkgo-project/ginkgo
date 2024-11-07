@@ -266,7 +266,12 @@ endif()
 # Bundled third party libraries
 add_subdirectory(third_party)    # Third-party tools and libraries
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
+endif()
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 if(MSVC)
+    message(STATUS "MSVC")
     if(BUILD_SHARED_LIBS)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
     else()
