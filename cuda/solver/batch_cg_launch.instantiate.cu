@@ -74,45 +74,12 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
 }
 
 
-template <typename ValueType, int n_shared, bool prec_shared, typename StopType,
-          typename PrecType, typename LogType, typename BatchMatrixType>
-void launch_apply_kernel(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::kernels::batch_cg::storage_config& sconf,
-    const settings<remove_complex<ValueType>>& settings, LogType& logger,
-    PrecType& prec, const BatchMatrixType& mat,
-    const cuda_type<ValueType>* const __restrict__ b_values,
-    cuda_type<ValueType>* const __restrict__ x_values,
-    cuda_type<ValueType>* const __restrict__ workspace_data,
-    const int& block_size, const size_t& shared_size)
-{
-    batch_single_kernels::apply_kernel<StopType, n_shared, prec_shared>
-        <<<mat.num_batch_items, block_size, shared_size, exec->get_stream()>>>(
-            sconf, settings.max_iterations, as_cuda_type(settings.residual_tol),
-            logger, prec, mat, b_values, x_values, workspace_data);
-}
-
-
 // begin
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_CG_GET_NUM_THREADS_PER_BLOCK);
 // split
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_CG_GET_MAX_DYNAMIC_SHARED_MEMORY);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_0_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_1_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_2_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_3_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_4_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_5_FALSE);
-// split
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_LAUNCH_5_TRUE);
 // end
 
 

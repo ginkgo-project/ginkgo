@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_HIP_SOLVER_BATCH_BICGSTAB_LAUNCH_HIP_HPP_
-#define GKO_HIP_SOLVER_BATCH_BICGSTAB_LAUNCH_HIP_HPP_
-
+#pragma once
 
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/base/config.hpp"
@@ -17,7 +15,7 @@
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace GKO_DEVICE_NAMESPACE {
 namespace batch_bicgstab {
 
 
@@ -32,24 +30,24 @@ void launch_apply_kernel(
     const gko::kernels::batch_bicgstab::storage_config& sconf,
     const settings<remove_complex<ValueType>>& settings, LogType& logger,
     PrecType& prec, const BatchMatrixType& mat,
-    const hip_type<ValueType>* const __restrict__ b_values,
-    hip_type<ValueType>* const __restrict__ x_values,
-    hip_type<ValueType>* const __restrict__ workspace_data,
+    const device_type<ValueType>* const __restrict__ b_values,
+    device_type<ValueType>* const __restrict__ x_values,
+    device_type<ValueType>* const __restrict__ workspace_data,
     const int& block_size, const size_t& shared_size);
 
 #define GKO_DECLARE_BATCH_BICGSTAB_LAUNCH(_vtype, _n_shared, _prec_shared, \
                                           mat_t, log_t, pre_t, stop_t)     \
-    void launch_apply_kernel<_vtype, _n_shared, _prec_shared,              \
-                             stop_t<hip_type<_vtype>>>(                    \
+    void launch_apply_kernel<device_type<_vtype>, _n_shared, _prec_shared, \
+                             stop_t<device_type<_vtype>>>(                 \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const gko::kernels::batch_bicgstab::storage_config& sconf,         \
-        const settings<remove_complex<_vtype>>& settings,                  \
-        log_t<hip_type<gko::remove_complex<_vtype>>>& logger,              \
-        pre_t<hip_type<_vtype>>& prec,                                     \
-        const mat_t<const hip_type<_vtype>>& mat,                          \
-        const hip_type<_vtype>* const __restrict__ b_values,               \
-        hip_type<_vtype>* const __restrict__ x_values,                     \
-        hip_type<_vtype>* const __restrict__ workspace_data,               \
+        const settings<remove_complex<device_type<_vtype>>>& settings,     \
+        log_t<gko::remove_complex<device_type<_vtype>>>& logger,           \
+        pre_t<device_type<_vtype>>& prec,                                  \
+        const mat_t<const device_type<_vtype>>& mat,                       \
+        const device_type<_vtype>* const __restrict__ b_values,            \
+        device_type<_vtype>* const __restrict__ x_values,                  \
+        device_type<_vtype>* const __restrict__ workspace_data,            \
         const int& block_size, const size_t& shared_size)
 
 #define GKO_DECLARE_BATCH_BICGSTAB_LAUNCH_0_FALSE(_vtype) \
@@ -77,9 +75,6 @@ void launch_apply_kernel(
 
 
 }  // namespace batch_bicgstab
-}  // namespace hip
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif
