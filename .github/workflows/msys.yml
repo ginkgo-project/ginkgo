@@ -82,7 +82,7 @@ jobs:
           mkdir build
           cd build
           cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
-
+          ninja
 
       - name: "Clean up runner"
         if: ${{ always() }}
