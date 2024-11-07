@@ -81,7 +81,7 @@ jobs:
           unset VCPKG_ROOT
           mkdir build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DCMAKE_CXX_FLAGS="-fuse-ld=lld-link" ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined" ..
           cmake --build --verbose .
 
       - name: "Clean up runner"
