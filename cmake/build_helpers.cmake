@@ -45,6 +45,7 @@ function(ginkgo_compile_features name)
     if (GINKGO_CHECK_CIRCULAR_DEPS)
         target_link_libraries("${name}" PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
     endif()
+    target_link_options("${name}" PRIVATE "-Wl,--allow-shlib-undefined")
 
     set_target_properties("${name}" PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
