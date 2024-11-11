@@ -46,11 +46,17 @@ protected:
         d_mtx->read(md);
 
         result_l->read(md_l);
-        result_l->scale(gko::initialize<Dense>({0.0}, ref));
+        std::fill_n(result_l->get_col_idxs(),
+                    result_l->get_num_stored_elements(), -1);
+        std::fill_n(result_l->get_values(), result_l->get_num_stored_elements(),
+                    gko::nan<value_type>());
         d_result_l = gko::clone(exec, result_l);
 
         result_u->read(md_u);
-        result_u->scale(gko::initialize<Dense>({0.0}, ref));
+        std::fill_n(result_u->get_col_idxs(),
+                    result_u->get_num_stored_elements(), -1);
+        std::fill_n(result_u->get_values(), result_u->get_num_stored_elements(),
+                    gko::nan<value_type>());
         d_result_u = gko::clone(exec, result_u);
     }
 
@@ -73,6 +79,7 @@ TEST_F(Sor, InitializeWeightedLFactorIsSameAsReference)
     gko::kernels::GKO_DEVICE_NAMESPACE::sor::initialize_weighted_l(
         exec, d_mtx.get(), 1.24, d_result_l.get());
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(result_l, d_result_l);
     GKO_ASSERT_MTX_NEAR(result_l, d_result_l, r<value_type>::value);
 }
 
@@ -84,6 +91,8 @@ TEST_F(Sor, InitializeWeightedLAndUFactorIsSameAsReference)
     gko::kernels::GKO_DEVICE_NAMESPACE::sor::initialize_weighted_l_u(
         exec, d_mtx.get(), 1.24, d_result_l.get(), d_result_u.get());
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(result_l, d_result_l);
+    GKO_ASSERT_MTX_EQ_SPARSITY(result_u, d_result_u);
     GKO_ASSERT_MTX_NEAR(result_l, d_result_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(result_u, d_result_u, r<value_type>::value);
 }
