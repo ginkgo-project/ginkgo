@@ -73,8 +73,8 @@ jobs:
         run: |
           If (Test-Path "C:\_") { rm -r -fo "C:\_" }
           Copy-Item -Path ".\temp" -Destination "C:\_" -Recurse
-      # - name: Debug over SSH (tmate)
-      #   uses: mxschmitt/action-tmate@v3.5
+      - name: Debug over SSH (tmate)
+        uses: mxschmitt/action-tmate@v3.5
       - name: CI-Build
         shell: msys2 {0}
         id: build
