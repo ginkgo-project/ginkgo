@@ -39,9 +39,13 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
         cuda_type<_vtype>>(std::shared_ptr<const DefaultExecutor> exec,     \
                            const int num_rows)
 
-#define GKO_DECLARE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK(_vtype) \
-    GKO_BATCH_INSTANTIATE(                                           \
-        GKO_DECLARE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK_, _vtype)
+#define GKO_INSTANTIATE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK_(...) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                         \
+        GKO_DECLARE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK_, __VA_ARGS__)
+
+#define GKO_INSTANTIATE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK \
+    GKO_BATCH_INSTANTIATE(                                       \
+        GKO_INSTANTIATE_BATCH_BICGSTAB_GET_NUM_THREADS_PER_BLOCK_)
 
 
 template <typename StopType, typename PrecType, typename LogType,
@@ -55,9 +59,14 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec);
         log_t<gko::remove_complex<_vtype>>, mat_t<const cuda_type<_vtype>>, \
         cuda_type<_vtype>>(std::shared_ptr<const DefaultExecutor> exec)
 
-#define GKO_DECLARE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY(_vtype) \
-    GKO_BATCH_INSTANTIATE(                                               \
-        GKO_DECLARE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY_, _vtype)
+#define GKO_INSTANTIATE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY_(...) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                             \
+        GKO_DECLARE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY_,         \
+        __VA_ARGS__)
+
+#define GKO_INSTANTIATE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY \
+    GKO_BATCH_INSTANTIATE(                                           \
+        GKO_INSTANTIATE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY_)
 
 
 }  // namespace batch_bicgstab
