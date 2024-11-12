@@ -73,8 +73,8 @@ jobs:
         run: |
           If (Test-Path "C:\_") { rm -r -fo "C:\_" }
           Copy-Item -Path ".\temp" -Destination "C:\_" -Recurse
-      - name: Debug over SSH (tmate)
-        uses: mxschmitt/action-tmate@v3.5
+      # - name: Debug over SSH (tmate)
+      #   uses: mxschmitt/action-tmate@v3.5
       - name: CI-Build
         shell: msys2 {0}
         id: build
@@ -83,7 +83,7 @@ jobs:
           unset VCPKG_ROOT
           mkdir build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
+          cmake -G Ninja -DCMAKE_CXX_FLAGS=-fvisibility-inlines-hidden -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
           cmake --build . --verbose
 
       - name: "Clean up runner"
