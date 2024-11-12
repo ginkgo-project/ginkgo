@@ -10,11 +10,13 @@ set(config_source
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
 endif()
-# MSVC: To solve LNK1189, we separate the library as a workaround
+# MSVC: LNK1189 issue
+# CLANG in MSYS2 (MINGW): too many exported symbols
+# We separate the library as a workaround to solve this issue
 # To make ginkgo still be the major library, we make the original to ginkgo_core in MSVC/shared
 # TODO: should think another way to solve it like dllexport or def file
 set(ginkgo_core "ginkgo")
-if(MSVC AND BUILD_SHARED_LIBS)
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     set(ginkgo_core "ginkgo_core")
 endif()
 
@@ -142,8 +144,8 @@ if(GINKGO_BUILD_MPI)
         distributed/preconditioner/schwarz.cpp)
 endif()
 
-# MSVC/shared: make ginkgo be the major library
-if(MSVC AND BUILD_SHARED_LIBS)
+# MSVC or CLANG/msys2 with shared: make ginkgo be the major library
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     add_library(ginkgo "")
     target_sources(ginkgo PRIVATE ${config_source})
     ginkgo_compile_features(ginkgo)
@@ -161,7 +163,7 @@ ginkgo_compile_features(${ginkgo_core})
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-if(MSVC AND BUILD_SHARED_LIBS)
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo PUBLIC ${ginkgo_core})
 endif()
 target_link_libraries(${ginkgo_core}
