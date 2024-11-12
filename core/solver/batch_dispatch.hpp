@@ -171,7 +171,7 @@ enum class log_type { simple_convergence_completion };
     GKO_INDIRECT(                                                            \
         macro(__VA_ARGS__,                                                   \
               ::gko::batch::solver::device::batch_stop::SimpleAbsResidual)); \
-    template GKO_INDIRECT(                                                   \
+    GKO_INDIRECT(                                                            \
         macro(__VA_ARGS__,                                                   \
               ::gko::batch::solver::device::batch_stop::SimpleRelResidual))
 
@@ -179,10 +179,10 @@ enum class log_type { simple_convergence_completion };
     GKO_BATCH_INSTANTIATE_STOP(                                            \
         macro, __VA_ARGS__,                                                \
         ::gko::batch::solver::device::batch_preconditioner::Identity);     \
-    template GKO_BATCH_INSTANTIATE_STOP(                                   \
+    GKO_BATCH_INSTANTIATE_STOP(                                            \
         macro, __VA_ARGS__,                                                \
         ::gko::batch::solver::device::batch_preconditioner::ScalarJacobi); \
-    template GKO_BATCH_INSTANTIATE_STOP(                                   \
+    GKO_BATCH_INSTANTIATE_STOP(                                            \
         macro, __VA_ARGS__,                                                \
         ::gko::batch::solver::device::batch_preconditioner::BlockJacobi)
 
@@ -191,16 +191,36 @@ enum class log_type { simple_convergence_completion };
         macro, __VA_ARGS__,                      \
         ::gko::batch::solver::device::batch_log::SimpleFinalLogger)
 
-#define GKO_BATCH_INSTANTIATE_MATRIX(macro, ...)                     \
-    GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,                 \
-                                 batch::matrix::ell::uniform_batch); \
-    template GKO_BATCH_INSTANTIATE_LOGGER(                           \
-        macro, __VA_ARGS__, batch::matrix::dense::uniform_batch);    \
-    template GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,        \
-                                          batch::matrix::csr::uniform_batch)
+#define GKO_BATCH_INSTANTIATE_MATRIX_VARGS(macro, ...)                 \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,                   \
+                                 batch::matrix::ell::uniform_batch);   \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,                   \
+                                 batch::matrix::dense::uniform_batch); \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, __VA_ARGS__,                   \
+                                 batch::matrix::csr::uniform_batch)
 
-#define GKO_BATCH_INSTANTIATE(macro, ...) \
-    GKO_BATCH_INSTANTIATE_MATRIX(macro, __VA_ARGS__)
+/**
+ * Passes each valid configuration of batch solver template parameter to a
+ * macro. The order of template parameters is: macro(..., <matrix>, <logger>,
+ * <precond>, <stop>) Any additional macro parameter passed to
+ * GKO_BATCH_INSTANTIATE will be prepended to the batch solver template
+ * parameters.
+ */
+#define GKO_BATCH_INSTANTIATE_VARGS(macro, ...) \
+    GKO_BATCH_INSTANTIATE_MATRIX_VARGS(macro, __VA_ARGS__)
+
+
+/**
+ * Passes each valid configuration of batch solver template parameter to a
+ * macro. The order of template parameters is: macro(<matrix>, <logger>,
+ * <precond>, <stop>)
+ */
+#define GKO_BATCH_INSTANTIATE_MATRIX(macro, ...)                              \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, batch::matrix::ell::uniform_batch);   \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, batch::matrix::dense::uniform_batch); \
+    GKO_BATCH_INSTANTIATE_LOGGER(macro, batch::matrix::csr::uniform_batch)
+
+#define GKO_BATCH_INSTANTIATE(macro) GKO_BATCH_INSTANTIATE_MATRIX(macro)
 
 
 /**
