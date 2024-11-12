@@ -17,9 +17,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
@@ -206,4 +203,80 @@ TYPED_TEST(Ic, GenerateGeneralBySyncfree)
 }
 
 
-}  // namespace
+TYPED_TEST(Ic, GenerateIcWithBitmapIsEquivalentToRefBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    // diag + full first row and column
+    // the third and forth row use bitmap for lookup table
+    auto mtx = gko::share(gko::initialize<Csr>({{1.0, 1.0, 1.0, 1.0},
+                                                {1.0, 2.0, 0.0, 0.0},
+                                                {1.0, 0.0, 2.0, 0.0},
+                                                {1.0, 0.0, 0.0, 2.0}},
+                                               this->ref));
+    auto result_l = gko::initialize<Csr>({{1.0, 0.0, 0.0, 0.0},
+                                          {1.0, 1.0, 0.0, 0.0},
+                                          {1.0, 0.0, 1.0, 0.0},
+                                          {1.0, 0.0, 0.0, 1.0}},
+                                         this->ref);
+    auto result_lt = gko::as<Csr>(result_l->conj_transpose());
+    auto factory =
+        gko::factorization::Ic<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->ref);
+
+    auto ic = factory->generate(mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(ic->get_l_factor(), result_l);
+    GKO_ASSERT_MTX_NEAR(ic->get_l_factor(), result_l, this->tol);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ic->get_lt_factor(), result_lt);
+    GKO_ASSERT_MTX_NEAR(ic->get_lt_factor(), result_lt, this->tol);
+}
+
+
+TYPED_TEST(Ic, GenerateIcWithHashmapIsEquivalentToRefBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    int n = 68;
+    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+    gko::matrix_data<value_type, index_type> result(gko::dim<2>(n, n));
+    for (int i = 0; i < n; i++) {
+        if (i == n - 2 || i == n - 3) {
+            data.nonzeros.emplace_back(i, i, value_type{2});
+        } else {
+            data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+        }
+        result.nonzeros.emplace_back(i, i, gko::one<value_type>());
+    }
+    // the following rows use hashmap for lookup table
+    // add dependence
+    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    data.nonzeros.emplace_back(0, n - 3, gko::one<value_type>());
+    // add a entry whose col idx is not shown in the above row
+    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    data.nonzeros.emplace_back(n - 2, 0, gko::one<value_type>());
+    data.sort_row_major();
+    auto mtx = gko::share(Csr::create(this->ref));
+    mtx->read(data);
+    // prepare result (lower triangular part)
+    result.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    result.nonzeros.emplace_back(n - 2, 0, gko::one<value_type>());
+    result.sort_row_major();
+    auto result_l = gko::share(Csr::create(this->ref));
+    result_l->read(result);
+    auto result_lt = gko::as<Csr>(result_l->conj_transpose());
+    auto factory =
+        gko::factorization::Ic<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->ref);
+
+    auto ic = factory->generate(mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(ic->get_l_factor(), result_l);
+    GKO_ASSERT_MTX_NEAR(ic->get_l_factor(), result_l, this->tol);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ic->get_lt_factor(), result_lt);
+    GKO_ASSERT_MTX_NEAR(ic->get_lt_factor(), result_lt, this->tol);
+}

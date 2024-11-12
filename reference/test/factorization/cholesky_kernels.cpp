@@ -25,9 +25,6 @@
 #include "matrices/config.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class Cholesky : public ::testing::Test {
 protected:
@@ -490,92 +487,3 @@ TYPED_TEST(Cholesky, FactorizeWithKnownSparsityWorks)
         },
         false);
 }
-
-
-TYPED_TEST(Cholesky, GenerateIcWithBitmapIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
-    // diag + full first row and column
-    // the third and forth row use bitmap for lookup table
-    auto mtx = gko::share(gko::initialize<matrix_type>({{1.0, 1.0, 1.0, 1.0},
-                                                        {1.0, 2.0, 0.0, 0.0},
-                                                        {1.0, 0.0, 2.0, 0.0},
-                                                        {1.0, 0.0, 0.0, 2.0}},
-                                                       this->ref));
-    auto sparsity = gko::share(sparsity_matrix_type::create(this->ref));
-    mtx->convert_to(sparsity);
-    auto result = gko::initialize<matrix_type>({{1.0, 1.0, 1.0, 1.0},
-                                                {1.0, 1.0, 0.0, 0.0},
-                                                {1.0, 0.0, 1.0, 0.0},
-                                                {1.0, 0.0, 0.0, 1.0}},
-                                               this->ref);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(sparsity)
-            .with_full_fillin(false)
-            .on(this->ref);
-
-    auto cholesky = factory->generate(mtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(cholesky->get_combined(), mtx);
-    GKO_ASSERT_MTX_NEAR(cholesky->get_combined(), result, r<value_type>::value);
-}
-
-
-TYPED_TEST(Cholesky, GenerateIcWithHashmapIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
-    int n = 68;
-    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
-    gko::matrix_data<value_type, index_type> result(gko::dim<2>(n, n));
-    for (int i = 0; i < n; i++) {
-        if (i == n - 2 || i == n - 3) {
-            data.nonzeros.emplace_back(i, i, value_type{2});
-        } else {
-            data.nonzeros.emplace_back(i, i, gko::one<value_type>());
-        }
-        result.nonzeros.emplace_back(i, i, gko::one<value_type>());
-    }
-    // the following rows use hashmap for lookup table
-    // add dependence
-    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
-    data.nonzeros.emplace_back(0, n - 3, gko::one<value_type>());
-    // add a entry whose col idx is not shown in the above row
-    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
-    data.nonzeros.emplace_back(n - 2, 0, gko::one<value_type>());
-    data.sort_row_major();
-    auto mtx = gko::share(matrix_type::create(this->ref));
-    mtx->read(data);
-    // prepare result
-    result.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
-    result.nonzeros.emplace_back(0, n - 3, gko::one<value_type>());
-    result.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
-    result.nonzeros.emplace_back(n - 2, 0, gko::one<value_type>());
-    result.sort_row_major();
-    auto result_mtx = gko::share(matrix_type::create(this->ref));
-    result_mtx->read(result);
-    auto sparsity = gko::share(sparsity_matrix_type::create(this->ref));
-    mtx->convert_to(sparsity);
-    auto factory =
-        gko::experimental::factorization::Cholesky<value_type,
-                                                   index_type>::build()
-            .with_symbolic_factorization(sparsity)
-            .with_full_fillin(false)
-            .on(this->ref);
-
-    auto cholesky = factory->generate(mtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(cholesky->get_combined(), result_mtx);
-    GKO_ASSERT_MTX_NEAR(cholesky->get_combined(), result_mtx,
-                        r<value_type>::value);
-}
-
-
-}  // namespace
