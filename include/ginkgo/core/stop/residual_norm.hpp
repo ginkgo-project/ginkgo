@@ -6,10 +6,12 @@
 #define GKO_PUBLIC_CORE_STOP_RESIDUAL_NORM_HPP_
 
 
+#include <limits>
 #include <type_traits>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -120,7 +122,8 @@ public:
          * Residual norm reduction factor
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+            reduction_factor,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
 
         /**
          * The quantity the reduction is relative to. Choices include
@@ -176,7 +179,8 @@ public:
          * Implicit Residual norm goal
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+            reduction_factor,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
 
         /**
          * The quantity the reduction is relative to. Choices include
@@ -251,7 +255,8 @@ public:
          * Factor by which the residual norm will be reduced
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor, static_cast<remove_complex<ValueType>>(1e-15));
+            reduction_factor,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
     };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
@@ -307,7 +312,8 @@ public:
          * Relative residual norm goal
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            tolerance, static_cast<remove_complex<ValueType>>(1e-15));
+            tolerance,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
     };
     GKO_ENABLE_CRITERION_FACTORY(RelativeResidualNorm<ValueType>, parameters,
                                  Factory);
@@ -360,7 +366,8 @@ public:
          * Absolute residual norm goal
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            tolerance, static_cast<remove_complex<ValueType>>(1e-15));
+            tolerance,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
     };
     GKO_ENABLE_CRITERION_FACTORY(AbsoluteResidualNorm<ValueType>, parameters,
                                  Factory);
