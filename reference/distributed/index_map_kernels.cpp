@@ -220,7 +220,7 @@ void map_to_global(
     auto map_local = [&](auto lid) {
         if (0 <= lid && lid < local_size) {
             local_range_id =
-                find_local_range(lid, rank, partition, local_range_id);
+                find_local_range(lid, rank, partition, 0);  // local_range_id);
             return map_to_global(lid, partition,
                                  local_ranges.begin[local_range_id]);
         } else {

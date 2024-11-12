@@ -26,6 +26,7 @@
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
+#include "core/distributed/preconditioner/bddc_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
@@ -198,6 +199,14 @@
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_BASE(_macro)
+
+#define GKO_STUB_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)      \
+    template <typename ValueType, typename LocalIndexType,                  \
+              typename GlobalIndexType>                                     \
+    _macro(ValueType, LocalIndexType, GlobalIndexType)                      \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                                  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
+        _macro)
 
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
@@ -395,6 +404,7 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
 
 }  // namespace distributed_matrix
 
+
 namespace distributed_dd_matrix {
 
 
@@ -403,6 +413,19 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
 
 
 }  // namespace distributed_dd_matrix
+
+
+namespace bddc {
+
+
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_CLASSIFY_DOFS);
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_GENERATE_CONSTRAINTS);
+GKO_STUB_VALUE_TYPE_BASE(GKO_DECLARE_FILL_COARSE_DATA);
+GKO_STUB_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
+
+
+}  // namespace bddc
 
 
 namespace batch_multi_vector {

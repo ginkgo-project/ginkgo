@@ -205,6 +205,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         exec, dim<2>{partition->get_size(), large_partition->get_size()},
         std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
         std::move(prolongate_values)};
+    prolongate_data.sort_row_major();
     prolongation_ =
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
     prolongation_->read_distributed(prolongate_data, partition, large_partition,

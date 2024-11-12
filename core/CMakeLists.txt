@@ -153,6 +153,7 @@ if(GINKGO_BUILD_MPI)
             distributed/matrix.cpp
             distributed/neighborhood_communicator.cpp
             distributed/partition_helpers.cpp
+            distributed/preconditioner/bddc.cpp
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
             distributed/vector.cpp
