@@ -67,6 +67,7 @@
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
 
+#include <ginkgo/core/distributed/preconditioner/bddc.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/distributed/vector.hpp>
