@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
+#include "core/base/batch_instantiation.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
@@ -168,10 +169,10 @@ private:
 };
 
 
-template <typename ValueType>
+template <typename ValueType, typename BatchMatrixType, typename PrecType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const settings<remove_complex<ValueType>>& settings,
-           const batch::BatchLinOp* mat, const batch::BatchLinOp* precond,
+           const BatchMatrixType* mat, const PrecType* precond,
            const batch::MultiVector<ValueType>* b,
            batch::MultiVector<ValueType>* x,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
@@ -181,8 +182,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     dispatcher.apply(b, x, logdata);
 }
 
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_bicgstab

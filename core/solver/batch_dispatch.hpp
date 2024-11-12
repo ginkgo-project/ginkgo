@@ -229,7 +229,8 @@ enum class log_type { simple_convergence_completion };
  * @tparam SettingsType  Structure type of options for the particular solver to
  * be used.
  */
-template <typename ValueType, typename KernelCaller, typename SettingsType>
+template <typename ValueType, typename KernelCaller, typename SettingsType,
+          typename BatchMatrixType, typename PrecType>
 class batch_solver_dispatch {
 public:
     using value_type = ValueType;
@@ -238,7 +239,8 @@ public:
 
     batch_solver_dispatch(
         const KernelCaller& kernel_caller, const SettingsType& settings,
-        const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
+        const BatchMatrixType* const matrix,
+        const PrecType* const preconditioner,
         const log::detail::log_type logger_type =
             log::detail::log_type::simple_convergence_completion)
         : caller_{kernel_caller},
@@ -248,21 +250,21 @@ public:
           logger_type_{logger_type}
     {}
 
-    template <typename PrecType, typename BatchMatrixType, typename LogType>
+    template <typename PrecEntry, typename BatchMatrixEntry, typename LogType>
     void dispatch_on_stop(
-        const LogType& logger, const BatchMatrixType& mat_item,
-        PrecType precond,
+        const LogType& logger, const BatchMatrixEntry& mat_item,
+        PrecEntry precond,
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item)
     {
         if (settings_.tol_type == stop::tolerance_type::absolute) {
             caller_.template call_kernel<
-                BatchMatrixType, PrecType,
+                BatchMatrixEntry, PrecEntry,
                 device::batch_stop::SimpleAbsResidual<device_value_type>,
                 LogType>(logger, mat_item, precond, b_item, x_item);
         } else if (settings_.tol_type == stop::tolerance_type::relative) {
             caller_.template call_kernel<
-                BatchMatrixType, PrecType,
+                BatchMatrixEntry, PrecEntry,
                 device::batch_stop::SimpleRelResidual<device_value_type>,
                 LogType>(logger, mat_item, precond, b_item, x_item);
         } else {
@@ -270,37 +272,37 @@ public:
         }
     }
 
-    template <typename BatchMatrixType, typename LogType>
+    template <typename BatchMatrixEntry, typename LogType>
     void dispatch_on_preconditioner(
-        const LogType& logger, const BatchMatrixType& mat_item,
+        const LogType& logger, const BatchMatrixEntry& mat_item,
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item)
     {
-        if (!precond_ ||
-            dynamic_cast<const matrix::Identity<value_type>*>(precond_)) {
+        if constexpr (std::is_same_v<PrecType, matrix::Identity<value_type>>) {
             dispatch_on_stop(
                 logger, mat_item,
                 device::batch_preconditioner::Identity<device_value_type>(),
                 b_item, x_item);
-        } else if (auto prec = dynamic_cast<
-                       const batch::preconditioner::Jacobi<value_type>*>(
-                       precond_)) {
-            const auto max_block_size = prec->get_max_block_size();
+        } else if constexpr (std::is_same_v<
+                                 PrecType,
+                                 batch::preconditioner::Jacobi<value_type>>) {
+            const auto max_block_size = precond_->get_max_block_size();
             if (max_block_size == 1) {
                 dispatch_on_stop(logger, mat_item,
                                  device::batch_preconditioner::ScalarJacobi<
                                      device_value_type>(),
                                  b_item, x_item);
             } else {
-                const auto num_blocks = prec->get_num_blocks();
-                const auto block_ptrs_arr = prec->get_const_block_pointers();
+                const auto num_blocks = precond_->get_num_blocks();
+                const auto block_ptrs_arr =
+                    precond_->get_const_block_pointers();
                 const auto row_block_map_arr =
-                    prec->get_const_map_block_to_row();
+                    precond_->get_const_map_block_to_row();
                 const auto blocks_arr =
                     reinterpret_cast<DeviceValueType<const ValueType*>>(
-                        prec->get_const_blocks());
+                        precond_->get_const_blocks());
                 const auto blocks_cumul_storage =
-                    prec->get_const_blocks_cumulative_offsets();
+                    precond_->get_const_blocks_cumulative_offsets();
 
                 dispatch_on_stop(
                     logger, mat_item,
@@ -315,9 +317,9 @@ public:
         }
     }
 
-    template <typename BatchMatrixType>
+    template <typename BatchMatrixEntry>
     void dispatch_on_logger(
-        const BatchMatrixType& amat,
+        const BatchMatrixEntry& amat,
         const multi_vector::uniform_batch<const device_value_type>& b_item,
         const multi_vector::uniform_batch<device_value_type>& x_item,
         batch::log::detail::log_data<real_type>& log_data)
@@ -337,23 +339,8 @@ public:
         const multi_vector::uniform_batch<device_value_type>& x_item,
         batch::log::detail::log_data<real_type>& log_data)
     {
-        if (auto batch_mat =
-                dynamic_cast<const batch::matrix::Ell<ValueType, int32>*>(
-                    mat_)) {
-            auto mat_item = device::get_batch_struct(batch_mat);
-            dispatch_on_logger(mat_item, b_item, x_item, log_data);
-        } else if (auto batch_mat =
-                       dynamic_cast<const batch::matrix::Dense<ValueType>*>(
-                           mat_)) {
-            auto mat_item = device::get_batch_struct(batch_mat);
-            dispatch_on_logger(mat_item, b_item, x_item, log_data);
-        } else if (auto batch_mat = dynamic_cast<
-                       const batch::matrix::Csr<ValueType, int32>*>(mat_)) {
-            auto mat_item = device::get_batch_struct(batch_mat);
-            dispatch_on_logger(mat_item, b_item, x_item, log_data);
-        } else {
-            GKO_NOT_SUPPORTED(mat_);
-        }
+        auto mat_item = device::get_batch_struct(mat_);
+        dispatch_on_logger(mat_item, b_item, x_item, log_data);
     }
 
     /**
@@ -375,8 +362,8 @@ public:
 private:
     const KernelCaller caller_;
     const SettingsType settings_;
-    const BatchLinOp* mat_;
-    const BatchLinOp* precond_;
+    const BatchMatrixType* mat_;
+    const PrecType* precond_;
     const log::detail::log_type logger_type_;
 };
 
@@ -384,14 +371,19 @@ private:
 /**
  * Convenient function to create a dispatcher. Infers most template arguments.
  */
-template <typename ValueType, typename KernelCaller, typename SettingsType>
-batch_solver_dispatch<ValueType, KernelCaller, SettingsType> create_dispatcher(
-    const KernelCaller& kernel_caller, const SettingsType& settings,
-    const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
-    const log::detail::log_type logger_type =
-        log::detail::log_type::simple_convergence_completion)
+template <typename ValueType, typename KernelCaller, typename SettingsType,
+          typename BatchMatrixType, typename PrecType>
+batch_solver_dispatch<ValueType, KernelCaller, SettingsType, BatchMatrixType,
+                      PrecType>
+create_dispatcher(const KernelCaller& kernel_caller,
+                  const SettingsType& settings,
+                  const BatchMatrixType* const matrix,
+                  const PrecType* const preconditioner,
+                  const log::detail::log_type logger_type =
+                      log::detail::log_type::simple_convergence_completion)
 {
-    return batch_solver_dispatch<ValueType, KernelCaller, SettingsType>(
+    return batch_solver_dispatch<ValueType, KernelCaller, SettingsType,
+                                 BatchMatrixType, PrecType>(
         kernel_caller, settings, matrix, preconditioner, logger_type);
 }
 

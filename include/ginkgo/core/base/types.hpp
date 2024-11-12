@@ -419,6 +419,23 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(double)
 #endif
 
+/**
+ * Instantiates a template with additional arguments for each non-complex value
+ * type compiled by Ginkgo.
+ *
+ * @see GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_ARGS(_macro, ...) \
+    template _macro(float, __VA_ARGS__);                                  \
+    template <>                                                           \
+    _macro(double, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_ARGS(_macro, ...) \
+    template _macro(float, __VA_ARGS__);                                  \
+    template _macro(double, __VA_ARGS__)
+#endif
+
 
 /**
  * Instantiates a template for each value type compiled by Ginkgo.
@@ -493,6 +510,26 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
                                                           __VA_ARGS__); \
     template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));    \
     template GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))
+#endif
+
+
+/**
+ * Instantiates a template with additional arguments for each value type
+ * compiled by Ginkgo.
+ *
+ * @see GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(_macro, ...)                  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_ARGS(_macro, __VA_ARGS__); \
+    template _macro(std::complex<float>, __VA_ARGS__);                         \
+    template <>                                                                \
+    _macro(std::complex<double>, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(_macro, ...)                  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_ARGS(_macro, __VA_ARGS__); \
+    template _macro(std::complex<float>, __VA_ARGS__);                         \
+    template _macro(std::complex<double>, __VA_ARGS__)
 #endif
 
 
