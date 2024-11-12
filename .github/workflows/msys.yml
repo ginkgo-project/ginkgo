@@ -1,0 +1,94 @@
+name: msys
+
+on:
+  push:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: MINGW64, runner: windows-2022 },
+          { msystem: CLANG64, runner: windows-2022 },
+        ]
+    name: ${{ matrix.msystem }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Get CPU Name
+        run : |
+          Get-CIMInstance -Class Win32_Processor | Select-Object -Property Name
+      - name: Setup JIT minidump
+        if: ${{ matrix.msystem != 'CLANGARM64' }}
+        run: |
+          Set-Location '${{ runner.temp }}'
+          Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/Procdump.zip' -OutFile Procdump.zip
+          Expand-Archive Procdump.zip -DestinationPath .
+          New-Item -Path '_dumps' -ItemType Directory
+          .\procdump64.exe -accepteula -ma -i "${{ runner.temp }}/_dumps"
+          .\procdump.exe -accepteula -ma -i "${{ runner.temp }}/_dumps"
+      - name: Configure Pagefile
+        if: ${{ matrix.msystem != 'CLANGARM64' }}
+        # https://github.com/al-cheb/configure-pagefile-action/issues/16
+        continue-on-error: true
+        uses: al-cheb/configure-pagefile-action@v1.4
+        with:
+          minimum-size: 4GB
+          maximum-size: 16GB
+          disk-root: "C:"
+
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+        with: 
+          path: temp
+
+      # to match the autobuild environment
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          install: git python base-devel
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
+          update: true
+          release: ${{ runner.arch != 'ARM64' }}
+          location: 'D:\M'
+
+      - name: Add staging repo
+        shell: msys2 {0}
+        run: |
+          cp /etc/pacman.conf /etc/pacman.conf.bak
+          grep -qFx '[staging]' /etc/pacman.conf || sed -i '/^# \[staging\]/,/^$/ s|^# ||g' /etc/pacman.conf
+      - name: Update using staging
+        run: |
+          msys2 -c 'pacman --noconfirm -Suuy'
+          msys2 -c 'pacman --noconfirm -Suu'
+      - name: Move Checkout
+        run: |
+          If (Test-Path "C:\_") { rm -r -fo "C:\_" }
+          Copy-Item -Path ".\temp" -Destination "C:\_" -Recurse
+      - name: CI-Build
+        shell: msys2 {0}
+        id: build
+        run: |
+          cd /C/_
+          unset VCPKG_ROOT
+          mkdir build
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_HWLOC=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF ..
+          ninja
+          ctest --output-on-failure
+      - name: "Clean up runner"
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          If (Test-Path "C:\_") { rm -r -fo "C:\_" }
+          msys2 -c 'mv -f /etc/pacman.conf.bak /etc/pacman.conf'
+          msys2 -c 'pacman --noconfirm -Suuy'
+          msys2 -c 'pacman --noconfirm -Suu'
