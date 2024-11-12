@@ -154,6 +154,7 @@ if(GINKGO_BUILD_MPI)
             distributed/neighborhood_communicator.cpp
             distributed/partition_helpers.cpp
             distributed/vector.cpp
+            distributed/preconditioner/bddc.cpp
             distributed/preconditioner/schwarz.cpp
     )
 endif()

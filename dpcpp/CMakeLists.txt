@@ -28,6 +28,7 @@ target_sources(
         distributed/partition_helpers_kernels.dp.cpp
         distributed/partition_kernels.dp.cpp
         distributed/vector_kernels.dp.cpp
+        distributed/preconditioner/bddc_kernels.dp.cpp
         factorization/cholesky_kernels.dp.cpp
         factorization/elimination_forest_kernels.dp.cpp
         factorization/ic_kernels.dp.cpp

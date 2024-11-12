@@ -11,6 +11,7 @@ set(CUDA_HIP_SOURCES
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
     distributed/vector_kernels.cpp
+    distributed/preconditioner/bddc_kernels.cpp
     factorization/cholesky_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/elimination_forest_kernels.cpp
