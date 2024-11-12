@@ -119,7 +119,7 @@ protected:
                                             {0., 0., 0., 4., 2., 0.},
                                             {0., 5., 8., 0., 0., 0.}},
                                            ref)),
-          zero_tol{1e-4}
+          zero_tol{50 * std::numeric_limits<real_type>::epsilon()}
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
@@ -286,7 +286,6 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_sum)
-            .with_tolerance(real_type{1e-4})
             .on(this->ref);
 
     auto mc64 = mc64_factory->generate(this->mtx);
@@ -311,7 +310,6 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
-            .with_tolerance(real_type{1e-4})
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
@@ -365,7 +363,6 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
                 gko::experimental::reorder::mc64_strategy::max_diagonal_product)
-            .with_tolerance(real_type{1e-4})
             .on(this->ref);
     auto mc64 = mc64_factory->generate(mtx);
     // get components
