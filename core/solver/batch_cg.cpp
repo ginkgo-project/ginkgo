@@ -7,10 +7,15 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 #include "core/base/batch_multi_vector_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
-
 
 namespace gko {
 namespace batch {
@@ -49,8 +54,24 @@ void Cg<ValueType>::solver_apply(
         this->max_iterations_, static_cast<real_type>(this->residual_tol_),
         parameters_.tolerance_type};
     auto exec = this->get_executor();
-    exec->run(cg::make_apply(settings, this->system_matrix_.get(),
-                             this->preconditioner_.get(), b, x, *log_data));
+
+    run<batch::matrix::Dense<ValueType>, batch::matrix::Csr<ValueType>,
+        batch::matrix::Ell<ValueType>>(
+        this->system_matrix_.get(), [&](auto matrix) {
+            if (this->preconditioner_ == nullptr) {
+                auto identity = matrix::Identity<ValueType>::create(
+                    exec, matrix->get_size());
+                exec->run(cg::make_apply(settings, matrix, identity.get(), b, x,
+                                         *log_data));
+            } else {
+                run<batch::matrix::Identity<ValueType>,
+                    batch::preconditioner::Jacobi<ValueType>>(
+                    this->preconditioner_.get(), [&](auto preconditioner) {
+                        exec->run(cg::make_apply(
+                            settings, matrix, preconditioner, b, x, *log_data));
+                    });
+            }
+        });
 }
 
 
