@@ -14,9 +14,14 @@
 #include <ginkgo/core/factorization/cholesky.hpp>
 
 #include "core/base/array_access.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
+#include "core/factorization/cholesky_kernels.hpp"
+#include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_lookup.hpp"
 
 
 namespace gko {
@@ -31,6 +36,13 @@ GKO_REGISTER_OPERATION(add_diagonal_elements,
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
                        factorization::initialize_row_ptrs_l);
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
+// for gko syncfree implementation
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
+GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
+GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
+GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
+GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
 
 }  // anonymous namespace
@@ -95,24 +107,60 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     // Compute LC factorization
     if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
         parameters_.algorithm == factorize_algorithm::syncfree) {
-        auto sparsity =
-            share(gko::matrix::SparsityCsr<ValueType, IndexType>::create_const(
-                exec, local_system_matrix->get_size(),
-                make_const_array_view(
-                    exec, local_system_matrix->get_num_stored_elements(),
-                    local_system_matrix->get_const_col_idxs()),
-                make_const_array_view(
-                    exec, local_system_matrix->get_size()[0] + 1,
-                    local_system_matrix->get_const_row_ptrs())));
-        ic = gko::experimental::factorization::Cholesky<ValueType,
-                                                        IndexType>::build()
-                 .with_full_fillin(false)
-                 .with_symbolic_factorization(sparsity)
-                 .with_skip_sorting(
-                     true)  // we have decided sort or not in earlir stage
-                 .on(exec)
-                 ->generate(local_system_matrix)
-                 ->get_combined();
+        std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
+            forest;
+        const auto nnz = local_system_matrix->get_num_stored_elements();
+        const auto num_rows = local_system_matrix->get_size()[0];
+        auto factors = share(
+            matrix_type::create(exec, local_system_matrix->get_size(), nnz));
+        exec->copy_from(exec, nnz, local_system_matrix->get_const_col_idxs(),
+                        factors->get_col_idxs());
+        exec->copy_from(exec, num_rows + 1,
+                        local_system_matrix->get_const_row_ptrs(),
+                        factors->get_row_ptrs());
+        // update srow to be safe
+        factors->set_strategy(factors->get_strategy());
+        forest =
+            std::make_unique<gko::factorization::elimination_forest<IndexType>>(
+                exec, num_rows);
+        exec->run(
+            ic_factorization::make_forest_from_factor(factors.get(), *forest));
+
+        // setup lookup structure on factors
+        array<IndexType> storage_offsets{exec, num_rows + 1};
+        array<int64> row_descs{exec, num_rows};
+        array<IndexType> diag_idxs{exec, num_rows};
+        array<IndexType> transpose_idxs{exec,
+                                        factors->get_num_stored_elements()};
+        const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
+                                      gko::matrix::csr::sparsity_type::full |
+                                      gko::matrix::csr::sparsity_type::hash;
+        exec->run(ic_factorization::make_build_lookup_offsets(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            num_rows, allowed_sparsity, storage_offsets.get_data()));
+        const auto storage_size =
+            static_cast<size_type>(get_element(storage_offsets, num_rows));
+        array<int32> storage{exec, storage_size};
+        exec->run(ic_factorization::make_build_lookup(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            num_rows, allowed_sparsity, storage_offsets.get_const_data(),
+            row_descs.get_data(), storage.get_data()));
+        // initialize factors
+        exec->run(ic_factorization::make_fill_array(
+            factors->get_values(), factors->get_num_stored_elements(),
+            zero<ValueType>()));
+        exec->run(ic_factorization::make_initialize(
+            local_system_matrix.get(), storage_offsets.get_const_data(),
+            row_descs.get_const_data(), storage.get_const_data(),
+            diag_idxs.get_data(), transpose_idxs.get_data(), factors.get()));
+        // run numerical factorization
+        array<int> tmp{exec};
+        exec->run(ic_factorization::make_factorize(
+            storage_offsets.get_const_data(), row_descs.get_const_data(),
+            storage.get_const_data(), diag_idxs.get_const_data(),
+            transpose_idxs.get_const_data(), *forest, factors.get(), false,
+            tmp));
+        ic = factors;
     } else {
         exec->run(ic_factorization::make_compute(local_system_matrix.get()));
         ic = local_system_matrix;

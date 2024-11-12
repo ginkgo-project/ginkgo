@@ -90,6 +90,75 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
 }
 
 
+TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfree)
+{
+    // diag + full first row and column
+    // the third and forth row use bitmap for lookup table
+    auto mtx = gko::share(gko::initialize<Csr>({{1.0, 1.0, 1.0, 1.0},
+                                                {1.0, 1.0, 0.0, 0.0},
+                                                {1.0, 0.0, 1.0, 0.0},
+                                                {1.0, 0.0, 0.0, 1.0}},
+                                               this->ref));
+    auto dmtx = gko::share(mtx->clone(this->exec));
+
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->ref);
+    auto dfactory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->exec);
+
+    auto ilu = factory->generate(mtx);
+    auto dilu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(ilu->get_l_factor(), dilu->get_l_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(ilu->get_u_factor(), dilu->get_u_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_l_factor(), dilu->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_u_factor(), dilu->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfree)
+{
+    int n = 68;
+    // the first row and second last row use hashmap for lookup table
+    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+    for (int i = 0; i < n; i++) {
+        data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+    }
+    // add dependence
+    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    // add a entry whose col idx is not shown in the above row
+    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    data.sort_row_major();
+    auto mtx = gko::share(Csr::create(this->ref));
+    mtx->read(data);
+    auto dmtx = gko::share(mtx->clone(this->exec));
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->ref);
+    auto dfactory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .on(this->exec);
+
+    auto ilu = factory->generate(mtx);
+    auto dilu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(ilu->get_l_factor(), dilu->get_l_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(ilu->get_u_factor(), dilu->get_u_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_l_factor(), dilu->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_u_factor(), dilu->get_u_factor());
+}
+
+
 TEST_F(Ilu, SetsCorrectStrategy)
 {
     auto dfact = gko::factorization::Ilu<>::build()

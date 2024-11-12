@@ -23,7 +23,9 @@ namespace factorization {
  * Computes a Cholesky factorization of a symmetric, positive-definite sparse
  * matrix. This LinOpFactory returns a Factorization storing the L and L^H
  * factors for the provided system matrix in matrix::Csr format. If no symbolic
- * factorization is provided, it will be computed first.
+ * factorization is provided, it will be computed first. It expects all fill-in
+ * entries present in symbolic factorization. If symbolic factorization misses
+ * some entries, please refer to Ic.
  *
  * @tparam ValueType  the type used to store values of the system matrix
  * @tparam IndexType  the type used to store sparsity pattern indices of the
@@ -67,17 +69,6 @@ public:
          * incorrect results or crash.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
-
-        /**
-         * If the user provides the symbolic factorization, it should contain
-         * the fill-in for the matrix. i.e., When this is true, the symbolic
-         * factorization must contain the non-zero locations in the original
-         * matrix and the corresponding fill-in locations during factorization.
-         * If it does not have full fill-in, as in Ilu, this parameter must be
-         * set to false in order to avoid the possibility of hanging or illegal
-         * memory accesses during the factorization process.
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(full_fillin, true);
     };
 
     /**

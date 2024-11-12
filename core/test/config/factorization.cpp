@@ -149,8 +149,6 @@ struct Cholesky : FactorizationConfigTest<
             detail::registry_accessor::get_data<Sparsity>(reg, "sparsity"));
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config_map["full_fillin"] = pnode{false};
-        param.with_full_fillin(false);
     }
 
     template <typename AnswerType>
@@ -162,7 +160,6 @@ struct Cholesky : FactorizationConfigTest<
         ASSERT_EQ(res_param.symbolic_factorization,
                   ans_param.symbolic_factorization);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        ASSERT_EQ(res_param.full_fillin, ans_param.full_fillin);
     }
 };
 
@@ -187,8 +184,6 @@ struct Lu : FactorizationConfigTest<
             gko::experimental::factorization::symbolic_type::near_symmetric);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
-        config_map["full_fillin"] = pnode{false};
-        param.with_full_fillin(false);
     }
 
     template <typename AnswerType>
@@ -201,7 +196,6 @@ struct Lu : FactorizationConfigTest<
                   ans_param.symbolic_factorization);
         ASSERT_EQ(res_param.symbolic_algorithm, ans_param.symbolic_algorithm);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        ASSERT_EQ(res_param.full_fillin, ans_param.full_fillin);
     }
 };
 

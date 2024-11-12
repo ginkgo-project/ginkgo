@@ -51,9 +51,6 @@ Cholesky<ValueType, IndexType>::parse(
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("full_fillin")) {
-        params.with_full_fillin(config::get_value<bool>(obj));
-    }
 
     return params;
 }
@@ -140,8 +137,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     exec->run(make_factorize(
         storage_offsets.get_const_data(), row_descs.get_const_data(),
         storage.get_const_data(), diag_idxs.get_const_data(),
-        transpose_idxs.get_const_data(), *forest, factors.get(),
-        parameters_.full_fillin, tmp));
+        transpose_idxs.get_const_data(), *forest, factors.get(), true, tmp));
     return factorization_type::create_from_combined_cholesky(
         std::move(factors));
 }
