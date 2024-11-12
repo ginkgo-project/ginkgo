@@ -443,6 +443,54 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each non-complex value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take at least two arguments, of which the first one
+ *                is the value type.
+ *
+ * @note This won't be necessary after upgrading to C++20
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...) \
+    template _macro(float, __VA_ARGS__);                                   \
+    template <>                                                            \
+    _macro(double, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...) \
+    template _macro(float, __VA_ARGS__);                                   \
+    template _macro(double, __VA_ARGS__)
+#endif
+
+
+/**
+ * Instantiates a template for each non-complex value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take at least two arguments, of which the first one
+ *                is the value type.
+ *
+ * @note This won't be necessary after upgrading to C++20
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro,       \
+                                                          __VA_ARGS__); \
+    template _macro(std::complex<float>, __VA_ARGS__);                  \
+    template <>                                                         \
+    _macro(std::complex<double>, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro,       \
+                                                          __VA_ARGS__); \
+    template _macro(std::complex<float>, __VA_ARGS__);                  \
+    template _macro(std::complex<double>, __VA_ARGS__)
+#endif
+
+
+/**
  * Instantiates a template for each value and scalar type compiled by Ginkgo.
  * This means all value and scalar type combinations for which
  * `value = scalar * value` is well-defined.
