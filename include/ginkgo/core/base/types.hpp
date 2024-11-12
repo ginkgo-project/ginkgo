@@ -442,6 +442,10 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
+// Helper macro to make Windows builds work
+#define GKO_INDIRECT(...) __VA_ARGS__
+
+
 /**
  * Instantiates a template for each non-complex value type compiled by Ginkgo.
  *
@@ -454,13 +458,14 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...) \
-    template _macro(float, __VA_ARGS__);                                   \
+    template GKO_INDIRECT(_macro(float, __VA_ARGS__));                     \
     template <>                                                            \
-    _macro(double, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+    GKO_INDIRECT(_macro(double, __VA_ARGS__))                              \
+    GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...) \
-    template _macro(float, __VA_ARGS__);                                   \
-    template _macro(double, __VA_ARGS__)
+    template GKO_INDIRECT(_macro(float, __VA_ARGS__));                     \
+    template GKO_INDIRECT(_macro(double, __VA_ARGS__))
 #endif
 
 
@@ -478,15 +483,16 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro,       \
                                                           __VA_ARGS__); \
-    template _macro(std::complex<float>, __VA_ARGS__);                  \
+    template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));    \
     template <>                                                         \
-    _macro(std::complex<double>, __VA_ARGS__) GKO_NOT_IMPLEMENTED
+    GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))             \
+    GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro,       \
                                                           __VA_ARGS__); \
-    template _macro(std::complex<float>, __VA_ARGS__);                  \
-    template _macro(std::complex<double>, __VA_ARGS__)
+    template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));    \
+    template GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))
 #endif
 
 
