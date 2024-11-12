@@ -339,7 +339,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     MIXED_PRECISION: "OFF"
 
 # spack oneapi 2023.1
-build/icpx20231/igpu/release/shared:
+build/icpx20231/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -372,7 +372,7 @@ build/icpx20231/igpu/release/shared:
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
-build/icpx/igpu/release/static:
+build/icpx/gpu/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -383,7 +383,7 @@ build/icpx/igpu/release/static:
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OF"
+    BUILD_SHARED_LIBS: "OFF"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
