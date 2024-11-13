@@ -372,7 +372,7 @@ build/icpx20231/gpu/release/shared:
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
-build/icpx/gpu/release/static:
+build/dpcpp/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -383,7 +383,8 @@ build/icpx/gpu/release/static:
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
+    # static builds take too long
+    BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
