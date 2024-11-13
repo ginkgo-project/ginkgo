@@ -101,6 +101,19 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+        // We set the diagonal larger than 1 in half precision to reduce the
+        // possibility of resulting inf. It might introduce (a - llh)/diag when
+        // the entry is not presented in the original matrix
+        auto dist = std::uniform_real_distribution<>(1.0, 10.0);
+        for (gko::size_type i = 0; i < this->mtx_l->get_size()[0]; i++) {
+            this->mtx_l
+                ->get_values()[this->mtx_l->get_const_row_ptrs()[i + 1] - 1] =
+                gko::detail::get_rand_value<value_type>(dist,
+                                                        this->rand_engine);
+        }
+        this->dmtx_l->copy_from(this->mtx_l);
+    }
     auto mtx_llh = Csr::create(this->ref, this->mtx_size);
     this->mtx_l->apply(this->mtx_l->conj_transpose(), mtx_llh);
     auto dmtx_llh = Csr::create(this->exec, this->mtx_size);

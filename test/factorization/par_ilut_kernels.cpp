@@ -413,6 +413,18 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+        // We set the diagonal larger than 1 in half precision to reduce the
+        // possibility of resulting inf. It might introduce (a - lu)/u_diag when
+        // the entry is not presented in the original matrix
+        auto dist = std::uniform_real_distribution<>(1.0, 10.0);
+        for (gko::size_type i = 0; i < this->mtx_u->get_size()[0]; i++) {
+            this->mtx_u->get_values()[this->mtx_u->get_const_row_ptrs()[i]] =
+                gko::detail::get_rand_value<value_type>(dist,
+                                                        this->rand_engine);
+        }
+        this->dmtx_u->copy_from(this->mtx_u);
+    }
     auto square_size = this->mtx_square->get_size();
     auto mtx_lu = Csr::create(this->ref, square_size);
     this->mtx_l2->apply(this->mtx_u, mtx_lu);
@@ -422,7 +434,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     auto res_mtx_u = Csr::create(this->ref, square_size);
     auto dres_mtx_l = Csr::create(this->exec, square_size);
     auto dres_mtx_u = Csr::create(this->exec, square_size);
-
+    // gko::write(std::cout, mtx_lu);
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
         this->mtx_u.get(), res_mtx_l.get(), res_mtx_u.get());
