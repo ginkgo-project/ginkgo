@@ -28,18 +28,18 @@ namespace batch {
  *
  * @note the second and third arguments only accept the base type.s
  */
-#define GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(_macro)         \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(_macro, gko::batch::matrix::Csr, \
-                                             gko::batch::matrix::Identity);   \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(_macro, gko::batch::matrix::Ell, \
-                                             gko::batch::matrix::Identity);   \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(                                 \
-        _macro, gko::batch::matrix::Dense, gko::batch::matrix::Identity);     \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(                                 \
-        _macro, gko::batch::matrix::Csr, gko::batch::preconditioner::Jacobi); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(                                 \
-        _macro, gko::batch::matrix::Ell, gko::batch::preconditioner::Jacobi); \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_ARGS(                                 \
+#define GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, gko::batch::matrix::Csr, \
+                                              gko::batch::matrix::Identity);   \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, gko::batch::matrix::Ell, \
+                                              gko::batch::matrix::Identity);   \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                                 \
+        _macro, gko::batch::matrix::Dense, gko::batch::matrix::Identity);      \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                                 \
+        _macro, gko::batch::matrix::Csr, gko::batch::preconditioner::Jacobi);  \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                                 \
+        _macro, gko::batch::matrix::Ell, gko::batch::preconditioner::Jacobi);  \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(                                 \
         _macro, gko::batch::matrix::Dense, gko::batch::preconditioner::Jacobi)
 
 }  // namespace batch
