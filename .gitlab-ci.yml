@@ -379,7 +379,7 @@ build/dpcpp/gpu/release/shared:
     - .full_test_condition
     - .use_gko-oneapi-igpu
   variables:
-    CXX_COMPILER: "dpcpp"
+    CXX_COMPILER: "icpx"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
