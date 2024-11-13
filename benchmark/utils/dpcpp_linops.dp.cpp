@@ -64,8 +64,7 @@ protected:
         if (this->get_device_exec() == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
-        this->initialize_mat_handle(
-            this->get_device_exec());
+        this->initialize_mat_handle(this->get_device_exec());
     }
 
     ~OnemklBase() = default;
