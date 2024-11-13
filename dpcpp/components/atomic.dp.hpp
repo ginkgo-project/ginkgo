@@ -23,6 +23,25 @@ constexpr auto local_space = sycl::access::address_space::local_space;
 constexpr auto global_space = sycl::access::address_space::global_space;
 
 
+// The defaults are based on:
+// https://github.com/intel/llvm/blob/51d92a339c7bc2ac11ec39bef42c039e1589ae3e/sycl/include/sycl/atomic.hpp#L56
+template <sycl::access::address_space addressSpace>
+struct memory_scope {};
+
+template <>
+struct memory_scope<global_space> {
+    static constexpr auto scope = sycl::memory_scope::device;
+};
+
+template <>
+struct memory_scope<local_space> {
+    static constexpr auto scope = sycl::memory_scope::work_group;
+};
+
+template <sycl::access::address_space addressSpace>
+constexpr auto memory_scope_v = memory_scope<addressSpace>::scope;
+
+
 }  // namespace atomic
 
 namespace {
@@ -35,7 +54,9 @@ T atomic_compare_exchange_strong(
     sycl::memory_order success = sycl::memory_order::relaxed,
     sycl::memory_order fail = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj(addr);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr.get());
     obj.compare_exchange_strong(expected, desired, success, fail);
     return expected;
 }
@@ -59,8 +80,10 @@ inline T atomic_fetch_add(
     T* addr, T operand,
     sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj((sycl::multi_ptr<T, addressSpace>(addr)));
-    return sycl::atomic_fetch_add(obj, operand, memoryOrder);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.fetch_add(operand, memoryOrder);
 }
 
 
@@ -70,8 +93,10 @@ inline T atomic_fetch_max(
     T* addr, T operand,
     sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj((sycl::multi_ptr<T, addressSpace>(addr)));
-    return sycl::atomic_fetch_max(obj, operand, memoryOrder);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.fetch_max(operand, memoryOrder);
 }
 
 
