@@ -76,9 +76,8 @@ public:
         auto res_tol = settings_.residual_tol;
 
         exec_->get_queue()->submit([&](sycl::handler& cgh) {
-            sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
-                           sycl::access::target::local>
-                slm_values(sycl::range<1>(shared_size), cgh);
+            sycl::local_accessor<ValueType, 1> slm_values(
+                sycl::range<1>(shared_size), cgh);
 
             cgh.parallel_for(
                 sycl_nd_range(grid, block),
