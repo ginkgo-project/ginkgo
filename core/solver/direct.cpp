@@ -280,7 +280,7 @@ std::vector<int> workspace_traits<gko::experimental::solver::Direct<
 
 
 #define GKO_DECLARE_DIRECT_TRAITS(ValueType, IndexType) \
-    class workspace_traits<                             \
+    struct workspace_traits<                            \
         gko::experimental::solver::Direct<ValueType, IndexType>>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT_TRAITS);
