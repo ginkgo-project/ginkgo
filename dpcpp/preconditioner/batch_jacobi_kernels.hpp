@@ -99,15 +99,16 @@ __dpct_inline__ int choose_pivot(const int block_size,
     sg.barrier();
     int my_piv_idx = sg_tid;
     for (int a = sg_size / 2; a > 0; a /= 2) {
-        const real_type abs_ele_other = shift_group_left(sg, my_abs_ele, a);
-        const int piv_idx_other = shift_group_left(sg, my_piv_idx, a);
+        const real_type abs_ele_other =
+            sycl::shift_group_left(sg, my_abs_ele, a);
+        const int piv_idx_other = sycl::shift_group_left(sg, my_piv_idx, a);
         if (my_abs_ele < abs_ele_other) {
             my_abs_ele = abs_ele_other;
             my_piv_idx = piv_idx_other;
         }
     }
     sg.barrier();
-    const int ipiv = select_from_group(sg, my_piv_idx, 0);
+    const int ipiv = sycl::select_from_group(sg, my_piv_idx, 0);
     return ipiv;
 }
 
@@ -129,9 +130,10 @@ __dpct_inline__ void invert_dense_block(const int block_size,
             perm = k;
         }
         const ValueType d =
-            (select_from_group(sg, block_row[k], ipiv) == zero<ValueType>())
+            (sycl::select_from_group(sg, block_row[k], ipiv) ==
+             zero<ValueType>())
                 ? one<ValueType>()
-                : select_from_group(sg, block_row[k], ipiv);
+                : sycl::select_from_group(sg, block_row[k], ipiv);
         // scale kth col
         block_row[k] /= -d;
         if (sg_tid == ipiv) {
@@ -141,7 +143,7 @@ __dpct_inline__ void invert_dense_block(const int block_size,
         // rank-1 update
         for (int col = 0; col < block_size; col++) {
             const ValueType col_val =
-                select_from_group(sg, block_row[col], ipiv);
+                sycl::select_from_group(sg, block_row[col], ipiv);
             block_row[col] += row_val * col_val;
         }
         // Computations for the threads of the subwarp having local id >=
@@ -222,7 +224,8 @@ __dpct_inline__ void compute_block_jacobi_kernel(
     // array
     for (int a = 0; a < block_size; a++) {
         const int col_inv_transposed_mat = a;
-        const int col = select_from_group(sg, perm, a);  // column permutation
+        const int col =
+            sycl::select_from_group(sg, perm, a);  // column permutation
         const int row_inv_transposed_mat =
             perm;  // accumulated row swaps during pivoting
         const auto val_to_write = block_row[col];
