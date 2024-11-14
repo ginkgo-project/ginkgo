@@ -376,7 +376,7 @@ build/dpcpp/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .full_test_condition
+    - .quick_test_condition
     - .use_gko-oneapi-igpu
   variables:
     CXX_COMPILER: "icpx"
