@@ -1029,8 +1029,8 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
-                                                         const LinOp* const b)
+void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
+                                                         const LinOp* b)
 {
     bool has_diags{false};
     this->get_executor()->run(

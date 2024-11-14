@@ -30,8 +30,8 @@ constexpr auto default_block_size = 256;
 
 template <typename ValueType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
-           const batch::MultiVector<ValueType>* const alpha,
-           batch::MultiVector<ValueType>* const x)
+           const batch::MultiVector<ValueType>* alpha,
+           batch::MultiVector<ValueType>* x)
 {
     const auto num_blocks = x->get_num_batch_items();
     const auto alpha_ub = get_batch_struct(alpha);
@@ -61,9 +61,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                const batch::MultiVector<ValueType>* const alpha,
-                const batch::MultiVector<ValueType>* const x,
-                batch::MultiVector<ValueType>* const y)
+                const batch::MultiVector<ValueType>* alpha,
+                const batch::MultiVector<ValueType>* x,
+                batch::MultiVector<ValueType>* y)
 {
     const auto num_blocks = x->get_num_batch_items();
     const size_type nrhs = x->get_common_size()[1];
@@ -127,8 +127,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
-                   const batch::MultiVector<ValueType>* const x,
-                   batch::MultiVector<remove_complex<ValueType>>* const result)
+                   const batch::MultiVector<ValueType>* x,
+                   batch::MultiVector<remove_complex<ValueType>>* result)
 {
     const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];

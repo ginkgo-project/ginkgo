@@ -37,8 +37,7 @@ using batch_jacobi_dpcpp_compiled_max_block_sizes =
 template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
-    const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_offsets)
+    const IndexType* block_pointers, IndexType* blocks_cumulative_offsets)
 {
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_blocks, [=](auto id) {
@@ -57,8 +56,8 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename IndexType>
 void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
-                        const IndexType* const block_pointers,
-                        IndexType* const map_block_to_row)
+                        const IndexType* block_pointers,
+                        IndexType* map_block_to_row)
 {
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_blocks, [=](auto id) {
@@ -75,10 +74,10 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const size_type num_blocks, const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers, const IndexType* const map_block_row,
-    IndexType* const blocks_pattern)
+    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    const size_type num_blocks, const IndexType* cumulative_block_storage,
+    const IndexType* block_pointers, const IndexType* map_block_row,
+    IndexType* blocks_pattern)
 {
     const auto nrows = first_sys_csr->get_size()[0];
     constexpr int subgroup_size = config::warp_size;
@@ -160,11 +159,10 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
 template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Csr<ValueType, IndexType>* const sys_csr,
+    const batch::matrix::Csr<ValueType, IndexType>* sys_csr,
     const uint32 user_given_max_block_size, const size_type num_blocks,
-    const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern, ValueType* const blocks)
+    const IndexType* cumulative_block_storage, const IndexType* block_pointers,
+    const IndexType* blocks_pattern, ValueType* blocks)
 {
     select_compute_block_jacobi_helper(
         batch_jacobi_dpcpp_compiled_max_block_sizes(),

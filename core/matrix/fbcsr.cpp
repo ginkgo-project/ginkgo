@@ -103,8 +103,7 @@ Fbcsr<ValueType, IndexType>::Fbcsr(Fbcsr&& other) : Fbcsr{other.get_executor()}
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const b,
-                                             LinOp* const x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
@@ -122,10 +121,8 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const b,
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const alpha,
-                                             const LinOp* const b,
-                                             const LinOp* const beta,
-                                             LinOp* const x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                             const LinOp* beta, LinOp* x) const
 {
     if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
         // if b is a FBCSR matrix, we need an SpGeMM
@@ -148,7 +145,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* const alpha,
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision<ValueType>, IndexType>* const result) const
+    Fbcsr<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -161,15 +158,14 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision<ValueType>, IndexType>* const result)
+    Fbcsr<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::convert_to(
-    Dense<ValueType>* const result) const
+void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp_result = make_temporary_output_clone(exec, result);
@@ -180,7 +176,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType>* const result)
+void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }
@@ -188,7 +184,7 @@ void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType>* const result)
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType>* const result) const
+    Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     {
@@ -204,8 +200,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(
-    Csr<ValueType, IndexType>* const result)
+void Fbcsr<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -213,7 +208,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    SparsityCsr<ValueType, IndexType>* const result) const
+    SparsityCsr<ValueType, IndexType>* result) const
 {
     result->set_size(
         gko::dim<2>{static_cast<size_type>(this->get_num_block_rows()),
@@ -227,7 +222,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    SparsityCsr<ValueType, IndexType>* const result)
+    SparsityCsr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }

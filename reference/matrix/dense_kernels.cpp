@@ -1242,9 +1242,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
 
 template <typename ValueType, typename ScalarType>
 void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Dense<ScalarType>* const alpha,
-                         const matrix::Dense<ScalarType>* const beta,
-                         matrix::Dense<ValueType>* const mtx)
+                         const matrix::Dense<ScalarType>* alpha,
+                         const matrix::Dense<ScalarType>* beta,
+                         matrix::Dense<ValueType>* mtx)
 {
     const auto dim = mtx->get_size();
     for (size_type row = 0; row < dim[0]; row++) {
