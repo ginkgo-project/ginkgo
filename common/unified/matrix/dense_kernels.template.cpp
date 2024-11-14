@@ -730,9 +730,9 @@ void get_imag(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename ScalarType>
 void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Dense<ScalarType>* const alpha,
-                         const matrix::Dense<ScalarType>* const beta,
-                         matrix::Dense<ValueType>* const mtx)
+                         const matrix::Dense<ScalarType>* alpha,
+                         const matrix::Dense<ScalarType>* beta,
+                         matrix::Dense<ValueType>* mtx)
 {
     run_kernel(
         exec,

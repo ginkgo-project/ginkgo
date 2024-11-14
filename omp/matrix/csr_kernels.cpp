@@ -1218,9 +1218,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
-void check_diagonal_entries_exist(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
+void check_diagonal_entries_exist(std::shared_ptr<const OmpExecutor> exec,
+                                  const matrix::Csr<ValueType, IndexType>* mtx,
+                                  bool& has_all_diags)
 {
     bool l_has_all_diags = true;
     const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
@@ -1247,9 +1247,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
-                         const matrix::Dense<ValueType>* const alpha,
-                         const matrix::Dense<ValueType>* const beta,
-                         matrix::Csr<ValueType, IndexType>* const mtx)
+                         const matrix::Dense<ValueType>* alpha,
+                         const matrix::Dense<ValueType>* beta,
+                         matrix::Csr<ValueType, IndexType>* mtx)
 {
     const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
     const auto row_ptrs = mtx->get_const_row_ptrs();

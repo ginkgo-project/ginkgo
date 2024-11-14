@@ -294,8 +294,8 @@ __global__ void __launch_bounds__(default_block_size)
 
 template <typename ValueType, typename IndexType>
 void fallback_transpose(const std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Fbcsr<ValueType, IndexType>* const input,
-                        matrix::Fbcsr<ValueType, IndexType>* const output)
+                        const matrix::Fbcsr<ValueType, IndexType>* input,
+                        matrix::Fbcsr<ValueType, IndexType>* output)
 {
     const auto in_num_row_blocks = input->get_num_block_rows();
     const auto out_num_row_blocks = output->get_num_block_rows();
@@ -353,8 +353,8 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType>* const source,
-                    matrix::Csr<ValueType, IndexType>* const result)
+                    const matrix::Fbcsr<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
 {
     constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto num_blocks =
@@ -373,8 +373,7 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const to_check,
-    bool* const is_sorted)
+    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;
     auto gpu_array = array<bool>(exec, 1);
@@ -396,7 +395,7 @@ void is_sorted_by_column_index(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const DefaultExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
+                          matrix::Fbcsr<ValueType, IndexType>* to_sort)
     GKO_NOT_IMPLEMENTED;
 
 
@@ -412,8 +411,8 @@ namespace {
 template <typename ValueType>
 void dense_transpose(std::shared_ptr<const DefaultExecutor> exec,
                      const size_type nrows, const size_type ncols,
-                     const size_type orig_stride, const ValueType* const orig,
-                     const size_type trans_stride, ValueType* const trans)
+                     const size_type orig_stride, const ValueType* orig,
+                     const size_type trans_stride, ValueType* trans)
 {
     if (nrows == 0) {
         return;
@@ -439,9 +438,8 @@ void dense_transpose(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Fbcsr<ValueType, IndexType>* const a,
-          const matrix::Dense<ValueType>* const b,
-          matrix::Dense<ValueType>* const c)
+          const matrix::Fbcsr<ValueType, IndexType>* a,
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
@@ -494,11 +492,11 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* const alpha,
-                   const matrix::Fbcsr<ValueType, IndexType>* const a,
-                   const matrix::Dense<ValueType>* const b,
-                   const matrix::Dense<ValueType>* const beta,
-                   matrix::Dense<ValueType>* const c)
+                   const matrix::Dense<ValueType>* alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* a,
+                   const matrix::Dense<ValueType>* b,
+                   const matrix::Dense<ValueType>* beta,
+                   matrix::Dense<ValueType>* c)
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
@@ -556,7 +554,7 @@ namespace {
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
                            std::shared_ptr<const DefaultExecutor> exec,
-                           matrix::Fbcsr<ValueType, IndexType>* const mat)
+                           matrix::Fbcsr<ValueType, IndexType>* mat)
 {
     constexpr int subwarp_size = config::warp_size;
     const auto nbnz = mat->get_num_stored_blocks();
@@ -579,8 +577,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_blocks,
 
 template <typename ValueType, typename IndexType>
 void transpose(const std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Fbcsr<ValueType, IndexType>* const orig,
-               matrix::Fbcsr<ValueType, IndexType>* const trans)
+               const matrix::Fbcsr<ValueType, IndexType>* orig,
+               matrix::Fbcsr<ValueType, IndexType>* trans)
 {
 #ifdef GKO_COMPILING_CUDA
     if (sparselib::is_supported<ValueType, IndexType>::value) {

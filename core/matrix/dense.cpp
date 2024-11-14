@@ -1906,8 +1906,7 @@ void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_identity_impl(const LinOp* const a,
-                                                const LinOp* const b)
+void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_beta, auto dense_x) {
