@@ -1715,7 +1715,7 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
-        : alloc_{std::move(alloc)}, master_(master), stream_{stream}
+        : master_(master), alloc_{std::move(alloc)}, stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;

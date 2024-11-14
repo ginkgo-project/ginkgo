@@ -2019,8 +2019,8 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
     : EnableLinOp<Dense>(exec, size),
-      values_{exec, std::move(values)},
-      stride_{stride}
+      stride_{stride},
+      values_{exec, std::move(values)}
 {
     if (size[0] > 0 && size[1] > 0) {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,

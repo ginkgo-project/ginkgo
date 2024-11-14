@@ -43,17 +43,18 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     FixedCoarsening()
         : exec(gko::ReferenceExecutor::create()),
+          mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
+                          std::make_shared<typename Mtx::classical>())),
+          coarse(Mtx::create(exec, gko::dim<2>(3, 3), 5,
+                             std::make_shared<typename Mtx::classical>())),
           coarse_rows(exec, {0, 2, 3}),
-          fixed_coarsening_factory(MgLevel::build()
-                                       .with_coarse_rows(coarse_rows)
-                                       .with_skip_sorting(true)
-                                       .on(exec)),
+          gen_coarse_rows(exec, 5),
+          coarse_b(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
+              exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
                I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
               exec)),
           restrict_ans(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})},
@@ -66,11 +67,10 @@ protected:
               {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
                I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
               exec)),
-          mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
-          coarse(Mtx::create(exec, gko::dim<2>(3, 3), 5,
-                             std::make_shared<typename Mtx::classical>())),
-          gen_coarse_rows(exec, 5)
+          fixed_coarsening_factory(MgLevel::build()
+                                       .with_coarse_rows(coarse_rows)
+                                       .with_skip_sorting(true)
+                                       .on(exec))
     {
         this->create_mtx(mtx.get(), &gen_coarse_rows, coarse.get());
         mg_level = fixed_coarsening_factory->generate(mtx);

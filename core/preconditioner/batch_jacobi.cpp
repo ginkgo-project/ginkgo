@@ -44,8 +44,8 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
     : EnableBatchLinOp<Jacobi>(exec),
-      num_blocks_{0},
       block_pointers_(exec),
+      num_blocks_{0},
       blocks_(exec),
       map_block_to_row_(exec),
       blocks_cumulative_offsets_(exec)

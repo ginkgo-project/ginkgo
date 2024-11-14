@@ -39,6 +39,21 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
+          mtx_medium(
+              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
+                                    {7.70, -77.00, 3.30, -149.20, 74.80},
+                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
+                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
+                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
+                                   exec)),
+          mtx_big(gko::initialize<Mtx>(
+              {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
+               {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
+               {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
+               {-1907.1, 2106.6, 1026.0, 634.7, 194.6, -534.1},
+               {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
+               {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
+              exec)),
           storage_prec{storage_helper_type::value},
           cb_gmres_factory(
               gmres_type::build()
@@ -51,14 +66,6 @@ protected:
                           .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor()))
                   .on(exec)),
-          mtx_big(gko::initialize<Mtx>(
-              {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
-               {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
-               {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
-               {-1907.1, 2106.6, 1026.0, 634.7, 194.6, -534.1},
-               {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
-               {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
-              exec)),
           cb_gmres_factory_big(
               gmres_type::build()
                   .with_storage_precision(storage_prec)
@@ -67,14 +74,8 @@ protected:
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor()))
-                  .on(exec)),
-          mtx_medium(
-              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
-                                    {7.70, -77.00, 3.30, -149.20, 74.80},
-                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
-                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
-                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
-                                   exec))
+                  .on(exec))
+
     {}
 
     constexpr nc_value_type reduction_factor() const noexcept

@@ -92,8 +92,8 @@ ResidualNormBase<ValueType>::ResidualNormBase(
     std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
     remove_complex<ValueType> reduction_factor, mode baseline)
     : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-      device_storage_{exec, 2},
       reduction_factor_{reduction_factor},
+      device_storage_{exec, 2},
       baseline_{baseline},
       system_matrix_{args.system_matrix},
       b_{args.b},
