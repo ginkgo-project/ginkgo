@@ -33,7 +33,6 @@ protected:
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     Rcm()
         : exec(gko::ReferenceExecutor::create()),
-          rcm_factory(reorder_type::build().on(exec)),
           // clang-format off
           id3_mtx(gko::initialize<CsrMtx>(
               {{1.0, 0.0, 0.0},
@@ -43,6 +42,7 @@ protected:
               {{1.0, 0.0, 1.0},
               {0.0, 1.0, 0.0},
               {1.0, 0.0, 1.0}}, exec)),
+              rcm_factory(reorder_type::build().on(exec)),
           // clang-format on
           reorder_op(rcm_factory->generate(id3_mtx))
     {}
