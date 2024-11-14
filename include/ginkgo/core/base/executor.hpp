@@ -1270,8 +1270,13 @@ namespace detail {
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
-    friend class ReferenceExecutor;
+    // friend class is not in the nearest enclosing namesace, so we write the
+    // full name
+    friend class ::gko::OmpExecutor;
+    friend class ::gko::HipExecutor;
+    friend class ::gko::DpcppExecutor;
+    friend class ::gko::CudaExecutor;
+    friend class ::gko::ReferenceExecutor;
 
 public:
     void run(const Operation& op) const override
