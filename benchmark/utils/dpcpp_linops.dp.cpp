@@ -52,8 +52,11 @@ protected:
         mat_handle_ = handle_manager<oneapi::mkl::sparse::matrix_handle>(
             create_mat_handle(),
             [exec](oneapi::mkl::sparse::matrix_handle_t mat_handle) {
-                oneapi::mkl::sparse::release_matrix_handle(*exec->get_queue(),
-                                                           &mat_handle);
+                oneapi::mkl::sparse::release_matrix_handle(
+#if INTEL_MKL_VERSION >= 20240000
+                    *exec->get_queue(),
+#endif
+                    &mat_handle);
             });
     }
 
@@ -107,8 +110,10 @@ public:
         this->set_size(csr_->get_size());
 
         oneapi::mkl::sparse::set_csr_data(
-            *(this->get_device_exec()->get_queue()), this->get_mat_handle(),
-            static_cast<int>(this->get_size()[0]),
+#if INTEL_MKL_VERSION >= 20240000
+            *(this->get_device_exec()->get_queue()),
+#endif
+            this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
             static_cast<int>(this->get_size()[1]),
             oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
             csr_->get_col_idxs(), csr_->get_values());
