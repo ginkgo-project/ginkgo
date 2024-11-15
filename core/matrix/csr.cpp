@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/matrix/csr.hpp"
 
+#include <cstring>
+#include <memory>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -99,6 +102,18 @@ GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 }  // anonymous namespace
 }  // namespace csr
+
+namespace {
+
+
+// utilities for error checking
+#define GKO_CHECK_STREAM(_stream, _message) \
+    if ((_stream).fail()) {                 \
+        throw GKO_STREAM_ERROR(_message);   \
+    }
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -527,6 +542,67 @@ void Csr<ValueType, IndexType>::read(const mat_data& data)
     exec->run(csr::make_convert_idxs_to_ptrs(view.get_const_row_idxs(),
                                              view.get_num_stored_elements(),
                                              size[0], this->get_row_ptrs()));
+    this->make_srow();
+}
+
+
+template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename InputIndexType>
+void Csr<ValueType, IndexType>::read_petsc_binary(
+    std::istream& is, InputValueType dummy_valuetype,
+    InputIndexType dummy_indextype)
+{
+    constexpr auto indextype_size = sizeof(InputIndexType);
+    constexpr auto valuetype_size = sizeof(InputValueType);
+    std::vector<char> header(4 * indextype_size);
+    GKO_CHECK_STREAM(is.read(header.data(), 16), "failed reading header");
+    InputIndexType matid{};
+    InputIndexType num_rows{};
+    InputIndexType num_cols{};
+    InputIndexType num_entries{};
+    std::memcpy(&matid, &header[0], indextype_size);
+    std::memcpy(&num_rows, &header[4], indextype_size);
+    std::memcpy(&num_cols, &header[8], indextype_size);
+    std::memcpy(&num_entries, &header[12], indextype_size);
+    auto size = gko::dim<2>(num_rows, num_cols);
+    auto exec = this->get_executor();
+    this->set_size(size);
+    auto row_ptrs = array<InputIndexType>{exec->get_master(), size[0] + 1};
+    // First fill with nnz_per_row, as PETSc binary format writes nnz_per_row
+    // instead of the prefix summed values
+    {
+        std::vector<char> block(num_rows * indextype_size);
+        GKO_CHECK_STREAM(is.read(block.data(), num_rows * indextype_size),
+                         "failed reading nnz per row data");
+        std::memcpy(&row_ptrs.get_data()[0], &block[0],
+                    num_rows * indextype_size);
+        exec->get_master()->run(csr::make_prefix_sum_nonnegative(
+            row_ptrs.get_data(), num_rows + 1));
+        GKO_ASSERT(num_entries == row_ptrs.get_data()[num_rows]);
+    }
+    auto col_idxs = array<InputIndexType>{exec->get_master(), num_entries};
+    {
+        std::vector<char> block(num_entries * indextype_size);
+        GKO_CHECK_STREAM(is.read(block.data(), num_entries * indextype_size),
+                         "failed reading col_idxs data");
+        std::memcpy(&col_idxs.get_data()[0], &block[0],
+                    num_entries * indextype_size);
+    }
+    auto values = array<InputValueType>{exec->get_master(), num_entries};
+    {
+        std::vector<char> block(num_entries * valuetype_size);
+        GKO_CHECK_STREAM(is.read(block.data(), num_entries * valuetype_size),
+                         "failed reading values data");
+        std::memcpy(&values.get_data()[0], &block[0],
+                    num_entries * valuetype_size);
+    }
+
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->col_idxs_.resize_and_reset(num_entries);
+    this->values_.resize_and_reset(num_entries);
+    this->row_ptrs_ = row_ptrs;
+    this->col_idxs_ = col_idxs;
+    this->values_ = values;
     this->make_srow();
 }
 

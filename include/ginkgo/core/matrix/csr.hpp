@@ -729,6 +729,10 @@ public:
 
     void read(device_mat_data&& data) override;
 
+    template <typename InputValueType, typename InputIndexType>
+    void read_petsc_binary(std::istream& is, InputValueType dummy_valuetype,
+                           InputIndexType dummy_indextype);
+
     void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;
