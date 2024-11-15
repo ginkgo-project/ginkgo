@@ -20,7 +20,6 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
-    file-config-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
@@ -62,6 +61,15 @@ if(Kokkos_FOUND)
     list(APPEND EXAMPLES_LIST kokkos-assembly)
 else()
     message(STATUS "No Kokkos found, disabling examples with Kokkos assembly.")
+endif()
+
+set(GKO_FILE_CONFIG_ENABLED 0)
+find_package(nlohmann_json 3.9.1 QUIET)
+if(nlohmann_json_FOUND)
+    set(GKO_FILE_CONFIG_ENABLED 1)
+    list(APPEND EXAMPLES_LIST file-config-solver)
+else()
+    message(STATUS "No nlohmann-json found, disabling file-config example")
 endif()
 
 foreach(example ${EXAMPLES_LIST})
@@ -106,20 +114,22 @@ if(GINKGO_BUILD_TESTS)
         endforeach()
     endforeach()
 
-    file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
-    foreach(config IN LISTS config_list)
-        get_filename_component(config_name "${config}" NAME_WE)
-        foreach(executor IN LISTS executors)
-            add_test(NAME example_file-config-solver_${config_name}_${executor} 
-                     COMMAND 
-                     "$<TARGET_FILE:file-config-solver>"
-                     "${executor}" "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
-                     "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
-                     WORKING_DIRECTORY
-                     "$<TARGET_FILE_DIR:ginkgo>")
-            # Prevent performance issues with high core counts
-            set_property(TEST example_file-config-solver_${config_name}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
-        endforeach()    
-    endforeach()
-        
+    if(GKO_FILE_CONFIG_ENABLED)
+        file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
+        foreach(config IN LISTS config_list)
+            get_filename_component(config_name "${config}" NAME_WE)
+            foreach(executor IN LISTS executors)
+                add_test(NAME example_file-config-solver_${config_name}_${executor}
+                    COMMAND
+                    "$<TARGET_FILE:file-config-solver>"
+                    "${executor}" "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
+                    WORKING_DIRECTORY
+                    "$<TARGET_FILE_DIR:ginkgo>")
+                # Prevent performance issues with high core counts
+                set_property(TEST example_file-config-solver_${config_name}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
+            endforeach()
+        endforeach()
+    endif()
+
 endif()
