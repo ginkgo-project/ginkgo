@@ -11,3 +11,6 @@ target_link_libraries(multigrid-preconditioned-solver Ginkgo::ginkgo)
 
 # Copy the data files to the execution directory
 configure_file(data/A.mtx data/A.mtx COPYONLY)
+configure_file(data/mat0.bin data/mat0.bin COPYONLY)
+configure_file(data/rhs0.bin data/rhs0.bin COPYONLY)
+configure_file(data/x0.bin data/x0.bin COPYONLY)

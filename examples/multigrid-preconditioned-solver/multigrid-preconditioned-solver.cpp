@@ -50,7 +50,10 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(mtx::create(exec));
+    auto is = std::ifstream("data/mat0.bin");
+    A->read_petsc_binary(is, ValueType(0.0), IndexType(0));
+    // auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
