@@ -53,7 +53,7 @@ TEST_F(Factorization, InitializeRowPtrsLSameAsRef)
 }
 
 
-TEST_F(Factorization, InitializeLWithoutSqrtSameAsRef)
+TEST_F(Factorization, InitializeLSameAsRef)
 {
     gko::array<index_type> l_ptrs{ref, mtx->get_size()[0] + 1};
     gko::kernels::reference::factorization::initialize_row_ptrs_l(
@@ -73,6 +73,7 @@ TEST_F(Factorization, InitializeLWithoutSqrtSameAsRef)
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l(
             exec, dmtx.get(), dl_mtx.get(), diag_sqrt);
 
-        GKO_ASSERT_MTX_NEAR(l_mtx, dl_mtx, 0.0);
+        GKO_ASSERT_MTX_NEAR(l_mtx, dl_mtx,
+                            diag_sqrt ? r<value_type>::value : 0.0);
     }
 }
