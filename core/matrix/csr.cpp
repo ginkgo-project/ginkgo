@@ -555,19 +555,24 @@ void Csr<ValueType, IndexType>::read_petsc_binary(
     constexpr auto indextype_size = sizeof(InputIndexType);
     constexpr auto valuetype_size = sizeof(InputValueType);
     std::vector<char> header(4 * indextype_size);
-    GKO_CHECK_STREAM(is.read(header.data(), 16), "failed reading header");
+    GKO_CHECK_STREAM(is.read(header.data(), 4 * indextype_size),
+                     "failed reading header");
     InputIndexType matid{};
     InputIndexType num_rows{};
     InputIndexType num_cols{};
     InputIndexType num_entries{};
     std::memcpy(&matid, &header[0], indextype_size);
-    std::memcpy(&num_rows, &header[4], indextype_size);
-    std::memcpy(&num_cols, &header[8], indextype_size);
-    std::memcpy(&num_entries, &header[12], indextype_size);
+    std::memcpy(&num_rows, &header[indextype_size], indextype_size);
+    std::memcpy(&num_cols, &header[2 * indextype_size], indextype_size);
+    std::memcpy(&num_entries, &header[3 * indextype_size], indextype_size);
     auto size = gko::dim<2>(num_rows, num_cols);
+
+    std::cout << indextype_size << " id " << matid << ", mat size " << size
+              << " nnz " << num_entries << std::endl;
     auto exec = this->get_executor();
     this->set_size(size);
     auto row_ptrs = array<InputIndexType>{exec->get_master(), size[0] + 1};
+    auto inputrow_ptrs = array<IndexType>{exec->get_master(), size[0] + 1};
     // First fill with nnz_per_row, as PETSc binary format writes nnz_per_row
     // instead of the prefix summed values
     {
@@ -580,7 +585,14 @@ void Csr<ValueType, IndexType>::read_petsc_binary(
             row_ptrs.get_data(), num_rows + 1));
         GKO_ASSERT(num_entries == row_ptrs.get_data()[num_rows]);
     }
-    auto col_idxs = array<InputIndexType>{exec->get_master(), num_entries};
+    for (size_type i = 0; i < row_ptrs.get_size(); ++i) {
+        inputrow_ptrs.get_data()[i] =
+            static_cast<IndexType>(row_ptrs.get_data()[i]);
+    }
+    auto col_idxs =
+        array<InputIndexType>{exec->get_master(), size_type(num_entries)};
+    auto inputcidxs =
+        array<IndexType>{exec->get_master(), size_type(num_entries)};
     {
         std::vector<char> block(num_entries * indextype_size);
         GKO_CHECK_STREAM(is.read(block.data(), num_entries * indextype_size),
@@ -588,7 +600,14 @@ void Csr<ValueType, IndexType>::read_petsc_binary(
         std::memcpy(&col_idxs.get_data()[0], &block[0],
                     num_entries * indextype_size);
     }
-    auto values = array<InputValueType>{exec->get_master(), num_entries};
+    for (size_type i = 0; i < col_idxs.get_size(); ++i) {
+        inputcidxs.get_data()[i] =
+            static_cast<IndexType>(col_idxs.get_data()[i]);
+    }
+    auto values =
+        array<InputValueType>{exec->get_master(), size_type(num_entries)};
+    auto inputvalues =
+        array<ValueType>{exec->get_master(), size_type(num_entries)};
     {
         std::vector<char> block(num_entries * valuetype_size);
         GKO_CHECK_STREAM(is.read(block.data(), num_entries * valuetype_size),
@@ -596,13 +615,17 @@ void Csr<ValueType, IndexType>::read_petsc_binary(
         std::memcpy(&values.get_data()[0], &block[0],
                     num_entries * valuetype_size);
     }
+    for (size_type i = 0; i < values.get_size(); ++i) {
+        inputvalues.get_data()[i] =
+            static_cast<ValueType>(values.get_data()[i]);
+    }
 
     this->row_ptrs_.resize_and_reset(size[0] + 1);
     this->col_idxs_.resize_and_reset(num_entries);
     this->values_.resize_and_reset(num_entries);
-    this->row_ptrs_ = row_ptrs;
-    this->col_idxs_ = col_idxs;
-    this->values_ = values;
+    this->row_ptrs_ = inputrow_ptrs;
+    this->col_idxs_ = inputcidxs;
+    this->values_ = inputvalues;
     this->make_srow();
 }
 
@@ -1124,6 +1147,32 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
 #define GKO_DECLARE_CSR_MATRIX(ValueType, IndexType) \
     class Csr<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
+
+
+#define GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER1(ValueType, IndexType) \
+    void Csr<ValueType, IndexType>::read_petsc_binary(                    \
+        std::istream& is, double dummy_valuetype, int dummy_indextype)
+
+#define GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER2(ValueType, IndexType) \
+    void Csr<ValueType, IndexType>::read_petsc_binary(                    \
+        std::istream& is, float dummy_valuetype, int dummy_indextype)
+
+#define GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER3(ValueType, IndexType) \
+    void Csr<ValueType, IndexType>::read_petsc_binary(                    \
+        std::istream& is, double dummy_valuetype, long dummy_indextype)
+
+#define GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER4(ValueType, IndexType) \
+    void Csr<ValueType, IndexType>::read_petsc_binary(                    \
+        std::istream& is, float dummy_valuetype, long dummy_indextype)
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER1);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER2);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER3);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MATRIX_PETSC_BINARY_READER4);
 
 
 }  // namespace matrix

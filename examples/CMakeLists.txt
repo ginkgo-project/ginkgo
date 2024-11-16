@@ -20,7 +20,6 @@ set(EXAMPLES_EXEC_LIST
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
-    file-config-solver
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
@@ -64,6 +63,15 @@ else()
     message(STATUS "No Kokkos found, disabling examples with Kokkos assembly.")
 endif()
 
+set(GKO_FILE_CONFIG_ENABLED 0)
+find_package(nlohmann_json 3.9.1 QUIET)
+if(nlohmann_json_FOUND)
+    set(GKO_FILE_CONFIG_ENABLED 1)
+    list(APPEND EXAMPLES_LIST file-config-solver)
+else()
+    message(STATUS "No nlohmann-json found, disabling file-config example")
+endif()
+
 foreach(example ${EXAMPLES_LIST})
     add_subdirectory(${example})
 endforeach()
@@ -104,6 +112,8 @@ if(GINKGO_BUILD_TESTS)
         endforeach()
     endforeach()
 
+
+if(GKO_FILE_CONFIG_ENABLED)
     file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
     foreach(config IN LISTS config_list)
         get_filename_component(config_name "${config}" NAME_WE)
@@ -117,5 +127,6 @@ if(GINKGO_BUILD_TESTS)
                      "$<TARGET_FILE_DIR:ginkgo>")
         endforeach()    
     endforeach()
+endif()
         
 endif()
