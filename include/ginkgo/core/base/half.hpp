@@ -283,7 +283,7 @@ private:
  * For now the only features are reduced storage compared to single precision
  * and conversions from and to single precision floating point type.
  */
-class half {
+class alignas(std::uint16_t) half {
 public:
     // create half value from the bits directly.
     static constexpr half create_from_bits(std::uint16_t bits) noexcept

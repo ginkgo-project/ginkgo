@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <cstdint>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/half.hpp>
@@ -12,6 +14,12 @@
 using half = gko::half;
 using namespace floating_bit_helper;
 
+
+TEST(Half, SizeAndAlign)
+{
+    ASSERT_EQ(sizeof(half), sizeof(std::uint16_t));
+    ASSERT_EQ(alignof(half), alignof(std::uint16_t));
+}
 
 // clang-format does terrible formatting of string literal concatenation
 // clang-format off
