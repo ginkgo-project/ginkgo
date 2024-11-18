@@ -193,11 +193,13 @@ __device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.na
 """)
 
 # since there are no constraints for f16 register an intermediate conversion needs to happen
+# There are some issues when using f16 on shared memory. We disable them currently.
+memory_spaces_without_shared=memory_spaces[1:]
 t = type_desc(ptx_type_suffix='.f16', val_constraint='f', name='__half')
 t.parent_name = "float"
 t.ptx_parent_type_suffix = '.f32'
 t.ptx_mem_type_suffix = '.b16'
-for s in memory_spaces:
+for s in memory_spaces_without_shared:
     for o in memory_orderings:
         membar_expression = "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
         const_ptr_expr = s.ptr_expr.format(
@@ -241,7 +243,7 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 }}
 """)
 
-for s in memory_spaces:
+for s in memory_spaces_without_shared:
     o = ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
                  ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True)
     const_ptr_expr = s.ptr_expr.format(
