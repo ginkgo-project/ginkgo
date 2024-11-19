@@ -1,11 +1,13 @@
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
-# use the parameter from cmake 
+# use the parameter from cmake
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
+add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.dp.cpp BATCH_BICGSTAB_INSTANTIATE)
+add_instantiation_files(. solver/batch_cg_launch.instantiate.dp.cpp BATCH_CG_INSTANTIATE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -59,7 +61,9 @@ target_sources(ginkgo_dpcpp
     preconditioner/sor_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
+    ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.dp.cpp
+    ${BATCH_CG_INSTANTIATE}
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp

@@ -6,6 +6,8 @@
 #define GKO_COMMON_CUDA_HIP_SOLVER_BATCH_CG_KERNELS_HPP_
 
 
+#include "core/solver/batch_cg_kernels.hpp"
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -27,6 +29,11 @@
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
+
+
+constexpr int max_cg_threads = 1024;
+
+
 namespace batch_single_kernels {
 
 
@@ -113,14 +120,14 @@ __device__ __forceinline__ void update_x_and_r(
 template <typename StopType, const int n_shared, const bool prec_shared_bool,
           typename PrecType, typename LogType, typename BatchMatrixType,
           typename ValueType>
-__global__ void apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
-                             const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             LogType logger, PrecType prec_shared,
-                             const BatchMatrixType mat,
-                             const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x,
-                             ValueType* const __restrict__ workspace = nullptr)
+__global__ void __launch_bounds__(max_cg_threads)
+    apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
+                 const int max_iter, const gko::remove_complex<ValueType> tol,
+                 LogType logger, PrecType prec_shared,
+                 const BatchMatrixType mat,
+                 const ValueType* const __restrict__ b,
+                 ValueType* const __restrict__ x,
+                 ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto num_batch_items = mat.num_batch_items;
