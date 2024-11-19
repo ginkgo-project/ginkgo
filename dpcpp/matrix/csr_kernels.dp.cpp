@@ -1888,8 +1888,8 @@ auto spgemm_multiway_merge(size_type row,
                            const typename HeapElement::index_type* b_cols,
                            const typename HeapElement::value_type* b_vals,
                            HeapElement* heap, InitCallback init_cb,
-                           StepCallback step_cb,
-                           ColCallback col_cb) -> decltype(init_cb(0))
+                           StepCallback step_cb, ColCallback col_cb)
+    -> decltype(init_cb(0))
 {
     auto a_begin = a_row_ptrs[row];
     auto a_end = a_row_ptrs[row + 1];
@@ -2371,7 +2371,7 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_symm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
         permuted->get_col_idxs(), as_device_type(permuted->get_values()));
 }
 
@@ -2397,9 +2397,9 @@ void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_nonsymm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         row_perm, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_deivice_type(orig->get_const_values()),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
         permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        as_deivice_type(permuted->get_values()));
+        as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2424,9 +2424,9 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
     row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
         row_permuted->get_col_idxs(),
-        as_deivice_type(row_permuted->get_values()));
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2451,9 +2451,9 @@ void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
         row_permuted->get_col_idxs(),
-        as_deivice_type(row_permuted->get_values()));
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2478,8 +2478,8 @@ void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_symm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), as_deivice_type(permuted->get_values()));
+        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2507,9 +2507,9 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_nonsymm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         row_scale, row_perm, col_scale, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_deivice_type(orig->get_const_values()),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
         permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        as_deivice_type(permuted->get_values()));
+        as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2534,9 +2534,9 @@ void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
     row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
         row_permuted->get_col_idxs(),
-        as_deivice_type(row_permuted->get_values()));
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2561,9 +2561,9 @@ void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_deivice_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
         row_permuted->get_col_idxs(),
-        as_deivice_type(row_permuted->get_values()));
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2577,7 +2577,7 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
     const auto num_rows = to_sort->get_size()[0];
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     auto cols = to_sort->get_col_idxs();
-    auto vals = as_deivice_type(to_sort->get_values());
+    auto vals = as_device_type(to_sort->get_values());
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -2723,10 +2723,10 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity(
         nblocks, default_block_size, 0, exec->get_queue(),
-        as_deivice_type(alpha->get_const_values()),
-        as_deivice_type(beta->get_const_values()),
-        static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), as_deivice_type(mtx->get_values()));
+        as_device_type(alpha->get_const_values()),
+        as_device_type(beta->get_const_values()), static_cast<IndexType>(nrows),
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+        as_device_type(mtx->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
