@@ -16,9 +16,6 @@ namespace factorization {
 namespace helpers {
 
 
-using namespace ::gko::factorization;
-
-
 constexpr int default_block_size{512};
 
 
@@ -107,6 +104,5 @@ __global__ __launch_bounds__(default_block_size) void initialize_l(
 }  // namespace helpers
 }  // namespace factorization
 }  // namespace GKO_DEVICE_NAMESPACE
-
 }  // namespace kernels
 }  // namespace gko
