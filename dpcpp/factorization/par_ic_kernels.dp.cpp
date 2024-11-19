@@ -11,6 +11,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
