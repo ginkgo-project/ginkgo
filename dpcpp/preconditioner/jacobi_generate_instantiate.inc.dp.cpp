@@ -15,6 +15,7 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/diagonal_block_manipulation.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
