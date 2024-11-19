@@ -23,6 +23,12 @@
     - private_ci
     - nvidia-gpu
 
+.use_gko_cuda114-openmpi-gnu10-llvm12:
+  image: ginkgohub/cuda:114-openmpi-gnu10-llvm12
+  tags:
+    - private_ci
+    - nvidia-gpu
+
 .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16:
   image: ginkgohub/nvhpc:233-cuda120-openmpi-gnu12-llvm16
   tags:
