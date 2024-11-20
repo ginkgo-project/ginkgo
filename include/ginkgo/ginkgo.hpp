@@ -76,7 +76,7 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
-#include <ginkgo/core/factorization/incompleted_factorization.hpp>
+#include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/factorization/par_ict.hpp>

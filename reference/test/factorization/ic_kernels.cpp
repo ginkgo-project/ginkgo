@@ -192,7 +192,8 @@ TYPED_TEST(Ic, GenerateGeneralBySyncfree)
 
     auto fact =
         factorization_type::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->exec)
             ->generate(this->mtx_system);
 
@@ -223,7 +224,8 @@ TYPED_TEST(Ic, GenerateIcWithBitmapIsEquivalentToRefBySyncfree)
     auto result_lt = gko::as<Csr>(result_l->conj_transpose());
     auto factory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->ref);
 
     auto ic = factory->generate(mtx);
@@ -270,7 +272,8 @@ TYPED_TEST(Ic, GenerateIcWithHashmapIsEquivalentToRefBySyncfree)
     auto result_lt = gko::as<Csr>(result_l->conj_transpose());
     auto factory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->ref);
 
     auto ic = factory->generate(mtx);

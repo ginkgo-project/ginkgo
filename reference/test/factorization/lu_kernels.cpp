@@ -36,8 +36,6 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
-    using sparsity_pattern_type =
-        gko::matrix::SparsityCsr<value_type, index_type>;
 
     Lu()
         : ref(gko::ReferenceExecutor::create()),
@@ -218,7 +216,7 @@ TYPED_TEST(Lu, KernelFactorizeWorks)
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), this->mtx_lu.get(), false, tmp);
+            diag_idxs.get_const_data(), this->mtx_lu.get(), true, tmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, mtx_lu_ref,
                             15 * r<value_type>::value);

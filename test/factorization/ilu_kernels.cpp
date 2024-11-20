@@ -64,7 +64,8 @@ TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
     auto dfact =
         gko::factorization::Ilu<>::build()
             .with_skip_sorting(true)
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(exec)
             ->generate(dmtx);
 
@@ -103,11 +104,13 @@ TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfree)
 
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);
@@ -140,11 +143,13 @@ TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfree)
     auto dmtx = gko::share(mtx->clone(this->exec));
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(gko::factorization::factorize_algorithm::syncfree)
+            .with_algorithm(
+                gko::factorization::incomplete_factorize_algorithm::syncfree)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);

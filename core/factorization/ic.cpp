@@ -30,7 +30,7 @@ namespace ic_factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute, ic_factorization::compute);
+GKO_REGISTER_OPERATION(sparselib_ic, ic_factorization::sparselib_ic);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
@@ -66,12 +66,12 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_both_factors(config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("algorithm")) {
-        using gko::factorization::factorize_algorithm;
+        using gko::factorization::incomplete_factorize_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {
-            params.with_algorithm(factorize_algorithm::sparselib);
+            params.with_algorithm(incomplete_factorize_algorithm::sparselib);
         } else if (str == "syncfree") {
-            params.with_algorithm(factorize_algorithm::syncfree);
+            params.with_algorithm(incomplete_factorize_algorithm::syncfree);
         } else {
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
@@ -106,7 +106,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     std::shared_ptr<const matrix_type> ic;
     // Compute LC factorization
     if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
-        parameters_.algorithm == factorize_algorithm::syncfree) {
+        parameters_.algorithm == incomplete_factorize_algorithm::syncfree) {
         std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
             forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
@@ -162,7 +162,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             tmp));
         ic = factors;
     } else {
-        exec->run(ic_factorization::make_compute(local_system_matrix.get()));
+        exec->run(
+            ic_factorization::make_sparselib_ic(local_system_matrix.get()));
         ic = local_system_matrix;
     }
 
