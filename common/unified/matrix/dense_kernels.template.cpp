@@ -33,7 +33,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) = input(row, col);
+            output(row, col) =
+                static_cast<device_type<OutValueType>>(input(row, col));
         },
         input->get_size(), input, output);
 }
@@ -425,7 +426,8 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-            gathered(row, col) = orig(rows[row], col);
+            gathered(row, col) =
+                static_cast<device_type<OutputType>>(orig(rows[row], col));
         },
         row_collection->get_size(), orig, row_idxs, row_collection);
 }

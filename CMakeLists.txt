@@ -33,9 +33,9 @@ option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be tim
 option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP tests" OFF)
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_ENABLE_HALF "Enable the use of half precision" ON)
-# We do not support MSVC. SYCL will come later
-if(MSVC OR GINKGO_BUILD_SYCL)
-    message(STATUS "HALF is not supported in MSVC, and later support in SYCL")
+# We do not support MSVC.
+if(MSVC)
+    message(STATUS "HALF is not supported in MSVC")
     set(GINKGO_ENABLE_HALF OFF CACHE BOOL "Enable the use of half precision" FORCE)
 endif()
 option(GINKGO_SKIP_DEPENDENCY_UPDATE

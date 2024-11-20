@@ -17,6 +17,7 @@
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -184,7 +185,7 @@ void compute_l_u_factors(syn::value_list<int, subgroup_size>,
         static_cast<IndexType>(l->get_num_stored_elements()),
         u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
         as_device_type(u->get_values()), u_csc->get_const_row_ptrs(),
-        u_csc->get_const_col_idxs(), u_csc->get_values(),
+        u_csc->get_const_col_idxs(), as_device_type(u_csc->get_values()),
         static_cast<IndexType>(u->get_num_stored_elements()));
 }
 
@@ -218,7 +219,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
         u_csc);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL);
 
 

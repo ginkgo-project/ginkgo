@@ -14,6 +14,7 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -214,9 +215,9 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
-            as_device_type(alpha->get_const_values()), a->get_const_value(),
-            a->get_const_col_idxs(), a->get_const_row_ptrs(),
-            acc::as_device_range(b_vals),
+            as_device_type(alpha->get_const_values()),
+            as_device_type(a->get_const_value()), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), acc::as_device_range(b_vals),
             as_device_type(beta->get_const_values()),
             acc::as_device_range(c_vals));
     } else {

@@ -169,6 +169,8 @@ __dpct_inline__ ResultType reinterpret(ValueType val)
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 // Support 32-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
+// Support 16-bit ATOMIC_ADD
+// GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short);
 
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
@@ -233,10 +235,12 @@ struct atomic_helper<
         }                                                                   \
     };
 
-// Support 64-bit ATOMIC_ADD
+// Support 64-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned long long int);
-// Support 32-bit ATOMIC_ADD
+// Support 32-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
+// Support 16-bit ATOMIC_MAX
+// GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned short);
 
 
 #undef GKO_BIND_ATOMIC_MAX_STRUCTURE
@@ -266,7 +270,15 @@ template <sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
 __dpct_inline__ T atomic_add(T* __restrict__ addr, T val)
 {
-    return detail::atomic_helper<addressSpace, T>::atomic_add(addr, val);
+    if constexpr (std::is_same_v<T, sycl::half> ||
+                  std::is_same_v<T, std::complex<sycl::half>>) {
+        // unsupported
+        auto old = *addr;
+        *addr += val;
+        return old;
+    } else {
+        return detail::atomic_helper<addressSpace, T>::atomic_add(addr, val);
+    }
 }
 
 
@@ -274,7 +286,18 @@ template <sycl::access::address_space addressSpace = atomic::global_space,
           typename T>
 __dpct_inline__ T atomic_max(T* __restrict__ addr, T val)
 {
-    return detail::atomic_max_helper<addressSpace, T>::atomic_max(addr, val);
+    if constexpr (std::is_same_v<T, sycl::half> ||
+                  std::is_same_v<T, std::complex<sycl::half>>) {
+        // unsupported
+        auto old = *addr;
+        if (val > *addr) {
+            *addr = val;
+        }
+        return old;
+    } else {
+        return detail::atomic_max_helper<addressSpace, T>::atomic_max(addr,
+                                                                      val);
+    }
 }
 
 

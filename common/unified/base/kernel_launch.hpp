@@ -73,10 +73,12 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #define GKO_KERNEL
 
 
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-#include "dpcpp/base/types.hpp"
 
 
 template <typename T>

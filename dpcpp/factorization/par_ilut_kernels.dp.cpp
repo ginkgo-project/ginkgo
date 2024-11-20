@@ -40,7 +40,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       array<remove_complex<ValueType>>&,
                       remove_complex<ValueType>& threshold) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
 
 
@@ -66,7 +66,7 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::Coo<ValueType, IndexType>* m_out_coo,
                       bool) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 
 
@@ -82,7 +82,7 @@ void threshold_filter_approx(
     matrix::Csr<ValueType, IndexType>* m_out,
     matrix::Coo<ValueType, IndexType>* m_out_coo) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
 
 
@@ -96,7 +96,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          matrix::Csr<ValueType, IndexType>* u_csc)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL);
 
 
@@ -110,7 +110,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Csr<ValueType, IndexType>* u_new)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL);
 
 

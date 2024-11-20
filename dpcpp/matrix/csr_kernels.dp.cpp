@@ -32,6 +32,7 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
@@ -2477,9 +2478,10 @@ void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        permuted->get_row_ptrs(), permuted->get_col_idxs(),
+        as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2506,10 +2508,10 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_nonsymm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        row_scale, row_perm, col_scale, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
-        permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        as_device_type(permuted->get_values()));
+        as_device_type(row_scale), row_perm, as_device_type(col_scale),
+        col_perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2533,9 +2535,9 @@ void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(),
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
         as_device_type(row_permuted->get_values()));
 }
 
@@ -2560,9 +2562,9 @@ void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(),
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
         as_device_type(row_permuted->get_values()));
 }
 

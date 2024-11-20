@@ -12,6 +12,7 @@
 
 #include "core/base/array_access.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 

@@ -13,9 +13,10 @@
 #include "core/matrix/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
 #include "dpcpp/base/batch_struct.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/matrix/batch_struct.hpp"
 #include "dpcpp/solver/batch_bicgstab_launch.hpp"
-
 
 namespace gko {
 namespace kernels {
@@ -37,6 +38,8 @@ int get_group_size(int value, int subgroup_size = config::warp_size)
 template <typename ValueType>
 class kernel_caller {
 public:
+    using sycl_value_type = sycl_type<ValueType>;
+
     kernel_caller(std::shared_ptr<const DefaultExecutor> exec,
                   const settings<remove_complex<ValueType>> settings)
         : exec_{std::move(exec)}, settings_{settings}
@@ -46,10 +49,18 @@ public:
               typename LogType>
     void call_kernel(
         LogType logger, const BatchMatrixType& mat, PrecType prec,
-        const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
-        const gko::batch::multi_vector::uniform_batch<ValueType>& x) const
+        const gko::batch::multi_vector::uniform_batch<const sycl_value_type>& b,
+        const gko::batch::multi_vector::uniform_batch<sycl_value_type>& x) const
     {
-        using real_type = gko::remove_complex<ValueType>;
+        using real_type = gko::remove_complex<sycl_value_type>;
+        if constexpr (std::is_same_v<ValueType, half>) {
+            static_assert(
+                std::is_same_v<typename StopType::real_type, sycl::half>,
+                "fail!");
+            static_assert(
+                !std::is_same_v<typename StopType::real_type, gko::half>,
+                "fail!");
+        }
         const size_type num_batch_items = mat.num_batch_items;
         const auto num_rows = mat.num_rows;
         const auto num_rhs = b.num_rhs;
@@ -67,7 +78,7 @@ public:
         // alpha, omega, temp
         // If the value available is negative, then set it to 0
         const int static_var_mem =
-            5 * sizeof(ValueType) + 2 * sizeof(real_type);
+            5 * sizeof(sycl_value_type) + 2 * sizeof(real_type);
         int shmem_per_blk = std::max(
             static_cast<int>(
                 device.get_info<sycl::info::device::local_mem_size>()) -
@@ -76,19 +87,18 @@ public:
         const int padded_num_rows = num_rows;
         const size_type prec_size = PrecType::dynamic_work_size(
             padded_num_rows, mat.get_single_item_num_nnz());
-        const auto sconf =
-            gko::kernels::batch_bicgstab::compute_shared_storage<PrecType,
-                                                                 ValueType>(
-                shmem_per_blk, padded_num_rows, mat.get_single_item_num_nnz(),
-                b.num_rhs);
+        const auto sconf = gko::kernels::batch_bicgstab::compute_shared_storage<
+            PrecType, sycl_value_type>(shmem_per_blk, padded_num_rows,
+                                       mat.get_single_item_num_nnz(),
+                                       b.num_rhs);
         const size_t shared_size = sconf.n_shared * padded_num_rows +
                                    (sconf.prec_shared ? prec_size : 0);
-        auto workspace = gko::array<ValueType>(
-            exec_,
-            sconf.gmem_stride_bytes * num_batch_items / sizeof(ValueType));
-        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(ValueType) == 0);
+        auto workspace = gko::array<sycl_value_type>(
+            exec_, sconf.gmem_stride_bytes * num_batch_items /
+                       sizeof(sycl_value_type));
+        GKO_ASSERT(sconf.gmem_stride_bytes % sizeof(sycl_value_type) == 0);
 
-        ValueType* const workspace_data = workspace.get_data();
+        sycl_value_type* const workspace_data = workspace.get_data();
         int n_shared_total = sconf.n_shared + int(sconf.prec_shared);
 
         // launch_apply_kernel<StopType, subgroup_size, n_shared_total>

@@ -16,15 +16,15 @@
 #include "utils.hpp"
 
 
-namespace sycl {
-inline namespace _V1 {
+// namespace sycl {
+// inline namespace _V1 {
 
 
-class half;
+// class half;
 
 
-}
-}  // namespace sycl
+// }
+// }  // namespace sycl
 
 
 namespace gko {
@@ -181,7 +181,7 @@ GKO_ACC_INLINE auto as_sycl_range(const range<row_major<T, dim>>& r)
 template <typename AccType>
 GKO_ACC_INLINE auto as_device_range(AccType&& acc)
 {
-    return as_device_range(std::forward<AccType>(acc));
+    return as_sycl_range(std::forward<AccType>(acc));
 }
 
 

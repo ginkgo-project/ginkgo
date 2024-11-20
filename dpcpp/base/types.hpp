@@ -11,6 +11,7 @@
 #include <sycl/half_type.hpp>
 
 #include <ginkgo/core/base/half.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -53,6 +54,12 @@ struct sycl_type_impl<half> {
 template <typename T>
 struct sycl_type_impl<std::complex<T>> {
     using type = std::complex<typename sycl_type_impl<T>::type>;
+};
+
+template <typename ValueType, typename IndexType>
+struct sycl_type_impl<matrix_data_entry<ValueType, IndexType>> {
+    using type =
+        matrix_data_entry<typename sycl_type_impl<ValueType>::type, IndexType>;
 };
 
 }  // namespace detail

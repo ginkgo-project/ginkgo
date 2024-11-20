@@ -170,13 +170,14 @@ void apply(syn::value_list<int, max_block_size>,
 
     if (block_precisions) {
         kernel::adaptive_apply<max_block_size, subwarp_size, warps_per_block>(
-            grid_size, block_size, 0, exec->get_queue(), blocks, storage_scheme,
-            block_precisions, block_pointers, num_blocks, b, b_stride, x,
-            x_stride);
+            grid_size, block_size, 0, exec->get_queue(), as_device_type(blocks),
+            storage_scheme, block_precisions, block_pointers, num_blocks,
+            as_device_type(b), b_stride, as_device_type(x), x_stride);
     } else {
         kernel::apply<max_block_size, subwarp_size, warps_per_block>(
-            grid_size, block_size, 0, exec->get_queue(), blocks, storage_scheme,
-            block_pointers, num_blocks, b, b_stride, x, x_stride);
+            grid_size, block_size, 0, exec->get_queue(), as_device_type(blocks),
+            storage_scheme, block_pointers, num_blocks, as_device_type(b),
+            b_stride, as_device_type(x), x_stride);
     }
 }
 

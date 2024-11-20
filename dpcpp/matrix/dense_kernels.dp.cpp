@@ -21,6 +21,7 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
@@ -101,7 +102,8 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
 
     queue->submit([&](sycl::handler& cgh) {
         sycl::local_accessor<
-            uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0>
+            uninitialized_array<device_type<ValueType>, sg_size*(sg_size + 1)>,
+            0>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
         auto in = as_device_type(orig->get_const_values());
@@ -372,7 +374,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
             }
             for (; col_idx < max_nnz_per_row; col_idx++) {
                 cols[col_idx * stride + row] = invalid_index<IndexType>();
-                vals[col_idx * stride + row] = zero<ValueType>();
+                vals[col_idx * stride + row] = zero<device_type<ValueType>>();
             }
         });
     });
@@ -436,7 +438,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; ell_count < ell_lim; ell_count++) {
-                ell_vals[ell_idx] = zero<ValueType>();
+                ell_vals[ell_idx] = zero<device_type<ValueType>>();
                 ell_cols[ell_idx] = invalid_index<IndexType>();
                 ell_idx += ell_stride;
             }
@@ -491,7 +493,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
             }
             for (; out_idx < slice_end; out_idx += slice_size) {
                 col_idxs[out_idx] = invalid_index<IndexType>();
-                vals[out_idx] = zero<ValueType>();
+                vals[out_idx] = zero<device_type<ValueType>>();
             }
         });
     });
