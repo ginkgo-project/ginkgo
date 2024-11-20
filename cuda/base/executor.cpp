@@ -9,6 +9,7 @@
 #include <thread>
 
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
@@ -17,16 +18,14 @@
 #include <ginkgo/core/base/memory.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
+#include "common/cuda_hip/base/executor.hpp.inc"
+#include "cuda/base/cublas_handle.hpp"
 #include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device.hpp"
 #include "cuda/base/scoped_device_id.hpp"
 
 
 namespace gko {
-
-
-#include "common/cuda_hip/base/executor.hpp.inc"
 
 
 std::unique_ptr<CudaAllocatorBase> cuda_allocator_from_mode(

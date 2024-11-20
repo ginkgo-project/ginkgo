@@ -21,6 +21,7 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
