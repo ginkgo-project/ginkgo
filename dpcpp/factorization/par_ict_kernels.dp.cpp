@@ -20,6 +20,7 @@
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -425,7 +426,7 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     l_new_builder.get_value_array().resize_and_reset(l_new_nnz);
 
     auto l_new_col_idxs = l_new->get_col_idxs();
-    auto l_new_vals = l_new->get_values();
+    auto l_new_vals = as_device_type(l_new->get_values());
 
     // fill columns and values
     kernel::ict_tri_spgeam_init<subgroup_size>(

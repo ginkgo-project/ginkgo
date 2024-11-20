@@ -21,6 +21,8 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -138,8 +140,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
            const array<ValueType>* col_scale, const array<ValueType>* row_scale,
            batch::matrix::Dense<ValueType>* input)
 {
-    const auto col_scale_vals = col_scale->get_const_data();
-    const auto row_scale_vals = row_scale->get_const_data();
+    const auto col_scale_vals = as_device_type(col_scale->get_const_data());
+    const auto row_scale_vals = as_device_type(row_scale->get_const_data());
     const auto num_rows = static_cast<int>(input->get_common_size()[0]);
     const auto num_cols = static_cast<int>(input->get_common_size()[1]);
     const auto stride = input->get_common_size()[1];

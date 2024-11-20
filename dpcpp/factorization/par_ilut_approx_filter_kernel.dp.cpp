@@ -21,6 +21,7 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
@@ -59,7 +60,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
-    auto values = as_device_type(m->get_const_values());
+    auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
     using AbsType = remove_complex<ValueType>;
     constexpr auto bucket_count = kernel::searchtree_width;
@@ -137,7 +138,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
     kernel::bucket_filter<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
         old_col_idxs, old_vals, oracles, num_rows, bucket, new_row_ptrs,
-        new_row_idxs, new_col_idxs, new_vals);
+        new_row_idxs, new_col_idxs, as_device_type(new_vals));
 }
 
 
@@ -166,7 +167,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         &threshold, m_out, m_out_coo);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
 
 

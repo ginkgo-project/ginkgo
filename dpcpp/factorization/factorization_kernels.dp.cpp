@@ -14,6 +14,7 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -464,7 +465,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
 
     array<ValueType> new_values{exec, new_num_elems};
     array<IndexType> new_col_idxs{exec, new_num_elems};
-    auto dpcpp_new_values = new_values.get_data();
+    auto dpcpp_new_values = as_device_type(new_values.get_data());
     auto dpcpp_new_col_idxs = new_col_idxs.get_data();
 
     kernel::add_missing_diagonal_elements<subwarp_size>(
@@ -500,11 +501,12 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_u_row(grid_dim, block_size, 0, exec->get_queue(),
-                                  num_rows, system_matrix->get_const_row_ptrs(),
-                                  system_matrix->get_const_col_idxs(),
-                                  system_matrix->get_const_values(), l_row_ptrs,
-                                  u_row_ptrs);
+    kernel::count_nnz_per_l_u_row(
+        grid_dim, block_size, 0, exec->get_queue(), num_rows,
+        system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(),
+        as_device_type(system_matrix->get_const_values()), l_row_ptrs,
+        u_row_ptrs);
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
     components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
@@ -552,10 +554,11 @@ void initialize_row_ptrs_l(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_row(grid_dim, block_size, 0, exec->get_queue(),
-                                num_rows, system_matrix->get_const_row_ptrs(),
-                                system_matrix->get_const_col_idxs(),
-                                system_matrix->get_const_values(), l_row_ptrs);
+    kernel::count_nnz_per_l_row(
+        grid_dim, block_size, 0, exec->get_queue(), num_rows,
+        system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(),
+        as_device_type(system_matrix->get_const_values()), l_row_ptrs);
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
@@ -578,9 +581,9 @@ void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
     kernel::initialize_l(grid_dim, block_size, 0, exec->get_queue(), num_rows,
                          system_matrix->get_const_row_ptrs(),
                          system_matrix->get_const_col_idxs(),
-                         system_matrix->get_const_values(),
+                         as_device_type(system_matrix->get_const_values()),
                          csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-                         csr_l->get_values(), diag_sqrt);
+                         as_device_type(csr_l->get_values()), diag_sqrt);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(

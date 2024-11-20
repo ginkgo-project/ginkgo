@@ -15,6 +15,7 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/merging.dp.hpp"
@@ -699,8 +700,9 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
             as_device_type(input->get_const_values()),
             inverse->get_const_row_ptrs(), inverse->get_const_col_idxs(),
             excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
-            excess_system->get_col_idxs(), excess_system->get_values(),
-            excess_rhs->get_values(), e_start, e_end);
+            excess_system->get_col_idxs(),
+            as_device_type(excess_system->get_values()),
+            as_device_type(excess_rhs->get_values()), e_start, e_end);
     }
 }
 
@@ -719,7 +721,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::scale_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), excess_block_ptrs,
-            excess_solution->get_values(), e_start, e_end);
+            as_device_type(excess_solution->get_values()), e_start, e_end);
     }
 }
 
@@ -742,7 +744,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
         kernel::copy_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
             inverse->get_const_row_ptrs(), excess_rhs_ptrs,
-            excess_solution->get_const_values(),
+            as_device_type(excess_solution->get_const_values()),
             as_device_type(inverse->get_values()), e_start, e_end);
     }
 }

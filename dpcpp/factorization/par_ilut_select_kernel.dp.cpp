@@ -14,6 +14,7 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
@@ -62,7 +63,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       array<remove_complex<ValueType>>& tmp2,
                       remove_complex<ValueType>& threshold)
 {
-    auto values = as_device_type(m->get_const_values());
+    auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
     using AbsType = remove_complex<ValueType>;
     constexpr auto bucket_count = kernel::searchtree_width;
@@ -149,7 +150,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     threshold = exec->copy_val_to_host(out_ptr);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
 
 

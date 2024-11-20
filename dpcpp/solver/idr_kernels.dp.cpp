@@ -18,6 +18,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
@@ -672,16 +673,26 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
 
     for (size_type i = 0; i < k; i++) {
         const auto p_i = as_device_type(p->get_const_values()) + i * p_stride;
-        if (nrhs > 1 || is_complex<ValueType>()) {
-            components::fill_array(exec, as_device_type(alpha->get_values()),
-                                   nrhs, zero<ValueType>());
+        auto gko_impl = [&]() {
+            components::fill_array(exec, alpha->get_values(), nrhs,
+                                   zero<ValueType>());
             multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, p_i, g_k->get_values(), g_k->get_stride(),
+                            nrhs, p_i, as_device_type(g_k->get_values()),
+                            g_k->get_stride(),
                             as_device_type(alpha->get_values()),
                             stop_status->get_const_data());
+        };
+        if constexpr (std::is_same_v<ValueType, half> ||
+                      is_complex<ValueType>()) {
+            gko_impl();
         } else {
-            onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
-                        g_k->get_stride(), as_device_type(alpha->get_values()));
+            if (nrhs > 1) {
+                gko_impl();
+            } else {
+                onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
+                            g_k->get_stride(),
+                            as_device_type(alpha->get_values()));
+            }
         }
         update_g_k_and_u_kernel<default_block_size>(
             ceildiv(size * g_k->get_stride(), default_block_size),
@@ -689,14 +700,14 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
             as_device_type(alpha->get_const_values()),
             as_device_type(m->get_const_values()), m->get_stride(),
             as_device_type(g->get_const_values()), g->get_stride(),
-            g_k->get_values(), g_k->get_stride(),
+            as_device_type(g_k->get_values()), g_k->get_stride(),
             as_device_type(u->get_values()), u->get_stride(),
             stop_status->get_const_data());
     }
     update_g_kernel<default_block_size>(
         ceildiv(size * g_k->get_stride(), default_block_size),
         default_block_size, 0, exec->get_queue(), k, size, nrhs,
-        g_k->get_const_values(), g_k->get_stride(),
+        as_device_type(g_k->get_const_values()), g_k->get_stride(),
         as_device_type(g->get_values()), g->get_stride(),
         stop_status->get_const_data());
 }
@@ -718,17 +729,26 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = k; i < subspace_dim; i++) {
-        const auto p_i = as_device_type(p->get_const_values()) + i * p_stride;
-        auto m_i = as_device_type(m->get_values()) + i * m_stride + k * nrhs;
-        if (nrhs > 1 || is_complex<ValueType>()) {
+        const auto p_i = p->get_const_values() + i * p_stride;
+        auto m_i = m->get_values() + i * m_stride + k * nrhs;
+        auto gko_impl = [&]() {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
             multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, p_i, g_k->get_const_values(),
-                            g_k->get_stride(), m_i,
+                            nrhs, as_device_type(p_i),
+                            as_device_type(g_k->get_const_values()),
+                            g_k->get_stride(), as_device_type(m_i),
                             stop_status->get_const_data());
+        };
+        if constexpr (std::is_same_v<ValueType, half> ||
+                      is_complex<ValueType>()) {
+            gko_impl();
         } else {
-            onemkl::dot(*exec->get_queue(), size, p_i, 1,
-                        g_k->get_const_values(), g_k->get_stride(), m_i);
+            if (nrhs > 1) {
+                gko_impl();
+            } else {
+                onemkl::dot(*exec->get_queue(), size, as_device_type(p_i), 1,
+                            g_k->get_const_values(), g_k->get_stride(), m_i);
+            }
         }
     }
 }
@@ -757,9 +777,8 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
         as_device_type(r->get_values()), r->get_stride(),
         as_device_type(x->get_values()), x->get_stride(),
         stop_status->get_const_data());
-    components::fill_array(
-        exec, as_device_type(f->get_values()) + k * f->get_stride(), nrhs,
-        zero<ValueType>());
+    components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
+                           zero<ValueType>());
 }
 
 
@@ -825,7 +844,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     step_2_kernel(grid_dim, default_block_size, 0, exec->get_queue(), k,
                   num_rows, subspace_dim, nrhs,
                   as_device_type(omega->get_const_values()),
-                  preconditioned_vector->get_const_values(),
+                  as_device_type(preconditioned_vector->get_const_values()),
                   preconditioned_vector->get_stride(),
                   as_device_type(c->get_const_values()), c->get_stride(),
                   as_device_type(u->get_values()), u->get_stride(),
@@ -860,11 +879,11 @@ void compute_omega(
     matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    compute_omega_kernel(grid_dim, config::warp_size, 0, exec->get_queue(),
-                         nrhs, kappa, as_device_type(tht->get_const_values()),
-                         residual_norm->get_const_values(),
-                         as_device_type(omega->get_values()),
-                         stop_status->get_const_data());
+    compute_omega_kernel(
+        grid_dim, config::warp_size, 0, exec->get_queue(), nrhs,
+        as_device_type(kappa), as_device_type(tht->get_const_values()),
+        as_device_type(residual_norm->get_const_values()),
+        as_device_type(omega->get_values()), stop_status->get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(

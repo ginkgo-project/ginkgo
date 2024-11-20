@@ -388,9 +388,9 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     u_new_builder.get_value_array().resize_and_reset(u_new_nnz);
 
     auto l_new_col_idxs = l_new->get_col_idxs();
-    auto l_new_vals = l_new->get_values();
+    auto l_new_vals = as_device_type(l_new->get_values());
     auto u_new_col_idxs = u_new->get_col_idxs();
-    auto u_new_vals = u_new->get_values();
+    auto u_new_vals = as_device_type(u_new->get_values());
 
     // fill columns and values
     kernel::tri_spgeam_init<subgroup_size>(
@@ -431,7 +431,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         u_new);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL);
 
 
