@@ -19,32 +19,6 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_COUNT_NON_OWNING_ENTRIES(ValueType, LocalIndexType, \
-                                             GlobalIndexType)           \
-    void count_non_owning_entries(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const device_matrix_data<ValueType, GlobalIndexType>& input,    \
-        const experimental::distributed::Partition<                     \
-            LocalIndexType, GlobalIndexType>* row_partition,            \
-        comm_index_type local_part, array<comm_index_type>& send_count, \
-        array<GlobalIndexType>& send_positions,                         \
-        array<GlobalIndexType>& original_positions)
-
-
-#define GKO_DECLARE_FILL_SEND_BUFFERS(ValueType, LocalIndexType,     \
-                                      GlobalIndexType)               \
-    void fill_send_buffers(                                          \
-        std::shared_ptr<const DefaultExecutor> exec,                 \
-        const device_matrix_data<ValueType, GlobalIndexType>& input, \
-        const experimental::distributed::Partition<                  \
-            LocalIndexType, GlobalIndexType>* row_partition,         \
-        comm_index_type local_part,                                  \
-        const array<GlobalIndexType>& send_positions,                \
-        const array<GlobalIndexType>& original_positions,            \
-        array<GlobalIndexType>& send_row_idxs,                       \
-        array<GlobalIndexType>& send_col_idxs, array<ValueType>& send_values)
-
-
 #define GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,         \
                                             GlobalIndexType)                   \
     void separate_local_nonlocal(                                              \
@@ -61,18 +35,11 @@ namespace kernels {
         array<ValueType>& non_local_values)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
-    using comm_index_type = experimental::distributed::comm_index_type;        \
-    template <typename ValueType, typename LocalIndexType,                     \
-              typename GlobalIndexType>                                        \
-    GKO_DECLARE_COUNT_NON_OWNING_ENTRIES(ValueType, LocalIndexType,            \
-                                         GlobalIndexType);                     \
-    template <typename ValueType, typename LocalIndexType,                     \
-              typename GlobalIndexType>                                        \
-    GKO_DECLARE_FILL_SEND_BUFFERS(ValueType, LocalIndexType, GlobalIndexType); \
-    template <typename ValueType, typename LocalIndexType,                     \
-              typename GlobalIndexType>                                        \
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,             \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    using comm_index_type = experimental::distributed::comm_index_type; \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,      \
                                         GlobalIndexType)
 
 
