@@ -47,12 +47,13 @@ template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
 int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec);
 
-#define GKO_DECLARE_BATCH_CG_GET_MAX_DYNAMIC_SHARED_MEMORY(                 \
-    _vtype, mat_t, log_t, pre_t, stop_t)                                    \
-    int get_max_dynamic_shared_memory<                                      \
-        stop_t<cuda_type<_vtype>>, pre_t<cuda_type<_vtype>>,                \
-        log_t<gko::remove_complex<_vtype>>, mat_t<const cuda_type<_vtype>>, \
-        cuda_type<_vtype>>(std::shared_ptr<const DefaultExecutor> exec)
+#define GKO_DECLARE_BATCH_CG_GET_MAX_DYNAMIC_SHARED_MEMORY(  \
+    _vtype, mat_t, log_t, pre_t, stop_t)                     \
+    int get_max_dynamic_shared_memory<                       \
+        stop_t<cuda_type<_vtype>>, pre_t<cuda_type<_vtype>>, \
+        log_t<gko::remove_complex<cuda_type<_vtype>>>,       \
+        mat_t<const cuda_type<_vtype>>, cuda_type<_vtype>>(  \
+        std::shared_ptr<const DefaultExecutor> exec)
 
 #define GKO_INSTANTIATE_BATCH_CG_GET_MAX_DYNAMIC_SHARED_MEMORY \
     GKO_BATCH_INSTANTIATE(GKO_DECLARE_BATCH_CG_GET_MAX_DYNAMIC_SHARED_MEMORY)

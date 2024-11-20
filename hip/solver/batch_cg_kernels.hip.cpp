@@ -98,38 +98,38 @@ public:
         // Template parameters launch_apply_kernel<ValueType, n_shared,
         // prec_shared, StopType>
         if (sconf.prec_shared) {
-            launch_apply_kernel<hip_value_type, 5, true, StopType>(
+            launch_apply_kernel<ValueType, 5, true, StopType>(
                 exec_, sconf, settings_, logger, prec, mat, b.values, x.values,
                 workspace_data, block_size, shared_size);
         } else {
             switch (sconf.n_shared) {
             case 0:
-                launch_apply_kernel<hip_value_type, 0, false, StopType>(
+                launch_apply_kernel<ValueType, 0, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<hip_value_type, 1, false, StopType>(
+                launch_apply_kernel<ValueType, 1, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<hip_value_type, 2, false, StopType>(
+                launch_apply_kernel<ValueType, 2, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<hip_value_type, 3, false, StopType>(
+                launch_apply_kernel<ValueType, 3, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<hip_value_type, 4, false, StopType>(
+                launch_apply_kernel<ValueType, 4, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<hip_value_type, 5, false, StopType>(
+                launch_apply_kernel<ValueType, 5, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
