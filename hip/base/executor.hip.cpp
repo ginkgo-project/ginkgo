@@ -13,8 +13,8 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "hip/base/device.hpp"
-#include "hip/base/hipblas_bindings.hip.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
+#include "hip/base/hipblas_handle.hpp"
+#include "hip/base/hipsparse_handle.hpp"
 #include "hip/base/scoped_device_id.hip.hpp"
 
 

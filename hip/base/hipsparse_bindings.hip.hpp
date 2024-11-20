@@ -577,24 +577,6 @@ GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE
 
 
-inline hipsparseContext* init(hipStream_t stream)
-{
-    hipsparseHandle_t handle{};
-    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreate(&handle));
-    GKO_ASSERT_NO_HIPSPARSE_ERRORS(
-        hipsparseSetPointerMode(handle, HIPSPARSE_POINTER_MODE_DEVICE));
-    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetStream(handle, stream));
-    return reinterpret_cast<hipsparseContext*>(handle);
-}
-
-
-inline void destroy_hipsparse_handle(hipsparseContext* handle)
-{
-    GKO_ASSERT_NO_HIPSPARSE_ERRORS(
-        hipsparseDestroy(reinterpret_cast<hipsparseHandle_t>(handle)));
-}
-
-
 inline hipsparseMatDescr_t create_mat_descr()
 {
     hipsparseMatDescr_t descr{};
