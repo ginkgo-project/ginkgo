@@ -71,7 +71,7 @@ if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
 endif()
 
 ginkgo_compile_features(ginkgo_cuda)
-target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
+target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda THRUST_CUB_WRAPPED_NAMESPACE=gko)
 
 # include path for generated headers like jacobi_common.hpp
 target_include_directories(ginkgo_cuda
@@ -84,7 +84,7 @@ ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_cuda "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda")
+    ginkgo_check_headers(ginkgo_cuda "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda;THRUST_CUB_WRAPPED_NAMESPACE=gko")
 endif()
 
 if(GINKGO_BUILD_TESTS)

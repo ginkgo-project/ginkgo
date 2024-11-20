@@ -158,7 +158,7 @@ endfunction(ginkgo_create_cuda_test)
 ## Internal function allowing separate test name, filename and target name
 function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     add_executable(${test_target_name} ${filename})
-    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda THRUST_CUB_WRAPPED_NAMESPACE=gko)
     if(MSVC)
         target_compile_options(${test_target_name}
             PRIVATE
@@ -186,7 +186,7 @@ endfunction(ginkgo_create_hip_test)
 function(ginkgo_create_hip_test_internal test_name filename test_target_name)
     set_source_files_properties(${filename} PROPERTIES LANGUAGE HIP)
     add_executable(${test_target_name} ${filename})
-    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip THRUST_CUB_WRAPPED_NAMESPACE=gko)
     ginkgo_set_test_target_properties(${test_target_name} "_hip" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE hipgpu)
 endfunction(ginkgo_create_hip_test_internal)
