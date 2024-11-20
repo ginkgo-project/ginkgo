@@ -17,8 +17,8 @@ namespace ic_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute(std::shared_ptr<const DefaultExecutor> exec,
-             matrix::Csr<ValueType, IndexType>* m)
+void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::Csr<ValueType, IndexType>* m)
 {
     const auto id = exec->get_device_id();
     auto handle = exec->get_sparselib_handle();
@@ -54,7 +54,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     sparselib::destroy(desc);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_COMPUTE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_IC_SPARSELIB_IC_KERNEL);
 
 
 }  // namespace ic_factorization
