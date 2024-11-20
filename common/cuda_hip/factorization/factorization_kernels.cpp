@@ -399,7 +399,12 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
+    using namespace gko::factorization;
+
     if (grid_dim > 0) {
+        auto l_closure = triangular_mtx_closure(
+            [] __device__(auto val) { return one(val); }, identity{});
+        auto u_closure = triangular_mtx_closure(identity{}, identity{});
         helpers::
             initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
                 num_rows, system_matrix->get_const_row_ptrs(),
@@ -408,12 +413,7 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
                 csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
                 as_device_type(csr_l->get_values()),
                 csr_u->get_const_row_ptrs(), csr_u->get_col_idxs(),
-                as_device_type(csr_u->get_values()),
-                helpers::triangular_mtx_closure(
-                    [] __device__(auto val) { return one(val); },
-                    helpers::identity{}),
-                helpers::triangular_mtx_closure(helpers::identity{},
-                                                helpers::identity{}));
+                as_device_type(csr_u->get_values()), l_closure, u_closure);
     }
 }
 
@@ -460,13 +460,15 @@ void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
     if (grid_dim > 0) {
+        using namespace gko::factorization;
+
         helpers::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
             num_rows, system_matrix->get_const_row_ptrs(),
             system_matrix->get_const_col_idxs(),
             as_device_type(system_matrix->get_const_values()),
             csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
             as_device_type(csr_l->get_values()),
-            helpers::triangular_mtx_closure(
+            triangular_mtx_closure(
                 [diag_sqrt] __device__(auto val) {
                     if (diag_sqrt) {
                         val = sqrt(val);
@@ -476,7 +478,7 @@ void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
                     }
                     return val;
                 },
-                helpers::identity{}));
+                identity{}));
     }
 }
 

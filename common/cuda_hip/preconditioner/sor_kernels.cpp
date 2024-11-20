@@ -29,6 +29,8 @@ void initialize_weighted_l(
     auto inv_weight = one(weight) / weight;
 
     if (grid_dim > 0) {
+        using namespace gko::factorization;
+
         factorization::helpers::
             initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
                 num_rows, system_matrix->get_const_row_ptrs(),
@@ -36,11 +38,11 @@ void initialize_weighted_l(
                 as_device_type(system_matrix->get_const_values()),
                 l_mtx->get_const_row_ptrs(), l_mtx->get_col_idxs(),
                 as_device_type(l_mtx->get_values()),
-                factorization::helpers::triangular_mtx_closure(
+                triangular_mtx_closure(
                     [inv_weight] __device__(auto val) {
                         return val * inv_weight;
                     },
-                    factorization::helpers::identity{}));
+                    identity{}));
     }
 }
 
@@ -65,6 +67,8 @@ void initialize_weighted_l_u(
         one(weight) / (static_cast<remove_complex<ValueType>>(2.0) - weight);
 
     if (grid_dim > 0) {
+        using namespace gko::factorization;
+
         factorization::helpers::
             initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
                 num_rows, system_matrix->get_const_row_ptrs(),
@@ -74,12 +78,12 @@ void initialize_weighted_l_u(
                 as_device_type(l_mtx->get_values()),
                 u_mtx->get_const_row_ptrs(), u_mtx->get_col_idxs(),
                 as_device_type(u_mtx->get_values()),
-                factorization::helpers::triangular_mtx_closure(
+                triangular_mtx_closure(
                     [inv_weight] __device__(auto val) {
                         return val * inv_weight;
                     },
-                    factorization::helpers::identity{}),
-                factorization::helpers::triangular_mtx_closure(
+                    identity{}),
+                triangular_mtx_closure(
                     [inv_two_minus_weight] __device__(auto val) {
                         return val * inv_two_minus_weight;
                     },
