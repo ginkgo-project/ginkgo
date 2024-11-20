@@ -72,58 +72,58 @@ public:
         // Template parameters launch_apply_kernel<StopType, n_shared,
         // prec_shared>
         if (sconf.prec_shared) {
-            launch_apply_kernel<cuda_value_type, 9, true, StopType>(
+            launch_apply_kernel<ValueType, 9, true, StopType>(
                 exec_, sconf, settings_, logger, prec, mat, b.values, x.values,
                 workspace_data, block_size, shared_size);
         } else {
             switch (sconf.n_shared) {
             case 0:
-                launch_apply_kernel<cuda_value_type, 0, false, StopType>(
+                launch_apply_kernel<ValueType, 0, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 1:
-                launch_apply_kernel<cuda_value_type, 1, false, StopType>(
+                launch_apply_kernel<ValueType, 1, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 2:
-                launch_apply_kernel<cuda_value_type, 2, false, StopType>(
+                launch_apply_kernel<ValueType, 2, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 3:
-                launch_apply_kernel<cuda_value_type, 3, false, StopType>(
+                launch_apply_kernel<ValueType, 3, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 4:
-                launch_apply_kernel<cuda_value_type, 4, false, StopType>(
+                launch_apply_kernel<ValueType, 4, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 5:
-                launch_apply_kernel<cuda_value_type, 5, false, StopType>(
+                launch_apply_kernel<ValueType, 5, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 6:
-                launch_apply_kernel<cuda_value_type, 6, false, StopType>(
+                launch_apply_kernel<ValueType, 6, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 7:
-                launch_apply_kernel<cuda_value_type, 7, false, StopType>(
+                launch_apply_kernel<ValueType, 7, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 8:
-                launch_apply_kernel<cuda_value_type, 8, false, StopType>(
+                launch_apply_kernel<ValueType, 8, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
             case 9:
-                launch_apply_kernel<cuda_value_type, 9, false, StopType>(
+                launch_apply_kernel<ValueType, 9, false, StopType>(
                     exec_, sconf, settings_, logger, prec, mat, b.values,
                     x.values, workspace_data, block_size, shared_size);
                 break;
