@@ -18,7 +18,8 @@
 #include "cuda/test/utils.hpp"
 
 
-namespace {
+// put the test in gko namespace to easily adapt the thrust/cub in gko or not
+namespace gko {
 namespace kernel {
 
 
@@ -120,4 +121,4 @@ TEST_F(IsFinite, DoubleComplex)
 }
 
 
-}  // namespace
+}  // namespace gko
