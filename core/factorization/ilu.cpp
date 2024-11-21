@@ -65,12 +65,12 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("algorithm")) {
-        using gko::factorization::incomplete_factorize_algorithm;
+        using gko::factorization::incomplete_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {
-            params.with_algorithm(incomplete_factorize_algorithm::sparselib);
+            params.with_algorithm(incomplete_algorithm::sparselib);
         } else if (str == "syncfree") {
-            params.with_algorithm(incomplete_factorize_algorithm::syncfree);
+            params.with_algorithm(incomplete_algorithm::syncfree);
         } else {
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
@@ -103,8 +103,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
 
     std::shared_ptr<const matrix_type> ilu;
     // Compute LU factorization
-    if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
-        parameters_.algorithm == incomplete_factorize_algorithm::syncfree) {
+    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
         const auto nnz = local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
         auto factors = share(
@@ -145,6 +144,10 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
             storage.get_const_data(), diag_idxs.get_const_data(), factors.get(),
             false, tmp));
         ilu = factors;
+    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec)) {
+        GKO_INVALID_STATE(
+            "OmpExecutor does not support sparselib algorithm. Please use "
+            "syncfree algorithm.");
     } else {
         exec->run(
             ilu_factorization::make_sparselib_ilu(local_system_matrix.get()));

@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
@@ -37,24 +38,6 @@ protected:
 };
 
 
-TEST_F(Ic, ComputeICIsEquivalentToRefSorted)
-{
-    auto fact = gko::factorization::Ic<>::build()
-                    .with_skip_sorting(true)
-                    .on(ref)
-                    ->generate(mtx);
-    auto dfact = gko::factorization::Ic<>::build()
-                     .with_skip_sorting(true)
-                     .on(exec)
-                     ->generate(dmtx);
-
-    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_lt_factor(), dfact->get_lt_factor());
-}
-
-
 TEST_F(Ic, ComputeICBySyncfreeIsEquivalentToRefSorted)
 {
     auto fact = gko::factorization::Ic<>::build()
@@ -64,25 +47,9 @@ TEST_F(Ic, ComputeICBySyncfreeIsEquivalentToRefSorted)
     auto dfact =
         gko::factorization::Ic<>::build()
             .with_skip_sorting(true)
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(exec)
             ->generate(dmtx);
-
-    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
-    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_lt_factor(), dfact->get_lt_factor());
-}
-
-
-TEST_F(Ic, ComputeICIsEquivalentToRefUnsorted)
-{
-    gko::test::unsort_matrix(mtx, rand_engine);
-    dmtx->copy_from(mtx);
-
-    auto fact = gko::factorization::Ic<>::build().on(ref)->generate(mtx);
-    auto dfact = gko::factorization::Ic<>::build().on(exec)->generate(dmtx);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
     GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
@@ -104,13 +71,11 @@ TEST_F(Ic, ComputeICWithBitmapIsEquivalentToRefBySyncfree)
 
     auto factory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->exec);
 
     auto ic = factory->generate(mtx);
@@ -149,13 +114,11 @@ TEST_F(Ic, ComputeICWithHashmapIsEquivalentToRefBySyncfree)
     auto dmtx = gko::share(mtx->clone(this->exec));
     auto factory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ic<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->exec);
 
     auto ic = factory->generate(mtx);
@@ -172,11 +135,64 @@ TEST_F(Ic, ComputeICWithHashmapIsEquivalentToRefBySyncfree)
 
 TEST_F(Ic, SetsCorrectStrategy)
 {
-    auto dfact = gko::factorization::Ic<>::build()
-                     .with_l_strategy(std::make_shared<Csr::merge_path>())
-                     .on(exec)
-                     ->generate(dmtx);
+    auto dfact =
+        gko::factorization::Ic<>::build()
+            .with_l_strategy(std::make_shared<Csr::merge_path>())
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec)
+            ->generate(dmtx);
 
     ASSERT_EQ(dfact->get_l_factor()->get_strategy()->get_name(), "merge_path");
     ASSERT_EQ(dfact->get_lt_factor()->get_strategy()->get_name(), "merge_path");
 }
+
+
+#ifdef GKO_COMPILING_OMP
+
+
+TEST_F(Ic, OmpComputeICBySparselibShouldThrow)
+{
+    ASSERT_THROW(gko::factorization::Ic<>::build()
+                     .with_skip_sorting(true)
+                     .on(exec)
+                     ->generate(dmtx),
+                 gko::InvalidStateError);
+}
+
+
+#else
+
+
+TEST_F(Ic, ComputeICIsEquivalentToRefSorted)
+{
+    auto fact = gko::factorization::Ic<>::build()
+                    .with_skip_sorting(true)
+                    .on(ref)
+                    ->generate(mtx);
+    auto dfact = gko::factorization::Ic<>::build()
+                     .with_skip_sorting(true)
+                     .on(exec)
+                     ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_lt_factor(), dfact->get_lt_factor());
+}
+
+
+TEST_F(Ic, ComputeICIsEquivalentToRefUnsorted)
+{
+    gko::test::unsort_matrix(mtx, rand_engine);
+    dmtx->copy_from(mtx);
+
+    auto fact = gko::factorization::Ic<>::build().on(ref)->generate(mtx);
+    auto dfact = gko::factorization::Ic<>::build().on(exec)->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_lt_factor(), dfact->get_lt_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_lt_factor(), dfact->get_lt_factor());
+}
+
+#endif

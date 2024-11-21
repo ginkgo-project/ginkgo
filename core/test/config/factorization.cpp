@@ -76,7 +76,8 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
         config_map["algorithm"] = pnode{"syncfree"};
-        param.with_algorithm(gko::factorization::factorize_algorithm::syncfree);
+        param.with_algorithm(
+            gko::factorization::incomplete_algorithm::syncfree);
     }
 
     template <typename AnswerType>
@@ -115,7 +116,8 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["algorithm"] = pnode{"syncfree"};
-        param.with_algorithm(gko::factorization::factorize_algorithm::syncfree);
+        param.with_algorithm(
+            gko::factorization::incomplete_algorithm::syncfree);
     }
 
     template <typename AnswerType>

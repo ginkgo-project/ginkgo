@@ -108,8 +108,8 @@ public:
          * cuSPARSE/hipSPARSE/reference (sparselib) implementation. Default is
          * sparselib.
          */
-        incomplete_factorize_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            algorithm, incomplete_factorize_algorithm::sparselib);
+        incomplete_algorithm GKO_FACTORY_PARAMETER_SCALAR(
+            algorithm, incomplete_algorithm::sparselib);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ic, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
