@@ -62,7 +62,10 @@ target_include_directories(ginkgo_hip
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR} # for generated headers like jacobi_common.hip.hpp
         )
-target_compile_definitions(ginkgo_hip PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip THRUST_CUB_WRAPPED_NAMESPACE=gko)
+target_compile_definitions(ginkgo_hip PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip)
+if(GINKGO_CUSTOM_THRUST_NAMESPACE)
+    target_compile_definitions(ginkgo_hip PRIVATE THRUST_CUB_WRAPPED_NAMESPACE=gko)
+endif()
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE hip::host roc::hipblas roc::hipsparse hip::hiprand roc::rocrand roc::rocthrust)
@@ -80,8 +83,12 @@ ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip)
 
-if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_hip "GKO_COMPILING_HIP;GKO_DEVICE_NAMESPACE=hip;THRUST_CUB_WRAPPED_NAMESPACE=gko")
+if(GINKGO_CHECK_CIRCULAR_DEPS)
+    set(check_header_def "GKO_COMPILING_HIP;GKO_DEVICE_NAMESPACE=hip")
+    if(GINKGO_CUSTOM_THRUST_NAMESPACE)
+        set(check_header_def "${check_header_def};THRUST_CUB_WRAPPED_NAMESPACE=gko")
+    endif()
+    ginkgo_check_headers(ginkgo_hip "${check_header_def}")
 endif()
 
 if(GINKGO_BUILD_TESTS)
