@@ -1,0 +1,9 @@
+html{
+    --pst-font-size-base: 17px;
+}
+html[data-theme="light"] {
+    --pst-color-primary: #F7A71E;
+}
+.bd-page-width {
+    max-width: 100rem;  /* default is 88rem */
+}

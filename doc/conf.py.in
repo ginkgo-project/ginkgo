@@ -38,14 +38,16 @@ highlight_language = 'c++'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+html_static_path = ['_static']
+html_css_files = ['css/custom.css']
 html_theme = 'sphinx_book_theme'
 html_theme_options = {
     'repository_url': 'https://github.com/ginkgo-project/ginkgo/',
     'use_repository_button': True,
-    'use_fullscreen_button': False,
-    'use_download_button': False
+    'use_fullscreen_button': True,
+    'use_download_button': False,
+    "article_header_end": ["article-header-buttons"]
 }
-html_static_path = ['_static']
 html_logo = '@Ginkgo_SOURCE_DIR@/assets/logo.png'
 html_favicon = '@Ginkgo_SOURCE_DIR@/assets/favicon.ico'
 html_title = f'{project} v{release}'
