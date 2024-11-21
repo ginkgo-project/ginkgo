@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils/assertions.hpp"
@@ -334,7 +335,8 @@ ResultWithLogData<typename MatrixType::value_type> solve_linear_system(
     if (precond_factory) {
         precond = precond_factory->generate(sys.matrix);
     } else {
-        precond = nullptr;
+        precond = gko::batch::matrix::Identity<value_type>::create(
+            exec, sys.matrix->get_size());
     }
 
     solve_lambda(settings, precond.get(), sys.matrix.get(), sys.rhs.get(),

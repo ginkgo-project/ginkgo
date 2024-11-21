@@ -52,21 +52,12 @@ protected:
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
                                   LogData& log_data) {
-            if (prec == nullptr) {
-                auto identity =
-                    gko::batch::matrix::Identity<value_type>::create(
-                        executor, mtx->get_size());
-                gko::kernels::reference::batch_bicgstab::apply(
-                    executor, opts, mtx, identity.get(), b, x, log_data);
-            } else {
-                gko::run<gko::batch::matrix::Identity<value_type>,
-                         gko::batch::preconditioner::Jacobi<value_type>>(
-                    prec, [&](auto preconditioner) {
-                        gko::kernels::reference::batch_bicgstab::apply(
-                            executor, opts, mtx, preconditioner, b, x,
-                            log_data);
-                    });
-            }
+            gko::run<gko::batch::matrix::Identity<value_type>,
+                     gko::batch::preconditioner::Jacobi<value_type>>(
+                prec, [&](auto preconditioner) {
+                    gko::kernels::reference::batch_bicgstab::apply(
+                        executor, opts, mtx, preconditioner, b, x, log_data);
+                });
         };
     }
 
