@@ -66,12 +66,12 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_both_factors(config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("algorithm")) {
-        using gko::factorization::incomplete_factorize_algorithm;
+        using gko::factorization::incomplete_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {
-            params.with_algorithm(incomplete_factorize_algorithm::sparselib);
+            params.with_algorithm(incomplete_algorithm::sparselib);
         } else if (str == "syncfree") {
-            params.with_algorithm(incomplete_factorize_algorithm::syncfree);
+            params.with_algorithm(incomplete_algorithm::syncfree);
         } else {
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
@@ -105,8 +105,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
 
     std::shared_ptr<const matrix_type> ic;
     // Compute LC factorization
-    if (std::dynamic_pointer_cast<const OmpExecutor>(exec) ||
-        parameters_.algorithm == incomplete_factorize_algorithm::syncfree) {
+    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
         std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
             forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
@@ -161,6 +160,10 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             transpose_idxs.get_const_data(), *forest, factors.get(), false,
             tmp));
         ic = factors;
+    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec)) {
+        GKO_INVALID_STATE(
+            "OmpExecutor does not support sparselib algorithm. Please use "
+            "syncfree algorithm.");
     } else {
         exec->run(
             ic_factorization::make_sparselib_ic(local_system_matrix.get()));

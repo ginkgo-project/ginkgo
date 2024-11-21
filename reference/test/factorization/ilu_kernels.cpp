@@ -357,8 +357,7 @@ TYPED_TEST(Ilu, GenerateForCsrSmallBySyncfree)
     using ilu_type = typename TestFixture::ilu_type;
     auto factors =
         ilu_type::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->exec)
             ->generate(this->mtx_csr_small);
     auto l_factor = factors->get_l_factor();
@@ -404,8 +403,7 @@ TYPED_TEST(Ilu, GenerateIluWithBitmapIsEquivalentToRefBySyncfree)
     result_u->read(result_u_data);
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
 
     auto lu = factory->generate(mtx);
@@ -449,8 +447,7 @@ TYPED_TEST(Ilu, GenerateIluWithHashmapIsEquivalentToRefBySyncfree)
     result_u->read(result_u_data);
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
 
     auto lu = factory->generate(mtx);

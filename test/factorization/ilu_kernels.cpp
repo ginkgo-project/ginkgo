@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
@@ -37,24 +38,6 @@ protected:
 };
 
 
-TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
-{
-    auto fact = gko::factorization::Ilu<>::build()
-                    .with_skip_sorting(true)
-                    .on(ref)
-                    ->generate(mtx);
-    auto dfact = gko::factorization::Ilu<>::build()
-                     .with_skip_sorting(true)
-                     .on(exec)
-                     ->generate(dmtx);
-
-    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
-    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
-}
-
-
 TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
 {
     auto fact = gko::factorization::Ilu<>::build()
@@ -64,25 +47,9 @@ TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
     auto dfact =
         gko::factorization::Ilu<>::build()
             .with_skip_sorting(true)
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(exec)
             ->generate(dmtx);
-
-    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
-    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
-}
-
-
-TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
-{
-    gko::test::unsort_matrix(mtx, rand_engine);
-    dmtx->copy_from(mtx);
-
-    auto fact = gko::factorization::Ilu<>::build().on(ref)->generate(mtx);
-    auto dfact = gko::factorization::Ilu<>::build().on(exec)->generate(dmtx);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
     GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
@@ -104,13 +71,11 @@ TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfree)
 
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);
@@ -143,13 +108,11 @@ TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfree)
     auto dmtx = gko::share(mtx->clone(this->exec));
     auto factory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->ref);
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
-            .with_algorithm(
-                gko::factorization::incomplete_factorize_algorithm::syncfree)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);
@@ -166,15 +129,17 @@ TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfree)
 
 TEST_F(Ilu, SetsCorrectStrategy)
 {
-    auto dfact = gko::factorization::Ilu<>::build()
-                     .with_l_strategy(std::make_shared<Csr::merge_path>())
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_l_strategy(std::make_shared<Csr::merge_path>())
 #ifdef GKO_COMPILING_OMP
-                     .with_u_strategy(std::make_shared<Csr::merge_path>())
+            .with_u_strategy(std::make_shared<Csr::merge_path>())
 #else
-                     .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
+            .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
 #endif
-                     .on(exec)
-                     ->generate(dmtx);
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec)
+            ->generate(dmtx);
 
     ASSERT_EQ(dfact->get_l_factor()->get_strategy()->get_name(), "merge_path");
 #ifdef GKO_COMPILING_OMP
@@ -184,3 +149,55 @@ TEST_F(Ilu, SetsCorrectStrategy)
               "load_balance");
 #endif
 }
+
+
+#ifdef GKO_COMPILING_OMP
+
+
+TEST_F(Ilu, OmpComputeILUBySparselibShouldThrow)
+{
+    ASSERT_THROW(gko::factorization::Ilu<>::build()
+                     .with_skip_sorting(true)
+                     .on(exec)
+                     ->generate(dmtx),
+                 gko::InvalidStateError);
+}
+
+
+#else
+
+
+TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
+{
+    auto fact = gko::factorization::Ilu<>::build()
+                    .with_skip_sorting(true)
+                    .on(ref)
+                    ->generate(mtx);
+    auto dfact = gko::factorization::Ilu<>::build()
+                     .with_skip_sorting(true)
+                     .on(exec)
+                     ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
+{
+    gko::test::unsort_matrix(mtx, rand_engine);
+    dmtx->copy_from(mtx);
+
+    auto fact = gko::factorization::Ilu<>::build().on(ref)->generate(mtx);
+    auto dfact = gko::factorization::Ilu<>::build().on(exec)->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
+}
+
+
+#endif

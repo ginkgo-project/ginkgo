@@ -16,7 +16,7 @@ namespace factorization {
  * `syncfree` is Ginkgo's implementation by using the Lu/Cholesky factorization
  * components with given sparsity.
  */
-enum class incomplete_factorize_algorithm { sparselib, syncfree };
+enum class incomplete_algorithm { sparselib, syncfree };
 
 
 }  // namespace factorization
