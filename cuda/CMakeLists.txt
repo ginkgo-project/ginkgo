@@ -72,7 +72,7 @@ endif()
 
 ginkgo_compile_features(ginkgo_cuda)
 target_compile_definitions(ginkgo_cuda PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
-if(GINKGO_CUSTOM_THRUST_NAMESPACE)
+if(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE)
     target_compile_definitions(ginkgo_cuda PRIVATE THRUST_CUB_WRAPPED_NAMESPACE=gko)
 endif()
 
@@ -88,7 +88,7 @@ ginkgo_install_library(ginkgo_cuda)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
     set(check_header_def "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda")
-    if(GINKGO_CUSTOM_THRUST_NAMESPACE)
+    if(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE)
         set(check_header_def "${check_header_def};THRUST_CUB_WRAPPED_NAMESPACE=gko")
     endif()
     ginkgo_check_headers(ginkgo_cuda "${check_header_def}")

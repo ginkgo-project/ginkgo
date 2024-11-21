@@ -130,7 +130,7 @@ foreach(log_type ${log_types})
         "GINKGO_BUILD_OMP;GINKGO_BUILD_MPI;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP;GINKGO_BUILD_SYCL")
     ginkgo_print_module_footer(${${log_type}} "  Enabled features:")
     ginkgo_print_foreach_variable(${${log_type}}
-        "GINKGO_MIXED_PRECISION;GINKGO_HAVE_GPU_AWARE_MPI;GINKGO_CUSTOM_THRUST_NAMESPACE")
+        "GINKGO_MIXED_PRECISION;GINKGO_HAVE_GPU_AWARE_MPI")
     ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
     ginkgo_print_foreach_variable(${${log_type}}
         "GINKGO_BUILD_TESTS;GINKGO_FAST_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS;GINKGO_BENCHMARK_ENABLE_TUNING")
