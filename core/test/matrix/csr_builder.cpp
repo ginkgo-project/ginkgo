@@ -59,6 +59,11 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     struct mock_strategy : public Mtx::strategy_type {
+#if defined(_MSC_VER) && defined(__clang__)
+        // only clang_cl in Windows needs this workaround. detail:
+        // https://github.com/llvm/llvm-project/issues/64996
+        using Mtx = Mtx;
+#endif
         virtual void process(const gko::array<index_type>&,
                              gko::array<index_type>*) override
         {

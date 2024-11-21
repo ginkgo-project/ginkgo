@@ -89,9 +89,9 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> projector)
     : EnableLinOp<Perturbation>(basis->get_executor(),
                                 gko::dim<2>{basis->get_size()[0]}),
-      scalar_{std::move(scalar)},
       basis_{std::move(basis)},
-      projector_{std::move(projector)}
+      projector_{std::move(projector)},
+      scalar_{std::move(scalar)}
 {
     this->validate_perturbation();
 }

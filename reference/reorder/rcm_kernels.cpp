@@ -179,10 +179,8 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
 template <typename IndexType>
 void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         const IndexType* const col_idxs,
-                         IndexType* const permutation,
-                         IndexType* const inv_permutation,
+                         const IndexType* row_ptrs, const IndexType* col_idxs,
+                         IndexType* permutation, IndexType* inv_permutation,
                          const gko::reorder::starting_strategy strategy)
 {
     // compute node degrees

@@ -63,7 +63,7 @@ log_data<ValueType>::log_data(std::shared_ptr<const Executor> exec,
     }
 }
 
-#define GKO_DECLARE_LOG_DATA(_type) class log_data<_type>
+#define GKO_DECLARE_LOG_DATA(_type) struct log_data<_type>
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_LOG_DATA);
 

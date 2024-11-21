@@ -63,7 +63,7 @@
 class IterationControl {
     using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
 
-    class run_control;
+    struct run_control;
 
 public:
     /**

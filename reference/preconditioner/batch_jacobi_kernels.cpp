@@ -23,8 +23,7 @@ namespace batch_jacobi {
 template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
-    const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_offsets)
+    const IndexType* block_pointers, IndexType* blocks_cumulative_offsets)
 {
     blocks_cumulative_offsets[0] = 0;
     for (int i = 0; i < num_blocks; i++) {
@@ -41,8 +40,8 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename IndexType>
 void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
-                        const IndexType* const block_pointers,
-                        IndexType* const map_block_to_row)
+                        const IndexType* block_pointers,
+                        IndexType* map_block_to_row)
 {
     for (size_type block_idx = 0; block_idx < num_blocks; block_idx++) {
         for (IndexType i = block_pointers[block_idx];
@@ -59,10 +58,10 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const size_type num_blocks, const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers, const IndexType* const,
-    IndexType* const blocks_pattern)
+    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    const size_type num_blocks, const IndexType* cumulative_block_storage,
+    const IndexType* block_pointers, const IndexType*,
+    IndexType* blocks_pattern)
 {
     for (size_type k = 0; k < num_blocks; k++) {
         batch_single_kernels::extract_block_pattern_impl(
@@ -78,10 +77,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Csr<ValueType, IndexType>* const sys_csr, const uint32,
-    const size_type num_blocks, const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern, ValueType* const blocks)
+    const batch::matrix::Csr<ValueType, IndexType>* sys_csr, const uint32,
+    const size_type num_blocks, const IndexType* cumulative_block_storage,
+    const IndexType* block_pointers, const IndexType* blocks_pattern,
+    ValueType* blocks)
 {
     const auto nbatch = sys_csr->get_num_batch_items();
     const auto A_batch = host::get_batch_struct(sys_csr);

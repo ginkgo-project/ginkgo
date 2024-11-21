@@ -742,9 +742,8 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
 template <typename IndexType>
 void compute_permutation(std::shared_ptr<const OmpExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         const IndexType* const col_idxs, IndexType* const perm,
-                         IndexType* const inv_perm,
+                         const IndexType* row_ptrs, const IndexType* col_idxs,
+                         IndexType* perm, IndexType* inv_perm,
                          const gko::reorder::starting_strategy strategy)
 {
     // compute node degrees

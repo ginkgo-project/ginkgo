@@ -178,7 +178,7 @@ segmented_array<T>& segmented_array<T>::operator=(segmented_array&& other)
 }
 
 
-#define GKO_DECLARE_SEGMENTED_ARRAY(_type) class segmented_array<_type>
+#define GKO_DECLARE_SEGMENTED_ARRAY(_type) struct segmented_array<_type>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SEGMENTED_ARRAY);
 

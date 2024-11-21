@@ -200,7 +200,8 @@ namespace detail {
  *
  * @note it should only be used internally
  */
-struct MultigridState {
+class MultigridState {
+public:
     MultigridState() : nrhs{static_cast<size_type>(-1)} {}
 
     /**
