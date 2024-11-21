@@ -58,18 +58,11 @@ void Bicgstab<ValueType>::solver_apply(
 
     run<matrix::Dense<ValueType>, matrix::Csr<ValueType>,
         matrix::Ell<ValueType>>(this->system_matrix_.get(), [&](auto matrix) {
-        if (this->preconditioner_ == nullptr) {
-            auto identity =
-                matrix::Identity<ValueType>::create(exec, matrix->get_size());
-            exec->run(bicgstab::make_apply(settings, matrix, identity.get(), b,
-                                           x, *log_data));
-        } else {
-            run<matrix::Identity<ValueType>, preconditioner::Jacobi<ValueType>>(
-                this->preconditioner_.get(), [&](auto preconditioner) {
-                    exec->run(bicgstab::make_apply(
-                        settings, matrix, preconditioner, b, x, *log_data));
-                });
-        }
+        run<matrix::Identity<ValueType>, preconditioner::Jacobi<ValueType>>(
+            this->preconditioner_.get(), [&](auto preconditioner) {
+                exec->run(bicgstab::make_apply(settings, matrix, preconditioner,
+                                               b, x, *log_data));
+            });
     });
 }
 

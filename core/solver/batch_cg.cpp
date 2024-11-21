@@ -58,19 +58,12 @@ void Cg<ValueType>::solver_apply(
     run<batch::matrix::Dense<ValueType>, batch::matrix::Csr<ValueType>,
         batch::matrix::Ell<ValueType>>(
         this->system_matrix_.get(), [&](auto matrix) {
-            if (this->preconditioner_ == nullptr) {
-                auto identity = matrix::Identity<ValueType>::create(
-                    exec, matrix->get_size());
-                exec->run(cg::make_apply(settings, matrix, identity.get(), b, x,
-                                         *log_data));
-            } else {
-                run<batch::matrix::Identity<ValueType>,
-                    batch::preconditioner::Jacobi<ValueType>>(
-                    this->preconditioner_.get(), [&](auto preconditioner) {
-                        exec->run(cg::make_apply(
-                            settings, matrix, preconditioner, b, x, *log_data));
-                    });
-            }
+            run<batch::matrix::Identity<ValueType>,
+                batch::preconditioner::Jacobi<ValueType>>(
+                this->preconditioner_.get(), [&](auto preconditioner) {
+                    exec->run(cg::make_apply(settings, matrix, preconditioner,
+                                             b, x, *log_data));
+                });
         });
 }
 
