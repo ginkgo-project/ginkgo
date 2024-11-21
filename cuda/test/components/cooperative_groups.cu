@@ -73,7 +73,8 @@ __global__ void cg_shuffle(bool* s)
         group::tiled_partition<config::warp_size>(group::this_thread_block());
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == max(0, i - 1));
-    test_assert(s, group.shfl_down(i, 1) == min(i + 1, config::warp_size - 1));
+    test_assert(s, group.shfl_down(i, 1) ==
+                       min(i + 1, static_cast<int>(config::warp_size) - 1));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 

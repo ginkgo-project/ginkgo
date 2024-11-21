@@ -22,10 +22,11 @@
 #include "hip/test/utils.hip.hpp"
 
 
-namespace {
+// put the test in gko namespace to easily adapt the thrust/cub in gko or not
+namespace gko {
 
 
-using namespace gko::kernels::hip;
+using namespace kernels::hip;
 
 
 class CooperativeGroups : public HipTestFixture {
@@ -80,7 +81,8 @@ __global__ void cg_shuffle(bool* s)
         group::tiled_partition<config::warp_size>(group::this_thread_block());
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == max(0, i - 1));
-    test_assert(s, group.shfl_down(i, 1) == min(i + 1, config::warp_size - 1));
+    test_assert(s, group.shfl_down(i, 1) ==
+                       min(i + 1, static_cast<int>(config::warp_size) - 1));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
@@ -337,4 +339,4 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
 }
 
 
-}  // namespace
+}  // namespace gko
