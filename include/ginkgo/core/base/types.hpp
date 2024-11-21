@@ -443,6 +443,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 // Helper macro to make Windows builds work
+// In MSVC, __VA_ARGS__ behave like one argument by default.
+// with this, we can expand the __VA_ARGS__ properly
 #define GKO_INDIRECT(...) __VA_ARGS__
 
 

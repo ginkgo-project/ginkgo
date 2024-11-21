@@ -18,16 +18,16 @@ namespace batch {
 
 
 // just make the call list more consistent
-#define GKO_CALL(_macro, ...) _macro(__VA_ARGS__)
+#define GKO_CALL(_macro, ...) GKO_INDIRECT(_macro(__VA_ARGS__))
 
-#define GKO_BATCH_INSTANTIATE_PRECONDITIONER(_next, ...) \
-    _next(__VA_ARGS__, gko::batch::matrix::Identity);    \
-    _next(__VA_ARGS__, gko::batch::preconditioner::Jacobi)
+#define GKO_BATCH_INSTANTIATE_PRECONDITIONER(_next, ...)            \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Identity)); \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::preconditioner::Jacobi))
 
-#define GKO_BATCH_INSTANTIATE_MATRIX(_next, ...)   \
-    _next(__VA_ARGS__, gko::batch::matrix::Ell);   \
-    _next(__VA_ARGS__, gko::batch::matrix::Dense); \
-    _next(__VA_ARGS__, gko::batch::matrix::Csr)
+#define GKO_BATCH_INSTANTIATE_MATRIX(_next, ...)                 \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Ell));   \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Dense)); \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Csr))
 
 /**
  * Instantiates a template for each valid combination of value type, batch
