@@ -53,12 +53,10 @@ Ginkgo adds the following additional switches to control what is being built:
     `OFF` otherwise.
 *   `-DCMAKE_HIP_ARCHITECTURES="gpuarch1;gpuarch2"` the AMDGPU targets to be passed to the compiler.
     If empty, compiler chooses based on the available GPUs.
-*   `-DGINKGO_CUDA_CUSTOM_THRUST_NAMESPACE={ON, OFF}` adds custom namespace to thrust and the underlying cub in Ginkgo cuda.
-    Default is `OFF`. If encountering some weird issues only when using Ginkgo with other libraries using thrust or cub,
-    enabling this option may help.
-*   `-DGINKGO_HIP_CUSTOM_THRUST_NAMESPACE={ON, OFF}` adds custom namespace to thrust in Ginkgo hip.
-    Default is `OFF`. If encountering some weird issues only when using Ginkgo with other libraries using thrust or cub,
-    enabling this option may help.
+*   `-DGINKGO_CUDA_CUSTOM_THRUST_NAMESPACE={ON, OFF}` adds custom namespace to thrust and the underlying cub in Ginkgo CUDA.
+    Default is `ON`. It avoids the potential conflicts from thrust when other libraries also use thrust.
+*   `-DGINKGO_HIP_CUSTOM_THRUST_NAMESPACE={ON, OFF}` adds custom namespace to thrust in Ginkgo HIP.
+    Default is `ON`. It avoids the potential conflicts from thrust when other libraries also use thrust.
 *   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. Default is `OFF`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
