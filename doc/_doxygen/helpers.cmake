@@ -1,15 +1,15 @@
 # generates the API documentation
 function(ginkgo_doc_gen)
     set(GINKGO_DOXYGEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(GINKGO_DOXYGEN_BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../_build_doxygen)
+    set(GINKGO_DOXYGEN_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     file(GLOB doxygen_depend
         ${GINKGO_DOXYGEN_DIR}/headers/*.hpp
         ${Ginkgo_SOURCE_DIR}/include/ginkgo/**/*.hpp
         )
     list(APPEND doxygen_depend
-        ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
-        ${PROJECT_BINARY_DIR}/include/ginkgo/ginkgo.hpp
+        ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp
+        ${Ginkgo_BINARY_DIR}/include/ginkgo/ginkgo.hpp
         )
     list(APPEND doxygen_depend
         ${CMAKE_CURRENT_BINARY_DIR}/examples/examples.hpp
