@@ -64,7 +64,6 @@ else()
 endif()
 
 set(GKO_FILE_CONFIG_ENABLED 0)
-find_package(nlohmann_json 3.9.1 QUIET)
 if(nlohmann_json_FOUND)
     set(GKO_FILE_CONFIG_ENABLED 1)
     list(APPEND EXAMPLES_LIST file-config-solver)
