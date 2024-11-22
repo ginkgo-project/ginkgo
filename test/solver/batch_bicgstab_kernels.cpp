@@ -14,9 +14,12 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
 #include "core/base/batch_utilities.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_helpers.hpp"
@@ -48,9 +51,13 @@ protected:
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
                                   LogData& log_data) {
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_bicgstab::apply<
-                typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
-                                          log_data);
+            gko::run<gko::batch::matrix::Identity<value_type>,
+                     gko::batch::preconditioner::Jacobi<value_type>>(
+                prec, [&](auto preconditioner) {
+                    gko::kernels::GKO_DEVICE_NAMESPACE::batch_bicgstab::apply(
+                        executor, settings, mtx, preconditioner, b, x,
+                        log_data);
+                });
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};

@@ -14,10 +14,12 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
@@ -113,9 +115,13 @@ protected:
                                   const gko::batch::BatchLinOp* prec,
                                   const Mtx* mtx, const MVec* b, MVec* x,
                                   LogData& log_data) {
-            gko::kernels::GKO_DEVICE_NAMESPACE::batch_bicgstab::apply<
-                typename Mtx::value_type>(executor, settings, mtx, prec, b, x,
-                                          log_data);
+            gko::run<gko::batch::matrix::Identity<value_type>,
+                     gko::batch::preconditioner::Jacobi<value_type>>(
+                prec, [&](auto preconditioner) {
+                    gko::kernels::GKO_DEVICE_NAMESPACE::batch_bicgstab::apply(
+                        executor, settings, mtx, preconditioner, b, x,
+                        log_data);
+                });
         };
         solver_settings = Settings{max_iters, tol,
                                    gko::batch::stop::tolerance_type::relative};

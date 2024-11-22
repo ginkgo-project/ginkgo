@@ -162,19 +162,22 @@ storage_config compute_shared_storage(const int available_shared_mem,
 }  // namespace batch_cg
 
 
-#define GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_type)                               \
-    void apply(                                                                \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const gko::kernels::batch_cg::settings<remove_complex<_type>>&         \
-            options,                                                           \
-        const batch::BatchLinOp* mat, const batch::BatchLinOp* preconditioner, \
-        const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,      \
+#define GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_type, _matrix, _prec)          \
+    void apply(                                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const gko::kernels::batch_cg::settings<remove_complex<_type>>&    \
+            options,                                                      \
+        const _matrix* mat, const _prec* preconditioner,                  \
+        const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x, \
         gko::batch::log::detail::log_data<remove_complex<_type>>& logdata)
 
+#define GKO_DECLARE_BATCH_CG_APPLY_KERNEL_WRAPPER(_vtype, _matrix, _precond) \
+    GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_vtype, _matrix<_vtype>, _precond<_vtype>)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_BATCH_CG_APPLY_KERNEL(ValueType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType, typename BatchMatrixType, typename PrecType> \
+    GKO_DECLARE_BATCH_CG_APPLY_KERNEL(ValueType, BatchMatrixType, PrecType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_cg, GKO_DECLARE_ALL_AS_TEMPLATES);

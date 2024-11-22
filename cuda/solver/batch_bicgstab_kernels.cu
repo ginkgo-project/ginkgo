@@ -9,6 +9,7 @@
 #include "common/cuda_hip/base/batch_multi_vector_kernels.hpp"
 #include "common/cuda_hip/matrix/batch_struct.hpp"
 #include "common/cuda_hip/solver/batch_bicgstab_kernels.hpp"
+#include "core/base/batch_instantiation.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/solver/batch_dispatch.hpp"
 #include "cuda/solver/batch_bicgstab_launch.cuh"
@@ -138,20 +139,21 @@ private:
 };
 
 
-template <typename ValueType>
+template <typename ValueType, typename BatchMatrixType, typename PrecType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const settings<remove_complex<ValueType>>& settings,
-           const batch::BatchLinOp* mat, const batch::BatchLinOp* precon,
+           const BatchMatrixType* mat, const PrecType* precond,
            const batch::MultiVector<ValueType>* b,
            batch::MultiVector<ValueType>* x,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
-        kernel_caller<ValueType>(exec, settings), settings, mat, precon);
+        kernel_caller<ValueType>(exec, settings), settings, mat, precond);
     dispatcher.apply(b, x, logdata);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_bicgstab

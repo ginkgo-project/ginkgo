@@ -5,6 +5,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "core/base/batch_instantiation.hpp"
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/index_set_kernels.hpp"
@@ -167,6 +168,13 @@
     template <typename ValueType, typename ValueTypeKrylovBases>               \
     _macro(ValueType, ValueTypeKrylovBases) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(_macro)
+
+#define GKO_STUB_BATCH_VALUE_MATRIX_PRECONDITIONER(_declare, _wrapper)         \
+    template <typename ValueType, typename BatchMatrixType, typename PrecType> \
+    _declare(ValueType, BatchMatrixType, PrecType)                             \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                                     \
+    GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(_wrapper)
+
 
 namespace gko {
 namespace kernels {
@@ -421,7 +429,9 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
 namespace batch_bicgstab {
 
 
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+GKO_STUB_BATCH_VALUE_MATRIX_PRECONDITIONER(
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL,
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_bicgstab
@@ -430,7 +440,9 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
 namespace batch_cg {
 
 
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
+GKO_STUB_BATCH_VALUE_MATRIX_PRECONDITIONER(
+    GKO_DECLARE_BATCH_CG_APPLY_KERNEL,
+    GKO_DECLARE_BATCH_CG_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_cg

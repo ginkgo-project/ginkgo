@@ -94,7 +94,13 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
 if(MINGW OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        # Otherwise, dynamic_cast to the class marked by final will be failed.
+        # https://reviews.llvm.org/D154658 should be relevant
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-assume-unique-vtables")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+    endif()
 endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
