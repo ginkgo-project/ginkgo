@@ -46,6 +46,7 @@ html_theme_options = {
     'use_repository_button': True,
     'use_fullscreen_button': True,
     'use_download_button': False,
+    # remove the light/dark mode switcher as it doesn't work properly on doxygen pages
     "article_header_end": ["article-header-buttons"]
 }
 html_logo = '@Ginkgo_SOURCE_DIR@/assets/logo.png'
@@ -82,5 +83,5 @@ myst_heading_anchors = 3
 # https://sphinxcontrib-doxylink.readthedocs.io/en/stable/#
 
 doxylink = {
-    'doxy': ('@Ginkgo_BINARY_DIR@/doc/_doxygen/html/tagfile.xml', '_doxygen/html')
+    'doxy': ('@Ginkgo_BINARY_DIR@/doc/doxygen/html/tagfile.xml', 'doxygen/html')
 }

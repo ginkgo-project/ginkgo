@@ -1,4 +1,4 @@
-add_subdirectory(_doxygen)
+add_subdirectory(doxygen)
 
 find_program(sphinx-build NAMES sphinx-build REQUIRED)
 find_program(doxysphinx NAMES doxysphinx REQUIRED)
@@ -64,9 +64,9 @@ add_custom_target(
     doxysphinx
     ALL
     COMMAND
-        "${doxysphinx}" build --doxygen_cwd
-        ${CMAKE_CURRENT_BINARY_DIR}/_doxygen/ ${CMAKE_CURRENT_BINARY_DIR}
-        ${GINKGO_SPHINX_BUILD_DIR} ${CMAKE_CURRENT_BINARY_DIR}/_doxygen/Doxyfile
+        "${doxysphinx}" build --doxygen_cwd ${CMAKE_CURRENT_BINARY_DIR}/doxygen/
+        ${CMAKE_CURRENT_BINARY_DIR} ${GINKGO_SPHINX_BUILD_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/doxygen/Doxyfile
     DEPENDS doxygen
     COMMENT "Generating .rst files from doxygen documentation"
     VERBATIM

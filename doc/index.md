@@ -23,12 +23,12 @@ The Ginkgo library can be grouped into modules which form the basic building blo
 :caption: User Guide:
 
 Tutorial <https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver>
-Examples <_doxygen/html/Examples>
+Examples <doxygen/html/Examples>
 Publications <user-guide/citing>
 user-guide/contributing
 Using Ginkgo <user-guide/install>
 user-guide/about-licensing
-API <_doxygen/html/index>
+API <doxygen/html/index>
 :::
 
 :::{toctree}

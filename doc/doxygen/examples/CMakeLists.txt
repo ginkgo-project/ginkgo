@@ -22,11 +22,11 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/examples.hpp
     COMMAND ${PERL_EXECUTABLE}
     ARGS
-        ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/examples.pl
+        ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/examples.pl
         ${CMAKE_CURRENT_SOURCE_DIR}/examples.hpp.in ${_ginkgo_examples} >
         ${CMAKE_CURRENT_BINARY_DIR}/examples.hpp
     DEPENDS
-        ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/examples.pl
+        ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/examples.pl
         ${CMAKE_CURRENT_SOURCE_DIR}/examples.hpp.in
         ${_ginkgo_examples_tooltip}
         ${_ginkgo_examples_kind}
@@ -50,11 +50,11 @@ foreach(example ${_ginkgo_examples})
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${example}.cpp
         COMMAND ${PERL_EXECUTABLE}
         ARGS
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/program2plain <
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/program2plain <
             ${PROJECT_SOURCE_DIR}/examples/${example}/${example}.cpp >
             ${CMAKE_CURRENT_BINARY_DIR}/${example}.cpp
         DEPENDS
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/program2plain
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/program2plain
             ${PROJECT_SOURCE_DIR}/examples/${example}/${example}.cpp
         VERBATIM
     )
@@ -63,15 +63,15 @@ foreach(example ${_ginkgo_examples})
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${example}.hpp
         COMMAND ${PERL_EXECUTABLE}
         ARGS
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/make_example.pl
-            ${example} ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR} >
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/make_example.pl ${example}
+            ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR} >
             ${CMAKE_CURRENT_BINARY_DIR}/${example}.hpp
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/make_example.pl
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/intro2toc
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/create_anchors
-            ${PROJECT_SOURCE_DIR}/doc/_doxygen/scripts/program2doxygen
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/make_example.pl
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/intro2toc
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/create_anchors
+            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/program2doxygen
             ${PROJECT_SOURCE_DIR}/examples/${example}/${example}.cpp
             ${PROJECT_SOURCE_DIR}/examples/${example}/doc/intro.dox
             ${PROJECT_SOURCE_DIR}/examples/${example}/doc/results.dox
