@@ -354,6 +354,24 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     }
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const device_matrix_data<value_type, global_index_type>& data,
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        row_partition,
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        col_partition,
+    assembly_mode assembly_type)
+{
+    if (assembly_type == assembly_mode::local_only) {
+        return this->read_distributed(data, row_partition, col_partition);
+    }
+    auto all_data =
+        add_non_local_entries<ValueType, LocalIndexType, GlobalIndexType>(
+            this->get_communicator(), data, row_partition);
+    return this->read_distributed(all_data, row_partition, col_partition);
+}
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
@@ -367,6 +385,31 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
         row_partition, col_partition);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const matrix_data<value_type, global_index_type>& data,
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        row_partition,
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        col_partition,
+    assembly_mode assembly_type)
+{
+    if (assembly_type == assembly_mode::local_only) {
+        return this->read_distributed(
+            device_matrix_data<value_type, global_index_type>::create_from_host(
+                this->get_executor(), data),
+            row_partition, col_partition);
+    }
+    auto all_data =
+        add_non_local_entries<ValueType, LocalIndexType, GlobalIndexType>(
+            this->get_communicator(),
+            device_matrix_data<value_type, global_index_type>::create_from_host(
+                this->get_executor(), data),
+            row_partition);
+    return this->read_distributed(all_data, row_partition, col_partition);
 }
 
 
@@ -396,11 +439,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                 this->get_executor(), data),
             partition, partition);
     }
-    auto all_data = assemble<ValueType, LocalIndexType, GlobalIndexType>(
-        this->get_communicator(),
-        device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data),
-        partition);
+    auto all_data =
+        add_non_local_entries<ValueType, LocalIndexType, GlobalIndexType>(
+            this->get_communicator(),
+            device_matrix_data<value_type, global_index_type>::create_from_host(
+                this->get_executor(), data),
+            partition);
     return this->read_distributed(all_data, partition, partition);
 }
 
@@ -425,8 +469,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (assembly_type == assembly_mode::local_only) {
         return this->read_distributed(data, partition, partition);
     }
-    auto all_data = assemble<ValueType, LocalIndexType, GlobalIndexType>(
-        this->get_communicator(), data, partition);
+    auto all_data =
+        add_non_local_entries<ValueType, LocalIndexType, GlobalIndexType>(
+            this->get_communicator(), data, partition);
     return this->read_distributed(all_data, partition, partition);
 }
 

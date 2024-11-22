@@ -31,17 +31,17 @@ class Partition;
  * their respective owners. This can be useful e.g. in a finite element code
  * where each rank assembles a local contribution to a global system matrix and
  * the global matrix has to be assembled by summing up the local contributions
- * on rank boundaries.
+ * on rank boundaries. The partition used is only relevant for row ownership.
  *
  * @param comm the communicator used to assemble the global matrix.
  * @param input the device_matrix_data structure.
- * @param partition the partition used to determine owndership.
+ * @param partition the partition used to determine row owndership.
  *
  * @return the globally assembled device_matrix_data structure for this MPI
  * rank.
  */
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-device_matrix_data<ValueType, GlobalIndexType> assemble(
+device_matrix_data<ValueType, GlobalIndexType> add_non_local_entries(
     mpi::communicator comm,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     ptr_param<const Partition<LocalIndexType, GlobalIndexType>> partition);
