@@ -180,6 +180,26 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 }
 
 
+TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartitionAndCommunicate)
+{
+    using value_type = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{1, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_non_local[] = {
+        {{1, 1, 0}, {0, 3, 4}}, {{1, 0, 7}, {7, 7, 0}}, {{10, 9}}};
+    auto rank = this->dist_mat->get_communicator().rank();
+
+    this->dist_mat->read_distributed(
+        this->dist_input[rank], this->row_part, this->col_part,
+        gko::experimental::distributed::assembly_mode::communicate);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        res_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        res_non_local[rank], 0);
+}
+
+
 TYPED_TEST(MatrixCreation, BuildOnlyLocal)
 {
     using value_type = typename TestFixture::value_type;

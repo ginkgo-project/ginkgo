@@ -105,7 +105,7 @@ TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
-TYPED_TEST(AssemblyHelpers, AssembleDiagOffdiagEmptyIsSameAsRef)
+TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesDiagOffdiagEmptyIsSameAsRef)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -128,7 +128,7 @@ TYPED_TEST(AssemblyHelpers, AssembleDiagOffdiagEmptyIsSameAsRef)
 }
 
 
-TYPED_TEST(AssemblyHelpers, AssembleLocalSmallIsEquivalentToRef)
+TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesLocalSmallIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -162,7 +162,7 @@ TYPED_TEST(AssemblyHelpers, AssembleLocalSmallIsEquivalentToRef)
 }
 
 
-TYPED_TEST(AssemblyHelpers, AssembleLocalIsEquivalentToRef)
+TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesLocalIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
