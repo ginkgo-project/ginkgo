@@ -15,11 +15,6 @@ endif()
 
 # Provide a uniform way for those package without add_sycl_to_target
 function(gko_add_sycl_to_target)
-    if(COMMAND add_sycl_to_target)
-        add_sycl_to_target(${ARGN})
-        return()
-    endif()
-    # We handle them by adding SYCL_FLAGS to compile and link to the target
     set(one_value_args TARGET)
     set(multi_value_args SOURCES)
     cmake_parse_arguments(SYCL
@@ -27,7 +22,15 @@ function(gko_add_sycl_to_target)
         "${one_value_args}"
         "${multi_value_args}"
         ${ARGN})
+    # trick for complex header chain
+    if("${GINKGO_DPCPP_MAJOR_VERSION}.${GINKGO_DPCPP_MINOR_VERSION}" VERSION_GREATER_EQUAL 7.1)
+        target_include_directories(${SYCL_TARGET} PRIVATE "${PROJECT_BINARY_DIR}/dpcpp/base")
+    endif()
+    if(COMMAND add_sycl_to_target)
+        add_sycl_to_target(${ARGN})
+        return()
+    endif()
+    # We handle them by adding SYCL_FLAGS to compile and link to the target
     target_compile_options(${SYCL_TARGET} PRIVATE "${SYCL_FLAGS}")
     target_link_options(${SYCL_TARGET} PRIVATE "${SYCL_FLAGS}")
 endfunction()
-

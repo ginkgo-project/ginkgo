@@ -51,6 +51,7 @@
 /* What is the major version of dpcpp compiler */
 // clang-format off
 #define GINKGO_DPCPP_MAJOR_VERSION @GINKGO_DPCPP_MAJOR_VERSION@
+#define GINKGO_DPCPP_MINOR_VERSION @GINKGO_DPCPP_MINOR_VERSION@
 // clang-format on
 
 

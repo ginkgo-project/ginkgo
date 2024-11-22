@@ -132,7 +132,7 @@ public:
             // reduction (it does not support half)
             // sum = sycl::reduce_over_group(sg, sum, sycl::plus<>());
             for (int i = sg_size / 2; i > 0; i /= 2) {
-                sum += sg.shuffle_down(sum, i);
+                sum += sycl::shift_group_left(sg, sum, i);
             }
 
             if (sg_tid == 0) {
