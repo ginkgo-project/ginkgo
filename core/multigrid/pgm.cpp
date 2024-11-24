@@ -441,7 +441,7 @@ void Pgm<ValueType, IndexType>::generate()
                 setup_fine_op(obj);
             } else {
                 // handle other ValueTypes.
-                run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(obj,
+                run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
                                                                convert_fine_op);
             }
 
