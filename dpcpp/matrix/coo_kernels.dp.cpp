@@ -291,27 +291,32 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
-    if (nwarps > 0) {
-        if (b_ncols < 4) {
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
-            abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_lines, as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          as_device_type(b->get_const_values()),
-                          b->get_stride(), as_device_type(c->get_values()),
-                          c->get_stride());
-        } else {
-            int num_elems =
-                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, config::warp_size));
-            abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_elems, as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          b_ncols, as_device_type(b->get_const_values()),
-                          b->get_stride(), as_device_type(c->get_values()),
-                          c->get_stride());
+    // not support 16 bit atomic
+    if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+        GKO_NOT_SUPPORTED(c);
+    } else {
+        if (nwarps > 0) {
+            if (b_ncols < 4) {
+                const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
+                int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+                abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
+                              num_lines, as_device_type(a->get_const_values()),
+                              a->get_const_col_idxs(), a->get_const_row_idxs(),
+                              as_device_type(b->get_const_values()),
+                              b->get_stride(), as_device_type(c->get_values()),
+                              c->get_stride());
+            } else {
+                int num_elems = ceildiv(nnz, nwarps * config::warp_size) *
+                                config::warp_size;
+                const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                    ceildiv(b_ncols, config::warp_size));
+                abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
+                              num_elems, as_device_type(a->get_const_values()),
+                              a->get_const_col_idxs(), a->get_const_row_idxs(),
+                              b_ncols, as_device_type(b->get_const_values()),
+                              b->get_stride(), as_device_type(c->get_values()),
+                              c->get_stride());
+            }
         }
     }
 }
@@ -332,29 +337,34 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
-    if (nwarps > 0) {
-        if (b_ncols < 4) {
-            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_lines, as_device_type(alpha->get_const_values()),
-                          as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          as_device_type(b->get_const_values()),
-                          b->get_stride(), as_device_type(c->get_values()),
-                          c->get_stride());
-        } else {
-            int num_elems =
-                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, config::warp_size));
-            abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_elems, as_device_type(alpha->get_const_values()),
-                          as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          b_ncols, as_device_type(b->get_const_values()),
-                          b->get_stride(), as_device_type(c->get_values()),
-                          c->get_stride());
+    // not support 16 bit atomic
+    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
+        GKO_NOT_SUPPORTED(c);
+    } else {
+        if (nwarps > 0) {
+            if (b_ncols < 4) {
+                int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+                const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
+                abstract_spmv(
+                    coo_grid, coo_block, 0, exec->get_queue(), nnz, num_lines,
+                    as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(), a->get_const_row_idxs(),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
+            } else {
+                int num_elems = ceildiv(nnz, nwarps * config::warp_size) *
+                                config::warp_size;
+                const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                    ceildiv(b_ncols, config::warp_size));
+                abstract_spmm(
+                    coo_grid, coo_block, 0, exec->get_queue(), nnz, num_elems,
+                    as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(), a->get_const_row_idxs(), b_ncols,
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
+            }
         }
     }
 }

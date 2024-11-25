@@ -1353,7 +1353,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
+bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
                        const matrix::Csr<MatrixValueType, IndexType>* a,
                        const matrix::Dense<InputValueType>* b,
                        matrix::Dense<OutputValueType>* c,
@@ -1363,40 +1363,49 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
-    if (beta) {
-        dense::scale(exec, beta, c);
+    // not support 16 bit atomic
+    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+        return false;
     } else {
-        dense::fill(exec, c, zero<OutputValueType>());
-    }
-    const IndexType nwarps = a->get_num_srow_elements();
-    if (nwarps > 0) {
-        const dim3 csr_block(config::warp_size, warps_in_block, 1);
-        const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
-        const auto a_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
-        const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-        auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-        if (alpha) {
-            if (csr_grid.x > 0 && csr_grid.y > 0) {
-                csr::kernel::abstract_spmv(
-                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                    static_cast<IndexType>(a->get_size()[0]),
-                    as_device_type(alpha->get_const_values()),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(),
-                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
-            }
+        if (beta) {
+            dense::scale(exec, beta, c);
         } else {
-            if (csr_grid.x > 0 && csr_grid.y > 0) {
-                csr::kernel::abstract_spmv(
-                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                    static_cast<IndexType>(a->get_size()[0]),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(),
-                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
+            dense::fill(exec, c, zero<OutputValueType>());
+        }
+        const IndexType nwarps = a->get_num_srow_elements();
+        if (nwarps > 0) {
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
+            const auto a_vals =
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+            const auto b_vals =
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+            if (alpha) {
+                if (csr_grid.x > 0 && csr_grid.y > 0) {
+                    csr::kernel::abstract_spmv(
+                        csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                        static_cast<IndexType>(a->get_size()[0]),
+                        as_device_type(alpha->get_const_values()),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                        a->get_const_row_ptrs(), a->get_const_srow(),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals));
+                }
+            } else {
+                if (csr_grid.x > 0 && csr_grid.y > 0) {
+                    csr::kernel::abstract_spmv(
+                        csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                        static_cast<IndexType>(a->get_size()[0]),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                        a->get_const_row_ptrs(), a->get_const_srow(),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals));
+                }
             }
         }
+        return true;
     }
 }
 
@@ -1502,9 +1511,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::fill(exec, c, zero<OutputValueType>());
         return;
     }
-    if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    if (a->get_strategy()->get_name() == "merge_path") {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1518,8 +1525,10 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "sparselib" ||
-            a->get_strategy()->get_name() == "cusparse") {
+        if (a->get_strategy()->get_name() == "load_balance") {
+            use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
+        } else if (a->get_strategy()->get_name() == "sparselib" ||
+                   a->get_strategy()->get_name() == "cusparse") {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
@@ -1571,9 +1580,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::scale(exec, beta, c);
         return;
     }
-    if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    if (a->get_strategy()->get_name() == "merge_path") {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1588,8 +1595,11 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             beta);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "sparselib" ||
-            a->get_strategy()->get_name() == "cusparse") {
+        if (a->get_strategy()->get_name() == "load_balance") {
+            use_classical =
+                !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
+        } else if (a->get_strategy()->get_name() == "sparselib" ||
+                   a->get_strategy()->get_name() == "cusparse") {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }

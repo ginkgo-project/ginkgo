@@ -673,21 +673,18 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
 
     for (size_type i = 0; i < k; i++) {
         const auto p_i = as_device_type(p->get_const_values()) + i * p_stride;
-        auto gko_impl = [&]() {
-            components::fill_array(exec, alpha->get_values(), nrhs,
-                                   zero<ValueType>());
-            multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, p_i, as_device_type(g_k->get_values()),
-                            g_k->get_stride(),
-                            as_device_type(alpha->get_values()),
-                            stop_status->get_const_data());
-        };
-        if constexpr (std::is_same_v<ValueType, half> ||
-                      is_complex<ValueType>()) {
-            gko_impl();
+        // not support 16 bit atomic
+        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+            GKO_NOT_SUPPORTED(alpha);
         } else {
-            if (nrhs > 1) {
-                gko_impl();
+            if (nrhs > 1 || is_complex<ValueType>()) {
+                components::fill_array(exec, alpha->get_values(), nrhs,
+                                       zero<ValueType>());
+                multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
+                                nrhs, p_i, as_device_type(g_k->get_values()),
+                                g_k->get_stride(),
+                                as_device_type(alpha->get_values()),
+                                stop_status->get_const_data());
             } else {
                 onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
                             g_k->get_stride(),
@@ -731,20 +728,16 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     for (size_type i = k; i < subspace_dim; i++) {
         const auto p_i = p->get_const_values() + i * p_stride;
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        auto gko_impl = [&]() {
-            components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                            nrhs, as_device_type(p_i),
-                            as_device_type(g_k->get_const_values()),
-                            g_k->get_stride(), as_device_type(m_i),
-                            stop_status->get_const_data());
-        };
-        if constexpr (std::is_same_v<ValueType, half> ||
-                      is_complex<ValueType>()) {
-            gko_impl();
+        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+            GKO_NOT_SUPPORTED(m_i);
         } else {
-            if (nrhs > 1) {
-                gko_impl();
+            if (nrhs > 1 || is_complex<ValueType>()) {
+                components::fill_array(exec, m_i, nrhs, zero<ValueType>());
+                multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
+                                nrhs, as_device_type(p_i),
+                                as_device_type(g_k->get_const_values()),
+                                g_k->get_stride(), as_device_type(m_i),
+                                stop_status->get_const_data());
             } else {
                 onemkl::dot(*exec->get_queue(), size, as_device_type(p_i), 1,
                             g_k->get_const_values(), g_k->get_stride(), m_i);
