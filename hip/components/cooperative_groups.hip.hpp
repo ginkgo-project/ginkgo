@@ -306,7 +306,7 @@ public:
                                                SelectorType selector) const \
     {                                                                       \
         return shuffle_impl(                                                \
-            [this](uint16 v, SelectorType s) {                              \
+            [this](uint32 v, SelectorType s) {                              \
                 return static_cast<const Group*>(this)->_name(v, s);        \
             },                                                              \
             var, selector);                                                 \
@@ -326,12 +326,12 @@ private:
     shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType var,
                  SelectorType selector)
     {
-        static_assert(sizeof(ValueType) % sizeof(uint16) == 0,
-                      "Unable to shuffle sizes which are not 2-byte multiples");
-        constexpr auto value_size = sizeof(ValueType) / sizeof(uint16);
+        static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
+                      "Unable to shuffle sizes which are not 4-byte multiples");
+        constexpr auto value_size = sizeof(ValueType) / sizeof(uint32);
         ValueType result;
-        auto var_array = reinterpret_cast<const uint16*>(&var);
-        auto result_array = reinterpret_cast<uint16*>(&result);
+        auto var_array = reinterpret_cast<const uint32*>(&var);
+        auto result_array = reinterpret_cast<uint32*>(&result);
 #pragma unroll
         for (std::size_t i = 0; i < value_size; ++i) {
             result_array[i] = intrinsic_shuffle(var_array[i], selector);
