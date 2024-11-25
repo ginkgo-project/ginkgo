@@ -9,7 +9,7 @@
 #include <cassert>
 #include <type_traits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/config.hpp>
 

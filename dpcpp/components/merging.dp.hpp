@@ -8,7 +8,7 @@
 
 #include <limits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/base/utils.hpp"
 #include "dpcpp/base/dpct.hpp"

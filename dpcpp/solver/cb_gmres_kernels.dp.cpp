@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>

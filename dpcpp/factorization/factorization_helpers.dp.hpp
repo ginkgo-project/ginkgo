@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/factorization/factorization_helpers.hpp"
 #include "dpcpp/base/config.hpp"

@@ -7,9 +7,9 @@
 #include <iostream>
 #include <memory>
 
-#include <CL/sycl.hpp>
-
 #include <gtest/gtest.h>
+
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>

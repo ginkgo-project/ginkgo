@@ -137,7 +137,7 @@ endfunction()
 
 # Extract the DPC++ version
 function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION MACRO_VAR)
-    set(DPCPP_VERSION_PROG "#include <CL/sycl.hpp>\n#include <iostream>\n"
+    set(DPCPP_VERSION_PROG "#include <sycl/sycl.hpp>\n#include <iostream>\n"
         "int main() {std::cout << ${MACRO_VAR} << '\\n'\;"
         "return 0\;}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp" ${DPCPP_VERSION_PROG})

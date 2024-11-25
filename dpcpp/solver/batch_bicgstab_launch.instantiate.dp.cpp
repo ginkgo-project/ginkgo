@@ -4,7 +4,7 @@
 
 #include "dpcpp/solver/batch_bicgstab_launch.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"

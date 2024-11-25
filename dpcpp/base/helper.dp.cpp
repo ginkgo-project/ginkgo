@@ -4,7 +4,7 @@
 
 #include "dpcpp/base/helper.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 
 namespace gko {

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <memory>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/matrix/csr.hpp>
 

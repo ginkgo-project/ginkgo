@@ -4,7 +4,7 @@
 
 #include "core/factorization/factorization_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 

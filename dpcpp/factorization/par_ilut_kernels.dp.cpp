@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>

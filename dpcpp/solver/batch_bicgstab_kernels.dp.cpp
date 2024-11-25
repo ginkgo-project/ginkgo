@@ -4,7 +4,7 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 
