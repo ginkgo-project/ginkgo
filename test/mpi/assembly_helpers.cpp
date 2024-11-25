@@ -99,7 +99,7 @@ TYPED_TEST(AssemblyHelpers, AddsNonLocalEntries)
     auto input = gko::device_matrix_data<value_type, global_index_type>::
         create_from_host(this->exec, this->dist_input[rank]);
 
-    auto result = gko::experimental::distributed::add_non_local_entries<
+    auto result = gko::experimental::distributed::assemble_rows_from_neighbors<
         value_type, local_index_type, global_index_type>(this->comm, input,
                                                          this->row_part);
 

@@ -28,7 +28,7 @@ GKO_REGISTER_OPERATION(fill_send_buffers, assembly_helpers::fill_send_buffers);
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-device_matrix_data<ValueType, GlobalIndexType> add_non_local_entries(
+device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     mpi::communicator comm,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     ptr_param<const Partition<LocalIndexType, GlobalIndexType>> partition)
@@ -128,14 +128,15 @@ device_matrix_data<ValueType, GlobalIndexType> add_non_local_entries(
     return all_data;
 }
 
-#define GKO_DECLARE_ADD_NON_LOCAL_ENTRIES(_value_type, _local_type,      \
-                                          _global_type)                  \
-    device_matrix_data<_value_type, _global_type> add_non_local_entries( \
-        mpi::communicator comm,                                          \
-        const device_matrix_data<_value_type, _global_type>& input,      \
+#define GKO_DECLARE_ASSEMBLE_ROWS_FROM_NEIGHBORS(_value_type, _local_type, \
+                                                 _global_type)             \
+    device_matrix_data<_value_type, _global_type>                          \
+    assemble_rows_from_neighbors(                                          \
+        mpi::communicator comm,                                            \
+        const device_matrix_data<_value_type, _global_type>& input,        \
         ptr_param<const Partition<_local_type, _global_type>> partition)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_ADD_NON_LOCAL_ENTRIES);
+    GKO_DECLARE_ASSEMBLE_ROWS_FROM_NEIGHBORS);
 
 
 }  // namespace distributed

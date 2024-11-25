@@ -21,6 +21,7 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 
+
 template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
 
@@ -41,7 +42,7 @@ class Partition;
  * rank.
  */
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-device_matrix_data<ValueType, GlobalIndexType> add_non_local_entries(
+device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     mpi::communicator comm,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     ptr_param<const Partition<LocalIndexType, GlobalIndexType>> partition);
