@@ -4,7 +4,7 @@
 
 #include "ginkgo/core/base/timer.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

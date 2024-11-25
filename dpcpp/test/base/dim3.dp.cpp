@@ -4,9 +4,9 @@
 
 #include "dpcpp/base/dim3.dp.hpp"
 
-#include <CL/sycl.hpp>
-
 #include <gtest/gtest.h>
+
+#include <sycl/sycl.hpp>
 
 
 namespace {

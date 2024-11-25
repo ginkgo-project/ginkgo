@@ -4,7 +4,7 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/types.hpp>
 

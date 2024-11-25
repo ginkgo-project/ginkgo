@@ -10,7 +10,7 @@
 
 #include <tuple>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 
 namespace gko {

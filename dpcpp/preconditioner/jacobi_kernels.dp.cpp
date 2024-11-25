@@ -4,7 +4,7 @@
 
 #include "core/preconditioner/jacobi_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 

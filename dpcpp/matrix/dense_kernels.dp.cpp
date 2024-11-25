@@ -4,8 +4,9 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-#include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
+
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
