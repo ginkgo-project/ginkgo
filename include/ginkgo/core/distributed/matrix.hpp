@@ -136,10 +136,10 @@ namespace distributed {
 /**
  * assembly_mode defines how the read_distributed function of the distributed
  * matrix treats non-local indices in the (device_)matrix_data:
- * - communicate communicates the overlap between ranks and adds up all local
+ * - `communicate` communicates the overlap between ranks and adds up all local
  *   contributions. Indices smaller than 0 or larger than the global size
  *   of the matrix are ignored.
- * - local_only does not communicate any overlap but ignores all non-local
+ * - `local_only` does not communicate any overlap but ignores all non-local
  *   indices.
  */
 enum class assembly_mode { communicate, local_only };
