@@ -129,10 +129,14 @@ public:
                 sum += block_val * r[dense_block_col + idx_start];
             }
 
-            // reduction (it does not support half)
-            // sum = sycl::reduce_over_group(sg, sum, sycl::plus<>());
-            for (int i = sg_size / 2; i > 0; i /= 2) {
-                sum += sycl::shift_group_left(sg, sum, i);
+            // reduction (it does not support complex<half>)
+            if constexpr (std::is_same_v<value_type,
+                                         std::complex<sycl::half>>) {
+                for (int i = sg_size / 2; i > 0; i /= 2) {
+                    sum += sycl::shift_group_left(sg, sum, i);
+                }
+            } else {
+                sum = sycl::reduce_over_group(sg, sum, sycl::plus<>());
             }
 
             if (sg_tid == 0) {
