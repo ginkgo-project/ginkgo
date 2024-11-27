@@ -394,8 +394,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
-
-    std::cout << "READ DONE" << std::endl;
 }
 
 

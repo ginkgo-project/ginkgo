@@ -161,7 +161,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
 
         // tmp = rho / prev_rho
-        beta_ = rho->at(0, 0) / prev_rho->at(0, 0);
+        // beta_ = rho->at(0, 0) / prev_rho->at(0, 0);
         // p = z + tmp * p
         exec->run(cg::make_step_1(gko::detail::get_local(p),
                                   gko::detail::get_local(z), rho, prev_rho,
@@ -171,8 +171,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // beta = dot(p, q)
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
-        old_alpha_ = alpha_;
-        alpha_ = rho->at(0, 0) / beta->at(0, 0);
+        // old_alpha_ = alpha_;
+        // alpha_ = rho->at(0, 0) / beta->at(0, 0);
         auto comm =
             as<gko::experimental::distributed::Matrix<double, int, int>>(
                 this->get_system_matrix())
