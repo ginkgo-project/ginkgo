@@ -322,8 +322,28 @@ protected:
     std::shared_ptr<Csr> spd_sparse_inv;
 };
 
+#ifdef __NVCOMPILER
+
+
+// Due to NVHPC compilation limitation, we need to split it to two files.
+#ifdef NVHPC_HALF
+using HalfIndexTypes = gko::test::cartesian_type_product_t<
+    ::testing::Types<gko::half, std::complex<gko::half>>,
+    gko::test::IndexTypes>;
+TYPED_TEST_SUITE(Isai, HalfIndexTypes, PairTypenameNameGenerator);
+#else
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+#endif
+
+
+#else
+
+
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
+
+
+#endif
 
 
 TYPED_TEST(Isai, KernelGenerateA)

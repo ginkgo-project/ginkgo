@@ -34,9 +34,8 @@ option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP t
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
 option(GINKGO_ENABLE_HALF "Enable the use of half precision" ON)
 # We do not support MSVC. SYCL will come later
-# NVHPC 23.3 faces "termminated by signal 11" in reference/test/isal_kernel and core/config/preconditioner, so we don't support this version for half unfortunately.
-if(MSVC OR GINKGO_BUILD_SYCL OR (CMAKE_CXX_COMPILER_ID MATCHES "PGI|NVHPC" AND CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 23.3.0))
-    message(STATUS "HALF is not supported in MSVC, NVHPC 23.3, and later support in SYCL")
+if(MSVC OR GINKGO_BUILD_SYCL)
+    message(STATUS "HALF is not supported in MSVC, and later support in SYCL")
     set(GINKGO_ENABLE_HALF OFF CACHE BOOL "Enable the use of half precision" FORCE)
 endif()
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
