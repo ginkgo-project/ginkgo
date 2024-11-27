@@ -4,6 +4,9 @@ set(config_source
     config/factorization_config.cpp
     config/multigrid_config.cpp
     config/preconditioner_config.cpp
+    config/preconditioner_ic_config.cpp
+    config/preconditioner_ilu_config.cpp
+    config/preconditioner_isai_config.cpp
     config/registry.cpp
     config/solver_config.cpp
 )
