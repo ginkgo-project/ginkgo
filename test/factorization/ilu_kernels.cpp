@@ -40,10 +40,12 @@ protected:
 
 TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
 {
-    auto fact = gko::factorization::Ilu<>::build()
-                    .with_skip_sorting(true)
-                    .on(ref)
-                    ->generate(mtx);
+    auto fact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(ref)
+            ->generate(mtx);
     auto dfact =
         gko::factorization::Ilu<>::build()
             .with_skip_sorting(true)

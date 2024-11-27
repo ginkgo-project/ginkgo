@@ -40,10 +40,12 @@ protected:
 
 TEST_F(Ic, ComputeICBySyncfreeIsEquivalentToRefSorted)
 {
-    auto fact = gko::factorization::Ic<>::build()
-                    .with_skip_sorting(true)
-                    .on(ref)
-                    ->generate(mtx);
+    auto fact =
+        gko::factorization::Ic<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(ref)
+            ->generate(mtx);
     auto dfact =
         gko::factorization::Ic<>::build()
             .with_skip_sorting(true)
