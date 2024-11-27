@@ -34,9 +34,9 @@ class Partition;
  * the global matrix has to be assembled by summing up the local contributions
  * on rank boundaries. The partition used is only relevant for row ownership.
  *
- * @param comm the communicator used to assemble the global matrix.
- * @param input the device_matrix_data structure.
- * @param partition the partition used to determine row owndership.
+ * @param comm  the communicator used to assemble the global matrix.
+ * @param input  the device_matrix_data structure.
+ * @param partition  the partition used to determine row owndership.
  *
  * @return the globally assembled device_matrix_data structure for this MPI
  * rank.

@@ -92,9 +92,6 @@ TYPED_TEST(AssemblyHelpers, AddsNonLocalEntries)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    I<I<value_type>> res_local[] = {{{1, 1}, {0, 3}}, {{7, 1}, {0, 7}}, {{10}}};
-    I<I<value_type>> res_non_local[] = {
-        {{0, 2}, {4, 0}}, {{1, 5, 0}, {0, 0, 7}}, {{9}}};
     auto rank = this->comm.rank();
     auto input = gko::device_matrix_data<value_type, global_index_type>::
         create_from_host(this->exec, this->dist_input[rank]);
