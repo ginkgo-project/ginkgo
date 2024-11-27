@@ -160,7 +160,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             transpose_idxs.get_const_data(), *forest, factors.get(), false,
             tmp));
         ic = factors;
-    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec)) {
+    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
+               !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
         GKO_INVALID_STATE(
             "OmpExecutor does not support sparselib algorithm. Please use "
             "syncfree algorithm.");
