@@ -105,7 +105,7 @@ TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
-TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesDiagOffdiagEmptyIsSameAsRef)
+TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesEmptyIsSameAsRef)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -179,7 +179,7 @@ TYPED_TEST(AssemblyHelpers, AddNonLocalEntriesLocalIsEquivalentToRef)
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
+        std::uniform_int_distribution<int>(static_cast<int>(1),
                                            static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);

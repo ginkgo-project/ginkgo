@@ -16,9 +16,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 
@@ -148,6 +145,3 @@ TYPED_TEST(AssemblyHelpers, FillOverlapSendBuffers)
         GKO_ASSERT_ARRAY_EQ(send_values, send_values_ref[i]);
     }
 }
-
-
-}  // namespace

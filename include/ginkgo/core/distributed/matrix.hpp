@@ -299,32 +299,11 @@ public:
      * are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
+     *       by the process. Entries for those rows are discarded.
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     *
-     * @return the index_map induced by the partitions and the matrix structure
-     */
-    void read_distributed(
-        const device_matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
-
-    /**
-     * Reads a square matrix from the device_matrix_data structure and a global
-     * partition.
-     *
-     * The global size of the final matrix is inferred from the size of the
-     * partition. Both the number of rows and columns of the device_matrix_data
-     * are ignored.
-     *
-     * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
-     *
-     * @param data  The device_matrix_data structure.
-     * @param partition  The global row and column partition.
-     * @param assembly_mode  The mode of assembly.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -332,21 +311,7 @@ public:
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
-        assembly_mode assembly_type);
-
-    /**
-     * Reads a square matrix from the matrix_data structure and a global
-     * partition.
-     *
-     * @see read_distributed
-     *
-     * @note For efficiency it is advised to use the device_matrix_data
-     * overload.
-     */
-    void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -361,7 +326,7 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
-        assembly_mode assembly_type);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -372,36 +337,12 @@ public:
      * and columns of the device_matrix_data are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
+     *       by the process. Entries for those rows are discarded.
      *
      * @param data  The device_matrix_data structure.
      * @param row_partition  The global row partition.
      * @param col_partition  The global col partition.
-     *
-     * @return the index_map induced by the partitions and the matrix structure
-     */
-    void read_distributed(
-        const device_matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            row_partition,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
-
-    /**
-     * Reads a matrix from the device_matrix_data structure, a global row
-     * partition, and a global column partition.
-     *
-     * The global size of the final matrix is inferred from the size of the row
-     * partition and the size of the column partition. Both the number of rows
-     * and columns of the device_matrix_data are ignored.
-     *
-     * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
-     *
-     * @param data  The device_matrix_data structure.
-     * @param row_partition  The global row partition.
-     * @param col_partition  The global col partition.
-     * @param assembly_mode  The mode of assembly.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -411,23 +352,7 @@ public:
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
-        assembly_mode assembly_type);
-
-    /**
-     * Reads a matrix from the matrix_data structure, a global row partition,
-     * and a global column partition.
-     *
-     * @see read_distributed
-     *
-     * @note For efficiency it is advised to use the device_matrix_data
-     * overload.
-     */
-    void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            row_partition,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -444,7 +369,7 @@ public:
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
-        assembly_mode assembly_type);
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Get read access to the stored local matrix.
