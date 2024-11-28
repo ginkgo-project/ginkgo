@@ -131,7 +131,7 @@ public:
 
             // reduction (it does not support complex<half>)
             if constexpr (std::is_same_v<value_type,
-                                         std::complex<sycl::half>>) {
+                                         gko::complex<sycl::half>>) {
                 for (int i = sg_size / 2; i > 0; i /= 2) {
                     sum += sycl::shift_group_left(sg, sum, i);
                 }

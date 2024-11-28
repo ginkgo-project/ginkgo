@@ -4,11 +4,6 @@ find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
-# trick for complex header chain
-if("${GINKGO_DPCPP_MAJOR_VERSION}.${GINKGO_DPCPP_MINOR_VERSION}" VERSION_GREATER_EQUAL 7.1)
-    configure_file(base/complex.hpp ${CMAKE_CURRENT_BINARY_DIR}/base/complex)
-endif()
-
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
 add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.dp.cpp BATCH_BICGSTAB_INSTANTIATE)

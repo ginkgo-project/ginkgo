@@ -33,6 +33,10 @@ namespace gko {
 class half;
 
 
+template <typename V>
+class complex;
+
+
 namespace acc {
 namespace detail {
 
@@ -78,6 +82,12 @@ struct sycl_type<T&&> {
 template <typename T>
 struct sycl_type<std::complex<T>> {
     using type = std::complex<typename sycl_type<T>::type>;
+};
+
+
+template <>
+struct sycl_type<std::complex<gko::half>> {
+    using type = gko::complex<typename sycl_type<gko::half>::type>;
 };
 
 
