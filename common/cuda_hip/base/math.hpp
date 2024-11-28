@@ -84,6 +84,12 @@ struct truncate_type_impl<thrust::complex<T>> {
 
 
 template <typename T>
+struct type_size_impl<thrust::complex<T>> {
+    static constexpr auto value = sizeof(T) * byte_size;
+};
+
+
+template <typename T>
 struct is_complex_impl<thrust::complex<T>> : public std::true_type {};
 
 template <>
