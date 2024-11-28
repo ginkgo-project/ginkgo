@@ -672,7 +672,9 @@ packaging/spack/rocm:
   extends:
     - .spack_build_template
     - .quick_test_condition
-  image: ecpe4s/e4s-base-rocm:24.11
+  image:
+    name: ecpe4s/e4s-base-rocm:24.11
+    entrypoint: [""]
   tags:
     - private_ci
     - nla-gpu
