@@ -599,6 +599,7 @@ threadsanitizer:
     - .deploy_condition
     - .before_script_template
     - .use_gko-rocm514-nompi-gnu11-llvm11
+    - .disable_job_condition
   script:
     - LD_PRELOAD=/usr/local/lib/libomp.so
       CC=clang CXX=clang++
