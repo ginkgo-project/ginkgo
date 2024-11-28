@@ -168,7 +168,7 @@
           echo "CURRENT ${CURRENT_VERSION} > SYSTEM ${SYSTEM_VERSION}, so we add path to LD_LIBRARY_PATH"
           export LD_LIBRARY_PATH=${CXX_SOURCE}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         fi
-      fi 
+      fi
     # RPATH_USE_LINK_PATH helps loading newer g++ than system's
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
@@ -214,6 +214,15 @@
       fi
   dependencies: []
 
+.spack_build_template:
+  stage: packaging
+  extends:
+    - .before_script_template
+  script:
+    - git clone -c feature.manyFiles=true --depth=1 https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack
+    - spack external find cmake ninja
+    - spack repo add /opt/ginkgo-spack/var/spack/repos/builtin
+    - spack install -j ${NUM_CORES} ginkgo ${GINKGO_SPEC}
 
 .horeka_test_template:
   stage: test

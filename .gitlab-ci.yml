@@ -4,6 +4,7 @@ stages:
   - trigger_pipeline
   - build
   - test
+  - packaging
   - code_quality
   - deploy
   - QoS_tools
@@ -666,6 +667,17 @@ build/dpcpp/gpu/release/shared:
 #     - cmake --build build --target test_install --config Release
 #   tags:
 #     - windows
+
+packaging/spack/rocm:
+  extends:
+    - .spack_build_template
+    - .quick_test_condition
+  image: ecpe4s/e4s-base-rocm:24.11
+  tags:
+    - private_ci
+    - nla-gpu
+  variables:
+    GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
 
 # Job with important warnings as error
 warnings:
