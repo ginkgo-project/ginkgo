@@ -68,10 +68,10 @@
 #
 # GPU generation name:
 #   Has to be one of the strings ``Tesla``, ``Fermi``, ``Kepler``, ``Maxwell``,
-#   ``Pascal``, ``Volta``, ``Turing``, ``Ampere``. Specifying one of the strings
-#   will add flags for the generation of CUBIN code for all architectures
-#   belonging to that GPU generation (except the ones listed in the
-#   ``UNSUPPORTED`` list).
+#   ``Pascal``, ``Volta``, ``Turing``, ``Ampere``, ``Ada``, ``Hopper``.
+#   Specifying one of the strings will add flags for the generation of CUBIN
+#   code for all architectures belonging to that GPU generation (except the
+#   ones listed in the ``UNSUPPORTED`` list).
 #
 # Virtual and physical architecture specification:
 #   A string of the form ``XX(YY)``, where ``XX`` is the identifier of the
@@ -240,7 +240,9 @@ function(cas_get_architectures_by_name name output)
     set( pascal_version 6)
     set(  volta_version "7(0|2)")
     set( turing_version 75)
-    set( ampere_version 8)
+    set( ampere_version "8(0|6|7)")
+    set(    ada_version 89)
+    set( hopper_version 9)
     string(TOLOWER ${name} lower_name)
     if(NOT DEFINED ${lower_name}_version)
         message(FATAL_ERROR "${name} is not a valid GPU generation name")

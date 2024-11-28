@@ -72,7 +72,7 @@ gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
     include(cmake/cuda.cmake)
-    if(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE AND CUDAToolkit_VERSION VERSION_LESS 11.6)
+    if(CUDAToolkit_VERSION VERSION_LESS 11.6)
         message(STATUS "Disable custom thrust namespace for cuda before 11.6 because it has no effect in the thrust shipped by cuda before 11.6")
         set(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE OFF)
     else()
