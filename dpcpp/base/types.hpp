@@ -14,6 +14,8 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "dpcpp/base/complex.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -54,6 +56,11 @@ struct sycl_type_impl<half> {
 template <typename T>
 struct sycl_type_impl<std::complex<T>> {
     using type = std::complex<typename sycl_type_impl<T>::type>;
+};
+
+template <>
+struct sycl_type_impl<std::complex<gko::half>> {
+    using type = gko::complex<typename sycl_type_impl<gko::half>::type>;
 };
 
 template <typename ValueType, typename IndexType>
