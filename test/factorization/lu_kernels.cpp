@@ -249,6 +249,19 @@ TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
 }
 
 
+TYPED_TEST(Lu, SymbolicLUDeviceWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+        gko::factorization::symbolic_lu_device(this->dmtx.get(), dlu);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+    });
+}
+
+
 TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
 {
     using value_type = typename TestFixture::value_type;

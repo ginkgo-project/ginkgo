@@ -26,12 +26,13 @@ void symbolic_cholesky(
     std::unique_ptr<elimination_forest<IndexType>>& forest);
 
 /**
- * Computes the symbolic LU factorization of the given matrix.
+ * Computes the symbolic LU factorization of the given matrix sequentially.
  *
  * The implementation is based on fill1 algorithm introduced in Rose and Tarjan,
  * "Algorithmic Aspects of Vertex Elimination on Directed Graphs," SIAM J. Appl.
  * Math. 1978. and its formulation in Gaihre et. al,
- * "GSoFa: Scalable Sparse Symbolic LU Factorization on GPUs," arXiv 2021
+ * "GSoFa: Scalable Sparse Symbolic LU Factorization on GPUs,"
+ * IEEE Transactions on Parallel and Distributed Systems, 2022
  *
  * @param mtx  the input matrix
  * @param factors  the output factors stored in a combined pattern
@@ -39,6 +40,21 @@ void symbolic_cholesky(
 template <typename ValueType, typename IndexType>
 void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
                  std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
+
+/**
+ * Computes the symbolic LU factorization of the given matrix on the device.
+ *
+ * The implementation is based on GSoFa algorithm introduced in Gaihre et. al,
+ * "GSoFa: Scalable Sparse Symbolic LU Factorization on GPUs,"
+ * IEEE Transactions on Parallel and Distributed Systems, 2022
+ *
+ * @param mtx  the input matrix
+ * @param factors  the output factors stored in a combined pattern
+ */
+template <typename ValueType, typename IndexType>
+void symbolic_lu_device(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
 /**
  * Computes the symbolic LU factorization of the given, nearly symmetric matrix.

@@ -36,6 +36,14 @@ struct atomic_helper {
                       "specializations are.");
         // TODO: add proper implementation of generic atomic max
     }
+    __forceinline__ __device__ static ValueType atomic_min(ValueType*,
+                                                           ValueType)
+    {
+        static_assert(sizeof(ValueType) == 0,
+                      "This default function is not implemented, only the "
+                      "specializations are.");
+        // TODO: add proper implementation of generic atomic min
+    }
 };
 
 
@@ -72,6 +80,18 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
             return atomic_wrapper(                                           \
                 addr, [&val](c_type& old, c_type assumed, c_type* c_addr) {  \
                     if (reinterpret<ValueType>(assumed) < val) {             \
+                        old = atomicCAS(c_addr, assumed,                     \
+                                        reinterpret<c_type>(val));           \
+                    }                                                        \
+                });                                                          \
+        }                                                                    \
+        __forceinline__ __device__ static ValueType atomic_min(              \
+            ValueType* __restrict__ addr, ValueType val)                     \
+        {                                                                    \
+            using c_type = CONVERTER_TYPE;                                   \
+            return atomic_wrapper(                                           \
+                addr, [&val](c_type& old, c_type assumed, c_type* c_addr) {  \
+                    if (reinterpret<ValueType>(assumed) > val) {             \
                         old = atomicCAS(c_addr, assumed,                     \
                                         reinterpret<c_type>(val));           \
                     }                                                        \
@@ -187,20 +207,31 @@ __forceinline__ __device__ T atomic_max(T* __restrict__ addr, T val)
 
 GKO_BIND_ATOMIC_MAX(int);
 GKO_BIND_ATOMIC_MAX(unsigned int);
-
-#if !defined(__HIPCC__) || \
-    (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
-
-
-#if defined(__CUDA_ARCH__) && (350 <= __CUDA_ARCH__)
-// Only Compute Capability 3.5 and higher supports 64-bit atomicMax
+GKO_BIND_ATOMIC_MAX(long long int);
 GKO_BIND_ATOMIC_MAX(unsigned long long int);
-#endif
 
-#else   // Is HIP platform & on AMD hardware
-GKO_BIND_ATOMIC_MAX(unsigned long long int);
-#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&
-        // GINKGO_HIP_PLATFORM_HCC)
+
+#undef GKO_BIND_ATOMIC_MAX
+
+
+template <typename T>
+__forceinline__ __device__ T atomic_min(T* __restrict__ addr, T val)
+{
+    return detail::atomic_helper<T>::atomic_min(addr, val);
+}
+
+
+#define GKO_BIND_ATOMIC_MIN(ValueType)               \
+    __forceinline__ __device__ ValueType atomic_min( \
+        ValueType* __restrict__ addr, ValueType val) \
+    {                                                \
+        return atomicMin(addr, val);                 \
+    }
+
+GKO_BIND_ATOMIC_MIN(int);
+GKO_BIND_ATOMIC_MIN(unsigned int);
+GKO_BIND_ATOMIC_MIN(long long int);
+GKO_BIND_ATOMIC_MIN(unsigned long long int);
 
 
 #undef GKO_BIND_ATOMIC_MAX

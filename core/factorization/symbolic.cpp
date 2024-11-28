@@ -35,6 +35,8 @@ GKO_REGISTER_OPERATION(symbolic_factorize_simple,
                        lu_factorization::symbolic_factorize_simple);
 GKO_REGISTER_OPERATION(symbolic_factorize_simple_finalize,
                        lu_factorization::symbolic_factorize_simple_finalize);
+GKO_REGISTER_OPERATION(symbolic_factorize_general,
+                       lu_factorization::symbolic_factorize_general);
 GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
 
 
@@ -246,6 +248,43 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_LU);
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_lu_device(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+{
+    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using float_matrix_type = matrix::Csr<float, IndexType>;
+    using scalar_type = gko::matrix::Dense<float>;
+    using id_type = gko::matrix::Identity<float>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
+    const auto exec = mtx->get_executor();
+    if (exec->get_master() == exec) {
+        return symbolic_lu(mtx, factors);
+    }
+
+    const auto size = mtx->get_size()[0];
+    array<IndexType> factor_row_ptrs{exec, size + 1};
+    array<IndexType> factor_cols{exec};
+    exec->run(make_symbolic_factorize_general(
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), size,
+        factor_row_ptrs.get_data(), factor_cols));
+    const auto factor_nnz = factor_cols.get_size();
+    factors = matrix_type::create(
+        exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
+        std::move(factor_cols), std::move(factor_row_ptrs));
+    factors->sort_by_column_index();
+}
+
+
+#define GKO_DECLARE_SYMBOLIC_LU_DEVICE(ValueType, IndexType) \
+    void symbolic_lu_device(                                 \
+        const matrix::Csr<ValueType, IndexType>* mtx,        \
+        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_LU_DEVICE);
 
 
 }  // namespace factorization

@@ -209,6 +209,15 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE_FINALIZE);
 
 
+template <typename IndexType>
+void symbolic_factorize_general(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs, size_type size, IndexType* out_row_ptrs,
+    array<IndexType>& out_col_idxs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMBOLIC_FACTORIZE_GENERAL);
+
+
 }  // namespace lu_factorization
 }  // namespace reference
 }  // namespace kernels

@@ -51,15 +51,24 @@ namespace kernels {
         const matrix::Csr<float, IndexType>* factors, IndexType* col_idxs)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                      \
-    template <typename ValueType, typename IndexType>     \
-    GKO_DECLARE_LU_INITIALIZE(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>     \
-    GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType);       \
-    template <typename IndexType>                         \
-    GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE(IndexType); \
-    template <typename IndexType>                         \
-    GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE_FINALIZE(IndexType)
+#define GKO_DECLARE_LU_SYMBOLIC_FACTORIZE_GENERAL(IndexType)                  \
+    void symbolic_factorize_general(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const IndexType* row_ptrs, const IndexType* col_idxs, size_type size, \
+        IndexType* out_row_ptrs, array<IndexType>& out_col_idxs)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_LU_INITIALIZE(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType);                \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE(IndexType);          \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE_FINALIZE(IndexType); \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_LU_SYMBOLIC_FACTORIZE_GENERAL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(lu_factorization,

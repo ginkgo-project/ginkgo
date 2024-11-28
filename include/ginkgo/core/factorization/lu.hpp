@@ -20,8 +20,16 @@ namespace factorization {
 
 
 enum class symbolic_type {
-    /** An LU factorization algorithm that works on all matrices. */
+    /**
+     * An LU factorization algorithm that works on all matrices, executed
+     * sequentially on the CPU.
+     */
     general,
+    /**
+     * An LU factorization algorithm that works on all matrices, executed in
+     * parallel on the GPU.
+     */
+    general_device,
     /**
      * An LU factorization algorithm that works best on matrices with an almost
      * symmetric sparsity pattern. It is correct for general matrices, but may
