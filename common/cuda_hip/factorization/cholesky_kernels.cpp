@@ -202,15 +202,15 @@ __global__ __launch_bounds__(default_block_size) void factorize(
             const auto upper_col = cols[upper_nz];
             if (upper_col >= row) {
                 const auto upper_val = vals[upper_nz];
-                if (!full_fillin) {
+                if constexpr (full_fillin) {
+                    const auto output_pos =
+                        lookup.lookup_unsafe(upper_col) + row_begin;
+                    vals[output_pos] -= scale * upper_val;
+                } else {
                     const auto pos = lookup[upper_col];
                     if (pos != invalid_index<IndexType>()) {
                         vals[row_begin + pos] -= scale * upper_val;
                     }
-                } else {
-                    const auto output_pos =
-                        lookup.lookup_unsafe(upper_col) + row_begin;
-                    vals[output_pos] -= scale * upper_val;
                 }
             }
         }
