@@ -678,6 +678,7 @@ packaging/spack/rocm:
     - nla-gpu
   variables:
     GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
+  needs: []
 
 # Job with important warnings as error
 warnings:
