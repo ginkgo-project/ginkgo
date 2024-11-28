@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/distributed/assembly_helpers_kernels.hpp"
+#include "core/distributed/assembly_kernels.hpp"
 
 #include <algorithm>
 
@@ -16,7 +16,7 @@
 namespace gko {
 namespace kernels {
 namespace reference {
-namespace assembly_helpers {
+namespace assembly {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -101,7 +101,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_FILL_SEND_BUFFERS);
 
 
-}  // namespace assembly_helpers
+}  // namespace assembly
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

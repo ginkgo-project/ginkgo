@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_ASSEMBLY_HELPERS_KERNELS_HPP_
-#define GKO_CORE_ASSEMBLY_HELPERS_KERNELS_HPP_
+#ifndef GKO_CORE_ASSEMBLY_KERNELS_HPP_
+#define GKO_CORE_ASSEMBLY_KERNELS_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -55,8 +55,7 @@ namespace kernels {
     GKO_DECLARE_FILL_SEND_BUFFERS(ValueType, LocalIndexType, GlobalIndexType)
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(assembly_helpers,
-                                        GKO_DECLARE_ALL_AS_TEMPLATES);
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(assembly, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
@@ -66,4 +65,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(assembly_helpers,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_ASSEMBLY_HELPERS_KERNELS_HPP_
+#endif  // GKO_CORE_ASSEMBLY_KERNELS_HPP_

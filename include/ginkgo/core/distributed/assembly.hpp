@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HELPERS_HPP_
-#define GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HELPERS_HPP_
+#ifndef GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HPP_
+#define GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HPP_
 
 
 #include <ginkgo/config.hpp>
@@ -54,4 +54,4 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
 
 
 #endif  // GINKGO_BUILD_MPI
-#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HELPERS_HPP_
+#endif  // GKO_PUBLIC_CORE_DISTRIBUTED_ASSEMBLY_HPP_

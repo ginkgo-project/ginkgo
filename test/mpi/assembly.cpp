@@ -14,7 +14,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/distributed/assembly_helpers.hpp>
+#include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 #include "core/test/utils.hpp"
