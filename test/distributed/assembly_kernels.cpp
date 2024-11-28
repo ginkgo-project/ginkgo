@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/distributed/assembly_helpers_kernels.hpp"
+#include "core/distributed/assembly_kernels.hpp"
 
 #include <algorithm>
 
@@ -55,10 +55,10 @@ protected:
             gko::array<global_index_type> d_original_positions{exec,
                                                                num_entries};
 
-            gko::kernels::reference::assembly_helpers::count_non_owning_entries(
+            gko::kernels::reference::assembly::count_non_owning_entries(
                 ref, input, row_partition.get(), part, send_count,
                 send_positions, original_positions);
-            gko::kernels::GKO_DEVICE_NAMESPACE::assembly_helpers::
+            gko::kernels::GKO_DEVICE_NAMESPACE::assembly::
                 count_non_owning_entries(exec, d_input, d_row_partition.get(),
                                          part, d_send_count, d_send_positions,
                                          d_original_positions);
@@ -80,14 +80,13 @@ protected:
                                                           num_send_entries};
             gko::array<value_type> d_send_values{exec, num_send_entries};
 
-            gko::kernels::reference::assembly_helpers::fill_send_buffers(
+            gko::kernels::reference::assembly::fill_send_buffers(
                 ref, input, row_partition.get(), part, send_positions,
                 original_positions, send_row_idxs, send_col_idxs, send_values);
-            gko::kernels::GKO_DEVICE_NAMESPACE::assembly_helpers::
-                fill_send_buffers(exec, d_input, d_row_partition.get(), part,
-                                  d_send_positions, d_original_positions,
-                                  d_send_row_idxs, d_send_col_idxs,
-                                  d_send_values);
+            gko::kernels::GKO_DEVICE_NAMESPACE::assembly::fill_send_buffers(
+                exec, d_input, d_row_partition.get(), part, d_send_positions,
+                d_original_positions, d_send_row_idxs, d_send_col_idxs,
+                d_send_values);
 
             GKO_ASSERT_ARRAY_EQ(send_positions, d_send_positions);
             GKO_ASSERT_ARRAY_EQ(original_positions, d_original_positions);

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/distributed/assembly_helpers_kernels.hpp"
+#include "core/distributed/assembly_kernels.hpp"
 
 #include <vector>
 
@@ -82,7 +82,7 @@ TYPED_TEST(AssemblyHelpers, CountOverlapEntries)
     for (gko::size_type i = 0; i < num_parts; i++) {
         send_count.fill(0);
 
-        gko::kernels::reference::assembly_helpers::count_non_owning_entries(
+        gko::kernels::reference::assembly::count_non_owning_entries(
             this->ref, input, partition.get(), i, send_count, send_positions,
             original_positions);
 
@@ -136,7 +136,7 @@ TYPED_TEST(AssemblyHelpers, FillOverlapSendBuffers)
         send_col_idxs.resize_and_reset(num_entries);
         send_values.resize_and_reset(num_entries);
 
-        gko::kernels::reference::assembly_helpers::fill_send_buffers(
+        gko::kernels::reference::assembly::fill_send_buffers(
             this->ref, input, partition.get(), i, send_positions[i],
             original_positions[i], send_row_idxs, send_col_idxs, send_values);
 

@@ -6,7 +6,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/distributed/assembly_helpers.hpp>
+#include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>

@@ -138,7 +138,7 @@ if(GINKGO_BUILD_MPI)
         PRIVATE
         distributed/vector_cache.cpp
         mpi/exception.cpp
-        distributed/assembly_helpers.cpp
+        distributed/assembly.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp

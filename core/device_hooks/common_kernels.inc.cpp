@@ -16,7 +16,7 @@
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
-#include "core/distributed/assembly_helpers_kernels.hpp"
+#include "core/distributed/assembly_kernels.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
@@ -282,7 +282,7 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 }
 
 
-namespace assembly_helpers {
+namespace assembly {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
@@ -290,7 +290,7 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_FILL_SEND_BUFFERS);
 
 
-}  // namespace assembly_helpers
+}  // namespace assembly
 
 
 namespace distributed_matrix {

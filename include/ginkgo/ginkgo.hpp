@@ -58,7 +58,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 
-#include <ginkgo/core/distributed/assembly_helpers.hpp>
+#include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>

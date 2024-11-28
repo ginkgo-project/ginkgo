@@ -2,29 +2,29 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "ginkgo/core/distributed/assembly_helpers.hpp"
+#include "ginkgo/core/distributed/assembly.hpp"
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/distributed/assembly_helpers_kernels.hpp"
+#include "core/distributed/assembly_kernels.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace distributed {
-namespace assembly_helpers {
+namespace assembly {
 namespace {
 
 
 GKO_REGISTER_OPERATION(count_non_owning_entries,
-                       assembly_helpers::count_non_owning_entries);
-GKO_REGISTER_OPERATION(fill_send_buffers, assembly_helpers::fill_send_buffers);
+                       assembly::count_non_owning_entries);
+GKO_REGISTER_OPERATION(fill_send_buffers, assembly::fill_send_buffers);
 
 
 }  // namespace
-}  // namespace assembly_helpers
+}  // namespace assembly
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -43,7 +43,7 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     array<GlobalIndexType> send_positions{exec, num_entries};
     array<GlobalIndexType> original_positions{exec, num_entries};
     send_sizes.fill(zero<comm_index_type>());
-    exec->run(assembly_helpers::make_count_non_owning_entries(
+    exec->run(assembly::make_count_non_owning_entries(
         input, partition.get(), local_part, send_sizes, send_positions,
         original_positions));
 
@@ -68,7 +68,7 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     array<GlobalIndexType> recv_row_idxs{exec, n_recv};
     array<GlobalIndexType> recv_col_idxs{exec, n_recv};
     array<ValueType> recv_values{exec, n_recv};
-    exec->run(assembly_helpers::make_fill_send_buffers(
+    exec->run(assembly::make_fill_send_buffers(
         input, partition.get(), local_part, send_positions, original_positions,
         send_row_idxs, send_col_idxs, send_values));
 
