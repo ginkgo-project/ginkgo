@@ -5,7 +5,7 @@
 #ifndef GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
 #define GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
 
-
+#include "common/cuda_hip/base/math.hpp"
 #if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/types.hpp"
 #elif defined(GKO_COMPILING_HIP)
@@ -14,11 +14,14 @@
 #error "Executor definition missing"
 #endif
 
-#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                               \
-    GKO_ATTRIBUTES GKO_INLINE thrust::complex<__half> operator _op(           \
-        const thrust::complex<__half> lhs, const thrust::complex<__half> rhs) \
-    {                                                                         \
-        return thrust::complex<float>{lhs} _op thrust::complex<float>(rhs);   \
+
+#define THRUST_HALF_FRIEND_OPERATOR(_op, _opeq)                     \
+    GKO_ATTRIBUTES GKO_INLINE GKO_THRUST_QUALIFIER::complex<__half> \
+    operator _op(const GKO_THRUST_QUALIFIER::complex<__half> lhs,   \
+                 const GKO_THRUST_QUALIFIER::complex<__half> rhs)   \
+    {                                                               \
+        return GKO_THRUST_QUALIFIER::complex<float>{                \
+            lhs} _op GKO_THRUST_QUALIFIER::complex<float>(rhs);     \
     }
 
 THRUST_HALF_FRIEND_OPERATOR(+, +=)

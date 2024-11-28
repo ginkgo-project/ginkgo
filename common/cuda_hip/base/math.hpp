@@ -26,6 +26,9 @@
 #endif
 
 
+#include "common/cuda_hip/base/thrust_macro.hpp"
+
+
 namespace gko {
 
 
@@ -84,6 +87,7 @@ struct truncate_type_impl<thrust::complex<T>> {
 }  // namespace gko
 
 
+GKO_THRUST_NAEMSPACE_PREFIX
 namespace thrust {
 
 
@@ -102,6 +106,7 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 
 
 }  // namespace thrust
+GKO_THRUST_NAEMSPACE_POSTFIX
 
 
 namespace gko {
