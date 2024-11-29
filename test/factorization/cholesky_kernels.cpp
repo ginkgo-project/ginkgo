@@ -415,12 +415,12 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-            *this->forest, this->mtx_chol.get(), tmp);
+            *this->forest, this->mtx_chol.get(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
             ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-            *this->dforest, this->dmtx_chol.get(), dtmp);
+            *this->dforest, this->dmtx_chol.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
                             r<value_type>::value);

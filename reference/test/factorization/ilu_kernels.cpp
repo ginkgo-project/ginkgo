@@ -351,6 +351,114 @@ TYPED_TEST(Ilu, GenerateForCsrSmall)
 }
 
 
+TYPED_TEST(Ilu, GenerateForCsrSmallBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using ilu_type = typename TestFixture::ilu_type;
+    auto factors =
+        ilu_type::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->exec)
+            ->generate(this->mtx_csr_small);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, this->small_l_expected, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_factor, this->small_u_expected, r<value_type>::value);
+}
+
+
+TYPED_TEST(Ilu, GenerateIluWithBitmapIsEquivalentToRefBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    // diag + full first row and column
+    // the third and forth row use bitmap for lookup table
+    auto mtx = gko::share(gko::initialize<Csr>({{1.0, 1.0, 1.0, 1.0},
+                                                {1.0, 1.0, 0.0, 0.0},
+                                                {1.0, 0.0, 1.0, 0.0},
+                                                {1.0, 0.0, 0.0, 1.0}},
+                                               this->ref));
+    // generate matrix from matrix data to ensure the sparsity
+    gko::matrix_data<value_type, index_type> result_l_data(gko::dim<2>(4, 4),
+                                                           {{0, 0, 1},
+                                                            {1, 0, 1},
+                                                            {1, 1, 1},
+                                                            {2, 0, 1},
+                                                            {2, 2, 1},
+                                                            {3, 0, 1},
+                                                            {3, 3, 1}});
+    auto result_l = Csr::create(this->ref);
+    result_l->read(result_l_data);
+    gko::matrix_data<value_type, index_type> result_u_data(gko::dim<2>(4, 4),
+                                                           {{0, 0, 1},
+                                                            {0, 1, 1},
+                                                            {0, 2, 1},
+                                                            {0, 3, 1},
+                                                            {1, 1, 0},
+                                                            {2, 2, 0},
+                                                            {3, 3, 0}});
+    auto result_u = Csr::create(this->ref);
+    result_u->read(result_u_data);
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->ref);
+
+    auto lu = factory->generate(mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_l_factor(), result_l);
+    GKO_ASSERT_MTX_NEAR(lu->get_l_factor(), result_l, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_u_factor(), result_u);
+    GKO_ASSERT_MTX_NEAR(lu->get_u_factor(), result_u, r<value_type>::value);
+}
+
+
+TYPED_TEST(Ilu, GenerateIluWithHashmapIsEquivalentToRefBySyncfree)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    int n = 68;
+    // the first row and second last row use hashmap for lookup table
+    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+    gko::matrix_data<value_type, index_type> result_l_data(gko::dim<2>(n, n));
+    gko::matrix_data<value_type, index_type> result_u_data(gko::dim<2>(n, n));
+    for (int i = 0; i < n; i++) {
+        data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+        result_l_data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+        result_u_data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+    }
+    // add dependence
+    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    result_l_data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    // add a entry whose col idx is not shown in the above row
+    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    result_u_data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    data.sort_row_major();
+    result_l_data.sort_row_major();
+    result_u_data.sort_row_major();
+    auto mtx = gko::share(Csr::create(this->ref));
+    mtx->read(data);
+    auto result_l = gko::share(Csr::create(this->ref));
+    result_l->read(result_l_data);
+    auto result_u = gko::share(Csr::create(this->ref));
+    result_u->read(result_u_data);
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->ref);
+
+    auto lu = factory->generate(mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_l_factor(), result_l);
+    GKO_ASSERT_MTX_NEAR(lu->get_l_factor(), result_l, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_u_factor(), result_u);
+    GKO_ASSERT_MTX_NEAR(lu->get_u_factor(), result_u, r<value_type>::value);
+}
+
+
 TYPED_TEST(Ilu, GenerateForCsrSmall2ZeroDiagonal)
 {
     using value_type = typename TestFixture::value_type;

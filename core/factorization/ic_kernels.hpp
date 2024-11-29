@@ -19,13 +19,13 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)   \
-    void compute(std::shared_ptr<const DefaultExecutor> exec, \
-                 matrix::Csr<ValueType, IndexType>* system_matrix)
+#define GKO_DECLARE_IC_SPARSELIB_IC_KERNEL(ValueType, IndexType)   \
+    void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec, \
+                      matrix::Csr<ValueType, IndexType>* system_matrix)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_IC_COMPUTE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_IC_SPARSELIB_IC_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ic_factorization,

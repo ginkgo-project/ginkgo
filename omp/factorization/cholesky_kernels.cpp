@@ -204,14 +204,17 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
 
 
-template <typename ValueType, typename IndexType>
-void factorize(std::shared_ptr<const DefaultExecutor> exec,
-               const IndexType* lookup_offsets, const int64* lookup_descs,
-               const int32* lookup_storage, const IndexType* diag_idxs,
-               const IndexType* transpose_idxs,
-               const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors,
-               array<int>& tmp_storage)
+namespace {
+
+
+template <bool full_fillin, typename ValueType, typename IndexType>
+void factorize_impl(std::shared_ptr<const DefaultExecutor> exec,
+                    const IndexType* lookup_offsets, const int64* lookup_descs,
+                    const int32* lookup_storage, const IndexType* diag_idxs,
+                    const IndexType* transpose_idxs,
+                    const factorization::elimination_forest<IndexType>& forest,
+                    matrix::Csr<ValueType, IndexType>* factors,
+                    array<int>& tmp_storage)
 {
     const auto num_rows = factors->get_size()[0];
     const auto row_ptrs = factors->get_const_row_ptrs();
@@ -233,8 +236,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 const auto col = cols[dep_nz];
                 if (col < row) {
                     const auto val = vals[dep_nz];
-                    const auto nz = row_begin + lookup.lookup_unsafe(col);
-                    vals[nz] -= scale * val;
+                    if constexpr (full_fillin) {
+                        const auto nz = row_begin + lookup.lookup_unsafe(col);
+                        vals[nz] -= scale * val;
+                    } else {
+                        const auto idx = lookup[col];
+                        if (idx != invalid_index<IndexType>()) {
+                            vals[row_begin + idx] -= scale * val;
+                        }
+                    }
                 }
             }
         }
@@ -245,6 +255,30 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);
         }
         vals[row_diag] = sqrt(diag);
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void factorize(std::shared_ptr<const DefaultExecutor> exec,
+               const IndexType* lookup_offsets, const int64* lookup_descs,
+               const int32* lookup_storage, const IndexType* diag_idxs,
+               const IndexType* transpose_idxs,
+               const factorization::elimination_forest<IndexType>& forest,
+               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
+               array<int>& tmp_storage)
+{
+    if (full_fillin) {
+        factorize_impl<true>(exec, lookup_offsets, lookup_descs, lookup_storage,
+                             diag_idxs, transpose_idxs, forest, factors,
+                             tmp_storage);
+    } else {
+        factorize_impl<false>(exec, lookup_offsets, lookup_descs,
+                              lookup_storage, diag_idxs, transpose_idxs, forest,
+                              factors, tmp_storage);
     }
 }
 

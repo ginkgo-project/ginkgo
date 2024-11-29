@@ -46,6 +46,8 @@ constexpr int default_block_size = 512;
 
 
 #include "core/factorization/elimination_forest.hpp"
+
+
 namespace kernel {
 
 
@@ -161,7 +163,7 @@ __global__ __launch_bounds__(default_block_size) void symbolic_factorize(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <bool full_fillin, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void factorize(
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
     const IndexType* __restrict__ storage_offsets,
@@ -200,9 +202,16 @@ __global__ __launch_bounds__(default_block_size) void factorize(
             const auto upper_col = cols[upper_nz];
             if (upper_col >= row) {
                 const auto upper_val = vals[upper_nz];
-                const auto output_pos =
-                    lookup.lookup_unsafe(upper_col) + row_begin;
-                vals[output_pos] -= scale * upper_val;
+                if constexpr (full_fillin) {
+                    const auto output_pos =
+                        lookup.lookup_unsafe(upper_col) + row_begin;
+                    vals[output_pos] -= scale * upper_val;
+                } else {
+                    const auto pos = lookup[upper_col];
+                    if (pos != invalid_index<IndexType>()) {
+                        vals[row_begin + pos] -= scale * upper_val;
+                    }
+                }
             }
         }
     }
@@ -355,7 +364,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
                const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage)
 {
     const auto num_rows = factors->get_size()[0];
@@ -363,12 +372,21 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::factorize<<<num_blocks, default_block_size, 0,
-                            exec->get_stream()>>>(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
-            transpose_idxs, as_device_type(factors->get_values()), storage,
-            num_rows);
+        if (!full_fillin) {
+            kernel::factorize<false>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), lookup_offsets,
+                    lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
+                    as_device_type(factors->get_values()), storage, num_rows);
+        } else {
+            kernel::factorize<true>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), lookup_offsets,
+                    lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
+                    as_device_type(factors->get_values()), storage, num_rows);
+        }
     }
 }
 

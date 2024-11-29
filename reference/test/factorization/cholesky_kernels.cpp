@@ -25,9 +25,6 @@
 #include "matrices/config.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class Cholesky : public ::testing::Test {
 protected:
@@ -426,7 +423,7 @@ TYPED_TEST(Cholesky, KernelFactorizeWorks)
                 this->row_descs.get_const_data(),
                 this->storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), *this->forest, this->combined.get(),
-                tmp);
+                true, tmp);
 
             GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
                                 r<value_type>::value);
@@ -490,6 +487,3 @@ TYPED_TEST(Cholesky, FactorizeWithKnownSparsityWorks)
         },
         false);
 }
-
-
-}  // namespace

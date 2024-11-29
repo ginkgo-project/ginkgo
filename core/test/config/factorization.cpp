@@ -75,6 +75,9 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         param.with_skip_sorting(true);
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
+        config_map["algorithm"] = pnode{"syncfree"};
+        param.with_algorithm(
+            gko::factorization::incomplete_algorithm::syncfree);
     }
 
     template <typename AnswerType>
@@ -86,6 +89,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         check_strategy(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
+        ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
     }
 };
 
@@ -111,6 +115,9 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
                 typename gko::matrix::Csr<float, int>::sparselib>());
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
+        config_map["algorithm"] = pnode{"syncfree"};
+        param.with_algorithm(
+            gko::factorization::incomplete_algorithm::syncfree);
     }
 
     template <typename AnswerType>
@@ -122,6 +129,7 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
         check_strategy(res_param.l_strategy, ans_param.l_strategy);
         check_strategy(res_param.u_strategy, ans_param.u_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
     }
 };
 

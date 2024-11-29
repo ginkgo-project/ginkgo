@@ -20,14 +20,14 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)  \
-    void compute_lu(std::shared_ptr<const DefaultExecutor> exec, \
-                    matrix::Csr<ValueType, IndexType>* system_matrix)
+#define GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)  \
+    void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec, \
+                       matrix::Csr<ValueType, IndexType>* system_matrix)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ilu_factorization,

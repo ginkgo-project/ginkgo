@@ -23,7 +23,9 @@ namespace factorization {
  * Computes a Cholesky factorization of a symmetric, positive-definite sparse
  * matrix. This LinOpFactory returns a Factorization storing the L and L^H
  * factors for the provided system matrix in matrix::Csr format. If no symbolic
- * factorization is provided, it will be computed first.
+ * factorization is provided, it will be computed first. It expects all fill-in
+ * entries to be present in the symbolic factorization. If the symbolic
+ * factorization is missing some entries, please refer to Ic.
  *
  * @tparam ValueType  the type used to store values of the system matrix
  * @tparam IndexType  the type used to store sparsity pattern indices of the
