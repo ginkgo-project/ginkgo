@@ -33,6 +33,17 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CLASSIFY_DOFS);
 
 
+template <typename ValueType, typename IndexType>
+void generate_constraints(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Dense<ValueType>* labels, size_type n_inner_idxs,
+    size_type n_edges_faces, const array<IndexType>& interface_sizes,
+    device_matrix_data<ValueType, IndexType>& constraints) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_GENERATE_CONSTRAINTS);
+
+
 }  // namespace bddc
 }  // namespace omp
 }  // namespace kernels

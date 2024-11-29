@@ -37,6 +37,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(classify_dofs, bddc::classify_dofs);
+GKO_REGISTER_OPERATION(generate_constraints, bddc::generate_constraints);
 
 
 }  // namespace
@@ -64,7 +65,6 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     size_type n_local_rows = system_matrix->get_local_matrix()->get_size()[0];
     dof_types.resize_and_reset(n_local_rows);
     permutation_array.resize_and_reset(n_local_rows);
-    interface_sizes.resize_and_reset(n_local_rows);
 
     auto local_buffer = gko::matrix::Dense<remove_complex<ValueType>>::create(
         exec, dim<2>{system_matrix->get_local_matrix()->get_size()[0], width});
@@ -212,6 +212,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto reordered_system_matrix =
         as<local_mtx>(dd_system_matrix->get_local_matrix())
             ->permute(permutation_);
+    auto local_labels = as<local_real_vec>(labels->get_local_vector())
+                            ->permute(permutation_, matrix::permute_mode::rows);
     auto inner_matrix = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs}, span{0, n_inner_idxs}));
     inner_solver_ = parameters_.local_solver->generate(inner_matrix);
@@ -235,8 +237,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
     local_solver_ = parameters_.local_solver->generate(A_LL);
     dim<2> C_dim{n_faces + n_edges, n_face_idxs + n_edge_idxs};
-    device_matrix_data<ValueType, LocalIndexType> C_data{
-        exec, C_dim, n_face_idxs + n_edge_idxs};
+    device_matrix_data<remove_complex<ValueType>, LocalIndexType> C_data{
+        exec, C_dim, n_inner_idxs + n_face_idxs + n_edge_idxs};
+    exec->run(bddc::make_generate_constraints(local_labels.get(), n_inner_idxs,
+                                              n_edges + n_faces,
+                                              interface_sizes, C_data));
 }
 
 

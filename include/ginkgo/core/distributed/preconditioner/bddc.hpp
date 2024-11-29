@@ -66,6 +66,8 @@ public:
     using global_index_type = GlobalIndexType;
     using perm_type = matrix::Permutation<local_index_type>;
     using local_mtx = matrix::Csr<value_type, local_index_type>;
+    using local_vec = matrix::Dense<value_type>;
+    using local_real_vec = matrix::Dense<remove_complex<value_type>>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -74,6 +76,21 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             local_solver);
+
+        /**
+         * Use of Vertex constraints.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(vertices, true);
+
+        /**
+         * Use of Edge constraints.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(edges, true);
+
+        /**
+         * Use of Face constraints.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(faces, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
