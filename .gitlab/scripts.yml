@@ -221,6 +221,7 @@
   script:
     - echo $0
     - source /etc/bash.bashrc
+    - export PATH=$SPACK_ROOT/bin:$PATH
     - echo $PATH
     - git clone -c feature.manyFiles=true --depth=1 https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack
     - spack external find cmake ninja
