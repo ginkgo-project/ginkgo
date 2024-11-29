@@ -102,7 +102,7 @@ packaging/spack/rocm:
     - private_ci
     - nla-gpu
   variables:
-    GIT_STRATEGY: empty
+    GIT_STRATEGY: none
     GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs: []
 
