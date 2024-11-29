@@ -38,6 +38,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(classify_dofs, bddc::classify_dofs);
 GKO_REGISTER_OPERATION(generate_constraints, bddc::generate_constraints);
+GKO_REGISTER_OPERATION(fill_coarse_data, bddc::fill_coarse_data);
 
 
 }  // namespace
@@ -214,15 +215,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             ->permute(permutation_);
     auto local_labels = as<local_real_vec>(labels->get_local_vector())
                             ->permute(permutation_, matrix::permute_mode::rows);
-    auto inner_matrix = share(reordered_system_matrix->create_submatrix(
-        span{0, n_inner_idxs}, span{0, n_inner_idxs}));
-    inner_solver_ = parameters_.local_solver->generate(inner_matrix);
 
     // Decompose the local matrix
     //     | A_II A_ID A_IP |   | A_LL A_LP |
-    // A = | A_DI A_DD A_DP | = | A_PL A_PP |
+    // A = | A_DI A_DD A_DP | = | A_PL A_PP |.
     //     | A_PI A_PD A_PP |
     auto n_rows = reordered_system_matrix->get_size()[0];
+    auto A_II = share(reordered_system_matrix->create_submatrix(
+        span{0, n_inner_idxs}, span{0, n_inner_idxs}));
     auto A_LL = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs},
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs}));
@@ -236,12 +236,79 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows},
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
     local_solver_ = parameters_.local_solver->generate(A_LL);
-    dim<2> C_dim{n_faces + n_edges, n_face_idxs + n_edge_idxs};
+    inner_solver_ = parameters_.local_solver->generate(A_II);
+
+    // Set up constraints for faces and edges.
+    // One row per constraint, one column per degree of freedom that is not a
+    // vertex.
+    size_type n_interface_idxs = n_face_idxs + n_edge_idxs;
+    dim<2> C_dim{n_edges + n_faces, n_inner_idxs + n_interface_idxs};
     device_matrix_data<remove_complex<ValueType>, LocalIndexType> C_data{
-        exec, C_dim, n_inner_idxs + n_face_idxs + n_edge_idxs};
+        exec, C_dim, n_interface_idxs};
     exec->run(bddc::make_generate_constraints(local_labels.get(), n_inner_idxs,
                                               n_edges + n_faces,
                                               interface_sizes, C_data));
+    constraints_ = local_real_mtx::create(exec);
+    constraints_->read(C_data);
+    constraints_t_ = as<local_real_mtx>(constraints_->transpose());
+
+    // Set up the local Schur complement solver for the Schur complement of the
+    // saddle point problem | A_LL C^T | | C    0   |.
+    auto schur_rhs = local_real_vec::create(exec);
+    schur_rhs->copy_from(constraints_t_);
+    auto schur_interm = local_vec::create(
+        exec,
+        dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_edges + n_faces});
+    local_solver_->apply(schur_rhs, schur_interm);
+    auto schur_complement = share(
+        local_vec::create(exec, dim<2>{n_edges + n_faces, n_edges + n_faces}));
+    constraints_->apply(schur_interm, schur_complement);
+    schur_solver_ = parameters_.local_solver->generate(schur_complement);
+
+    // Compute the harmonic extension coefficients Phi and the contribution to
+    // the coarse system Lambda Phi = | Phi_D |,
+    //       | Phi_P |
+    // where Phi_P = | 0 I | as the vertex constraints are solved exactly in the
+    // coarse space.
+    phi_ = local_vec::create(
+        exec, dim<2>{reordered_system_matrix->get_size()[0], n_constraints});
+    phi_->fill(zero<ValueType>());
+    auto phi_D = phi_->create_submatrix(
+        span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
+        span{0, n_constraints});
+    auto phi_P =
+        phi_->create_submatrix(span{n_inner_idxs + n_edge_idxs + n_face_idxs,
+                                    reordered_system_matrix->get_size()[0]},
+                               span{0, n_constraints});
+    auto phi_rhs = local_vec::create_with_config_of(phi_D);
+    phi_rhs->fill(zero<ValueType>());
+    auto lambda = local_vec::create(exec, dim<2>{n_constraints, n_constraints});
+    lambda->fill(zero<ValueType>());
+    auto lambda_rhs =
+        local_vec::create(exec, dim<2>{n_edges + n_faces, n_constraints});
+    lambda_rhs->fill(zero<ValueType>());
+    exec->run(bddc::make_fill_coarse_data(phi_P.get(), lambda_rhs.get()));
+    auto lambda_D = lambda->create_submatrix(span{0, n_edges + n_faces},
+                                             span{0, n_constraints});
+    auto lambda_P = lambda->create_submatrix(
+        span{n_edges + n_faces, n_constraints}, span{0, n_constraints});
+    auto one = gko::initialize<local_vec>({1.0}, exec);
+    auto neg_one = gko::initialize<local_vec>({-1.0}, exec);
+    auto buffer_1 = local_vec::create(
+        exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_constraints});
+    auto buffer_2 = local_vec::create_with_config_of(buffer_1);
+    A_LP->apply(phi_P, buffer_1);
+    local_solver_->apply(buffer_1, buffer_2);
+    constraints_->apply(neg_one, buffer_2, neg_one, lambda_rhs);
+    schur_solver_->apply(lambda_rhs, lambda_D);
+    constraints_t_->apply(lambda_D, buffer_1);
+    A_LP->apply(neg_one, phi_P, neg_one, buffer_1);
+    local_solver_->apply(buffer_1, phi_D);
+    A_PP->apply(phi_P, lambda_P);
+    A_PL->apply(neg_one, phi_D, neg_one, lambda_P);
+
+    // Set up global numbering for coarse problem, read coarse matrix and
+    // generate coarse solver.
 }
 
 

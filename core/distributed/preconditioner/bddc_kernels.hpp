@@ -41,12 +41,20 @@ namespace kernels {
         device_matrix_data<ValueType, IndexType>& constraints)
 
 
+#define GKO_DECLARE_FILL_COARSE_DATA(ValueType)                        \
+    void fill_coarse_data(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Dense<ValueType>* phi_P,             \
+                          matrix::Dense<ValueType>* lambda_rhs)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType)
+    GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType);             \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_FILL_COARSE_DATA(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(bddc, GKO_DECLARE_ALL_AS_TEMPLATES);
