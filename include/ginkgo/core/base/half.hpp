@@ -286,7 +286,7 @@ private:
 class alignas(std::uint16_t) half {
 public:
     // create half value from the bits directly.
-    static constexpr half create_from_bits(std::uint16_t bits) noexcept
+    static constexpr half create_from_bits(const std::uint16_t& bits) noexcept
     {
         half result;
         result.data_ = bits;
@@ -299,13 +299,13 @@ public:
     constexpr half() noexcept : data_(0){};
 
     template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
-    half(const T val) : data_(0)
+    half(const T& val) : data_(0)
     {
         this->float2half(static_cast<float>(val));
     }
 
     template <typename V>
-    half& operator=(const V val)
+    half& operator=(const V& val)
     {
         this->float2half(static_cast<float>(val));
         return *this;
@@ -323,7 +323,7 @@ public:
     // operation will cast it to float and then do float operation such that it
     // becomes float in the end.
 #define HALF_OPERATOR(_op, _opeq)                                  \
-    friend half operator _op(const half lhf, const half rhf)       \
+    friend half operator _op(const half& lhf, const half& rhf)     \
     {                                                              \
         return static_cast<half>(static_cast<float>(lhf)           \
                                      _op static_cast<float>(rhf)); \
@@ -350,7 +350,7 @@ public:
     friend std::enable_if_t<                                               \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
-    operator _op(const half hf, const T val)                               \
+    operator _op(const half& hf, const T& val)                             \
     {                                                                      \
         using type =                                                       \
             std::conditional_t<std::is_floating_point<T>::value, T, half>; \
@@ -362,7 +362,7 @@ public:
     friend std::enable_if_t<                                               \
         !std::is_same<T, half>::value && std::is_scalar<T>::value,         \
         std::conditional_t<std::is_floating_point<T>::value, T, half>>     \
-    operator _op(const T val, const half hf)                               \
+    operator _op(const T& val, const half& hf)                             \
     {                                                                      \
         using type =                                                       \
             std::conditional_t<std::is_floating_point<T>::value, T, half>; \
@@ -389,7 +389,7 @@ private:
     using f16_traits = detail::float_traits<half>;
     using f32_traits = detail::float_traits<float>;
 
-    void float2half(float val) noexcept
+    void float2half(const float& val) noexcept
     {
         std::uint32_t bit_val(0);
         std::memcpy(&bit_val, &val, sizeof(float));
@@ -576,16 +576,12 @@ public:
         return *this;
     }
 
-// It's for MacOS.
-// TODO: check whether mac compiler always use complex version even when real
-// half
-#define COMPLEX_HALF_OPERATOR(_op, _opeq)                                \
-    friend complex<gko::half> operator _op(const complex<gko::half> lhf, \
-                                           const complex<gko::half> rhf) \
-    {                                                                    \
-        auto a = lhf;                                                    \
-        a _opeq rhf;                                                     \
-        return a;                                                        \
+#define COMPLEX_HALF_OPERATOR(_op, _opeq)                               \
+    friend complex operator _op(const complex& lhf, const complex& rhf) \
+    {                                                                   \
+        auto a = lhf;                                                   \
+        a _opeq rhf;                                                    \
+        return a;                                                       \
     }
 
     COMPLEX_HALF_OPERATOR(+, +=)
