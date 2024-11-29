@@ -106,6 +106,36 @@ packaging/spack/rocm:
     GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs: []
 
+packaging/spack/cuda:
+  extends:
+    - .spack_build_template
+    - .quick_test_condition
+  image:
+    name: ecpe4s/e4s-base-cuda:24.11
+    entrypoint: [""]
+  tags:
+    - private_ci
+    - nvidia-gpu
+  variables:
+    GIT_STRATEGY: none
+    GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
+  needs: []
+
+packaging/spack/sycl:
+  extends:
+    - .spack_build_template
+    - .quick_test_condition
+  image:
+    name: ecpe4s/e4s-base-oneapi:24.11
+    entrypoint: [""]
+  tags:
+    - private_ci
+    - nvidia-gpu
+  variables:
+    GIT_STRATEGY: none
+    GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja"
+  needs: []
+
 # Job with important warnings as error
 warnings:
   stage: code_quality
