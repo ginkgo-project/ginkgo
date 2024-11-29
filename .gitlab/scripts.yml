@@ -219,11 +219,12 @@
   extends:
     - .before_script_template
   script:
-    - echo $0
     - source /etc/bash.bashrc
     - export PATH=$SPACK_ROOT/bin:$PATH
     - echo $PATH
-    - git clone -c feature.manyFiles=true --depth=1 https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack
+    - git clone -c feature.manyFiles=true --depth=1 --sparse https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack;
+    - git -C /opt/ginkgo-spack config core.sparseCheckoutCone true
+    - git -C /opt/ginkgo-spack sparse-checkout add var/spack/repos/builtin/packages/ginkgo/
     - spack external find cmake ninja
     - spack repo add /opt/ginkgo-spack/var/spack/repos/builtin
     - spack install -j ${NUM_CORES} ginkgo ${GINKGO_SPEC}
