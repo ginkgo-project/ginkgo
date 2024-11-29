@@ -370,7 +370,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
-              typename = std::enable_if_t<detail::is_matrix_type_builder<
+              typename = std::enable_if_t<gko::detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType, void>::value>>
     static std::unique_ptr<DdMatrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,

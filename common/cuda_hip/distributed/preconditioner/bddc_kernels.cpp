@@ -44,6 +44,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_GENERATE_CONSTRAINTS);
 
 
+template <typename ValueType>
+void fill_coarse_data(std::shared_ptr<const DefaultExecutor> exec,
+                      matrix::Dense<ValueType>* phi_P,
+                      matrix::Dense<ValueType>* lambda_rhs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_COARSE_DATA);
+
+
 }  // namespace bddc
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

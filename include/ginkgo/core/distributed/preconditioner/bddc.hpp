@@ -61,13 +61,15 @@ public:
     using EnableLinOp<Bddc>::convert_to;
     using EnableLinOp<Bddc>::move_to;
     using value_type = ValueType;
+    using real_type = remove_complex<value_type>;
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
     using perm_type = matrix::Permutation<local_index_type>;
     using local_mtx = matrix::Csr<value_type, local_index_type>;
+    using local_real_mtx = matrix::Csr<real_type, local_index_type>;
     using local_vec = matrix::Dense<value_type>;
-    using local_real_vec = matrix::Dense<remove_complex<value_type>>;
+    using local_real_vec = matrix::Dense<real_type>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -164,7 +166,12 @@ private:
 
     std::shared_ptr<const LinOp> inner_solver_;
     std::shared_ptr<const LinOp> local_solver_;
+    std::shared_ptr<const LinOp> schur_solver_;
     std::shared_ptr<const perm_type> permutation_;
+    std::shared_ptr<local_real_mtx> constraints_;
+    std::shared_ptr<local_real_mtx> constraints_t_;
+    std::shared_ptr<local_vec> phi_;
+    std::shared_ptr<local_vec> phi_t_;
 };
 
 
