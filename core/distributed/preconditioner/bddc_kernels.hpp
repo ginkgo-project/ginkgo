@@ -33,20 +33,20 @@ namespace kernels {
         size_type& n_faces, size_type& n_edges, size_type& n_constraints)
 
 
-// #define GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType) \
-//     void generate_constraints( \
-//         std::shared_ptr<const DefaultExecutor> exec, \
-//         const matrix::Dense<ValueType>* labels, const array<experimental::distributed::preconditioner::dof_type>& dof_types, \
-//         size_type n_faces, size_type n_edges, const array<IndexType>& permutation_array, const array<IndexType>& interface_sizes, \
-//         device_matrix_data<ValueType, IndexType>& constraints)
+#define GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType)            \
+    void generate_constraints(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const matrix::Dense<ValueType>* labels, size_type n_inner_idxs,   \
+        size_type n_edges_faces, const array<IndexType>& interface_sizes, \
+        device_matrix_data<ValueType, IndexType>& constraints)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType)  //; \
-    // template <typename ValueType, typename IndexType> \
-    // GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType)
+    GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType);                    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(bddc, GKO_DECLARE_ALL_AS_TEMPLATES);

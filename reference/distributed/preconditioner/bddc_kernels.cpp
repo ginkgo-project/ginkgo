@@ -19,6 +19,23 @@ namespace gko {
 namespace kernels {
 namespace reference {
 namespace bddc {
+namespace {
+
+
+template <typename ValueType>
+bool labels_eq(size_type& n_cols, size_type& idx_a, size_type& idx_b,
+               const matrix::Dense<ValueType>* labels)
+{
+    for (size_type i = 0; i < n_cols; i++) {
+        if (labels->at(idx_a, i) != labels->at(idx_b, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -75,11 +92,10 @@ void classify_dofs(
     }
 
     for (size_type i = 0; i < n_rows; i++) {
-        std::memcpy(key.data(), local_labels + n_cols * i,
-                    n_cols * sizeof(uint_type));
-        interface_sizes.get_data()[i] = occurences[key];
         if (dof_types.get_data()[i] ==
             experimental::distributed::preconditioner::dof_type::edge) {
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
             if (occurences[key] == 1) {
                 n_vertices++;
                 n_edges--;
@@ -134,10 +150,53 @@ void classify_dofs(
     };
     std::stable_sort(permutation_array.get_data(),
                      permutation_array.get_data() + n_rows, comp);
+
+    interface_sizes.resize_and_reset(n_constraints);
+    size_type start_idx = 0;
+    size_type interface_idx = 0;
+    for (size_type i = n_inner_idxs; i < n_rows; i++) {
+        if (!labels_eq(n_cols, start_idx, i, labels)) {
+            start_idx = i;
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
+            interface_sizes.get_data()[interface_idx] = occurences[key];
+            interface_idx++;
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CLASSIFY_DOFS);
+
+
+template <typename ValueType, typename IndexType>
+void generate_constraints(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* labels,
+                          size_type n_inner_idxs, size_type n_edges_faces,
+                          const array<IndexType>& interface_sizes,
+                          device_matrix_data<ValueType, IndexType>& constraints)
+{
+    auto row_idxs = constraints.get_row_idxs();
+    auto col_idxs = constraints.get_col_idxs();
+    auto vals = constraints.get_values();
+    size_type start = n_inner_idxs;
+    for (size_type interface_idx = 0; interface_idx < n_edges_faces;
+         interface_idx++) {
+        ValueType val =
+            one<ValueType>() / interface_sizes.get_const_data()[interface_idx];
+        for (size_type idx = start;
+             idx < start + interface_sizes.get_const_data()[interface_idx];
+             idx++) {
+            row_idxs[idx - n_inner_idxs] = interface_idx;
+            col_idxs[idx - n_inner_idxs] = idx;
+            vals[idx - n_inner_idxs] = val;
+        }
+        start += interface_sizes.get_const_data()[interface_idx];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_GENERATE_CONSTRAINTS);
 
 
 }  // namespace bddc

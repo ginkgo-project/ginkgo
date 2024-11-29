@@ -34,12 +34,15 @@ class Bddc : public ::testing::Test {
 protected:
     using value_type = typename std::tuple_element<
         0, decltype(ValueLocalGlobalIndexType())>::type;
+    using real_type = gko::remove_complex<value_type>;
     using local_index_type = typename std::tuple_element<
         1, decltype(ValueLocalGlobalIndexType())>::type;
     using global_index_type = typename std::tuple_element<
         2, decltype(ValueLocalGlobalIndexType())>::type;
+    using uint_type = typename gko::detail::float_traits<real_type>::bits_type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using RealVec = gko::matrix::Dense<gko::remove_complex<value_type>>;
 
     Bddc() : ref(gko::ReferenceExecutor::create()) {}
 
@@ -58,9 +61,6 @@ protected:
      */
     void act_and_assert_classify_dofs()
     {
-        using real_type = gko::remove_complex<value_type>;
-        using uint_type =
-            typename gko::detail::float_traits<real_type>::bits_type;
         auto input =
             gko::matrix::Dense<real_type>::create(ref, gko::dim<2>{9, 1});
         uint_type int_inner_val = 1 << 1;
@@ -103,9 +103,8 @@ protected:
         gko::array<local_index_type> permutation_array{ref, 9};
         gko::array<local_index_type> ref_permutation_array{
             ref, {0, 1, 3, 4, 6, 7, 2, 5, 8}};
-        gko::array<local_index_type> interface_sizes{ref, 9};
-        gko::array<local_index_type> ref_interface_sizes{
-            ref, {4, 4, 4, 4, 2, 2, 2, 2, 1}};
+        gko::array<local_index_type> interface_sizes{ref};
+        gko::array<local_index_type> ref_interface_sizes{ref, {2, 2, 1}};
         gko::size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
             n_faces, n_edges, n_constraints;
 
@@ -124,6 +123,17 @@ protected:
         GKO_ASSERT_EQ(n_faces, 1);
         GKO_ASSERT_EQ(n_edges, 1);
         GKO_ASSERT_EQ(n_constraints, 3);
+
+        auto perm_input =
+            gko::as<RealVec>(input->row_permute(&permutation_array));
+        gko::device_matrix_data<real_type, local_index_type> C_data{
+            ref, gko::dim<2>{2, 8}, 4};
+        gko::array<local_index_type> ref_row_idxs{ref, {0, 0, 1, 1}};
+        gko::array<local_index_type> ref_col_idxs{ref, {4, 5, 6, 7}};
+        gko::array<real_type> ref_values{ref, {.5, .5, .5, .5}};
+
+        gko::kernels::reference::bddc::generate_constraints(
+            ref, perm_input.get(), 4, 2, interface_sizes, C_data);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
