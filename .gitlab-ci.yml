@@ -97,7 +97,7 @@ packaging/spack/rocm:
     - .quick_test_condition
   image:
     name: ecpe4s/e4s-base-rocm:24.11
-    entrypoint: ["/bin/bash", "-i", "-c"]
+    entrypoint: [""]
   tags:
     - private_ci
     - nla-gpu
