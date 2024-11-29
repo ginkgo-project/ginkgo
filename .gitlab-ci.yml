@@ -103,7 +103,7 @@ packaging/spack/rocm:
     - nla-gpu
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
+    GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs: []
 
 # Job with important warnings as error
