@@ -674,11 +674,12 @@ packaging/spack/rocm:
     - .quick_test_condition
   image:
     name: ecpe4s/e4s-base-rocm:24.11
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: [""]
   tags:
     - private_ci
     - nla-gpu
   variables:
+    GIT_STRATEGY: empty
     GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs: []
 
