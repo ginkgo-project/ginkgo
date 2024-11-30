@@ -401,7 +401,12 @@ struct double_buffered_frontier {
 };
 
 
-template <typename IndexType>
+struct symbolic_factorize_config {
+    constexpr static bool skip_visited = false;
+};
+
+
+template <typename Config, typename IndexType>
 __global__ void symbolic_factorize_single_source(
     const IndexType* row_ptrs, const IndexType* cols, IndexType size,
     IndexType source, IndexType* max_id, IndexType* fill, IndexType* frontier,
@@ -457,6 +462,11 @@ __global__ void symbolic_factorize_single_source(
             for (auto neighbor_i = frontier_begin + fine_id;
                  neighbor_i < frontier_end; neighbor_i += fine_size) {
                 const auto neighbor = cols[neighbor_i];
+                if constexpr (Config::skip_visited) {
+                    if (fill[neighbor] == source) {
+                        continue;
+                    }
+                }
                 if (atomic_min(&max_id[neighbor], new_max_id) > new_max_id) {
                     if (neighbor > new_max_id) {
                         if (atomic_max(&fill[neighbor], source) < source) {
@@ -496,7 +506,7 @@ void symbolic_factorize_general(std::shared_ptr<const DefaultExecutor> exec,
     array<IndexType> new_frontier_array{exec, size};
     array<IndexType> output_array{exec, size * size};
     for (IndexType row = 0; row < size; row++) {
-        symbolic_factorize_single_source<<<1, 64>>>(
+        symbolic_factorize_single_source<symbolic_factorize_config><<<1, 64>>>(
             row_ptrs, col_idxs, static_cast<IndexType>(size), row,
             max_id_array.get_data(), fill_array.get_data(),
             frontier_array.get_data(), new_frontier_array.get_data(),
