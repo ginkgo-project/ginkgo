@@ -10,6 +10,7 @@
 #include <thrust/copy.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/sort.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -22,6 +23,8 @@
 #include "common/cuda_hip/components/syncfree.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/allocator.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -409,84 +412,103 @@ struct symbolic_factorize_config {
 template <typename Config, typename IndexType>
 __global__ void symbolic_factorize_single_source(
     const IndexType* row_ptrs, const IndexType* cols, IndexType size,
-    IndexType source, IndexType* max_id, IndexType* fill, IndexType* frontier,
-    IndexType* new_frontier, IndexType* out_cols, IndexType* out_row_ptrs)
+    IndexType* atomics, IndexType* global_max_id, IndexType* global_fill,
+    IndexType* global_frontier, IndexType* global_new_frontier,
+    IndexType* out_rows, IndexType* out_cols)
 {
     __shared__ typename double_buffered_frontier<IndexType>::shared_storage
         frontier_storage;
+    __shared__ IndexType work_count;
     __shared__ IndexType output_idx;
-    double_buffered_frontier<IndexType> frontiers{frontier, new_frontier,
-                                                  frontier_storage};
+    __shared__ IndexType source_idx;
+    const auto frontier = global_frontier + size * blockIdx.x;
+    const auto new_frontier = global_new_frontier + size * blockIdx.x;
+    const auto max_id = global_max_id + size * blockIdx.x;
+    const auto fill = global_fill + size * blockIdx.x;
     if (threadIdx.x == 0) {
-        output_idx = out_row_ptrs[source];
-    }
-    for (IndexType i = threadIdx.x; i < size; i += blockDim.x) {
-        max_id[i] = device_numeric_limits<IndexType>::max;
+        source_idx = atomic_add(atomics, IndexType{1});
     }
     __syncthreads();
-    const auto output = [&](IndexType col) {
-        out_cols[atomic_add(&output_idx, IndexType{1})] = col;
-    };
-    const auto row_begin = row_ptrs[source];
-    const auto row_end = row_ptrs[source + 1];
-    // TODO check this works with missing diagonals
-    if (threadIdx.x == 0) {
-        fill[source] = 0;
-        max_id[source] = 0;
-        output(source);
-    }
-    for (auto i = row_begin + threadIdx.x; i < row_end; i += blockDim.x) {
-        const auto col = cols[i];
-        if (col == source) {
-            continue;
+    IndexType source = source_idx;
+    while (source < size) {
+        double_buffered_frontier<IndexType> frontiers{frontier, new_frontier,
+                                                      frontier_storage};
+        if (threadIdx.x == 0) {
+            work_count = 0;
         }
-        fill[col] = 0;
-        max_id[col] = 0;
-        output(col);
-        if (col < source) {
-            frontiers.add(col);
+        for (IndexType i = threadIdx.x; i < size; i += blockDim.x) {
+            max_id[i] = device_numeric_limits<IndexType>::max;
         }
-    }
-    auto frontier_size = frontiers.output_to_input();
-    constexpr auto fine_size = config::warp_size;
-    const auto coarse_size = blockDim.x / fine_size;
-    while (frontier_size > 0) {
-        const auto coarse_id = threadIdx.x / fine_size;
-        const auto fine_id = threadIdx.x % fine_size;
-        for (IndexType frontier_i = coarse_id; frontier_i < frontier_size;
-             frontier_i += coarse_size) {
-            const auto frontier = frontiers.input[frontier_i];
-            const auto new_max_id = max(frontier, max_id[frontier]);
-            const auto frontier_begin = row_ptrs[frontier];
-            const auto frontier_end = row_ptrs[frontier + 1];
-            for (auto neighbor_i = frontier_begin + fine_id;
-                 neighbor_i < frontier_end; neighbor_i += fine_size) {
-                const auto neighbor = cols[neighbor_i];
-                if constexpr (Config::skip_visited) {
-                    if (fill[neighbor] == source) {
-                        continue;
-                    }
-                }
-                if (atomic_min(&max_id[neighbor], new_max_id) > new_max_id) {
-                    if (neighbor > new_max_id) {
-                        if (atomic_max(&fill[neighbor], source) < source) {
-                            output(neighbor);
-                        } else {
+        __syncthreads();
+        const auto output = [&](IndexType col) {
+            const auto out_idx = atomic_add(atomics + 1, IndexType{1});
+            out_rows[out_idx] = source;
+            out_cols[out_idx] = col;
+        };
+        const auto row_begin = row_ptrs[source];
+        const auto row_end = row_ptrs[source + 1];
+        // TODO check this works with missing diagonals
+        if (threadIdx.x == 0) {
+            fill[source] = 0;
+            max_id[source] = 0;
+            output(source);
+        }
+        for (auto i = row_begin + threadIdx.x; i < row_end; i += blockDim.x) {
+            const auto col = cols[i];
+            if (col == source) {
+                continue;
+            }
+            fill[col] = 0;
+            max_id[col] = 0;
+            output(col);
+            if (col < source) {
+                frontiers.add(col);
+            }
+        }
+        auto frontier_size = frontiers.output_to_input();
+        constexpr auto fine_size = config::warp_size;
+        const auto coarse_size = blockDim.x / fine_size;
+        while (frontier_size > 0) {
+            const auto coarse_id = threadIdx.x / fine_size;
+            const auto fine_id = threadIdx.x % fine_size;
+            for (IndexType frontier_i = coarse_id; frontier_i < frontier_size;
+                 frontier_i += coarse_size) {
+                const auto frontier = frontiers.input[frontier_i];
+                const auto new_max_id = max(frontier, max_id[frontier]);
+                const auto frontier_begin = row_ptrs[frontier];
+                const auto frontier_end = row_ptrs[frontier + 1];
+                for (auto neighbor_i = frontier_begin + fine_id;
+                     neighbor_i < frontier_end; neighbor_i += fine_size) {
+                    const auto neighbor = cols[neighbor_i];
+                    if constexpr (Config::skip_visited) {
+                        if (fill[neighbor] == source) {
                             continue;
                         }
                     }
-                    if (neighbor < source) {
-                        frontiers.add(neighbor);
+                    if (atomic_min(&max_id[neighbor], new_max_id) >
+                        new_max_id) {
+                        if (neighbor > new_max_id) {
+                            if (atomic_max(&fill[neighbor], source) < source) {
+                                output(neighbor);
+                            } else {
+                                continue;
+                            }
+                        }
+                        if (neighbor < source) {
+                            frontiers.add(neighbor);
+                        }
                     }
                 }
             }
+            __syncthreads();
+            frontier_size = frontiers.output_to_input();
         }
         __syncthreads();
-        frontier_size = frontiers.output_to_input();
-    }
-    __syncthreads();
-    if (threadIdx.x == 0) {
-        out_row_ptrs[source + 1] = output_idx;
+        if (threadIdx.x == 0) {
+            source_idx = atomic_add(atomics, IndexType{1});
+        }
+        __syncthreads();
+        source = source_idx;
     }
 }
 
@@ -498,23 +520,36 @@ void symbolic_factorize_general(std::shared_ptr<const DefaultExecutor> exec,
                                 IndexType* out_row_ptrs,
                                 array<IndexType>& out_col_idxs)
 {
-    auto init = zero<IndexType>();
-    exec->copy_from(exec->get_master(), 1, &init, out_row_ptrs);
-    array<IndexType> max_id_array{exec, size};
-    array<IndexType> fill_array{exec, size};
-    array<IndexType> frontier_array{exec, size};
-    array<IndexType> new_frontier_array{exec, size};
-    array<IndexType> output_array{exec, size * size};
-    for (IndexType row = 0; row < size; row++) {
-        symbolic_factorize_single_source<symbolic_factorize_config><<<1, 64>>>(
-            row_ptrs, col_idxs, static_cast<IndexType>(size), row,
-            max_id_array.get_data(), fill_array.get_data(),
-            frontier_array.get_data(), new_frontier_array.get_data(),
-            output_array.get_data(), out_row_ptrs);
-    }
-    const auto nnz = exec->copy_val_to_host(out_row_ptrs + size);
+    const auto num_blocks = 100;
+    array<IndexType> max_id_array{exec, size * num_blocks};
+    array<IndexType> fill_array{exec, size * num_blocks};
+    array<IndexType> frontier_array{exec, size * num_blocks};
+    array<IndexType> new_frontier_array{exec, size * num_blocks};
+    array<IndexType> output_row_array{exec, size * size};
+    array<IndexType> output_col_array{exec, size * size};
+    array<IndexType> atomic_array{exec, 2};
+    components::fill_array(exec, fill_array.get_data(), size * num_blocks,
+                           IndexType{});
+    components::fill_array(exec, atomic_array.get_data(), 2, IndexType{});
+    symbolic_factorize_single_source<symbolic_factorize_config>
+        <<<num_blocks, 1024, 0, exec->get_stream()>>>(
+            row_ptrs, col_idxs, static_cast<IndexType>(size),
+            atomic_array.get_data(), max_id_array.get_data(),
+            fill_array.get_data(), frontier_array.get_data(),
+            new_frontier_array.get_data(), output_row_array.get_data(),
+            output_col_array.get_data());
+    const auto nnz = exec->copy_val_to_host(atomic_array.get_data() + 1);
+    const auto policy = thrust_policy(exec);
+    thrust::sort_by_key(policy, output_col_array.get_data(),
+                        output_col_array.get_data() + nnz,
+                        output_row_array.get_data());
+    thrust::stable_sort_by_key(policy, output_row_array.get_data(),
+                               output_row_array.get_data() + nnz,
+                               output_col_array.get_data());
+    components::convert_idxs_to_ptrs(exec, output_row_array.get_const_data(),
+                                     nnz, size, out_row_ptrs);
     out_col_idxs.resize_and_reset(nnz);
-    exec->copy(nnz, output_array.get_const_data(), out_col_idxs.get_data());
+    exec->copy(nnz, output_col_array.get_const_data(), out_col_idxs.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMBOLIC_FACTORIZE_GENERAL);
