@@ -497,9 +497,8 @@ __global__ void symbolic_factorize_single_source(
                             continue;
                         }
                     }
-                    const auto min_result =
-                        atomic_min(&max_id[neighbor], new_max_id);
-                    if (min_result > new_max_id) {
+                    if (atomic_min(&max_id[neighbor], new_max_id) >
+                        new_max_id) {
                         if (neighbor > new_max_id) {
                             // fill is increasing monotonically
                             const auto result =
@@ -523,15 +522,6 @@ __global__ void symbolic_factorize_single_source(
                                        int(neighbor), int(frontier));
                             }
                             frontiers.add(neighbor);
-                        }
-                    } else {
-                        if constexpr (Config::debug) {
-                            printf(
-                                "%d: Skipping %d via %d because it was already "
-                                "visited "
-                                "via %d\n",
-                                int(source), int(neighbor), int(frontier),
-                                int(min_result));
                         }
                     }
                 }
