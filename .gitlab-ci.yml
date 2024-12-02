@@ -94,6 +94,9 @@ trigger_pipeline:
 packaging/spack/trigger:
   extends:
     - .package_test_condition
+  stage: packaging
+  tags:
+    - private_ci
   script:
     - echo "GINKGO_SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" >> build.env
   artifacts:
