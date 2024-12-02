@@ -352,7 +352,7 @@ void ParIlutState<ValueType, IndexType>::iterate()
 
 #define GKO_DECLARE_PAR_ILUT(ValueType, IndexType) \
     class ParIlut<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_PAR_ILUT);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PAR_ILUT);
 
 
 }  // namespace factorization

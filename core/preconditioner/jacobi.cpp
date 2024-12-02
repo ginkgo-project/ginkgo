@@ -376,7 +376,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
 
 #define GKO_DECLARE_JACOBI(ValueType, IndexType) \
     class Jacobi<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_JACOBI);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI);
 
 
 }  // namespace preconditioner

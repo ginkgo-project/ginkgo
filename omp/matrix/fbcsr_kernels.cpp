@@ -74,8 +74,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_FBCSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -119,7 +118,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -177,7 +176,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     std::copy(col_idx_vec.begin(), col_idx_vec.end(), col_idxs.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
@@ -210,7 +209,7 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
 
 
@@ -256,7 +255,7 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
     row_ptrs[result->get_size()[0]] = source->get_num_stored_elements();
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
 
 
@@ -331,7 +330,7 @@ void transpose(std::shared_ptr<const OmpExecutor> exec,
                             [](const ValueType x) { return x; });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL);
 
 
@@ -344,7 +343,7 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
                             [](const ValueType x) { return conj(x); });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -372,7 +371,7 @@ void is_sorted_by_column_index(
     *is_sorted = local_is_sorted;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
@@ -427,7 +426,7 @@ void sort_by_column_index(const std::shared_ptr<const OmpExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), to_sort);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -464,7 +463,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);
 
 

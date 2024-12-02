@@ -222,7 +222,7 @@ enum class log_type { simple_convergence_completion };
     GKO_CALL(GKO_BATCH_INSTANTIATE_MATRIX_BATCH, GKO_BATCH_INSTANTIATE_LOGGER, \
              GKO_BATCH_INSTANTIATE_DEVICE_PRECONDITIONER,                      \
              GKO_BATCH_INSTANTIATE_STOP,                                       \
-             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_WITH_HALF, __VA_ARGS__)
+             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS, __VA_ARGS__)
 
 
 /**

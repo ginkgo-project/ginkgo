@@ -433,7 +433,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         exec, num_worker_per_row, a, b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
@@ -469,7 +469,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         exec, num_worker_per_row, a, b, c, alpha, beta);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 

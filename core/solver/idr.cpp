@@ -406,8 +406,8 @@ std::vector<int> workspace_traits<Idr<ValueType>>::vectors(const Solver&)
 
 #define GKO_DECLARE_IDR(_type) class Idr<_type>
 #define GKO_DECLARE_IDR_TRAITS(_type) struct workspace_traits<Idr<_type>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_TRAITS);
 
 
 }  // namespace solver

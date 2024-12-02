@@ -161,7 +161,7 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
 
 #define GKO_DECLARE_SOR(ValueType, IndexType) class Sor<ValueType, IndexType>
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_SOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SOR);
 
 
 }  // namespace preconditioner

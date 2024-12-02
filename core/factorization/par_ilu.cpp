@@ -161,7 +161,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
 #define GKO_DECLARE_PAR_ILU(ValueType, IndexType) \
     class ParIlu<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_PAR_ILU);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PAR_ILU);
 
 
 }  // namespace factorization

@@ -42,7 +42,7 @@ void generate(std::shared_ptr<const DpcppExecutor> exec,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
               const size_type num_rhs) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
@@ -59,7 +59,7 @@ void solve(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Dense<ValueType>* b,
            matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 

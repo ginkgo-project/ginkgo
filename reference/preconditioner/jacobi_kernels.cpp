@@ -116,7 +116,7 @@ void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
                                             block_pointers.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 
@@ -406,7 +406,7 @@ void generate(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_GENERATE_KERNEL);
 
 
@@ -494,8 +494,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_JACOBI_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -528,7 +527,7 @@ void simple_apply(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 
@@ -548,8 +547,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 
 
 template <typename ValueType>
@@ -565,7 +563,7 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL);
 
 
@@ -578,8 +576,7 @@ void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL);
 
 
 template <typename ValueType>
@@ -594,8 +591,7 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -630,7 +626,7 @@ void transpose_jacobi(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
 
 
@@ -666,7 +662,7 @@ void conj_transpose_jacobi(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -686,7 +682,7 @@ void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL);
 
 
@@ -724,7 +720,7 @@ void convert_to_dense(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 

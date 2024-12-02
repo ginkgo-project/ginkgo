@@ -22,8 +22,7 @@ void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
                                         val.get_const_data()[0]);
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(
-    GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 
 
 }  // namespace components

@@ -59,8 +59,7 @@ typename Ilu::parameters_type ilu_parse(
                   solver::UpperTrs<ValueType, IndexType>, false, IndexType>>( \
         const config::pnode&, const config::registry&,                        \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_TRS_ILU_FALSE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_ILU_FALSE_PARSE);
 
 #define GKO_DECLARE_TRS_ILU_TRUE_PARSE(ValueType, IndexType)                 \
     typename Ilu<solver::LowerTrs<ValueType, IndexType>,                     \
@@ -70,8 +69,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
                   solver::UpperTrs<ValueType, IndexType>, true, IndexType>>( \
         const config::pnode&, const config::registry&,                       \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_TRS_ILU_TRUE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_ILU_TRUE_PARSE);
 
 #define GKO_DECLARE_GMRES_ILU_FALSE_PARSE(ValueType, IndexType)              \
     typename Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, false,  \
@@ -79,7 +77,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     ilu_parse<Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, false, \
                   IndexType>>(const config::pnode&, const config::registry&, \
                               const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_GMRES_ILU_FALSE_PARSE);
 
 #define GKO_DECLARE_GMRES_ILU_TRUE_PARSE(ValueType, IndexType)               \
@@ -88,8 +86,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     ilu_parse<Ilu<solver::Gmres<ValueType>, solver::Gmres<ValueType>, true,  \
                   IndexType>>(const config::pnode&, const config::registry&, \
                               const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_GMRES_ILU_TRUE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_ILU_TRUE_PARSE);
 
 #define GKO_DECLARE_IR_ILU_FALSE_PARSE(ValueType, IndexType)                  \
     typename Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, false,         \
@@ -98,8 +95,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
         Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, false, IndexType>>( \
         const config::pnode&, const config::registry&,                        \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_IR_ILU_FALSE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_ILU_FALSE_PARSE);
 
 #define GKO_DECLARE_IR_ILU_TRUE_PARSE(ValueType, IndexType)                  \
     typename Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, true,         \
@@ -108,8 +104,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
         Ilu<solver::Ir<ValueType>, solver::Ir<ValueType>, true, IndexType>>( \
         const config::pnode&, const config::registry&,                       \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_IR_ILU_TRUE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_ILU_TRUE_PARSE);
 
 #define GKO_DECLARE_ISAI_ILU_FALSE_PARSE(ValueType, IndexType)         \
     typename Ilu<LowerIsai<ValueType, IndexType>,                      \
@@ -119,8 +114,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
                   UpperIsai<ValueType, IndexType>, false, IndexType>>( \
         const config::pnode&, const config::registry&,                 \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_ISAI_ILU_FALSE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_ILU_FALSE_PARSE);
 
 #define GKO_DECLARE_ISAI_ILU_TRUE_PARSE(ValueType, IndexType)         \
     typename Ilu<LowerIsai<ValueType, IndexType>,                     \
@@ -130,8 +124,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
                   UpperIsai<ValueType, IndexType>, true, IndexType>>( \
         const config::pnode&, const config::registry&,                \
         const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_ISAI_ILU_TRUE_PARSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_ILU_TRUE_PARSE);
 
 
 }  // namespace detail

@@ -132,7 +132,7 @@ void init_factor(std::shared_ptr<const DefaultExecutor> exec,
                     l_row_ptrs, l_vals, num_rows);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL);
 
 
@@ -155,7 +155,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL);
 
 

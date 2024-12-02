@@ -247,8 +247,8 @@ std::vector<int> workspace_traits<Fcg<ValueType>>::vectors(const Solver&)
 
 #define GKO_DECLARE_FCG(_type) class Fcg<_type>
 #define GKO_DECLARE_FCG_TRAITS(_type) struct workspace_traits<Fcg<_type>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_FCG);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_FCG_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TRAITS);
 
 
 }  // namespace solver

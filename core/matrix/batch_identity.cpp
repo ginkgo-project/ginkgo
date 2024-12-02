@@ -113,8 +113,7 @@ void Identity<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 
 
 #define GKO_DECLARE_BATCH_IDENTITY_MATRIX(ValueType) class Identity<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_BATCH_IDENTITY_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_MATRIX);
 
 
 }  // namespace matrix

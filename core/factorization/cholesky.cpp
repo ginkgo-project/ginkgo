@@ -146,7 +146,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
 #define GKO_DECLARE_CHOLESKY(ValueType, IndexType) \
     class Cholesky<ValueType, IndexType>
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_CHOLESKY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY);
 
 
 }  // namespace factorization

@@ -160,7 +160,7 @@ void advanced_apply(
         const preconditioner::block_interleaved_storage_scheme<IndexType>&, \
         const ValueType*, const ValueType*, size_type, ValueType*, size_type)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     DECLARE_JACOBI_ADVANCED_APPLY_INSTANTIATION);
 
 

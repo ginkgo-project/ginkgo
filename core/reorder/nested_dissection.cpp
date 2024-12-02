@@ -159,7 +159,7 @@ std::unique_ptr<LinOp> NestedDissection<ValueType, IndexType>::generate_impl(
 
 #define GKO_DECLARE_ND(ValueType, IndexType) \
     class NestedDissection<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ND);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_ND);
 
 
 }  // namespace reorder
