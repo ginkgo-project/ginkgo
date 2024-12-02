@@ -300,6 +300,33 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
 }
 
 
+// TODO modify this function!
+template <typename ValueType, typename VectorType>
+void orthogonalize_rgs(matrix::Dense<ValueType>* hessenberg_iter,
+                       VectorType* krylov_bases, VectorType* next_krylov,
+                       array<char>& reduction_tmp, size_type restart_iter,
+                       size_type num_rows, size_type num_rhs,
+                       size_type local_num_rows)
+{
+    for (size_type i = 0; i <= restart_iter; i++) {
+        // orthogonalize against krylov_bases(:, i):
+        // hessenberg(i, restart_iter) = next_krylov' * krylov_bases(:,
+        // i)
+        // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
+        // i)
+        auto hessenberg_entry =
+            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
+        auto krylov_basis = ::gko::detail::create_submatrix_helper(
+            krylov_bases, dim<2>{num_rows, num_rhs},
+            span{local_num_rows * i, local_num_rows * (i + 1)},
+            span{0, num_rhs});
+        krylov_basis->compute_conj_dot(next_krylov, hessenberg_entry,
+                                       reduction_tmp);
+        next_krylov->sub_scaled(hessenberg_entry, krylov_basis);
+    }
+}
+
+
 template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
@@ -368,6 +395,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
             ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
+    } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+        // TODO Actually create the random (sparse) matrix and any other
+        //      structures you need
     }
     auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
@@ -544,8 +574,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
         } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
-            // TODO change this content
-            orthogonalize_mgs(hessenberg_iter.get(), krylov_bases,
+            // TODO change the signature and implementation
+            orthogonalize_rgs(hessenberg_iter.get(), krylov_bases,
                               next_krylov.get(), reduction_tmp, restart_iter,
                               num_rows, num_rhs, local_num_rows);
         }
