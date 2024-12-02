@@ -95,6 +95,7 @@ packaging/spack/trigger:
   extends:
     - .package_test_condition
   stage: packaging
+  image: alpine:latest
   tags:
     - private_ci
   script:
