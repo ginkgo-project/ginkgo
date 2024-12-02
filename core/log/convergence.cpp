@@ -110,7 +110,7 @@ void Convergence<ValueType>::on_iteration_complete(
 
 
 #define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_CONVERGENCE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
 
 
 }  // namespace log

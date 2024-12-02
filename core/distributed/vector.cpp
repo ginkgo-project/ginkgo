@@ -724,7 +724,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
 
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
 
 }  // namespace distributed

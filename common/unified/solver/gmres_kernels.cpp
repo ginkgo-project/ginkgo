@@ -56,7 +56,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_GMRES_RESTART_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType>
@@ -92,8 +92,7 @@ void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
         before_preconditioner->get_size()[1], stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
 
 
 template <typename ValueType>
@@ -120,8 +119,7 @@ void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
         next_krylov->get_size()[0]);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);
 
 }  // namespace gmres
 }  // namespace GKO_DEVICE_NAMESPACE

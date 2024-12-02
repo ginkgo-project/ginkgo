@@ -297,7 +297,7 @@ void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
         exec, max_block_size, num_natural_blocks, block_pointers.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
 
 
@@ -364,7 +364,7 @@ void transpose_jacobi(
         storage_scheme, out_blocks.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
 
 
@@ -388,7 +388,7 @@ void conj_transpose_jacobi(
         storage_scheme, out_blocks.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
@@ -401,7 +401,7 @@ void convert_to_dense(
         storage_scheme,
     ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
 
 

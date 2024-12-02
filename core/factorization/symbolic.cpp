@@ -80,8 +80,7 @@ void symbolic_cholesky(
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,   \
         std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_SYMBOLIC_CHOLESKY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
 
 
 template <typename ValueType, typename IndexType>
@@ -159,7 +158,7 @@ void symbolic_lu_near_symm(
         const matrix::Csr<ValueType, IndexType>* mtx,           \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SYMBOLIC_LU_NEAR_SYMM);
 
 
@@ -246,8 +245,7 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
         const matrix::Csr<ValueType, IndexType>* mtx, \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_SYMBOLIC_LU);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_LU);
 
 
 }  // namespace factorization

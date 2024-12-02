@@ -68,7 +68,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
 
 
@@ -112,7 +112,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
 
 
@@ -127,7 +127,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                         it + data.get_num_stored_elements(), vals);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
 
 

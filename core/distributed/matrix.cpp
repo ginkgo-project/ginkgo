@@ -664,7 +664,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
     class Matrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_DISTRIBUTED_MATRIX);
 
 

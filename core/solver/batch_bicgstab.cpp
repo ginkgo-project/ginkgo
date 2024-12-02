@@ -68,7 +68,7 @@ void Bicgstab<ValueType>::solver_apply(
 
 
 #define GKO_DECLARE_BATCH_BICGSTAB(_type) class Bicgstab<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_BATCH_BICGSTAB);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB);
 
 
 }  // namespace solver

@@ -84,7 +84,7 @@ void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                          inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
 
 

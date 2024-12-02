@@ -83,7 +83,7 @@ void build_local(
         range_id.get_data(), local_mtx->get_values(), is_local_row);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL);
 
 

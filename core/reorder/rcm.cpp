@@ -114,7 +114,7 @@ Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
 
 
 #define GKO_DECLARE_RCM(ValueType, IndexType) class Rcm<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_RCM);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RCM);
 
 
 }  // namespace reorder

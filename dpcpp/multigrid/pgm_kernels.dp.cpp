@@ -56,8 +56,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_PGM_SORT_ROW_MAJOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 
 
 template <typename ValueType, typename IndexType>
@@ -90,7 +89,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
         [](auto a, auto b) { return a + b; });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 
 

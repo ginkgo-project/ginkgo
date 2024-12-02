@@ -86,7 +86,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     dispatcher.apply(b, x, logdata);
 }
 
-GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(
+GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER_BASE(
     GKO_DECLARE_BATCH_CG_APPLY_KERNEL_WRAPPER);
 
 

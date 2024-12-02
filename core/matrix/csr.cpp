@@ -1068,7 +1068,7 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
 
 #define GKO_DECLARE_CSR_MATRIX(ValueType, IndexType) \
     class Csr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_CSR_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
 
 
 }  // namespace matrix
