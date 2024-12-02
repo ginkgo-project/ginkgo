@@ -99,7 +99,7 @@ packaging/spack/trigger:
   tags:
     - private_ci
   script:
-    - echo "GINKGO_SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" >> build.env
+    - echo "SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" >> build.env
   artifacts:
     reports:
       dotenv: build.env
