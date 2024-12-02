@@ -214,7 +214,7 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Coo<next_precision_with_half<ValueType>, IndexType>* result) const
+    Coo<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->row_idxs_ = this->row_idxs_;
@@ -225,7 +225,7 @@ void Coo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(
-    Coo<next_precision_with_half<ValueType>, IndexType>* result)
+    Coo<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -234,8 +234,7 @@ void Coo<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result) const
+    Coo<next_precision<next_precision<ValueType>>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->row_idxs_ = this->row_idxs_;
@@ -246,8 +245,7 @@ void Coo<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(
-    Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result)
+    Coo<next_precision<next_precision<ValueType>>, IndexType>* result)
 {
     this->convert_to(result);
 }

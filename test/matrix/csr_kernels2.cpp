@@ -34,7 +34,7 @@ class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<int>;
     using Vec = gko::matrix::Dense<value_type>;
-    using Vec2 = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using Vec2 = gko::matrix::Dense<gko::next_precision_base<value_type>>;
     using Mtx = gko::matrix::Csr<value_type>;
     using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;

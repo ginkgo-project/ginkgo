@@ -68,8 +68,7 @@ TYPED_TEST(Sellp, AppliesToDenseVector)
 
 TYPED_TEST(Sellp, AppliesToMixedDenseVector)
 {
-    using value_type =
-        gko::next_precision_with_half<typename TestFixture::value_type>;
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
@@ -118,8 +117,7 @@ TYPED_TEST(Sellp, AppliesLinearCombinationToDenseVector)
 
 TYPED_TEST(Sellp, AppliesLinearCombinationToMixedDenseVector)
 {
-    using value_type =
-        gko::next_precision_with_half<typename TestFixture::value_type>;
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
@@ -192,7 +190,7 @@ TYPED_TEST(Sellp, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Sellp = typename TestFixture::Mtx;
     using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
     auto tmp = OtherSellp::create(this->exec);
@@ -215,7 +213,7 @@ TYPED_TEST(Sellp, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Sellp = typename TestFixture::Mtx;
     using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
     auto tmp = OtherSellp::create(this->exec);
@@ -313,7 +311,7 @@ TYPED_TEST(Sellp, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Sellp = typename TestFixture::Mtx;
     using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
     auto empty = OtherSellp::create(this->exec);
@@ -332,7 +330,7 @@ TYPED_TEST(Sellp, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Sellp = typename TestFixture::Mtx;
     using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
     auto empty = OtherSellp::create(this->exec);

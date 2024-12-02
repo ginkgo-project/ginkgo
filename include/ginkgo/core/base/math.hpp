@@ -293,7 +293,32 @@ namespace detail {
 
 // singly linked list of all our supported precisions
 template <typename T>
+struct next_precision_base_impl {};
+
+template <>
+struct next_precision_base_impl<float> {
+    using type = double;
+};
+
+template <>
+struct next_precision_base_impl<double> {
+    using type = float;
+};
+
+template <typename T>
+struct next_precision_base_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_base_impl<T>::type>;
+};
+
+
+template <typename T>
 struct next_precision_impl {};
+
+
+template <>
+struct next_precision_impl<gko::half> {
+    using type = float;
+};
 
 template <>
 struct next_precision_impl<float> {
@@ -302,37 +327,12 @@ struct next_precision_impl<float> {
 
 template <>
 struct next_precision_impl<double> {
-    using type = float;
+    using type = gko::half;
 };
 
 template <typename T>
 struct next_precision_impl<std::complex<T>> {
     using type = std::complex<typename next_precision_impl<T>::type>;
-};
-
-
-template <typename T>
-struct next_precision_with_half_impl {};
-
-
-template <>
-struct next_precision_with_half_impl<gko::half> {
-    using type = float;
-};
-
-template <>
-struct next_precision_with_half_impl<float> {
-    using type = double;
-};
-
-template <>
-struct next_precision_with_half_impl<double> {
-    using type = gko::half;
-};
-
-template <typename T>
-struct next_precision_with_half_impl<std::complex<T>> {
-    using type = std::complex<typename next_precision_with_half_impl<T>::type>;
 };
 
 
@@ -418,7 +418,7 @@ struct highest_precision_variadic<Head> {
  * Obtains the next type in the singly-linked precision list.
  */
 template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+using next_precision_base = typename detail::next_precision_base_impl<T>::type;
 
 
 /**
@@ -428,26 +428,24 @@ using next_precision = typename detail::next_precision_impl<T>::type;
  *       next_precision.
  */
 template <typename T>
-using previous_precision = next_precision<T>;
+using previous_precision_base = next_precision_base<T>;
 
 /**
  * Obtains the next type in the singly-linked precision list with half.
  */
 #if GINKGO_ENABLE_HALF
 template <typename T>
-using next_precision_with_half =
-    typename detail::next_precision_with_half_impl<T>::type;
+using next_precision = typename detail::next_precision_impl<T>::type;
 
 template <typename T>
-using previous_precision_with_half =
-    next_precision_with_half<next_precision_with_half<T>>;
+using previous_precision = next_precision<next_precision<T>>;
 #else
 // fallback to float/double list
 template <typename T>
-using next_precision_with_half = next_precision<T>;
+using next_precision = next_precision_base<T>;
 
 template <typename T>
-using previous_precision_with_half = previous_precision<T>;
+using previous_precision = previous_precision_base<T>;
 #endif
 
 

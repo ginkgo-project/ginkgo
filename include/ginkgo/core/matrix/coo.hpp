@@ -47,21 +47,19 @@ class Hybrid;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo
-    : public EnableLinOp<Coo<ValueType, IndexType>>,
-      public ConvertibleTo<Coo<next_precision_with_half<ValueType>, IndexType>>,
+class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
+            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF
-      public ConvertibleTo<
-          Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-              IndexType>>,
+            public ConvertibleTo<
+                Coo<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<Dense<ValueType>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType>,
-      public EnableAbsoluteComputation<
-          remove_complex<Coo<ValueType, IndexType>>> {
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>>,
+            public DiagonalExtractable<ValueType>,
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType>,
+            public EnableAbsoluteComputation<
+                remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -72,10 +70,8 @@ class Coo
 public:
     using EnableLinOp<Coo>::convert_to;
     using EnableLinOp<Coo>::move_to;
-    using ConvertibleTo<
-        Coo<next_precision_with_half<ValueType>, IndexType>>::convert_to;
-    using ConvertibleTo<
-        Coo<next_precision_with_half<ValueType>, IndexType>>::move_to;
+    using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -88,32 +84,26 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
 
-    friend class Coo<previous_precision_with_half<ValueType>, IndexType>;
-
-    void convert_to(Coo<next_precision_with_half<ValueType>, IndexType>* result)
-        const override;
-
-    void move_to(
-        Coo<next_precision_with_half<ValueType>, IndexType>* result) override;
-
-#if GINKGO_ENABLE_HALF
-    friend class Coo<
-        previous_precision_with_half<previous_precision_with_half<ValueType>>,
-        IndexType>;
-    using ConvertibleTo<
-        Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-            IndexType>>::convert_to;
-    using ConvertibleTo<
-        Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-            IndexType>>::move_to;
+    friend class Coo<previous_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-            IndexType>* result) const override;
+        Coo<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(
-        Coo<next_precision_with_half<next_precision_with_half<ValueType>>,
-            IndexType>* result) override;
+    void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Coo<previous_precision<previous_precision<ValueType>>,
+                     IndexType>;
+    using ConvertibleTo<
+        Coo<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Coo<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+
+    void convert_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
+    void move_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
 #endif
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;

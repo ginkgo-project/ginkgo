@@ -96,24 +96,21 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Fbcsr
-    : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
-      public ConvertibleTo<
-          Fbcsr<next_precision_with_half<ValueType>, IndexType>>,
+class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
+              public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF
-      public ConvertibleTo<
-          Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-                IndexType>>,
+              public ConvertibleTo<
+                  Fbcsr<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
-      public ConvertibleTo<Dense<ValueType>>,
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType>,
-      public Transposable,
-      public EnableAbsoluteComputation<
-          remove_complex<Fbcsr<ValueType, IndexType>>> {
+              public ConvertibleTo<Dense<ValueType>>,
+              public ConvertibleTo<Csr<ValueType, IndexType>>,
+              public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+              public DiagonalExtractable<ValueType>,
+              public ReadableFromMatrixData<ValueType, IndexType>,
+              public WritableToMatrixData<ValueType, IndexType>,
+              public Transposable,
+              public EnableAbsoluteComputation<
+                  remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -143,9 +140,8 @@ public:
     using EnableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
 
     using ConvertibleTo<
-        Fbcsr<next_precision_with_half<ValueType>, IndexType>>::convert_to;
-    using ConvertibleTo<
-        Fbcsr<next_precision_with_half<ValueType>, IndexType>>::move_to;
+        Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;
+    using ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
     using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
@@ -153,32 +149,26 @@ public:
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
 
-    friend class Fbcsr<previous_precision_with_half<ValueType>, IndexType>;
-
-    void convert_to(Fbcsr<next_precision_with_half<ValueType>, IndexType>*
-                        result) const override;
-
-    void move_to(
-        Fbcsr<next_precision_with_half<ValueType>, IndexType>* result) override;
-
-#if GINKGO_ENABLE_HALF
-    friend class Fbcsr<
-        previous_precision_with_half<previous_precision_with_half<ValueType>>,
-        IndexType>;
-    using ConvertibleTo<
-        Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-              IndexType>>::convert_to;
-    using ConvertibleTo<
-        Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-              IndexType>>::move_to;
+    friend class Fbcsr<previous_precision<ValueType>, IndexType>;
 
     void convert_to(
-        Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-              IndexType>* result) const override;
+        Fbcsr<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(
-        Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-              IndexType>* result) override;
+    void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Fbcsr<previous_precision<previous_precision<ValueType>>,
+                       IndexType>;
+    using ConvertibleTo<Fbcsr<next_precision<next_precision<ValueType>>,
+                              IndexType>>::convert_to;
+    using ConvertibleTo<
+        Fbcsr<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+
+    void convert_to(Fbcsr<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
+    void move_to(Fbcsr<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

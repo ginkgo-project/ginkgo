@@ -176,7 +176,7 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
-    Sellp<next_precision_with_half<ValueType>, IndexType>* result) const
+    Sellp<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -190,7 +190,7 @@ void Sellp<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(
-    Sellp<next_precision_with_half<ValueType>, IndexType>* result)
+    Sellp<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -199,8 +199,7 @@ void Sellp<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
-    Sellp<next_precision_with_half<next_precision_with_half<ValueType>>,
-          IndexType>* result) const
+    Sellp<next_precision<next_precision<ValueType>>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -214,8 +213,7 @@ void Sellp<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(
-    Sellp<next_precision_with_half<next_precision_with_half<ValueType>>,
-          IndexType>* result)
+    Sellp<next_precision<next_precision<ValueType>>, IndexType>* result)
 {
     this->convert_to(result);
 }
