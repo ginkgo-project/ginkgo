@@ -52,7 +52,6 @@
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == null # FIXME: this will be "full"
       when: manual
       allow_failure: true
-  dependencies: []
 
 .deploy_condition:
   rules:
