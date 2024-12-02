@@ -29,7 +29,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
             gko::LinOpFactory,
             gko::experimental::distributed::preconditioner::Schwarz>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_base()),
             make_type_selector(updated.get_index_typestr(),
                                syn::type_list<int32>()),
             make_type_selector(updated.get_global_index_typestr(),
@@ -39,7 +40,8 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
             gko::LinOpFactory,
             gko::experimental::distributed::preconditioner::Schwarz>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_value_typestr(),
+                               value_type_list_base()),
             make_type_selector(updated.get_index_typestr(),
                                syn::type_list<int64>()),
             make_type_selector(updated.get_global_index_typestr(),
