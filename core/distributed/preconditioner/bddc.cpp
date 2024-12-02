@@ -151,10 +151,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 {
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    if (this->local_solver_ != nullptr) {
-        this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                   gko::detail::get_local(dense_x));
-    }
 }
 
 
@@ -345,6 +341,36 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     coarse_contribution.sort_row_major();
     auto coarse_matrix_ = DdMatrix<ValueType, int, int>::create(exec, comm);
     coarse_matrix_->read_distributed(coarse_contribution, coarse_partition);
+
+    // Create Work space buffers
+    size_type broken_size = dd_system_matrix->get_restriction()->get_size()[0];
+    size_type local_size = reordered_system_matrix->get_size()[0];
+    buf_1_ =
+        vec::create(exec, comm, dim<2>{broken_size, 1}, dim<2>{local_size, 1});
+    buf_2_ = vec::create_with_config_of(buf_1_);
+    coarse_buf_1_ = vec::create(exec, comm, dim<2>{n_global_interfaces, 1},
+                                dim<2>{n_constraints, 1});
+    coarse_buf_2_ = vec::create_with_config_of(coarse_buf_1_);
+    local_buf_1_ = local_vec::create(exec, dim<2>{local_size, 1});
+    local_buf_2_ = local_vec::create_with_config_of(local_buf_1_);
+
+    // Generate weights
+    auto local_diag = reordered_system_matrix->extract_diagonal();
+    auto local_diag_local_vec = local_vec::create_const(
+        exec, dim<2>{local_size, 1},
+        make_const_array_view(exec, local_size, local_diag->get_const_values()),
+        1);
+    auto global_diag_vec = vec::create(exec, comm, clone(local_diag_local_vec));
+    dd_system_matrix->get_prolongation()->apply(global_diag_vec, buf_1_);
+    dd_system_matrix->get_restriction()->apply(buf_1_, global_diag_vec);
+    auto global_diag = diag::create_const(
+        exec, local_size,
+        make_const_array_view(exec, local_size,
+                              global_diag_vec->get_const_local_values()));
+    global_diag->inverse_apply(local_diag_local_vec, local_buf_1_);
+    weights_ = diag::create(
+        exec, local_size,
+        make_array_view(exec, local_size, local_buf_1_->get_values()));
 }
 
 
