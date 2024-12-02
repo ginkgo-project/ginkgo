@@ -22,6 +22,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
 
@@ -70,6 +71,8 @@ public:
     using local_real_mtx = matrix::Csr<real_type, local_index_type>;
     using local_vec = matrix::Dense<value_type>;
     using local_real_vec = matrix::Dense<real_type>;
+    using vec = Vector<value_type>;
+    using diag = matrix::Diagonal<value_type>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -172,6 +175,13 @@ private:
     std::shared_ptr<local_real_mtx> constraints_t_;
     std::shared_ptr<local_vec> phi_;
     std::shared_ptr<local_vec> phi_t_;
+    std::shared_ptr<diag> weights_;
+    std::shared_ptr<vec> buf_1_;
+    std::shared_ptr<vec> buf_2_;
+    std::shared_ptr<vec> coarse_buf_1_;
+    std::shared_ptr<vec> coarse_buf_2_;
+    std::shared_ptr<local_vec> local_buf_1_;
+    std::shared_ptr<local_vec> local_buf_2_;
 };
 
 
