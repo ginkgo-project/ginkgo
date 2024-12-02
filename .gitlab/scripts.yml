@@ -222,7 +222,7 @@
     - source /etc/bash.bashrc
     - export PATH=$SPACK_ROOT/bin:$PATH
     # Add ginkgo's spack fork to use development version of ginkgo's spack package
-    - git clone -c feature.manyFiles=true --depth=1 --sparse https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack
+    - git clone -c feature.manyFiles=true --depth=1 --sparse -b ${GINKGO_SPACK_BRANCH} https://github.com/ginkgo-project/spack.git /opt/ginkgo-spack
     - git -C /opt/ginkgo-spack sparse-checkout add var/spack/repos/builtin/packages/ginkgo/
     # Make spack fork available as additional repo. Important: need to change namespace to something other than `builtin`.
     - 'echo -e "repo:\n  namespace: gko" > /opt/ginkgo-spack/var/spack/repos/builtin/repo.yaml'

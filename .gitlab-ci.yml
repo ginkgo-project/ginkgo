@@ -91,6 +91,15 @@ trigger_pipeline:
         echo "Can not find the corresponding Pull Request"
       fi
 
+packaging/spack/trigger:
+  extends:
+    - .package_test_condition
+  script:
+    - echo "GINKGO_SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
 packaging/spack/rocm:
   extends:
     - .spack_build_template
@@ -104,7 +113,8 @@ packaging/spack/rocm:
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
-  needs: []
+  needs:
+    - packaging/spack/trigger
 
 packaging/spack/cuda:
   extends:
@@ -119,7 +129,8 @@ packaging/spack/cuda:
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
-  needs: []
+  needs:
+    - packaging/spack/trigger
 
 packaging/spack/sycl:
   extends:
@@ -133,7 +144,8 @@ packaging/spack/sycl:
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja %oneapi"
-  needs: []
+  needs:
+    - packaging/spack/trigger
 
 # Job with important warnings as error
 warnings:
