@@ -229,13 +229,11 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid;
     using Coarse = gko::multigrid::Pgm<value_type>;
-    using CoarseNext =
-        gko::multigrid::Pgm<gko::next_precision_with_half<value_type>>;
+    using CoarseNext = gko::multigrid::Pgm<gko::next_precision<value_type>>;
     using Smoother = gko::solver::Ir<value_type>;
     using InnerSolver = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
-    using CoarsestNextSolver =
-        gko::solver::Cg<gko::next_precision_with_half<value_type>>;
+    using CoarsestNextSolver = gko::solver::Cg<gko::next_precision<value_type>>;
     using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
     Multigrid()

@@ -839,7 +839,7 @@ TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_base<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -855,7 +855,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_base<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);

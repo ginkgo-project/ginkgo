@@ -19,9 +19,9 @@ namespace gko {
 /**
  * Convert the given LinOp from matrix::Dense<...> to matrix::Dense<ValueType>.
  * The conversion tries to convert the input LinOp to all Dense types with value
- * type recursively reachable by next_precision<...> starting from the ValueType
- * template parameter. This means that all real-to-real and complex-to-complex
- * conversions for default precisions are being considered.
+ * type recursively reachable by next_precision_base<...> starting from the
+ * ValueType template parameter. This means that all real-to-real and
+ * complex-to-complex conversions for default precisions are being considered.
  * If the input matrix is non-const, the contents of the modified converted
  * object will be converted back to the input matrix when the returned object is
  * destroyed. This may lead to a loss of precision!
@@ -48,9 +48,9 @@ make_temporary_conversion(Ptr&& matrix)
 {
     using Pointee = detail::pointee<Ptr>;
     using Dense = matrix::Dense<ValueType>;
-    using NextDense = matrix::Dense<next_precision_with_half<ValueType>>;
-    using NextNextDense = matrix::Dense<
-        next_precision_with_half<next_precision_with_half<ValueType>>>;
+    using NextDense = matrix::Dense<next_precision<ValueType>>;
+    using NextNextDense =
+        matrix::Dense<next_precision<next_precision<ValueType>>>;
     using MaybeConstDense =
         std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
     auto result = detail::temporary_conversion<
@@ -201,7 +201,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
  * If GINKGO_MIXED_PRECISION is defined, this means that the function will be
  * called with its dynamic type as a static type, so the (templated/generic)
  * function will be instantiated with all pairs of Dense<ValueType> and
- * Dense<next_precision<ValueType>> parameter types, and the appropriate
+ * Dense<next_precision_base<ValueType>> parameter types, and the appropriate
  * overload will be called based on the dynamic type of the parameter.
  *
  * If GINKGO_MIXED_PRECISION is not defined, it will behave exactly like
@@ -228,9 +228,8 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     using fst_type = matrix::Dense<ValueType>;
-    using snd_type = matrix::Dense<next_precision_with_half<ValueType>>;
-    using trd_type = matrix::Dense<
-        next_precision_with_half<next_precision_with_half<ValueType>>>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    using trd_type = matrix::Dense<next_precision<next_precision<ValueType>>>;
     auto dispatch_out_vector = [&](auto dense_in) {
         if (auto dense_out = dynamic_cast<fst_type*>(out)) {
             fn(dense_in, dense_out);
@@ -314,7 +313,7 @@ namespace distributed {
  * Convert the given LinOp from experimental::distributed::Vector<...> to
  * experimental::distributed::Vector<ValueType>. The conversion tries to convert
  * the input LinOp to all Dense types with value type recursively reachable by
- * next_precision<...> starting from the ValueType template parameter. This
+ * next_precision_base<...> starting from the ValueType template parameter. This
  * means that all real-to-real and complex-to-complex conversions for default
  * precisions are being considered. If the input matrix is non-const, the
  * contents of the modified converted object will be converted back to the input
@@ -341,7 +340,7 @@ gko::detail::temporary_conversion<Vector<ValueType>> make_temporary_conversion(
 {
     auto result =
         gko::detail::temporary_conversion<Vector<ValueType>>::template create<
-            Vector<next_precision<ValueType>>>(matrix);
+            Vector<next_precision_base<ValueType>>>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -357,7 +356,7 @@ gko::detail::temporary_conversion<const Vector<ValueType>>
 make_temporary_conversion(const LinOp* matrix)
 {
     auto result = gko::detail::temporary_conversion<const Vector<ValueType>>::
-        template create<Vector<next_precision<ValueType>>>(matrix);
+        template create<Vector<next_precision_base<ValueType>>>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }

@@ -32,8 +32,7 @@ protected:
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using MixedVec =
-        gko::matrix::Dense<gko::next_precision_with_half<value_type>>;
+    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
 
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -235,7 +234,7 @@ TYPED_TEST(Hybrid, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Hybrid = typename TestFixture::Mtx;
     using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
     auto tmp = OtherHybrid::create(this->exec);
@@ -258,7 +257,7 @@ TYPED_TEST(Hybrid, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Hybrid = typename TestFixture::Mtx;
     using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
     auto tmp = OtherHybrid::create(this->exec);
@@ -369,7 +368,7 @@ TYPED_TEST(Hybrid, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Hybrid = typename TestFixture::Mtx;
     using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
     auto other = Hybrid::create(this->exec);
@@ -386,7 +385,7 @@ TYPED_TEST(Hybrid, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Hybrid = typename TestFixture::Mtx;
     using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
     auto other = Hybrid::create(this->exec);
@@ -701,7 +700,7 @@ TYPED_TEST(Hybrid, AppliesToComplex)
 TYPED_TEST(Hybrid, AppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision_with_half<typename TestFixture::value_type>;
+        gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -758,7 +757,7 @@ TYPED_TEST(Hybrid, AdvancedAppliesToComplex)
 TYPED_TEST(Hybrid, AdvancedAppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision_with_half<typename TestFixture::value_type>;
+        gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;

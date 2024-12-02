@@ -257,14 +257,13 @@ class Vector;
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Matrix
-    : public EnableDistributedLinOp<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public ConvertibleTo<
-          Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+class Matrix : public EnableDistributedLinOp<
+                   Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+               public ConvertibleTo<Matrix<next_precision_base<ValueType>,
+                                           LocalIndexType, GlobalIndexType>>,
+               public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
-    friend class Matrix<next_precision<ValueType>, LocalIndexType,
+    friend class Matrix<next_precision_base<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
 
@@ -279,15 +278,15 @@ public:
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type>, local_index_type,
+    void convert_to(Matrix<next_precision_base<value_type>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision<value_type>, local_index_type,
+    void move_to(Matrix<next_precision_base<value_type>, local_index_type,
                         global_index_type>* result) override;
 
     /**

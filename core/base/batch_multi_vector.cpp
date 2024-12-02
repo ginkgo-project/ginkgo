@@ -281,7 +281,7 @@ void MultiVector<ValueType>::compute_norm2(
 
 template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
-    MultiVector<next_precision_with_half<ValueType>>* result) const
+    MultiVector<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -290,7 +290,7 @@ void MultiVector<ValueType>::convert_to(
 
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
-    MultiVector<next_precision_with_half<ValueType>>* result)
+    MultiVector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -299,8 +299,7 @@ void MultiVector<ValueType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
-    MultiVector<next_precision_with_half<next_precision_with_half<ValueType>>>*
-        result) const
+    MultiVector<next_precision<next_precision<ValueType>>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -309,8 +308,7 @@ void MultiVector<ValueType>::convert_to(
 
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
-    MultiVector<next_precision_with_half<next_precision_with_half<ValueType>>>*
-        result)
+    MultiVector<next_precision<next_precision<ValueType>>>* result)
 {
     this->convert_to(result);
 }

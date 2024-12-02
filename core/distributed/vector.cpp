@@ -283,7 +283,7 @@ void Vector<ValueType>::fill(const ValueType value)
 
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
-    Vector<next_precision<ValueType>>* result) const
+    Vector<next_precision_base<ValueType>>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -293,7 +293,7 @@ void Vector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
+void Vector<ValueType>::move_to(Vector<next_precision_base<ValueType>>* result)
 {
     this->convert_to(result);
 }

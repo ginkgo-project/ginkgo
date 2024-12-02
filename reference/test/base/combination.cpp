@@ -115,7 +115,7 @@ TYPED_TEST(Combination, AppliesToMixedVector)
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    using value_type = gko::next_precision_with_half<TypeParam>;
+    using value_type = gko::next_precision<TypeParam>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmb = gko::Combination<TypeParam>::create(
         this->coefficients[0], this->operators[0], this->coefficients[1],
@@ -157,8 +157,7 @@ TYPED_TEST(Combination, AppliesToMixedComplexVector)
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    using value_type =
-        gko::to_complex<gko::next_precision_with_half<TypeParam>>;
+    using value_type = gko::to_complex<gko::next_precision<TypeParam>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmb = gko::Combination<TypeParam>::create(
         this->coefficients[0], this->operators[0], this->coefficients[1],
@@ -202,7 +201,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedVector)
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    using value_type = gko::next_precision_with_half<TypeParam>;
+    using value_type = gko::next_precision<TypeParam>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmb = gko::Combination<TypeParam>::create(
         this->coefficients[0], this->operators[0], this->coefficients[1],
@@ -250,8 +249,7 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedComplexVector)
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    using MixedDense =
-        gko::matrix::Dense<gko::next_precision_with_half<TypeParam>>;
+    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;
     using value_type = typename MixedDenseComplex::value_type;
     auto cmb = gko::Combination<TypeParam>::create(
