@@ -102,15 +102,15 @@ deferred_factory_parameter<ReturnType> dispatch(
     }
 }
 
-using value_type_list =
+using value_type_list_base =
     syn::type_list<double, float, std::complex<double>, std::complex<float>>;
 
 #if GINKGO_ENABLE_HALF
-using value_type_list_with_half =
+using value_type_list =
     syn::type_list<double, float, half, std::complex<double>,
                    std::complex<float>, std::complex<half>>;
 #else
-using value_type_list_with_half = value_type_list;
+using value_type_list = value_type_list_base;
 #endif  // GINKGO_ENABLE_HALF
 
 using index_type_list = syn::type_list<int32, int64>;

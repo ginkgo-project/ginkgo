@@ -94,7 +94,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "solver::Ir") {
@@ -104,7 +104,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "preconditioner::LowerIsai") {
@@ -114,7 +114,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "solver::Gmres") {
@@ -124,7 +124,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
                            ReverseApply::value>::template Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {

@@ -16,7 +16,8 @@
 
 
 // for value_type only
-#define GKO_PARSE_VALUE_TYPE_BASE_(_type, _configurator, _value_type_list)   \
+#define GKO_PARSE_VALUE_TYPE_BASE_(_type, _configurator,                     \
+                                   _value_type_list_base)                    \
     template <>                                                              \
     deferred_factory_parameter<gko::LinOpFactory>                            \
     parse<gko::config::LinOpFactoryType::_type>(                             \
@@ -28,22 +29,22 @@
         return gko::config::dispatch<gko::LinOpFactory, _configurator>(      \
             config, context, updated,                                        \
             gko::config::make_type_selector(updated.get_value_typestr(),     \
-                                            _value_type_list));              \
+                                            _value_type_list_base));         \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 #define GKO_PARSE_VALUE_TYPE_BASE(_type, _configurator) \
     GKO_PARSE_VALUE_TYPE_BASE_(_type, _configurator,    \
-                               gko::config::value_type_list())
+                               gko::config::value_type_list_base())
 
 #define GKO_PARSE_VALUE_TYPE(_type, _configurator)   \
     GKO_PARSE_VALUE_TYPE_BASE_(_type, _configurator, \
-                               gko::config::value_type_list_with_half())
+                               gko::config::value_type_list())
 
 // for value_type and index_type
 #define GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE_(_type, _configurator,            \
-                                             _value_type_list)                \
+                                             _value_type_list_base)           \
     template <>                                                               \
     deferred_factory_parameter<gko::LinOpFactory>                             \
     parse<gko::config::LinOpFactoryType::_type>(                              \
@@ -55,7 +56,7 @@
         return gko::config::dispatch<gko::LinOpFactory, _configurator>(       \
             config, context, updated,                                         \
             gko::config::make_type_selector(updated.get_value_typestr(),      \
-                                            _value_type_list),                \
+                                            _value_type_list_base),           \
             gko::config::make_type_selector(updated.get_index_typestr(),      \
                                             gko::config::index_type_list())); \
     }                                                                         \
@@ -65,11 +66,11 @@
 
 #define GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(_type, _configurator) \
     GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE_(_type, _configurator,    \
-                                         gko::config::value_type_list())
+                                         gko::config::value_type_list_base())
 
-#define GKO_PARSE_VALUE_AND_INDEX_TYPE(_type, _configurator) \
-    GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE_(                    \
-        _type, _configurator, gko::config::value_type_list_with_half())
+#define GKO_PARSE_VALUE_AND_INDEX_TYPE(_type, _configurator)   \
+    GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE_(_type, _configurator, \
+                                         gko::config::value_type_list())
 
 
 #endif  // GKO_CORE_CONFIG_PARSE_MACRO_HPP_

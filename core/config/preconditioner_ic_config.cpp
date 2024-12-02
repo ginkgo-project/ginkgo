@@ -78,28 +78,24 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ic>(
         return dispatch<gko::LinOpFactory,
                         IcHelper2<solver::LowerTrs>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(),
-                               value_type_list_with_half()),
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "solver::Ir") {
         return dispatch<gko::LinOpFactory, IcHelper1<solver::Ir>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(),
-                               value_type_list_with_half()),
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "preconditioner::LowerIsai") {
         return dispatch<gko::LinOpFactory,
                         IcHelper2<preconditioner::LowerIsai>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(),
-                               value_type_list_with_half()),
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else if (str == "solver::Gmres") {
         return dispatch<gko::LinOpFactory,
                         IcHelper1<solver::Gmres>::Configurator>(
             config, context, updated,
-            make_type_selector(updated.get_value_typestr(),
-                               value_type_list_with_half()),
+            make_type_selector(updated.get_value_typestr(), value_type_list()),
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else {
         GKO_INVALID_CONFIG_VALUE("l_solver_type", str);
