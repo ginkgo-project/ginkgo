@@ -93,7 +93,7 @@ trigger_pipeline:
 
 packaging/spack/trigger:
   extends:
-    - .package_test_condition
+    - .package_trigger_condition
   stage: packaging
   image: ubuntu:latest
   tags:

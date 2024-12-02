@@ -46,12 +46,20 @@
   dependencies: []
 
 
-.package_test_condition:
+.package_trigger_condition:
   rules:
     - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == null # FIXME: this will be "full"
       when: manual
       allow_failure: true
+
+
+.package_test_condition:
+  rules:
+    - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == null # FIXME: this will be "full"
+      allow_failure: true
+
 
 .deploy_condition:
   rules:
