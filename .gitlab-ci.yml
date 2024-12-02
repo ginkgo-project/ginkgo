@@ -132,7 +132,7 @@ packaging/spack/sycl:
     - intel-gpus
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "%oneapi @develop +sycl +openmp +mpi generator=ninja"
+    GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja %oneapi"
   needs: []
 
 # Job with important warnings as error
