@@ -277,7 +277,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };  // namespace
 
-TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

@@ -29,7 +29,7 @@ protected:
     gko::array<value_type> array = {exec, I<value_type>{1, 2, 3, 4}};
 };
 
-TYPED_TEST_SUITE(ArrayMapper, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(ArrayMapper, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(ArrayMapper, CanMapDefault)
@@ -89,7 +89,7 @@ protected:
         gko::initialize<mtx_type>({1, 2, 3, 4}, exec);
 };
 
-TYPED_TEST_SUITE(DenseMapper, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(DenseMapper, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(DenseMapper, CanMapDefault)

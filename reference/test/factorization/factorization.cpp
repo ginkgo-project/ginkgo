@@ -70,7 +70,7 @@ protected:
     std::shared_ptr<vector_type> beta;
 };
 
-TYPED_TEST_SUITE(Factorization, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(Factorization, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

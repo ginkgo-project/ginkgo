@@ -143,7 +143,8 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(SchwarzPreconditioner, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(SchwarzPreconditioner,
+                 gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)

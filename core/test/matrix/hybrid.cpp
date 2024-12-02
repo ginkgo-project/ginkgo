@@ -96,8 +96,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Hybrid, KnowsItsSize)

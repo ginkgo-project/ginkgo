@@ -104,8 +104,7 @@ protected:
     const std::unique_ptr<const Mtx> mtxsq;
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
@@ -620,7 +619,7 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

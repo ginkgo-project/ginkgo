@@ -164,8 +164,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Multigrid, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Multigrid, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Multigrid, MultigridFactoryKnowsItsExecutor)

@@ -136,7 +136,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> gmres_factory_big2;
 };
 
-TYPED_TEST_SUITE(Gmres, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Gmres, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Gmres, KernelInitialize)

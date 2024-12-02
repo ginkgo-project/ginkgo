@@ -26,7 +26,7 @@ constexpr int num_iters = 10;
 template <typename T>
 class Stream : public ::testing::Test {};
 
-TYPED_TEST_SUITE(Stream, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Stream, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Stream, CatchesAllocationStarted)

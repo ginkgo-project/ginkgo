@@ -43,7 +43,7 @@ protected:
     gko::array<value_type> dvals;
 };
 
-TYPED_TEST_SUITE(ReduceArray, gko::test::ComplexAndPODTypesWithHalf,
+TYPED_TEST_SUITE(ReduceArray, gko::test::ComplexAndPODTypes,
                  TypenameNameGenerator);
 
 

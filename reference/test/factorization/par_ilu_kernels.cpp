@@ -180,8 +180,7 @@ protected:
     std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_sort;
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)

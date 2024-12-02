@@ -80,7 +80,7 @@ protected:
     std::shared_ptr<dist_mtx_type> dist_mat;
 };
 
-TYPED_TEST_SUITE(Pgm, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(Pgm, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

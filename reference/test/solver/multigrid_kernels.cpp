@@ -415,7 +415,7 @@ protected:
     std::shared_ptr<Mtx> x2;
 };
 
-TYPED_TEST_SUITE(Multigrid, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(Multigrid, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

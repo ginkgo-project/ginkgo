@@ -101,7 +101,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 
@@ -467,7 +467,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Matrix, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, CanApplyToSingleVector)

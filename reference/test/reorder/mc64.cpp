@@ -71,8 +71,7 @@ protected:
     std::unique_ptr<reorder_type> mc64_factory;
 };
 
-TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Mc64, HasSensibleDefaults)

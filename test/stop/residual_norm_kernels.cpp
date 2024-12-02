@@ -58,8 +58,7 @@ protected:
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> abs_factory;
 };
 
-TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ResidualNorm, CanIgorneResidualNorm)
@@ -345,7 +344,7 @@ protected:
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -442,7 +441,7 @@ protected:
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -547,7 +546,7 @@ protected:
         factory;
 };
 
-TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -693,7 +692,7 @@ protected:
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 

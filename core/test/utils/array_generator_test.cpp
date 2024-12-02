@@ -65,8 +65,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(ArrayGenerator, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ArrayGenerator, OutputHasCorrectSize)

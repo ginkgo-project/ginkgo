@@ -181,8 +181,7 @@ protected:
     const real_type zero_tol;
 };
 
-TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Mc64, InitializeWeightsSum)

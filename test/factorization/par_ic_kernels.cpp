@@ -86,8 +86,7 @@ protected:
     std::unique_ptr<Csr> dmtx_l_ani_init;
 };
 
-TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIc, KernelInitFactorIsEquivalentToRef)

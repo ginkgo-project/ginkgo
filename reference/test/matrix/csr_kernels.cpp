@@ -347,8 +347,7 @@ protected:
     index_type invalid_index = gko::invalid_index<index_type>();
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -2246,7 +2245,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -2591,7 +2590,7 @@ protected:
     index_type invalid_index = gko::invalid_index<index_type>();
 };
 
-TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)

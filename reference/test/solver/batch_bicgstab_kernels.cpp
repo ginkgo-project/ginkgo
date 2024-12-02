@@ -75,7 +75,7 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypesWithHalf,
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::RealValueTypes,
                  TypenameNameGenerator);
 
 

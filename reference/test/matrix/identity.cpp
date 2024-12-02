@@ -29,8 +29,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Identity, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Identity, AppliesToVector)

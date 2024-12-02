@@ -973,7 +973,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_SUITE(RealDummyLinOpTest, gko::test::RealValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(RealDummyLinOpTest, gko::test::RealValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -1178,7 +1178,7 @@ protected:
     using index_type = typename std::tuple_element<1, ValueIndexType>::type;
 };
 
-TYPED_TEST_SUITE(DenseTest, gko::test::RealValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(DenseTest, gko::test::RealValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -1222,8 +1222,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-TYPED_TEST_SUITE(ComplexDummyLinOpTest,
-                 gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

@@ -33,8 +33,7 @@ protected:
     std::shared_ptr<gko::LinOp> scalar;
 };
 
-TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Perturbation, CopiesOnSameExecutor)

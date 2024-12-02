@@ -111,15 +111,15 @@ protected:
 };
 
 #ifdef GKO_COMPILING_OMP
-using Types = gko::test::ValueIndexTypes;
+using Types = gko::test::ValueIndexTypesBase;
 #elif defined(GKO_COMPILING_CUDA)
 // CUDA doesn't support long indices for sorting, and the triangular solvers
 // seem broken
-using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypesWithHalf,
+using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypes,
                                                   ::testing::Types<gko::int32>>;
 #else
 // HIP only supports real types and int32
-using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypes,
+using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypesBase,
                                                   ::testing::Types<gko::int32>>;
 #endif
 

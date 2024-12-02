@@ -50,8 +50,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
 };
 
-TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Sellp, AppliesToDenseVector)
@@ -752,7 +751,7 @@ protected:
     using Mtx = gko::matrix::Sellp<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(SellpComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(SellpComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

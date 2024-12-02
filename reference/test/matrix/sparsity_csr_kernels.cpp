@@ -125,7 +125,7 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
-TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

@@ -31,8 +31,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(Identity, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Identity, CanBeEmpty)
@@ -82,8 +81,7 @@ protected:
     using value_type = T;
 };
 
-TYPED_TEST_SUITE(IdentityFactory, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(IdentityFactory, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(IdentityFactory, CanGenerateIdentityMatrix)

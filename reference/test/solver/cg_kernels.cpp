@@ -107,7 +107,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> cg_factory_big2;
 };
 
-TYPED_TEST_SUITE(Cg, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Cg, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Cg, KernelInitialize)

@@ -34,8 +34,7 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
-TYPED_TEST_SUITE(Combination, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Combination, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Combination, CopiesOnSameExecutor)

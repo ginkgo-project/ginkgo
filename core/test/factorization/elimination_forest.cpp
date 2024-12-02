@@ -33,7 +33,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(EliminationForest, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(EliminationForest, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

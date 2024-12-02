@@ -24,7 +24,7 @@ protected:
     std::shared_ptr<gko::Executor> ref;
 };
 
-using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypes,
+using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypesBase,
                                                gko::test::IndexTypes>;
 
 TYPED_TEST_SUITE(MpiBindings, TestTypes, TypenameNameGenerator);

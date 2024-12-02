@@ -65,7 +65,7 @@ protected:
     std::unique_ptr<OutVec> out;
 };
 
-TYPED_TEST_SUITE(RowGatherer, gko::test::TwoValueIndexTypeWithHalf,
+TYPED_TEST_SUITE(RowGatherer, gko::test::TwoValueIndexTypes,
                  TupleTypenameNameGenerator);
 
 

@@ -95,7 +95,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 
@@ -361,7 +361,7 @@ public:
     std::unique_ptr<vec_type> dst;
 };
 
-TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes,
+TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypesBase,
                  TypenameNameGenerator);
 
 
@@ -513,7 +513,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypesBase,
                  TypenameNameGenerator);
 
 
@@ -801,7 +801,8 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypesBase,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(VectorLocalOps, ApplyNotSupported)

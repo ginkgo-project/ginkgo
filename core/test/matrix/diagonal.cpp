@@ -47,8 +47,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Diagonal, KnowsItsSize)

@@ -119,7 +119,7 @@ protected:
     std::unique_ptr<Coo> coo_empty;
 };
 
-TYPED_TEST_SUITE(UnsortMatrix, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(UnsortMatrix, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
