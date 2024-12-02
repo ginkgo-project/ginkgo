@@ -226,8 +226,8 @@
     - 'echo -e "repo:\n  namespace: gko" > /opt/ginkgo-spack/var/spack/repos/builtin/repo.yaml'
     - spack external find cmake ninja
     - spack repo add /opt/ginkgo-spack/var/spack/repos/builtin
-    - 'spack config add "config:install_tree:root:${CI_BUILD_DIR}/spack/opt/spack"'
-    - 'spack config add "config:build_stage:${CI_BUILD_DIR}/spack-stage"'
+    - 'spack config add "config:install_tree:root:${CI_BUILDS_DIR}/spack/opt/spack"'
+    - 'spack config add "config:build_stage:${CI_BUILDS_DIR}/spack-stage"'
     - spack config blame config
     - spack install -j ${NUM_CORES} ginkgo ${GINKGO_SPEC}
 
