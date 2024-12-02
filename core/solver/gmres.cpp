@@ -543,6 +543,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
+        } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+            // TODO change this content
+            orthogonalize_mgs(hessenberg_iter.get(), krylov_bases,
+                              next_krylov.get(), reduction_tmp, restart_iter,
+                              num_rows, num_rhs, local_num_rows);
         }
         // normalize next_krylov:
         // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)

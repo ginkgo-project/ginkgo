@@ -47,7 +47,12 @@ enum class ortho_method {
     /**
      * Classical Gram-Schmidt with re-orthogonalization
      */
-    cgs2
+    cgs2,
+    // TODO change comment
+    /**
+     * Randomized ...
+     */
+    rgs
 };
 
 /** Prints an orthogonalization method. */
