@@ -94,7 +94,7 @@ trigger_pipeline:
 packaging/spack/rocm:
   extends:
     - .spack_build_template
-    - .quick_test_condition
+    - .package_test_condition
   image:
     name: ecpe4s/e4s-base-rocm:24.11
     entrypoint: [""]
@@ -109,7 +109,7 @@ packaging/spack/rocm:
 packaging/spack/cuda:
   extends:
     - .spack_build_template
-    - .quick_test_condition
+    - .package_test_condition
   image:
     name: ecpe4s/e4s-base-cuda:24.11
     entrypoint: [""]
@@ -124,7 +124,7 @@ packaging/spack/cuda:
 packaging/spack/sycl:
   extends:
     - .spack_build_template
-    - .quick_test_condition
+    - .package_test_condition
   image:
     name: ecpe4s/e4s-base-oneapi:24.11
     entrypoint: [""]
