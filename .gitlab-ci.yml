@@ -129,11 +129,10 @@ packaging/spack/sycl:
     name: ecpe4s/e4s-base-oneapi:24.11
     entrypoint: [""]
   tags:
-    - private_ci
-    - nvidia-gpu
+    - intel-gpus
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja"
+    GINKGO_SPEC: "%oneapi @develop +sycl +openmp +mpi generator=ninja"
   needs: []
 
 # Job with important warnings as error
