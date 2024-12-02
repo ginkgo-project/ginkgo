@@ -32,7 +32,7 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(CooBuilder, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(CooBuilder, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

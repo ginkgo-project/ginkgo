@@ -33,7 +33,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> lower_trs_factory;
 };
 
-TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

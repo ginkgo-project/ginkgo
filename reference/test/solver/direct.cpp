@@ -66,8 +66,7 @@ protected:
     std::unique_ptr<solver_type> solver;
 };
 
-TYPED_TEST_SUITE(Direct, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Direct, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Direct, SolvesAni1SingleRhs)

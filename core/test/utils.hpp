@@ -321,14 +321,14 @@ using add_inner_wrapper_t =
     typename detail::add_inner_wrapper<NewInnerWrapper, ListType>::type;
 
 
-using RealValueTypes =
+using RealValueTypesBase =
 #if GINKGO_DPCPP_SINGLE_MODE
     ::testing::Types<float>;
 #else
     ::testing::Types<float, double>;
 #endif
 
-using RealValueTypesWithHalf = ::testing::Types<
+using RealValueTypes = ::testing::Types<
 #if GINKGO_ENABLE_HALF
     gko::half,
 #endif
@@ -337,15 +337,15 @@ using RealValueTypesWithHalf = ::testing::Types<
 #endif
     float>;
 
+using ComplexValueTypesBase =
+    add_inner_wrapper_t<std::complex, RealValueTypesBase>;
+
 using ComplexValueTypes = add_inner_wrapper_t<std::complex, RealValueTypes>;
 
-using ComplexValueTypesWithHalf =
-    add_inner_wrapper_t<std::complex, RealValueTypesWithHalf>;
+using ValueTypesBase =
+    merge_type_list_t<RealValueTypesBase, ComplexValueTypesBase>;
 
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
-
-using ValueTypesWithHalf =
-    merge_type_list_t<RealValueTypesWithHalf, ComplexValueTypesWithHalf>;
 
 using IndexTypes = ::testing::Types<int32, int64>;
 
@@ -355,48 +355,46 @@ using LocalGlobalIndexTypes =
     ::testing::Types<std::tuple<int32, int32>, std::tuple<int32, int64>,
                      std::tuple<int64, int64>>;
 
+using PODTypesBase = merge_type_list_t<RealValueTypesBase, IntegerTypes>;
+
 using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
-using PODTypesWithHalf =
-    merge_type_list_t<RealValueTypesWithHalf, IntegerTypes>;
+using ComplexAndPODTypesBase =
+    merge_type_list_t<ComplexValueTypesBase, PODTypesBase>;
 
-using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
+using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypesBase>;
 
-using ComplexAndPODTypesWithHalf =
-    merge_type_list_t<ComplexValueTypesWithHalf, PODTypes>;
+using ValueIndexTypesBase =
+    cartesian_type_product_t<ValueTypesBase, IndexTypes>;
 
 using ValueIndexTypes = cartesian_type_product_t<ValueTypes, IndexTypes>;
 
-using ValueIndexTypesWithHalf =
-    cartesian_type_product_t<ValueTypesWithHalf, IndexTypes>;
+using RealValueIndexTypesBase =
+    cartesian_type_product_t<RealValueTypesBase, IndexTypes>;
 
 using RealValueIndexTypes =
     cartesian_type_product_t<RealValueTypes, IndexTypes>;
 
-using RealValueIndexTypesWithHalf =
-    cartesian_type_product_t<RealValueTypesWithHalf, IndexTypes>;
+using ComplexValueIndexTypesBase =
+    cartesian_type_product_t<ComplexValueTypesBase, IndexTypes>;
 
 using ComplexValueIndexTypes =
     cartesian_type_product_t<ComplexValueTypes, IndexTypes>;
 
-using ComplexValueIndexTypesWithHalf =
-    cartesian_type_product_t<ComplexValueTypesWithHalf, IndexTypes>;
+using TwoValueIndexTypesBase = add_to_cartesian_type_product_t<
+    merge_type_list_t<
+        cartesian_type_product_t<RealValueTypesBase, RealValueTypesBase>,
+        cartesian_type_product_t<ComplexValueTypesBase, ComplexValueTypesBase>>,
+    IndexTypes>;
 
-using TwoValueIndexType = add_to_cartesian_type_product_t<
+using TwoValueIndexTypes = add_to_cartesian_type_product_t<
     merge_type_list_t<
         cartesian_type_product_t<RealValueTypes, RealValueTypes>,
         cartesian_type_product_t<ComplexValueTypes, ComplexValueTypes>>,
     IndexTypes>;
 
-using TwoValueIndexTypeWithHalf = add_to_cartesian_type_product_t<
-    merge_type_list_t<cartesian_type_product_t<RealValueTypesWithHalf,
-                                               RealValueTypesWithHalf>,
-                      cartesian_type_product_t<ComplexValueTypesWithHalf,
-                                               ComplexValueTypesWithHalf>>,
-    IndexTypes>;
-
-using ValueLocalGlobalIndexTypes =
-    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
+using ValueLocalGlobalIndexTypesBase =
+    add_to_cartesian_type_product_left_t<ValueTypesBase, LocalGlobalIndexTypes>;
 
 
 template <typename Precision, typename OutputType>

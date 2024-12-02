@@ -91,8 +91,8 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(AddressablePriorityQueue,
-                 gko::test::RealValueIndexTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(AddressablePriorityQueue, gko::test::RealValueIndexTypes,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(AddressablePriorityQueue, InitializesCorrectly)

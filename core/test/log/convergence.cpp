@@ -45,8 +45,7 @@ public:
     gko::array<gko::stopping_status> status = {exec, 1};
 };
 
-TYPED_TEST_SUITE(Convergence, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Convergence, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Convergence, CanGetEmptyData)

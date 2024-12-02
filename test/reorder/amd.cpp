@@ -40,8 +40,7 @@ protected:
     std::shared_ptr<matrix_type> dmtx;
 };
 
-TYPED_TEST_SUITE(Amd, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Amd, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Amd, IsEquivalentToRef)

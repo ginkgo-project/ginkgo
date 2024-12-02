@@ -48,7 +48,7 @@ protected:
     gko::array<comm_index_type> mapping;
 };
 
-TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

@@ -61,8 +61,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)

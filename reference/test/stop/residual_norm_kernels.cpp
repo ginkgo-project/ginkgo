@@ -45,8 +45,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(ResidualNorm, CanCreateFactory)
@@ -530,7 +529,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -671,7 +670,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -808,7 +807,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -984,7 +983,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypesWithHalf,
+TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 

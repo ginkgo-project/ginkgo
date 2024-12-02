@@ -93,8 +93,7 @@ protected:
     std::unique_ptr<Csr> dmtx_l;
 };
 
-TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIct, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)

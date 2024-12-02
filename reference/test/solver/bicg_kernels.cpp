@@ -119,7 +119,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> bicg_factory_non_symmetric;
 };
 
-TYPED_TEST_SUITE(Bicg, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Bicg, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Bicg, KernelInitialize)

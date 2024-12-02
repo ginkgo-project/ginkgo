@@ -84,7 +84,7 @@ protected:
     std::shared_ptr<typename ilu_rev_prec_type::Factory> ilu_rev_pre_factory;
 };
 
-TYPED_TEST_SUITE(Ilu, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Ilu, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Ilu, BuildsDefaultWithoutThrowing)

@@ -144,8 +144,7 @@ protected:
     std::unique_ptr<Bj> adaptive_bj;
 };
 
-TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Jacobi, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)

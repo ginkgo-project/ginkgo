@@ -143,7 +143,7 @@ protected:
     std::unique_ptr<MgLevel> mg_level;
 };
 
-TYPED_TEST_SUITE(FixedCoarsening, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FixedCoarsening, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

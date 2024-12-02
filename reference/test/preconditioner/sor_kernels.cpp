@@ -55,8 +55,7 @@ public:
                                   exec);
 };
 
-TYPED_TEST_SUITE(Sor, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Sor, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Sor, CanInitializeLFactor)

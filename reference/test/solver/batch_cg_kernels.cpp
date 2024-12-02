@@ -75,8 +75,7 @@ protected:
         solve_lambda;
 };
 
-TYPED_TEST_SUITE(BatchCg, gko::test::RealValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(BatchCg, gko::test::RealValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(BatchCg, SolvesStencilSystem)

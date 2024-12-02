@@ -41,8 +41,7 @@ protected:
     mtx_data rectangular_data;
 };
 
-TYPED_TEST_SUITE(MatrixUtils, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(MatrixUtils, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MatrixUtils, MakeSymmetricThrowsError)

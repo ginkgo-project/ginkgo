@@ -80,7 +80,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CopyRespectsStride)
@@ -1359,7 +1359,7 @@ public:
     std::unique_ptr<ScaledPermutation> scale_perm0;
 };
 
-TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -3552,7 +3552,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypesWithHalf,
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes,
                  TypenameNameGenerator);
 
 

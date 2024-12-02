@@ -132,7 +132,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

@@ -33,7 +33,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
 };
 
-TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

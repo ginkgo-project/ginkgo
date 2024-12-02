@@ -41,8 +41,7 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
-TYPED_TEST_SUITE(Composition, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Composition, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Composition, CanBeEmpty)

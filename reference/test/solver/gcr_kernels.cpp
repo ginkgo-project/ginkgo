@@ -119,7 +119,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> gcr_factory_big2;
 };
 
-TYPED_TEST_SUITE(Gcr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Gcr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Gcr, KernelInitialize)

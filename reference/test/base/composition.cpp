@@ -75,8 +75,7 @@ protected:
     std::shared_ptr<Mtx> product;
 };
 
-TYPED_TEST_SUITE(Composition, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Composition, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Composition, CopiesOnSameExecutor)

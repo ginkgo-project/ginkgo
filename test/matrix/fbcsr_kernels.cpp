@@ -61,10 +61,9 @@ protected:
 };
 
 #ifdef GKO_COMPILING_HIP
-TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::RealValueTypes, TypenameNameGenerator);
 #else
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueTypes, TypenameNameGenerator);
 #endif
 
 TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)

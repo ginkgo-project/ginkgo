@@ -38,7 +38,7 @@ protected:
     std::unique_ptr<typename MgLevel::Factory> fixed_coarsening_factory;
 };
 
-TYPED_TEST_SUITE(FixedCoarseningFactory, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FixedCoarseningFactory, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

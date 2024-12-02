@@ -42,7 +42,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(VectorCache, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(VectorCache, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(VectorCache, CanDefaultConstruct)

@@ -96,8 +96,7 @@ protected:
     std::unique_ptr<Mtx> mtx3;
 };
 
-TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Hybrid, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Hybrid, AppliesToDenseVector)
@@ -796,7 +795,7 @@ protected:
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(HybridComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

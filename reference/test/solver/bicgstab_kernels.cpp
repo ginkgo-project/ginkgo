@@ -121,8 +121,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> bicgstab_factory_precision;
 };
 
-TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Bicgstab, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Bicgstab, KernelInitialize)

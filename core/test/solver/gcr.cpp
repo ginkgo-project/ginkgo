@@ -70,7 +70,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Gcr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Gcr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Gcr, GcrFactoryKnowsItsExecutor)

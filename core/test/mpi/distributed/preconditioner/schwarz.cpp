@@ -65,7 +65,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

@@ -332,15 +332,15 @@ using HalfIndexTypes = gko::test::cartesian_type_product_t<
     gko::test::IndexTypes>;
 TYPED_TEST_SUITE(Isai, HalfIndexTypes, PairTypenameNameGenerator);
 #else
-TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesBase,
+                 PairTypenameNameGenerator);
 #endif
 
 
 #else
 
 
-TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 #endif

@@ -98,8 +98,7 @@ protected:
     gko::array<gko::int64> row_descs;
 };
 
-TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Lu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Lu, SymbolicCholeskyWorks)
