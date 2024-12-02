@@ -25,9 +25,10 @@ void classify_dofs(
     const matrix::Dense<ValueType>* labels, comm_index_type local_part,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
     array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
-    size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
-    size_type& n_vertices, size_type& n_faces, size_type& n_edges,
-    size_type& n_constraints) GKO_NOT_IMPLEMENTED;
+    array<ValueType>& owning_labels, size_type& n_inner_idxs,
+    size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
+    size_type& n_faces, size_type& n_edges, size_type& n_constraints,
+    int& n_owning_interfaces) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CLASSIFY_DOFS);
@@ -50,6 +51,18 @@ void fill_coarse_data(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::Dense<ValueType>* lambda_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_COARSE_DATA);
+
+
+template <typename ValueType>
+void build_coarse_contribution(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Dense<remove_complex<ValueType>>* local_labels,
+    const array<remove_complex<ValueType>>& global_labels,
+    const matrix::Dense<ValueType>* lambda,
+    device_matrix_data<ValueType, int>& coarse_contribution)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
 
 
 }  // namespace bddc
