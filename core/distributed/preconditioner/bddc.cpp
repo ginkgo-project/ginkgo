@@ -17,11 +17,13 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
@@ -39,6 +41,10 @@ namespace {
 GKO_REGISTER_OPERATION(classify_dofs, bddc::classify_dofs);
 GKO_REGISTER_OPERATION(generate_constraints, bddc::generate_constraints);
 GKO_REGISTER_OPERATION(fill_coarse_data, bddc::fill_coarse_data);
+GKO_REGISTER_OPERATION(build_coarse_contribution,
+                       bddc::build_coarse_contribution);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 
 
 }  // namespace
@@ -49,9 +55,11 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     std::shared_ptr<const DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>
         system_matrix,
     array<dof_type>& dof_types, array<LocalIndexType>& permutation_array,
-    array<LocalIndexType>& interface_sizes, size_type& n_inner_idxs,
+    array<LocalIndexType>& interface_sizes,
+    array<remove_complex<ValueType>>& owning_labels, size_type& n_inner_idxs,
     size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
-    size_type& n_faces, size_type& n_edges, size_type& n_constraints)
+    size_type& n_faces, size_type& n_edges, size_type& n_constraints,
+    int& n_owning_interfaces)
 {
     using uint_type = typename gko::detail::float_traits<
         remove_complex<ValueType>>::bits_type;
@@ -71,7 +79,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         exec, dim<2>{system_matrix->get_local_matrix()->get_size()[0], width});
     local_buffer->fill(zero<remove_complex<ValueType>>());
     size_type column = local_part / n_significand_bits;
-    size_type bit_idx = local_part % n_significand_bits + 1;
+    size_type bit_idx = local_part % n_significand_bits;
     uint_type int_val = 1 << bit_idx;
     remove_complex<ValueType> val;
     std::memcpy(&val, &int_val, sizeof(uint_type));
@@ -96,8 +104,8 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs(
         buffer_1->get_local_vector(), local_part, dof_types, permutation_array,
-        interface_sizes, n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
-        n_faces, n_edges, n_constraints));
+        interface_sizes, owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs,
+        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces));
 
     return buffer_1;
 }
@@ -201,12 +209,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     array<dof_type> dof_types{exec};
     array<LocalIndexType> permutation_array{exec};
     array<LocalIndexType> interface_sizes{exec};
+    array<real_type> owning_labels{exec};
     size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces,
         n_edges, n_constraints;
+    int n_owning_interfaces;
     auto labels = bddc::classify_dofs(
         dd_system_matrix, dof_types, permutation_array, interface_sizes,
-        n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
-        n_constraints);
+        owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
+        n_faces, n_edges, n_constraints, n_owning_interfaces);
 
     permutation_ = perm_type::create(exec, std::move(permutation_array));
 
@@ -309,6 +319,32 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
     // Set up global numbering for coarse problem, read coarse matrix and
     // generate coarse solver.
+    size_type num_parts = static_cast<size_type>(comm.size());
+    size_type num_cols = local_labels->get_size()[1];
+    array<int> owning_interfaces{exec, num_parts + 1};
+    comm.all_gather(exec, &n_owning_interfaces, 1, owning_interfaces.get_data(),
+                    1);
+    array<int> owning_sizes{owning_interfaces};
+    exec->run(bddc::make_prefix_sum_nonnegative(owning_interfaces.get_data(),
+                                                num_parts + 1));
+    size_type n_global_interfaces =
+        exec->copy_val_to_host(owning_interfaces.get_data() + num_parts);
+    array<real_type> global_labels{exec, num_cols * n_global_interfaces};
+    comm.all_gather_v(exec, owning_labels.get_data(), n_owning_interfaces,
+                      global_labels.get_data(), owning_sizes.get_data(),
+                      owning_interfaces.get_data());
+    auto coarse_partition = share(
+        Partition<int, int>::build_from_contiguous(exec, owning_interfaces));
+    device_matrix_data<ValueType, int> coarse_contribution{
+        exec, dim<2>{n_global_interfaces, n_global_interfaces},
+        n_constraints * n_constraints};
+
+    exec->run(bddc::make_build_coarse_contribution(
+        local_labels.get(), global_labels, lambda.get(), coarse_contribution));
+    coarse_contribution.remove_zeros();
+    coarse_contribution.sort_row_major();
+    auto coarse_matrix_ = DdMatrix<ValueType, int, int>::create(exec, comm);
+    coarse_matrix_->read_distributed(coarse_contribution, coarse_partition);
 }
 
 

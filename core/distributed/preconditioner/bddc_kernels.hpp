@@ -28,9 +28,11 @@ namespace kernels {
         const matrix::Dense<ValueType>* labels, comm_index_type local_part,    \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
         array<IndexType>& permutation_array,                                   \
-        array<IndexType>& interface_sizes, size_type& n_inner_idxs,            \
-        size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices, \
-        size_type& n_faces, size_type& n_edges, size_type& n_constraints)
+        array<IndexType>& interface_sizes, array<ValueType>& owning_labels,    \
+        size_type& n_inner_idxs, size_type& n_face_idxs,                       \
+        size_type& n_edge_idxs, size_type& n_vertices, size_type& n_faces,     \
+        size_type& n_edges, size_type& n_constraints,                          \
+        int& n_owning_interfaces)
 
 
 #define GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType)            \
@@ -47,6 +49,15 @@ namespace kernels {
                           matrix::Dense<ValueType>* lambda_rhs)
 
 
+#define GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType)              \
+    void build_coarse_contribution(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Dense<remove_complex<ValueType>>* local_labels, \
+        const array<remove_complex<ValueType>>& global_labels,        \
+        const matrix::Dense<ValueType>* lambda,                       \
+        device_matrix_data<ValueType, int>& coarse_contribution)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename IndexType>                   \
@@ -54,7 +65,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType);             \
     template <typename ValueType>                                       \
-    GKO_DECLARE_FILL_COARSE_DATA(ValueType)
+    GKO_DECLARE_FILL_COARSE_DATA(ValueType);                            \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(bddc, GKO_DECLARE_ALL_AS_TEMPLATES);

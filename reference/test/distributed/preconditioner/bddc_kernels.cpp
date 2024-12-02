@@ -65,11 +65,13 @@ protected:
             gko::matrix::Dense<real_type>::create(ref, gko::dim<2>{9, 1});
         uint_type int_inner_val = 1 << 1;
         uint_type int_face_val = (1 << 1) | (1 << 2);
-        uint_type int_edge_val = (1 << 1) | (1 << 2) | (1 << 3);
-        uint_type int_vertex_val = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4);
-        real_type inner_val, face_val, edge_val, vertex_val;
+        uint_type int_diff_face_val = (1 << 0) | (1 << 2);
+        uint_type int_edge_val = (1 << 0) | (1 << 1) | (1 << 2);
+        uint_type int_vertex_val = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3);
+        real_type inner_val, face_val, diff_face_val, edge_val, vertex_val;
         std::memcpy(&inner_val, &int_inner_val, sizeof(uint_type));
         std::memcpy(&face_val, &int_face_val, sizeof(uint_type));
+        std::memcpy(&diff_face_val, &int_diff_face_val, sizeof(uint_type));
         std::memcpy(&edge_val, &int_edge_val, sizeof(uint_type));
         std::memcpy(&vertex_val, &int_vertex_val, sizeof(uint_type));
         input->at(0, 0) = inner_val;
@@ -105,13 +107,16 @@ protected:
             ref, {0, 1, 3, 4, 6, 7, 2, 5, 8}};
         gko::array<local_index_type> interface_sizes{ref};
         gko::array<local_index_type> ref_interface_sizes{ref, {2, 2, 1}};
+        gko::array<real_type> owning_labels{ref};
+        gko::array<real_type> ref_owning_labels{ref, {face_val}};
         gko::size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
             n_faces, n_edges, n_constraints;
+        int n_owning_interfaces;
 
         gko::kernels::reference::bddc::classify_dofs(
-            ref, input.get(), 0, result, permutation_array, interface_sizes,
-            n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces,
-            n_edges, n_constraints);
+            ref, input.get(), 1, result, permutation_array, interface_sizes,
+            owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
+            n_faces, n_edges, n_constraints, n_owning_interfaces);
 
         GKO_ASSERT_ARRAY_EQ(result, ref_result);
         GKO_ASSERT_ARRAY_EQ(permutation_array, ref_permutation_array);
@@ -123,6 +128,8 @@ protected:
         GKO_ASSERT_EQ(n_faces, 1);
         GKO_ASSERT_EQ(n_edges, 1);
         GKO_ASSERT_EQ(n_constraints, 3);
+        GKO_ASSERT_EQ(n_owning_interfaces, 1);
+        GKO_ASSERT_ARRAY_EQ(owning_labels, ref_owning_labels);
 
         auto perm_input =
             gko::as<RealVec>(input->row_permute(&permutation_array));
@@ -134,6 +141,57 @@ protected:
 
         gko::kernels::reference::bddc::generate_constraints(
             ref, perm_input.get(), 4, 2, interface_sizes, C_data);
+
+        GKO_ASSERT_ARRAY_EQ(
+            ref_row_idxs,
+            gko::make_const_array_view(ref, 4, C_data.get_const_row_idxs()));
+        GKO_ASSERT_ARRAY_EQ(
+            ref_col_idxs,
+            gko::make_const_array_view(ref, 4, C_data.get_const_col_idxs()));
+        GKO_ASSERT_ARRAY_EQ(ref_values, gko::make_const_array_view(
+                                            ref, 4, C_data.get_const_values()));
+
+        auto local_labels =
+            gko::matrix::Dense<real_type>::create(ref, gko::dim<2>{3, 1});
+        local_labels->at(0, 0) = face_val;
+        local_labels->at(1, 0) = edge_val;
+        local_labels->at(2, 0) = vertex_val;
+        auto global_labels = gko::array<real_type>{
+            ref, {diff_face_val, face_val, edge_val, vertex_val}};
+        auto lambda =
+            gko::matrix::Dense<value_type>::create(ref, gko::dim<2>{3, 3});
+        lambda->at(0, 0) = 1.;
+        lambda->at(0, 1) = -2.;
+        lambda->at(0, 2) = 3.;
+        lambda->at(1, 0) = -4.;
+        lambda->at(1, 1) = 5.;
+        lambda->at(1, 2) = -6.;
+        lambda->at(2, 0) = 7.;
+        lambda->at(2, 1) = -8.;
+        lambda->at(2, 2) = 9.;
+        gko::device_matrix_data<value_type, int> coarse_contribution{
+            ref, gko::dim<2>{4, 4}, 9};
+        gko::array<int> ref_coarse_row_idxs{ref, {1, 1, 1, 2, 2, 2, 3, 3, 3}};
+        gko::array<int> ref_coarse_col_idxs{ref, {1, 2, 3, 1, 2, 3, 1, 2, 3}};
+        gko::array<value_type> ref_coarse_values{
+            ref, {-1., 2., -3., 4., -5., 6., -7., 8., -9.}};
+
+        gko::kernels::reference::bddc::build_coarse_contribution(
+            ref, local_labels.get(), global_labels, lambda.get(),
+            coarse_contribution);
+
+        GKO_ASSERT_ARRAY_EQ(
+            ref_coarse_row_idxs,
+            gko::make_const_array_view(
+                ref, 9, coarse_contribution.get_const_row_idxs()));
+        GKO_ASSERT_ARRAY_EQ(
+            ref_coarse_col_idxs,
+            gko::make_const_array_view(
+                ref, 9, coarse_contribution.get_const_col_idxs()));
+        GKO_ASSERT_ARRAY_EQ(
+            ref_coarse_values,
+            gko::make_const_array_view(ref, 9,
+                                       coarse_contribution.get_const_values()));
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
