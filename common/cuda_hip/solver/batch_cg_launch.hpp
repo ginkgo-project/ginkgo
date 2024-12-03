@@ -36,19 +36,19 @@ void launch_apply_kernel(
     device_type<ValueType>* const __restrict__ workspace_data,
     const int& block_size, const size_t& shared_size);
 
-#define GKO_DECLARE_BATCH_CG_LAUNCH(_vtype, _n_shared, _prec_shared, mat_t,   \
-                                    log_t, pre_t, stop_t)                     \
-    void launch_apply_kernel<device_type<_vtype>, _n_shared, _prec_shared,    \
-                             stop_t<device_type<_vtype>>>(                    \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const gko::kernels::batch_cg::storage_config& sconf,                  \
-        const settings<remove_complex<_vtype>>& settings,                     \
-        log_t<device_type<gko::remove_complex<device_type<_vtype>>>>& logger, \
-        pre_t<device_type<_vtype>>& prec,                                     \
-        const mat_t<const device_type<_vtype>>& mat,                          \
-        const device_type<_vtype>* const __restrict__ b_values,               \
-        device_type<_vtype>* const __restrict__ x_values,                     \
-        device_type<_vtype>* const __restrict__ workspace_data,               \
+#define GKO_DECLARE_BATCH_CG_LAUNCH(_vtype, _n_shared, _prec_shared, mat_t, \
+                                    log_t, pre_t, stop_t)                   \
+    void launch_apply_kernel<_vtype, _n_shared, _prec_shared,               \
+                             stop_t<device_type<_vtype>>>(                  \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const gko::kernels::batch_cg::storage_config& sconf,                \
+        const settings<remove_complex<_vtype>>& settings,                   \
+        log_t<gko::remove_complex<device_type<_vtype>>>& logger,            \
+        pre_t<device_type<_vtype>>& prec,                                   \
+        const mat_t<const device_type<_vtype>>& mat,                        \
+        const device_type<_vtype>* const __restrict__ b_values,             \
+        device_type<_vtype>* const __restrict__ x_values,                   \
+        device_type<_vtype>* const __restrict__ workspace_data,             \
         const int& block_size, const size_t& shared_size)
 
 #define GKO_INSTANTIATE_BATCH_CG_LAUNCH_0_FALSE \

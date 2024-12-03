@@ -46,7 +46,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL);
 
 
@@ -72,7 +72,7 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
         alpha_ub, mat_ub, b_ub, beta_ub, x_ub);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL);
 
 
@@ -91,7 +91,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
             mat_ub);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_CSR_SCALE_KERNEL);
 
 
@@ -110,7 +110,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
         alpha_ub, beta_ub, mat_ub);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_WITH_HALF(
     GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 

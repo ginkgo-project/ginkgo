@@ -490,6 +490,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template GKO_INDIRECT(_macro(double, __VA_ARGS__))
 #endif
 
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_WITH_HALF( \
+    _macro, ...)                                                         \
+    GKO_INDIRECT(GKO_ADAPT_HF(template _macro(half, __VA_ARGS__)));      \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, __VA_ARGS__)
+
 
 /**
  * Instantiates a template for each non-complex value type compiled by Ginkgo.
@@ -516,6 +521,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));    \
     template GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))
 #endif
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_WITH_HALF(_macro, ...) \
+    GKO_INDIRECT(GKO_ADAPT_HF(template _macro(half, __VA_ARGS__)));      \
+    GKO_INDIRECT(                                                        \
+        GKO_ADAPT_HF(template _macro(std::complex<half>, __VA_ARGS__))); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, __VA_ARGS__)
 
 
 /**

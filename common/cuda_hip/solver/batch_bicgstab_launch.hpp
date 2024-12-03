@@ -38,11 +38,11 @@ void launch_apply_kernel(
 
 #define GKO_DECLARE_BATCH_BICGSTAB_LAUNCH(_vtype, _n_shared, _prec_shared, \
                                           mat_t, log_t, pre_t, stop_t)     \
-    void launch_apply_kernel<device_type<_vtype>, _n_shared, _prec_shared, \
+    void launch_apply_kernel<_vtype, _n_shared, _prec_shared,              \
                              stop_t<device_type<_vtype>>>(                 \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const gko::kernels::batch_bicgstab::storage_config& sconf,         \
-        const settings<remove_complex<device_type<_vtype>>>& settings,     \
+        const settings<remove_complex<_vtype>>& settings,                  \
         log_t<gko::remove_complex<device_type<_vtype>>>& logger,           \
         pre_t<device_type<_vtype>>& prec,                                  \
         const mat_t<const device_type<_vtype>>& mat,                       \

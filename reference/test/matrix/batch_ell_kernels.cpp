@@ -79,7 +79,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Ell, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Ell, AppliesToBatchMultiVector)
