@@ -951,16 +951,21 @@ void Bddc<ValueType, IndexType>::generate()
         gko::experimental::distributed::Partition<
             IndexType, IndexType>::build_from_contiguous(exec,
                                                          schur_ranges_array));
-    matrix_data<ValueType, IndexType> R_data(dim<2>{
-        range_bounds[comm.size()], global_system_matrix_->get_size()[0]});
-    matrix_data<ValueType, IndexType> RT_data(dim<2>{
-        global_system_matrix_->get_size()[0], range_bounds[comm.size()]});
-    matrix_data<ValueType, IndexType> ID_data(dim<2>{
-        schur_range_bounds[comm.size()], schur_range_bounds[comm.size()]});
-    matrix_data<ValueType, IndexType> RG_data(dim<2>{
-        schur_range_bounds[comm.size()], global_system_matrix_->get_size()[0]});
-    matrix_data<ValueType, IndexType> RGT_data(dim<2>{
-        global_system_matrix_->get_size()[0], schur_range_bounds[comm.size()]});
+    matrix_data<ValueType, IndexType> R_data(
+        dim<2>{static_cast<size_type>(range_bounds[comm.size()]),
+               global_system_matrix_->get_size()[0]});
+    matrix_data<ValueType, IndexType> RT_data(
+        dim<2>{global_system_matrix_->get_size()[0],
+               static_cast<size_type>(range_bounds[comm.size()])});
+    matrix_data<ValueType, IndexType> ID_data(
+        dim<2>{static_cast<size_type>(schur_range_bounds[comm.size()]),
+               static_cast<size_type>(schur_range_bounds[comm.size()])});
+    matrix_data<ValueType, IndexType> RG_data(
+        dim<2>{static_cast<size_type>(schur_range_bounds[comm.size()]),
+               global_system_matrix_->get_size()[0]});
+    matrix_data<ValueType, IndexType> RGT_data(
+        dim<2>{global_system_matrix_->get_size()[0],
+               static_cast<size_type>(schur_range_bounds[comm.size()])});
     matrix_data<ValueType, IndexType> IDG_data(
         global_system_matrix_->get_size());
     for (size_type i = 0; i < n_inner; i++) {
@@ -1010,8 +1015,9 @@ void Bddc<ValueType, IndexType>::generate()
     R = global_matrix_type::create(exec, comm);
     R->read_distributed(R_data, R_part, partition);
     RT = global_matrix_type::create(exec, comm);
-    RT->read_distributed(RT_data, partition, R_part,
-                         gko::experimental::distributed::assembly_mode::communicate);
+    RT->read_distributed(
+        RT_data, partition, R_part,
+        gko::experimental::distributed::assembly_mode::communicate);
     auto ID = share(global_matrix_type::create(exec, comm));
     ID->read_distributed(ID_data, schur_part);
     RG = global_matrix_type::create(exec, comm);
@@ -1544,9 +1550,9 @@ void Bddc<ValueType, IndexType>::generate()
     //     MPI_Comm commptr = comm.get();
 
     //     int ret = ParMETIS_V3_PartMeshKway(
-    //         elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
-    //         &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
-    //         &options, &edgecut, &new_part, &commptr);
+    //         elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt,
+    //         &numflag, &ncon, &ncommonnodes, &nparts, tpwgts.data(),
+    //         ubvec.data(), &options, &edgecut, &new_part, &commptr);
 
     //     /* std::cout << "METIS RETURNED WITH " << ret << " ON RANK " <<
     //      * comm.rank() << ", IS GOING TO PART " << new_part << std::endl; */
@@ -1640,12 +1646,12 @@ void Bddc<ValueType, IndexType>::generate()
     //     }
     //     coarse_data = complete_coarse_data;
     // } else {
-        for (size_type i = 0; i < n_interfaces; i++) {
-            auto ranks = interface_dof_ranks_[interfaces_[i]];
-            auto owner = 0; //ranks[0];
-            /* std::cout << owner << std::endl; */
-            mapping.get_data()[i] = owner;
-        }
+    for (size_type i = 0; i < n_interfaces; i++) {
+        auto ranks = interface_dof_ranks_[interfaces_[i]];
+        auto owner = 0;  // ranks[0];
+        /* std::cout << owner << std::endl; */
+        mapping.get_data()[i] = owner;
+    }
     //}
     /* std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SETUP" <<
      * std::endl; */
@@ -1684,11 +1690,11 @@ void Bddc<ValueType, IndexType>::generate()
             IndexType, IndexType>::build_from_contiguous(exec,
                                                          coarse_ranges_array));
     matrix_data<ValueType, IndexType> RC_data(
-        dim<2>{coarse_range_bounds[comm.size()],
+        dim<2>{static_cast<size_type>(coarse_range_bounds[comm.size()]),
                global_coarse_matrix_->get_size()[0]});
     matrix_data<ValueType, IndexType> RCT_data(
         dim<2>{global_coarse_matrix_->get_size()[0],
-               coarse_range_bounds[comm.size()]});
+               static_cast<size_type>(coarse_range_bounds[comm.size()])});
     for (size_type i = 0; i < n_edges; i++) {
         RC_data.nonzeros.emplace_back(coarse_range_bounds[rank] + i, edges[i],
                                       one<ValueType>());
@@ -1780,9 +1786,11 @@ void Bddc<ValueType, IndexType>::generate()
     schur_solution = global_vec_type::create(
         exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{n_interface_idxs, 1});
     coarse_residual = global_vec_type::create(
-        exec, comm, dim<2>{RC->get_size()[0], 1}, dim<2>{coarse_local_size, 1});
+        exec, comm, dim<2>{RC->get_size()[0], 1},
+        dim<2>{static_cast<size_type>(coarse_local_size), 1});
     coarse_solution = global_vec_type::create(
-        exec, comm, dim<2>{RC->get_size()[0], 1}, dim<2>{coarse_local_size, 1});
+        exec, comm, dim<2>{RC->get_size()[0], 1},
+        dim<2>{static_cast<size_type>(coarse_local_size), 1});
     coarse_b = global_vec_type::create(
         exec, comm, dim<2>{global_coarse_matrix_->get_size()[0], 1},
         dim<2>{global_coarse_matrix_->get_local_matrix()->get_size()[0], 1});
@@ -1794,15 +1802,19 @@ void Bddc<ValueType, IndexType>::generate()
     coarse_2 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
     coarse_3 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
     local_1 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
-    local_2 = vec_type::create(exec, dim<2>{local_size, 1});
-    local_3 = vec_type::create(exec, dim<2>{local_size, 1});
+    local_2 =
+        vec_type::create(exec, dim<2>{static_cast<size_type>(local_size), 1});
+    local_3 =
+        vec_type::create(exec, dim<2>{static_cast<size_type>(local_size), 1});
     inner_buf1 = vec_type::create(exec, dim<2>{n_inner, 1});
     inner_buf2 = vec_type::create(exec, dim<2>{n_inner, 1});
 
-    intermediate_1 = global_vec_type::create(
-        exec, comm, dim<2>{R->get_size()[0], 1}, dim<2>{local_size, 1});
-    intermediate_2 = global_vec_type::create(
-        exec, comm, dim<2>{R->get_size()[0], 1}, dim<2>{local_size, 1});
+    intermediate_1 =
+        global_vec_type::create(exec, comm, dim<2>{R->get_size()[0], 1},
+                                dim<2>{static_cast<size_type>(local_size), 1});
+    intermediate_2 =
+        global_vec_type::create(exec, comm, dim<2>{R->get_size()[0], 1},
+                                dim<2>{static_cast<size_type>(local_size), 1});
     static_condensate = global_vec_type::create(
         exec, comm, dim<2>{global_system_matrix_->get_size()[0], 1},
         dim<2>{global_system_matrix_->get_local_matrix()->get_size()[0], 1});
