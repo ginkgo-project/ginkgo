@@ -38,7 +38,7 @@ void build_searchtree(const ValueType* __restrict__ input, IndexType size,
     for (int i = 0; i < sampleselect_oversampling; ++i) {
         auto lidx = idx * sampleselect_oversampling + i;
         auto val = input[static_cast<IndexType>(lidx * stride)];
-        samples[i] = std::abs(val);
+        samples[i] = gko::abs(val);
     }
 
     bitonic_sort<sample_size, sampleselect_oversampling>(samples, sh_samples,
@@ -113,7 +113,7 @@ void count_buckets(const ValueType* __restrict__ input, IndexType size,
     auto end = min(block_end, size);
     for (IndexType i = begin; i < end; i += default_block_size) {
         // traverse the search tree with the input element
-        auto el = std::abs(input[i]);
+        auto el = gko::abs(input[i]);
         IndexType tree_idx{};
 #pragma unroll
         for (int level = 0; level < sampleselect_searchtree_height; ++level) {
@@ -297,7 +297,7 @@ void filter_bucket(const ValueType* __restrict__ input, IndexType size,
         auto found = bucket == oracles[i];
         auto ofs = atomic_add<atomic::local_space>(&*counter, IndexType{found});
         if (found) {
-            output[ofs] = std::abs(input[i]);
+            output[ofs] = gko::abs(input[i]);
         }
     }
 }
@@ -337,7 +337,7 @@ void basecase_select(const ValueType* __restrict__ input, IndexType size,
 
     for (int i = 0; i < basecase_local_size; ++i) {
         auto idx = item_ct1.get_local_id(2) + i * basecase_block_size;
-        local[i] = idx < size ? input[idx] : sentinel;
+        local[i] = idx < size ? input[idx] : static_cast<ValueType>(sentinel);
     }
     bitonic_sort<basecase_size, basecase_local_size>(local, sh_local, item_ct1);
     if (item_ct1.get_local_id(2) == rank / basecase_local_size) {

@@ -47,7 +47,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     // "analysis" phase for the triangular matrix.
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
 
 
@@ -90,7 +90,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
 
 

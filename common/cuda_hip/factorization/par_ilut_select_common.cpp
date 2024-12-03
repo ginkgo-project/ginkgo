@@ -43,9 +43,17 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
-    // pick sample, build searchtree
-    kernel::build_searchtree<<<1, bucket_count, 0, exec->get_stream()>>>(
-        as_device_type(values), size, as_device_type(tree));
+#ifdef GKO_COMPILING_HIP
+    if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+        // HIP does not support 16bit atomic operation
+        GKO_NOT_SUPPORTED(values);
+    } else
+#endif
+    {
+        // pick sample, build searchtree
+        kernel::build_searchtree<<<1, bucket_count, 0, exec->get_stream()>>>(
+            as_device_type(values), size, as_device_type(tree));
+    }
     // determine bucket sizes
     if (num_blocks > 0) {
         kernel::count_buckets<<<num_blocks, default_block_size, 0,
@@ -69,7 +77,7 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
                             unsigned char* oracles, IndexType* partial_counts, \
                             IndexType* total_counts)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SSSS_COUNT);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(DECLARE_SSSS_COUNT);
 
 
 template <typename IndexType>
