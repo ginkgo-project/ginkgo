@@ -65,6 +65,10 @@ std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_subspace_dim(this->get_subspace_dim())
+        .with_kappa(this->get_kappa())
+        .with_deterministic(this->get_deterministic())
+        .with_complex_subspace(this->get_complex_subspace())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -78,6 +82,10 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_subspace_dim(this->get_subspace_dim())
+        .with_kappa(this->get_kappa())
+        .with_deterministic(this->get_deterministic())
+        .with_complex_subspace(this->get_complex_subspace())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -272,7 +280,9 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
-        // if abs(rho) < kappa then
+        // if norm(t) is zero then
+        //     omega = 0
+        // else if abs(rho) < kappa then
         //     omega *= kappa / abs(rho)
         // end if
         // residual -= omega * t
@@ -396,8 +406,8 @@ std::vector<int> workspace_traits<Idr<ValueType>>::vectors(const Solver&)
 
 #define GKO_DECLARE_IDR(_type) class Idr<_type>
 #define GKO_DECLARE_IDR_TRAITS(_type) struct workspace_traits<Idr<_type>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_TRAITS);
 
 
 }  // namespace solver

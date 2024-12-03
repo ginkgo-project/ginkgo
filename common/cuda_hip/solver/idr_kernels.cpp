@@ -344,9 +344,13 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
 
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
+        const auto normt = sqrt(real(tht[global_id]));
+        if (normt == zero<remove_complex<ValueType>>()) {
+            omega[global_id] = zero<ValueType>();
+            return;
+        }
         omega[global_id] /= tht[global_id];
-        auto absrho =
-            abs(thr / (sqrt(real(tht[global_id])) * residual_norm[global_id]));
+        auto absrho = abs(thr / (normt * residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;
@@ -450,11 +454,19 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                size, nrhs, as_device_type(p_i),
-                as_device_type(g_k->get_values()), g_k->get_stride(),
-                as_device_type(alpha->get_values()),
-                stop_status->get_const_data());
+            // not support 16 bit atomic
+#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+                GKO_NOT_SUPPORTED(alpha);
+            } else
+#endif
+            {
+                multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                    size, nrhs, as_device_type(p_i),
+                    as_device_type(g_k->get_values()), g_k->get_stride(),
+                    as_device_type(alpha->get_values()),
+                    stop_status->get_const_data());
+            }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k->get_values(),
                       g_k->get_stride(), alpha->get_values());
@@ -501,10 +513,18 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                size, nrhs, as_device_type(p_i),
-                as_device_type(g_k->get_const_values()), g_k->get_stride(),
-                as_device_type(m_i), stop_status->get_const_data());
+            // not support 16 bit atomic
+#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+                GKO_NOT_SUPPORTED(m_i);
+            } else
+#endif
+            {
+                multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                    size, nrhs, as_device_type(p_i),
+                    as_device_type(g_k->get_const_values()), g_k->get_stride(),
+                    as_device_type(m_i), stop_status->get_const_data());
+            }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1,
                       g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -555,7 +575,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -582,7 +603,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -609,7 +630,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
@@ -626,7 +647,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
     update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>
@@ -644,7 +665,8 @@ void compute_omega(
         as_device_type(omega->get_values()), stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
 }  // namespace idr

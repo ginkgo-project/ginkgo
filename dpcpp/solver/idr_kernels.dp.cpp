@@ -8,6 +8,7 @@
 
 #include <ctime>
 #include <random>
+#include <type_traits>
 
 #include <CL/sycl.hpp>
 
@@ -127,7 +128,7 @@ void orthonormalize_subspace_vectors_kernel(
                const remove_complex<ValueType>& b) { return a + b; });
         item_ct1.barrier(sycl::access::fence_space::local_space);
 
-        norm = std::sqrt(reduction_helper_real[0]);
+        norm = gko::sqrt(reduction_helper_real[0]);
         for (size_type j = tidx; j < num_cols; j += block_size) {
             values[row * stride + j] /= norm;
         }
@@ -542,8 +543,12 @@ void compute_omega_kernel(
     if (!stop_status[global_id].has_stopped()) {
         auto thr = omega[global_id];
         omega[global_id] /= tht[global_id];
-        auto absrho = std::abs(
-            thr / (std::sqrt(real(tht[global_id])) * residual_norm[global_id]));
+        const auto normt = sqrt(real(tht[global_id]));
+        if (normt == zero<remove_complex<ValueType>>()) {
+            omega[global_id] = zero<ValueType>();
+            return;
+        }
+        auto absrho = gko::abs(thr / (normt * residual_norm[global_id]));
 
         if (absrho < kappa) {
             omega[global_id] *= kappa / absrho;
@@ -594,18 +599,20 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
 {
     if (!deterministic) {
         auto seed = std::random_device{}();
-        auto work = reinterpret_cast<remove_complex<ValueType>*>(
-            subspace_vectors->get_values());
+        using real_type = remove_complex<ValueType>;
+        auto work =
+            reinterpret_cast<real_type*>(subspace_vectors->get_values());
         auto n =
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
+        using rand_type = std::conditional_t<std::is_same_v<real_type, half>,
+                                             float, real_type>;
         n = is_complex<ValueType>() ? 2 * n : n;
         exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {
                 std::uint64_t offset = idx.get_linear_id();
                 oneapi::dpl::minstd_rand engine(seed, offset);
-                oneapi::dpl::normal_distribution<remove_complex<ValueType>>
-                    distr(0, 1);
-                auto res = distr(engine);
+                oneapi::dpl::normal_distribution<rand_type> distr(0, 1);
+                auto res = static_cast<real_type>(distr(engine));
 
                 work[idx] = res;
             });
@@ -761,7 +768,8 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     orthonormalize_subspace_vectors(exec, subspace_vectors);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -787,7 +795,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                   stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -812,7 +820,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                   stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
@@ -829,7 +837,7 @@ void step_3(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>
@@ -846,7 +854,8 @@ void compute_omega(
                          stop_status->get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
 }  // namespace idr
