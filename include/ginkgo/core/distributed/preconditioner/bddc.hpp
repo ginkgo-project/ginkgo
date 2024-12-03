@@ -83,6 +83,12 @@ public:
             local_solver);
 
         /**
+         * Coarse solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            coarse_solver);
+
+        /**
          * Use of Vertex constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(vertices, true);
@@ -167,9 +173,14 @@ private:
      */
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
+    std::shared_ptr<const LinOp> restriction_;
+    std::shared_ptr<const LinOp> prolongation_;
+    std::shared_ptr<const LinOp> coarse_restriction_;
+    std::shared_ptr<const LinOp> coarse_prolongation_;
     std::shared_ptr<const LinOp> inner_solver_;
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> schur_solver_;
+    std::shared_ptr<const LinOp> coarse_solver_;
     std::shared_ptr<const perm_type> permutation_;
     std::shared_ptr<local_real_mtx> constraints_;
     std::shared_ptr<local_real_mtx> constraints_t_;
@@ -182,6 +193,16 @@ private:
     std::shared_ptr<vec> coarse_buf_2_;
     std::shared_ptr<local_vec> local_buf_1_;
     std::shared_ptr<local_vec> local_buf_2_;
+    std::shared_ptr<vec> broken_coarse_buf_1_;
+    std::shared_ptr<vec> broken_coarse_buf_2_;
+    std::shared_ptr<local_vec> local_coarse_buf_1_;
+    std::shared_ptr<local_vec> local_coarse_buf_2_;
+    std::shared_ptr<const LinOp> A_LL;
+    std::shared_ptr<const LinOp> A_LP;
+    std::shared_ptr<const LinOp> A_PL;
+    std::shared_ptr<const LinOp> A_PP;
+    std::shared_ptr<const LinOp> A_IB;
+    std::shared_ptr<const LinOp> A_BI;
 };
 
 
