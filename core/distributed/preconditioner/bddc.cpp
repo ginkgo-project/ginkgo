@@ -151,6 +151,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 {
     using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
+    auto comm = buf_1_->get_communicator();
+
+    restriction_->apply(dense_b, buf_1_);
+    buf_1_->get_local_vector()->permute(permutation_, local_buf_1_,
+                                        matrix::permute_mode::rows);
 }
 
 
@@ -189,6 +194,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 {
     auto dd_system_matrix =
         as<DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
+
+    restriction_ = clone(dd_system_matrix->get_restriction());
+    prolongation_ = clone(dd_system_matrix->get_prolongation());
+
     if (!parameters_.local_solver) {
         GKO_INVALID_STATE("Requires a solver factory");
     }
@@ -229,16 +238,24 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto n_rows = reordered_system_matrix->get_size()[0];
     auto A_II = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs}, span{0, n_inner_idxs}));
-    auto A_LL = share(reordered_system_matrix->create_submatrix(
+    A_IB = share(reordered_system_matrix->create_submatrix(
+        span{0, n_inner_idxs},
+        span{n_inner_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices}));
+    A_BI = share(reordered_system_matrix->create_submatrix(
+        span{n_inner_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, n_inner_idxs}));
+    A_LL = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs},
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs}));
-    auto A_LP = share(reordered_system_matrix->create_submatrix(
+    A_LP = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs},
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
-    auto A_PL = share(reordered_system_matrix->create_submatrix(
+    A_PL = share(reordered_system_matrix->create_submatrix(
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows},
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs}));
-    auto A_PP = share(reordered_system_matrix->create_submatrix(
+    A_PP = share(reordered_system_matrix->create_submatrix(
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows},
         span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
     local_solver_ = parameters_.local_solver->generate(A_LL);
@@ -312,6 +329,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     local_solver_->apply(buffer_1, phi_D);
     A_PP->apply(phi_P, lambda_P);
     A_PL->apply(neg_one, phi_D, neg_one, lambda_P);
+    phi_t_ = as<local_vec>(phi_->transpose());
 
     // Set up global numbering for coarse problem, read coarse matrix and
     // generate coarse solver.
@@ -339,8 +357,12 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         local_labels.get(), global_labels, lambda.get(), coarse_contribution));
     coarse_contribution.remove_zeros();
     coarse_contribution.sort_row_major();
-    auto coarse_matrix_ = DdMatrix<ValueType, int, int>::create(exec, comm);
-    coarse_matrix_->read_distributed(coarse_contribution, coarse_partition);
+    auto coarse_matrix =
+        share(DdMatrix<ValueType, int, int>::create(exec, comm));
+    coarse_matrix->read_distributed(coarse_contribution, coarse_partition);
+    coarse_solver_ = parameters_.coarse_solver->generate(coarse_matrix);
+    coarse_restriction_ = coarse_matrix->get_restriction();
+    coarse_prolongation_ = coarse_matrix->get_prolongation();
 
     // Create Work space buffers
     size_type broken_size = dd_system_matrix->get_restriction()->get_size()[0];
@@ -353,9 +375,27 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     coarse_buf_2_ = vec::create_with_config_of(coarse_buf_1_);
     local_buf_1_ = local_vec::create(exec, dim<2>{local_size, 1});
     local_buf_2_ = local_vec::create_with_config_of(local_buf_1_);
+    broken_coarse_buf_1_ =
+        vec::create(exec, comm, dim<2>{coarse_restriction_->get_size()[0], 1},
+                    dim<2>{n_constraints, 1});
+    broken_coarse_buf_2_ = vec::create_with_config_of(broken_coarse_buf_1_);
+    local_coarse_buf_1_ = local_vec::create(
+        exec, broken_coarse_buf_1_->get_local_vector()->get_size(),
+        make_array_view(exec,
+                        broken_coarse_buf_1_->get_local_vector()->get_size()[0],
+                        broken_coarse_buf_1_->get_local_values()),
+        1);
+    local_coarse_buf_2_ = local_vec::create(
+        exec, broken_coarse_buf_2_->get_local_vector()->get_size(),
+        make_array_view(exec,
+                        broken_coarse_buf_2_->get_local_vector()->get_size()[0],
+                        broken_coarse_buf_2_->get_local_values()),
+        1);
 
     // Generate weights
-    auto local_diag = reordered_system_matrix->extract_diagonal();
+    auto local_diag =
+        as<DiagonalExtractable<ValueType>>(dd_system_matrix->get_local_matrix())
+            ->extract_diagonal();
     auto local_diag_local_vec = local_vec::create_const(
         exec, dim<2>{local_size, 1},
         make_const_array_view(exec, local_size, local_diag->get_const_values()),
@@ -368,9 +408,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         make_const_array_view(exec, local_size,
                               global_diag_vec->get_const_local_values()));
     global_diag->inverse_apply(local_diag_local_vec, local_buf_1_);
+    local_buf_1_->permute(permutation_, local_buf_2_,
+                          matrix::permute_mode::rows);
     weights_ = diag::create(
         exec, local_size,
-        make_array_view(exec, local_size, local_buf_1_->get_values()));
+        make_array_view(exec, local_size, local_buf_2_->get_values()));
 }
 
 
