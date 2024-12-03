@@ -6,8 +6,9 @@
 
 #include <algorithm>
 
-#include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
+
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -18,6 +19,7 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
+#include "accessor/sycl_helper.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
@@ -31,7 +33,9 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -1242,29 +1246,35 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
-                    static_cast<IndexType>(a->get_size()[0]), a_vals,
-                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                    a->get_const_srow(), b_vals, c_vals, row_out.get_data(),
-                    val_out.get_data());
+                    static_cast<IndexType>(a->get_size()[0]),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                    a->get_const_row_ptrs(), a->get_const_srow(),
+                    acc::as_device_range(b_vals), acc::as_device_range(c_vals),
+                    row_out.get_data(), as_device_type(val_out.get_data()));
             }
             csr::kernel::abstract_reduce(
                 1, spmv_block_size, 0, exec->get_queue(), grid_num,
-                val_out.get_data(), row_out.get_data(), c_vals);
+                as_device_type(val_out.get_data()), row_out.get_data(),
+                acc::as_device_range(c_vals));
 
         } else if (alpha != nullptr && beta != nullptr) {
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
                     static_cast<IndexType>(a->get_size()[0]),
-                    alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(), b_vals,
-                    beta->get_const_values(), c_vals, row_out.get_data(),
-                    val_out.get_data());
+                    as_device_type(alpha->get_const_values()),
+                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                    a->get_const_row_ptrs(), a->get_const_srow(),
+                    acc::as_device_range(b_vals),
+                    as_device_type(beta->get_const_values()),
+                    acc::as_device_range(c_vals), row_out.get_data(),
+                    as_device_type(val_out.get_data()));
             }
-            csr::kernel::abstract_reduce(1, spmv_block_size, 0,
-                                         exec->get_queue(), grid_num,
-                                         val_out.get_data(), row_out.get_data(),
-                                         alpha->get_const_values(), c_vals);
+            csr::kernel::abstract_reduce(
+                1, spmv_block_size, 0, exec->get_queue(), grid_num,
+                as_device_type(val_out.get_data()), row_out.get_data(),
+                as_device_type(alpha->get_const_values()),
+                acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -1318,17 +1328,20 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0], a_vals,
-                a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
-                c_vals);
+                grid, block, 0, exec->get_queue(), a->get_size()[0],
+                acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                a->get_const_row_ptrs(), acc::as_device_range(b_vals),
+                acc::as_device_range(c_vals));
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
-                alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
-                a->get_const_row_ptrs(), b_vals, beta->get_const_values(),
-                c_vals);
+                as_device_type(alpha->get_const_values()),
+                acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                a->get_const_row_ptrs(), acc::as_device_range(b_vals),
+                as_device_type(beta->get_const_values()),
+                acc::as_device_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -1340,7 +1353,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
+bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
                        const matrix::Csr<MatrixValueType, IndexType>* a,
                        const matrix::Dense<InputValueType>* b,
                        matrix::Dense<OutputValueType>* c,
@@ -1350,38 +1363,49 @@ void load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
-    if (beta) {
-        dense::scale(exec, beta, c);
+    // not support 16 bit atomic
+    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+        return false;
     } else {
-        dense::fill(exec, c, zero<OutputValueType>());
-    }
-    const IndexType nwarps = a->get_num_srow_elements();
-    if (nwarps > 0) {
-        const dim3 csr_block(config::warp_size, warps_in_block, 1);
-        const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
-        const auto a_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
-        const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-        auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-        if (alpha) {
-            if (csr_grid.x > 0 && csr_grid.y > 0) {
-                csr::kernel::abstract_spmv(
-                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                    static_cast<IndexType>(a->get_size()[0]),
-                    alpha->get_const_values(), a_vals, a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(), b_vals,
-                    c_vals);
-            }
+        if (beta) {
+            dense::scale(exec, beta, c);
         } else {
-            if (csr_grid.x > 0 && csr_grid.y > 0) {
-                csr::kernel::abstract_spmv(
-                    csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                    static_cast<IndexType>(a->get_size()[0]), a_vals,
-                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                    a->get_const_srow(), b_vals, c_vals);
+            dense::fill(exec, c, zero<OutputValueType>());
+        }
+        const IndexType nwarps = a->get_num_srow_elements();
+        if (nwarps > 0) {
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
+            const auto a_vals =
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+            const auto b_vals =
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+            if (alpha) {
+                if (csr_grid.x > 0 && csr_grid.y > 0) {
+                    csr::kernel::abstract_spmv(
+                        csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                        static_cast<IndexType>(a->get_size()[0]),
+                        as_device_type(alpha->get_const_values()),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                        a->get_const_row_ptrs(), a->get_const_srow(),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals));
+                }
+            } else {
+                if (csr_grid.x > 0 && csr_grid.y > 0) {
+                    csr::kernel::abstract_spmv(
+                        csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                        static_cast<IndexType>(a->get_size()[0]),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                        a->get_const_row_ptrs(), a->get_const_srow(),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals));
+                }
             }
         }
+        return true;
     }
 }
 
@@ -1487,9 +1511,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::fill(exec, c, zero<OutputValueType>());
         return;
     }
-    if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    if (a->get_strategy()->get_name() == "merge_path") {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1503,8 +1525,10 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "sparselib" ||
-            a->get_strategy()->get_name() == "cusparse") {
+        if (a->get_strategy()->get_name() == "load_balance") {
+            use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
+        } else if (a->get_strategy()->get_name() == "sparselib" ||
+                   a->get_strategy()->get_name() == "cusparse") {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
@@ -1556,9 +1580,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::scale(exec, beta, c);
         return;
     }
-    if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    if (a->get_strategy()->get_name() == "merge_path") {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1573,8 +1595,11 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             beta);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "sparselib" ||
-            a->get_strategy()->get_name() == "cusparse") {
+        if (a->get_strategy()->get_name() == "load_balance") {
+            use_classical =
+                !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
+        } else if (a->get_strategy()->get_name() == "sparselib" ||
+                   a->get_strategy()->get_name() == "cusparse") {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
@@ -1720,9 +1745,10 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     kernel::compute_submatrix_idxs_and_vals(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols, num_nnz,
         row_offset, col_offset, source->get_const_row_ptrs(),
-        source->get_const_col_idxs(), source->get_const_values(),
+        source->get_const_col_idxs(),
+        as_device_type(source->get_const_values()),
         result->get_const_row_ptrs(), result->get_col_idxs(),
-        result->get_values());
+        as_device_type(result->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -1937,19 +1963,20 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
     const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = a->get_const_values();
+    const auto a_vals = as_device_type(a->get_const_values());
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = b->get_const_values();
+    const auto b_vals = as_device_type(b->get_const_values());
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
-    array<val_heap_element<ValueType, IndexType>> heap_array(
+    using device_value_type = device_type<ValueType>;
+    array<val_heap_element<device_value_type, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
     auto col_heap =
-        reinterpret_cast<col_heap_element<ValueType, IndexType>*>(heap);
+        reinterpret_cast<col_heap_element<device_value_type, IndexType>*>(heap);
 
     // first sweep: count nnz for each row
     queue->submit([&](sycl::handler& cgh) {
@@ -1958,7 +1985,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
             c_row_ptrs[a_row] = spgemm_multiway_merge(
                 a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
                 col_heap, [](size_type) { return IndexType{}; },
-                [](ValueType, IndexType, IndexType&) {},
+                [](device_value_type, IndexType, IndexType&) {},
                 [](IndexType, IndexType& nnz) { nnz++; });
         });
     });
@@ -1974,7 +2001,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
-    auto c_vals = c_vals_array.get_data();
+    auto c_vals = as_device_type(c_vals_array.get_data());
 
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
@@ -1983,16 +2010,18 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
                 a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
                 heap,
                 [&](size_type row) {
-                    return std::make_pair(zero<ValueType>(), c_row_ptrs[row]);
+                    return std::make_pair(zero<device_value_type>(),
+                                          c_row_ptrs[row]);
                 },
-                [](ValueType val, IndexType,
-                   std::pair<ValueType, IndexType>& state) {
+                [](device_value_type val, IndexType,
+                   std::pair<device_value_type, IndexType>& state) {
                     state.first += val;
                 },
-                [&](IndexType col, std::pair<ValueType, IndexType>& state) {
+                [&](IndexType col,
+                    std::pair<device_value_type, IndexType>& state) {
                     c_col_idxs[state.second] = col;
                     c_vals[state.second] = state.first;
-                    state.first = zero<ValueType>();
+                    state.first = zero<device_value_type>();
                     state.second++;
                 });
         });
@@ -2015,27 +2044,27 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
     const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = a->get_const_values();
+    const auto a_vals = as_device_type(a->get_const_values());
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = b->get_const_values();
+    const auto b_vals = as_device_type(b->get_const_values());
     const auto d_row_ptrs = d->get_const_row_ptrs();
     const auto d_cols = d->get_const_col_idxs();
-    const auto d_vals = d->get_const_values();
+    const auto d_vals = as_device_type(d->get_const_values());
     auto c_row_ptrs = c->get_row_ptrs();
-    const auto alpha_vals = alpha->get_const_values();
-    const auto beta_vals = beta->get_const_values();
+    const auto alpha_vals = as_device_type(alpha->get_const_values());
+    const auto beta_vals = as_device_type(beta->get_const_values());
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     auto queue = exec->get_queue();
 
     // first sweep: count nnz for each row
-
-    array<val_heap_element<ValueType, IndexType>> heap_array(
+    using device_value_type = device_type<ValueType>;
+    array<val_heap_element<device_value_type, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
     auto col_heap =
-        reinterpret_cast<col_heap_element<ValueType, IndexType>*>(heap);
+        reinterpret_cast<col_heap_element<device_value_type, IndexType>*>(heap);
 
     // first sweep: count nnz for each row
     queue->submit([&](sycl::handler& cgh) {
@@ -2047,7 +2076,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
             c_row_ptrs[a_row] = spgemm_multiway_merge(
                 a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
                 col_heap, [](size_type row) { return IndexType{}; },
-                [](ValueType, IndexType, IndexType&) {},
+                [](device_value_type, IndexType, IndexType&) {},
                 [&](IndexType col, IndexType& nnz) {
                     // skip smaller elements from d
                     while (d_col <= col) {
@@ -2074,7 +2103,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     c_vals_array.resize_and_reset(new_nnz);
 
     auto c_col_idxs = c_col_idxs_array.get_data();
-    auto c_vals = c_vals_array.get_data();
+    auto c_vals = as_device_type(c_vals_array.get_data());
 
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
@@ -2082,24 +2111,26 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
             auto d_nz = d_row_ptrs[a_row];
             const auto d_end = d_row_ptrs[a_row + 1];
             auto d_col = checked_load(d_cols, d_nz, d_end, sentinel);
-            auto d_val = checked_load(d_vals, d_nz, d_end, zero<ValueType>());
-            const auto valpha = alpha_vals[0];
-            const auto vbeta = beta_vals[0];
+            auto d_val =
+                checked_load(d_vals, d_nz, d_end, zero<device_value_type>());
+            const auto valpha = as_device_type(alpha_vals[0]);
+            const auto vbeta = as_device_type(beta_vals[0]);
             auto c_nz =
                 spgemm_multiway_merge(
                     a_row, a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols,
                     b_vals, heap,
                     [&](size_type row) {
-                        return std::make_pair(zero<ValueType>(),
+                        return std::make_pair(zero<device_value_type>(),
                                               c_row_ptrs[row]);
                     },
-                    [](ValueType val, IndexType,
-                       std::pair<ValueType, IndexType>& state) {
+                    [](device_value_type val, IndexType,
+                       std::pair<device_value_type, IndexType>& state) {
                         state.first += val;
                     },
-                    [&](IndexType col, std::pair<ValueType, IndexType>& state) {
+                    [&](IndexType col,
+                        std::pair<device_value_type, IndexType>& state) {
                         // handle smaller elements from d
-                        ValueType part_d_val{};
+                        device_value_type part_d_val{};
                         while (d_col <= col) {
                             if (d_col == col) {
                                 part_d_val = d_val;
@@ -2111,12 +2142,12 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                             d_nz++;
                             d_col = checked_load(d_cols, d_nz, d_end, sentinel);
                             d_val = checked_load(d_vals, d_nz, d_end,
-                                                 zero<ValueType>());
+                                                 zero<device_value_type>());
                         }
                         c_col_idxs[state.second] = col;
                         c_vals[state.second] =
                             vbeta * part_d_val + valpha * state.first;
-                        state.first = zero<ValueType>();
+                        state.first = zero<device_value_type>();
                         state.second++;
                     })
                     .second;
@@ -2127,7 +2158,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                 c_nz++;
                 d_nz++;
                 d_col = checked_load(d_cols, d_nz, d_end, sentinel);
-                d_val = checked_load(d_vals, d_nz, d_end, zero<ValueType>());
+                d_val = checked_load(d_vals, d_nz, d_end,
+                                     zero<device_value_type>());
             }
         });
     });
@@ -2184,13 +2216,14 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_cols = c_col_idxs_array.get_data();
-    auto c_vals = c_vals_array.get_data();
+    auto c_vals = as_device_type(c_vals_array.get_data());
 
-    const auto a_vals = a->get_const_values();
-    const auto b_vals = b->get_const_values();
-    const auto alpha_vals = alpha->get_const_values();
-    const auto beta_vals = beta->get_const_values();
+    const auto a_vals = as_device_type(a->get_const_values());
+    const auto b_vals = as_device_type(b->get_const_values());
+    const auto alpha_vals = as_device_type(alpha->get_const_values());
+    const auto beta_vals = as_device_type(beta->get_const_values());
 
+    using device_value_type = device_type<ValueType>;
     // count number of non-zeros per row
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
@@ -2207,8 +2240,10 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
                 const auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
                 const bool use_a = a_col <= b_col;
                 const bool use_b = b_col <= a_col;
-                const auto a_val = use_a ? a_vals[a_idx] : zero<ValueType>();
-                const auto b_val = use_b ? b_vals[b_idx] : zero<ValueType>();
+                const auto a_val =
+                    use_a ? a_vals[a_idx] : zero<device_value_type>();
+                const auto b_val =
+                    use_b ? b_vals[b_idx] : zero<device_value_type>();
                 c_cols[c_nz] = std::min(a_col, b_col);
                 c_vals[c_nz] = alpha * a_val + beta * b_val;
                 c_nz++;
@@ -2233,12 +2268,12 @@ void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
     const auto stride = result->get_stride();
     const auto row_ptrs = source->get_const_row_ptrs();
     const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
+    const auto vals = as_device_type(source->get_const_values());
 
     auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
                           num_rows, row_ptrs, col_idxs, vals, stride,
-                          result->get_values());
+                          as_device_type(result->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2265,13 +2300,13 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     const auto row_ptrs = orig->get_const_row_ptrs();
     const auto cols = orig->get_const_col_idxs();
-    const auto vals = orig->get_const_values();
+    const auto vals = as_device_type(orig->get_const_values());
 
     array<IndexType> counts{exec, num_cols + 1};
     auto tmp_counts = counts.get_data();
     auto out_row_ptrs = trans->get_row_ptrs();
     auto out_cols = trans->get_col_idxs();
-    auto out_vals = trans->get_values();
+    auto out_vals = as_device_type(trans->get_values());
     components::fill_array(exec, tmp_counts, num_cols, IndexType{});
 
     queue->submit([&](sycl::handler& cgh) {
@@ -2348,8 +2383,8 @@ void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_symm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), permuted->get_values());
+        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2374,9 +2409,9 @@ void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_nonsymm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         row_perm, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), orig->get_const_values(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
         permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        permuted->get_values());
+        as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2401,8 +2436,9 @@ void row_permute(std::shared_ptr<const DpcppExecutor> exec,
     row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(), row_permuted->get_values());
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        row_permuted->get_col_idxs(),
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2427,8 +2463,9 @@ void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
     inv_row_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(), row_permuted->get_values());
+        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+        row_permuted->get_col_idxs(),
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2452,9 +2489,10 @@ void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), permuted->get_values());
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        permuted->get_row_ptrs(), permuted->get_col_idxs(),
+        as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2481,10 +2519,10 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_nonsymm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        row_scale, row_perm, col_scale, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), orig->get_const_values(),
-        permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        permuted->get_values());
+        as_device_type(row_scale), row_perm, as_device_type(col_scale),
+        col_perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
+        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2508,9 +2546,10 @@ void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(), row_permuted->get_values());
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2534,9 +2573,10 @@ void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        scale, perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        orig->get_const_values(), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(), row_permuted->get_values());
+        as_device_type(scale), perm, orig->get_const_row_ptrs(),
+        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
+        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
+        as_device_type(row_permuted->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
@@ -2550,7 +2590,7 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
     const auto num_rows = to_sort->get_size()[0];
     const auto row_ptrs = to_sort->get_const_row_ptrs();
     auto cols = to_sort->get_col_idxs();
-    auto vals = to_sort->get_values();
+    auto vals = as_device_type(to_sort->get_values());
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -2643,10 +2683,10 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
     const auto num_blocks =
         ceildiv(config::warp_size * diag_size, default_block_size);
 
-    const auto orig_values = orig->get_const_values();
+    const auto orig_values = as_device_type(orig->get_const_values());
     const auto orig_row_ptrs = orig->get_const_row_ptrs();
     const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
+    auto diag_values = as_device_type(diag->get_values());
 
     kernel::extract_diagonal(num_blocks, default_block_size, 0,
                              exec->get_queue(), diag_size, nnz, orig_values,
@@ -2696,9 +2736,10 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity(
         nblocks, default_block_size, 0, exec->get_queue(),
-        alpha->get_const_values(), beta->get_const_values(),
-        static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), mtx->get_values());
+        as_device_type(alpha->get_const_values()),
+        as_device_type(beta->get_const_values()), static_cast<IndexType>(nrows),
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+        as_device_type(mtx->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(

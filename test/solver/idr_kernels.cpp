@@ -11,7 +11,7 @@
 
 
 #ifdef GKO_COMPILING_DPCPP
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #endif
 
 

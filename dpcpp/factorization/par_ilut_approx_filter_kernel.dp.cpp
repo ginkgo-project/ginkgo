@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -21,6 +21,8 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -102,7 +104,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
     // filter the elements
     auto old_row_ptrs = m->get_const_row_ptrs();
     auto old_col_idxs = m->get_const_col_idxs();
-    auto old_vals = m->get_const_values();
+    auto old_vals = as_device_type(m->get_const_values());
     // compute nnz for each row
     auto num_rows = static_cast<IndexType>(m->get_size()[0]);
     auto block_size = default_block_size / subgroup_size;
@@ -136,7 +138,7 @@ void threshold_filter_approx(syn::value_list<int, subgroup_size>,
     kernel::bucket_filter<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
         old_col_idxs, old_vals, oracles, num_rows, bucket, new_row_ptrs,
-        new_row_idxs, new_col_idxs, new_vals);
+        new_row_idxs, new_col_idxs, as_device_type(new_vals));
 }
 
 
@@ -165,7 +167,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         &threshold, m_out, m_out_coo);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
 
 

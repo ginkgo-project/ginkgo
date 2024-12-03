@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "dpcpp/base/dpct.hpp"
 
@@ -233,9 +233,9 @@ struct atomic_helper<
         }                                                                   \
     };
 
-// Support 64-bit ATOMIC_ADD
+// Support 64-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned long long int);
-// Support 32-bit ATOMIC_ADD
+// Support 32-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
 
 

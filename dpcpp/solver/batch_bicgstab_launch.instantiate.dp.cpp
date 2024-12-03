@@ -4,7 +4,7 @@
 
 #include "dpcpp/solver/batch_bicgstab_launch.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
@@ -16,6 +16,8 @@
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -37,9 +39,9 @@ void launch_apply_kernel(
     const gko::kernels::batch_bicgstab::storage_config& sconf,
     const settings<remove_complex<ValueType>>& settings, LogType& logger,
     PrecType& prec, const BatchMatrixType& mat,
-    const ValueType* const __restrict__ b_values,
-    ValueType* const __restrict__ x_values,
-    ValueType* const __restrict__ workspace, const int& group_size,
+    const device_type<ValueType>* const __restrict__ b_values,
+    device_type<ValueType>* const __restrict__ x_values,
+    device_type<ValueType>* const __restrict__ workspace, const int& group_size,
     const int& shared_size)
 {
     auto num_rows = mat.num_rows;
@@ -48,10 +50,10 @@ void launch_apply_kernel(
     const dim3 grid(mat.num_batch_items);
 
     auto max_iters = settings.max_iterations;
-    auto res_tol = settings.residual_tol;
+    auto res_tol = as_device_type(settings.residual_tol);
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<ValueType, 1> slm_values(
+        sycl::local_accessor<device_type<ValueType>, 1> slm_values(
             sycl::range<1>(shared_size), cgh);
 
         cgh.parallel_for(
@@ -61,18 +63,19 @@ void launch_apply_kernel(
                 auto batch_id = item_ct1.get_group_linear_id();
                 const auto mat_global_entry =
                     gko::batch::matrix::extract_batch_item(mat, batch_id);
-                const ValueType* const b_global_entry =
+                const device_type<ValueType>* const b_global_entry =
                     gko::batch::multi_vector::batch_item_ptr(
                         b_values, 1, num_rows, batch_id);
-                ValueType* const x_global_entry =
+                device_type<ValueType>* const x_global_entry =
                     gko::batch::multi_vector::batch_item_ptr(
                         x_values, 1, num_rows, batch_id);
                 batch_single_kernels::apply_kernel<StopType, n_shared_total>(
                     sconf, max_iters, res_tol, logger, prec, mat_global_entry,
                     b_global_entry, x_global_entry, num_rows,
                     mat.get_single_item_num_nnz(),
-                    static_cast<ValueType*>(slm_values.get_pointer()), item_ct1,
-                    workspace);
+                    static_cast<device_type<ValueType>*>(
+                        slm_values.get_pointer()),
+                    item_ct1, workspace);
             });
     });
 }

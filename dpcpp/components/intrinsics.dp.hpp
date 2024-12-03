@@ -6,7 +6,7 @@
 #define GKO_DPCPP_COMPONENTS_INTRINSICS_DP_HPP_
 
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/types.hpp>
 

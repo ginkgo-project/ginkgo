@@ -10,7 +10,7 @@
 #include <map>
 #include <string>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

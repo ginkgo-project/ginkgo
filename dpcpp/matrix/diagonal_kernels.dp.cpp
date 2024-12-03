@@ -4,7 +4,7 @@
 
 #include "core/matrix/diagonal_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -12,6 +12,8 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
@@ -70,9 +72,9 @@ void apply_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Csr<ValueType, IndexType>* c, bool inverse)
 {
     const auto num_rows = b->get_size()[0];
-    const auto diag_values = a->get_const_values();
+    const auto diag_values = as_device_type(a->get_const_values());
     c->copy_from(b);
-    auto csr_values = c->get_values();
+    auto csr_values = as_device_type(c->get_values());
     const auto csr_row_ptrs = c->get_const_row_ptrs();
 
     const auto grid_dim =

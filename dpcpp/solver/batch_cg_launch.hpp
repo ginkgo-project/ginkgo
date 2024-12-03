@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/solver/batch_cg.hpp>
 
@@ -27,29 +27,30 @@ using settings = gko::kernels::batch_cg::settings<T>;
 template <typename ValueType, typename StopType, const int subgroup_size,
           const int n_shared_total, typename PrecType, typename LogType,
           typename BatchMatrixType>
-void launch_apply_kernel(std::shared_ptr<const DefaultExecutor> exec,
-                         const gko::kernels::batch_cg::storage_config& sconf,
-                         const settings<remove_complex<ValueType>>& settings,
-                         LogType& logger, PrecType& prec,
-                         const BatchMatrixType& mat,
-                         const ValueType* const __restrict__ b_values,
-                         ValueType* const __restrict__ x_values,
-                         ValueType* const __restrict__ workspace,
-                         const int& group_size, const int& shared_size);
+void launch_apply_kernel(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::kernels::batch_cg::storage_config& sconf,
+    const settings<remove_complex<ValueType>>& settings, LogType& logger,
+    PrecType& prec, const BatchMatrixType& mat,
+    const device_type<ValueType>* const __restrict__ b_values,
+    device_type<ValueType>* const __restrict__ x_values,
+    device_type<ValueType>* const __restrict__ workspace, const int& group_size,
+    const int& shared_size);
 
 #define GKO_DECLARE_BATCH_CG_LAUNCH(_vtype, _subgroup_size, _n_shared, mat_t, \
                                     log_t, pre_t, stop_t)                     \
-    void                                                                      \
-    launch_apply_kernel<_vtype, stop_t<_vtype>, _subgroup_size, _n_shared>(   \
+    void launch_apply_kernel<_vtype, stop_t<device_type<_vtype>>,             \
+                             _subgroup_size, _n_shared>(                      \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const gko::kernels::batch_cg::storage_config& sconf,                  \
         const settings<remove_complex<_vtype>>& settings,                     \
-        log_t<gko::remove_complex<_vtype>>& logger, pre_t<_vtype>& prec,      \
-        const mat_t<const _vtype>& mat,                                       \
-        const _vtype* const __restrict__ b_values,                            \
-        _vtype* const __restrict__ x_values,                                  \
-        _vtype* const __restrict__ workspace_data, const int& block_size,     \
-        const int& shared_size)
+        log_t<gko::remove_complex<device_type<_vtype>>>& logger,              \
+        pre_t<device_type<_vtype>>& prec,                                     \
+        const mat_t<const device_type<_vtype>>& mat,                          \
+        const device_type<_vtype>* const __restrict__ b_values,               \
+        device_type<_vtype>* const __restrict__ x_values,                     \
+        device_type<_vtype>* const __restrict__ workspace_data,               \
+        const int& block_size, const int& shared_size)
 
 #define GKO_INSTANTIATE_BATCH_CG_LAUNCH_0 \
     GKO_BATCH_INSTANTIATE(GKO_DECLARE_BATCH_CG_LAUNCH, 32, 0)

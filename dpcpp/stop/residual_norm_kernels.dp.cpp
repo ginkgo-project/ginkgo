@@ -4,7 +4,7 @@
 
 #include "core/stop/residual_norm_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -12,6 +12,8 @@
 
 #include "core/base/array_access.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
@@ -46,7 +48,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
     });
 
     auto orig_tau_val = orig_tau->get_const_values();
-    auto tau_val = tau->get_const_values();
+    auto tau_val = as_device_type(tau->get_const_values());
     auto stop_status_val = stop_status->get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
@@ -102,7 +104,7 @@ void implicit_residual_norm(
     });
 
     auto orig_tau_val = orig_tau->get_const_values();
-    auto tau_val = tau->get_const_values();
+    auto tau_val = as_device_type(tau->get_const_values());
     auto stop_status_val = stop_status->get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(

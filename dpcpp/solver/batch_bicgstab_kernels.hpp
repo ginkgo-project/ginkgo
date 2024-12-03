@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"

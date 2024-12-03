@@ -8,7 +8,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onedpl.hpp"
+#include "dpcpp/base/types.hpp"
 
 
 namespace gko {
@@ -22,12 +24,13 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   array<ValueType>& values, array<IndexType>& row_idxs,
                   array<IndexType>& col_idxs)
 {
-    using nonzero_type = matrix_data_entry<ValueType, IndexType>;
+    using device_value_type = device_type<ValueType>;
     auto size = values.get_size();
     auto policy = onedpl_policy(exec);
-    auto nnz = std::count_if(
-        policy, values.get_const_data(), values.get_const_data() + size,
-        [](ValueType val) { return is_nonzero<ValueType>(val); });
+    auto nnz =
+        std::count_if(policy, as_device_type(values.get_const_data()),
+                      as_device_type(values.get_const_data()) + size,
+                      [](device_value_type val) { return is_nonzero(val); });
     if (nnz < size) {
         // allocate new storage
         array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
@@ -36,10 +39,10 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         // copy nonzeros
         auto input_it = oneapi::dpl::make_zip_iterator(
             row_idxs.get_const_data(), col_idxs.get_const_data(),
-            values.get_const_data());
-        auto output_it = oneapi::dpl::make_zip_iterator(new_row_idxs.get_data(),
-                                                        new_col_idxs.get_data(),
-                                                        new_values.get_data());
+            as_device_type(values.get_const_data()));
+        auto output_it = oneapi::dpl::make_zip_iterator(
+            new_row_idxs.get_data(), new_col_idxs.get_data(),
+            as_device_type(new_values.get_data()));
         std::copy_if(policy, input_it, input_it + size, output_it,
                      [](auto tuple) { return is_nonzero(std::get<2>(tuple)); });
         // swap out storage
@@ -94,7 +97,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
 
 

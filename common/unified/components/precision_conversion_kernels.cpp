@@ -19,7 +19,9 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = in[idx]; },
+        [] GKO_KERNEL(auto idx, auto in, auto out) {
+            out[idx] = static_cast<device_type<TargetType>>(in[idx]);
+        },
         size, in, out);
 }
 

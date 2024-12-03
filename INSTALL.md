@@ -25,6 +25,8 @@ Ginkgo adds the following additional switches to control what is being built:
     instead of converting data on the fly, default is `OFF`.
     Enabling this flag increases the library size, but improves performance of
     mixed-precision kernels.
+*   `-DGINKGO_ENABLE_HALF={ON, OFF}` enable half precision support in Ginkgo, default is `ON`.
+    It is `OFF` when the compiler is MSVC.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
 *   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests

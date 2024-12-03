@@ -6,7 +6,7 @@
 
 #include <limits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -67,7 +67,7 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
                             unsigned char* oracles, IndexType* partial_counts, \
                             IndexType* total_counts)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(DECLARE_SSSS_COUNT);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(DECLARE_SSSS_COUNT);
 
 
 template <typename IndexType>

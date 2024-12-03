@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"

@@ -87,23 +87,6 @@ using DeviceValueType = gko::kernels::hip::hip_type<ValueType>;
 
 
 namespace gko {
-namespace kernels {
-namespace dpcpp {
-
-
-template <typename T>
-inline std::decay_t<T> as_device_type(T val)
-{
-    return val;
-}
-
-
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
-
-
-namespace gko {
 namespace batch {
 namespace solver {
 
@@ -112,7 +95,7 @@ namespace device = gko::kernels::dpcpp;
 
 
 template <typename ValueType>
-using DeviceValueType = ValueType;
+using DeviceValueType = gko::kernels::dpcpp::sycl_type<ValueType>;
 
 
 }  // namespace solver

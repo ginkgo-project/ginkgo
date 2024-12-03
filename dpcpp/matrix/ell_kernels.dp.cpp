@@ -6,7 +6,7 @@
 
 #include <array>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -15,6 +15,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "accessor/reduced_row_major.hpp"
+#include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -23,6 +24,8 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/format_conversion.dp.hpp"
@@ -94,7 +97,7 @@ void spmv_kernel(
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const decltype(tidx) column_id = item_ct1.get_group(1);
-    if (num_thread_per_worker == 1) {
+    if constexpr (num_thread_per_worker == 1) {
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
@@ -143,7 +146,7 @@ void spmv_kernel(
         item_ct1.barrier(sycl::access::fence_space::local_space);
         if (runnable && idx_in_worker == 0) {
             const auto c_ind = x * c_stride + column_id;
-            if (atomic) {
+            if constexpr (atomic) {
                 atomic_add(&(c[c_ind]),
                            op(storage[item_ct1.get_local_id(2)], c[c_ind]));
             } else {
@@ -216,7 +219,7 @@ void spmv(
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
-    if (atomic) {
+    if constexpr (atomic) {
         // Because the atomic operation changes the values of c during
         // computation, it can not directly do alpha * a * b + beta * c
         // operation. The beta * c needs to be done before calling this kernel.
@@ -308,34 +311,49 @@ void abstract_spmv(syn::value_list<int, info>,
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
 
-    const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
-            num_stored_elements_per_row * stride)}},
-        a->get_const_values());
-    const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
-
-    if (alpha == nullptr && beta == nullptr) {
-        kernel::spmv<num_thread_per_worker, atomic>(
-            grid_size, block_size, 0, exec->get_queue(), nrows,
-            num_worker_per_row, a_vals, a->get_const_col_idxs(), stride,
-            num_stored_elements_per_row, b_vals, c->get_values(),
-            c->get_stride());
-    } else if (alpha != nullptr && beta != nullptr) {
-        const auto alpha_val = gko::acc::range<a_accessor>(
-            std::array<acc::size_type, 1>{1}, alpha->get_const_values());
-        kernel::spmv<num_thread_per_worker, atomic>(
-            grid_size, block_size, 0, exec->get_queue(), nrows,
-            num_worker_per_row, alpha_val, a_vals, a->get_const_col_idxs(),
-            stride, num_stored_elements_per_row, b_vals,
-            beta->get_const_values(), c->get_values(), c->get_stride());
-    } else {
+    // not support 16 bit atomic
+    // We do atomic on shared memory when num_thread_per_worker is not 1.
+    // If atomic is also true, we also do atomic on out_vector.
+    constexpr bool shared_half =
+        std::is_same_v<remove_complex<arithmetic_type>, half>;
+    constexpr bool atomic_half_out =
+        atomic && std::is_same_v<remove_complex<OutputValueType>, half>;
+    if constexpr (num_thread_per_worker != 1 &&
+                  (shared_half || atomic_half_out)) {
         GKO_KERNEL_NOT_FOUND;
+    } else {
+        const auto a_vals = gko::acc::range<a_accessor>(
+            std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
+                num_stored_elements_per_row * stride)}},
+            a->get_const_values());
+        const auto b_vals = gko::acc::range<b_accessor>(
+            std::array<acc::size_type, 2>{
+                {static_cast<acc::size_type>(b->get_size()[0]),
+                 static_cast<acc::size_type>(b->get_size()[1])}},
+            b->get_const_values(),
+            std::array<acc::size_type, 1>{
+                {static_cast<acc::size_type>(b->get_stride())}});
+
+        if (alpha == nullptr && beta == nullptr) {
+            kernel::spmv<num_thread_per_worker, atomic>(
+                grid_size, block_size, 0, exec->get_queue(), nrows,
+                num_worker_per_row, acc::as_device_range(a_vals),
+                a->get_const_col_idxs(), stride, num_stored_elements_per_row,
+                acc::as_device_range(b_vals), as_device_type(c->get_values()),
+                c->get_stride());
+        } else if (alpha != nullptr && beta != nullptr) {
+            const auto alpha_val = gko::acc::range<a_accessor>(
+                std::array<acc::size_type, 1>{1}, alpha->get_const_values());
+            kernel::spmv<num_thread_per_worker, atomic>(
+                grid_size, block_size, 0, exec->get_queue(), nrows,
+                num_worker_per_row, acc::as_device_range(alpha_val),
+                acc::as_device_range(a_vals), a->get_const_col_idxs(), stride,
+                num_stored_elements_per_row, acc::as_device_range(b_vals),
+                as_device_type(beta->get_const_values()),
+                as_device_type(c->get_values()), c->get_stride());
+        } else {
+            GKO_KERNEL_NOT_FOUND;
+        }
     }
 }
 

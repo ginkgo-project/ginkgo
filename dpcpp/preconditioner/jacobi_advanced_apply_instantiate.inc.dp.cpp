@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -13,6 +13,8 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/warp_blas.dp.hpp"
@@ -176,13 +178,15 @@ void advanced_apply(
     if (block_precisions) {
         kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
                                         warps_per_block>(
-            grid_size, block_size, 0, exec->get_queue(), blocks, storage_scheme,
-            block_precisions, block_pointers, num_blocks, alpha, b, b_stride, x,
-            x_stride);
+            grid_size, block_size, 0, exec->get_queue(), as_device_type(blocks),
+            storage_scheme, block_precisions, block_pointers, num_blocks,
+            as_device_type(alpha), as_device_type(b), b_stride,
+            as_device_type(x), x_stride);
     } else {
         kernel::advanced_apply<max_block_size, subwarp_size, warps_per_block>(
-            grid_size, block_size, 0, exec->get_queue(), blocks, storage_scheme,
-            block_pointers, num_blocks, alpha, b, b_stride, x, x_stride);
+            grid_size, block_size, 0, exec->get_queue(), as_device_type(blocks),
+            storage_scheme, block_pointers, num_blocks, as_device_type(alpha),
+            as_device_type(b), b_stride, as_device_type(x), x_stride);
     }
 }
 

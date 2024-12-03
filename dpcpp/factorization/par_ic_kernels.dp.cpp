@@ -4,13 +4,15 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
@@ -125,7 +127,7 @@ void init_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto num_rows = l->get_size()[0];
     auto num_blocks = ceildiv(num_rows, default_block_size);
     auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_vals = l->get_values();
+    auto l_vals = as_device_type(l->get_values());
     kernel::ic_init(num_blocks, default_block_size, 0, exec->get_queue(),
                     l_row_ptrs, l_vals, num_rows);
 }
@@ -146,8 +148,9 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
         kernel::ic_sweep(num_blocks, default_block_size, 0, exec->get_queue(),
                          a_lower->get_const_row_idxs(),
                          a_lower->get_const_col_idxs(),
-                         a_lower->get_const_values(), l->get_const_row_ptrs(),
-                         l->get_const_col_idxs(), l->get_values(),
+                         as_device_type(a_lower->get_const_values()),
+                         l->get_const_row_ptrs(), l->get_const_col_idxs(),
+                         as_device_type(l->get_values()),
                          static_cast<IndexType>(l->get_num_stored_elements()));
     }
 }

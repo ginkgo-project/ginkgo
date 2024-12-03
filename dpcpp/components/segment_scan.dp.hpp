@@ -6,7 +6,7 @@
 #define GKO_DPCPP_COMPONENTS_SEGMENT_SCAN_DP_HPP_
 
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"

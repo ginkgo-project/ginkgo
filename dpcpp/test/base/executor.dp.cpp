@@ -6,9 +6,9 @@
 #include <memory>
 #include <type_traits>
 
-#include <CL/sycl.hpp>
-
 #include <gtest/gtest.h>
+
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>

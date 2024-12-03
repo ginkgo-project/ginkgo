@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -18,6 +18,8 @@
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -57,7 +59,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
 {
     auto old_row_ptrs = a->get_const_row_ptrs();
     auto old_col_idxs = a->get_const_col_idxs();
-    auto old_vals = a->get_const_values();
+    auto old_vals = as_device_type(a->get_const_values());
     // compute nnz for each row
     auto num_rows = static_cast<IndexType>(a->get_size()[0]);
     auto block_size = default_block_size / subgroup_size;
@@ -65,7 +67,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
     auto new_row_ptrs = m_out->get_row_ptrs();
     kernel::threshold_filter_nnz<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
-        old_vals, num_rows, threshold, new_row_ptrs, lower);
+        old_vals, num_rows, as_device_type(threshold), new_row_ptrs, lower);
 
     // build row pointers
     components::prefix_sum_nonnegative(exec, new_row_ptrs, num_rows + 1);
@@ -90,8 +92,9 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
     }
     kernel::threshold_filter<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
-        old_col_idxs, old_vals, num_rows, threshold, new_row_ptrs, new_row_idxs,
-        new_col_idxs, new_vals, lower);
+        old_col_idxs, old_vals, num_rows, as_device_type(threshold),
+        new_row_ptrs, new_row_idxs, new_col_idxs, as_device_type(new_vals),
+        lower);
 }
 
 
@@ -120,7 +123,7 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
         m_out_coo, lower);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 
 

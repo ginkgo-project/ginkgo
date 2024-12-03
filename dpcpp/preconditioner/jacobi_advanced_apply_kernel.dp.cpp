@@ -7,6 +7,7 @@
 #include "core/matrix/dense_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/preconditioner/jacobi_common.hpp"
 
 
