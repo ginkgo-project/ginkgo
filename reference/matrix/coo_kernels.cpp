@@ -38,7 +38,8 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     spmv2(exec, a, b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_COO_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -53,7 +54,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     advanced_spmv2(exec, alpha, a, b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL);
 
 
@@ -73,7 +74,8 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_COO_SPMV2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -96,7 +98,7 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
@@ -113,7 +115,7 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL);
 
 
@@ -136,7 +138,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
 
 

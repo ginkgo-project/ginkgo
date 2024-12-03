@@ -89,7 +89,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         result->get_coo_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_HYBRID_FILL_IN_MATRIX_DATA_KERNEL);
 
 
@@ -150,7 +150,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         coo_row_ptrs, result->get_col_idxs(), result->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
 
 

@@ -12,6 +12,7 @@
 #include <thrust/sort.h>
 #include <thrust/tuple.h>
 
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 
@@ -21,6 +22,15 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
+
+// __half `!=` operation is only available in __device__
+// Although gko::is_nonzero is constexpr, it still shows calling __device__ in
+// __host__
+template <typename T>
+GKO_INLINE __device__ constexpr bool is_nonzero(T value)
+{
+    return value != zero<T>();
+}
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
@@ -58,7 +68,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
 
 
@@ -102,7 +112,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
 
 
@@ -117,7 +127,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                         it + data.get_num_stored_elements(), vals);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
 
 

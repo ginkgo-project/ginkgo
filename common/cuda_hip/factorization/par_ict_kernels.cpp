@@ -128,7 +128,7 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
 
     IndexType l_new_begin = l_new_row_ptrs[row];
 
-    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max();
     // load column indices and values for the first merge step
     auto a_col = checked_load(a_col_idxs, a_begin + lane, a_end, sentinel);
     auto a_val = checked_load(a_vals, a_begin + lane, a_end, zero<ValueType>());

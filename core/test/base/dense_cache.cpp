@@ -31,7 +31,8 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseCache, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(DenseCache, gko::test::ValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(DenseCache, CanDefaultConstruct)

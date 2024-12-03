@@ -525,7 +525,7 @@ __global__ __launch_bounds__(default_block_size) void ubfs_min_neighbor_kernel(
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
     const auto cur_level = node_levels[row];
-    auto min_neighbor = device_numeric_limits<IndexType>::max;
+    auto min_neighbor = device_numeric_limits<IndexType>::max();
     for (auto nz = begin; nz < end; nz++) {
         const auto col = col_idxs[nz];
         const auto neighbor_level = node_levels[col];

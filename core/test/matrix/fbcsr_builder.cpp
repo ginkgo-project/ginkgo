@@ -33,7 +33,7 @@ protected:
     std::unique_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(FbcsrBuilder, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(FbcsrBuilder, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

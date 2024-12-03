@@ -37,7 +37,8 @@ class Dense : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
-    using MixedMtx = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using MixedMtx =
+        gko::matrix::Dense<gko::next_precision_with_half<value_type>>;
     using ComplexMtx = gko::to_complex<Mtx>;
     using RealMtx = gko::remove_complex<Mtx>;
     Dense()
@@ -75,13 +76,12 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<gko::size_type>(num_cols, num_cols),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-            rand_engine, exec);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, exec);
     }
 };
 
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Dense, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
 
 
 TYPED_TEST(Dense, CopyRespectsStride)
@@ -746,14 +746,16 @@ TYPED_TEST(Dense, ConvertsToPrecision)
 {
     using Dense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_with_half<T>;
     using OtherDense = typename gko::matrix::Dense<OtherT>;
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->convert_to(tmp);
     tmp->convert_to(res);
@@ -766,14 +768,16 @@ TYPED_TEST(Dense, MovesToPrecision)
 {
     using Dense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_with_half<T>;
     using OtherDense = typename gko::matrix::Dense<OtherT>;
     auto tmp = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
     // If OtherT is more precise: 0, otherwise r
-    auto residual = r<OtherT>::value < r<T>::value
-                        ? gko::remove_complex<T>{0}
-                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    auto residual =
+        r<OtherT>::value < r<T>::value
+            ? gko::remove_complex<T>{0}
+            : gko::remove_complex<T>{
+                  static_cast<gko::remove_complex<T>>(r<OtherT>::value)};
 
     this->mtx1->move_to(tmp);
     tmp->move_to(res);
@@ -1063,7 +1067,7 @@ TYPED_TEST(Dense, AppliesToComplex)
 TYPED_TEST(Dense, AppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -1117,7 +1121,7 @@ TYPED_TEST(Dense, AdvancedAppliesToComplex)
 TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
@@ -1356,7 +1360,7 @@ public:
     std::unique_ptr<ScaledPermutation> scale_perm0;
 };
 
-TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
@@ -2010,7 +2014,7 @@ TYPED_TEST(Dense, ConvertsEmptyToPrecision)
 {
     using Dense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_with_half<T>;
     using OtherDense = typename gko::matrix::Dense<OtherT>;
     auto empty = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
@@ -2025,7 +2029,7 @@ TYPED_TEST(Dense, MovesEmptyToPrecision)
 {
     using Dense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_with_half<T>;
     using OtherDense = typename gko::matrix::Dense<OtherT>;
     auto empty = OtherDense::create(this->exec);
     auto res = Dense::create(this->exec);
@@ -3549,7 +3553,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypes,
+TYPED_TEST_SUITE(DenseComplex, gko::test::ComplexValueTypesWithHalf,
                  TypenameNameGenerator);
 
 

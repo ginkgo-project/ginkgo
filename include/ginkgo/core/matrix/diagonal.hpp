@@ -41,7 +41,11 @@ class Diagonal
     : public EnableLinOp<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
-      public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
+      public ConvertibleTo<Diagonal<next_precision_with_half<ValueType>>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<Diagonal<
+          next_precision_with_half<next_precision_with_half<ValueType>>>>,
+#endif
       public Transposable,
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
@@ -60,8 +64,9 @@ public:
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int64>>::move_to;
-    using ConvertibleTo<Diagonal<next_precision<ValueType>>>::convert_to;
-    using ConvertibleTo<Diagonal<next_precision<ValueType>>>::move_to;
+    using ConvertibleTo<
+        Diagonal<next_precision_with_half<ValueType>>>::convert_to;
+    using ConvertibleTo<Diagonal<next_precision_with_half<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -71,15 +76,34 @@ public:
     using device_mat_data32 = device_matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Diagonal>;
 
-    friend class Diagonal<next_precision<ValueType>>;
+    friend class Diagonal<previous_precision_with_half<ValueType>>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void convert_to(Diagonal<next_precision<ValueType>>* result) const override;
+    void convert_to(
+        Diagonal<next_precision_with_half<ValueType>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType>>* result) override;
+    void move_to(
+        Diagonal<next_precision_with_half<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Diagonal<
+        previous_precision_with_half<previous_precision_with_half<ValueType>>>;
+    using ConvertibleTo<Diagonal<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::convert_to;
+    using ConvertibleTo<Diagonal<next_precision_with_half<
+        next_precision_with_half<ValueType>>>>::move_to;
+
+    void convert_to(
+        Diagonal<next_precision_with_half<next_precision_with_half<ValueType>>>*
+            result) const override;
+
+    void move_to(
+        Diagonal<next_precision_with_half<next_precision_with_half<ValueType>>>*
+            result) override;
+#endif
 
     void convert_to(Csr<ValueType, int32>* result) const override;
 

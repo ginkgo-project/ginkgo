@@ -104,7 +104,8 @@ protected:
     const std::unique_ptr<const Mtx> mtxsq;
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 template <typename T>
@@ -114,7 +115,7 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
 {
     using RT = gko::remove_complex<T>;
     std::default_random_engine engine(39);
-    std::normal_distribution<RT> dist(0.0, 5.0);
+    std::normal_distribution<> dist(0.0, 5.0);
     std::uniform_int_distribution<> nnzdist(1, nrhs);
     return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
         nrows, nrhs, nnzdist, dist, engine, exec);
@@ -271,16 +272,17 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
     auto res = Fbcsr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual =
-        r<OtherType>::value < r<ValueType>::value
-            ? gko::remove_complex<ValueType>{0}
-            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{
+                              static_cast<gko::remove_complex<ValueType>>(
+                                  r<OtherType>::value)};
 
     this->mtx->convert_to(tmp);
     tmp->convert_to(res);
@@ -293,7 +295,7 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
@@ -391,7 +393,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -410,7 +412,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -618,7 +620,7 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes,
+TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 

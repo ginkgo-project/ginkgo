@@ -43,7 +43,8 @@ protected:
     gko::array<value_type> vals;
 };
 
-TYPED_TEST_SUITE(AbsoluteArray, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(AbsoluteArray, gko::test::ValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(AbsoluteArray, InplaceEqualsExpected)

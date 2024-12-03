@@ -46,7 +46,8 @@ protected:
     using Ell = gko::matrix::Ell<value_type, index_type>;
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using MixedVec =
+        gko::matrix::Dense<gko::next_precision_with_half<value_type>>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
 
@@ -347,7 +348,8 @@ protected:
     index_type invalid_index = gko::invalid_index<index_type>();
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, AppliesToDenseVector)
@@ -368,7 +370,7 @@ TYPED_TEST(Csr, MixedAppliesToDenseVector1)
 {
     // Both vectors have the same value type which differs from the matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec = typename gko::matrix::Dense<next_T>;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
@@ -383,7 +385,7 @@ TYPED_TEST(Csr, MixedAppliesToDenseVector2)
 {
     // Input vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     auto x = gko::initialize<Vec1>({2.0, 1.0, 4.0}, this->exec);
@@ -399,9 +401,9 @@ TYPED_TEST(Csr, MixedAppliesToDenseVector3)
 {
     // Output vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
-    using Vec2 = gko::matrix::Dense<gko::next_precision<T>>;
+    using Vec2 = gko::matrix::Dense<gko::next_precision_with_half<T>>;
     auto x = gko::initialize<Vec2>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec1::create(this->exec, gko::dim<2>{2, 1});
 
@@ -432,7 +434,7 @@ TYPED_TEST(Csr, MixedAppliesToDenseMatrix1)
 {
     // Both vectors have the same value type which differs from the matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec = gko::matrix::Dense<next_T>;
     // clang-format off
     auto x = gko::initialize<Vec>(
@@ -456,7 +458,7 @@ TYPED_TEST(Csr, MixedAppliesToDenseMatrix2)
 {
     // Input vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     // clang-format off
@@ -481,7 +483,7 @@ TYPED_TEST(Csr, MixedAppliesToDenseMatrix3)
 {
     // Output vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     // clang-format off
@@ -522,7 +524,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector1)
 {
     // Both vectors have the same value type which differs from the matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
@@ -539,7 +541,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector2)
 {
     // Input vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
@@ -557,7 +559,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseVector3)
 {
     // Output vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
@@ -595,7 +597,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix1)
 {
     // Both vectors have the same value type which differs from the matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
@@ -619,7 +621,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix2)
 {
     // Input vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec1>({-1.0}, this->exec);
@@ -639,7 +641,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToDenseMatrix3)
 {
     // Output vector has same value type as matrix
     using T = typename TestFixture::value_type;
-    using next_T = gko::next_precision<T>;
+    using next_T = gko::next_precision_with_half<T>;
     using Vec1 = typename TestFixture::Vec;
     using Vec2 = gko::matrix::Dense<next_T>;
     auto alpha = gko::initialize<Vec2>({-1.0}, this->exec);
@@ -788,7 +790,7 @@ TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -814,7 +816,7 @@ TYPED_TEST(Csr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
@@ -992,7 +994,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -1011,7 +1013,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision_with_half<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -2048,7 +2050,7 @@ TYPED_TEST(Csr, AppliesToComplex)
 TYPED_TEST(Csr, AppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using Vec = gko::matrix::Dense<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
@@ -2104,7 +2106,7 @@ TYPED_TEST(Csr, AdvancedAppliesToComplex)
 TYPED_TEST(Csr, AdvancedAppliesToMixedComplex)
 {
     using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
+        gko::next_precision_with_half<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
     using MixedDense = gko::matrix::Dense<mixed_value_type>;
     using MixedDenseComplex = gko::matrix::Dense<mixed_complex_type>;
@@ -2245,7 +2247,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypes,
+TYPED_TEST_SUITE(CsrComplex, gko::test::ComplexValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 
@@ -2590,7 +2592,7 @@ protected:
     index_type invalid_index = gko::invalid_index<index_type>();
 };
 
-TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypesWithHalf,
                  PairTypenameNameGenerator);
 
 TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)

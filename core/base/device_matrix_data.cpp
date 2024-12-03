@@ -157,7 +157,8 @@ device_matrix_data<ValueType, IndexType>::empty_out()
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA(ValueType, IndexType) \
     class device_matrix_data<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DEVICE_MATRIX_DATA);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+    GKO_DECLARE_DEVICE_MATRIX_DATA);
 
 
 }  // namespace gko

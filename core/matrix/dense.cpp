@@ -582,7 +582,7 @@ Dense<ValueType>::Dense(Dense<ValueType>&& other) : Dense(other.get_executor())
 
 template <typename ValueType>
 void Dense<ValueType>::convert_to(
-    Dense<next_precision<ValueType>>* result) const
+    Dense<next_precision_with_half<ValueType>>* result) const
 {
     if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
@@ -597,10 +597,39 @@ void Dense<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
+void Dense<ValueType>::move_to(
+    Dense<next_precision_with_half<ValueType>>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
+        result) const
+{
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(
+    Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
+        result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType>
@@ -1519,7 +1548,8 @@ template <typename ValueType, typename Function>
 void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    run<matrix::Dense, ValueType, next_precision<ValueType>>(out, fn);
+    run<matrix::Dense, ValueType, next_precision_with_half<ValueType>,
+        next_precision_with_half<next_precision_with_half<ValueType>>>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif
@@ -2029,7 +2059,7 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 
 #define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_DENSE_MATRIX);
 
 
 }  // namespace matrix

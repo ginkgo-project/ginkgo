@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -327,9 +328,24 @@ using RealValueTypes =
     ::testing::Types<float, double>;
 #endif
 
+using RealValueTypesWithHalf = ::testing::Types<
+#if GINKGO_ENABLE_HALF
+    gko::half,
+#endif
+#if !GINKGO_DPCPP_SINGLE_MODE
+    double,
+#endif
+    float>;
+
 using ComplexValueTypes = add_inner_wrapper_t<std::complex, RealValueTypes>;
 
+using ComplexValueTypesWithHalf =
+    add_inner_wrapper_t<std::complex, RealValueTypesWithHalf>;
+
 using ValueTypes = merge_type_list_t<RealValueTypes, ComplexValueTypes>;
+
+using ValueTypesWithHalf =
+    merge_type_list_t<RealValueTypesWithHalf, ComplexValueTypesWithHalf>;
 
 using IndexTypes = ::testing::Types<int32, int64>;
 
@@ -341,20 +357,42 @@ using LocalGlobalIndexTypes =
 
 using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
+using PODTypesWithHalf =
+    merge_type_list_t<RealValueTypesWithHalf, IntegerTypes>;
+
 using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
 
+using ComplexAndPODTypesWithHalf =
+    merge_type_list_t<ComplexValueTypesWithHalf, PODTypes>;
+
 using ValueIndexTypes = cartesian_type_product_t<ValueTypes, IndexTypes>;
+
+using ValueIndexTypesWithHalf =
+    cartesian_type_product_t<ValueTypesWithHalf, IndexTypes>;
 
 using RealValueIndexTypes =
     cartesian_type_product_t<RealValueTypes, IndexTypes>;
 
+using RealValueIndexTypesWithHalf =
+    cartesian_type_product_t<RealValueTypesWithHalf, IndexTypes>;
+
 using ComplexValueIndexTypes =
     cartesian_type_product_t<ComplexValueTypes, IndexTypes>;
+
+using ComplexValueIndexTypesWithHalf =
+    cartesian_type_product_t<ComplexValueTypesWithHalf, IndexTypes>;
 
 using TwoValueIndexType = add_to_cartesian_type_product_t<
     merge_type_list_t<
         cartesian_type_product_t<RealValueTypes, RealValueTypes>,
         cartesian_type_product_t<ComplexValueTypes, ComplexValueTypes>>,
+    IndexTypes>;
+
+using TwoValueIndexTypeWithHalf = add_to_cartesian_type_product_t<
+    merge_type_list_t<cartesian_type_product_t<RealValueTypesWithHalf,
+                                               RealValueTypesWithHalf>,
+                      cartesian_type_product_t<ComplexValueTypesWithHalf,
+                                               ComplexValueTypesWithHalf>>,
     IndexTypes>;
 
 using ValueLocalGlobalIndexTypes =
@@ -365,7 +403,6 @@ template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
     using nc_precision = remove_complex<Precision>;
-
     static const nc_output value;
 };
 
@@ -454,6 +491,15 @@ struct TupleTypenameNameGenerator {
                ">";
     }
 };
+
+
+#define SKIP_IF_HALF(type)                                                   \
+    if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
+        GTEST_SKIP() << "Skip due to half mode";                             \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

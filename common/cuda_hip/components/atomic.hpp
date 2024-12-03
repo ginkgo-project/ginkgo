@@ -39,6 +39,7 @@ struct atomic_helper {
 };
 
 
+// TODO: consider it implemented by memcpy.
 template <typename ResultType, typename ValueType>
 __forceinline__ __device__ ResultType reinterpret(ValueType val)
 {
@@ -101,8 +102,9 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
-#if defined(CUDA_VERSION)
-// Support 16-bit ATOMIC_ADD and ATOMIC_MAX only on CUDA
+#if defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700)
+// Support 16-bit atomicCAS, atomicADD, and atomicMAX only on CUDA with CC
+// >= 7.0
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 #endif
 

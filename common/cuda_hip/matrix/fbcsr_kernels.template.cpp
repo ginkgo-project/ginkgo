@@ -564,7 +564,7 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
     if (grid_dim > 0) {
         kernel::transpose_blocks<mat_blk_sz, subwarp_size>
             <<<grid_dim, block_size, 0, exec->get_stream()>>>(
-                nbnz, mat->get_values());
+                nbnz, as_device_type(mat->get_values()));
     }
 }
 
