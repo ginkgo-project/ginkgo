@@ -1730,7 +1730,7 @@ void Bddc<ValueType, IndexType>::generate()
             global_vec_type::create_const(exec, comm, std::move(dense_diag));
         restricted_residual =
             global_vec_type::create(exec, comm, dim<2>{RG->get_size()[0], 1},
-                                    dim<2>{n_interface_idxs, 1});
+                                    dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         RG->apply(global_diag_vec, restricted_residual);
         auto global_diag_array = make_const_array_view(
             exec, n_interface_idxs,
@@ -1741,9 +1741,9 @@ void Bddc<ValueType, IndexType>::generate()
         auto local_diag_array = make_const_array_view(
             exec, n_interface_idxs, local_diag->get_const_values() + n_inner);
         auto local_diag_vec = vec_type::create_const(
-            exec, dim<2>{n_interface_idxs, 1}, std::move(local_diag_array), 1);
+            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1}, std::move(local_diag_array), 1);
 
-        auto weights_vec = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
+        auto weights_vec = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         global_diag->inverse_apply(local_diag_vec, weights_vec);
         auto weights_array = make_const_array_view(
             exec, n_interface_idxs, weights_vec->get_const_values());
@@ -1757,7 +1757,7 @@ void Bddc<ValueType, IndexType>::generate()
         global_diag_vec->fill(parameters_.rho);
         restricted_residual =
             global_vec_type::create(exec, comm, dim<2>{RG->get_size()[0], 1},
-                                    dim<2>{n_interface_idxs, 1});
+                                    dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         RG->apply(global_diag_vec, restricted_residual);
         auto global_diag_array = make_const_array_view(
             exec, n_interface_idxs,
@@ -1765,9 +1765,9 @@ void Bddc<ValueType, IndexType>::generate()
         auto global_diag = diag_type::create_const(
             exec, n_interface_idxs, std::move(global_diag_array));
         auto local_diag_vec =
-            vec_type::create(exec, dim<2>{n_interface_idxs, 1});
+            vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         local_diag_vec->fill(parameters_.rho);
-        auto weights_vec = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
+        auto weights_vec = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         global_diag->inverse_apply(local_diag_vec, weights_vec);
         auto weights_array = make_const_array_view(
             exec, n_interface_idxs, weights_vec->get_const_values());
@@ -1780,11 +1780,11 @@ void Bddc<ValueType, IndexType>::generate()
 
     comm.synchronize();
     restricted_solution = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{n_interface_idxs, 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     schur_residual = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{n_interface_idxs, 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     schur_solution = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{n_interface_idxs, 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     coarse_residual = global_vec_type::create(
         exec, comm, dim<2>{RC->get_size()[0], 1},
         dim<2>{static_cast<size_type>(coarse_local_size), 1});
@@ -1798,10 +1798,10 @@ void Bddc<ValueType, IndexType>::generate()
         exec, comm, dim<2>{global_coarse_matrix_->get_size()[0], 1},
         dim<2>{global_coarse_matrix_->get_local_matrix()->get_size()[0], 1});
     inner_intermediate = vec_type::create(exec, dim<2>{inner_idxs_.size(), 1});
-    coarse_1 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
-    coarse_2 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
-    coarse_3 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
-    local_1 = vec_type::create(exec, dim<2>{n_interface_idxs, 1});
+    coarse_1 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    coarse_2 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    coarse_3 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    local_1 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     local_2 =
         vec_type::create(exec, dim<2>{static_cast<size_type>(local_size), 1});
     local_3 =
