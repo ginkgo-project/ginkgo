@@ -91,9 +91,10 @@ TYPED_TEST(Diagonal, ConvertsToPrecision)
     auto tmp = OtherDiagonal::create(this->exec);
     auto res = Diagonal::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     this->diag1->convert_to(tmp);
     tmp->convert_to(res);
@@ -111,9 +112,10 @@ TYPED_TEST(Diagonal, MovesToPrecision)
     auto tmp = OtherDiagonal::create(this->exec);
     auto res = Diagonal::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     this->diag1->move_to(tmp);
     tmp->move_to(res);
