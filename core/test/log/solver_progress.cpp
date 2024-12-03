@@ -68,7 +68,8 @@ public:
     std::unique_ptr<Cg> solver;
 };
 
-TYPED_TEST_SUITE(SolverProgress, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(SolverProgress, gko::test::ValueTypesWithHalf,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(SolverProgress, TableWorks)

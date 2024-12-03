@@ -389,137 +389,147 @@ void Pgm<ValueType, IndexType>::generate()
 #if GINKGO_BUILD_MPI
     if (std::dynamic_pointer_cast<
             const experimental::distributed::DistributedBase>(system_matrix_)) {
-        auto convert_fine_op = [&](auto matrix) {
-            using global_index_type = typename std::decay_t<
-                decltype(*matrix)>::result_type::global_index_type;
-            auto exec = as<LinOp>(matrix)->get_executor();
-            auto comm = as<experimental::distributed::DistributedBase>(matrix)
-                            ->get_communicator();
-            auto fine = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm,
-                        matrix::Csr<ValueType, IndexType>::create(exec),
-                        matrix::Csr<ValueType, IndexType>::create(exec)));
-            matrix->convert_to(fine);
-            this->set_fine_op(fine);
-        };
-        auto setup_fine_op = [&](auto matrix) {
-            // Only support csr matrix currently.
-            auto local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_local_matrix());
-            auto non_local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_non_local_matrix());
-            // If system matrix is not csr or need sorting, generate the csr.
-            if (!parameters_.skip_sorting || !local_csr || !non_local_csr) {
+        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+            GKO_NOT_SUPPORTED(nullptr);
+        } else {
+            auto convert_fine_op = [&](auto matrix) {
+                using global_index_type = typename std::decay_t<
+                    decltype(*matrix)>::result_type::global_index_type;
+                auto exec = as<LinOp>(matrix)->get_executor();
+                auto comm =
+                    as<experimental::distributed::DistributedBase>(matrix)
+                        ->get_communicator();
+                auto fine = share(
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm,
+                            matrix::Csr<ValueType, IndexType>::create(exec),
+                            matrix::Csr<ValueType, IndexType>::create(exec)));
+                matrix->convert_to(fine);
+                this->set_fine_op(fine);
+            };
+            auto setup_fine_op = [&](auto matrix) {
+                // Only support csr matrix currently.
+                auto local_csr = std::dynamic_pointer_cast<const csr_type>(
+                    matrix->get_local_matrix());
+                auto non_local_csr = std::dynamic_pointer_cast<const csr_type>(
+                    matrix->get_non_local_matrix());
+                // If system matrix is not csr or need sorting, generate the
+                // csr.
+                if (!parameters_.skip_sorting || !local_csr || !non_local_csr) {
+                    using global_index_type = typename std::decay_t<
+                        decltype(*matrix)>::global_index_type;
+                    convert_fine_op(
+                        as<ConvertibleTo<experimental::distributed::Matrix<
+                            ValueType, IndexType, global_index_type>>>(matrix));
+                }
+            };
+
+            using fst_mtx_type =
+                experimental::distributed::Matrix<ValueType, IndexType,
+                                                  IndexType>;
+            using snd_mtx_type =
+                experimental::distributed::Matrix<ValueType, IndexType, int64>;
+            // setup the fine op using Csr with current ValueType
+            // we do not use dispatcher run in the first place because we have
+            // the fallback option for that.
+            if (auto obj = std::dynamic_pointer_cast<const fst_mtx_type>(
+                    system_matrix_)) {
+                setup_fine_op(obj);
+            } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
+                           system_matrix_)) {
+                setup_fine_op(obj);
+            } else {
+                // handle other ValueTypes.
+                run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
+                                                               convert_fine_op);
+            }
+
+            auto distributed_setup = [&](auto matrix) {
+                auto exec = gko::as<LinOp>(matrix)->get_executor();
+                auto comm =
+                    gko::as<experimental::distributed::DistributedBase>(matrix)
+                        ->get_communicator();
+                auto num_rank = comm.size();
+                auto pgm_local_op =
+                    gko::as<const csr_type>(matrix->get_local_matrix());
+                auto result = this->generate_local(pgm_local_op);
+
+                auto non_local_csr =
+                    as<const csr_type>(matrix->get_non_local_matrix());
+                auto non_local_size = non_local_csr->get_size()[1];
+                array<IndexType> non_local_agg(exec, non_local_size);
+                // get agg information (prolong_row_gather row idx)
+                communicate(matrix, agg_, non_local_agg);
+                // generate non_local_col_map
+                non_local_agg.set_executor(exec->get_master());
+                array<IndexType> non_local_col_map(exec->get_master(),
+                                                   non_local_size);
+                // add additional entry in tail such that the offset easily
+                // handle it.
+                array<IndexType> renumber(exec->get_master(),
+                                          non_local_size + 1);
+                auto recv_offsets = matrix->recv_offsets_;
+                generate_non_local_map(recv_offsets, non_local_agg,
+                                       non_local_col_map, renumber);
+
+                // get new recv_size and recv_offsets
+                std::vector<experimental::distributed::comm_index_type>
+                    new_recv_size(num_rank);
+                std::vector<experimental::distributed::comm_index_type>
+                    new_recv_offsets(num_rank + 1);
+                array<IndexType> new_recv_gather_idxs(exec->get_master());
+                compute_communication(recv_offsets, non_local_agg, renumber,
+                                      new_recv_size, new_recv_offsets,
+                                      new_recv_gather_idxs);
+
+                non_local_col_map.set_executor(exec);
+                IndexType non_local_num_agg = new_recv_gather_idxs.get_size();
+                // build csr from row and col map
+                // unlike non-distributed version, generate_coarse uses
+                // different row and col maps.
+                auto result_non_local_csr = generate_coarse(
+                    exec, non_local_csr.get(),
+                    static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
+                    agg_, non_local_num_agg, non_local_col_map);
+                // use local and non-local to build coarse matrix
+                // also restriction and prolongation (Local-only-global matrix)
+                auto coarse_size =
+                    static_cast<int64>(std::get<1>(result)->get_size()[0]);
+                comm.all_reduce(exec->get_master(), &coarse_size, 1, MPI_SUM);
+                new_recv_gather_idxs.set_executor(exec);
+
+                // setup the generated linop.
                 using global_index_type =
                     typename std::decay_t<decltype(*matrix)>::global_index_type;
-                convert_fine_op(
-                    as<ConvertibleTo<experimental::distributed::Matrix<
-                        ValueType, IndexType, global_index_type>>>(matrix));
-            }
-        };
+                auto coarse = share(
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm, gko::dim<2>(coarse_size, coarse_size),
+                            std::get<1>(result), result_non_local_csr,
+                            new_recv_size, new_recv_offsets,
+                            new_recv_gather_idxs));
+                auto restrict_op = share(
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm,
+                            dim<2>(coarse_size,
+                                   gko::as<LinOp>(matrix)->get_size()[0]),
+                            std::get<2>(result)));
+                auto prolong_op = share(
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm,
+                            dim<2>(gko::as<LinOp>(matrix)->get_size()[0],
+                                   coarse_size),
+                            std::get<0>(result)));
+                this->set_multigrid_level(prolong_op, coarse, restrict_op);
+            };
 
-        using fst_mtx_type =
-            experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
-        using snd_mtx_type =
-            experimental::distributed::Matrix<ValueType, IndexType, int64>;
-        // setup the fine op using Csr with current ValueType
-        // we do not use dispatcher run in the first place because we have the
-        // fallback option for that.
-        if (auto obj =
-                std::dynamic_pointer_cast<const fst_mtx_type>(system_matrix_)) {
-            setup_fine_op(obj);
-        } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
-                       system_matrix_)) {
-            setup_fine_op(obj);
-        } else {
-            // handle other ValueTypes.
-            run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(obj,
-                                                           convert_fine_op);
+            // the fine op is using csr with the current ValueType
+            run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(),
+                                            distributed_setup);
         }
-
-        auto distributed_setup = [&](auto matrix) {
-            auto exec = gko::as<LinOp>(matrix)->get_executor();
-            auto comm =
-                gko::as<experimental::distributed::DistributedBase>(matrix)
-                    ->get_communicator();
-            auto num_rank = comm.size();
-            auto pgm_local_op =
-                gko::as<const csr_type>(matrix->get_local_matrix());
-            auto result = this->generate_local(pgm_local_op);
-
-            auto non_local_csr =
-                as<const csr_type>(matrix->get_non_local_matrix());
-            auto non_local_size = non_local_csr->get_size()[1];
-            array<IndexType> non_local_agg(exec, non_local_size);
-            // get agg information (prolong_row_gather row idx)
-            communicate(matrix, agg_, non_local_agg);
-            // generate non_local_col_map
-            non_local_agg.set_executor(exec->get_master());
-            array<IndexType> non_local_col_map(exec->get_master(),
-                                               non_local_size);
-            // add additional entry in tail such that the offset easily handle
-            // it.
-            array<IndexType> renumber(exec->get_master(), non_local_size + 1);
-            auto recv_offsets = matrix->recv_offsets_;
-            generate_non_local_map(recv_offsets, non_local_agg,
-                                   non_local_col_map, renumber);
-
-            // get new recv_size and recv_offsets
-            std::vector<experimental::distributed::comm_index_type>
-                new_recv_size(num_rank);
-            std::vector<experimental::distributed::comm_index_type>
-                new_recv_offsets(num_rank + 1);
-            array<IndexType> new_recv_gather_idxs(exec->get_master());
-            compute_communication(recv_offsets, non_local_agg, renumber,
-                                  new_recv_size, new_recv_offsets,
-                                  new_recv_gather_idxs);
-
-            non_local_col_map.set_executor(exec);
-            IndexType non_local_num_agg = new_recv_gather_idxs.get_size();
-            // build csr from row and col map
-            // unlike non-distributed version, generate_coarse uses different
-            // row and col maps.
-            auto result_non_local_csr = generate_coarse(
-                exec, non_local_csr.get(),
-                static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                agg_, non_local_num_agg, non_local_col_map);
-            // use local and non-local to build coarse matrix
-            // also restriction and prolongation (Local-only-global matrix)
-            auto coarse_size =
-                static_cast<int64>(std::get<1>(result)->get_size()[0]);
-            comm.all_reduce(exec->get_master(), &coarse_size, 1, MPI_SUM);
-            new_recv_gather_idxs.set_executor(exec);
-
-            // setup the generated linop.
-            using global_index_type =
-                typename std::decay_t<decltype(*matrix)>::global_index_type;
-            auto coarse = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm, gko::dim<2>(coarse_size, coarse_size),
-                        std::get<1>(result), result_non_local_csr,
-                        new_recv_size, new_recv_offsets, new_recv_gather_idxs));
-            auto restrict_op = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm,
-                        dim<2>(coarse_size,
-                               gko::as<LinOp>(matrix)->get_size()[0]),
-                        std::get<2>(result)));
-            auto prolong_op = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm,
-                        dim<2>(gko::as<LinOp>(matrix)->get_size()[0],
-                               coarse_size),
-                        std::get<0>(result)));
-            this->set_multigrid_level(prolong_op, coarse, restrict_op);
-        };
-
-        // the fine op is using csr with the current ValueType
-        run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
     } else
 #endif  // GINKGO_BUILD_MPI
     {
@@ -541,7 +551,7 @@ void Pgm<ValueType, IndexType>::generate()
 
 
 #define GKO_DECLARE_PGM(_vtype, _itype) class Pgm<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_PGM);
 
 
 }  // namespace multigrid

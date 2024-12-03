@@ -122,11 +122,15 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 {
 #if GINKGO_BUILD_MPI
     if (is_distributed(linop)) {
-        using type = std::conditional_t<
-            std::is_const<T>::value,
-            const experimental::distributed::Vector<ValueType>,
-            experimental::distributed::Vector<ValueType>>;
-        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+            GKO_NOT_SUPPORTED(linop);
+        } else {
+            using type = std::conditional_t<
+                std::is_const<T>::value,
+                const experimental::distributed::Vector<ValueType>,
+                experimental::distributed::Vector<ValueType>>;
+            f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+        }
     } else
 #endif
     {

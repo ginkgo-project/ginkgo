@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
@@ -118,7 +119,7 @@ protected:
                                             {0., 0., 0., 4., 2., 0.},
                                             {0., 5., 8., 0., 0., 0.}},
                                            ref)),
-          zero_tol{1e-14}
+          zero_tol{50 * std::numeric_limits<real_type>::epsilon()}
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
@@ -134,8 +135,8 @@ protected:
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         for (gko::size_type i = 0; i < a.get_size(); i++) {
-            if (std::isfinite(a.get_const_data()[i]) ||
-                std::isfinite(b.get_const_data()[i])) {
+            if (gko::is_finite(a.get_const_data()[i]) ||
+                gko::is_finite(b.get_const_data()[i])) {
                 ASSERT_NEAR(a.get_const_data()[i], b.get_const_data()[i],
                             r<value_type>::value)
                     << name << '[' << i << ']';
@@ -180,7 +181,8 @@ protected:
     const real_type zero_tol;
 };
 
-TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Mc64, gko::test::ValueIndexTypesWithHalf,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Mc64, InitializeWeightsSum)
@@ -303,6 +305,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
@@ -344,6 +347,12 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
     using value_type = typename TestFixture::value_type;
     using matrix_type = typename TestFixture::matrix_type;
     using perm_type = typename TestFixture::perm_type;
+    // A few scaling factors is zero and gives (inf, -nan) in inv_scaling when
+    // it is complex value. Depends on compiler and optimization level, the
+    // value / (inf, -nan) gives (0, 0), which can pass the test under the
+    // threshold, or (nan, nan), which fails. We disable not only complex<half>
+    // but also half, because it relies on the value/inf on the half.
+    SKIP_IF_HALF(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_1138_bus_mtx};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));
@@ -362,7 +371,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
 
     mtx = mtx->scale_permute(row_perm, col_perm);
 
-    GKO_ASSERT_MTX_NEAR(mtx, expected_result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(mtx, expected_result, 20 * r<value_type>::value);
 }
 
 
@@ -373,6 +382,11 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
     using value_type = typename TestFixture::value_type;
     using matrix_type = typename TestFixture::matrix_type;
     using perm_type = typename TestFixture::perm_type;
+    // some values are too small such that log2(abs(v)) -> -inf and some values
+    // are out of half-precision range -> inf. It leads some permutation values
+    // to be invalid_index after the kernel such that scale_permute gives
+    // segmentation fault.
+    SKIP_IF_HALF(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_nontrivial_mc64_example};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));

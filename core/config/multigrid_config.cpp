@@ -10,7 +10,7 @@ namespace gko {
 namespace config {
 
 
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Pgm, gko::multigrid::Pgm);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Pgm, gko::multigrid::Pgm);
 
 
 }  // namespace config

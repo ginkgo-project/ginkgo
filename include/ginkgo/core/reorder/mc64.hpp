@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_REORDER_MC64_HPP_
 
 
+#include <limits>
 #include <memory>
 
 #include <ginkgo/core/base/abstract_factory.hpp>
@@ -100,8 +101,9 @@ public:
          * This parameter controls the tolerance below which a weight is
          * considered to be zero.
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(tolerance,
-                                                               1e-14);
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            tolerance,
+            50 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
     };
 
     /**

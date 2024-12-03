@@ -5,9 +5,14 @@ set(gko_test_option_args "NO_RESOURCES;NO_GTEST_MAIN")
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
+    cmake_parse_arguments(PARSE_ARGV 2 build_test_name "" "${gko_test_single_args}" "")
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+    set(test_binary_name ${test_name})
+    if (build_test_name_EXECUTABLE_NAME)
+        set(test_binary_name ${build_test_name_EXECUTABLE_NAME})
+    endif()
+    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_binary_name}")
     set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
 endfunction()
 
@@ -127,7 +132,7 @@ endfunction()
 
 ## Normal test
 function(ginkgo_create_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name})
     ginkgo_set_test_target_properties(${test_target_name} "_cpu" ${ARGN})
@@ -136,7 +141,7 @@ endfunction(ginkgo_create_test)
 
 ## Test compiled with dpcpp
 function(ginkgo_create_dpcpp_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.dp.cpp)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
     gko_add_sycl_to_target(TARGET ${test_target_name} SOURCES ${test_name}.dp.cpp)
@@ -151,7 +156,7 @@ endfunction(ginkgo_create_dpcpp_test)
 
 ## Test compiled with CUDA
 function(ginkgo_create_cuda_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_cuda_test_internal(${test_name} ${test_name}.cu ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_cuda_test)
 
@@ -177,7 +182,7 @@ endfunction(ginkgo_create_cuda_test_internal)
 
 ## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_hip_test)
 
@@ -196,12 +201,12 @@ endfunction(ginkgo_create_hip_test_internal)
 
 ## Test compiled with OpenMP
 function(ginkgo_create_omp_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_omp_test_internal(${test_name} ${test_name}.cpp ${test_target_name} "" ${ARGN})
 endfunction()
 
 function(ginkgo_create_omp_test_internal test_name filename test_target_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.cpp)
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_OMP GKO_DEVICE_NAMESPACE=omp)
     target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
@@ -241,7 +246,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
     else ()
         set(test_resource_type sycl)
     endif ()
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     string(TOUPPER ${exec} exec_upper)
 
     # set up actual test
@@ -267,7 +272,7 @@ endfunction(ginkgo_create_common_test_internal)
 ## Common test compiled with the device compiler, one target for each enabled backend
 function(ginkgo_create_common_device_test test_name)
     cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     if(GINKGO_BUILD_SYCL)
         ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
         target_compile_options(${test_target_name}_dpcpp PRIVATE ${GINKGO_DPCPP_FLAGS})

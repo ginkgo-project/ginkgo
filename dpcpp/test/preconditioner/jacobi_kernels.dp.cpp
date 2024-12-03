@@ -23,6 +23,8 @@
 namespace {
 
 
+// We keep some distribution with value_type to make the test with
+// GINKGO_DPCPP_SINGLE_MODE still work.
 class Jacobi : public ::testing::Test {
 protected:
     using index_type = int32_t;
