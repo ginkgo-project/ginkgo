@@ -98,6 +98,8 @@ packaging/spack/trigger:
   image: ubuntu:latest
   tags:
     - private_ci
+  variables:
+    GIT_STRATEGY: none
   script:
     - echo "SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" >> build.env
   artifacts:
