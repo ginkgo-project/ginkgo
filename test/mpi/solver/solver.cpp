@@ -138,11 +138,7 @@ struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
                         16u)  // necessary since the test matrices have less
                               // rows than the default value
                     .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(
-                            iteration_count()),
-                        gko::stop::ResidualNorm<value_type>::build()
-                            .with_baseline(gko::stop::mode::absolute)
-                            .with_reduction_factor(2 * reduction_factor())));
+                        gko::stop::Iteration::build().with_max_iters(1u)));
     }
 
     static bool blacklisted(const std::string& test)
