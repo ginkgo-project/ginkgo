@@ -104,6 +104,9 @@ struct is_complex_or_scalar_impl<thrust::complex<T>>
 }  // namespace gko
 
 
+#if GINKGO_ENABLE_HALF
+
+
 GKO_THRUST_NAEMSPACE_PREFIX
 namespace thrust {
 
@@ -184,6 +187,9 @@ __device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
 
 
 }  // namespace gko
+
+
+#endif  // GINKGO_ENABLE_HALF
 
 
 #endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_
