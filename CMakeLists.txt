@@ -3,6 +3,17 @@ cmake_minimum_required(VERSION 3.16)
 project(Ginkgo LANGUAGES CXX VERSION 1.9.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
+if(Ginkgo_VERSION_TAG STREQUAL "master")
+    set(GINKGO_VERSION_TAG_DEPRECATED ON)
+else()
+    set(GINKGO_VERSION_TAG_DEPRECATED OFF)
+endif()
+if(GINKGO_VERSION_TAG_DEPRECATED)
+    message(
+            WARNING
+            "The branch ${Ginkgo_VERSION_TAG} is deprecated and will stop receiving updates after 2025. "
+            "Please use the main branch for the latest release, or the develop branch for the latest development updates.")
+endif()
 # Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
