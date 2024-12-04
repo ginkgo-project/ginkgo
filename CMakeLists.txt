@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Ginkgo LANGUAGES CXX VERSION 1.9.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
-set(Ginkgo_VERSION_TAG "develop")
+set(Ginkgo_VERSION_TAG "main")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 # Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
 set(THREADS_PREFER_PTHREAD_FLAG ON)
