@@ -11,6 +11,114 @@ git log --first-parent
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
 
+## Version 1.9.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.9.0.
+This release brings new features such as:
+- Supporting half precision (IEEE FP16). The type `gko::half` can now be selected in most instances as the value-type
+  of a matrix, solver, preconditioner, etc. If the selected backend supports FP16 as a native type, the native type is
+  used within the kernels, otherwise an overhead might occur. The new behavior is enabled by default, but it can be 
+  turned off during configuration.
+- Providing new implementations of the ILU and IC factorization for CUDA, HIP, Omp, and Reference backends. These are
+  available in addition to the existing implementations based on the vendor libraries cuSPARSE and hipSPARSE.    
+- New (S)SOR and Gauß-Seidel preconditioners.
+- Simplifying the distributed matrix assembly by exchanging local rows between neighboring processes.
+
+And more!
+
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not 
+find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
+
+Supported systems and requirements:
++ For all platforms, CMake 3.16+
++ C++17 compliant compiler
++ Linux and macOS
+  + GCC: 7.0+
+  + clang: 5.0+
+  + Intel compiler: 2019+
+  + Apple Clang: 15.0 is tested. Earlier versions might also work.
+  + NVHPC: 22.7+
+  + Cray Compiler: 14.0.1+
+  + CUDA module: CMake 3.18+, and CUDA 11.0+ or NVHPC 22.7+
+  + HIP module: CMake 3.21+, and ROCm 4.5+
+  + DPC++ module: Intel oneAPI 2023.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + MPI: standard version 3.1+, ideally GPU Aware, for best performance
++ Windows
+  + MinGW: GCC 7.0+
+  + Microsoft Visual Studio: VS 2019+
+  + CUDA module: CUDA 11.0+, Microsoft Visual Studio
+  + OpenMP module: MinGW.
+
+### Version support changes
++ Ginkgo now requires a compiler with C++ 17 support [#1603](https://github.com/ginkgo-project/ginkgo/pull/1603)
+
+### Deprecations
+
++ The `Executor::run` overload without a name as first parameter has been deprecated [#1667](https://github.com/ginkgo-project/ginkgo/pull/1667)
+
+### Summary of previous deprecations
++ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface.
++ The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`.
++ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`.
++ The Permutation class' `permute_mask` functionality.
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc).
++ `gko::lend()` is not necessary anymore.
++ The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
++ The PolymorphicObject's move-semantic `copy_from` variant
++ The templated `SolverBase` class.
++ The class `MachineTopology` is deprecated in favor of `machine_topology`.
++ Logger constructors and create functions with the `executor` parameter.
++ The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
++ Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
++ The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
++ `array::get_num_elems()` has been renamed to `get_size()`
++ `matrix_data::ensure_row_major_order()` has been renamed to `sort_row_major()`
++ `device_matrix_data::get_num_elems()` has been renamed to `get_num_stored_elements()`
++ The CMake parameter `GINKGO_COMPILER_FLAGS` has been superseded by `CMAKE_CXX_FLAGS`, and `GINKGO_CUDA_COMPILER_FLAGS` has been superseded by `CMAKE_CUDA_FLAGS`
++ The `std::initializer_list` overloads of matrix `create` methods and constructors are deprecated in favor of explicit `array` parameters
+
+### Added features
++ Add `Executor::get_description()` for textual representation of the device [#1615](https://github.com/ginkgo-project/ginkgo/pull/1615)
++ Add row and column scaling functionality to the distributed matrix [#1640](https://github.com/ginkgo-project/ginkgo/pull/1640)
++ Add `SolverProgress` logger printing out or storing to disk the individual scalars (and vectors) of an iterative solvers after each iteration [#1620](https://github.com/ginkgo-project/ginkgo/pull/1620)
++ Add new `ortho_method` parameter for GMRES, with classical Gram-Schmidt and classical Gram-Schmidt with re-orthogonalization options in addition to previously-available modified Gram-Schmidt [#1646](https://github.com/ginkgo-project/ginkgo/pull/1646)
++ Add file config support for Schwarz [#1658](https://github.com/ginkgo-project/ginkgo/pull/1658)
++ Add overload for `Executor::run` which accepts a name and a closure for the ReferenceExecutor as the first two arguments [#1667](https://github.com/ginkgo-project/ginkgo/pull/1667)
++ Add function to fill `device_matrix_data` with zeros [#1683](https://github.com/ginkgo-project/ginkgo/pull/1683)
++ Add (S)SOR and Gauss-Seidel preconditioner [#1633](https://github.com/ginkgo-project/ginkgo/pull/1633), [#1634](https://github.com/ginkgo-project/ginkgo/pull/1634)
++ Add support for additive `read_distributed` for the distriubted matrix [#1650](https://github.com/ginkgo-project/ginkgo/pull/1650)
++ Add Ginkgo's own ILU and IC implementation [#1684](https://github.com/ginkgo-project/ginkgo/pull/1684)
++ Add Nvidia ada architecture [#1733](https://github.com/ginkgo-project/ginkgo/pull/1733)
++ Add half precision support [#1706](https://github.com/ginkgo-project/ginkgo/pull/1706), [#1708](https://github.com/ginkgo-project/ginkgo/pull/1708), [#1711](https://github.com/ginkgo-project/ginkgo/pull/1711), [#1712](https://github.com/ginkgo-project/ginkgo/pull/1712), [#1713](https://github.com/ginkgo-project/ginkgo/pull/1713), [#1716](https://github.com/ginkgo-project/ginkgo/pull/1716), [#1710](https://github.com/ginkgo-project/ginkgo/pull/1710), [#1736](https://github.com/ginkgo-project/ginkgo/pull/1736)
+
+### Improvements
++ Add workspace in residual norm check [#1687](https://github.com/ginkgo-project/ginkgo/pull/1687), which reduces the alloc/free and corresponding overhead.
++ Add distributed `VectorCache` and use it as workspace in `Schwarz` [#1688](https://github.com/ginkgo-project/ginkgo/pull/1688).
++ Add example to show the file config usage [#1662](https://github.com/ginkgo-project/ginkgo/pull/1662)
++ Improve compile time for batched solvers [#1629](https://github.com/ginkgo-project/ginkgo/pull/1629)
++ Reduce the thrust conflict possibility by adding custom thrust namespace [#1730](https://github.com/ginkgo-project/ginkgo/pull/1730)
+
+### Fixes
++ Fix the algorithm usage of transposed triangular solver, which is the same as the original one not the default algorithm [#1641](https://github.com/ginkgo-project/ginkgo/pull/1641)
++ Fix the inconsistent behavior on the zero diagonal value in scalar Jacobi [#1642](https://github.com/ginkgo-project/ginkgo/pull/1642)
++ Fix an issue related to GCR and non-default strides in the rhs vector [#1656](https://github.com/ginkgo-project/ginkgo/pull/1656)
++ Fix an issue related to triangular solvers with CUDA on Windows [#1665](https://github.com/ginkgo-project/ginkgo/pull/1665)
++ Fix an issue where non-conforming MatrixMarket files were parsed without an error [#1628](https://github.com/ginkgo-project/ginkgo/pull/1628)
++ Fix finding rocthrust if it's not installed paths included by default [#1668](https://github.com/ginkgo-project/ginkgo/pull/1668)
++ Fix the casting issue in mixed-precision multigrid setup [#1663](https://github.com/ginkgo-project/ginkgo/pull/1663)
++ Fix some test failures with ROCm 6.x [#1670](https://github.com/ginkgo-project/ginkgo/pull/1670)
++ Fix the race condition in bicgstab [#1676](https://github.com/ginkgo-project/ginkgo/pull/1676)
++ Fix an issue with MGS GMRES for complex numbers [#1678](https://github.com/ginkgo-project/ginkgo/pull/1678)
++ Fix finding ROCm on recent ROCm version (5.0+) [#1673](https://github.com/ginkgo-project/ginkgo/pull/1673)
++ Fix compiler error when using NVHPC with MPI enabled [#1697](https://github.com/ginkgo-project/ginkgo/pull/1697)
++ Fix build issue of OMP backend when using HIPCC as C++ compiler [#1695](https://github.com/ginkgo-project/ginkgo/pull/1695)
++ Fix build issue for Intel OneAPI 2025.0 [#1718](https://github.com/ginkgo-project/ginkgo/pull/1718)
++ Fix inconsitent function and class/struct, which mainly fixes clang-cl [#1725](https://github.com/ginkgo-project/ginkgo/pull/1725)
++ Fix undefined symbols in shared library in msys2/clang [#1724](https://github.com/ginkgo-project/ginkgo/pull/1724)
++ Fix page fault issues when running on multiple Intel GPUs in parallel [#1723](https://github.com/ginkgo-project/ginkgo/pull/1723)
+
 ## Version 1.8.0
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.8.0. This
@@ -1112,4 +1220,3 @@ The development team is grateful to the following individuals for discussions an
 **Mark Hoemmen**  
 **Timo Heister**  
 **Jens Saak**  
-
