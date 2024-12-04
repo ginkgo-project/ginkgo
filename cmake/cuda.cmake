@@ -3,6 +3,7 @@ enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 include(cmake/Modules/CudaArchitectureSelector.cmake)
+message("CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES}")
 
 if(NOT CMAKE_CUDA_ARCHITECTURES)
     # Detect the CUDA architecture and propagate it to the entire project

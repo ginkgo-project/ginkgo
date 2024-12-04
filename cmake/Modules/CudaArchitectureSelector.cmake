@@ -392,6 +392,7 @@ endfunction()
 
 
 function(cas_variable_cmake_cuda_architectures variable)
+    message("ARGN -${ARGN}-")  
     cas_get_supported_architectures(supported_archs)
     if("${ARGN}" STREQUAL "All")
         set(archs "${supported_archs}")
