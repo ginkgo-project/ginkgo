@@ -151,8 +151,8 @@ improvements from code reviews.
 ### Creating, Reviewing and Merging Pull Requests
 
 * The `develop` branch is the default branch to submit PR's to. From time to
-  time, we merge the `develop` branch to the `master` branch and create tags on
-  the `master` to create new releases of Ginkgo. Therefore, all pull requests
+  time, we merge the `develop` branch to the `main` branch and create tags on
+  the `main` to create new releases of Ginkgo. Therefore, all pull requests
   must be merged into `develop`.
 * Please have a look at the labels and make sure to add the relevant labels.
 * You can mark the PR as a `WIP` if you are still working on it, `Ready for
