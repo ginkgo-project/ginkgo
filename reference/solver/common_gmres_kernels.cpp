@@ -132,8 +132,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -157,7 +156,7 @@ void hessenberg_qr(std::shared_ptr<const ReferenceExecutor> exec,
                                  residual_norm_collection, iter, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL);
 
 
@@ -187,7 +186,7 @@ void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL);
 
 

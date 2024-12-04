@@ -60,7 +60,7 @@ protected:
     std::unique_ptr<typename Solver::Factory> idr_factory_precision;
 };
 
-TYPED_TEST_SUITE(Idr, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Idr, SolvesDenseSystem)
@@ -80,7 +80,7 @@ TYPED_TEST(Idr, SolvesDenseSystem)
 TYPED_TEST(Idr, SolvesDenseSystemMixed)
 {
     using T = typename TestFixture::value_type;
-    using value_type = gko::next_precision_with_half<T>;
+    using value_type = gko::next_precision<T>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
@@ -118,7 +118,7 @@ TYPED_TEST(Idr, SolvesDenseSystemComplex)
 TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
 {
     using T = typename TestFixture::value_type;
-    using value_type = gko::to_complex<gko::next_precision_with_half<T>>;
+    using value_type = gko::to_complex<gko::next_precision<T>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
@@ -237,8 +237,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
 
 TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
 {
-    using value_type =
-        gko::next_precision_with_half<typename TestFixture::value_type>;
+    using value_type = gko::next_precision<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -280,7 +279,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyComplex)
 TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 {
     using Scalar = gko::matrix::Dense<
-        gko::next_precision_with_half<typename TestFixture::value_type>>;
+        gko::next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->idr_factory->generate(this->mtx);

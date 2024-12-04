@@ -107,8 +107,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Sellp, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Sellp, KnowsItsSize)

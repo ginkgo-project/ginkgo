@@ -23,7 +23,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
         array, val);
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 
 
@@ -44,8 +44,7 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
         n, array);
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(
-    GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 
 
 }  // namespace components

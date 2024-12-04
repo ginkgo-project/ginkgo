@@ -90,7 +90,7 @@ void count_non_owning_entries(
         num_parts, local_part, row_part_ptrs.get_data(), send_count.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_COUNT_NON_OWNING_ENTRIES);
 
 

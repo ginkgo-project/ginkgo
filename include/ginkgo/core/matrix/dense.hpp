@@ -87,10 +87,9 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense
     : public EnableLinOp<Dense<ValueType>>,
-      public ConvertibleTo<Dense<next_precision_with_half<ValueType>>>,
+      public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF
-      public ConvertibleTo<
-          Dense<next_precision_with_half<next_precision_with_half<ValueType>>>>,
+      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
 #endif
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
@@ -139,8 +138,8 @@ class Dense
 public:
     using EnableLinOp<Dense>::convert_to;
     using EnableLinOp<Dense>::move_to;
-    using ConvertibleTo<Dense<next_precision_with_half<ValueType>>>::convert_to;
-    using ConvertibleTo<Dense<next_precision_with_half<ValueType>>>::move_to;
+    using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
     using ConvertibleTo<Coo<ValueType, int32>>::move_to;
     using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
@@ -280,28 +279,24 @@ public:
         return other->create_const_view_of_impl();
     }
 
-    friend class Dense<previous_precision_with_half<ValueType>>;
+    friend class Dense<previous_precision<ValueType>>;
 
-    void convert_to(
-        Dense<next_precision_with_half<ValueType>>* result) const override;
+    void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
-    void move_to(Dense<next_precision_with_half<ValueType>>* result) override;
+    void move_to(Dense<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF
-    friend class Dense<
-        previous_precision_with_half<previous_precision_with_half<ValueType>>>;
-    using ConvertibleTo<Dense<next_precision_with_half<
-        next_precision_with_half<ValueType>>>>::convert_to;
-    using ConvertibleTo<Dense<next_precision_with_half<
-        next_precision_with_half<ValueType>>>>::move_to;
+    friend class Dense<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        Dense<next_precision<next_precision<ValueType>>>>::move_to;
 
-    void convert_to(
-        Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
-            result) const override;
+    void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
+        const override;
 
     void move_to(
-        Dense<next_precision_with_half<next_precision_with_half<ValueType>>>*
-            result) override;
+        Dense<next_precision<next_precision<ValueType>>>* result) override;
 #endif
 
     void convert_to(Coo<ValueType, int32>* result) const override;

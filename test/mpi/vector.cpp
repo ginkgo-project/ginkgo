@@ -95,7 +95,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 
@@ -361,7 +361,7 @@ public:
     std::unique_ptr<vec_type> dst;
 };
 
-TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes,
+TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypesBase,
                  TypenameNameGenerator);
 
 
@@ -513,7 +513,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypesBase,
                  TypenameNameGenerator);
 
 
@@ -801,7 +801,8 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypesBase,
+                 TypenameNameGenerator);
 
 
 TYPED_TEST(VectorLocalOps, ApplyNotSupported)
@@ -839,7 +840,7 @@ TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_base<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -855,7 +856,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision<T>;
+    using OtherT = typename gko::next_precision_base<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);

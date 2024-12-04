@@ -248,9 +248,8 @@ std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
 #define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
 #define GKO_DECLARE_LOWER_TRS_TRAITS(_vtype, _itype) \
     struct workspace_traits<LowerTrs<_vtype, _itype>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_LOWER_TRS);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_LOWER_TRS_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS_TRAITS);
 
 
 }  // namespace solver

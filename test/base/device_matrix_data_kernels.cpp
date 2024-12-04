@@ -84,7 +84,7 @@ protected:
     gko::matrix_data<value_type, index_type> deduplicated_data;
 };
 
-TYPED_TEST_SUITE(DeviceMatrixData, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(DeviceMatrixData, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

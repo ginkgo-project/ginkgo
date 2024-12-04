@@ -52,7 +52,7 @@ void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
         col_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INV_COL_PERMUTE_KERNEL);
 
 
@@ -86,7 +86,7 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
         col_permuted->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INV_COL_SCALE_PERMUTE_KERNEL);
 
 
@@ -102,8 +102,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
         x->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_CSR_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -118,8 +117,7 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
         x->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_CSR_INV_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -154,7 +152,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
         output->get_col_idxs(), output->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
 
 
@@ -185,7 +183,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
         output->get_col_idxs(), output->get_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
 
 
@@ -229,7 +227,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
         result->get_coo_values());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
 
 

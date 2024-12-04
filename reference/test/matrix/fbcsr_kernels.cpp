@@ -104,8 +104,7 @@ protected:
     const std::unique_ptr<const Mtx> mtxsq;
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
@@ -272,7 +271,7 @@ TYPED_TEST(Fbcsr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
@@ -295,7 +294,7 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto tmp = OtherFbcsr::create(this->exec);
@@ -393,7 +392,7 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -412,7 +411,7 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = gko::next_precision_with_half<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Fbcsr = typename TestFixture::Mtx;
     using OtherFbcsr = gko::matrix::Fbcsr<OtherType, IndexType>;
     auto empty = OtherFbcsr::create(this->exec);
@@ -620,7 +619,7 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 };
 
-TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FbcsrComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

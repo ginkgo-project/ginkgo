@@ -173,8 +173,7 @@ void compute_elim_forest(const matrix::Csr<ValueType, IndexType>* mtx,
         const matrix::Csr<ValueType, IndexType>* mtx,         \
         std::unique_ptr<elimination_forest<IndexType>>& forest)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_COMPUTE_ELIM_FOREST);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMPUTE_ELIM_FOREST);
 
 
 }  // namespace factorization

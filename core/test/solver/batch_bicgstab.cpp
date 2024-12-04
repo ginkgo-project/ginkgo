@@ -50,8 +50,7 @@ protected:
     std::unique_ptr<gko::batch::BatchLinOp> solver;
 };
 
-TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(BatchBicgstab, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(BatchBicgstab, FactoryKnowsItsExecutor)

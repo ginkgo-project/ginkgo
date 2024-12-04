@@ -28,8 +28,7 @@ protected:
     gko::array<T> x;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ComplexAndPODTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Array, gko::test::ComplexAndPODTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Array, CanBeFilledWithValue)

@@ -42,7 +42,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_CG_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -67,7 +67,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_CG_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -93,7 +93,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_CG_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg

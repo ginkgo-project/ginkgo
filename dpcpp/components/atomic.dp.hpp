@@ -173,7 +173,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
-#define GKO_BIND_ATOMIC_HELPER_VALUETYPE(ValueType)                         \
+#define GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(ValueType)                    \
     template <sycl::access::address_space addressSpace>                     \
     struct atomic_helper<addressSpace, ValueType, std::enable_if_t<true>> { \
         __dpct_inline__ static ValueType atomic_add(                        \
@@ -183,9 +183,9 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
         }                                                                   \
     };
 
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(int);
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned int);
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned long long int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(unsigned int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(unsigned long long int);
 
 #undef GKO_BIND_ATOMIC_HELPER_VALUETYPE
 
@@ -241,7 +241,7 @@ GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
 
 #undef GKO_BIND_ATOMIC_MAX_STRUCTURE
 
-#define GKO_BIND_ATOMIC_MAX_VALUETYPE(ValueType)              \
+#define GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(ValueType)         \
     template <sycl::access::address_space addressSpace>       \
     struct atomic_max_helper<addressSpace, ValueType,         \
                              std::enable_if_t<true>> {        \
@@ -252,9 +252,9 @@ GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
         }                                                     \
     };
 
-GKO_BIND_ATOMIC_MAX_VALUETYPE(int);
-GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned int);
-GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned long long int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(unsigned int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(unsigned long long int);
 
 #undef GKO_BIND_ATOMIC_MAX_VALUETYPE
 

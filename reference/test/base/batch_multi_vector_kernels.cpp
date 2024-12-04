@@ -96,8 +96,7 @@ protected:
     std::default_random_engine rand_engine;
 };
 
-TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(MultiVector, ScalesData)
@@ -343,7 +342,7 @@ TYPED_TEST(MultiVector, ConvertsToPrecision)
 {
     using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_with_half<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
     auto tmp = OtherMultiVector::create(this->exec);
     auto res = MultiVector::create(this->exec);
@@ -367,7 +366,7 @@ TYPED_TEST(MultiVector, MovesToPrecision)
 {
     using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_with_half<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
     auto tmp = OtherMultiVector::create(this->exec);
     auto res = MultiVector::create(this->exec);
@@ -391,7 +390,7 @@ TYPED_TEST(MultiVector, ConvertsEmptyToPrecision)
 {
     using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_with_half<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
     auto empty = OtherMultiVector::create(this->exec);
     auto res = MultiVector::create(this->exec);
@@ -406,7 +405,7 @@ TYPED_TEST(MultiVector, MovesEmptyToPrecision)
 {
     using MultiVector = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_with_half<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherMultiVector = typename gko::batch::MultiVector<OtherT>;
     auto empty = OtherMultiVector::create(this->exec);
     auto res = MultiVector::create(this->exec);

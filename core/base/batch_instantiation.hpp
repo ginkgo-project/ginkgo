@@ -42,10 +42,10 @@ namespace batch {
  *
  * @note the second and third arguments only accept the base type.s
  */
-#define GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER(...) \
-    GKO_CALL(GKO_BATCH_INSTANTIATE_MATRIX,                         \
-             GKO_BATCH_INSTANTIATE_PRECONDITIONER,                 \
-             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_WITH_HALF, __VA_ARGS__)
+#define GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER_BASE(...) \
+    GKO_CALL(GKO_BATCH_INSTANTIATE_MATRIX,                              \
+             GKO_BATCH_INSTANTIATE_PRECONDITIONER,                      \
+             GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS, __VA_ARGS__)
 
 
 }  // namespace batch

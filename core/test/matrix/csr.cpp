@@ -82,8 +82,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Csr, KnowsItsSize)

@@ -46,7 +46,7 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     compute_dot(exec, x, y, result, tmp);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL);
 
 
@@ -60,7 +60,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     compute_conj_dot(exec, x, y, result, tmp);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL);
 
 
@@ -73,7 +73,7 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     compute_norm2(exec, x, result, tmp);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
 
 
@@ -100,8 +100,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
@@ -137,7 +136,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_DENSE_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -169,7 +168,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL);
 
 
@@ -200,7 +199,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
 
 
@@ -233,7 +232,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
 
 
@@ -281,7 +280,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
 
 
@@ -327,7 +326,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
 
 
@@ -369,7 +368,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
 
 
@@ -399,7 +398,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
 
 
@@ -416,8 +415,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
@@ -433,8 +431,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -464,7 +461,7 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
 

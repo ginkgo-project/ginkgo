@@ -51,8 +51,7 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
     void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
                                 const From*, To*)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_WITH_HALF(
-    GKO_DECLARE_ARRAY_CONVERSION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
 
 }  // namespace detail
@@ -89,19 +88,19 @@ ValueType reduce_add(const array<ValueType>& input_arr,
 
 #define GKO_DECLARE_ARRAY_FILL(_type) void array<_type>::fill(const _type value)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(GKO_DECLARE_ARRAY_FILL);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 
 
 #define GKO_DECLARE_ARRAY_REDUCE_ADD(_type) \
     void reduce_add(const array<_type>& arr, array<_type>& value)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(GKO_DECLARE_ARRAY_REDUCE_ADD);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD);
 
 
 #define GKO_DECLARE_ARRAY_REDUCE_ADD2(_type) \
     _type reduce_add(const array<_type>& arr, const _type val)
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_WITH_HALF(GKO_DECLARE_ARRAY_REDUCE_ADD2);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD2);
 
 
 }  // namespace gko

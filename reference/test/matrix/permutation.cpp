@@ -51,7 +51,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(Permutation, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

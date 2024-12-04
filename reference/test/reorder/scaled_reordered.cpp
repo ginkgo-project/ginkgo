@@ -132,7 +132,7 @@ protected:
     gko::remove_complex<value_type> tol;
 };
 
-TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(ScaledReordered, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -451,7 +451,7 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using OtherT = gko::next_precision_with_half<T>;
+    using OtherT = gko::next_precision<T>;
     using Vec = gko::matrix::Dense<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
@@ -500,7 +500,7 @@ TYPED_TEST(ScaledReordered,
 {
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
-    using OtherT = gko::next_precision_with_half<T>;
+    using OtherT = gko::next_precision<T>;
     using Vec = gko::matrix::Dense<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)

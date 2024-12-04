@@ -149,7 +149,7 @@ std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision_with_half<ValueType>>* result) const
+    Diagonal<next_precision<ValueType>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -157,8 +157,7 @@ void Diagonal<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::move_to(
-    Diagonal<next_precision_with_half<ValueType>>* result)
+void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -167,8 +166,7 @@ void Diagonal<ValueType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision_with_half<next_precision_with_half<ValueType>>>*
-        result) const
+    Diagonal<next_precision<next_precision<ValueType>>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -177,8 +175,7 @@ void Diagonal<ValueType>::convert_to(
 
 template <typename ValueType>
 void Diagonal<ValueType>::move_to(
-    Diagonal<next_precision_with_half<next_precision_with_half<ValueType>>>*
-        result)
+    Diagonal<next_precision<next_precision<ValueType>>>* result)
 {
     this->convert_to(result);
 }
@@ -395,7 +392,7 @@ std::unique_ptr<const Diagonal<ValueType>> Diagonal<ValueType>::create_const(
 
 
 #define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_DIAGONAL_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix
@@ -413,7 +410,7 @@ std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
 #define GKO_DECLARE_DIAGONAL_EXTRACTABLE(value_type) \
     std::unique_ptr<LinOp>                           \
     DiagonalExtractable<value_type>::extract_diagonal_linop() const
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
 
 
 }  // namespace gko

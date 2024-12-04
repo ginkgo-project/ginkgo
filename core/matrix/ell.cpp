@@ -154,7 +154,7 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
-    Ell<next_precision_with_half<ValueType>, IndexType>* result) const
+    Ell<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -166,7 +166,7 @@ void Ell<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(
-    Ell<next_precision_with_half<ValueType>, IndexType>* result)
+    Ell<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -175,8 +175,7 @@ void Ell<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
-    Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result) const
+    Ell<next_precision<next_precision<ValueType>>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -188,8 +187,7 @@ void Ell<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(
-    Ell<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result)
+    Ell<next_precision<next_precision<ValueType>>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -425,7 +423,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
 
 #define GKO_DECLARE_ELL_MATRIX(ValueType, IndexType) \
     class Ell<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_ELL_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_MATRIX);
 
 
 }  // namespace matrix

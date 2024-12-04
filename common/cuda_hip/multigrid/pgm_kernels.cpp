@@ -54,8 +54,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     thrust::sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_PGM_SORT_ROW_MAJOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 
 
 template <typename ValueType, typename IndexType>
@@ -79,7 +78,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                           vals_it, coarse_key_it, coarse_vals_it);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
 
 

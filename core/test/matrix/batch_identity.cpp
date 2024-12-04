@@ -49,8 +49,7 @@ protected:
     std::unique_ptr<gko::batch::MultiVector<value_type>> mvec;
 };
 
-TYPED_TEST_SUITE(Identity, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Identity, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Identity, KnowsItsSizeAndValues)

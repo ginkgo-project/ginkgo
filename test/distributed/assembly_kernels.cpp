@@ -100,7 +100,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

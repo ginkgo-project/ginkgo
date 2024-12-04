@@ -48,7 +48,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::lower>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "upper") {
@@ -57,7 +57,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::upper>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "general") {
@@ -66,7 +66,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::general>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else if (str == "spd") {
@@ -75,7 +75,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
                 IsaiHelper<preconditioner::isai_type::spd>::Configurator>(
                 config, context, updated,
                 make_type_selector(updated.get_value_typestr(),
-                                   value_type_list_with_half()),
+                                   value_type_list()),
                 make_type_selector(updated.get_index_typestr(),
                                    index_type_list()));
         } else {

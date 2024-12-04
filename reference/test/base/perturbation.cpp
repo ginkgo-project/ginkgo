@@ -33,8 +33,7 @@ protected:
     std::shared_ptr<gko::LinOp> scalar;
 };
 
-TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypesWithHalf,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Perturbation, CopiesOnSameExecutor)
@@ -102,7 +101,7 @@ TYPED_TEST(Perturbation, AppliesToMixedVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using Mtx = gko::matrix::Dense<gko::next_precision_with_half<TypeParam>>;
+    using Mtx = gko::matrix::Dense<gko::next_precision<TypeParam>>;
     using value_type = typename Mtx::value_type;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
@@ -144,8 +143,7 @@ TYPED_TEST(Perturbation, AppliesToMixedComplexVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using value_type =
-        gko::to_complex<gko::next_precision_with_half<TypeParam>>;
+    using value_type = gko::to_complex<gko::next_precision<TypeParam>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
@@ -187,7 +185,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using value_type = gko::next_precision_with_half<TypeParam>;
+    using value_type = gko::next_precision<TypeParam>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
@@ -234,8 +232,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedComplexVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using MixedDense =
-        gko::matrix::Dense<gko::next_precision_with_half<TypeParam>>;
+    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
     using MixedDenseComplex = gko::to_complex<MixedDense>;
     using value_type = typename MixedDenseComplex::value_type;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,

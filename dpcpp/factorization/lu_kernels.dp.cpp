@@ -32,8 +32,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
                 matrix::Csr<ValueType, IndexType>* factors) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_LU_INITIALIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_INITIALIZE);
 
 
 template <typename ValueType, typename IndexType>
@@ -43,8 +42,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_LU_FACTORIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);
 
 
 template <typename IndexType>

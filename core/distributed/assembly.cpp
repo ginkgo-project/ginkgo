@@ -135,7 +135,7 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
         mpi::communicator comm,                                            \
         const device_matrix_data<_value_type, _global_type>& input,        \
         ptr_param<const Partition<_local_type, _global_type>> partition)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_ASSEMBLE_ROWS_FROM_NEIGHBORS);
 
 

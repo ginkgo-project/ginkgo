@@ -145,7 +145,7 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision_with_half<ValueType>, IndexType>* const result) const
+    Fbcsr<next_precision<ValueType>, IndexType>* const result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -158,7 +158,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision_with_half<ValueType>, IndexType>* const result)
+    Fbcsr<next_precision<ValueType>, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -167,8 +167,8 @@ void Fbcsr<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-          IndexType>* const result) const
+    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
+    const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -181,8 +181,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision_with_half<next_precision_with_half<ValueType>>,
-          IndexType>* const result)
+    Fbcsr<next_precision<next_precision<ValueType>>, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -499,8 +498,7 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
 
 #define GKO_DECLARE_FBCSR_MATRIX(ValueType, IndexType) \
     class Fbcsr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_FBCSR_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_MATRIX);
 
 
 }  // namespace matrix

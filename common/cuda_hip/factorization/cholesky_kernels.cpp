@@ -262,7 +262,7 @@ void symbolic_factorize(
             postorder, postorder_parent, out_row_ptrs, out_cols);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
 
 
@@ -321,7 +321,7 @@ void forest_from_factor(
     build_children_from_parents(exec, forest);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
 
 
@@ -355,8 +355,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                                transpose_idxs);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_CHOLESKY_INITIALIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
 
 
 template <typename ValueType, typename IndexType>
@@ -391,8 +390,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_CHOLESKY_FACTORIZE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
 
 template <typename ValueType, typename IndexType>
@@ -448,7 +446,7 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT);
 
 

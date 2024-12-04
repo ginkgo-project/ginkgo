@@ -304,7 +304,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Csr<next_precision_with_half<ValueType>, IndexType>* result) const
+    Csr<next_precision<ValueType>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -316,7 +316,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
-    Csr<next_precision_with_half<ValueType>, IndexType>* result)
+    Csr<next_precision<ValueType>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -324,8 +324,7 @@ void Csr<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
-    Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result) const
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -337,8 +336,7 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
-    Csr<next_precision_with_half<next_precision_with_half<ValueType>>,
-        IndexType>* result)
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -1070,7 +1068,7 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
 
 #define GKO_DECLARE_CSR_MATRIX(ValueType, IndexType) \
     class Csr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_CSR_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
 
 
 }  // namespace matrix

@@ -177,8 +177,7 @@ protected:
     std::shared_ptr<gko::experimental::reorder::Amd<index_type>> amd;
 };
 
-TYPED_TEST_SUITE(Amd, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Amd, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Amd, WorksAndReducesFillIn)

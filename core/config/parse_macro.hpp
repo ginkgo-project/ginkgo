@@ -33,12 +33,12 @@
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+#define GKO_PARSE_VALUE_TYPE_BASE(_type, _configurator) \
+    GKO_PARSE_VALUE_TYPE_(_type, _configurator,         \
+                          gko::config::value_type_list_base())
+
 #define GKO_PARSE_VALUE_TYPE(_type, _configurator) \
     GKO_PARSE_VALUE_TYPE_(_type, _configurator, gko::config::value_type_list())
-
-#define GKO_PARSE_VALUE_TYPE_WITH_HALF(_type, _configurator) \
-    GKO_PARSE_VALUE_TYPE_(_type, _configurator,              \
-                          gko::config::value_type_list_with_half())
 
 // for value_type and index_type
 #define GKO_PARSE_VALUE_AND_INDEX_TYPE_(_type, _configurator,                 \
@@ -62,13 +62,13 @@
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
+#define GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(_type, _configurator) \
+    GKO_PARSE_VALUE_AND_INDEX_TYPE_(_type, _configurator,         \
+                                    gko::config::value_type_list_base())
+
 #define GKO_PARSE_VALUE_AND_INDEX_TYPE(_type, _configurator) \
     GKO_PARSE_VALUE_AND_INDEX_TYPE_(_type, _configurator,    \
                                     gko::config::value_type_list())
-
-#define GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(_type, _configurator) \
-    GKO_PARSE_VALUE_AND_INDEX_TYPE_(_type, _configurator,              \
-                                    gko::config::value_type_list_with_half())
 
 
 #endif  // GKO_CORE_CONFIG_PARSE_MACRO_HPP_

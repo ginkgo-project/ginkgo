@@ -66,8 +66,7 @@ void apply(std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_JACOBI_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 
 }  // namespace jacobi

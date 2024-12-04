@@ -182,7 +182,7 @@ protected:
     gko::array<value_type> non_local_values;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

@@ -184,8 +184,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_IDR_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
@@ -219,7 +218,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 
 template <typename ValueType>
@@ -245,7 +244,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 
 template <typename ValueType>
@@ -291,7 +290,7 @@ void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(GKO_DECLARE_IDR_STEP_3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 
 
 template <typename ValueType>
@@ -322,8 +321,7 @@ void compute_omega(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);
 
 
 }  // namespace idr

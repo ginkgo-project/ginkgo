@@ -328,11 +328,12 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
     if (parameters_.max_block_size == 1) {
         auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
                               ->extract_diagonal_linop());
-        auto diag_vt = ::gko::detail::
-            temporary_conversion<matrix::Diagonal<ValueType>>::template create<
-                matrix::Diagonal<previous_precision_with_half<ValueType>>,
-                matrix::Diagonal<previous_precision_with_half<
-                    previous_precision_with_half<ValueType>>>>(diag.get());
+        auto diag_vt =
+            ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
+                template create<matrix::Diagonal<previous_precision<ValueType>>,
+                                matrix::Diagonal<previous_precision<
+                                    previous_precision<ValueType>>>>(
+                    diag.get());
         if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);
         }
@@ -375,7 +376,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
 
 #define GKO_DECLARE_JACOBI(ValueType, IndexType) \
     class Jacobi<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(GKO_DECLARE_JACOBI);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI);
 
 
 }  // namespace preconditioner

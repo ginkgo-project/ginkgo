@@ -131,7 +131,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FbcsrSample, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -183,7 +183,7 @@ template <typename ValueIndexType>
 class FbcsrSampleComplex : public FbcsrSample<ValueIndexType> {};
 
 
-TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(FbcsrSampleComplex, gko::test::ComplexValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
@@ -282,8 +282,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Fbcsr, GetNumBlocksCorrectlyThrows)

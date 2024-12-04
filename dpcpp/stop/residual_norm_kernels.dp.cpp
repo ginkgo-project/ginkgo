@@ -71,7 +71,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
     *one_changed = get_element(*device_storage, 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
     GKO_DECLARE_RESIDUAL_NORM_KERNEL);
 
 
@@ -128,8 +128,7 @@ void implicit_residual_norm(
     *one_changed = get_element(*device_storage, 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_WITH_HALF(
-    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm

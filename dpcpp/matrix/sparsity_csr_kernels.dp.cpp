@@ -243,7 +243,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
@@ -261,7 +261,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha, beta);
 }
 
-GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 
@@ -271,7 +271,7 @@ void transpose(std::shared_ptr<const DpcppExecutor> exec,
                matrix::SparsityCsr<ValueType, IndexType>* trans)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
 
 
@@ -296,7 +296,7 @@ void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
 
 
@@ -330,7 +330,7 @@ void is_sorted_by_column_index(
     cpu_array = gpu_array;
 };
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 

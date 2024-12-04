@@ -19,9 +19,10 @@ namespace gko {
 namespace config {
 
 
-GKO_PARSE_VALUE_AND_INDEX_TYPE(GaussSeidel, gko::preconditioner::GaussSeidel);
-GKO_PARSE_VALUE_AND_INDEX_TYPE_WITH_HALF(Jacobi, gko::preconditioner::Jacobi);
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Sor, gko::preconditioner::Sor);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(GaussSeidel,
+                                    gko::preconditioner::GaussSeidel);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Jacobi, gko::preconditioner::Jacobi);
+GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(Sor, gko::preconditioner::Sor);
 
 
 }  // namespace config

@@ -346,8 +346,7 @@ bool SparsityCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 #define GKO_DECLARE_SPARSITY_MATRIX(ValueType, IndexType) \
     class SparsityCsr<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
-    GKO_DECLARE_SPARSITY_MATRIX);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSITY_MATRIX);
 
 
 }  // namespace matrix

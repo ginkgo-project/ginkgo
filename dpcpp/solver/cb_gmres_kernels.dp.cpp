@@ -947,7 +947,8 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
         givens_cos->get_stride(), stop_status->get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>

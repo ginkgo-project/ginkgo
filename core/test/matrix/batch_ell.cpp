@@ -92,7 +92,7 @@ protected:
     std::unique_ptr<EllMtx> sp_ell_mtx;
 };
 
-TYPED_TEST_SUITE(Ell, gko::test::ValueTypesWithHalf, TypenameNameGenerator);
+TYPED_TEST_SUITE(Ell, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Ell, KnowsItsSizeAndValues)

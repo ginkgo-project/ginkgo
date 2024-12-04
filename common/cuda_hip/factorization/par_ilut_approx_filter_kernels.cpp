@@ -168,7 +168,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
         &threshold, m_out, m_out_coo);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
 
 

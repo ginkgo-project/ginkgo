@@ -29,8 +29,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIc, SetIterations)

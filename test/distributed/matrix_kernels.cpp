@@ -87,7 +87,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

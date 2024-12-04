@@ -30,7 +30,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypesWithHalf,
+TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 

@@ -144,8 +144,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypesWithHalf,
-                 PairTypenameNameGenerator);
+TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)

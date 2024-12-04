@@ -487,7 +487,7 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
 
 
@@ -516,7 +516,7 @@ void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL);
 
 
@@ -548,7 +548,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
 
 
@@ -568,7 +568,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL);
 
 
@@ -593,7 +593,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_WITH_HALF(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 
