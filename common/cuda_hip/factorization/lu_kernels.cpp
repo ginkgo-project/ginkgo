@@ -25,6 +25,7 @@
 #include "core/base/allocator.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -404,21 +405,230 @@ struct double_buffered_frontier {
 };
 
 
+template <typename Config, typename ValueType, typename IndexType>
+class device_block_memory_pool {
+    constexpr static auto block_size = Config::block_size;
+
+public:
+    constexpr device_block_memory_pool(ValueType* pool, IndexType* next_block,
+                                       IndexType num_blocks,
+                                       IndexType* block_counter)
+        : pool_{pool},
+          next_block_{next_block},
+          num_blocks_{num_blocks},
+          block_counter_{block_counter}
+    {}
+
+    struct block {
+        IndexType id;
+        ValueType* data;
+    };
+
+    __device__ block get_block(IndexType block_id) const
+    {
+        assert(block_id >= 0);
+        assert(block_id < num_blocks_);
+        return block{block_id, pool_ + block_id * block_size};
+    }
+
+    // write a block successor with a threadblock-local atomic release store
+    __device__ void set_next_block_release(IndexType block_id,
+                                           IndexType next_block)
+    {
+        assert(block_id >= 0);
+        assert(block_id < num_blocks_);
+        assert(next_block >= 0);
+        assert(next_block < num_blocks_);
+        // TOCTOU issue, but fixing it would require a CAS, so we don't care
+        // since it's just an assertion that just might accidentally not fail
+        // when it should be failing if next_block[block_id] gets updated
+        // between this and the following statement.
+        assert(load_relaxed_local(next_block_ + block_id) ==
+               invalid_index<IndexType>());
+        store_release_local(next_block_ + block_id, next_block);
+    }
+
+    // read a block successor with a threadblock-local atomic acquire load
+    __device__ IndexType get_next_block_acquire(IndexType block_id) const
+    {
+        assert(block_id >= 0);
+        assert(block_id < num_blocks_);
+        return load_acquire_local(next_block_ + block_id);
+    }
+
+    // read a block successor with a non-atomic load
+    __device__ IndexType get_next_block(IndexType block_id) const
+    {
+        assert(block_id >= 0);
+        assert(block_id < num_blocks_);
+        return next_block_[block_id];
+    }
+
+    __device__ IndexType alloc()
+    {
+        return atomic_add(block_counter_, IndexType{1});
+    }
+
+private:
+    ValueType* pool_;
+    IndexType* next_block_;
+    IndexType num_blocks_;
+    IndexType* block_counter_;
+};
+
+
+// A linked list of blocks from a device_block_memory_pool
+template <typename Config, typename ValueType, typename IndexType>
+class threadblock_shared_block_list {
+    constexpr static auto block_size = Config::block_size;
+    using pool_type = device_block_memory_pool<Config, ValueType, IndexType>;
+    using block_type = typename pool_type::block;
+
+public:
+    struct shared_storage {
+        IndexType output_idx;
+    };
+
+    __device__ threadblock_shared_block_list(pool_type pool,
+                                             IndexType* out_block_index,
+                                             shared_storage& shared)
+        : pool_{pool}, shared_{shared}
+    {
+        if (threadIdx.x == 0) {
+            *out_block_index = pool.alloc();
+            shared_.output_idx = 0;
+        }
+        __syncthreads();
+        const auto first_block_id = *out_block_index;
+        available_size = block_size;
+        current_block = pool_.get_block(first_block_id);
+    }
+
+    __device__ void output(ValueType value)
+    {
+        const auto output_idx = atomic_add(&shared_.output_idx, IndexType{1});
+        // this needs to be a while loop because we could output more than
+        // block_size entries between two output entries in this thread
+        while (output_idx >= available_size) {
+            auto new_block = invalid_index<IndexType>();
+            // wait until the block was allocated
+            while ((new_block = pool_.get_next_block_acquire(
+                        current_block.id)) == invalid_index<IndexType>()) {
+                // we need to check the existing new_block value once to
+                // facilitate memory reuse if we already have preallocated
+                // blocks available
+                if (output_idx == available_size) {
+                    new_block = pool_.alloc();
+                    pool_.set_next_block_release(current_block.id, new_block);
+                    break;
+                }
+                // TODO potentially nanosleep here
+            }
+            // move to next block
+            current_block = pool_.get_block(new_block);
+            available_size += block_size;
+        }
+        const auto block_base = available_size - block_size;
+        assert(output_idx >= block_base);
+        current_block.data[output_idx - block_base] = value;
+    }
+
+private:
+    pool_type pool_;
+    shared_storage& shared_;
+
+    // these two need to be kept in sync
+    // using "current block" to refer to the last block known to this thread.
+    // all previous blocks should be non-empty
+    int available_size;  // total memory available in all blocks up until the
+                         // current block
+    block_type current_block;  // information about the current block
+};
+
+
+template <typename Config, typename ValueType, typename IndexType>
+class block_memory_pool {
+    constexpr static auto block_size = Config::block_size;
+
+public:
+    explicit block_memory_pool(std::shared_ptr<const DefaultExecutor> exec,
+                               IndexType num_blocks)
+        : pool_{exec, static_cast<size_type>(num_blocks * block_size)},
+          next_block_{exec, static_cast<size_type>(num_blocks)},
+          counter_{exec, 1},
+          overflow_{exec, 0}
+    {
+        // initialize overflow array to nullptr
+        thrust::uninitialized_fill_n(thrust_policy(exec), overflow_.get_data(),
+                                     overflow_.get_size(), nullptr);
+        // initialize counters to zero
+        thrust::uninitialized_fill_n(thrust_policy(exec), counter_.get_data(),
+                                     counter_.get_size(), 0);
+        // initialize counters to invalid_index
+        thrust::uninitialized_fill_n(
+            thrust_policy(exec), next_block_.get_data(), next_block_.get_size(),
+            invalid_index<IndexType>());
+    }
+
+    device_block_memory_pool<Config, ValueType, IndexType> device_view()
+    {
+        return {pool_.get_data(), next_block_.get_data(),
+                static_cast<IndexType>(pool_.get_size() / block_size),
+                counter_.get_data()};
+    }
+
+    block_memory_pool(block_memory_pool&&) = delete;
+
+    block_memory_pool(const block_memory_pool&) = delete;
+
+    block_memory_pool& operator=(block_memory_pool&&) = delete;
+
+    block_memory_pool& operator=(const block_memory_pool&) = delete;
+
+    ~block_memory_pool() { free_overflow(); }
+
+    void free_overflow()
+    {
+        // delete all allocated overflow entries
+        thrust::for_each_n(
+            thrust_policy(std::static_pointer_cast<const DefaultExecutor>(
+                overflow_.get_executor())),
+            overflow_.get_const_data(), overflow_.get_size(),
+            [] __device__(ValueType * ptr) {
+                if (ptr) {
+                    free(ptr);
+                }
+            });
+    }
+
+private:
+    array<ValueType> pool_;
+    array<IndexType> next_block_;
+    array<IndexType> counter_;
+    array<ValueType*> overflow_;
+};
+
+
 struct symbolic_factorize_config {
     constexpr static bool skip_visited = false;
     constexpr static bool debug = false;
+    constexpr static int block_size = 32;
 };
 
 
 template <typename Config, typename IndexType>
-__global__ void symbolic_factorize_single_source(
+__global__ void symbolic_factorize_gsofa(
     const IndexType* row_ptrs, const IndexType* cols, IndexType size,
     IndexType* atomics, IndexType* global_max_id, IndexType* global_fill,
     IndexType* global_frontier, IndexType* global_new_frontier,
-    IndexType* out_rows, IndexType* out_cols)
+    IndexType* out_row_sizes, IndexType* out_block_ids,
+    device_block_memory_pool<Config, IndexType, IndexType> pool)
 {
+    using block_list_type =
+        threadblock_shared_block_list<Config, IndexType, IndexType>;
     __shared__ typename double_buffered_frontier<IndexType>::shared_storage
         frontier_storage;
+    __shared__ typename block_list_type::shared_storage block_list_storage;
     __shared__ IndexType source_idx;
     const auto frontier = global_frontier + size * blockIdx.x;
     const auto new_frontier = global_new_frontier + size * blockIdx.x;
@@ -439,14 +649,14 @@ __global__ void symbolic_factorize_single_source(
         for (IndexType i = threadIdx.x; i < size; i += blockDim.x) {
             max_id[i] = device_numeric_limits<IndexType>::max;
         }
+        block_list_type blocks{pool, &out_block_ids[source],
+                               block_list_storage};
         __syncthreads();
         const auto output = [&](IndexType col) {
-            const auto out_idx = atomic_add(atomics + 1, IndexType{1});
             if constexpr (Config::debug) {
                 printf("%d: Output %d\n", int(source), int(col));
             }
-            out_rows[out_idx] = source;
-            out_cols[out_idx] = col;
+            blocks.output(col);
         };
         const auto row_begin = row_ptrs[source];
         const auto row_end = row_ptrs[source + 1];
@@ -538,10 +748,34 @@ __global__ void symbolic_factorize_single_source(
         }
         __syncthreads();
         if (threadIdx.x == 0) {
+            out_row_sizes[source] = block_list_storage.output_idx;
             source_idx = atomic_add(atomics, IndexType{1});
         }
         __syncthreads();
         source = source_idx;
+    }
+}
+
+
+template <typename Config, typename IndexType>
+__global__ void symbolic_factorize_collect_rows(
+    const IndexType* row_ptrs, const IndexType* first_block_ids, IndexType size,
+    device_block_memory_pool<Config, IndexType, IndexType> pool,
+    IndexType* output)
+{
+    constexpr auto block_size = Config::block_size;
+    const auto row = thread::get_subwarp_id_flat<block_size>();
+    const auto lane = threadIdx.x % block_size;
+    if (row >= size) {
+        return;
+    }
+    auto block_id = first_block_ids[row];
+    const auto row_begin = row_ptrs[row];
+    const auto row_end = row_ptrs[row + 1];
+    for (auto out_idx = row_begin + lane; out_idx < row_end;
+         out_idx += block_size, block_id = pool.get_next_block(block_id)) {
+        const auto block_data = pool.get_block(block_id).data;
+        output[out_idx] = block_data[lane];
     }
 }
 
@@ -553,36 +787,37 @@ void symbolic_factorize_general(std::shared_ptr<const DefaultExecutor> exec,
                                 IndexType* out_row_ptrs,
                                 array<IndexType>& out_col_idxs)
 {
+    using Config = symbolic_factorize_config;
     const auto num_blocks = 100;
     array<IndexType> max_id_array{exec, size * num_blocks};
     array<IndexType> fill_array{exec, size * num_blocks};
     array<IndexType> frontier_array{exec, size * num_blocks};
     array<IndexType> new_frontier_array{exec, size * num_blocks};
-    array<IndexType> output_row_array{exec, size * size};
-    array<IndexType> output_col_array{exec, size * size};
-    array<IndexType> atomic_array{exec, 2};
+    array<IndexType> output_block_ids{exec, size};
+    array<IndexType> atomic_array{exec, 1};
     components::fill_array(exec, fill_array.get_data(), size * num_blocks,
                            IndexType{});
-    components::fill_array(exec, atomic_array.get_data(), 2, IndexType{});
-    symbolic_factorize_single_source<symbolic_factorize_config>
-        <<<num_blocks, 1024, 0, exec->get_stream()>>>(
+    // TODO proper initial value for allocation
+    block_memory_pool<Config, IndexType, IndexType> pool{
+        exec, static_cast<IndexType>(size * 32000 / Config::block_size)};
+    components::fill_array(exec, atomic_array.get_data(),
+                           atomic_array.get_size(), IndexType{});
+    constexpr auto threadblock_size = 1024;
+    symbolic_factorize_gsofa<Config>
+        <<<num_blocks, threadblock_size, 0, exec->get_stream()>>>(
             row_ptrs, col_idxs, static_cast<IndexType>(size),
             atomic_array.get_data(), max_id_array.get_data(),
             fill_array.get_data(), frontier_array.get_data(),
-            new_frontier_array.get_data(), output_row_array.get_data(),
-            output_col_array.get_data());
-    const auto nnz = exec->copy_val_to_host(atomic_array.get_data() + 1);
-    const auto policy = thrust_policy(exec);
-    thrust::sort_by_key(policy, output_col_array.get_data(),
-                        output_col_array.get_data() + nnz,
-                        output_row_array.get_data());
-    thrust::stable_sort_by_key(policy, output_row_array.get_data(),
-                               output_row_array.get_data() + nnz,
-                               output_col_array.get_data());
-    components::convert_idxs_to_ptrs(exec, output_row_array.get_const_data(),
-                                     nnz, size, out_row_ptrs);
+            new_frontier_array.get_data(), out_row_ptrs,
+            output_block_ids.get_data(), pool.device_view());
+    components::prefix_sum_nonnegative(exec, out_row_ptrs, size + 1);
+    const auto nnz = exec->copy_val_to_host(out_row_ptrs + size);
     out_col_idxs.resize_and_reset(nnz);
-    exec->copy(nnz, output_col_array.get_const_data(), out_col_idxs.get_data());
+    symbolic_factorize_collect_rows<Config>
+        <<<ceildiv(size, threadblock_size / Config::block_size),
+           threadblock_size>>>(out_row_ptrs, output_block_ids.get_data(),
+                               static_cast<IndexType>(size), pool.device_view(),
+                               out_col_idxs.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMBOLIC_FACTORIZE_GENERAL);

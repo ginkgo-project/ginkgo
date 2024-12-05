@@ -275,6 +275,7 @@ void symbolic_lu_device(
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         std::move(factor_cols), std::move(factor_row_ptrs));
+    factors->sort_by_column_index();
 }
 
 
