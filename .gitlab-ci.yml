@@ -52,7 +52,7 @@ release/latest/gcc:
   extends:
     - .default_variables
     - .before_script_template
-    - .build_and_test_script
+    - .build_and_test_template
   stage: build
   image: archlinux
   before_script:
