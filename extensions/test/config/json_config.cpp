@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <stdexcept>
+#include <string>
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -74,12 +75,11 @@ TEST(JsonConfig, ReadInput)
 
 TEST(JsonConfig, ReadInputString)
 {
-    std::string =
-        R"({"item": 4,
-            "array": [3.0, 4.5],
-            "map": {"bool": false}})";
+    std::string json_string = R"({"item": 4,
+           "array": [3.0, 4.5],
+           "map": {"bool": false}})";
 
-    auto ptree = gko::ext::config::parse_json_string(d);
+    auto ptree = gko::ext::config::parse_json_string(json_string);
 
     auto& child_array = ptree.get("array").get_array();
     auto& child_map = ptree.get("map").get_map();
