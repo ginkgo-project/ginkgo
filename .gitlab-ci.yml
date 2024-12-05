@@ -51,8 +51,10 @@ sync:
 release/latest/gcc:
   extends:
     - .default_variables
-    - .build_and_test_script
+    - .build_and_test_script_template
   stage: build
   image: archlinux
   before_script:
     - pacman -Sy --noconfirm git gcc cmake ninja python3
+  tags:
+    - private_ci
