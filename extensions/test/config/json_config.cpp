@@ -54,12 +54,32 @@ TEST(JsonConfig, ReadInput)
 {
     const char json[] =
         R"({"item": 4,
-            "array": [3.0, 4.5], 
+            "array": [3.0, 4.5],
             "map": {"bool": false}})";
 
     auto d = nlohmann::json::parse(json);
 
     auto ptree = gko::ext::config::parse_json(d);
+
+    auto& child_array = ptree.get("array").get_array();
+    auto& child_map = ptree.get("map").get_map();
+    ASSERT_EQ(ptree.get_map().size(), 3);
+    ASSERT_EQ(ptree.get("item").get_integer(), 4);
+    ASSERT_EQ(child_array.size(), 2);
+    ASSERT_EQ(child_array.at(0).get_real(), 3.0);
+    ASSERT_EQ(child_array.at(1).get_real(), 4.5);
+    ASSERT_EQ(child_map.size(), 1);
+    ASSERT_EQ(child_map.at("bool").get_boolean(), false);
+}
+
+TEST(JsonConfig, ReadInputString)
+{
+    std::string =
+        R"({"item": 4,
+            "array": [3.0, 4.5],
+            "map": {"bool": false}})";
+
+    auto ptree = gko::ext::config::parse_json_string(d);
 
     auto& child_array = ptree.get("array").get_array();
     auto& child_map = ptree.get("map").get_map();
