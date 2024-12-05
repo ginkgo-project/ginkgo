@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/solver/gmres.hpp"
 
+#include <cmath>
+#include <random>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -14,6 +16,7 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
@@ -391,13 +394,38 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Because the auxiliary Hessenberg workspace only ever stores one
     // iteration of data at a time, we store it in the "logical" layout
     // from the start.
+
+    using Mtx = matrix::Csr<ValueType, int>;
+    auto theta = Mtx::create(exec);
+    auto sketched_krylov_bases = VectorType::create(exec);
+    size_type k_rows = 0;
     LocalVector* hessenberg_aux = nullptr;
     if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
             ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
     } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
-        // TODO Actually create the random (sparse) matrix and any other
-        //      structures you need
+        // No distributed support yet
+        if (num_rows != local_num_rows || is_flexible) {
+            GKO_NOT_IMPLEMENTED;
+        }
+        k_rows = std::ceil(num_rows / std::log(num_rows));
+        using matrix_data = gko::matrix_data<ValueType, int>;
+        matrix_data data{dim<2>{k_rows, num_rows}};
+
+        // Random number generator setup
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < num_rows; i++) {
+            remove_complex<ValueType> v = 1.;
+            if (std::uniform_real_distribution<>(0.0, 1.0)(gen) < .5) v = -1.;
+            data.nonzeros.emplace_back(
+                std::uniform_int_distribution<>(0, k_rows - 1)(gen), i, v);
+        }
+        theta->read(data);
+
+        sketched_krylov_bases = VectorType::create(
+            exec, dim<2>{k_rows * (krylov_dim + 1), num_rhs});
     }
     auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
@@ -531,6 +559,12 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             local_span{local_num_rows * (restart_iter + 1),
                        local_num_rows * (restart_iter + 2)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+
+        auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
+            krylov_bases, dim<2>{k_rows, num_rhs},
+            span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
+            span{0, num_rhs});
+
         std::unique_ptr<VectorType> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
