@@ -51,11 +51,14 @@ sync:
 release/latest/gcc:
   extends:
     - .default_variables
-    - .before_script_template
-    - .build_and_test_template
+    - .build_and_test_script_template
   stage: build
   image: archlinux
   before_script:
+    - export NUM_CORES=${CI_PARALLELISM}
+    - export OMP_NUM_THREADS=${NUM_CORES}
+    - export CCACHE_DIR=${CCACHE_DIR}
+    - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
     - pacman -Sy --noconfirm git gcc cmake ninja python3
   variables:
     BUILD_TYPE: "Release"
