@@ -17,7 +17,6 @@
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/atomic.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/syncfree.hpp"
@@ -384,7 +383,8 @@ struct double_buffered_frontier {
 
     __device__ void add(IndexType value)
     {
-        output[atomic_add(&shared.output_pos, IndexType{1})] = value;
+        output[atomic_add_relaxed_shared(&shared.output_pos, IndexType{1})] =
+            value;
     }
 
     __device__ IndexType output_to_input()
@@ -466,7 +466,7 @@ public:
 
     __device__ IndexType alloc()
     {
-        return atomic_add(block_counter_, IndexType{1});
+        return atomic_add_relaxed_local(block_counter_, IndexType{1});
     }
 
 private:
@@ -506,7 +506,8 @@ public:
 
     __device__ void output(ValueType value)
     {
-        const auto output_idx = atomic_add(&shared_.output_idx, IndexType{1});
+        const auto output_idx =
+            atomic_add_relaxed_shared(&shared_.output_idx, IndexType{1});
         // this needs to be a while loop because we could output more than
         // block_size entries between two output entries in this thread
         while (output_idx >= available_size) {
@@ -635,7 +636,7 @@ __global__ void symbolic_factorize_gsofa(
     const auto max_id = global_max_id + size * blockIdx.x;
     const auto fill = global_fill + size * blockIdx.x;
     if (threadIdx.x == 0) {
-        source_idx = atomic_add(atomics, IndexType{1});
+        source_idx = atomic_add_relaxed(atomics, IndexType{1});
         if constexpr (Config::debug) {
             printf("block %d handling source %d\n", blockIdx.x,
                    int(source_idx));
@@ -707,12 +708,12 @@ __global__ void symbolic_factorize_gsofa(
                             continue;
                         }
                     }
-                    if (atomic_min(&max_id[neighbor], new_max_id) >
-                        new_max_id) {
+                    if (atomic_min_relaxed_local(&max_id[neighbor],
+                                                 new_max_id) > new_max_id) {
                         if (neighbor > new_max_id) {
                             // fill is increasing monotonically
-                            const auto result =
-                                atomic_max(&fill[neighbor], source);
+                            const auto result = atomic_max_relaxed_local(
+                                &fill[neighbor], source);
                             if (result < source) {
                                 output(neighbor);
                             } else {
@@ -749,7 +750,7 @@ __global__ void symbolic_factorize_gsofa(
         __syncthreads();
         if (threadIdx.x == 0) {
             out_row_sizes[source] = block_list_storage.output_idx;
-            source_idx = atomic_add(atomics, IndexType{1});
+            source_idx = atomic_add_relaxed(atomics, IndexType{1});
         }
         __syncthreads();
         source = source_idx;
