@@ -51,7 +51,7 @@ sync:
 release/latest/gcc:
   extends:
     - .default_variables
-    - .build_and_test_script_template
+    - .build_template
   stage: build
   image: archlinux
   before_script:
@@ -70,7 +70,7 @@ release/latest/gcc:
 release/latest/clang:
   extends:
     - .default_variables
-    - .build_script_template
+    - .build_template
   stage: build
   image: archlinux
   before_script:
@@ -90,7 +90,7 @@ release/latest/clang:
 release/latest/cuda:
   extends:
     - .default_variables
-    - .build_script_template
+    - .build_template
   stage: build
   image: nvidia/cuda:12.6.3-devel-ubuntu24.04
   before_script:
@@ -110,7 +110,7 @@ release/latest/cuda:
 release/latest/rocm:
   extends:
     - .default_variables
-    - .build_script_template
+    - .build_template
   image: rocm/dev-ubuntu-24.04:6.3-complete
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
@@ -129,7 +129,7 @@ release/latest/rocm:
 release/latest/oneapi:
   extends:
     - .default_variables
-    - .build_script_template
+    - .build_template
   image: intel/oneapi-hpckit:2025.0.0-0-devel-ubuntu24.04
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
