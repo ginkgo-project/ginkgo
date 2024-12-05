@@ -65,6 +65,7 @@ release/latest/gcc:
     BUILD_OMP: "ON"
   tags:
     - private_ci
+    - cpu
 
 
 release/latest/clang:
@@ -85,6 +86,7 @@ release/latest/clang:
     CXX_COMPILER: "clang++"
   tags:
     - private_ci
+    - cpu
 
 
 release/latest/cuda:
@@ -143,4 +145,4 @@ release/latest/oneapi:
     BUILD_SYCL: "ON"
     CXX_COMPILER: "icpx"
   tags:
-    - intel-gpu
+    - intel-gpus
