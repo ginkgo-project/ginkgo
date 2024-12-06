@@ -17,6 +17,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "omp/components/atomic.hpp"
 #include "omp/components/csr_spgeam.hpp"
 
 
@@ -69,7 +70,8 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                 auto l_col = l_col_idxs[l_begin];
                 auto lh_row = l_col_idxs[lh_begin];
                 if (l_col == lh_row && l_col < col) {
-                    sum += l_vals[l_begin] * conj(l_vals[lh_begin]);
+                    sum +=
+                        load(l_vals + l_begin) * conj(load(l_vals + lh_begin));
                 }
                 if (lh_row == row) {
                     lh_nz = lh_begin;
@@ -81,11 +83,11 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
             if (row == col) {
                 new_val = sqrt(new_val);
             } else {
-                auto diag = l_vals[l_row_ptrs[col + 1] - 1];
+                auto diag = load(l_vals + l_row_ptrs[col + 1] - 1);
                 new_val = new_val / diag;
             }
             if (is_finite(new_val)) {
-                l_vals[l_nz] = new_val;
+                store(l_vals + l_nz, new_val);
             }
         }
     }

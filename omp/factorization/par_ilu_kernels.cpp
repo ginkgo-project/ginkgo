@@ -10,6 +10,8 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "omp/components/atomic.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -57,7 +59,8 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
                 auto col_l = col_idxs_l[row_l];
                 auto col_u = col_idxs_u[row_u];
                 if (col_l == col_u) {
-                    last_operation = vals_l[row_l] * vals_u[row_u];
+                    last_operation =
+                        load(vals_l + row_l) * load(vals_u + row_u);
                     sum -= last_operation;
                 } else {
                     last_operation = zero<ValueType>();
@@ -74,14 +77,14 @@ void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
             sum += last_operation;  // undo the last operation
 
             if (row > col) {  // modify entry in L
-                auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
+                auto to_write = sum / load(vals_u + row_ptrs_u[col + 1] - 1);
                 if (is_finite(to_write)) {
-                    vals_l[row_l - 1] = to_write;
+                    store(vals_l + row_l - 1, to_write);
                 }
             } else {  // modify entry in U
                 auto to_write = sum;
                 if (is_finite(to_write)) {
-                    vals_u[row_u - 1] = to_write;
+                    store(vals_u + row_u - 1, to_write);
                 }
             }
         }
