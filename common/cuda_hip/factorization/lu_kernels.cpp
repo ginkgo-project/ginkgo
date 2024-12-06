@@ -480,12 +480,15 @@ private:
 template <typename Config, typename ValueType, typename IndexType>
 class threadblock_shared_block_list {
     constexpr static auto block_size = Config::block_size;
+    static_assert((block_size & (block_size - 1)) == 0,
+                  "block_size should be a power of two");
     using pool_type = device_block_memory_pool<Config, ValueType, IndexType>;
     using block_type = typename pool_type::block;
 
 public:
     struct shared_storage {
-        IndexType output_idx;
+        // a single row will not exceed 2B entries
+        int output_idx;
     };
 
     __device__ threadblock_shared_block_list(pool_type pool,
@@ -511,6 +514,10 @@ public:
         // block_size entries between two output entries in this thread
         while (output_idx >= available_size) {
             auto new_block = invalid_index<IndexType>();
+            if constexpr (Config::debug) {
+                printf("Block %d (%d) not sufficient for index %d\n",
+                       int(current_block.id), int(available_size), output_idx);
+            }
             // wait until the block was allocated
             while ((new_block = pool_.get_next_block_acquire(
                         current_block.id)) == invalid_index<IndexType>()) {
@@ -519,6 +526,11 @@ public:
                 // blocks available
                 if (output_idx == available_size) {
                     new_block = pool_.alloc();
+                    if constexpr (Config::debug) {
+                        printf("Allocated new block %d after %d for index %d\n",
+                               int(new_block), int(current_block.id),
+                               output_idx);
+                    }
                     pool_.set_next_block_release(current_block.id, new_block);
                     break;
                 }
@@ -549,6 +561,8 @@ private:
 template <typename Config, typename ValueType, typename IndexType>
 class block_memory_pool {
     constexpr static auto block_size = Config::block_size;
+    static_assert((block_size & (block_size - 1)) == 0,
+                  "block_size should be a power of two");
 
 public:
     explicit block_memory_pool(std::shared_ptr<const DefaultExecutor> exec,
