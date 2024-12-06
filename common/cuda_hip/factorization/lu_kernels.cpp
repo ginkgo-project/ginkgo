@@ -514,9 +514,11 @@ public:
         // block_size entries between two output entries in this thread
         while (output_idx >= available_size) {
             auto new_block = invalid_index<IndexType>();
-            if constexpr (Config::debug) {
-                printf("Block %d (%d) not sufficient for index %d\n",
-                       int(current_block.id), int(available_size), output_idx);
+            if constexpr (Config::debug_output) {
+                printf(
+                    "threadblock_shared_block_list: Block %d (%d) not "
+                    "sufficient for index %d\n",
+                    int(current_block.id), int(available_size), output_idx);
             }
             // wait until the block was allocated
             while ((new_block = pool_.get_next_block_acquire(
@@ -526,10 +528,11 @@ public:
                 // blocks available
                 if (output_idx == available_size) {
                     new_block = pool_.alloc();
-                    if constexpr (Config::debug) {
-                        printf("Allocated new block %d after %d for index %d\n",
-                               int(new_block), int(current_block.id),
-                               output_idx);
+                    if constexpr (Config::debug_output) {
+                        printf(
+                            "threadblock_shared_block_list: Allocated new "
+                            "block %d after %d for index %d\n",
+                            int(new_block), int(current_block.id), output_idx);
                     }
                     pool_.set_next_block_release(current_block.id, new_block);
                     break;
@@ -626,6 +629,8 @@ private:
 struct symbolic_factorize_config {
     constexpr static bool skip_visited = false;
     constexpr static bool debug = false;
+    constexpr static bool debug_output = false;
+    constexpr static bool debug_pool = true;
     constexpr static int block_size = 32;
 };
 
