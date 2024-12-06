@@ -361,6 +361,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    const bool is_rgs = this->parameters_.ortho_method == gmres::ortho_method::rgs;
     const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
@@ -470,10 +471,20 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
-    exec->run(gmres::make_restart(gko::detail::get_local(residual),
+    if (is_rgs) {
+        // SpMV with theta to form sketched_krylov_bases
+        exec->run(gmres::make_restart_rgs(gko::detail::get_local(residual),
                                   residual_norm, residual_norm_collection,
                                   gko::detail::get_local(krylov_bases),
+                                  sketched_krylov_bases.get(),
                                   final_iter_nums.get_data()));
+    }
+    else {    
+        exec->run(gmres::make_restart(gko::detail::get_local(residual),
+                                      residual_norm, residual_norm_collection,
+                                      gko::detail::get_local(krylov_bases),
+                                      final_iter_nums.get_data()));
+    }
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -545,10 +556,21 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
-            exec->run(gmres::make_restart(
+
+            if (is_rgs) {
+                // Apply SpMV with theta to form sketched_krylov_bases
+                exec->run(gmres::make_restart_rgs(
+                gko::detail::get_local(residual), residual_norm,
+                residual_norm_collection, gko::detail::get_local(krylov_bases),
+                sketched_krylov_bases.get(),
+                final_iter_nums.get_data()));
+            }
+            else {
+                exec->run(gmres::make_restart(
                 gko::detail::get_local(residual), residual_norm,
                 residual_norm_collection, gko::detail::get_local(krylov_bases),
                 final_iter_nums.get_data()));
+            }
             restart_iter = 0;
         }
         auto this_krylov = krylov_bases->create_submatrix(
