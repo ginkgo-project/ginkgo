@@ -465,21 +465,29 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         givens_sin, givens_cos, stop_status.get_data()));
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
-
-    // residual_norm = norm(residual)
-    residual->compute_norm2(residual_norm, reduction_tmp);
-    // residual_norm_collection = {residual_norm, unchanged}
-    // krylov_bases(:, 1) = residual / residual_norm
-    // final_iter_nums = {0, ..., 0}
     if (is_rgs) {
-        // SpMV with theta to form sketched_krylov_bases
+
+        auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
+             sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
+             span{0, k_rows},
+             span{0, num_rhs});
+
+        theta->apply(residual, sketched_next_krylov);
+
+        sketched_next_krylov->compute_norm2(residual_norm, reduction_tmp);
+
         exec->run(gmres::make_restart_rgs(gko::detail::get_local(residual),
                                   residual_norm, residual_norm_collection,
                                   gko::detail::get_local(krylov_bases),
                                   sketched_krylov_bases.get(),
-                                  final_iter_nums.get_data()));
+                                  final_iter_nums.get_data(), k_rows));
     }
     else {    
+        // residual_norm = norm(residual)
+        residual->compute_norm2(residual_norm, reduction_tmp);
+        // residual_norm_collection = {residual_norm, unchanged}
+        // krylov_bases(:, 1) = residual / residual_norm
+        // final_iter_nums = {0, ..., 0}
         exec->run(gmres::make_restart(gko::detail::get_local(residual),
                                       residual_norm, residual_norm_collection,
                                       gko::detail::get_local(krylov_bases),
@@ -563,7 +571,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 gko::detail::get_local(residual), residual_norm,
                 residual_norm_collection, gko::detail::get_local(krylov_bases),
                 sketched_krylov_bases.get(),
-                final_iter_nums.get_data()));
+                final_iter_nums.get_data(), k_rows));
             }
             else {
                 exec->run(gmres::make_restart(
@@ -586,7 +594,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             span{0, num_rhs});
 
         auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{k_rows, num_rhs},
+            sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
             span{k_rows * (restart_iter + 1),
                  k_rows * (restart_iter + 2)},
             span{0, num_rhs});

@@ -35,7 +35,8 @@ namespace gmres {
                      matrix::Dense<_type>* residual_norm_collection,            \
                      matrix::Dense<_type>* krylov_bases,                        \
                      matrix::Dense<_type>* sketched_krylov_bases,               \
-                     size_type* final_iter_nums)
+                     size_type* final_iter_nums,                                \
+                     size_type k_rows)
 
 #define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)               \
     void multi_axpy(std::shared_ptr<const DefaultExecutor> exec, \

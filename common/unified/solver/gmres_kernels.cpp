@@ -65,7 +65,7 @@ void restart_rgs(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::Dense<ValueType>* residual_norm_collection,
                  matrix::Dense<ValueType>* krylov_bases,
                  matrix::Dense<ValueType>* sketched_krylov_bases,
-                 size_type* final_iter_nums)
+                 size_type* final_iter_nums, size_type k_rows)
 GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
