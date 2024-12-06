@@ -97,16 +97,6 @@ struct UbfsLinearQueue {
     }
 
     /**
-     * Computes the correct chunk size at a given moment.
-     * It is upper bounded by the chunk_bound and the half of all nodes.
-     */
-    IndexType chunk_size()
-    {
-        const auto available_nodes = tail - head;
-        return std::min<IndexType>((available_nodes + 1) / 2, chunk_bound);
-    }
-
-    /**
      * Returns a pointer to an exclusively owned chunk of length <= n/2.
      * Blocks in case no nodes are available and other threads are still
      * working, as indicated by `threads_working`. That way, if (nullptr,0) is
@@ -117,6 +107,18 @@ struct UbfsLinearQueue {
     {
         const auto data = &arr[0];
         std::lock_guard<omp_mutex> read_guard{read_mutex};
+
+        /**
+         * Computes the correct chunk size at a given moment.
+         * It is upper bounded by the chunk_bound and the half of all nodes.
+         */
+        auto chunk_size = [this]() {
+            // Can only acquire write_mutex as this function is called when a
+            // read_mutex is already acquired
+            std::lock_guard<omp_mutex> lock{write_mutex};
+            const auto available_nodes = tail - head;
+            return std::min<IndexType>((available_nodes + 1) / 2, chunk_bound);
+        };
 
         const auto n = chunk_size();
 
