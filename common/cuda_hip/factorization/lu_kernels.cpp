@@ -504,21 +504,29 @@ public:
             printf("device_block_memory_pool: Allocated block %d\n",
                    int(new_block));
         }
-        if (new_block > num_blocks_ && new_block % num_blocks_ == 0) {
-            const auto extra_page_idx = (new_block - num_blocks_) / num_blocks_;
-            assert(extra_page_idx >= 0);
-            assert(extra_page_idx < max_num_extra_pages_);
-            const auto alloc_size =
-                sizeof(IndexType) * (num_blocks_ + num_blocks_ * block_size);
-            if constexpr (Config::debug_pool) {
-                printf(
-                    "device_block_memory_pool: Out of memory in existing page, "
-                    "allocating new page %d of size %d\n",
-                    int(extra_page_idx), int(alloc_size));
+        if (new_block > num_blocks_) {
+            if (new_block % num_blocks_ == 0) {
+                const auto extra_page_idx =
+                    (new_block - num_blocks_) / num_blocks_;
+                assert(extra_page_idx >= 0);
+                assert(extra_page_idx < max_num_extra_pages_);
+                const auto alloc_size =
+                    sizeof(IndexType) *
+                    (num_blocks_ + num_blocks_ * block_size);
+                const auto new_data =
+                    reinterpret_cast<IndexType*>(malloc(alloc_size));
+                if constexpr (Config::debug_pool) {
+                    printf(
+                        "device_block_memory_pool: Out of memory in existing "
+                        "page, allocating new page %d of size %d: %lx\n",
+                        int(extra_page_idx), int(alloc_size), uint64(new_data));
+                }
+                cur_extra_page_idx_ = extra_page_idx;
+                cur_extra_page_ = new_data;
+                store_relaxed(extra_pages_ + extra_page_idx, new_data);
             }
-            const auto new_data =
-                reinterpret_cast<IndexType*>(malloc(alloc_size));
-            store_relaxed(extra_pages_ + extra_page_idx, new_data);
+            store_release_local(get_next_block_ptr(new_block),
+                                invalid_index<IndexType>());
         }
         return new_block;
     }
