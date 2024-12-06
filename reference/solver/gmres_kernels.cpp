@@ -68,6 +68,18 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
+void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,            
+                    const matrix::Dense<ValueType>* sketched_krylov_bases,  
+                    matrix::Dense<ValueType>* hessenberg_iter,              
+                    matrix::Dense<ValueType>* d_hessenberg_iter,            
+                    matrix::Dense<ValueType>* sketch_next_krylov2,          
+                    size_type iter,                                         
+                    size_type k_rows)
+GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL);
+
+template <typename ValueType>
 void multi_axpy(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType>* krylov_bases,
                 const matrix::Dense<ValueType>* y,

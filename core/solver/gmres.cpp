@@ -38,6 +38,7 @@ namespace {
 GKO_REGISTER_OPERATION(initialize, common_gmres::initialize);
 GKO_REGISTER_OPERATION(restart, gmres::restart);
 GKO_REGISTER_OPERATION(restart_rgs, gmres::restart_rgs);
+GKO_REGISTER_OPERATION(richardson_lsq, gmres::richardson_lsq);
 GKO_REGISTER_OPERATION(hessenberg_qr, common_gmres::hessenberg_qr);
 GKO_REGISTER_OPERATION(solve_krylov, common_gmres::solve_krylov);
 GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
