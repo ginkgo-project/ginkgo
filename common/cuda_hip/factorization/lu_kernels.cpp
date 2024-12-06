@@ -406,6 +406,7 @@ struct double_buffered_frontier {
 
 struct symbolic_factorize_config {
     constexpr static bool skip_visited = false;
+    constexpr static bool debug = false;
 };
 
 
@@ -418,8 +419,6 @@ __global__ void symbolic_factorize_single_source(
 {
     __shared__ typename double_buffered_frontier<IndexType>::shared_storage
         frontier_storage;
-    __shared__ IndexType work_count;
-    __shared__ IndexType output_idx;
     __shared__ IndexType source_idx;
     const auto frontier = global_frontier + size * blockIdx.x;
     const auto new_frontier = global_new_frontier + size * blockIdx.x;
@@ -427,21 +426,25 @@ __global__ void symbolic_factorize_single_source(
     const auto fill = global_fill + size * blockIdx.x;
     if (threadIdx.x == 0) {
         source_idx = atomic_add(atomics, IndexType{1});
+        if constexpr (Config::debug) {
+            printf("block %d handling source %d\n", blockIdx.x,
+                   int(source_idx));
+        }
     }
     __syncthreads();
     IndexType source = source_idx;
     while (source < size) {
         double_buffered_frontier<IndexType> frontiers{frontier, new_frontier,
                                                       frontier_storage};
-        if (threadIdx.x == 0) {
-            work_count = 0;
-        }
         for (IndexType i = threadIdx.x; i < size; i += blockDim.x) {
             max_id[i] = device_numeric_limits<IndexType>::max;
         }
         __syncthreads();
         const auto output = [&](IndexType col) {
             const auto out_idx = atomic_add(atomics + 1, IndexType{1});
+            if constexpr (Config::debug) {
+                printf("%d: Output %d\n", int(source), int(col));
+            }
             out_rows[out_idx] = source;
             out_cols[out_idx] = col;
         };
@@ -462,12 +465,17 @@ __global__ void symbolic_factorize_single_source(
             max_id[col] = 0;
             output(col);
             if (col < source) {
+                if constexpr (Config::debug) {
+                    printf("%d: Queueing %d initially\n", int(source),
+                           int(col));
+                }
                 frontiers.add(col);
             }
         }
         auto frontier_size = frontiers.output_to_input();
         constexpr auto fine_size = config::warp_size;
         const auto coarse_size = blockDim.x / fine_size;
+        int frontier_number = 0;
         while (frontier_size > 0) {
             const auto coarse_id = threadIdx.x / fine_size;
             const auto fine_id = threadIdx.x % fine_size;
@@ -480,27 +488,62 @@ __global__ void symbolic_factorize_single_source(
                 for (auto neighbor_i = frontier_begin + fine_id;
                      neighbor_i < frontier_end; neighbor_i += fine_size) {
                     const auto neighbor = cols[neighbor_i];
+                    if constexpr (Config::debug) {
+                        printf("%d: Considering %d via %d\n", int(source),
+                               int(neighbor), int(frontier));
+                    }
                     if constexpr (Config::skip_visited) {
                         if (fill[neighbor] == source) {
                             continue;
                         }
                     }
-                    if (atomic_min(&max_id[neighbor], new_max_id) >
-                        new_max_id) {
+                    const auto min_result =
+                        atomic_min(&max_id[neighbor], new_max_id);
+                    if (min_result > new_max_id) {
                         if (neighbor > new_max_id) {
-                            if (atomic_max(&fill[neighbor], source) < source) {
+                            // fill is increasing monotonically
+                            const auto result =
+                                atomic_max(&fill[neighbor], source);
+                            if (result < source) {
                                 output(neighbor);
                             } else {
+                                if constexpr (Config::debug) {
+                                    printf(
+                                        "%d: Skipping %d via %d because it was "
+                                        "already output via %d\n",
+                                        int(source), int(neighbor),
+                                        int(frontier), int(result));
+                                }
                                 continue;
                             }
                         }
                         if (neighbor < source) {
+                            if constexpr (Config::debug) {
+                                printf("%d: Queueing %d via %d\n", int(source),
+                                       int(neighbor), int(frontier));
+                            }
                             frontiers.add(neighbor);
+                        }
+                    } else {
+                        if constexpr (Config::debug) {
+                            printf(
+                                "%d: Skipping %d via %d because it was already "
+                                "visited "
+                                "via %d\n",
+                                int(source), int(neighbor), int(frontier),
+                                int(min_result));
                         }
                     }
                 }
             }
             __syncthreads();
+            if (threadIdx.x == 0) {
+                if constexpr (Config::debug) {
+                    printf("%d: Finished queue %d\n", int(source),
+                           int(frontier_number));
+                }
+            }
+            frontier_number++;
             frontier_size = frontiers.output_to_input();
         }
         __syncthreads();
