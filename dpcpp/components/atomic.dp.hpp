@@ -278,6 +278,31 @@ __dpct_inline__ T atomic_max(T* __restrict__ addr, T val)
 }
 
 
+template <sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+__dpct_inline__ void store(
+    T* __restrict__ addr, T val,
+    sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
+{
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    obj.store(val, memoryOrder);
+}
+
+
+template <sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+__dpct_inline__ T load(T* __restrict__ addr, sycl::memory_order memoryOrder =
+                                                 sycl::memory_order::relaxed)
+{
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.load(memoryOrder);
+}
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

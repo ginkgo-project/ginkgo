@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "dpcpp/base/onedpl.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
 
 
 namespace gko {
@@ -23,6 +24,35 @@ namespace dpcpp {
  * @ingroup pgm
  */
 namespace pgm {
+
+
+template <typename IndexType>
+void match_edge(std::shared_ptr<const DefaultExecutor> exec,
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
+{
+    exec->get_queue()->submit([size = agg.get_size(), agg = agg.get_data(),
+                               strongest_neighbor =
+                                   strongest_neighbor.get_const_data()](
+                                  sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl::range<1>{static_cast<std::size_t>(size)},
+            [=](sycl::id<1> idx_id) {
+                auto tidx = static_cast<IndexType>(idx_id[0]);
+                if (load(agg + tidx, sycl::memory_order_relaxed) != -1) {
+                    return;
+                }
+                auto neighbor = strongest_neighbor[tidx];
+                if (neighbor != -1 && strongest_neighbor[neighbor] == tidx &&
+                    tidx <= neighbor) {
+                    store(agg + tidx, tidx, sycl::memory_order_relaxed);
+                    store(agg + neighbor, tidx, sycl::memory_order_relaxed);
+                }
+            });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>

@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "core/base/iterator_factory.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -24,6 +25,30 @@ namespace omp {
  * @ingroup pgm
  */
 namespace pgm {
+
+
+template <typename IndexType>
+void match_edge(std::shared_ptr<const DefaultExecutor> exec,
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
+{
+    auto agg_vals = agg.get_data();
+    auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
+#pragma omp parallel for
+    for (int64 i = 0; i < static_cast<int64>(agg.get_size()); i++) {
+        if (load(agg_vals + i) != -1) {
+            continue;
+        }
+        auto neighbor = strongest_neighbor_vals[i];
+        if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
+            i <= neighbor) {
+            store(agg_vals + i, i);
+            store(agg_vals + neighbor, i);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
