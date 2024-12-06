@@ -145,4 +145,5 @@ release/latest/oneapi:
     BUILD_SYCL: "ON"
     CXX_COMPILER: "icpx"
   tags:
-    - intel-gpus
+    - private_ci
+    - cpu
