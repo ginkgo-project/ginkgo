@@ -28,6 +28,7 @@
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+#include "ginkgo/core/log/profiler_hook.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/common_fixture.hpp"
 
@@ -251,6 +252,7 @@ TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
 
 TYPED_TEST(Lu, SymbolicLUDeviceWorks)
 {
+    this->exec->add_logger(gko::log::ProfilerHook::create_nested_summary());
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
