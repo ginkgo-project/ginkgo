@@ -138,7 +138,6 @@ release/latest/oneapi:
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - export CMAKE_PREFIX_PATH=/opt/rocm
     - apt update && apt install -y ninja-build
   variables:
     BUILD_TYPE: "Release"
