@@ -42,6 +42,16 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
+void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
+                 const matrix::Dense<_type>* residual,
+                 const matrix::Dense<remove_complex<_type>>* residual_norm,
+                 matrix::Dense<_type>* residual_norm_collection,
+                 matrix::Dense<_type>* krylov_bases,
+                 matrix::Dense<_type>* sketched_krylov_bases,
+                 size_type* final_iter_nums)
+GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
 void multi_axpy(std::shared_ptr<const ReferenceExecutor> exec,
