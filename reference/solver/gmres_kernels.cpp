@@ -49,14 +49,17 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::Dense<ValueType>* residual_norm_collection,
                  matrix::Dense<ValueType>* krylov_bases,
                  matrix::Dense<ValueType>* sketched_krylov_bases,
-                 size_type* final_iter_nums) 
+                 size_type* final_iter_nums, size_type k_rows) 
 {
-    // To edit
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         residual_norm_collection->at(0, j) = residual_norm->at(0, j);
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             krylov_bases->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
+        }        
+        for (size_type i = 0; i < k_rows; ++i) {
+            sketched_krylov_bases->at(i, j) =
+            sketched_krylov_bases->at(i, j) / residual_norm->at(0, j);
         }
         final_iter_nums[j] = 0;
     }
