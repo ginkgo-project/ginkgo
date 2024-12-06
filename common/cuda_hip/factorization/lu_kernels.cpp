@@ -404,12 +404,12 @@ struct double_buffered_frontier {
 };
 
 
-template <typename Config, typename ValueType, typename IndexType>
+template <typename Config, typename IndexType>
 class device_block_memory_pool {
     constexpr static auto block_size = Config::block_size;
 
 public:
-    constexpr device_block_memory_pool(ValueType* pool, IndexType* next_block,
+    constexpr device_block_memory_pool(IndexType* pool, IndexType* next_block,
                                        IndexType num_blocks,
                                        IndexType* block_counter)
         : pool_{pool},
@@ -420,7 +420,7 @@ public:
 
     struct block {
         IndexType id;
-        ValueType* data;
+        IndexType* data;
     };
 
     __device__ block get_block(IndexType block_id) const
@@ -469,7 +469,7 @@ public:
     }
 
 private:
-    ValueType* pool_;
+    IndexType* pool_;
     IndexType* next_block_;
     IndexType num_blocks_;
     IndexType* block_counter_;
@@ -477,12 +477,12 @@ private:
 
 
 // A linked list of blocks from a device_block_memory_pool
-template <typename Config, typename ValueType, typename IndexType>
+template <typename Config, typename IndexType>
 class threadblock_shared_block_list {
     constexpr static auto block_size = Config::block_size;
     static_assert((block_size & (block_size - 1)) == 0,
                   "block_size should be a power of two");
-    using pool_type = device_block_memory_pool<Config, ValueType, IndexType>;
+    using pool_type = device_block_memory_pool<Config, IndexType>;
     using block_type = typename pool_type::block;
 
 public:
@@ -506,7 +506,7 @@ public:
         current_block = pool_.get_block(first_block_id);
     }
 
-    __device__ void output(ValueType value)
+    __device__ void output(IndexType value)
     {
         const auto output_idx =
             atomic_add_relaxed_shared(&shared_.output_idx, 1);
@@ -558,7 +558,7 @@ private:
 };
 
 
-template <typename Config, typename ValueType, typename IndexType>
+template <typename Config, typename IndexType>
 class block_memory_pool {
     constexpr static auto block_size = Config::block_size;
     static_assert((block_size & (block_size - 1)) == 0,
@@ -584,7 +584,7 @@ public:
             invalid_index<IndexType>());
     }
 
-    device_block_memory_pool<Config, ValueType, IndexType> device_view()
+    device_block_memory_pool<Config, IndexType> device_view()
     {
         return {pool_.get_data(), next_block_.get_data(),
                 static_cast<IndexType>(pool_.get_size() / block_size),
@@ -616,10 +616,10 @@ public:
     }
 
 private:
-    array<ValueType> pool_;
+    array<IndexType> pool_;
     array<IndexType> next_block_;
     array<IndexType> counter_;
-    array<ValueType*> overflow_;
+    array<IndexType*> overflow_;
 };
 
 
@@ -636,10 +636,9 @@ __global__ void symbolic_factorize_gsofa(
     IndexType* atomics, IndexType* global_max_id, IndexType* global_fill,
     IndexType* global_frontier, IndexType* global_new_frontier,
     IndexType* out_row_sizes, IndexType* out_block_ids,
-    device_block_memory_pool<Config, IndexType, IndexType> pool)
+    device_block_memory_pool<Config, IndexType> pool)
 {
-    using block_list_type =
-        threadblock_shared_block_list<Config, IndexType, IndexType>;
+    using block_list_type = threadblock_shared_block_list<Config, IndexType>;
     __shared__ typename double_buffered_frontier<IndexType>::shared_storage
         frontier_storage;
     __shared__ typename block_list_type::shared_storage block_list_storage;
@@ -774,8 +773,7 @@ __global__ void symbolic_factorize_gsofa(
 template <typename Config, typename IndexType>
 __global__ void symbolic_factorize_collect_rows(
     const IndexType* row_ptrs, const IndexType* first_block_ids, IndexType size,
-    device_block_memory_pool<Config, IndexType, IndexType> pool,
-    IndexType* output)
+    device_block_memory_pool<Config, IndexType> pool, IndexType* output)
 {
     constexpr auto block_size = Config::block_size;
     const auto row = thread::get_subwarp_id_flat<block_size>();
@@ -812,7 +810,7 @@ void symbolic_factorize_general(std::shared_ptr<const DefaultExecutor> exec,
     components::fill_array(exec, fill_array.get_data(), size * num_blocks,
                            IndexType{});
     // TODO proper initial value for allocation
-    block_memory_pool<Config, IndexType, IndexType> pool{
+    block_memory_pool<Config, IndexType> pool{
         exec, static_cast<IndexType>(size * 32000 / Config::block_size)};
     components::fill_array(exec, atomic_array.get_data(),
                            atomic_array.get_size(), IndexType{});
