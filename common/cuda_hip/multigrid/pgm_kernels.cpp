@@ -17,6 +17,8 @@
 
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/memory.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 namespace gko {
@@ -28,6 +30,44 @@ namespace GKO_DEVICE_NAMESPACE {
  * @ingroup pgm
  */
 namespace pgm {
+namespace kernels {
+
+
+template <typename IndexType>
+__global__ void match_edge(size_type size,
+                           const IndexType* __restrict__ strongest_neighbor,
+                           IndexType* __restrict__ agg)
+{
+    auto tidx = static_cast<IndexType>(thread::get_thread_id_flat<int64>());
+    if (tidx >= size || load_relaxed(agg + tidx) != -1) {
+        return;
+    }
+    auto neighbor = strongest_neighbor[tidx];
+    if (neighbor != -1 && strongest_neighbor[neighbor] == tidx &&
+        tidx <= neighbor) {
+        store_relaxed(agg + tidx, tidx);
+        store_relaxed(agg + neighbor, tidx);
+    }
+}
+
+
+}  // namespace kernels
+
+
+template <typename IndexType>
+void match_edge(std::shared_ptr<const DefaultExecutor> exec,
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
+{
+    constexpr int default_block_size = 512;
+    auto num_blocks = ceildiv(agg.get_size(), default_block_size);
+    kernels::
+        match_edge<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+            agg.get_size(), strongest_neighbor.get_const_data(),
+            agg.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>

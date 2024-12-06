@@ -100,6 +100,18 @@ inline void store(float* addr, float val)
     *addr = val;
 }
 
+inline void store(int32* addr, int32 val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
+inline void store(int64* addr, int64 val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
 inline void store(half* addr, half val)
 {
     auto uint_addr = copy_cast<uint16_t*>(addr);
@@ -129,6 +141,22 @@ inline float load(float* addr)
 inline double load(double* addr)
 {
     double val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline int32 load(int32* addr)
+{
+    float val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline int64 load(int64* addr)
+{
+    float val;
 #pragma omp atomic read
     val = *addr;
     return val;

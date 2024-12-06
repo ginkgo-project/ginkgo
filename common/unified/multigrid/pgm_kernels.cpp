@@ -24,31 +24,6 @@ namespace pgm {
 
 
 template <typename IndexType>
-void match_edge(std::shared_ptr<const DefaultExecutor> exec,
-                const array<IndexType>& strongest_neighbor,
-                array<IndexType>& agg)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto strongest_neighbor_vals, auto agg_vals) {
-            if (agg_vals[tidx] != -1) {
-                return;
-            }
-            auto neighbor = strongest_neighbor_vals[tidx];
-            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx &&
-                tidx <= neighbor) {
-                // Use the smaller index as agg point
-                agg_vals[tidx] = tidx;
-                agg_vals[neighbor] = tidx;
-            }
-        },
-        agg.get_size(), strongest_neighbor.get_const_data(), agg.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
-
-
-template <typename IndexType>
 void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
                  const array<IndexType>& agg, IndexType* num_unagg)
 {
