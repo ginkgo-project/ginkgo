@@ -38,6 +38,15 @@ namespace gmres {
                      size_type* final_iter_nums,                                \
                      size_type k_rows)
 
+#define GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(_type)                          \
+    void richardson_lsq(std::shared_ptr<const DefaultExecutor> exec,            \
+                        const matrix::Dense<_type>* sketched_krylov_bases,      \
+                        matrix::Dense<_type>* hessenberg_iter,                  \
+                        matrix::Dense<_type>* d_hessenberg_iter,                \
+                        matrix::Dense<_type>* sketch_next_krylov2,              \
+                        size_type iter,                                         \
+                        size_type k_rows)
+
 #define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)               \
     void multi_axpy(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::Dense<_type>* krylov_bases,    \
@@ -59,6 +68,8 @@ namespace gmres {
     GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
     template <typename ValueType>                   \
     GKO_DECLARE_GMRES_RESTART_RGS_KERNEL(ValueType);\
+    template <typename ValueType>                      \
+    GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(ValueType);\
     template <typename ValueType>                   \
     GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
     template <typename ValueType>                   \
