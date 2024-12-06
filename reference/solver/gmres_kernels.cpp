@@ -49,8 +49,18 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::Dense<ValueType>* residual_norm_collection,
                  matrix::Dense<ValueType>* krylov_bases,
                  matrix::Dense<ValueType>* sketched_krylov_bases,
-                 size_type* final_iter_nums)
-GKO_NOT_IMPLEMENTED;
+                 size_type* final_iter_nums) 
+{
+    // To edit
+    for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        residual_norm_collection->at(0, j) = residual_norm->at(0, j);
+        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
+            krylov_bases->at(i, j) =
+                residual->at(i, j) / residual_norm->at(0, j);
+        }
+        final_iter_nums[j] = 0;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
