@@ -58,12 +58,13 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
+template <typename ValueType>
 void restart_rgs(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Dense<_type>* residual,
-                 const matrix::Dense<remove_complex<_type>>* residual_norm,
-                 matrix::Dense<_type>* residual_norm_collection,
-                 matrix::Dense<_type>* krylov_bases,
-                 matrix::Dense<_type>* sketched_krylov_bases,
+                 const matrix::Dense<ValueType>* residual,
+                 const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                 matrix::Dense<ValueType>* residual_norm_collection,
+                 matrix::Dense<ValueType>* krylov_bases,
+                 matrix::Dense<ValueType>* sketched_krylov_bases,
                  size_type* final_iter_nums)
 GKO_NOT_IMPLEMENTED;
 
