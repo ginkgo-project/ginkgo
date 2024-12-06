@@ -465,7 +465,7 @@ public:
 
     __device__ IndexType alloc()
     {
-        return atomic_add_relaxed_local(block_counter_, 1);
+        return atomic_add_relaxed(block_counter_, 1);
     }
 
 private:
