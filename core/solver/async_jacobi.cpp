@@ -1,15 +1,12 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
-
-#include <ginkgo/core/solver/async_jacobi.hpp>
-
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/async_jacobi.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/solver/async_jacobi_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -228,8 +225,9 @@ std::vector<int> workspace_traits<AsyncJacobi<ValueType, IndexType>>::vectors(
     class AsyncJacobi<_vtype, _itype>
 #define GKO_DECLARE_ASYNC_JACOBI_TRAITS(_vtype, _itype) \
     struct workspace_traits<AsyncJacobi<_vtype, _itype>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_JACOBI);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_JACOBI_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_ASYNC_JACOBI);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_ASYNC_JACOBI_TRAITS);
 
 
 }  // namespace solver

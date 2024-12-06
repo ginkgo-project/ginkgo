@@ -1,13 +1,11 @@
-// SPDX-FileCopyrightText: 2017-2023 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/async_jacobi_kernels.hpp"
 
-
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
@@ -103,7 +101,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_ASYNC_JACOBI_APPLY_KERNEL);
 
 
