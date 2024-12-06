@@ -4,7 +4,7 @@
 
 #include "core/factorization/lu_kernels.hpp"
 
-#include <algorithm>
+#include <cstring>
 #include <memory>
 
 #include <thrust/copy.h>
@@ -21,9 +21,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/syncfree.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
-#include "core/base/allocator.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
@@ -404,6 +402,46 @@ struct double_buffered_frontier {
 };
 
 
+using gko::kernels::GKO_DEVICE_NAMESPACE::load_relaxed;
+using gko::kernels::GKO_DEVICE_NAMESPACE::load_relaxed_local;
+using gko::kernels::GKO_DEVICE_NAMESPACE::store_relaxed;
+
+
+template <typename IndexType>
+__device__ IndexType* load_relaxed_local(IndexType* const* ptr)
+{
+    static_assert(sizeof(IndexType*) == sizeof(uint64), "invalid pointer size");
+    const auto uint_ptr = reinterpret_cast<const uint64*>(&ptr);
+    auto uint_result = load_relaxed_local(uint_ptr);
+    IndexType* ptr_result{};
+    memcpy(&ptr_result, &uint_result, sizeof(uint64));
+    return ptr_result;
+}
+
+
+template <typename IndexType>
+__device__ IndexType* load_relaxed(IndexType* const* ptr)
+{
+    static_assert(sizeof(IndexType*) == sizeof(uint64), "invalid pointer size");
+    const auto uint_ptr = reinterpret_cast<const uint64*>(&ptr);
+    auto uint_result = load_relaxed(uint_ptr);
+    IndexType* ptr_result{};
+    memcpy(&ptr_result, &uint_result, sizeof(uint64));
+    return ptr_result;
+}
+
+
+template <typename IndexType>
+__device__ void store_relaxed(IndexType** ptr, IndexType* value)
+{
+    static_assert(sizeof(IndexType*) == sizeof(uint64), "invalid pointer size");
+    const auto uint_ptr = reinterpret_cast<uint64*>(&ptr);
+    uint64 uint_val{};
+    memcpy(&uint_val, &value, sizeof(uint64));
+    store_relaxed(uint_ptr, uint_val);
+}
+
+
 template <typename Config, typename IndexType>
 class device_block_memory_pool {
     constexpr static auto block_size = Config::block_size;
@@ -411,11 +449,16 @@ class device_block_memory_pool {
 public:
     constexpr device_block_memory_pool(IndexType* pool, IndexType* next_block,
                                        IndexType num_blocks,
+                                       IndexType** extra_pages,
+                                       IndexType max_num_extra_pages,
                                        IndexType* block_counter)
         : pool_{pool},
           next_block_{next_block},
           num_blocks_{num_blocks},
-          block_counter_{block_counter}
+          block_counter_{block_counter},
+          cur_extra_page_idx_{invalid_index<IndexType>()},
+          cur_extra_page_{nullptr},
+          max_num_extra_pages_{max_num_extra_pages}
     {}
 
     struct block {
@@ -425,54 +468,134 @@ public:
 
     __device__ block get_block(IndexType block_id) const
     {
-        assert(block_id >= 0);
-        assert(block_id < num_blocks_);
-        return block{block_id, pool_ + block_id * block_size};
+        return block{block_id, get_block_data_ptr(block_id)};
     }
 
     // write a block successor with a threadblock-local atomic release store
     __device__ void set_next_block_release(IndexType block_id,
                                            IndexType next_block)
     {
-        assert(block_id >= 0);
-        assert(block_id < num_blocks_);
-        assert(next_block >= 0);
-        assert(next_block < num_blocks_);
+        check_block_id(next_block);
         // TOCTOU issue, but fixing it would require a CAS, so we don't care
         // since it's just an assertion that just might accidentally not fail
         // when it should be failing if next_block[block_id] gets updated
         // between this and the following statement.
-        assert(load_relaxed_local(next_block_ + block_id) ==
+        assert(load_relaxed_local(get_next_block_ptr(block_id)) ==
                invalid_index<IndexType>());
-        store_release_local(next_block_ + block_id, next_block);
+        store_release_local(get_next_block_ptr(block_id), next_block);
     }
 
     // read a block successor with a threadblock-local atomic acquire load
     __device__ IndexType get_next_block_acquire(IndexType block_id) const
     {
-        assert(block_id >= 0);
-        assert(block_id < num_blocks_);
-        return load_acquire_local(next_block_ + block_id);
+        return load_acquire_local(get_next_block_ptr(block_id));
     }
 
     // read a block successor with a non-atomic load
     __device__ IndexType get_next_block(IndexType block_id) const
     {
-        assert(block_id >= 0);
-        assert(block_id < num_blocks_);
-        return next_block_[block_id];
+        return *get_next_block_ptr(block_id);
     }
 
     __device__ IndexType alloc()
     {
-        return atomic_add_relaxed(block_counter_, 1);
+        const auto new_block = atomic_add_relaxed(block_counter_, 1);
+        if constexpr (Config::debug_pool) {
+            printf("device_block_memory_pool: Allocated block %d\n",
+                   int(new_block));
+        }
+        if (new_block > num_blocks_ && new_block % num_blocks_ == 0) {
+            const auto extra_page_idx = (new_block - num_blocks_) / num_blocks_;
+            assert(extra_page_idx >= 0);
+            assert(extra_page_idx < max_num_extra_pages_);
+            const auto alloc_size =
+                sizeof(IndexType) * (num_blocks_ + num_blocks_ * block_size);
+            if constexpr (Config::debug_pool) {
+                printf(
+                    "device_block_memory_pool: Out of memory in existing page, "
+                    "allocating new page %d of size %d\n",
+                    int(extra_page_idx), int(alloc_size));
+            }
+            const auto new_data =
+                reinterpret_cast<IndexType*>(malloc(alloc_size));
+            store_relaxed(extra_pages_ + extra_page_idx, new_data);
+        }
+        return new_block;
     }
 
 private:
+    __device__ void check_block_id(IndexType block_id) const
+    {
+        assert(block_id >= 0);
+        // this is mostly unproblematic because we only call get_next_block
+        // after it already has been allocated. The only issue might be with
+        // relaxed memory ordering, since we rely on another atomic value
+        // (next_block) that was updated after this atomic.
+        assert(block_id < load_relaxed(block_counter_));
+    }
+
+    __device__ IndexType* get_page_ptr(IndexType extra_page_idx) const
+    {
+        assert(extra_page_idx >= 0);
+        assert(extra_page_idx < max_num_extra_pages_);
+        if (extra_page_idx != cur_extra_page_idx_) {
+            static_assert(sizeof(uint64) == sizeof(IndexType*),
+                          "can't use 64 bit atomics for pointers");
+            const auto ptr = extra_pages_ + extra_page_idx;
+            if constexpr (Config::debug_pool) {
+                printf("device_block_memory_pool: Need to load a new page %d\n",
+                       int(extra_page_idx));
+            }
+            // try to load from L1 cache first
+            auto extra_page_ptr = load_relaxed_local(ptr);
+            // wait for the page to be allocated
+            while (extra_page_ptr == nullptr) {
+                // TODO maybe nanosleep
+                extra_page_ptr = load_relaxed(ptr);
+            }
+            if constexpr (Config::debug_pool) {
+                printf("device_block_memory_pool: Loaded new page %d\n",
+                       int(extra_page_idx));
+            }
+            cur_extra_page_idx_ = extra_page_idx;
+            cur_extra_page_ = extra_page_ptr;
+        }
+        return cur_extra_page_;
+    }
+
+    __device__ IndexType* get_next_block_ptr(IndexType block_id) const
+    {
+        check_block_id(block_id);
+        if (block_id < num_blocks_) {
+            return next_block_ + block_id;
+        }
+        const auto extra_page_idx = (block_id - num_blocks_) / num_blocks_;
+        const auto local_idx = (block_id - num_blocks_) % num_blocks_;
+        return get_page_ptr(extra_page_idx) + local_idx;
+    }
+
+    __device__ IndexType* get_block_data_ptr(IndexType block_id) const
+    {
+        check_block_id(block_id);
+        if (block_id < num_blocks_) {
+            return pool_ + block_id * block_size;
+        }
+        const auto extra_page_idx = (block_id - num_blocks_) / num_blocks_;
+        const auto local_idx = (block_id - num_blocks_) % num_blocks_;
+        // the first num_blocks_ entries contain metadata (next_ptr)
+        const auto base_ptr = get_page_ptr(extra_page_idx) + num_blocks_;
+        return base_ptr + local_idx * block_size;
+    }
+
     IndexType* pool_;
     IndexType* next_block_;
     IndexType num_blocks_;
     IndexType* block_counter_;
+    IndexType** extra_pages_;
+    // caching the result from the atomic load
+    mutable IndexType cur_extra_page_idx_;
+    mutable IndexType* cur_extra_page_;
+    IndexType max_num_extra_pages_;
 };
 
 
@@ -569,15 +692,17 @@ class block_memory_pool {
 
 public:
     explicit block_memory_pool(std::shared_ptr<const DefaultExecutor> exec,
-                               IndexType num_blocks)
+                               IndexType num_blocks,
+                               IndexType max_num_extra_pages)
         : pool_{exec, static_cast<size_type>(num_blocks * block_size)},
           next_block_{exec, static_cast<size_type>(num_blocks)},
           counter_{exec, 1},
-          overflow_{exec, 0}
+          extra_pages_{exec, static_cast<size_type>(max_num_extra_pages)}
     {
         // initialize overflow array to nullptr
-        thrust::uninitialized_fill_n(thrust_policy(exec), overflow_.get_data(),
-                                     overflow_.get_size(), nullptr);
+        thrust::uninitialized_fill_n(thrust_policy(exec),
+                                     extra_pages_.get_data(),
+                                     extra_pages_.get_size(), nullptr);
         // initialize counters to zero
         thrust::uninitialized_fill_n(thrust_policy(exec), counter_.get_data(),
                                      counter_.get_size(), 0);
@@ -589,8 +714,11 @@ public:
 
     device_block_memory_pool<Config, IndexType> device_view()
     {
-        return {pool_.get_data(), next_block_.get_data(),
+        return {pool_.get_data(),
+                next_block_.get_data(),
                 static_cast<IndexType>(pool_.get_size() / block_size),
+                extra_pages_.get_data(),
+                static_cast<IndexType>(extra_pages_.get_size()),
                 counter_.get_data()};
     }
 
@@ -602,18 +730,19 @@ public:
 
     block_memory_pool& operator=(const block_memory_pool&) = delete;
 
-    ~block_memory_pool() { free_overflow(); }
+    ~block_memory_pool() { free_extra_pages(); }
 
-    void free_overflow()
+    void free_extra_pages()
     {
         // delete all allocated overflow entries
         thrust::for_each_n(
             thrust_policy(std::static_pointer_cast<const DefaultExecutor>(
-                overflow_.get_executor())),
-            overflow_.get_const_data(), overflow_.get_size(),
-            [] __device__(ValueType * ptr) {
+                extra_pages_.get_executor())),
+            extra_pages_.get_data(), extra_pages_.get_size(),
+            [] __device__(auto& ptr) {
                 if (ptr) {
                     free(ptr);
+                    ptr = nullptr;
                 }
             });
     }
@@ -622,7 +751,7 @@ private:
     array<IndexType> pool_;
     array<IndexType> next_block_;
     array<IndexType> counter_;
-    array<IndexType*> overflow_;
+    array<IndexType*> extra_pages_;
 };
 
 
@@ -816,7 +945,7 @@ void symbolic_factorize_general(std::shared_ptr<const DefaultExecutor> exec,
                            IndexType{});
     // TODO proper initial value for allocation
     block_memory_pool<Config, IndexType> pool{
-        exec, static_cast<IndexType>(size * 32000 / Config::block_size)};
+        exec, static_cast<IndexType>(size * 100 / Config::block_size), 1024};
     components::fill_array(exec, atomic_array.get_data(),
                            atomic_array.get_size(), IndexType{});
     constexpr auto threadblock_size = 1024;
