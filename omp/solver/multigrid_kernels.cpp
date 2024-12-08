@@ -84,9 +84,10 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
                        const ValueType rel_tol, bool& is_stop)
 {
     is_stop = true;
-#pragma omp parallel for
+#pragma omp parallel for shared(is_stop)
     for (size_type i = 0; i < old_norm->get_size()[1]; i++) {
         if (new_norm->at(0, i) > rel_tol * old_norm->at(0, i)) {
+#pragma omp atomic write
             is_stop = false;
         }
     }

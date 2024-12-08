@@ -52,7 +52,7 @@ inline ResultType copy_cast(const ValueType& val)
 
 
 template <>
-void atomic_add(half& out, half val)
+inline void atomic_add(half& out, half val)
 {
 #ifdef __NVCOMPILER
 // NVC++ uses atomic capture on uint16 leads the following error.
@@ -82,6 +82,100 @@ void atomic_add(half& out, half val)
         }
     } while (assumed != old);
 #endif
+}
+
+
+// There is an error in Clang 17 which prevents us from merging the
+// implementation of double and float. The compiler will throw an error if the
+// templated version is implemented. GCC doesn't throw an error.
+inline void store(double* addr, double val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
+inline void store(float* addr, float val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
+inline void store(int32* addr, int32 val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
+inline void store(int64* addr, int64 val)
+{
+#pragma omp atomic write
+    *addr = val;
+}
+
+inline void store(half* addr, half val)
+{
+    auto uint_addr = copy_cast<uint16_t*>(addr);
+    auto uint_val = copy_cast<uint16_t>(val);
+#pragma omp atomic write
+    *uint_addr = uint_val;
+}
+
+template <typename T>
+inline void store(std::complex<T>* addr, std::complex<T> val)
+{
+    auto values = reinterpret_cast<T*>(addr);
+    store(values + 0, real(val));
+    store(values + 1, imag(val));
+}
+
+
+// Same issue as with the store_helper
+inline float load(float* addr)
+{
+    float val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline double load(double* addr)
+{
+    double val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline int32 load(int32* addr)
+{
+    float val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline int64 load(int64* addr)
+{
+    float val;
+#pragma omp atomic read
+    val = *addr;
+    return val;
+}
+
+inline half load(half* addr)
+{
+    uint16_t uint_val;
+    auto uint_addr = copy_cast<uint16_t*>(addr);
+#pragma omp atomic read
+    uint_val = *uint_addr;
+    return copy_cast<half>(uint_val);
+}
+
+template <typename T>
+inline std::complex<T> load(std::complex<T>* addr)
+{
+    auto values = reinterpret_cast<T*>(addr);
+    return {load(values + 0), load(values + 1)};
 }
 
 

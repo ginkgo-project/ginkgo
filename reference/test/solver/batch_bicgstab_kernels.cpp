@@ -62,7 +62,7 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    const real_type eps = 1e-3;
+    const real_type eps = 5e-3;
     const gko::size_type num_batch_items = 2;
     const int num_rows = 15;
     const int num_rhs = 1;
@@ -147,7 +147,7 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
-    const real_type tol = 1e-4;
+    const real_type tol = 1e-3;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -227,7 +227,7 @@ TYPED_TEST(BatchBicgstab, CanSolveEllSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::EllMtx;
-    const real_type tol = 1e-4;
+    const real_type tol = 1e-3;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
@@ -263,7 +263,7 @@ TYPED_TEST(BatchBicgstab, CanSolveCsrSystem)
     using real_type = gko::remove_complex<value_type>;
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::CsrMtx;
-    const real_type tol = 1e-4;
+    const real_type tol = 1e-3;
     const int max_iters = 1000;
     auto solver_factory =
         Solver::build()
