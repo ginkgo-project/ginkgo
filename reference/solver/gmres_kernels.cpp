@@ -72,7 +72,7 @@ void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType>* sketched_krylov_bases,  
                     matrix::Dense<ValueType>* hessenberg_iter,              
                     matrix::Dense<ValueType>* d_hessenberg_iter,            
-                    matrix::Dense<ValueType>* sketch_next_krylov2,          
+                    matrix::Dense<ValueType>* sketched_next_krylov2,          
                     size_type iter,                                         
                     size_type k_rows)
 {
@@ -80,7 +80,7 @@ void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
     // iter = hessenberg_iter.get_size()[0] - 1;
     for (size_type k = 0; k < num_rhs; k++) {
         for (size_type j = 0; j < k_rows ; j++) 
-            sketch_next_krylov2->at(j, k) = sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
+            sketched_next_krylov2->at(j, k) = sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
     }
     for (size_type ell = 0; ell < 5; ell++) {
         for (size_type i = 0; i <= iter; i++) {
@@ -88,14 +88,14 @@ void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
                 d_hessenberg_iter->at(i, k) = zero<ValueType>();
                 for (size_type j = 0; j < k_rows; j++){
                     d_hessenberg_iter->at(i, k) += sketched_krylov_bases->at(j + i * k_rows, k) 
-                        * sketch_next_krylov2->at(j, k);
+                        * sketched_next_krylov2->at(j, k);
                 }
             }
         }
         for (size_type i = 0; i <= iter; i++) {
             for (size_type k = 0; k < num_rhs; k++) {
                 for (size_type j = 0; j < k_rows; j++){
-                    sketch_next_krylov2->at(j, k) -= sketched_krylov_bases->at(j + i * k_rows, k) 
+                    sketched_next_krylov2->at(j, k) -= sketched_krylov_bases->at(j + i * k_rows, k) 
                         * d_hessenberg_iter->at(i, k);
                 }
                 hessenberg_iter->at(i, k) += d_hessenberg_iter->at(i, k);
