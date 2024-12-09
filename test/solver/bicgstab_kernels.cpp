@@ -4,12 +4,9 @@
 
 #include "core/solver/bicgstab_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -20,10 +17,9 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Bicgstab : public CommonTestFixture {
@@ -176,7 +172,7 @@ TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
         ref, b.get(), r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(),
         v.get(), p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
         gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::initialize(
         exec, d_b.get(), d_r.get(), d_rr.get(), d_y.get(), d_s.get(), d_t.get(),
         d_z.get(), d_v.get(), d_p.get(), d_prev_rho.get(), d_rho.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
@@ -207,7 +203,7 @@ TEST_F(Bicgstab, BicgstabStep1IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_1(
         ref, r.get(), p.get(), v.get(), rho.get(), prev_rho.get(), alpha.get(),
         omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_1(
         exec, d_r.get(), d_p.get(), d_v.get(), d_rho.get(), d_prev_rho.get(),
         d_alpha.get(), d_omega.get(), d_stop_status.get());
 
@@ -222,7 +218,7 @@ TEST_F(Bicgstab, BicgstabStep2IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_2(ref, r.get(), s.get(), v.get(),
                                               rho.get(), alpha.get(),
                                               beta.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_2(
         exec, d_r.get(), d_s.get(), d_v.get(), d_rho.get(), d_alpha.get(),
         d_beta.get(), d_stop_status.get());
 
@@ -238,7 +234,7 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_3(
         ref, x.get(), r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
         beta.get(), gamma.get(), omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::bicgstab::step_3(
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_3(
         exec, d_x.get(), d_r.get(), d_s.get(), d_t.get(), d_y.get(), d_z.get(),
         d_alpha.get(), d_beta.get(), d_gamma.get(), d_omega.get(),
         d_stop_status.get());
@@ -246,6 +242,48 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_omega, omega, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
+}
+
+
+TEST_F(Bicgstab, BicgstabFinalizeIsEquivalentToRefWithoutRaceCondition)
+{
+    /**
+     * This test is designed to detect the following problem. Originally, we
+     * assigned threads per value to update the value and the stop status if the
+     * stop status is stopped but not finished yet. However, it leads to race
+     * conditions. If all threads see stop status before the update, all values
+     * will be correctly updated. It is also possible that some threads already
+     * finalize the stop status, but the rest see the stop status as finalized
+     * such that they will not update the value. We make this test case large to
+     * trigger this race condition more easily. However, it is not guaranteed to
+     * fail with the old version because of race conditions.
+     */
+    int m = 1e6;
+    int n = 2;
+    x = gen_mtx(m, n, n);
+    y = gen_mtx(m, n, n);
+    alpha = gen_mtx(1, n, n);
+    d_x = x->clone(exec);
+    d_y = y->clone(exec);
+    d_alpha = alpha->clone(exec);
+    stop_status = std::make_unique<gko::array<gko::stopping_status>>(ref, n);
+    for (size_t i = 0; i < n; ++i) {
+        stop_status->get_data()[i].reset();
+    }
+    // check correct handling for stopped columns
+    stop_status->get_data()[1].stop(1);
+    // finalize only update the stopped one but not finished yet
+    stop_status->get_data()[0].stop(1, false);
+    d_stop_status =
+        std::make_unique<gko::array<gko::stopping_status>>(exec, *stop_status);
+
+    gko::kernels::reference::bicgstab::finalize(ref, x.get(), y.get(),
+                                                alpha.get(), stop_status.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::finalize(
+        exec, d_x.get(), d_y.get(), d_alpha.get(), d_stop_status.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 

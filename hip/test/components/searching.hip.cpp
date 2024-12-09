@@ -2,28 +2,24 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// force-top: on
+// clang-format off
 // TODO remove when the HIP includes are fixed
 #include <hip/hip_runtime.h>
-// force-top: off
+// clang-format on
 
 
-#include "hip/components/searching.hip.hpp"
-
+#include "common/cuda_hip/components/searching.hpp"
 
 #include <memory>
 #include <numeric>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "hip/components/cooperative_groups.hip.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

@@ -5,9 +5,14 @@ set(gko_test_option_args "NO_RESOURCES;NO_GTEST_MAIN")
 
 ## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
+    cmake_parse_arguments(PARSE_ARGV 2 build_test_name "" "${gko_test_single_args}" "")
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+    set(test_binary_name ${test_name})
+    if (build_test_name_EXECUTABLE_NAME)
+        set(test_binary_name ${build_test_name_EXECUTABLE_NAME})
+    endif()
+    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_binary_name}")
     set(${target_name} ${TEST_TARGET_NAME} PARENT_SCOPE)
 endfunction()
 
@@ -34,11 +39,10 @@ function(ginkgo_set_test_target_properties test_target_name test_library_suffix)
             target_link_libraries(${test_target_name} PRIVATE ginkgo_gtest_main${test_library_suffix})
         endif()
     endif()
-    target_compile_features(${test_target_name} PUBLIC cxx_std_14)
     # we set these properties regardless of the enabled backends,
     # because unknown properties are ignored
-    set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 14)
-    set_target_properties(${test_target_name} PROPERTIES CUDA_STANDARD 14)
+    set_target_properties(${test_target_name} PROPERTIES HIP_STANDARD 17)
+    set_target_properties(${test_target_name} PROPERTIES CUDA_STANDARD 17)
     target_include_directories(${test_target_name} PRIVATE ${Ginkgo_BINARY_DIR} ${set_properties_ADDITIONAL_INCLUDES})
     target_link_libraries(${test_target_name} PRIVATE ginkgo GTest::GTest ${set_properties_ADDITIONAL_LIBRARIES})
 endfunction()
@@ -128,7 +132,7 @@ endfunction()
 
 ## Normal test
 function(ginkgo_create_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.cpp)
     target_link_libraries(${test_target_name})
     ginkgo_set_test_target_properties(${test_target_name} "_cpu" ${ARGN})
@@ -137,9 +141,8 @@ endfunction(ginkgo_create_test)
 
 ## Test compiled with dpcpp
 function(ginkgo_create_dpcpp_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.dp.cpp)
-    target_compile_features(${test_target_name} PUBLIC cxx_std_17)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
     gko_add_sycl_to_target(TARGET ${test_target_name} SOURCES ${test_name}.dp.cpp)
     target_link_options(${test_target_name} PRIVATE -fsycl-device-code-split=per_kernel)
@@ -153,14 +156,17 @@ endfunction(ginkgo_create_dpcpp_test)
 
 ## Test compiled with CUDA
 function(ginkgo_create_cuda_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_cuda_test_internal(${test_name} ${test_name}.cu ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_cuda_test)
 
 ## Internal function allowing separate test name, filename and target name
 function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     add_executable(${test_target_name} ${filename})
-    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA GKO_DEVICE_NAMESPACE=cuda)
+    if(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE)
+        target_compile_definitions(${test_target_name} PRIVATE THRUST_CUB_WRAPPED_NAMESPACE=gko)
+    endif()
     if(MSVC)
         target_compile_options(${test_target_name}
             PRIVATE
@@ -170,17 +176,13 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda --expt-relaxed-constexpr>)
     endif()
-    # we handle CUDA architecture flags for now, disable CMake handling
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-        set_target_properties(${test_target_name} PROPERTIES CUDA_ARCHITECTURES OFF)
-    endif()
     ginkgo_set_test_target_properties(${test_target_name} "_cuda" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cudagpu)
 endfunction(ginkgo_create_cuda_test_internal)
 
 ## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_hip_test)
 
@@ -188,7 +190,10 @@ endfunction(ginkgo_create_hip_test)
 function(ginkgo_create_hip_test_internal test_name filename test_target_name)
     set_source_files_properties(${filename} PROPERTIES LANGUAGE HIP)
     add_executable(${test_target_name} ${filename})
-    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_HIP)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_HIP GKO_DEVICE_NAMESPACE=hip)
+    if(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE)
+        target_compile_definitions(${test_target_name} PRIVATE THRUST_CUB_WRAPPED_NAMESPACE=gko)
+    endif()
     ginkgo_set_test_target_properties(${test_target_name} "_hip" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE hipgpu)
 endfunction(ginkgo_create_hip_test_internal)
@@ -196,14 +201,14 @@ endfunction(ginkgo_create_hip_test_internal)
 
 ## Test compiled with OpenMP
 function(ginkgo_create_omp_test test_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     ginkgo_create_omp_test_internal(${test_name} ${test_name}.cpp ${test_target_name} "" ${ARGN})
 endfunction()
 
 function(ginkgo_create_omp_test_internal test_name filename test_target_name)
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.cpp)
-    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_OMP)
+    target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_OMP GKO_DEVICE_NAMESPACE=omp)
     target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
     ginkgo_set_test_target_properties(${test_target_name} "_omp" ${ARGN})
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cpu)
@@ -241,7 +246,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
     else ()
         set(test_resource_type sycl)
     endif ()
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     string(TOUPPER ${exec} exec_upper)
 
     # set up actual test
@@ -253,7 +258,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         target_link_libraries(${test_target_name} PRIVATE OpenMP::OpenMP_CXX)
     endif ()
 
-    target_compile_definitions(${test_target_name} PRIVATE EXEC_TYPE=${exec_type} EXEC_NAMESPACE=${exec} GKO_COMPILING_${exec_upper})
+    target_compile_definitions(${test_target_name} PRIVATE EXEC_TYPE=${exec_type} GKO_DEVICE_NAMESPACE=${exec} GKO_COMPILING_${exec_upper})
     target_link_libraries(${test_target_name} PRIVATE ${common_test_ADDITIONAL_LIBRARIES})
     # use float for DPC++ if necessary
     if((exec STREQUAL "dpcpp") AND GINKGO_DPCPP_SINGLE_MODE)
@@ -267,10 +272,9 @@ endfunction(ginkgo_create_common_test_internal)
 ## Common test compiled with the device compiler, one target for each enabled backend
 function(ginkgo_create_common_device_test test_name)
     cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
-    ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     if(GINKGO_BUILD_SYCL)
         ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
-        target_compile_features(${test_target_name}_dpcpp PRIVATE cxx_std_17)
         target_compile_options(${test_target_name}_dpcpp PRIVATE ${GINKGO_DPCPP_FLAGS})
         # We need to use a new file to avoid sycl setting in other backends because add_sycl_to_target will change the source property.
         configure_file(${test_name}.cpp ${test_name}.dp.cpp COPYONLY)
@@ -285,13 +289,13 @@ function(ginkgo_create_common_device_test test_name)
         # need to make a separate file for this, since we can't set conflicting properties on the same file
         configure_file(${test_name}.cpp ${test_name}.cu COPYONLY)
         ginkgo_create_cuda_test_internal(${test_name}_cuda ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.cu ${test_target_name}_cuda ${ARGN})
-        target_compile_definitions(${test_target_name}_cuda PRIVATE EXEC_TYPE=CudaExecutor EXEC_NAMESPACE=cuda)
+        target_compile_definitions(${test_target_name}_cuda PRIVATE EXEC_TYPE=CudaExecutor GKO_DEVICE_NAMESPACE=cuda)
     endif()
     if(GINKGO_BUILD_HIP)
         # need to make a separate file for this, since we can't set conflicting properties on the same file
         configure_file(${test_name}.cpp ${test_name}.hip.cpp COPYONLY)
         ginkgo_create_hip_test_internal(${test_name}_hip ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp ${test_target_name}_hip ${ARGN})
-        target_compile_definitions(${test_target_name}_hip PRIVATE EXEC_TYPE=HipExecutor EXEC_NAMESPACE=hip)
+        target_compile_definitions(${test_target_name}_hip PRIVATE EXEC_TYPE=HipExecutor GKO_DEVICE_NAMESPACE=hip)
     endif()
 endfunction(ginkgo_create_common_device_test)
 

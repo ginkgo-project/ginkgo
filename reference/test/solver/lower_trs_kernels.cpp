@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/solver/lower_trs_kernels.hpp"
+
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -18,8 +18,6 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
-#include "core/solver/lower_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -56,6 +54,10 @@ protected:
                                     {365.0, 97.0, -654.0, 8.0, 91.0}},
                                    exec)),
           lower_trs_factory(Solver::build().on(exec)),
+          lower_trs_syncfree_factory(
+              Solver::build()
+                  .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+                  .on(exec)),
           lower_trs_factory_mrhs(Solver::build().with_num_rhs(2u).on(exec)),
           lower_trs_factory_unit(
               Solver::build().with_unit_diagonal(true).on(exec))
@@ -68,6 +70,7 @@ protected:
     std::shared_ptr<Mtx> mtx_big_lower;
     std::shared_ptr<Mtx> mtx_big_general;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory;
+    std::unique_ptr<typename Solver::Factory> lower_trs_syncfree_factory;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_mrhs;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_unit;
 };
@@ -350,13 +353,21 @@ TYPED_TEST(LowerTrs, SolvesTransposedTriangularSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->lower_trs_factory->generate(this->mtx);
+    auto transposed_solver =
+        gko::as<typename Solver::transposed_type>(solver->transpose());
 
-    solver->transpose()->apply(b, x);
+    transposed_solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
+    // Ensure that the other test with syncfree is not the default option
+    ASSERT_EQ(solver->get_parameters().algorithm,
+              gko::solver::trisolve_algorithm::sparselib);
+    ASSERT_EQ(transposed_solver->get_parameters().algorithm,
+              solver->get_parameters().algorithm);
 }
 
 
@@ -364,13 +375,65 @@ TYPED_TEST(LowerTrs, SolvesConjTransposedTriangularSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->lower_trs_factory->generate(this->mtx);
+    auto conj_transposed_solver =
+        gko::as<typename Solver::transposed_type>(solver->conj_transpose());
 
-    solver->conj_transpose()->apply(b, x);
+    conj_transposed_solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
+    // Ensure that the other test with syncfree is not the default option
+    ASSERT_EQ(solver->get_parameters().algorithm,
+              gko::solver::trisolve_algorithm::sparselib);
+    ASSERT_EQ(conj_transposed_solver->get_parameters().algorithm,
+              solver->get_parameters().algorithm);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTransposedTriangularSystemWithSyncFree)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_syncfree_factory->generate(this->mtx);
+    auto transposed_solver =
+        gko::as<typename Solver::transposed_type>(solver->transpose());
+
+    transposed_solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
+    // Ensure that this test uses syncfree
+    ASSERT_EQ(solver->get_parameters().algorithm,
+              gko::solver::trisolve_algorithm::syncfree);
+    ASSERT_EQ(transposed_solver->get_parameters().algorithm,
+              solver->get_parameters().algorithm);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesConjTransposedTriangularSystemWithSyncFree)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_syncfree_factory->generate(this->mtx);
+    auto conj_transposed_solver =
+        gko::as<typename Solver::transposed_type>(solver->conj_transpose());
+
+    conj_transposed_solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
+    // Ensure that this test uses syncfree
+    ASSERT_EQ(solver->get_parameters().algorithm,
+              gko::solver::trisolve_algorithm::syncfree);
+    ASSERT_EQ(conj_transposed_solver->get_parameters().algorithm,
+              solver->get_parameters().algorithm);
 }
 
 

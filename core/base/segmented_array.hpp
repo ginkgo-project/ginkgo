@@ -31,7 +31,7 @@ struct device_segmented_array {
 
     constexpr segment get_segment(size_type segment_id)
     {
-        assert(segment_id < (offsets_end - offsets_begin));
+        GKO_ASSERT(segment_id < (offsets_end - offsets_begin));
         return {flat_begin + offsets_begin[segment_id],
                 flat_begin + offsets_begin[segment_id + 1]};
     }

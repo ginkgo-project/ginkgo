@@ -2,15 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/convergence.hpp>
-
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-
 
 #include "core/test/utils.hpp"
 

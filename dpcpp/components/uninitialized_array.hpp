@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/types.hpp>
 
-
 #include "dpcpp/base/dpct.hpp"
 
 

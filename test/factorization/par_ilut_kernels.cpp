@@ -4,16 +4,13 @@
 
 #include "core/factorization/par_ilut_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,13 +18,12 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -52,39 +48,27 @@ protected:
         mtx1 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(10, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
         mtx2 = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(0, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
         mtx_square = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[0],
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
 
         dmtx1 = gko::clone(exec, mtx1);
         dmtx2 = gko::clone(exec, mtx2);
@@ -138,7 +122,7 @@ protected:
                      const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto size = index_type(mtx->get_num_stored_elements());
         using ValueType = typename Mtx::value_type;
 
@@ -151,8 +135,8 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, res);
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_select(
-            exec, dmtx.get(), rank, dtmp, dtmp2, dres);
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+            threshold_select(exec, dmtx.get(), rank, dtmp, dtmp2, dres);
 
         ASSERT_NEAR(res, dres, tolerance);
     }
@@ -174,9 +158,9 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
             ref, local_mtx.get(), threshold, res.get(), res_coo.get(), lower);
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_filter(
-            exec, local_dmtx.get(), threshold, dres.get(), dres_coo.get(),
-            lower);
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+            threshold_filter(exec, local_dmtx.get(), threshold, dres.get(),
+                             dres_coo.get(), lower);
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
         GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -193,7 +177,7 @@ protected:
                             const std::unique_ptr<Mtx>& dmtx, index_type rank)
     {
         double tolerance =
-            gko::is_complex<value_type>() ? r<value_type>::value : 0.0;
+            gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto res = Mtx::create(ref, mtx_size);
         auto dres = Mtx::create(exec, mtx_size);
         auto res_coo = Coo::create(ref, mtx_size);
@@ -208,7 +192,7 @@ protected:
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
                                     res.get(), res_coo.get());
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             threshold_filter_approx(exec, dmtx.get(), rank, dtmp, dthreshold,
                                     dres.get(), dres_coo.get());
 
@@ -255,6 +239,12 @@ TYPED_TEST_SUITE(ParIlut, gko::test::ValueIndexTypes,
 
 TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() / 3);
 }
@@ -262,12 +252,24 @@ TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMinIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_select(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdSelectMaxIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_select(this->mtx_l, this->dmtx_l,
                       this->mtx_l->get_num_stored_elements() - 1);
 }
@@ -283,8 +285,9 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx_l.get(), 0.5, res.get(), null_coo, true);
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::threshold_filter(
-        this->exec, this->dmtx_l.get(), 0.5, dres.get(), null_coo, true);
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
+        threshold_filter(this->exec, this->dmtx_l.get(), 0.5, dres.get(),
+                         null_coo, true);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -333,6 +336,12 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     using Coo = typename TestFixture::Coo;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    // threshold_filter_approx calls sampleselect_count which needs 16 bits
+    // memory operation
+    SKIP_IF_HALF(value_type);
+#endif
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->exec, this->mtx_size);
@@ -346,7 +355,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
         this->ref, this->mtx_l.get(), rank, tmp, threshold, res.get(),
         null_coo);
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
         threshold_filter_approx(this->exec, this->dmtx_l.get(), rank, dtmp,
                                 dthreshold, dres.get(), null_coo);
 
@@ -358,6 +367,14 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    // threshold_filter_approx calls sampleselect_count which needs 16 bits
+    // memory operation
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() / 2);
 }
@@ -365,12 +382,28 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxNoneLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    // threshold_filter_approx calls sampleselect_count which needs 16 bits
+    // memory operation
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l, 0);
 }
 
 
 TYPED_TEST(ParIlut, KernelThresholdFilterApproxAllLowerIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    // threshold_filter_approx calls sampleselect_count which needs 16 bits
+    // memory operation
+    SKIP_IF_HALF(value_type);
+#endif
+
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
                              this->mtx_l->get_num_stored_elements() - 1);
 }
@@ -380,6 +413,18 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+        // We set the diagonal larger than 1 in half precision to reduce the
+        // possibility of resulting inf. It might introduce (a - lu)/u_diag when
+        // the entry is not presented in the original matrix
+        auto dist = std::uniform_real_distribution<>(1.0, 10.0);
+        for (gko::size_type i = 0; i < this->mtx_u->get_size()[0]; i++) {
+            this->mtx_u->get_values()[this->mtx_u->get_const_row_ptrs()[i]] =
+                gko::detail::get_rand_value<value_type>(dist,
+                                                        this->rand_engine);
+        }
+        this->dmtx_u->copy_from(this->mtx_u);
+    }
     auto square_size = this->mtx_square->get_size();
     auto mtx_lu = Csr::create(this->ref, square_size);
     this->mtx_l2->apply(this->mtx_u, mtx_lu);
@@ -389,11 +434,11 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     auto res_mtx_u = Csr::create(this->ref, square_size);
     auto dres_mtx_l = Csr::create(this->exec, square_size);
     auto dres_mtx_u = Csr::create(this->exec, square_size);
-
+    // gko::write(std::cout, mtx_lu);
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
         this->mtx_u.get(), res_mtx_l.get(), res_mtx_u.get());
-    gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::add_candidates(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::add_candidates(
         this->exec, dmtx_lu.get(), this->dmtx_square.get(), this->dmtx_l2.get(),
         this->dmtx_u.get(), dres_mtx_l.get(), dres_mtx_u.get());
 
@@ -408,6 +453,11 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     auto mtx_u_coo = Coo::create(this->ref, square_size);
@@ -422,7 +472,7 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
         this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get(),
         this->mtx_u_ani.get(), mtx_u_coo.get(), this->mtx_ut_ani.get());
     for (int i = 0; i < 20; ++i) {
-        gko::kernels::EXEC_NAMESPACE::par_ilut_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             compute_l_u_factors(this->exec, this->dmtx_ani.get(),
                                 this->dmtx_l_ani.get(), dmtx_l_coo.get(),
                                 this->dmtx_u_ani.get(), dmtx_u_coo.get(),

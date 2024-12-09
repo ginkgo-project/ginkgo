@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <type_traits>
+#include "core/config/config_helper.hpp"
 
+#include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/registry.hpp>
 
-
-#include "core/config/config_helper.hpp"
 #include "core/config/registry_accessor.hpp"
 #include "core/config/stop_config.hpp"
 

@@ -4,12 +4,9 @@
 
 #include "core/preconditioner/isai_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -19,10 +16,9 @@
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 enum struct matrix_type { lower, upper, general, spd };
@@ -122,7 +118,7 @@ TEST_F(Isai, IsaiGenerateLinverseShortIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_tri_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_tri_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         true);
 
@@ -145,7 +141,7 @@ TEST_F(Isai, IsaiGenerateUinverseShortIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_tri_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_tri_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         false);
 
@@ -168,7 +164,7 @@ TEST_F(Isai, IsaiGenerateAinverseShortIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_general_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_general_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         false);
 
@@ -191,7 +187,7 @@ TEST_F(Isai, IsaiGenerateSpdinverseShortIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_general_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_general_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         true);
 
@@ -214,7 +210,7 @@ TEST_F(Isai, IsaiGenerateLinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_tri_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_tri_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         true);
 
@@ -237,7 +233,7 @@ TEST_F(Isai, IsaiGenerateUinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_tri_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_tri_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         false);
 
@@ -260,7 +256,7 @@ TEST_F(Isai, IsaiGenerateAinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_general_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_general_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         false);
 
@@ -283,7 +279,7 @@ TEST_F(Isai, IsaiGenerateSpdinverseLongIsEquivalentToRef)
 
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_general_inverse(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_general_inverse(
         exec, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
         false);
 
@@ -315,7 +311,7 @@ TEST_F(Isai, IsaiGenerateExcessLinverseLongIsEquivalentToRef)
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
         excess.get(), e_rhs.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_excess_system(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_excess_system(
         exec, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
         da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
@@ -346,7 +342,7 @@ TEST_F(Isai, IsaiGenerateExcessUinverseLongIsEquivalentToRef)
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
         excess.get(), e_rhs.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_excess_system(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_excess_system(
         exec, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
         da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
@@ -377,7 +373,7 @@ TEST_F(Isai, IsaiGenerateExcessAinverseLongIsEquivalentToRef)
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
         excess.get(), e_rhs.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_excess_system(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_excess_system(
         exec, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
         da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
@@ -408,7 +404,7 @@ TEST_F(Isai, IsaiGenerateExcessSpdinverseLongIsEquivalentToRef)
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
         excess.get(), e_rhs.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_excess_system(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_excess_system(
         exec, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
         da2.get_const_data(), dexcess.get(), de_rhs.get(), 0, num_rows);
 
@@ -439,7 +435,7 @@ TEST_F(Isai, IsaiGeneratePartialExcessIsEquivalentToRef)
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
         excess.get(), e_rhs.get(), 5u, 10u);
-    gko::kernels::EXEC_NAMESPACE::isai::generate_excess_system(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_excess_system(
         exec, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
         da2.get_const_data(), dexcess.get(), de_rhs.get(), 5u, 10u);
 
@@ -467,7 +463,7 @@ TEST_F(Isai, IsaiScaleExcessSolutionIsEquivalentToRef)
 
     gko::kernels::reference::isai::scale_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::scale_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scale_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
@@ -490,7 +486,7 @@ TEST_F(Isai, IsaiScalePartialExcessSolutionIsEquivalentToRef)
 
     gko::kernels::reference::isai::scale_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), 5u, 10u);
-    gko::kernels::EXEC_NAMESPACE::isai::scale_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scale_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), 5u, 10u);
 
     GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
@@ -514,7 +510,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionLIsEquivalentToRef)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::scatter_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
@@ -540,7 +536,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionUIsEquivalentToRef)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::scatter_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
@@ -566,7 +562,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionAIsEquivalentToRef)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::scatter_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
@@ -592,7 +588,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
-    gko::kernels::EXEC_NAMESPACE::isai::scatter_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
@@ -618,7 +614,7 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 5u, 10u);
-    gko::kernels::EXEC_NAMESPACE::isai::scatter_excess_solution(
+    gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
         exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 5u, 10u);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);

@@ -6,13 +6,11 @@
 #define GKO_BENCHMARK_UTILS_ITERATION_CONTROL_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <memory>
 #include <string>
 #include <utility>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/timer.hpp"
@@ -65,7 +63,7 @@
 class IterationControl {
     using IndexType = unsigned int;  //!< to be compatible with GFLAGS type
 
-    class run_control;
+    struct run_control;
 
 public:
     /**

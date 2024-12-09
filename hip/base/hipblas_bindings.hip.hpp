@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #else
@@ -17,9 +16,9 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -241,25 +240,21 @@ GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_NORM2
 
 
-inline hipblasContext* init(hipStream_t stream)
-{
-    hipblasHandle_t handle;
-    GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasCreate(&handle));
-    GKO_ASSERT_NO_HIPBLAS_ERRORS(
-        hipblasSetPointerMode(handle, HIPBLAS_POINTER_MODE_DEVICE));
-    GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(handle, stream));
-    return reinterpret_cast<hipblasContext*>(handle);
-}
-
-
-inline void destroy_hipblas_handle(hipblasContext* handle)
-{
-    GKO_ASSERT_NO_HIPBLAS_ERRORS(
-        hipblasDestroy(reinterpret_cast<hipblasHandle_t>(handle)));
-}
-
-
 }  // namespace hipblas
+
+
+namespace blas {
+
+
+using namespace hipblas;
+
+
+#define BLAS_OP_N HIPBLAS_OP_N
+#define BLAS_OP_T HIPBLAS_OP_T
+#define BLAS_OP_C HIPBLAS_OP_C
+
+
+}  // namespace blas
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

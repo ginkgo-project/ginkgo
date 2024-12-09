@@ -9,11 +9,9 @@
 #include <cstring>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
 
-
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -101,7 +99,7 @@ __device__ __forceinline__ ValueType load_generic(const ValueType* ptr)
     auto cast_value = HIP_ATOMIC_LOAD(reinterpret_cast<const atomic_type*>(ptr),
                                       memorder, scope);
     ValueType result{};
-    std::memcpy(&result, &cast_value, sizeof(ValueType));
+    memcpy(&result, &cast_value, sizeof(ValueType));
     return result;
 }
 
@@ -124,7 +122,7 @@ __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
     static_assert(sizeof(atomic_type) == sizeof(ValueType), "invalid map");
     static_assert(alignof(atomic_type) == alignof(ValueType), "invalid map");
     atomic_type cast_value{};
-    std::memcpy(&cast_value, &value, sizeof(ValueType));
+    memcpy(&cast_value, &value, sizeof(ValueType));
     HIP_ATOMIC_STORE(reinterpret_cast<atomic_type*>(ptr), cast_value, memorder,
                      scope);
 }

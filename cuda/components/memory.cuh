@@ -8,11 +8,9 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
 
-
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {

@@ -4,9 +4,7 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
@@ -23,31 +21,6 @@ namespace GKO_DEVICE_NAMESPACE {
  * @ingroup pgm
  */
 namespace pgm {
-
-
-template <typename IndexType>
-void match_edge(std::shared_ptr<const DefaultExecutor> exec,
-                const array<IndexType>& strongest_neighbor,
-                array<IndexType>& agg)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto tidx, auto strongest_neighbor_vals, auto agg_vals) {
-            if (agg_vals[tidx] != -1) {
-                return;
-            }
-            auto neighbor = strongest_neighbor_vals[tidx];
-            if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx &&
-                tidx <= neighbor) {
-                // Use the smaller index as agg point
-                agg_vals[tidx] = tidx;
-                agg_vals[neighbor] = tidx;
-            }
-        },
-        agg.get_size(), strongest_neighbor.get_const_data(), agg.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
@@ -185,7 +158,7 @@ void find_strongest_neighbor(
                     continue;
                 }
                 auto weight =
-                    weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    weight_vals[idx] / gko::max(abs(diag[row]), abs(diag[col]));
                 if (agg[col] == -1 &&
                     device_std::tie(weight, col) >
                         device_std::tie(max_weight_unagg, strongest_unagg)) {
@@ -248,8 +221,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     if (col == row) {
                         continue;
                     }
-                    auto weight =
-                        weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    auto weight = weight_vals[idx] /
+                                  gko::max(abs(diag[row]), abs(diag[col]));
                     if (agg_const_val[col] != -1 &&
                         device_std::tie(weight, col) >
                             device_std::tie(max_weight_agg, strongest_agg)) {
@@ -286,8 +259,8 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     if (col == row) {
                         continue;
                     }
-                    auto weight =
-                        weight_vals[idx] / max(abs(diag[row]), abs(diag[col]));
+                    auto weight = weight_vals[idx] /
+                                  gko::max(abs(diag[row]), abs(diag[col]));
                     if (agg_val[col] != -1 &&
                         device_std::tie(weight, col) >
                             device_std::tie(max_weight_agg, strongest_agg)) {

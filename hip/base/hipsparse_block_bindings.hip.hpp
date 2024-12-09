@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPSPARSE_BLOCK_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -16,9 +15,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {

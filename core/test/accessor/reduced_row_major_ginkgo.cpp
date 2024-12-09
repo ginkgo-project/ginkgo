@@ -8,15 +8,14 @@
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/half.hpp>  // necessary for gko::half
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/utils.hpp"
-#include "core/base/extended_float.hpp"  // necessary for gko::half
 #include "core/test/utils.hpp"
 
 
@@ -35,12 +34,7 @@ protected:
     using st_type =
         typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
     using rcar_type = gko::acc::remove_complex_t<ar_type>;
-    static constexpr rcar_type delta{
-        std::is_same<ar_type, st_type>::value
-            ? 0
-            : std::numeric_limits<
-                  gko::acc::remove_complex_t<st_type>>::epsilon() *
-                  1e1};
+    static const rcar_type delta;
 
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
@@ -120,6 +114,13 @@ protected:
         // clang-format on
     }
 };
+
+template <typename T>
+const typename ReducedStorage3d<T>::rcar_type ReducedStorage3d<T>::delta =
+    std::is_same<ar_type, st_type>::value
+        ? 0
+        : std::numeric_limits<gko::acc::remove_complex_t<st_type>>::epsilon() *
+              1e1;
 
 using ReducedStorage3dTypes =
     ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,

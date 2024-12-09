@@ -4,7 +4,6 @@
 
 #include "core/solver/ir_kernels.hpp"
 
-
 #include "common/unified/base/kernel_launch.hpp"
 
 

@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
 
 

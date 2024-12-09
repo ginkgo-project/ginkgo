@@ -4,14 +4,12 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <algorithm>
 #include <iterator>
 #include <memory>
 #include <queue>
 #include <utility>
 #include <vector>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -21,7 +19,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 
@@ -182,10 +179,8 @@ IndexType find_starting_node(std::shared_ptr<const ReferenceExecutor> exec,
 template <typename IndexType>
 void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         const IndexType* const col_idxs,
-                         IndexType* const permutation,
-                         IndexType* const inv_permutation,
+                         const IndexType* row_ptrs, const IndexType* col_idxs,
+                         IndexType* permutation, IndexType* inv_permutation,
                          const gko::reorder::starting_strategy strategy)
 {
     // compute node degrees
@@ -194,7 +189,7 @@ void compute_permutation(std::shared_ptr<const ReferenceExecutor> exec,
     for (IndexType i = 0; i < num_vertices; ++i) {
         degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
-    // Storing vertices left to proceess.
+    // Storing vertices left to process.
     array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
     IndexType head_offset = 0;

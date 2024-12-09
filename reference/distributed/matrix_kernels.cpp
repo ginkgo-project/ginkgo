@@ -4,7 +4,6 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
@@ -87,7 +86,7 @@ void separate_local_nonlocal(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
 
 

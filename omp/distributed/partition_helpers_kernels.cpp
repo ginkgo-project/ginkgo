@@ -4,7 +4,6 @@
 
 #include "core/distributed/partition_helpers_kernels.hpp"
 
-
 #include "core/base/iterator_factory.hpp"
 
 
@@ -28,10 +27,9 @@ void sort_by_range_start(
         range_start_ends.get_data() + 1, [](const auto i) { return 2 * i; });
     auto sort_it = detail::make_zip_iterator(start_it, end_it, part_ids_d);
     // TODO: use TBB or parallel std with c++17
-    std::stable_sort(sort_it, sort_it + num_parts,
-                     [](const auto& a, const auto& b) {
-                         return std::get<0>(a) < std::get<0>(b);
-                     });
+    std::stable_sort(
+        sort_it, sort_it + num_parts,
+        [](const auto& a, const auto& b) { return get<0>(a) < get<0>(b); });
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

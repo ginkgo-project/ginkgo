@@ -4,7 +4,6 @@
 
 #include "core/components/fill_array_kernels.hpp"
 
-
 #include "common/unified/base/kernel_launch.hpp"
 
 
@@ -33,8 +32,16 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
                     ValueType* array, size_type n)
 {
     run_kernel(
-        exec, [] GKO_KERNEL(auto idx, auto array) { array[idx] = idx; }, n,
-        array);
+        exec,
+        [] GKO_KERNEL(auto idx, auto array) {
+            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+                // __half can not be from int64_t
+                array[idx] = static_cast<long long>(idx);
+            } else {
+                array[idx] = idx;
+            }
+        },
+        n, array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);

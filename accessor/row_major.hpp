@@ -8,7 +8,6 @@
 #include <array>
 #include <cinttypes>
 
-
 #include "accessor_helper.hpp"
 #include "range.hpp"
 #include "utils.hpp"

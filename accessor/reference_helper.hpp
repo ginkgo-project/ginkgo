@@ -9,14 +9,11 @@
 #include <type_traits>
 #include <utility>
 
-
 #include "utils.hpp"
 
 
-// CUDA TOOLKIT < 11 does not support constexpr in combination with
-// thrust::complex, which is why constexpr is only present in later versions
-#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
-    (__CUDACC_VER_MAJOR__ < 11)
+// NVC++ disallow a constexpr function has a nonliteral return type like half
+#if defined(__NVCOMPILER) && GINKGO_ENABLE_HALF
 
 #define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
 
@@ -24,7 +21,7 @@
 
 #define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR constexpr
 
-#endif  // __CUDA_ARCH__ && __CUDACC_VER_MAJOR__ && __CUDACC_VER_MAJOR__ < 11
+#endif
 
 
 namespace gko {

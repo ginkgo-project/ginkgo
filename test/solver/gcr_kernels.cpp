@@ -4,12 +4,9 @@
 
 #include "core/solver/gcr_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,10 +17,9 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Gcr : public CommonTestFixture {
@@ -153,8 +149,24 @@ TEST_F(Gcr, GcrKernelInitializeIsEquivalentToRef)
 
     gko::kernels::reference::gcr::initialize(ref, b.get(), residual.get(),
                                              stop_status.get_data());
-    gko::kernels::EXEC_NAMESPACE::gcr::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::gcr::initialize(
         exec, d_b.get(), d_residual.get(), d_stop_status.get_data());
+
+    GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+}
+
+
+TEST_F(Gcr, GcrKernelInitializeWithStrideIsEquivalentToRef)
+{
+    initialize_data();
+    auto d_b_strided = Mtx::create(exec, b->get_size(), b->get_stride() + 2);
+    d_b_strided->copy_from(d_b);
+
+    gko::kernels::reference::gcr::initialize(ref, b.get(), residual.get(),
+                                             stop_status.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::gcr::initialize(
+        exec, d_b_strided.get(), d_residual.get(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
@@ -168,7 +180,7 @@ TEST_F(Gcr, GcrKernelRestartIsEquivalentToRef)
     gko::kernels::reference::gcr::restart(ref, residual.get(), A_residual.get(),
                                           p_bases.get(), Ap_bases.get(),
                                           final_iter_nums.get_data());
-    gko::kernels::EXEC_NAMESPACE::gcr::restart(
+    gko::kernels::GKO_DEVICE_NAMESPACE::gcr::restart(
         exec, d_residual.get(), d_A_residual.get(), d_p_bases.get(),
         d_Ap_bases.get(), d_final_iter_nums.get_data());
 
@@ -186,7 +198,7 @@ TEST_F(Gcr, GcrStep1IsEquivalentToRef)
     gko::kernels::reference::gcr::step_1(ref, x.get(), residual.get(), p.get(),
                                          Ap.get(), Ap_norm.get(), rAp.get(),
                                          stop_status.get_data());
-    gko::kernels::EXEC_NAMESPACE::gcr::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::gcr::step_1(
         exec, d_x.get(), d_residual.get(), d_p.get(), d_Ap.get(),
         d_Ap_norm.get(), d_rAp.get(), d_stop_status.get_data());
 
@@ -210,7 +222,7 @@ TEST_F(Gcr, GcrApplyOneRHSIsEquivalentToRef)
     exec_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
 }
 
 

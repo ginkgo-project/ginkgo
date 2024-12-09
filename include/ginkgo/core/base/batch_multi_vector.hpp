@@ -9,7 +9,6 @@
 #include <initializer_list>
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_dim.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -53,10 +52,14 @@ template <typename ValueType = default_precision>
 class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          MultiVector<next_precision<next_precision<ValueType>>>>,
+#endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
-    friend class MultiVector<next_precision<ValueType>>;
+    friend class MultiVector<previous_precision<ValueType>>;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;
@@ -83,6 +86,20 @@ public:
         MultiVector<next_precision<ValueType>>* result) const override;
 
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class MultiVector<previous_precision<previous_precision<ValueType>>>;
+    using ConvertibleTo<
+        MultiVector<next_precision<next_precision<ValueType>>>>::convert_to;
+    using ConvertibleTo<
+        MultiVector<next_precision<next_precision<ValueType>>>>::move_to;
+
+    void convert_to(MultiVector<next_precision<next_precision<ValueType>>>*
+                        result) const override;
+
+    void move_to(MultiVector<next_precision<next_precision<ValueType>>>* result)
+        override;
+#endif
 
     /**
      * Creates a mutable view (of matrix::Dense type) of one item of the Batch

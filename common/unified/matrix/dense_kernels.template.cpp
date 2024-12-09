@@ -4,10 +4,8 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
@@ -35,7 +33,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) = input(row, col);
+            output(row, col) =
+                static_cast<device_type<OutValueType>>(input(row, col));
         },
         input->get_size(), input, output);
 }
@@ -263,7 +262,7 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
             return x(i, j) * inv_total_size;
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        tmp, x, ValueType_nc{1.} / x->get_size()[0]);
+        tmp, x, ValueType_nc{1.} / std::max<size_type>(1, x->get_size()[0]));
 }
 
 
@@ -427,7 +426,8 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-            gathered(row, col) = orig(rows[row], col);
+            gathered(row, col) =
+                static_cast<device_type<OutputType>>(orig(rows[row], col));
         },
         row_collection->get_size(), orig, row_idxs, row_collection);
 }
@@ -732,9 +732,9 @@ void get_imag(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename ScalarType>
 void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Dense<ScalarType>* const alpha,
-                         const matrix::Dense<ScalarType>* const beta,
-                         matrix::Dense<ValueType>* const mtx)
+                         const matrix::Dense<ScalarType>* alpha,
+                         const matrix::Dense<ScalarType>* beta,
+                         matrix::Dense<ValueType>* mtx)
 {
     run_kernel(
         exec,

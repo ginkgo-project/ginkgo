@@ -6,12 +6,9 @@
 #define GKO_CORE_REORDER_MC64_HPP_
 
 
-#include <ginkgo/core/reorder/mc64.hpp>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
+#include <ginkgo/core/reorder/mc64.hpp>
 
 #include "core/components/addressable_pq.hpp"
 

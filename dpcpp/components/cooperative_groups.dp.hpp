@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/config.hpp>
-
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"
@@ -103,7 +101,7 @@ struct is_synchronizable_group_impl : std::false_type {};
 
 
 template <typename T>
-struct is_communicator_group_impl : std::true_type {};
+struct is_communicator_group_impl : std::false_type {};
 
 
 }  // namespace detail
@@ -164,20 +162,20 @@ public:
     __dpct_inline__ unsigned size() const noexcept { return Size; }
 
     __dpct_inline__ void sync() const noexcept { this->barrier(); }
-
 #define GKO_BIND_SHFL(ShflOpName, ShflOp)                                      \
     template <typename ValueType, typename SelectorType>                       \
     __dpct_inline__ ValueType ShflOpName(ValueType var, SelectorType selector) \
         const noexcept                                                         \
     {                                                                          \
-        return this->ShflOp(var, selector);                                    \
+        return sycl::ShflOp(static_cast<sycl::sub_group>(*this), var,          \
+                            selector);                                         \
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-    GKO_BIND_SHFL(shfl, shuffle);
-    GKO_BIND_SHFL(shfl_xor, shuffle_xor);
+    GKO_BIND_SHFL(shfl, select_from_group);
+    GKO_BIND_SHFL(shfl_xor, permute_group_by_xor);
 
     // the shfl_up of out-of-range value gives undefined behavior, we
     // manually set it as the original value such that give the same result as
@@ -186,7 +184,8 @@ public:
     __dpct_inline__ ValueType shfl_up(ValueType var,
                                       SelectorType selector) const noexcept
     {
-        const auto result = this->shuffle_up(var, selector);
+        const auto result = sycl::shift_group_right(
+            static_cast<sycl::sub_group>(*this), var, selector);
         return (data_.rank < selector) ? var : result;
     }
 
@@ -197,7 +196,8 @@ public:
     __dpct_inline__ ValueType shfl_down(ValueType var,
                                         SelectorType selector) const noexcept
     {
-        const auto result = this->shuffle_down(var, selector);
+        const auto result = sycl::shift_group_left(
+            static_cast<sycl::sub_group>(*this), var, selector);
         return (data_.rank + selector >= Size) ? var : result;
     }
 
@@ -453,9 +453,6 @@ __dpct_inline__ grid_group this_grid(sycl::nd_item<3>& group)
 
 
 // Enable group can directly use group function
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
-inline namespace cl {
-#endif
 namespace sycl {
 namespace detail {
 
@@ -482,9 +479,6 @@ struct group_scope<
 }  // namespace spirv
 }  // namespace detail
 }  // namespace sycl
-#if GINKGO_DPCPP_MAJOR_VERSION < 6
-}  // namespace cl
-#endif
 
 
 #endif  // GKO_DPCPP_COMPONENTS_COOPERATIVE_GROUPS_DP_HPP_

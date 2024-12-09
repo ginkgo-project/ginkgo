@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 int main(int argc, char* argv[])

@@ -18,11 +18,13 @@ function(ginkgo_default_includes name)
 endfunction()
 
 function(ginkgo_compile_features name)
-    target_compile_features("${name}" PUBLIC cxx_std_14)
-    # we set these properties regardless of the enabled backends,
-    # because unknown properties are ignored
-    set_target_properties("${name}" PROPERTIES HIP_STANDARD 14)
-    set_target_properties("${name}" PROPERTIES CUDA_STANDARD 14)
+    target_compile_features("${name}" PUBLIC cxx_std_17)
+    if (GINKG_BUILD_CUDA)
+        target_compile_features("${name}" PUBLIC cuda_std_17)
+    endif()
+    if (GINKG_BUILD_HIP)
+        target_compile_features("${name}" PUBLIC hip_std_17)
+    endif()
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
@@ -135,7 +137,7 @@ endfunction()
 
 # Extract the DPC++ version
 function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION MACRO_VAR)
-    set(DPCPP_VERSION_PROG "#include <CL/sycl.hpp>\n#include <iostream>\n"
+    set(DPCPP_VERSION_PROG "#include <sycl/sycl.hpp>\n#include <iostream>\n"
         "int main() {std::cout << ${MACRO_VAR} << '\\n'\;"
         "return 0\;}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp" ${DPCPP_VERSION_PROG})

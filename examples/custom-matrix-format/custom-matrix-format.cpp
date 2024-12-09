@@ -6,8 +6,8 @@
 #include <map>
 #include <string>
 
-
 #include <omp.h>
+
 #include <ginkgo/ginkgo.hpp>
 
 

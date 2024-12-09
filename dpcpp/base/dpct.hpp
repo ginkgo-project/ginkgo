@@ -6,7 +6,7 @@
 #define GKO_DPCPP_BASE_DPCT_HPP_
 
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 
 // This is partial extraction from dpct/dpct.hpp of Intel

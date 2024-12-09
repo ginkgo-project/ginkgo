@@ -5,12 +5,11 @@
 #include <iostream>
 #include <string>
 
-
 #include <Kokkos_Core.hpp>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include <ginkgo/extensions/kokkos.hpp>
-#include <ginkgo/ginkgo.hpp>
 
 
 namespace gko::ext::kokkos::detail {

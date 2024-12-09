@@ -2,21 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/fft.hpp>
-
-
 #include <complex>
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
+#include <ginkgo/core/matrix/fft.hpp>
 
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -153,7 +148,7 @@ protected:
     std::unique_ptr<Vec> dense_ifft3;
 };
 
-TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(Fft, ThrowsOnNonPowerOfTwo1D)

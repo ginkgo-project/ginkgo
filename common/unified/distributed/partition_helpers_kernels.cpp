@@ -4,7 +4,6 @@
 
 #include "core/distributed/partition_helpers_kernels.hpp"
 
-
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/base/array_access.hpp"

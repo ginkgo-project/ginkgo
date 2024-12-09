@@ -8,13 +8,10 @@
 
 #include <algorithm>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"

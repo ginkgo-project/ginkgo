@@ -2,17 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/record.hpp>
-
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/log/record.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils/assertions.hpp"
 

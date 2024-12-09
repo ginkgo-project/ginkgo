@@ -4,12 +4,9 @@
 
 #include "core/factorization/factorization_kernels.hpp"
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -17,10 +14,13 @@
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/searching.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
+#include "dpcpp/factorization/factorization_helpers.dp.hpp"
 
 
 namespace gko {
@@ -324,51 +324,6 @@ void count_nnz_per_l_u_row(dim3 grid, dim3 block,
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(size_type num_rows, const IndexType* __restrict__ row_ptrs,
-                    const IndexType* __restrict__ col_idxs,
-                    const ValueType* __restrict__ values,
-                    const IndexType* __restrict__ l_row_ptrs,
-                    IndexType* __restrict__ l_col_idxs,
-                    ValueType* __restrict__ l_values,
-                    const IndexType* __restrict__ u_row_ptrs,
-                    IndexType* __restrict__ u_col_idxs,
-                    ValueType* __restrict__ u_values, sycl::nd_item<3> item_ct1)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
-        // default diagonal to one
-        auto diag_val = one<ValueType>();
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                diag_val = val;
-            }
-            if (col < row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
-                ++l_idx;
-            }
-            if (row < col) {
-                u_col_idxs[u_idx] = col;
-                u_values[u_idx] = val;
-                ++u_idx;
-            }
-        }
-        // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        auto u_diag_idx = u_row_ptrs[row];
-        l_col_idxs[l_diag_idx] = row;
-        u_col_idxs[u_diag_idx] = row;
-        l_values[l_diag_idx] = one<ValueType>();
-        u_values[u_diag_idx] = diag_val;
-    }
-}
-
-template <typename ValueType, typename IndexType>
 void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     sycl::queue* queue, size_type num_rows,
                     const IndexType* row_ptrs, const IndexType* col_idxs,
@@ -379,9 +334,14 @@ void initialize_l_u(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-            initialize_l_u(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
-                           l_col_idxs, l_values, u_row_ptrs, u_col_idxs,
-                           u_values, item_ct1);
+            helpers::initialize_l_u(
+                num_rows, row_ptrs, col_idxs, values, l_row_ptrs, l_col_idxs,
+                l_values, u_row_ptrs, u_col_idxs, u_values,
+                helpers::triangular_mtx_closure(
+                    [](auto) { return one<ValueType>(); }, helpers::identity{}),
+                helpers::triangular_mtx_closure(helpers::identity{},
+                                                helpers::identity{}),
+                item_ct1);
         });
 }
 
@@ -422,47 +382,6 @@ void count_nnz_per_l_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l(size_type num_rows, const IndexType* __restrict__ row_ptrs,
-                  const IndexType* __restrict__ col_idxs,
-                  const ValueType* __restrict__ values,
-                  const IndexType* __restrict__ l_row_ptrs,
-                  IndexType* __restrict__ l_col_idxs,
-                  ValueType* __restrict__ l_values, bool use_sqrt,
-                  sycl::nd_item<3> item_ct1)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>(item_ct1);
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        // if there was no diagonal entry, default to one
-        auto diag_val = one<ValueType>();
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                diag_val = val;
-            }
-            if (col < row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
-                ++l_idx;
-            }
-        }
-        // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        l_col_idxs[l_diag_idx] = row;
-        // compute square root with sentinel
-        if (use_sqrt) {
-            diag_val = std::sqrt(diag_val);
-            if (!is_finite(diag_val)) {
-                diag_val = one<ValueType>();
-            }
-        }
-        l_values[l_diag_idx] = diag_val;
-    }
-}
-
-template <typename ValueType, typename IndexType>
 void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                   sycl::queue* queue, size_type num_rows,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
@@ -471,8 +390,20 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-            initialize_l(num_rows, row_ptrs, col_idxs, values, l_row_ptrs,
-                         l_col_idxs, l_values, use_sqrt, item_ct1);
+            helpers::initialize_l(num_rows, row_ptrs, col_idxs, values,
+                                  l_row_ptrs, l_col_idxs, l_values,
+                                  helpers::triangular_mtx_closure(
+                                      [use_sqrt](auto val) {
+                                          if (use_sqrt) {
+                                              val = gko::sqrt(val);
+                                              if (!is_finite(val)) {
+                                                  val = one<ValueType>();
+                                              }
+                                          }
+                                          return val;
+                                      },
+                                      helpers::identity{}),
+                                  item_ct1);
         });
 }
 
@@ -499,7 +430,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
-    auto dpcpp_old_values = mtx->get_const_values();
+    auto dpcpp_old_values = as_device_type(mtx->get_const_values());
     auto dpcpp_old_col_idxs = mtx->get_const_col_idxs();
     auto dpcpp_old_row_ptrs = mtx->get_row_ptrs();
     auto dpcpp_row_ptrs_add = row_ptrs_addition.get_data();
@@ -534,7 +465,7 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
 
     array<ValueType> new_values{exec, new_num_elems};
     array<IndexType> new_col_idxs{exec, new_num_elems};
-    auto dpcpp_new_values = new_values.get_data();
+    auto dpcpp_new_values = as_device_type(new_values.get_data());
     auto dpcpp_new_col_idxs = new_col_idxs.get_data();
 
     kernel::add_missing_diagonal_elements<subwarp_size>(
@@ -570,11 +501,12 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_u_row(grid_dim, block_size, 0, exec->get_queue(),
-                                  num_rows, system_matrix->get_const_row_ptrs(),
-                                  system_matrix->get_const_col_idxs(),
-                                  system_matrix->get_const_values(), l_row_ptrs,
-                                  u_row_ptrs);
+    kernel::count_nnz_per_l_u_row(
+        grid_dim, block_size, 0, exec->get_queue(), num_rows,
+        system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(),
+        as_device_type(system_matrix->get_const_values()), l_row_ptrs,
+        u_row_ptrs);
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
     components::prefix_sum_nonnegative(exec, u_row_ptrs, num_rows + 1);
@@ -622,10 +554,11 @@ void initialize_row_ptrs_l(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_row(grid_dim, block_size, 0, exec->get_queue(),
-                                num_rows, system_matrix->get_const_row_ptrs(),
-                                system_matrix->get_const_col_idxs(),
-                                system_matrix->get_const_values(), l_row_ptrs);
+    kernel::count_nnz_per_l_row(
+        grid_dim, block_size, 0, exec->get_queue(), num_rows,
+        system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(),
+        as_device_type(system_matrix->get_const_values()), l_row_ptrs);
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
 }
@@ -648,9 +581,9 @@ void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
     kernel::initialize_l(grid_dim, block_size, 0, exec->get_queue(), num_rows,
                          system_matrix->get_const_row_ptrs(),
                          system_matrix->get_const_col_idxs(),
-                         system_matrix->get_const_values(),
+                         as_device_type(system_matrix->get_const_values()),
                          csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-                         csr_l->get_values(), diag_sqrt);
+                         as_device_type(csr_l->get_values()), diag_sqrt);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

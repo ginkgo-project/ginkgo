@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/isai.hpp>
-
+#include "ginkgo/core/preconditioner/isai.hpp"
 
 #include <functional>
 #include <memory>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,7 +19,6 @@
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"

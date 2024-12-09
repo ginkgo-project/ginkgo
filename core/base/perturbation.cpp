@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/perturbation.hpp>
-
+#include "ginkgo/core/base/perturbation.hpp"
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -90,9 +89,9 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> projector)
     : EnableLinOp<Perturbation>(basis->get_executor(),
                                 gko::dim<2>{basis->get_size()[0]}),
-      scalar_{std::move(scalar)},
       basis_{std::move(basis)},
-      projector_{std::move(projector)}
+      projector_{std::move(projector)},
+      scalar_{std::move(scalar)}
 {
     this->validate_perturbation();
 }

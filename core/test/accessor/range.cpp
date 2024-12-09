@@ -2,14 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "accessor/range.hpp"
+
 #include <array>
 #include <cstddef>
 
-
 #include <gtest/gtest.h>
-
-
-#include "accessor/range.hpp"
 
 
 namespace {

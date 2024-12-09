@@ -13,7 +13,6 @@
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/test/utils.hpp"

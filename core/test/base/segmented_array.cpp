@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/segmented_array.hpp>
-
+#include "core/base/segmented_array.hpp"
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/segmented_array.hpp>
 
-#include "core/base/segmented_array.hpp"
 #include "core/test/utils.hpp"
 
 

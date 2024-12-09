@@ -2,18 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/combined.hpp>
-
-
 #include <chrono>
 #include <thread>
+
+#include <ginkgo/core/stop/combined.hpp>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif  // defined(_WIN32) || defined(__CYGWIN__)
 
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/time.hpp>

@@ -6,16 +6,10 @@
 #define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
-
-
-#include <hip/device_functions.h>
-
-
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-
-#include "hip/base/math.hip.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 namespace gko {

@@ -4,9 +4,7 @@
 
 #include <typeinfo>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -24,7 +22,6 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/registry_accessor.hpp"
@@ -292,6 +289,8 @@ struct Gmres
         param.with_krylov_dim(3u);
         config_map["flexible"] = pnode{true};
         param.with_flexible(true);
+        config_map["ortho_method"] = pnode{"cgs"};
+        param.with_ortho_method(gko::solver::gmres::ortho_method::cgs);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -303,6 +302,7 @@ struct Gmres
         solver_config_test::template validate<from_reg>(result, answer);
         ASSERT_EQ(res_param.krylov_dim, ans_param.krylov_dim);
         ASSERT_EQ(res_param.flexible, ans_param.flexible);
+        ASSERT_EQ(res_param.ortho_method, ans_param.ortho_method);
     }
 };
 

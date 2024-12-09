@@ -4,16 +4,14 @@
 
 #include "core/solver/idr_kernels.hpp"
 
-
 #include <fstream>
 #include <random>
-
 
 #include <gtest/gtest.h>
 
 
 #ifdef GKO_COMPILING_DPCPP
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #endif
 
 
@@ -28,9 +26,8 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 // use another alias to avoid conflict name in the Idr
@@ -160,7 +157,7 @@ TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 
     gko::kernels::reference::idr::initialize(ref, nrhs, m.get(), p.get(), true,
                                              stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::idr::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::idr::initialize(
         exec, nrhs, d_m.get(), d_p.get(), true, d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
@@ -176,7 +173,7 @@ TEST_F(Idr, IdrStep1IsEquivalentToRef)
     gko::kernels::reference::idr::step_1(ref, nrhs, k, m.get(), f.get(),
                                          r.get(), g.get(), c.get(), v.get(),
                                          stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::idr::step_1(
+    gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_1(
         exec, nrhs, k, d_m.get(), d_f.get(), d_r.get(), d_g.get(), d_c.get(),
         d_v.get(), d_stop_status.get());
 
@@ -192,9 +189,9 @@ TEST_F(Idr, IdrStep2IsEquivalentToRef)
     gko::size_type k = 2;
     gko::kernels::reference::idr::step_2(ref, nrhs, k, omega.get(), v.get(),
                                          c.get(), u.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::idr::step_2(exec, nrhs, k, d_omega.get(),
-                                              d_v.get(), d_c.get(), d_u.get(),
-                                              d_stop_status.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_2(
+        exec, nrhs, k, d_omega.get(), d_v.get(), d_c.get(), d_u.get(),
+        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
 }
@@ -208,7 +205,7 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
     gko::kernels::reference::idr::step_3(
         ref, nrhs, k, p.get(), g.get(), v.get(), u.get(), m.get(), f.get(),
         alpha.get(), r.get(), x.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::idr::step_3(
+    gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_3(
         exec, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
@@ -230,7 +227,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
     gko::kernels::reference::idr::compute_omega(ref, nrhs, kappa, tht.get(),
                                                 residual_norm.get(),
                                                 omega.get(), stop_status.get());
-    gko::kernels::EXEC_NAMESPACE::idr::compute_omega(
+    gko::kernels::GKO_DEVICE_NAMESPACE::idr::compute_omega(
         exec, nrhs, kappa, d_tht.get(), d_residual_norm.get(), d_omega.get(),
         d_stop_status.get());
 

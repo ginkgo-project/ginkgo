@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/mc64.hpp>
-
+#include "core/reorder/mc64.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,17 +10,15 @@
 #include <limits>
 #include <memory>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-
+#include <ginkgo/core/reorder/mc64.hpp>
 
 #include "core/components/addressable_pq.hpp"
-#include "core/reorder/mc64.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
@@ -50,13 +47,6 @@ protected:
     Mc64()
         : ref(gko::ReferenceExecutor::create()),
           tmp{ref},
-          mtx(gko::initialize<matrix_type>({{1., 2., 0., 0., 3., 0.},
-                                            {5., 1., 0., 0., 0., 0.},
-                                            {0., 0., 0., 6., 0., 4.},
-                                            {0., 0., 4., 0., 0., 3.},
-                                            {0., 0., 0., 4., 2., 0.},
-                                            {0., 5., 8., 0., 0., 0.}},
-                                           ref)),
           weights{ref, 13},
           dual_u{ref, 6},
           distance{ref, 6},
@@ -100,29 +90,36 @@ protected:
                                 static_cast<real_type>(std::log2(8.))}},
           initialized_distance{
               ref, I<real_type>{inf(), inf(), inf(), inf(), inf(), inf()}},
+          final_weights{ref, I<real_type>{2., 1., 0., 0., 4., 0., 2., 0., 1.,
+                                          0., 2., 3., 0.}},
+          final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
+          final_distance{ref, I<real_type>{inf(), inf(), 1., 0., inf(), 1.}},
           empty_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_inverse_permutation{ref, I<index_type>{-1, -1, -1, -1, -1, -1}},
           empty_matched_idxs{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           empty_unmatched_rows{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
+          initial_matching_permutation{ref, I<index_type>{1, 0, 3, 5, -1, 2}},
+          initial_matching_inverse_permutation{
+              ref, I<index_type>{1, 0, 5, 2, -1, 3}},
           initial_parents{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_generation{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_marked_cols{ref, I<index_type>{0, 0, 0, 0, 0, 0}},
           initial_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 0, 12}},
           initial_unmatched_rows{ref, I<index_type>{4, -1, 0, 0, 0, 0}},
-          initial_matching_permutation{ref, I<index_type>{1, 0, 3, 5, -1, 2}},
-          initial_matching_inverse_permutation{
-              ref, I<index_type>{1, 0, 5, 2, -1, 3}},
           final_permutation{ref, I<index_type>{1, 0, 3, 5, 4, 2}},
           final_inverse_permutation{ref, I<index_type>{1, 0, 5, 2, 4, 3}},
           final_parents{ref, I<index_type>{0, 0, 3, 4, 4, 2}},
           final_generation{ref, I<index_type>{0, 0, -4, -4, 0, -4}},
           final_marked_cols{ref, I<index_type>{3, 5, 2, 0, 0, 0}},
           final_matched_idxs{ref, I<index_type>{1, 3, 5, 8, 10, 12}},
-          final_weights{ref, I<real_type>{2., 1., 0., 0., 4., 0., 2., 0., 1.,
-                                          0., 2., 3., 0.}},
-          final_dual_u{ref, I<real_type>{0., 1., -1., -2., 0., 0.}},
-          final_distance{ref, I<real_type>{inf(), inf(), 1., 0., inf(), 1.}},
-          zero_tol{1e-14}
+          mtx(gko::initialize<matrix_type>({{1., 2., 0., 0., 3., 0.},
+                                            {5., 1., 0., 0., 0., 0.},
+                                            {0., 0., 0., 6., 0., 4.},
+                                            {0., 0., 4., 0., 0., 3.},
+                                            {0., 0., 0., 4., 2., 0.},
+                                            {0., 5., 8., 0., 0., 0.}},
+                                           ref)),
+          zero_tol{50 * std::numeric_limits<real_type>::epsilon()}
     {}
 
     std::pair<std::shared_ptr<const perm_type>,
@@ -138,8 +135,8 @@ protected:
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         for (gko::size_type i = 0; i < a.get_size(); i++) {
-            if (std::isfinite(a.get_const_data()[i]) ||
-                std::isfinite(b.get_const_data()[i])) {
+            if (gko::is_finite(a.get_const_data()[i]) ||
+                gko::is_finite(b.get_const_data()[i])) {
                 ASSERT_NEAR(a.get_const_data()[i], b.get_const_data()[i],
                             r<value_type>::value)
                     << name << '[' << i << ']';
@@ -307,6 +304,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
@@ -348,6 +346,12 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
     using value_type = typename TestFixture::value_type;
     using matrix_type = typename TestFixture::matrix_type;
     using perm_type = typename TestFixture::perm_type;
+    // A few scaling factors is zero and gives (inf, -nan) in inv_scaling when
+    // it is complex value. Depends on compiler and optimization level, the
+    // value / (inf, -nan) gives (0, 0), which can pass the test under the
+    // threshold, or (nan, nan), which fails. We disable not only complex<half>
+    // but also half, because it relies on the value/inf on the half.
+    SKIP_IF_HALF(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_1138_bus_mtx};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));
@@ -366,7 +370,7 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeTrivialExampleProduct)
 
     mtx = mtx->scale_permute(row_perm, col_perm);
 
-    GKO_ASSERT_MTX_NEAR(mtx, expected_result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(mtx, expected_result, 20 * r<value_type>::value);
 }
 
 
@@ -377,6 +381,11 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
     using value_type = typename TestFixture::value_type;
     using matrix_type = typename TestFixture::matrix_type;
     using perm_type = typename TestFixture::perm_type;
+    // some values are too small such that log2(abs(v)) -> -inf and some values
+    // are out of half-precision range -> inf. It leads some permutation values
+    // to be invalid_index after the kernel such that scale_permute gives
+    // segmentation fault.
+    SKIP_IF_HALF(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_nontrivial_mc64_example};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));

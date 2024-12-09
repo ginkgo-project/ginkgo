@@ -2,13 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/utils.hpp>
-
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 namespace {
@@ -86,19 +83,19 @@ TEST(PointerParam, WorksForUniquePointers)
 }
 
 
-struct ClonableDerived : Base {
-    ClonableDerived(std::shared_ptr<const gko::Executor> exec = nullptr)
+struct CloneableDerived : Base {
+    CloneableDerived(std::shared_ptr<const gko::Executor> exec = nullptr)
         : executor(exec)
     {}
 
     std::unique_ptr<Base> clone()
     {
-        return std::unique_ptr<Base>(new ClonableDerived());
+        return std::unique_ptr<Base>(new CloneableDerived());
     }
 
     std::unique_ptr<Base> clone(std::shared_ptr<const gko::Executor> exec)
     {
-        return std::unique_ptr<Base>(new ClonableDerived{exec});
+        return std::unique_ptr<Base>(new CloneableDerived{exec});
     }
 
     std::shared_ptr<const gko::Executor> executor;
@@ -107,36 +104,36 @@ struct ClonableDerived : Base {
 
 TEST(Clone, ClonesUniquePointer)
 {
-    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
 }
 
 
 TEST(Clone, ClonesSharedPointer)
 {
-    std::shared_ptr<ClonableDerived> p(new ClonableDerived());
+    std::shared_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
 }
 
 
 TEST(Clone, ClonesPlainPointer)
 {
-    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(p.get());
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
 }
 
@@ -144,12 +141,12 @@ TEST(Clone, ClonesPlainPointer)
 TEST(CloneTo, ClonesUniquePointer)
 {
     auto exec = gko::ReferenceExecutor::create();
-    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
     ASSERT_EQ(clone->executor, exec);
 }
@@ -158,12 +155,12 @@ TEST(CloneTo, ClonesUniquePointer)
 TEST(CloneTo, ClonesSharedPointer)
 {
     auto exec = gko::ReferenceExecutor::create();
-    std::shared_ptr<ClonableDerived> p(new ClonableDerived());
+    std::shared_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(exec, p);
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
     ASSERT_EQ(clone->executor, exec);
 }
@@ -172,12 +169,12 @@ TEST(CloneTo, ClonesSharedPointer)
 TEST(CloneTo, ClonesPlainPointer)
 {
     auto exec = gko::ReferenceExecutor::create();
-    std::unique_ptr<ClonableDerived> p(new ClonableDerived());
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
     auto clone = gko::clone(exec, p.get());
 
     ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<ClonableDerived>>();
+                                  std::unique_ptr<CloneableDerived>>();
     ASSERT_NE(p.get(), clone.get());
     ASSERT_EQ(clone->executor, exec);
 }

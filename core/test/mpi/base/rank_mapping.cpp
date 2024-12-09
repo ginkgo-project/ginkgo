@@ -4,12 +4,9 @@
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/mpi.hpp>
-
 
 #include "core/test/utils.hpp"
 

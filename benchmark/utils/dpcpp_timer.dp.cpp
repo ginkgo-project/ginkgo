@@ -4,9 +4,7 @@
 
 #include <iostream>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include "benchmark/utils/timer_impl.hpp"
 

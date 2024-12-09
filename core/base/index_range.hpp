@@ -10,6 +10,7 @@
 #include <iterator>
 #include <type_traits>
 
+#include <ginkgo/core/base/types.hpp>
 
 #include "core/base/iterator_range.hpp"
 
@@ -189,7 +190,7 @@ public:
     constexpr explicit irange(index_type begin, index_type end)
         : iterator_range<iterator>{iterator{begin}, iterator{end}}
     {
-        assert(begin <= end);
+        GKO_ASSERT(begin <= end);
     }
 
     /**

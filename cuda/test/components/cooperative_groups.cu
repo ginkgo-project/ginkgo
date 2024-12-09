@@ -2,20 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/cooperative_groups.cuh"
-
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "cuda/base/config.hpp"
+#include "common/cuda_hip/base/config.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -77,7 +73,8 @@ __global__ void cg_shuffle(bool* s)
         group::tiled_partition<config::warp_size>(group::this_thread_block());
     auto i = int(group.thread_rank());
     test_assert(s, group.shfl_up(i, 1) == max(0, i - 1));
-    test_assert(s, group.shfl_down(i, 1) == min(i + 1, config::warp_size - 1));
+    test_assert(s, group.shfl_down(i, 1) ==
+                       min(i + 1, static_cast<int>(config::warp_size) - 1));
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
@@ -225,6 +222,42 @@ __global__ void cg_subwarp_ballot(bool* s)
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
 
 TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
+
+
+__global__ void cg_communicator_categorization(bool*)
+{
+    auto this_block = group::this_thread_block();
+    auto tiled_partition =
+        group::tiled_partition<config::warp_size>(this_block);
+    auto subwarp_partition = group::tiled_partition<subwarp_size>(this_block);
+
+    using not_group = int;
+    using this_block_t = decltype(this_block);
+    using tiled_partition_t = decltype(tiled_partition);
+    using subwarp_partition_t = decltype(subwarp_partition);
+
+    static_assert(!group::is_group<not_group>::value &&
+                      group::is_group<this_block_t>::value &&
+                      group::is_group<tiled_partition_t>::value &&
+                      group::is_group<subwarp_partition_t>::value,
+                  "Group check doesn't work.");
+    static_assert(
+        !group::is_synchronizable_group<not_group>::value &&
+            group::is_synchronizable_group<this_block_t>::value &&
+            group::is_synchronizable_group<tiled_partition_t>::value &&
+            group::is_synchronizable_group<subwarp_partition_t>::value,
+        "Synchronizable group check doesn't work.");
+    static_assert(!group::is_communicator_group<not_group>::value &&
+                      !group::is_communicator_group<this_block_t>::value &&
+                      group::is_communicator_group<tiled_partition_t>::value &&
+                      group::is_communicator_group<subwarp_partition_t>::value,
+                  "Communicator group check doesn't work.");
+}
+
+TEST_F(CooperativeGroups, CorrectCategorization)
+{
+    test(cg_communicator_categorization);
+}
 
 
 }  // namespace

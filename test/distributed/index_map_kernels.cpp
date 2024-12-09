@@ -4,14 +4,11 @@
 
 #include "core/distributed/index_map_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -19,10 +16,9 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "core/distributed/partition_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;
@@ -97,7 +93,7 @@ TEST_F(IndexMapBuildMapping, BuildMappingSameAsRef)
     gko::kernels::reference::index_map::build_mapping(
         ref, part.get(), query, target_ids, remote_local_idxs,
         remote_global_idxs, remote_sizes);
-    gko::kernels::EXEC_NAMESPACE::index_map::build_mapping(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::build_mapping(
         exec, dpart.get(), dquery, dtarget_ids, dremote_local_idxs,
         dremote_global_idxs, dremote_sizes);
 
@@ -136,7 +132,7 @@ protected:
         gko::kernels::reference::index_map::build_mapping(
             ref, part.get(), connections, target_ids, flat_remote_local_idxs,
             flat_remote_global_idxs, remote_sizes);
-        gko::kernels::EXEC_NAMESPACE::index_map::build_mapping(
+        gko::kernels::GKO_DEVICE_NAMESPACE::index_map::build_mapping(
             exec, dpart.get(), dconnections, dtarget_ids,
             dflat_remote_local_idxs, dflat_remote_global_idxs, dremote_sizes);
 
@@ -247,7 +243,7 @@ TEST_F(IndexMap, GetLocalWithLocalIndexSpaceSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query, gko::experimental::distributed::index_space::local,
         result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery, gko::experimental::distributed::index_space::local,
         dresult);
@@ -275,7 +271,7 @@ TEST_F(IndexMap, GetLocalWithLocalIndexSpaceWithInvalidIndexSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query, gko::experimental::distributed::index_space::local,
         result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery, gko::experimental::distributed::index_space::local,
         dresult);
@@ -304,7 +300,7 @@ TEST_F(IndexMap, GetLocalWithNonLocalIndexSpaceSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);
@@ -330,7 +326,7 @@ TEST_F(IndexMap, GetLocalWithNonLocalIndexSpaceWithInvalidIndexSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);
@@ -355,7 +351,7 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query, gko::experimental::distributed::index_space::combined,
         result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery,
         gko::experimental::distributed::index_space::combined, dresult);
@@ -385,7 +381,7 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceWithInvalidIndexSameAsRef)
         ref, part.get(), target_ids, to_device_const(remote_global_idxs),
         this_rank, query,
         gko::experimental::distributed::index_space::non_local, result);
-    gko::kernels::EXEC_NAMESPACE::index_map::map_to_local(
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, dquery,
         gko::experimental::distributed::index_space::non_local, dresult);

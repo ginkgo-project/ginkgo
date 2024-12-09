@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#pragma once
-#include <numeric>
+#ifndef GKO_PUBLIC_CORE_BASE_SEGMENTED_ARRAY_HPP_
+#define GKO_PUBLIC_CORE_BASE_SEGMENTED_ARRAY_HPP_
 
+
+#include <numeric>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -184,3 +186,5 @@ public:
 
 }  // namespace detail
 }  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_BASE_SEGMENTED_ARRAY_HPP_

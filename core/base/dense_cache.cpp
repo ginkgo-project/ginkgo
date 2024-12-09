@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/dense_cache.hpp>
-
+#include "ginkgo/core/base/dense_cache.hpp"
 
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -33,7 +32,7 @@ void DenseCache<ValueType>::init_from(
 }
 
 
-#define GKO_DECLARE_DENSE_CACHE(_type) class DenseCache<_type>
+#define GKO_DECLARE_DENSE_CACHE(_type) struct DenseCache<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
 
 

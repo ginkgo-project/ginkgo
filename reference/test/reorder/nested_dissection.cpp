@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/nested_dissection.hpp>
-
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/reorder/nested_dissection.hpp>
 #include GKO_METIS_HEADER
 
 
@@ -17,7 +15,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"

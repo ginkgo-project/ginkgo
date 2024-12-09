@@ -10,11 +10,9 @@
 #include <memory>
 #include <vector>
 
-
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 

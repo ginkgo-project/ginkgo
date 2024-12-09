@@ -91,251 +91,17 @@ trigger_pipeline:
       fi
 
 
-# Build jobs
-# Job with example runs.
-# cuda 10.1 and friends
-# Build CUDA NVIDIA without omp
-# Make sure that our jobs run when HWLOC is
-# forcibly switched off
-build/cuda101/nompi/clang/cuda_wo_omp/release/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_CUDA: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-
-# Job with example runs.
-# Also explicitly test PAPI SDE
-build/cuda101/openmpi/gcc/all/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_PAPI_SDE: "ON"
-    CUDA_ARCH: 35
-
-build/cuda101/nompi/clang/all/release/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-
-# clang-cuda with cuda 10.1 and friends
-#build/clang-cuda101/openmpi/clang/cuda/release/shared:
-#  extends:
-#    - .build_and_test_template
-#    - .default_variables
-#    - .quick_test_condition
-#    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
-#  variables:
-#    CXX_COMPILER: "clang++"
-#    CUDA_COMPILER: "clang++"
-#    BUILD_OMP: "ON"
-#    BUILD_CUDA: "ON"
-#    BUILD_MPI: "ON"
-#    MPI_AS_ROOT: "ON"
-#    BUILD_HIP: "OFF"
-#    BUILD_TYPE: "Release"
-
-
-#build/clang-cuda101/nompi/clang/cuda/debug/static:
-#  extends:
-#    - .build_and_test_template
-#    - .default_variables
-#    - .full_test_condition
-#    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
-#  variables:
-#    CXX_COMPILER: "clang++"
-#    CUDA_COMPILER: "clang++"
-#    BUILD_OMP: "ON"
-#    BUILD_CUDA: "ON"
-#    BUILD_TYPE: "Debug"
-#    FAST_TESTS: "ON"
-#    BUILD_SHARED_LIBS: "OFF"
-
-
-# cuda 10.2 and friends
-
-# works when there is no hwloc and tpl hwloc is also switched off.
-build/cuda102/nompi/gcc/all/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_HWLOC: "OFF"
-    CUDA_ARCH: 35
-
-# Use TPL hwloc when no system hwloc is available
-build/cuda102/nompi/clang/all/release/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-    BUILD_HWLOC: "OFF"
-
-build/cuda102/nompi/intel/cuda/debug/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda102-nompi-gnu8-llvm8-intel2019
-  variables:
-    CXX_COMPILER: "icpc"
-    CXX_FLAGS: ""
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-    BUILD_HWLOC: "OFF"
-
-# cuda 11.0 and friends on HoreKa with tests
-build/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .build_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    NONDEFAULT_STREAM: "ON"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/mvapich2/gcc/cuda/debug/shared:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-mvapich2-gcc-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
-
-
-build/cuda110/nompi/clang/cuda/release/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/nompi/clang/cuda/release/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-clang-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "01:30:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
-
-
-build/cuda110/nompi/intel/cuda/debug/static:
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    CXX_COMPILER: "icpc"
-    CXX_FLAGS: ""
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 80
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-test/cuda110/nompi/intel/cuda/debug/static:
-  extends:
-    - .horeka_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
-  variables:
-    USE_NAME: "cuda110-nompi-intel-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:4"
-    SLURM_TIME: "02:00:00"
-  dependencies: null
-  needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
-
-
 # cuda 11.4 and friends
-build/cuda114/nompi/gcc/cuda/debug/shared:
+build/cuda110/nompi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko_cuda114-openmpi-gnu10-llvm12
+    - .use_gko_cuda110-mvapich-gnu9-llvm9
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
+    BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
@@ -348,7 +114,7 @@ build/nvhpc233/cuda120/nompi/nvcpp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
   variables:
     CXX_COMPILER: "nvc++"
@@ -367,7 +133,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14
   variables:
     CXX_COMPILER: "nvc++"
@@ -412,7 +178,7 @@ build/amd/nompi/clang/rocm45/debug/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-rocm45-nompi-gnu8-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -437,7 +203,7 @@ build/amd/nompi/clang/rocm514/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     CXX_COMPILER: "clang++"
@@ -463,7 +229,7 @@ build/nocuda/nompi/gcc/core/debug/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_TYPE: "Debug"
@@ -475,7 +241,7 @@ build/nocuda/nompi/clang/core/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -510,7 +276,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     CXX_COMPILER: "clang++"
@@ -521,13 +287,13 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     # The tests are prohibitively slow in Debug
     BUILD_TYPE: "Release"
 
-# nocuda with the oldest supported compiler
+# nocuda with old compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
@@ -538,7 +304,7 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2019
+    - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
@@ -550,7 +316,7 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_MPI: "ON"
@@ -573,7 +339,7 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     MIXED_PRECISION: "OFF"
 
 # spack oneapi 2023.1
-build/icpx20231/igpu/release/shared:
+build/icpx20231/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -606,7 +372,7 @@ build/icpx20231/igpu/release/shared:
 #     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
 
 # It gives two available backends of GPU on tests
-build/icpx/igpu/release/static:
+build/dpcpp/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -617,10 +383,49 @@ build/icpx/igpu/release/static:
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
     BUILD_SYCL: "ON"
     BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OF"
+    # static builds take too long
+    BUILD_SHARED_LIBS: "ON"
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
+
+# windows jobs
+# Note that this is using Powershell, not bash
+build/windows-cuda/release/shared:
+  extends:
+    - .quick_test_condition
+  stage: build
+  script:
+    - if (Test-Path build) { rm -r -fo build }
+    - if (Test-Path install) { rm -r -fo install }
+    - mkdir build
+    - mkdir install
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake --build build --config Release -j16
+    - ctest --test-dir build -C Release --no-tests=error --output-on-failure
+    - $env:PATH+=";$pwd/install/bin"
+    - cmake --install build --config Release
+    - cmake --build build --target test_install --config Release
+  tags:
+    - windows-cuda
+
+build/windows/release/shared:
+  extends:
+    - .full_test_condition
+  stage: build
+  script:
+    - if (Test-Path build) { rm -r -fo build }
+    - if (Test-Path install) { rm -r -fo install }
+    - mkdir build
+    - mkdir install
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake --build build --config Release -j16
+    - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
+    - $env:PATH+=";$pwd/install/bin"
+    - cmake --install build --config Release
+    - cmake --build build --target test_install --config Release
+  tags:
+    - windows
 
 # Job with important warnings as error
 warnings:
@@ -629,10 +434,9 @@ warnings:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   allow_failure: yes
 
@@ -642,11 +446,10 @@ no-circular-deps:
   extends:
     - .build_template
     - .default_variables
-    - .quick_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .full_test_condition
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   allow_failure: no
 
@@ -670,10 +473,9 @@ clang-tidy:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   allow_failure: yes
 
@@ -683,10 +485,9 @@ iwyu:
     - .build_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
     BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
   allow_failure: yes
 
@@ -696,9 +497,9 @@ sonarqube_cov_:
   stage: code_quality
   extends:
     - .default_variables
-    - .quick_test_short_lived_condition
+    - .full_test_short_lived_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
   tags:
     - private_ci
     - controller
@@ -734,7 +535,7 @@ sonarqube_cov:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm7-intel2019
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
   tags:
     - private_ci
     - controller
@@ -797,7 +598,8 @@ threadsanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
+    - .disable_job_condition
   script:
     - LD_PRELOAD=/usr/local/lib/libomp.so
       CC=clang CXX=clang++
@@ -812,7 +614,7 @@ leaksanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
       -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
@@ -823,7 +625,7 @@ addresssanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
       -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
@@ -834,7 +636,7 @@ undefinedsanitizer:
     - .default_variables
     - .deploy_condition
     - .before_script_template
-    - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
+    - .use_gko-rocm514-nompi-gnu11-llvm11
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
     # in the Ubuntu setup we are using.
@@ -847,7 +649,7 @@ cudamemcheck:
     - .before_script_template
     - .default_variables
     - .deploy_condition
-  image: ginkgohub/cuda:101-openmpi-gnu8-llvm13-intel2019
+    - .use_gko_cuda110-mvapich-gnu9-llvm9
   tags:
     - private_ci
     - nvidia-gpu
@@ -875,8 +677,9 @@ benchmark-cuda-spmv-build:
   extends:
     - .build_template
     - .default_variables
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
     - .benchmark-spmv-cuda-rules
+    - .disable_job_condition
   stage: benchmark-build
   variables:
     BUILD_OMP: "ON"
@@ -896,8 +699,9 @@ benchmark-cuda-spmv:
   extends:
     - .benchmark_template
     - .default_variables
-    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .use_gko_cuda114-openmpi-gnu10-llvm12
     - .benchmark-spmv-cuda-rules
+    - .disable_job_condition
   stage: benchmark-cuda
   variables:
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git

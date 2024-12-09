@@ -90,9 +90,12 @@ def sanitize_json_text(input: str) -> List[str]:
     and pretty-printed to replace the original JSON input.
     """
 
-    result = json.dumps(sanitize_json(json.loads(input)), indent=4)
-    # json.dumps doesn't add a trailing newline
-    return result.splitlines() + [""]
+    try:
+        result = json.dumps(sanitize_json(json.loads(input)), indent=4)
+        # json.dumps doesn't add a trailing newline
+        return result.splitlines() + [""]
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 def sanitize_text(
@@ -132,8 +135,14 @@ def compare_output_impl(
     expected_stderr: str,
     stdin: str,
     launcher_flags: List[str],
+    use_complex: bool
 ):
-    args = [sys.argv[1]] + args
+    base_file = sys.argv[1]
+    if base_file.endswith(".exe"):
+        file = base_file if not use_complex else base_file.replace(".exe", "_dcomplex.exe")
+    else:
+        file = base_file if not use_complex else f"{base_file}_dcomplex"
+    args = [file] + args
     expected_stdout = str(sourcepath / "reference" / expected_stdout)
     expected_stderr = str(sourcepath / "reference" / expected_stderr)
     result = subprocess.run(
@@ -208,7 +217,7 @@ def compare_output_impl(
 
 
 def compare_output(
-    args: List[str], expected_stdout: str, expected_stderr: str, stdin: str = ""
+    args: List[str], *, expected_stdout: str, expected_stderr: str, stdin: str = "", use_complex: bool = False
 ):
     compare_output_impl(
         args,
@@ -216,16 +225,18 @@ def compare_output(
         expected_stderr=expected_stderr,
         stdin=stdin,
         launcher_flags=[],
+        use_complex=use_complex
     )
 
 
 def compare_output_distributed(
-    args, expected_stdout, expected_stderr, num_procs, stdin=""
+    args: List[str], *, expected_stdout: str, expected_stderr: str, num_procs: int, stdin: str = "", use_complex: bool = False
 ):
     compare_output_impl(
         args,
-        expected_stdout,
-        expected_stderr,
-        stdin,
-        ["@MPIEXEC_EXECUTABLE@", "@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
+        expected_stdout=expected_stdout,
+        expected_stderr=expected_stderr,
+        stdin=stdin,
+        launcher_flags=["@MPIEXEC_EXECUTABLE@", "@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
+        use_complex=use_complex
     )

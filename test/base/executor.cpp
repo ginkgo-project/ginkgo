@@ -2,17 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "test/utils/executor.hpp"
 
 #include <map>
 
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/executor.hpp>
 
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace reference {
@@ -72,7 +71,7 @@ TEST_F(Executor, RunsCorrectOperation)
 
     exec->run(ExampleOperation(value));
 
-    ASSERT_EQ(EXEC_NAMESPACE::value, value);
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
 
 
@@ -91,7 +90,26 @@ TEST_F(Executor, RunsCorrectHostOperation)
 }
 
 
+TEST_F(Executor, RunsCorrectLambdaOperationWithReferenceExecutor)
+{
+    int value = 0;
+    auto ref_lambda = [&value]() { value = reference::value; };
+    auto omp_lambda = [&value]() { value = omp::value; };
+    auto cuda_lambda = [&value]() { value = cuda::value; };
+    auto hip_lambda = [&value]() { value = hip::value; };
+    auto dpcpp_lambda = [&value]() { value = dpcpp::value; };
+
+    exec->run("test", ref_lambda, omp_lambda, cuda_lambda, hip_lambda,
+              dpcpp_lambda);
+
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
+}
+
+
 #ifndef GKO_COMPILING_REFERENCE
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 TEST_F(Executor, RunsCorrectLambdaOperation)
@@ -104,8 +122,11 @@ TEST_F(Executor, RunsCorrectLambdaOperation)
 
     exec->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
 
-    ASSERT_EQ(EXEC_NAMESPACE::value, value);
+    ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 #endif  // GKO_COMPILING_REFERENCE

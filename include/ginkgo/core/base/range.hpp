@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>

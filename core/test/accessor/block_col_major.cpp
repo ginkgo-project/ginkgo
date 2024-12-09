@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "accessor/block_col_major.hpp"
+
 #include <array>
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
-#include "accessor/block_col_major.hpp"
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
 

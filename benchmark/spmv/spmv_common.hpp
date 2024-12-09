@@ -44,8 +44,8 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
                   bool do_print = true)
         : name{"spmv"},
           formats{std::move(formats)},
-          generator{generator},
-          do_print{do_print}
+          do_print{do_print},
+          generator{generator}
     {}
 
     const std::string& get_name() const override { return name; }

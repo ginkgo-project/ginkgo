@@ -4,12 +4,9 @@
 
 #include "core/solver/lower_trs_kernels.hpp"
 
-
 #include <memory>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

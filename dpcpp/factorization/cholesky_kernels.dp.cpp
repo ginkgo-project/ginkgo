@@ -4,16 +4,12 @@
 
 #include "core/factorization/cholesky_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/factorization/elimination_forest.hpp"
 
@@ -174,7 +170,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
                const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors,
+               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);

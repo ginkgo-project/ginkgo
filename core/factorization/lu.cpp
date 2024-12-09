@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/lu.hpp>
-
+#include "ginkgo/core/factorization/lu.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -153,19 +151,15 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
         allowed_sparsity, storage_offsets.get_const_data(),
         row_descs.get_data(), storage.get_data()));
-    // initialize factors
-    exec->run(make_fill_array(factors->get_values(),
-                              factors->get_num_stored_elements(),
-                              zero<ValueType>()));
     exec->run(make_initialize(
         mtx.get(), storage_offsets.get_const_data(), row_descs.get_const_data(),
         storage.get_const_data(), diag_idxs.get_data(), factors.get()));
     // run numerical factorization
     array<int> tmp{exec};
-    exec->run(make_factorize(storage_offsets.get_const_data(),
-                             row_descs.get_const_data(),
-                             storage.get_const_data(),
-                             diag_idxs.get_const_data(), factors.get(), tmp));
+    exec->run(
+        make_factorize(storage_offsets.get_const_data(),
+                       row_descs.get_const_data(), storage.get_const_data(),
+                       diag_idxs.get_const_data(), factors.get(), true, tmp));
     return factorization_type::create_from_combined_lu(std::move(factors));
 }
 

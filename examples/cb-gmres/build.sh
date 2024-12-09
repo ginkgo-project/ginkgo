@@ -14,6 +14,6 @@ mkdir -p data
 cp ${THIS_DIR}/../../matrices/test/ani1.mtx data/A.mtx
 
 # build
-${CXX} -std=c++14 -o ${THIS_DIR}/cb-gmres ${THIS_DIR}/cb-gmres.cpp \
+${CXX} -std=c++17 -o ${THIS_DIR}/cb-gmres ${THIS_DIR}/cb-gmres.cpp \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
        -L${THIS_DIR} ${LINK_FLAGS}

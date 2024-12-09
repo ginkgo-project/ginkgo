@@ -10,10 +10,10 @@
 
 #include <algorithm>
 
-
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -240,7 +240,8 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 
@@ -262,7 +263,8 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 
@@ -659,8 +661,8 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, result_stride, size, tmp,
-        map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result),
+        result_stride, size, tmp, map_to_device(args)...);
 }
 
 
@@ -682,7 +684,8 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+        finalize, as_device_type(identity), as_device_type(result), size, tmp,
+        map_to_device(args)...);
 }
 
 

@@ -6,10 +6,8 @@
 #define GKO_CUDA_BASE_CONFIG_HPP_
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-
-
-#include "cuda/base/math.hpp"
 
 
 namespace gko {

@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 namespace {

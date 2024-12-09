@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/config/registry.hpp>
+#include "ginkgo/core/config/registry.hpp"
 
-
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
-
 
 #include "core/config/config_helper.hpp"
 
@@ -18,7 +17,9 @@ namespace config {
 
 configuration_map generate_config_map()
 {
-    return {{"solver::Cg", parse<LinOpFactoryType::Cg>},
+    return
+    {
+        {"solver::Cg", parse<LinOpFactoryType::Cg>},
             {"solver::Bicg", parse<LinOpFactoryType::Bicg>},
             {"solver::Bicgstab", parse<LinOpFactoryType::Bicgstab>},
             {"solver::Fcg", parse<LinOpFactoryType::Fcg>},
@@ -39,12 +40,21 @@ configuration_map generate_config_map()
             {"factorization::ParIct", parse<LinOpFactoryType::ParIct>},
             {"factorization::ParIlu", parse<LinOpFactoryType::ParIlu>},
             {"factorization::ParIlut", parse<LinOpFactoryType::ParIlut>},
+            {"preconditioner::GaussSeidel",
+             parse<LinOpFactoryType::GaussSeidel>},
             {"preconditioner::Ic", parse<LinOpFactoryType::Ic>},
             {"preconditioner::Ilu", parse<LinOpFactoryType::Ilu>},
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
             {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
+            {"preconditioner::Sor", parse<LinOpFactoryType::Sor>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
-            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>}};
+            {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
+#if GINKGO_BUILD_MPI
+        {
+            "preconditioner::Schwarz", parse<LinOpFactoryType::Schwarz>
+        }
+#endif
+    };
 }
 
 

@@ -2,24 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/cb_gmres.hpp>
-
-
 #include <tuple>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -44,6 +39,21 @@ protected:
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
+          mtx_medium(
+              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
+                                    {7.70, -77.00, 3.30, -149.20, 74.80},
+                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
+                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
+                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
+                                   exec)),
+          mtx_big(gko::initialize<Mtx>(
+              {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
+               {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
+               {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
+               {-1907.1, 2106.6, 1026.0, 634.7, 194.6, -534.1},
+               {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
+               {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
+              exec)),
           storage_prec{storage_helper_type::value},
           cb_gmres_factory(
               gmres_type::build()
@@ -56,14 +66,6 @@ protected:
                           .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor()))
                   .on(exec)),
-          mtx_big(gko::initialize<Mtx>(
-              {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
-               {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
-               {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
-               {-1907.1, 2106.6, 1026.0, 634.7, 194.6, -534.1},
-               {-365.0, -715.8, 870.7, 67.5, 279.8, 1927.8},
-               {-848.1, -280.5, -381.8, -187.1, 51.2, -176.2}},
-              exec)),
           cb_gmres_factory_big(
               gmres_type::build()
                   .with_storage_precision(storage_prec)
@@ -72,14 +74,8 @@ protected:
                       gko::stop::ResidualNorm<value_type>::build()
                           .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor()))
-                  .on(exec)),
-          mtx_medium(
-              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
-                                    {7.70, -77.00, 3.30, -149.20, 74.80},
-                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
-                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
-                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
-                                   exec))
+                  .on(exec))
+
     {}
 
     constexpr nc_value_type reduction_factor() const noexcept
@@ -139,17 +135,11 @@ using st_i = st_helper_type<st_enum::integer>;
 using st_ir1 = st_helper_type<st_enum::ireduce1>;
 using st_ir2 = st_helper_type<st_enum::ireduce2>;
 
-using TestTypes =
-    ::testing::Types<std::tuple<double, st_keep>, std::tuple<double, st_r1>,
-                     std::tuple<double, st_r2>, std::tuple<double, st_i>,
-                     std::tuple<double, st_ir1>, std::tuple<double, st_ir2>,
-                     std::tuple<float, st_keep>, std::tuple<float, st_r1>,
-                     std::tuple<float, st_r2>, std::tuple<float, st_i>,
-                     std::tuple<float, st_ir1>, std::tuple<float, st_ir2>,
-                     std::tuple<std::complex<double>, st_keep>,
-                     std::tuple<std::complex<double>, st_r1>,
-                     std::tuple<std::complex<double>, st_r2>,
-                     std::tuple<std::complex<float>, st_keep>>;
+using TestTypes = gko::test::merge_type_list_t<
+    gko::test::cartesian_type_product_t<
+        gko::test::ValueTypesBase, ::testing::Types<st_keep, st_r1, st_r2>>,
+    gko::test::cartesian_type_product_t<
+        gko::test::RealValueTypesBase, ::testing::Types<st_i, st_ir1, st_ir2>>>;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 
@@ -170,7 +160,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystem)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_base<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
@@ -208,8 +199,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystemComplex)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
+    using value_type = gko::to_complex<
+        gko::next_precision_base<typename TestFixture::value_type>>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b =
@@ -290,7 +281,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApply)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
+    using value_type =
+        gko::next_precision_base<typename TestFixture::value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
@@ -334,7 +326,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
 TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 {
     using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
+        gko::next_precision_base<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto solver = this->cb_gmres_factory->generate(this->mtx);

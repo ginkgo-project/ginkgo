@@ -4,14 +4,22 @@ set(config_source
     config/factorization_config.cpp
     config/multigrid_config.cpp
     config/preconditioner_config.cpp
+    config/preconditioner_ic_config.cpp
+    config/preconditioner_ilu_config.cpp
+    config/preconditioner_isai_config.cpp
     config/registry.cpp
     config/solver_config.cpp
 )
-# MSVC: To solve LNK1189, we separate the library as a workaround
+if(GINKGO_BUILD_MPI)
+    list(APPEND config_source config/schwarz_config.cpp)
+endif()
+# MSVC: LNK1189 issue
+# CLANG in MSYS2 (MINGW): too many exported symbols
+# We separate the library as a workaround to solve this issue
 # To make ginkgo still be the major library, we make the original to ginkgo_core in MSVC/shared
 # TODO: should think another way to solve it like dllexport or def file
 set(ginkgo_core "ginkgo")
-if(MSVC AND BUILD_SHARED_LIBS)
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     set(ginkgo_core "ginkgo_core")
 endif()
 
@@ -62,6 +70,7 @@ target_sources(${ginkgo_core}
     log/tau.cpp
     log/vtune.cpp
     log/record.cpp
+    log/solver_progress.cpp
     log/stream.cpp
     matrix/batch_csr.cpp
     matrix/batch_dense.cpp
@@ -84,6 +93,8 @@ target_sources(${ginkgo_core}
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/batch_jacobi.cpp
+    preconditioner/gauss_seidel.cpp
+    preconditioner/sor.cpp
     preconditioner/ic.cpp
     preconditioner/ilu.cpp
     preconditioner/isai.cpp
@@ -128,15 +139,17 @@ endif()
 if(GINKGO_BUILD_MPI)
     target_sources(${ginkgo_core}
         PRIVATE
+        distributed/vector_cache.cpp
         mpi/exception.cpp
+        distributed/assembly.cpp
         distributed/matrix.cpp
         distributed/partition_helpers.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
 endif()
 
-# MSVC/shared: make ginkgo be the major library
-if(MSVC AND BUILD_SHARED_LIBS)
+# MSVC or CLANG/msys2 with shared: make ginkgo be the major library
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     add_library(ginkgo "")
     target_sources(ginkgo PRIVATE ${config_source})
     ginkgo_compile_features(ginkgo)
@@ -154,7 +167,7 @@ ginkgo_compile_features(${ginkgo_core})
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-if(MSVC AND BUILD_SHARED_LIBS)
+if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     target_link_libraries(ginkgo PUBLIC ${ginkgo_core})
 endif()
 target_link_libraries(${ginkgo_core}

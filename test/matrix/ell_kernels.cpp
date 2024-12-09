@@ -4,12 +4,9 @@
 
 #include "core/matrix/ell_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -19,9 +16,8 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Ell : public CommonTestFixture {
@@ -533,7 +529,7 @@ TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
 
     gko::kernels::reference::ell::count_nonzeros_per_row(
         ref, mtx.get(), nnz_per_row.get_data());
-    gko::kernels::EXEC_NAMESPACE::ell::count_nonzeros_per_row(
+    gko::kernels::GKO_DEVICE_NAMESPACE::ell::count_nonzeros_per_row(
         exec, dmtx.get(), dnnz_per_row.get_data());
 
     GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);

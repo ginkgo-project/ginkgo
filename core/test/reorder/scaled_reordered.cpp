@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/reorder/scaled_reordered.hpp>
-
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
+#include <ginkgo/core/reorder/scaled_reordered.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 

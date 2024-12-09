@@ -24,6 +24,9 @@ scoped_device_id_guard::scoped_device_id_guard(const OmpExecutor* exec,
     GKO_NOT_COMPILED(omp);
 
 
+std::string OmpExecutor::get_description() const GKO_NOT_COMPILED(omp);
+
+
 int OmpExecutor::get_num_omp_threads() { return 1; }
 
 

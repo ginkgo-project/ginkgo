@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/config/stop_config.hpp"
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -12,11 +14,9 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/registry_accessor.hpp"
-#include "core/config/stop_config.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
 

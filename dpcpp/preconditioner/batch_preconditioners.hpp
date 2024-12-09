@@ -8,23 +8,9 @@
 
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace dpcpp {
-namespace batch_preconditioner {
-
-
-#include "dpcpp/preconditioner/batch_block_jacobi.hpp.inc"
-#include "dpcpp/preconditioner/batch_identity.hpp.inc"
-#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp.inc"
-
-
-}  // namespace batch_preconditioner
-}  // namespace dpcpp
-}  // namespace kernels
-}  // namespace gko
+#include "dpcpp/preconditioner/batch_block_jacobi.hpp"
+#include "dpcpp/preconditioner/batch_identity.hpp"
+#include "dpcpp/preconditioner/batch_scalar_jacobi.hpp"
 
 
 #endif  // GKO_DPCPP_PRECONDITIONER_BATCH_PRECONDITIONERS_HPP_

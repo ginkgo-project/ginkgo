@@ -13,7 +13,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include "index_span.hpp"
 #include "utils.hpp"
 

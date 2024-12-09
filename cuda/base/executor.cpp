@@ -2,16 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <iostream>
 #include <stdexcept>
 #include <thread>
 
-
 #include <cuda_runtime.h>
-
+#include <cublas_v2.h>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/device.hpp>
@@ -19,17 +17,15 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/memory.hpp>
 
-
-#include "cuda/base/config.hpp"
-#include "cuda/base/cublas_bindings.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/executor.hpp.inc"
+#include "cuda/base/cublas_handle.hpp"
 #include "cuda/base/cusparse_handle.hpp"
+#include "cuda/base/device.hpp"
 #include "cuda/base/scoped_device_id.hpp"
 
 
 namespace gko {
-
-
-#include "common/cuda_hip/base/executor.hpp.inc"
 
 
 std::unique_ptr<CudaAllocatorBase> cuda_allocator_from_mode(
@@ -179,6 +175,14 @@ void CudaExecutor::synchronize() const
 scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
+}
+
+
+std::string CudaExecutor::get_description() const
+{
+    return "CudaExecutor on device " + std::to_string(this->get_device_id()) +
+           " (" + gko::kernels::cuda::get_device_name(this->get_device_id()) +
+           ") with host " + this->get_master()->get_description();
 }
 
 

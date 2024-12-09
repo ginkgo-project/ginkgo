@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/solver/upper_trs_kernels.hpp"
+
 #include <memory>
 #include <random>
 
-
 #include <cuda.h>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -18,8 +17,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
-#include "core/solver/upper_trs_kernels.hpp"
 #include "cuda/test/utils.hpp"
 
 

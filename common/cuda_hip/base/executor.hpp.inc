@@ -34,6 +34,7 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         {0x80, 64},   // Ampere Generation (SM 8.0) GA100 class
         {0x86, 128},  // Ampere Generation (SM 8.6)
         {0x87, 128},  // Ampere Generation (SM 8.7)
+        {0x89, 128},  // Ada Generation (SM 8.9)
         {0x90, 128},  // Hopper Generation (SM 9.0)
         {-1, -1}};
 

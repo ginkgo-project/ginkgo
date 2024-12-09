@@ -2,20 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/distributed/vector_kernels.hpp"
+
 #include <algorithm>
 #include <memory>
 #include <vector>
 
-
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
-
-#include "core/distributed/vector_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -71,7 +69,7 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

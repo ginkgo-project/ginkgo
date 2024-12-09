@@ -4,9 +4,7 @@
 
 #include "core/base/index_set_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 

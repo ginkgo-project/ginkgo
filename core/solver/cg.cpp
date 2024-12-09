@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/cg.hpp>
-
+#include "ginkgo/core/solver/cg.hpp"
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -12,7 +11,6 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
-
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -104,7 +102,6 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(p, dense_b);
     GKO_SOLVER_VECTOR(q, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha, dense_b);
     GKO_SOLVER_SCALAR(beta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
     GKO_SOLVER_SCALAR(rho, dense_b);
@@ -208,7 +205,7 @@ int workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
 {
-    return 10;
+    return 9;
 }
 
 
@@ -217,8 +214,7 @@ std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r",    "z",        "p",   "q",   "alpha",
-        "beta", "prev_rho", "rho", "one", "minus_one",
+        "r", "z", "p", "q", "beta", "prev_rho", "rho", "one", "minus_one",
     };
 }
 
@@ -234,7 +230,7 @@ std::vector<std::string> workspace_traits<Cg<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, beta, prev_rho, rho};
+    return {beta, prev_rho, rho};
 }
 
 

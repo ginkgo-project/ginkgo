@@ -4,12 +4,9 @@
 
 #include "core/matrix/fft_kernels.hpp"
 
-
 #include <array>
 
-
 #include <cufft.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -123,7 +120,7 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT_KERNEL);
 
 
 template <typename ValueType>
@@ -139,7 +136,7 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT2_KERNEL);
 
 
 template <typename ValueType>
@@ -155,7 +152,7 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
     handle.execute(b->get_const_values(), x->get_values(), inverse);
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT3_KERNEL);
 
 
 }  // namespace fft

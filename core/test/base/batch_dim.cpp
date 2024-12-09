@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/batch_dim.hpp>
-
-
 #include <memory>
 
-
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/batch_dim.hpp>
 
 
 TEST(BatchDim, ConstructsCorrectUniformObject)

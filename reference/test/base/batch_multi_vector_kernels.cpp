@@ -2,24 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 #include <complex>
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
-#include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_helpers.hpp"
@@ -353,7 +349,7 @@ TYPED_TEST(MultiVector, ConvertsToPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
 
     this->mtx_1->convert_to(tmp.get());
     tmp->convert_to(res.get());
@@ -377,7 +373,7 @@ TYPED_TEST(MultiVector, MovesToPrecision)
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
-                        : gko::remove_complex<T>{r<OtherT>::value};
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
 
     this->mtx_1->move_to(tmp.get());
     tmp->move_to(res.get());

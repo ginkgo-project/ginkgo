@@ -5,9 +5,8 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/mpi/executor.hpp"
+#include "test/utils/mpi/common_fixture.hpp"
 
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;

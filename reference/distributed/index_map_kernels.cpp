@@ -4,9 +4,7 @@
 
 #include "core/distributed/index_map_kernels.hpp"
 
-
 #include <ginkgo/core/distributed/index_map.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/segmented_array.hpp"

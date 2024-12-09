@@ -9,7 +9,6 @@
 #include <string>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -17,7 +16,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
 
 #include "core/config/registry_accessor.hpp"
 
@@ -62,12 +60,15 @@ enum class LinOpFactoryType : int {
     ParIct,
     ParIlu,
     ParIlut,
+    GaussSeidel,
     Ic,
     Ilu,
     Isai,
     Jacobi,
+    Sor,
     Multigrid,
-    Pgm
+    Pgm,
+    Schwarz
 };
 
 
@@ -201,7 +202,9 @@ get_value(const pnode& config)
  * This is specialization for floating point type
  */
 template <typename ValueType>
-inline std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+inline std::enable_if_t<std::is_floating_point<ValueType>::value ||
+                            std::is_same<ValueType, half>::value,
+                        ValueType>
 get_value(const pnode& config)
 {
     auto val = config.get_real();

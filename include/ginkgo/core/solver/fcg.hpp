@@ -8,7 +8,6 @@
 
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -149,20 +148,18 @@ struct workspace_traits<Fcg<ValueType>> {
     constexpr static int q = 3;
     // t vector
     constexpr static int t = 4;
-    // alpha scalar
-    constexpr static int alpha = 5;
     // beta scalar
-    constexpr static int beta = 6;
+    constexpr static int beta = 5;
     // previous rho scalar
-    constexpr static int prev_rho = 7;
+    constexpr static int prev_rho = 6;
     // current rho scalar
-    constexpr static int rho = 8;
+    constexpr static int rho = 7;
     // current rho_t scalar
-    constexpr static int rho_t = 9;
+    constexpr static int rho_t = 8;
     // constant 1.0 scalar
-    constexpr static int one = 10;
+    constexpr static int one = 9;
     // constant -1.0 scalar
-    constexpr static int minus_one = 11;
+    constexpr static int minus_one = 10;
 
     // stopping status array
     constexpr static int stop = 0;

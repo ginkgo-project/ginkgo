@@ -4,17 +4,13 @@
 
 #include "core/utils/matrix_utils.hpp"
 
-
 #include <cmath>
 #include <random>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
@@ -34,8 +30,8 @@ protected:
     MatrixUtils()
         : exec(gko::ReferenceExecutor::create()),
           data(gko::test::generate_random_matrix_data<value_type, int>(
-              500, 500, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0),
+              500, 500, std::normal_distribution<>(50, 5),
+              std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42))),
           rectangular_data(gko::dim<2>(500, 100))
     {}
@@ -245,7 +241,7 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixCorrectly)
 TYPED_TEST(MatrixUtils, MakeHpdMatrixWithRatioCorrectly)
 {
     using T = typename TestFixture::value_type;
-    gko::remove_complex<T> ratio = 1.00001;
+    gko::remove_complex<T> ratio = 1.01;
     auto cpy_data = this->data;
 
     gko::utils::make_hpd(this->data, ratio);
@@ -280,7 +276,7 @@ TYPED_TEST(MatrixUtils, MakeSpdMatrixCorrectly)
 TYPED_TEST(MatrixUtils, MakeSpdMatrixWithRatioCorrectly)
 {
     using T = typename TestFixture::value_type;
-    gko::remove_complex<T> ratio = 1.00001;
+    gko::remove_complex<T> ratio = 1.01;
     auto cpy_data = this->data;
 
     gko::utils::make_spd(this->data, ratio);

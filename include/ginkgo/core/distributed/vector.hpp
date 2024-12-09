@@ -22,6 +22,14 @@
 namespace gko {
 namespace experimental {
 namespace distributed {
+namespace detail {
+
+
+template <typename ValueType>
+class VectorCache;
+
+
+}  // namespace detail
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -58,19 +66,20 @@ class Partition;
 template <typename ValueType = double>
 class Vector
     : public EnableDistributedLinOp<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
+      public ConvertibleTo<Vector<next_precision_base<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
-    friend class Vector<next_precision<ValueType>>;
+    friend class Vector<next_precision_base<ValueType>>;
+    friend class detail::VectorCache<ValueType>;
 
 public:
     using EnableDistributedLinOp<Vector>::convert_to;
     using EnableDistributedLinOp<Vector>::move_to;
-    using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
-    using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
+    using ConvertibleTo<Vector<next_precision_base<ValueType>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision_base<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<Vector>;
@@ -159,9 +168,10 @@ public:
     void read_distributed(const matrix_data<ValueType, int32>& data,
                           ptr_param<const Partition<int32, int32>> partition);
 
-    void convert_to(Vector<next_precision<ValueType>>* result) const override;
+    void convert_to(
+        Vector<next_precision_base<ValueType>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType>>* result) override;
+    void move_to(Vector<next_precision_base<ValueType>>* result) override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -663,7 +673,7 @@ template <typename ValueType>
 struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
-        experimental::distributed::Vector<previous_precision<ValueType>>;
+        experimental::distributed::Vector<previous_precision_base<ValueType>>;
 
     static std::unique_ptr<target_type> create_empty(const source_type* source)
     {

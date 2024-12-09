@@ -17,7 +17,6 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
@@ -652,11 +651,42 @@ public:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
+    GKO_DEPRECATED(
+        "Please use the overload with std::string as first parameter.")
     void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
              const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
-            op_omp, op_cuda, op_hip, op_dpcpp);
+        LambdaOperation<ClosureOmp, ClosureOmp, ClosureCuda, ClosureHip,
+                        ClosureDpcpp>
+            op(op_omp, op_cuda, op_hip, op_dpcpp);
+        this->run(op);
+    }
+
+    /**
+     * Runs one of the passed in functors, depending on the Executor type.
+     *
+     * @tparam ClosureReference  type of op_ref
+     * @tparam ClosureOmp  type of op_omp
+     * @tparam ClosureCuda  type of op_cuda
+     * @tparam ClosureHip  type of op_hip
+     * @tparam ClosureDpcpp  type of op_dpcpp
+     *
+     *  @param name  the name of the operation
+     * @param op_ref  functor to run in case of a ReferenceExecutor
+     * @param op_omp  functor to run in case of a OmpExecutor
+     * @param op_cuda  functor to run in case of a CudaExecutor
+     * @param op_hip  functor to run in case of a HipExecutor
+     * @param op_dpcpp  functor to run in case of a DpcppExecutor
+     */
+    template <typename ClosureReference, typename ClosureOmp,
+              typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp>
+    void run(std::string name, const ClosureReference& op_ref,
+             const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
+    {
+        LambdaOperation<ClosureReference, ClosureOmp, ClosureCuda, ClosureHip,
+                        ClosureDpcpp>
+            op(std::move(name), op_ref, op_omp, op_cuda, op_hip, op_dpcpp);
         this->run(op);
     }
 
@@ -865,6 +895,9 @@ public:
     }
 
     virtual scoped_device_id_guard get_scoped_device_id_guard() const = 0;
+
+    /** @return a textual representation of the executor and its device. */
+    virtual std::string get_description() const = 0;
 
 protected:
     /**
@@ -1103,10 +1136,21 @@ private:
      * @tparam ClosureHip  the type of the third functor
      * @tparam ClosureDpcpp  the type of the fourth functor
      */
-    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp>
+    template <typename ClosureReference, typename ClosureOmp,
+              typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp>
     class LambdaOperation : public Operation {
     public:
+        LambdaOperation(std::string name, const ClosureReference& op_ref,
+                        const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+                        const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
+            : name_(std::move(name)),
+              op_ref_(op_ref),
+              op_omp_(op_omp),
+              op_cuda_(op_cuda),
+              op_hip_(op_hip),
+              op_dpcpp_(op_dpcpp)
+        {}
+
         /**
          * Creates an LambdaOperation object from four functors.
          *
@@ -1119,10 +1163,8 @@ private:
          */
         LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
                         const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp)
-            : op_omp_(op_omp),
-              op_cuda_(op_cuda),
-              op_hip_(op_hip),
-              op_dpcpp_(op_dpcpp)
+            : LambdaOperation("unnamed", op_omp, op_omp, op_cuda, op_hip,
+                              op_dpcpp)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1132,7 +1174,7 @@ private:
 
         void run(std::shared_ptr<const ReferenceExecutor>) const override
         {
-            op_omp_();
+            op_ref_();
         }
 
         void run(std::shared_ptr<const CudaExecutor>) const override
@@ -1150,7 +1192,11 @@ private:
             op_dpcpp_();
         }
 
+        const char* get_name() const noexcept override { return name_.c_str(); }
+
     private:
+        std::string name_;
+        ClosureReference op_ref_;
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
@@ -1224,12 +1270,15 @@ namespace detail {
 
 template <typename ConcreteExecutor>
 class ExecutorBase : public Executor {
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
-    friend class ReferenceExecutor;
+    // friend class is not in the nearest enclosing namesace, so we write the
+    // full name
+    friend class ::gko::OmpExecutor;
+    friend class ::gko::HipExecutor;
+    friend class ::gko::DpcppExecutor;
+    friend class ::gko::CudaExecutor;
+    friend class ::gko::ReferenceExecutor;
 
 public:
-    using Executor::run;
-
     void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
@@ -1339,6 +1388,8 @@ class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new OmpExecutor.
      */
@@ -1368,6 +1419,8 @@ public:
     static int get_num_omp_threads();
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
 protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
@@ -1414,6 +1467,8 @@ using DefaultExecutor = OmpExecutor;
  */
 class ReferenceExecutor : public OmpExecutor {
 public:
+    using Executor::run;
+
     static std::shared_ptr<ReferenceExecutor> create(
         std::shared_ptr<CpuAllocatorBase> alloc =
             std::make_shared<CpuAllocator>())
@@ -1426,6 +1481,8 @@ public:
     {
         return {this, 0};
     }
+
+    std::string get_description() const override { return "ReferenceExecutor"; }
 
     void run(const Operation& op) const override
     {
@@ -1486,6 +1543,8 @@ class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new CudaExecutor.
      *
@@ -1532,6 +1591,8 @@ public:
     void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1600,14 +1661,29 @@ public:
      *
      * @return  the cublas handle (cublasContext*) for this executor
      */
-    cublasContext* get_cublas_handle() const { return cublas_handle_.get(); }
+    GKO_DEPRECATED("use get_blas_handle() instead")
+    cublasContext* get_cublas_handle() const { return get_blas_handle(); }
+
+    /**
+     * @copydoc get_cublas_handle()
+     */
+    cublasContext* get_blas_handle() const { return cublas_handle_.get(); }
 
     /**
      * Get the cusparse handle for this executor
      *
      * @return the cusparse handle (cusparseContext*) for this executor
      */
+    GKO_DEPRECATED("use get_sparselib_handle() instead")
     cusparseContext* get_cusparse_handle() const
+    {
+        return get_sparselib_handle();
+    }
+
+    /**
+     * @copydoc get_cusparse_handle()
+     */
+    cusparseContext* get_sparselib_handle() const
     {
         return cusparse_handle_.get();
     }
@@ -1644,7 +1720,7 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
-        : alloc_{std::move(alloc)}, master_(master), stream_{stream}
+        : master_(master), alloc_{std::move(alloc)}, stream_{stream}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1704,6 +1780,8 @@ class HipExecutor : public detail::ExecutorBase<HipExecutor>,
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new HipExecutor.
      *
@@ -1737,6 +1815,8 @@ public:
     void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1805,14 +1885,29 @@ public:
      *
      * @return  the hipblas handle (hipblasContext*) for this executor
      */
-    hipblasContext* get_hipblas_handle() const { return hipblas_handle_.get(); }
+    GKO_DEPRECATED("use get_blas_handle() instead")
+    hipblasContext* get_hipblas_handle() const { return get_blas_handle(); }
+
+    /**
+     * @copydoc get_hipblas_handle()
+     */
+    hipblasContext* get_blas_handle() const { return hipblas_handle_.get(); }
 
     /**
      * Get the hipsparse handle for this executor
      *
      * @return the hipsparse handle (hipsparseContext*) for this executor
      */
+    GKO_DEPRECATED("use get_sparselib_handle() instead")
     hipsparseContext* get_hipsparse_handle() const
+    {
+        return get_sparselib_handle();
+    }
+
+    /**
+     * @copydoc get_hipsparse_handle()
+     */
+    hipsparseContext* get_sparselib_handle() const
     {
         return hipsparse_handle_.get();
     }
@@ -1902,6 +1997,8 @@ class DpcppExecutor : public detail::ExecutorBase<DpcppExecutor>,
     friend class detail::ExecutorBase<DpcppExecutor>;
 
 public:
+    using Executor::run;
+
     /**
      * Creates a new DpcppExecutor.
      *
@@ -1923,6 +2020,8 @@ public:
     void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
+
+    std::string get_description() const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.

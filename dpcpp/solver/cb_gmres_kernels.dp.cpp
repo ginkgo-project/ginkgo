@@ -4,18 +4,14 @@
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
-
 #include <algorithm>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
@@ -26,6 +22,7 @@
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
@@ -289,9 +286,9 @@ void multinorminf_without_stop_kernel(
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             local_max =
-                (local_max >= std::abs(next_krylov_basis[next_krylov_idx]))
+                (local_max >= gko::abs(next_krylov_basis[next_krylov_idx]))
                     ? local_max
-                    : std::abs(next_krylov_basis[next_krylov_idx]);
+                    : gko::abs(next_krylov_basis[next_krylov_idx]);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_max;
@@ -377,7 +374,7 @@ void multinorm2_inf_kernel(
             local_res += squared_norm(num);
             if (compute_inf) {
                 local_max =
-                    ((local_max >= std::abs(num)) ? local_max : std::abs(num));
+                    ((local_max >= gko::abs(num)) ? local_max : gko::abs(num));
             }
         }
     }
@@ -733,8 +730,8 @@ void check_arnoldi_norms(
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
-        const auto num0 = (std::sqrt(eta_squared * arnoldi_norm[col_idx]));
-        const auto num11 = std::sqrt(arnoldi_norm[col_idx + stride_norm]);
+        const auto num0 = gko::sqrt(eta_squared * arnoldi_norm[col_idx]);
+        const auto num11 = gko::sqrt(arnoldi_norm[col_idx + stride_norm]);
         const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
                                      : remove_complex<ValueType>{};
         if (num11 < num0) {
@@ -943,14 +940,15 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
 
     initialize_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), b->get_size()[0],
-        b->get_size()[1], krylov_dim, b->get_const_values(), b->get_stride(),
-        residual->get_values(), residual->get_stride(),
-        givens_sin->get_values(), givens_sin->get_stride(),
-        givens_cos->get_values(), givens_cos->get_stride(),
-        stop_status->get_data());
+        b->get_size()[1], krylov_dim, as_device_type(b->get_const_values()),
+        b->get_stride(), as_device_type(residual->get_values()),
+        residual->get_stride(), givens_sin->get_values(),
+        givens_sin->get_stride(), givens_cos->get_values(),
+        givens_cos->get_stride(), stop_status->get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
+    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
@@ -994,7 +992,8 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
         multinorminf_without_stop_kernel(
             grid_size_nrm, block_size_nrm, 0, exec->get_queue(), num_rows,
-            num_rhs, residual->get_const_values(), residual->get_stride(),
+            num_rhs, as_device_type(residual->get_const_values()),
+            residual->get_stride(),
             arnoldi_norm->get_values() + 2 * stride_arnoldi, 0);
     }
 
@@ -1013,7 +1012,7 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     restart_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
-        residual->get_size()[1], residual->get_const_values(),
+        residual->get_size()[1], as_device_type(residual->get_const_values()),
         residual->get_stride(), residual_norm->get_const_values(),
         residual_norm_collection->get_values(), krylov_bases,
         next_krylov_basis->get_values(), next_krylov_basis->get_stride(),
@@ -1259,9 +1258,10 @@ void solve_upper_triangular(
     solve_upper_triangular_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), hessenberg->get_size()[1],
         num_rhs, residual_norm_collection->get_const_values(),
-        residual_norm_collection->get_stride(), hessenberg->get_const_values(),
-        hessenberg->get_stride(), y->get_values(), y->get_stride(),
-        final_iter_nums->get_const_data());
+        residual_norm_collection->get_stride(),
+        as_device_type(hessenberg->get_const_values()),
+        hessenberg->get_stride(), as_device_type(y->get_values()),
+        y->get_stride(), final_iter_nums->get_const_data());
 }
 
 
@@ -1287,7 +1287,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
     calculate_Qy_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-        krylov_bases, y->get_const_values(), y->get_stride(),
+        krylov_bases, as_device_type(y->get_const_values()), y->get_stride(),
         before_preconditioner->get_values(), stride_before_preconditioner,
         final_iter_nums->get_const_data());
     // Calculate qy

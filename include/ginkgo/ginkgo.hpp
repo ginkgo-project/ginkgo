@@ -25,6 +25,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -58,6 +59,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 
+#include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
@@ -69,11 +71,13 @@
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/factorization/par_ict.hpp>
@@ -87,6 +91,7 @@
 #include <ginkgo/core/log/performance_hint.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/solver_progress.hpp>
 #include <ginkgo/core/log/stream.hpp>
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -113,10 +118,12 @@
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/preconditioner/utils.hpp>
 
 #include <ginkgo/core/reorder/amd.hpp>

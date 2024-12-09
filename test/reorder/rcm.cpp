@@ -8,21 +8,18 @@
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 
-
 #include "core/components/disjoint_sets.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Rcm : public CommonTestFixture {

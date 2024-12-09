@@ -4,9 +4,7 @@
 
 #include "core/solver/common_gmres_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -148,7 +146,8 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
             for (int64 i = sizes[col] - 1; i >= 0; i--) {
                 auto value = rhs(i, col);
                 for (int64 j = i + 1; j < sizes[col]; j++) {
-                    value -= mtx(i, j * num_cols + col) * y(j, col);
+                    // i is the Krylov vector, j is Arnoldi iter
+                    value -= mtx(j, i * num_cols + col) * y(j, col);
                 }
                 // y(i) = (rhs(i) - U(i,i+1:) * y(i+1:)) / U(i, i)
                 y(i, col) = value / mtx(i, i * num_cols + col);

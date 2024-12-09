@@ -4,25 +4,21 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Csr : public CommonTestFixture {
@@ -149,7 +145,7 @@ void assert_lookup_correct(std::shared_ptr<const gko::EXEC_TYPE> exec,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     gko::array<bool> correct{exec, {true}};
-    gko::kernels::EXEC_NAMESPACE::run_kernel(
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto num_cols, auto row_ptrs, auto col_idxs,
                       auto storage_offsets, auto storage, auto row_descs,
@@ -215,7 +211,7 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
         // otherwise things might crash
         gko::kernels::reference::csr::build_lookup_offsets(
             this->ref, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
-        gko::kernels::EXEC_NAMESPACE::csr::build_lookup_offsets(
+        gko::kernels::GKO_DEVICE_NAMESPACE::csr::build_lookup_offsets(
             this->exec, drow_ptrs, dcol_idxs, num_rows, allowed,
             dstorage_offsets);
 
@@ -238,7 +234,7 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
         gko::kernels::reference::csr::build_lookup(
             this->ref, row_ptrs, col_idxs, num_rows, allowed, storage_offsets,
             row_descs, storage);
-        gko::kernels::EXEC_NAMESPACE::csr::build_lookup(
+        gko::kernels::GKO_DEVICE_NAMESPACE::csr::build_lookup(
             this->exec, drow_ptrs, dcol_idxs, num_rows, allowed,
             dstorage_offsets, drow_descs, dstorage);
 

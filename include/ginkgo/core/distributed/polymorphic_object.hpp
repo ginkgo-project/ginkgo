@@ -9,7 +9,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/config.hpp>
 
 

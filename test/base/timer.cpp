@@ -2,18 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/timer.hpp>
-
-
 #include <map>
 #include <thread>
 
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/timer.hpp>
 
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Timer : public CommonTestFixture {
@@ -41,9 +38,15 @@ TEST_F(Timer, WorksAsync)
     auto timer = gko::Timer::create_for_executor(this->exec);
     auto start = timer->create_time_point();
     auto stop = timer->create_time_point();
+    gko::array<int> dummy{this->exec, {0}};
+    auto dummy2 = dummy;
+    this->exec->synchronize();
+    // we do some minimal work to work around Intel GPU timers running backwards
 
     timer->record(start);
+    dummy = dummy2;
     std::this_thread::sleep_for(std::chrono::seconds{5});
+    dummy = dummy2;
     timer->record(stop);
     timer->wait(stop);
 
@@ -56,9 +59,15 @@ TEST_F(Timer, Works)
     auto timer = gko::Timer::create_for_executor(this->exec);
     auto start = timer->create_time_point();
     auto stop = timer->create_time_point();
+    gko::array<int> dummy{this->exec, {0}};
+    auto dummy2 = dummy;
+    this->exec->synchronize();
+    // we do some minimal work to work around Intel GPU timers running backwards
 
     timer->record(start);
+    dummy = dummy2;
     std::this_thread::sleep_for(std::chrono::seconds{5});
+    dummy = dummy2;
     timer->record(stop);
 
     ASSERT_GT(timer->difference(start, stop), std::chrono::seconds{1});

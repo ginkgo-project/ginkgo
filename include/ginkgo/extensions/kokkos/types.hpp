@@ -6,10 +6,7 @@
 #define GINKGO_EXTENSIONS_KOKKOS_TYPES_HPP
 
 #include <Kokkos_Complex.hpp>
-
-
 #include <Kokkos_Core.hpp>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>

@@ -14,8 +14,12 @@
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -39,8 +43,9 @@ namespace preconditioner {
  *
  * @note Currently overlap and coarse grid correction are not supported (TODO).
  *
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  integral type of the preconditioner
+ * @tparam ValueType  precision of matrix element
+ * @tparam LocalIndexType  local integer type of the matrix
+ * @tparam GlobalIndexType  global integer type of the matrix
  *
  * @ingroup schwarz
  * @ingroup precond
@@ -61,6 +66,16 @@ public:
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
 
+    /**
+     * Return whether the local solvers use the data in x as an initial guess.
+     *
+     * @return true when the local solvers use the data in x as an initial
+     * guess. otherwise, false.
+     *
+     * @note TODO: after adding refining step, need to revisit this.
+     */
+    bool apply_uses_initial_guess() const override;
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -77,6 +92,26 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children objects.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children objects. The
+     *                      default uses the value/local/global index type of
+     *                      this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, LocalIndexType,
+                                         GlobalIndexType>());
 
 protected:
     /**
@@ -126,6 +161,8 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+
+    detail::VectorCache<ValueType> cache_;
 };
 
 

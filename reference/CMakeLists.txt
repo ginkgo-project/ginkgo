@@ -12,6 +12,7 @@ target_sources(ginkgo_reference
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
+    distributed/assembly_kernels.cpp
     distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
@@ -43,6 +44,7 @@ target_sources(ginkgo_reference
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/batch_jacobi_kernels.cpp
+    preconditioner/sor_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
@@ -66,6 +68,7 @@ target_sources(ginkgo_reference
     stop/residual_norm_kernels.cpp)
 
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
+target_compile_definitions(ginkgo_reference PRIVATE GKO_COMPILING_REFERENCE GKO_DEVICE_NAMESPACE=reference)
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)

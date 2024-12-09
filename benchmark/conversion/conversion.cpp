@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -14,6 +11,7 @@
 #include <iostream>
 #include <typeinfo>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
@@ -165,9 +163,9 @@ int main(int argc, char* argv[])
 
     std::string extra_information =
         std::string() + "The formats are " + FLAGS_formats;
-    print_general_information(extra_information);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
+    print_general_information(extra_information, exec);
     auto formats = split(FLAGS_formats, ',');
 
     auto test_cases = json::parse(get_input_stream());

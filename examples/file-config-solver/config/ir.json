@@ -1,0 +1,22 @@
+{
+    "type": "solver::Ir",
+    "solver": {
+        "type": "solver::Cg",
+        "criteria": [
+            {
+                "type": "ResidualNorm",
+                "reduction_factor": 1e-2
+            }
+        ]
+    },
+    "criteria": [
+        {
+            "type": "Iteration",
+            "max_iters": 10000
+        },
+        {
+            "type": "ResidualNorm",
+            "reduction_factor": 1e-12
+        }
+    ]
+}

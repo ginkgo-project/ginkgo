@@ -2,11 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/factorization/par_ilut_kernels.hpp"
-
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -14,13 +10,15 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/merging.dp.hpp"
@@ -180,13 +178,14 @@ void compute_l_u_factors(syn::value_list<int, subgroup_size>,
     auto num_blocks = ceildiv(total_nnz, block_size);
     kernel::sweep<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(),
-        a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
-        l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
-        l->get_const_col_idxs(), l->get_values(),
+        a->get_const_row_ptrs(), a->get_const_col_idxs(),
+        as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
+        l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
+        as_device_type(l->get_values()),
         static_cast<IndexType>(l->get_num_stored_elements()),
         u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
-        u->get_values(), u_csc->get_const_row_ptrs(),
-        u_csc->get_const_col_idxs(), u_csc->get_values(),
+        as_device_type(u->get_values()), u_csc->get_const_row_ptrs(),
+        u_csc->get_const_col_idxs(), as_device_type(u_csc->get_values()),
         static_cast<IndexType>(u->get_num_stored_elements()));
 }
 

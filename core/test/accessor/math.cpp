@@ -2,14 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "accessor/math.hpp"
+
 #include <cinttypes>
 #include <complex>
 
-
 #include <gtest/gtest.h>
-
-
-#include "accessor/math.hpp"
 
 
 namespace {

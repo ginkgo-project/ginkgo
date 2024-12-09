@@ -6,7 +6,6 @@
 #define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hiprand/hiprand.h>
 #else
@@ -16,9 +15,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -30,6 +29,17 @@ namespace hip {
  * @ingroup hiprand
  */
 namespace hiprand {
+namespace detail {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args...)
+{
+    return static_cast<int64>(HIPRAND_STATUS_TYPE_ERROR);
+}
+
+
+}  // namespace detail
 
 
 template <typename ValueType>
@@ -84,12 +94,26 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(double, hiprandGenerateNormalDouble);
 GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<float>, hiprandGenerateNormal);
 GKO_BIND_HIPRAND_RANDOM_VECTOR(std::complex<double>,
                                hiprandGenerateNormalDouble);
+template <typename ValueType>
+GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_HIPRAND_RANDOM_VECTOR
 
 
 }  // namespace hiprand
+
+
+namespace randlib {
+
+
+using namespace hiprand;
+
+
+#define RANDLIB_RNG_PSEUDO_DEFAULT HIPRAND_RNG_PSEUDO_DEFAULT
+
+
+}  // namespace randlib
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

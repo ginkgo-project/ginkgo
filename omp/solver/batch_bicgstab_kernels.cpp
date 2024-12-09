@@ -4,41 +4,23 @@
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 
-
+#include "core/base/batch_instantiation.hpp"
 #include "core/solver/batch_dispatch.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
+#include "reference/matrix/batch_csr_kernels.hpp"
+#include "reference/matrix/batch_dense_kernels.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
+#include "reference/solver/batch_bicgstab_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
-/**
- * @brief The batch Bicgstab solver namespace.
- *
- * @ingroup batch_bicgstab
- */
 namespace batch_bicgstab {
-
-
-namespace {
-
-
-constexpr int max_num_rhs = 1;
-
-
-#include "reference/base/batch_multi_vector_kernels.hpp.inc"
-#include "reference/matrix/batch_csr_kernels.hpp.inc"
-#include "reference/matrix/batch_dense_kernels.hpp.inc"
-#include "reference/matrix/batch_ell_kernels.hpp.inc"
-#include "reference/solver/batch_bicgstab_kernels.hpp.inc"
-
-
-}  // unnamed namespace
 
 
 template <typename T>
@@ -64,7 +46,7 @@ public:
         const size_type num_batch_items = mat.num_batch_items;
         const auto num_rows = mat.num_rows;
         const auto num_rhs = b.num_rhs;
-        if (num_rhs > max_num_rhs) {
+        if (num_rhs > 1) {
             GKO_NOT_IMPLEMENTED;
         }
 
@@ -83,8 +65,8 @@ public:
                 exec_, local_size_bytes,
                 local_space.get_data() +
                     omp_get_thread_num() * local_size_bytes);
-            batch_entry_bicgstab_impl<StopType, PrecondType, LogType,
-                                      BatchMatrixType, ValueType>(
+            batch_single_kernels::batch_entry_bicgstab_impl<
+                StopType, PrecondType, LogType, BatchMatrixType, ValueType>(
                 settings_, logger, precond, mat, b, x, batch_id,
                 thread_local_space.get_data());
         }
@@ -96,13 +78,12 @@ private:
 };
 
 
-template <typename ValueType>
+template <typename ValueType, typename BatchMatrixType, typename PrecType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const settings<remove_complex<ValueType>>& settings,
-           const batch::BatchLinOp* const mat,
-           const batch::BatchLinOp* const precond,
-           const batch::MultiVector<ValueType>* const b,
-           batch::MultiVector<ValueType>* const x,
+           const BatchMatrixType* mat, const PrecType* precond,
+           const batch::MultiVector<ValueType>* b,
+           batch::MultiVector<ValueType>* x,
            batch::log::detail::log_data<remove_complex<ValueType>>& logdata)
 {
     auto dispatcher = batch::solver::create_dispatcher<ValueType>(
@@ -110,7 +91,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     dispatcher.apply(b, x, logdata);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER_BASE(
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_bicgstab

@@ -6,14 +6,11 @@
 #define GKO_CUDA_TEST_UTILS_HPP_
 
 
-#include "core/test/utils.hpp"
-
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/stream.hpp>
 
-
 #include "core/test/gtest/resources.hpp"
+#include "core/test/utils.hpp"
 #include "cuda/base/device.hpp"
 
 

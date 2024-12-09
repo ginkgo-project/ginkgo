@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/memory.hpp>
-
+#include "ginkgo/core/base/memory.hpp"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
 
 #include "cuda/base/scoped_device_id.hpp"
 

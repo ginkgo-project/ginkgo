@@ -6,14 +6,11 @@
 #define GKO_CORE_MATRIX_BATCH_CSR_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/batch_csr.hpp>
-
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-
+#include <ginkgo/core/matrix/batch_csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

@@ -4,9 +4,7 @@
 
 #include "core/base/allocator.hpp"
 
-
 #include <vector>
-
 
 #include <gtest/gtest.h>
 

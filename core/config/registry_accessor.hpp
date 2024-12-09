@@ -8,7 +8,6 @@
 
 #include <string>
 
-
 #include <ginkgo/core/config/registry.hpp>
 
 

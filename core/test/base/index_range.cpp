@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <gtest/gtest.h>
-
-
 #include "core/base/index_range.hpp"
+
+#include <gtest/gtest.h>
 
 
 TEST(IRange, KnowsItsProperties)

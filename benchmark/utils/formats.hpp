@@ -6,16 +6,13 @@
 #define GKO_BENCHMARK_UTILS_FORMATS_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <map>
 #include <string>
 
-
 #include <gflags/gflags.h>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
@@ -132,7 +129,7 @@ using hybrid = gko::matrix::Hybrid<etype, itype>;
 using csr = gko::matrix::Csr<etype, itype>;
 using coo = gko::matrix::Coo<etype, itype>;
 using ell = gko::matrix::Ell<etype, itype>;
-using ell_mixed = gko::matrix::Ell<gko::next_precision<etype>, itype>;
+using ell_mixed = gko::matrix::Ell<gko::next_precision_base<etype>, itype>;
 
 
 /**
@@ -277,7 +274,7 @@ std::unique_ptr<gko::LinOp> matrix_factory(
         check_ell_admissibility(data);
     }
     if (format == "ell_mixed") {
-        gko::matrix_data<gko::next_precision<etype>, itype> conv_data;
+        gko::matrix_data<gko::next_precision_base<etype>, itype> conv_data;
         conv_data.size = data.size;
         conv_data.nonzeros.resize(data.nonzeros.size());
         auto it = conv_data.nonzeros.begin();
@@ -287,8 +284,8 @@ std::unique_ptr<gko::LinOp> matrix_factory(
             it->value = el.value;
             ++it;
         }
-        gko::as<gko::ReadableFromMatrixData<gko::next_precision<etype>, itype>>(
-            mat.get())
+        gko::as<gko::ReadableFromMatrixData<gko::next_precision_base<etype>,
+                                            itype>>(mat.get())
             ->read(conv_data);
     } else {
         gko::as<gko::ReadableFromMatrixData<etype, itype>>(mat.get())->read(

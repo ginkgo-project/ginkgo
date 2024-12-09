@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <cstdlib>
 #include <exception>
 #include <iomanip>
 #include <iostream>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
@@ -277,9 +275,9 @@ int main(int argc, char* argv[])
 
     std::string extra_information =
         "Running with preconditioners: " + FLAGS_preconditioners;
-    print_general_information(extra_information);
 
     auto exec = get_executor(FLAGS_gpu_timer);
+    print_general_information(extra_information, exec);
     auto& engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');

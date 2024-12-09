@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -13,6 +10,8 @@
 #include <iomanip>
 #include <iostream>
 #include <typeinfo>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 #define GKO_BENCHMARK_DISTRIBUTED
@@ -50,15 +49,15 @@ int main(int argc, char* argv[])
     initialize_argument_parsing_matrix(&argc, &argv, header, format, "",
                                        do_print);
 
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
+
     if (do_print) {
         std::string extra_information =
             "The formats are [" + FLAGS_local_formats + "]x[" +
             FLAGS_non_local_formats + "]\n" +
             "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
-        print_general_information(extra_information);
+        print_general_information(extra_information, exec);
     }
-
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     auto local_formats = split(FLAGS_local_formats, ',');
     auto non_local_formats = split(FLAGS_non_local_formats, ',');

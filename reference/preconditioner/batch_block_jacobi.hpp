@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
-
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
@@ -44,8 +43,8 @@ public:
         : num_blocks_{num_blocks},
           blocks_cumulative_offsets_{blocks_cumulative_offsets},
           blocks_arr_batch_{blocks_arr_batch},
-          block_ptrs_arr_{block_ptrs_arr},
-          blocks_arr_entry_{}
+          blocks_arr_entry_{},
+          block_ptrs_arr_{block_ptrs_arr}
     {}
 
     /**

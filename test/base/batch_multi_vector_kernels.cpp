@@ -2,25 +2,21 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/batch_multi_vector.hpp>
-
+#include "core/base/batch_multi_vector_kernels.hpp"
 
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-
-#include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/batch_helpers.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class MultiVector : public CommonTestFixture {
@@ -312,8 +308,8 @@ TEST_F(MultiVector, CopySingleIsEquivalentToRef)
 
     gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
                                                       y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                           dy.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_multi_vector::copy(
+        this->exec, dx.get(), dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }
@@ -325,8 +321,8 @@ TEST_F(MultiVector, CopyIsEquivalentToRef)
 
     gko::kernels::reference::batch_multi_vector::copy(this->ref, x.get(),
                                                       y.get());
-    gko::kernels::EXEC_NAMESPACE::batch_multi_vector::copy(this->exec, dx.get(),
-                                                           dy.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::batch_multi_vector::copy(
+        this->exec, dx.get(), dy.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dy, y, 0.0);
 }

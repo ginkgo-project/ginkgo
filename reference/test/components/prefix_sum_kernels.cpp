@@ -4,19 +4,15 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <algorithm>
 #include <limits>
 #include <memory>
 #include <type_traits>
 #include <vector>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/exception.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -39,10 +35,7 @@ protected:
     std::vector<index_type> expected;
 };
 
-using PrefixSumIndexTypes =
-    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
-
-TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(PrefixSum, gko::test::IntegerTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, Works)

@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/matrix_data.hpp>
-
-
 #include <random>
 
-
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/matrix_data.hpp>
 
 
 namespace {

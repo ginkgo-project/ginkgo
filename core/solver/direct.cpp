@@ -2,16 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/direct.hpp>
-
+#include "ginkgo/core/solver/direct.hpp"
 
 #include <memory>
-
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-
 
 #include "core/config/config_helper.hpp"
 
@@ -283,7 +280,7 @@ std::vector<int> workspace_traits<gko::experimental::solver::Direct<
 
 
 #define GKO_DECLARE_DIRECT_TRAITS(ValueType, IndexType) \
-    class workspace_traits<                             \
+    struct workspace_traits<                            \
         gko::experimental::solver::Direct<ValueType, IndexType>>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT_TRAITS);

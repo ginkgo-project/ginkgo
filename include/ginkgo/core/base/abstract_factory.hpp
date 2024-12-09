@@ -6,8 +6,8 @@
 #define GKO_PUBLIC_CORE_BASE_ABSTRACT_FACTORY_HPP_
 
 
+#include <type_traits>
 #include <unordered_map>
-
 
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
@@ -564,7 +564,7 @@ private:                                                                       \
                                                                                \
 public:                                                                        \
     template <typename... Args,                                                \
-              typename = std::enable_if_t<::gko::xstd::conjunction<            \
+              typename = std::enable_if_t<::std::conjunction<                  \
                   std::is_convertible<Args, ::gko::deferred_factory_parameter< \
                                                 _name##_type>>...>::value>>    \
     auto with_##_name(Args&&... factories)                                     \

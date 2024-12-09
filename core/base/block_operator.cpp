@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/block_operator.hpp>
-
+#include "ginkgo/core/base/block_operator.hpp"
 
 #include <utility>
 
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 
@@ -22,8 +19,12 @@ namespace {
 template <typename Fn>
 auto dispatch_dense(Fn&& fn, LinOp* v)
 {
-    return run<matrix::Dense, float, double, std::complex<float>,
-               std::complex<double>>(v, std::forward<Fn>(fn));
+    return run<matrix::Dense, float, double,
+#if GINKGO_ENABLE_HALF
+               half, std::complex<half>,
+#endif
+               std::complex<float>, std::complex<double>>(v,
+                                                          std::forward<Fn>(fn));
 }
 
 

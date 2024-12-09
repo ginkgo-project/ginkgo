@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -19,6 +16,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 template <typename ValueType>

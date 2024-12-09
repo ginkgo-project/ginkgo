@@ -10,7 +10,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 #include <ginkgo/core/log/logger.hpp>
 
 

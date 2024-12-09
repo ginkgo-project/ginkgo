@@ -4,26 +4,23 @@
 
 #include "core/factorization/par_ilut_kernels.hpp"
 
-
 #include <algorithm>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "omp/components/atomic.hpp"
 #include "omp/components/csr_spgeam.hpp"
 
 
@@ -185,7 +182,12 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
     // pick splitters
     for (IndexType i = 0; i < bucket_count - 1; ++i) {
         // shift by one so we get upper bounds for the buckets
-        sample[i] = sample[(i + 1) * sampleselect_oversampling];
+        // NVHPC 23.3 seems to handle assignment index with
+        // optimization wrongly on a custom class when IndexType is long. We set
+        // the index explicitly with volatile to solve it. NVHPC24.1 fixed this
+        // issue. https://godbolt.org/z/srYhGndKn
+        volatile auto index = (i + 1) * sampleselect_oversampling;
+        sample[i] = sample[index];
     }
     // count elements per bucket
     auto total_histogram = reinterpret_cast<IndexType*>(sample + bucket_count);
@@ -280,7 +282,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
             auto l_col = l_col_idxs[l_begin];
             auto u_row = ut_row_idxs[u_begin];
             if (l_col == u_row && l_col < last_entry) {
-                sum += l_vals[l_begin] * ut_vals[u_begin];
+                sum += load(l_vals + l_begin) * load(ut_vals + u_begin);
             }
             if (u_row == row) {
                 ut_nz = u_begin;
@@ -296,7 +298,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
         for (size_type l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1] - 1;
              ++l_nz) {
             auto col = l_col_idxs[l_nz];
-            auto u_diag = ut_vals[ut_col_ptrs[col + 1] - 1];
+            auto u_diag = load(ut_vals + ut_col_ptrs[col + 1] - 1);
             auto new_val = compute_sum(row, col).first / u_diag;
             if (is_finite(new_val)) {
                 l_vals[l_nz] = new_val;
@@ -309,8 +311,8 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
             auto new_val = result.first;
             auto ut_nz = result.second;
             if (is_finite(new_val)) {
-                u_vals[u_nz] = new_val;
-                ut_vals[ut_nz] = new_val;
+                store(u_vals + u_nz, new_val);
+                store(ut_vals + ut_nz, new_val);
             }
         }
     }

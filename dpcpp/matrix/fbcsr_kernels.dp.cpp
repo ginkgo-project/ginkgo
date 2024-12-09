@@ -4,16 +4,13 @@
 
 #include "core/matrix/fbcsr_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "dpcpp/base/config.hpp"
 
@@ -72,8 +69,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Fbcsr<ValueType, IndexType>* const source,
-                    matrix::Csr<ValueType, IndexType>* const result)
+                    const matrix::Fbcsr<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -111,7 +108,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(const std::shared_ptr<const DpcppExecutor> exec,
-                          matrix::Fbcsr<ValueType, IndexType>* const to_sort)
+                          matrix::Fbcsr<ValueType, IndexType>* to_sort)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

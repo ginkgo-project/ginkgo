@@ -2,21 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/cb_gmres.hpp>
-
-
 #include <tuple>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -90,17 +85,11 @@ using st_i = st_helper_type<st_enum::integer>;
 using st_ir1 = st_helper_type<st_enum::ireduce1>;
 using st_ir2 = st_helper_type<st_enum::ireduce2>;
 
-using TestTypes =
-    ::testing::Types<std::tuple<double, st_keep>, std::tuple<double, st_r1>,
-                     std::tuple<double, st_r2>, std::tuple<double, st_i>,
-                     std::tuple<double, st_ir1>, std::tuple<double, st_ir2>,
-                     std::tuple<float, st_keep>, std::tuple<float, st_r1>,
-                     std::tuple<float, st_r2>, std::tuple<float, st_i>,
-                     std::tuple<float, st_ir1>, std::tuple<float, st_ir2>,
-                     std::tuple<std::complex<double>, st_keep>,
-                     std::tuple<std::complex<double>, st_r1>,
-                     std::tuple<std::complex<double>, st_r2>,
-                     std::tuple<std::complex<float>, st_keep>>;
+using TestTypes = gko::test::merge_type_list_t<
+    gko::test::cartesian_type_product_t<
+        gko::test::ValueTypesBase, ::testing::Types<st_keep, st_r1, st_r2>>,
+    gko::test::cartesian_type_product_t<
+        gko::test::RealValueTypesBase, ::testing::Types<st_i, st_ir1, st_ir2>>>;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 

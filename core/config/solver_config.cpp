@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/config/solver_config.hpp"
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -19,11 +21,9 @@
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/parse_macro.hpp"
-#include "core/config/solver_config.hpp"
 
 
 namespace gko {
@@ -39,7 +39,7 @@ GKO_PARSE_VALUE_TYPE(Ir, gko::solver::Ir);
 GKO_PARSE_VALUE_TYPE(Idr, gko::solver::Idr);
 GKO_PARSE_VALUE_TYPE(Gcr, gko::solver::Gcr);
 GKO_PARSE_VALUE_TYPE(Gmres, gko::solver::Gmres);
-GKO_PARSE_VALUE_TYPE(CbGmres, gko::solver::CbGmres);
+GKO_PARSE_VALUE_TYPE_BASE(CbGmres, gko::solver::CbGmres);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);

@@ -6,7 +6,6 @@
 #include <ios>
 #include <limits>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 

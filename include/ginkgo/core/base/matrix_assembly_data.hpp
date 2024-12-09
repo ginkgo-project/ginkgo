@@ -12,7 +12,6 @@
 #include <tuple>
 #include <unordered_map>
 
-
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>

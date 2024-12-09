@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -12,7 +11,6 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/test/utils.hpp"
 

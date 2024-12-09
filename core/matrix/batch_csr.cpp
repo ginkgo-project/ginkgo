@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/batch_csr.hpp>
-
+#include "ginkgo/core/matrix/batch_csr.hpp"
 
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -16,7 +14,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -264,6 +261,27 @@ void Csr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class Csr<ValueType, int32>

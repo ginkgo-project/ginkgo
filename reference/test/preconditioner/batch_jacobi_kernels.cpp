@@ -2,23 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
-
+#include "core/preconditioner/batch_jacobi_kernels.hpp"
 
 #include <limits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
-
-#include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_helpers.hpp"
 

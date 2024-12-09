@@ -2,23 +2,26 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/ilu.hpp>
-
+#include "ginkgo/core/factorization/ilu.hpp"
 
 #include <memory>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-
+#include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/base/array_access.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_lookup.hpp"
 
 
 namespace gko {
@@ -27,12 +30,18 @@ namespace ilu_factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::compute_lu);
+GKO_REGISTER_OPERATION(sparselib_ilu, ilu_factorization::sparselib_ilu);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
                        factorization::initialize_row_ptrs_l_u);
 GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
+// for gko syncfree implementation
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
+GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
+GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
+GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
 
 
 }  // anonymous namespace
@@ -55,6 +64,17 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
+    if (auto& obj = config.get("algorithm")) {
+        using gko::factorization::incomplete_algorithm;
+        auto str = obj.get_string();
+        if (str == "sparselib") {
+            params.with_algorithm(incomplete_algorithm::sparselib);
+        } else if (str == "syncfree") {
+            params.with_algorithm(incomplete_algorithm::syncfree);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("algorithm", str);
+        }
+    }
     return params;
 }
 
@@ -69,7 +89,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
-    auto local_system_matrix = matrix_type::create(exec);
+    auto local_system_matrix = share(matrix_type::create(exec));
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
@@ -81,17 +101,66 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     exec->run(ilu_factorization::make_add_diagonal_elements(
         local_system_matrix.get(), false));
 
+    std::shared_ptr<const matrix_type> ilu;
     // Compute LU factorization
-    exec->run(ilu_factorization::make_compute_ilu(local_system_matrix.get()));
+    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
+        const auto nnz = local_system_matrix->get_num_stored_elements();
+        const auto num_rows = local_system_matrix->get_size()[0];
+        auto factors = share(
+            matrix_type::create(exec, local_system_matrix->get_size(), nnz));
+        exec->copy_from(exec, nnz, local_system_matrix->get_const_col_idxs(),
+                        factors->get_col_idxs());
+        exec->copy_from(exec, num_rows + 1,
+                        local_system_matrix->get_const_row_ptrs(),
+                        factors->get_row_ptrs());
+        // update srow to be safe
+        factors->set_strategy(factors->get_strategy());
 
+        // setup lookup structure on factors
+        array<IndexType> storage_offsets{exec, num_rows + 1};
+        array<int64> row_descs{exec, num_rows};
+        array<IndexType> diag_idxs{exec, num_rows};
+        const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
+                                      gko::matrix::csr::sparsity_type::full |
+                                      gko::matrix::csr::sparsity_type::hash;
+        exec->run(ilu_factorization::make_build_lookup_offsets(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            num_rows, allowed_sparsity, storage_offsets.get_data()));
+        const auto storage_size =
+            static_cast<size_type>(get_element(storage_offsets, num_rows));
+        array<int32> storage{exec, storage_size};
+        exec->run(ilu_factorization::make_build_lookup(
+            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
+            num_rows, allowed_sparsity, storage_offsets.get_const_data(),
+            row_descs.get_data(), storage.get_data()));
+        exec->run(ilu_factorization::make_initialize(
+            local_system_matrix.get(), storage_offsets.get_const_data(),
+            row_descs.get_const_data(), storage.get_const_data(),
+            diag_idxs.get_data(), factors.get()));
+        // run numerical factorization
+        array<int> tmp{exec};
+        exec->run(ilu_factorization::make_factorize(
+            storage_offsets.get_const_data(), row_descs.get_const_data(),
+            storage.get_const_data(), diag_idxs.get_const_data(), factors.get(),
+            false, tmp));
+        ilu = factors;
+    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
+               !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
+        GKO_INVALID_STATE(
+            "OmpExecutor does not support sparselib algorithm. Please use "
+            "syncfree algorithm.");
+    } else {
+        exec->run(
+            ilu_factorization::make_sparselib_ilu(local_system_matrix.get()));
+        ilu = local_system_matrix;
+    }
     // Separate L and U factors: nnz
-    const auto matrix_size = local_system_matrix->get_size();
+    const auto matrix_size = ilu->get_size();
     const auto num_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, num_rows + 1};
     array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(ilu_factorization::make_initialize_row_ptrs_l_u(
-        local_system_matrix.get(), l_row_ptrs.get_data(),
-        u_row_ptrs.get_data()));
+        ilu.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, num_rows));
@@ -110,8 +179,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), parameters_.u_strategy);
 
     // Separate L and U: columns and values
-    exec->run(ilu_factorization::make_initialize_l_u(
-        local_system_matrix.get(), l_factor.get(), u_factor.get()));
+    exec->run(ilu_factorization::make_initialize_l_u(ilu.get(), l_factor.get(),
+                                                     u_factor.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

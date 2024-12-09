@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -81,12 +80,12 @@ struct test_impl : std::false_type {};
 
 // specialization for constructor
 template <typename T, typename... Args>
-struct test_impl<gko::xstd::void_t<decltype(T(std::declval<Args>()...))>, T,
-                 Args...> : std::true_type {};
+struct test_impl<std::void_t<decltype(T(std::declval<Args>()...))>, T, Args...>
+    : std::true_type {};
 
 // specialization for DF2 with_factory_list
 template <typename... Args>
-struct test_impl<gko::xstd::void_t<decltype(
+struct test_impl<std::void_t<decltype(
                      DF2::param{}.with_factory_list(std::declval<Args>()...))>,
                  DummyFlag, Args...> : std::true_type {};
 

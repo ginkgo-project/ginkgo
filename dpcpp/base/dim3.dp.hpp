@@ -6,7 +6,7 @@
 #define GKO_DPCPP_BASE_DIM3_DP_HPP_
 
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 
 namespace gko {

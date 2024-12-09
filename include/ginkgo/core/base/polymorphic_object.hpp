@@ -9,7 +9,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>

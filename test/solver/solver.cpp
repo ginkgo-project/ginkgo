@@ -8,9 +8,7 @@
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
@@ -31,10 +29,9 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 #if GINKGO_COMMON_SINGLE_MODE
@@ -523,7 +520,7 @@ protected:
     using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
     using value_type = typename Mtx::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = gko::next_precision_base<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 

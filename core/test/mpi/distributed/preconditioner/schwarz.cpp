@@ -4,12 +4,12 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
-
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -65,7 +65,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 
@@ -142,6 +142,29 @@ TYPED_TEST(SchwarzFactory, PassExplicitFactory)
         Schwarz::build().with_local_solver(jacobi_factory).on(this->exec);
 
     ASSERT_EQ(factory->get_parameters().local_solver, jacobi_factory);
+}
+
+
+TYPED_TEST(SchwarzFactory, ApplyUsesInitialGuessAsLocalSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Cg = typename gko::solver::Cg<value_type>;
+    using Jacobi = typename TestFixture::Jacobi;
+    using Schwarz = typename TestFixture::Schwarz;
+
+    auto schwarz_with_jacobi = Schwarz::build()
+                                   .with_local_solver(Jacobi::build())
+                                   .on(this->exec)
+                                   ->generate(this->mtx);
+    auto schwarz_with_cg =
+        Schwarz::build()
+            .with_local_solver(Cg::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u)))
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(schwarz_with_jacobi->apply_uses_initial_guess(), false);
+    ASSERT_EQ(schwarz_with_cg->apply_uses_initial_guess(), true);
 }
 
 

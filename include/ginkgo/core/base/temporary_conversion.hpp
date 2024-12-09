@@ -10,7 +10,6 @@
 #include <tuple>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/utils.hpp>
 

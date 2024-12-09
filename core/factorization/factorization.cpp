@@ -2,13 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/factorization.hpp>
-
+#include "ginkgo/core/factorization/factorization.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/factorization/factorization_kernels.hpp"

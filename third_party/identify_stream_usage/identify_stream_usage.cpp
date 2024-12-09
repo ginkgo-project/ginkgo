@@ -104,14 +104,9 @@ __attribute__((init_priority(1001))) std::unordered_map<std::string, void*>
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EVENT.html#group__CUDART__EVENT
 DEFINE_OVERLOAD(cudaEventRecord, ARG(cudaEvent_t event, cudaStream_t stream),
                 ARG(event, stream));
-
-#if CUDA_VERSION >= 11000
-
 DEFINE_OVERLOAD(cudaEventRecordWithFlags,
                 ARG(cudaEvent_t event, cudaStream_t stream, unsigned int flags),
                 ARG(event, stream, flags));
-
-#endif
 
 // Execution APIS:
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__EXECUTION.html#group__CUDART__EXECUTION

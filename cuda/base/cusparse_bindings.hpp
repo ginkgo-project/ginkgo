@@ -9,11 +9,9 @@
 #include <cuda.h>
 #include <cusparse.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -57,58 +55,6 @@ struct is_supported<std::complex<float>, int32> : std::true_type {};
 
 template <>
 struct is_supported<std::complex<double>, int32> : std::true_type {};
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#define GKO_BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                    \
-    inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,    \
-                     int32 m, int32 n, int32 nnz, const ValueType* alpha,    \
-                     const cusparseMatDescr_t descrA,                        \
-                     const ValueType* csrValA, const int32* csrRowPtrA,      \
-                     const int32* csrColIndA, const ValueType* x,            \
-                     const ValueType* beta, ValueType* y)                    \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                          \
-            handle, transA, m, n, nnz, as_culibs_type(alpha), descrA,        \
-            as_culibs_type(csrValA), csrRowPtrA, csrColIndA,                 \
-            as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                      \
-    inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,      \
-                     int64 m, int64 n, int64 nnz, const ValueType* alpha,      \
-                     const cusparseMatDescr_t descrA,                          \
-                     const ValueType* csrValA, const int64* csrRowPtrA,        \
-                     const int64* csrColIndA, const ValueType* x,              \
-                     const ValueType* beta, ValueType* y) GKO_NOT_IMPLEMENTED; \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_SPMV(float, cusparseScsrmv);
-GKO_BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<float>, cusparseCcsrmv);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<double>, cusparseZcsrmv);
-GKO_BIND_CUSPARSE64_SPMV(float, cusparseScsrmv);
-GKO_BIND_CUSPARSE64_SPMV(double, cusparseDcsrmv);
-GKO_BIND_CUSPARSE64_SPMV(std::complex<float>, cusparseCcsrmv);
-GKO_BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
-
-
-#undef GKO_BIND_CUSPARSE32_SPMV
-#undef GKO_BIND_CUSPARSE64_SPMV
-
-
-#else  // CUDA_VERSION >= 11000
 
 
 template <typename ValueType>
@@ -164,109 +110,6 @@ inline void spmm(cusparseHandle_t handle, cusparseOperation_t opA,
     cusparseSpMM(handle, opA, opB, alpha, matA, vecX, beta, vecY, value_type,
                  alg, externalBuffer);
 }
-
-
-#endif
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#define GKO_BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                    \
-    inline void spmv_mp(cusparseHandle_t handle, cusparseOperation_t transA, \
-                        int32 m, int32 n, int32 nnz, const ValueType* alpha, \
-                        const cusparseMatDescr_t descrA,                     \
-                        const ValueType* csrValA, const int32* csrRowPtrA,   \
-                        const int32* csrColIndA, const ValueType* x,         \
-                        const ValueType* beta, ValueType* y)                 \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                          \
-            handle, transA, m, n, nnz, as_culibs_type(alpha), descrA,        \
-            as_culibs_type(csrValA), csrRowPtrA, csrColIndA,                 \
-            as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_SPMV(ValueType, CusparseName)                      \
-    inline void spmv_mp(                                                       \
-        cusparseHandle_t handle, cusparseOperation_t transA, int64 m, int64 n, \
-        int64 nnz, const ValueType* alpha, const cusparseMatDescr_t descrA,    \
-        const ValueType* csrValA, const int64* csrRowPtrA,                     \
-        const int64* csrColIndA, const ValueType* x, const ValueType* beta,    \
-        ValueType* y) GKO_NOT_IMPLEMENTED;                                     \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_SPMV(float, cusparseScsrmv_mp);
-GKO_BIND_CUSPARSE32_SPMV(double, cusparseDcsrmv_mp);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<float>, cusparseCcsrmv_mp);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<double>, cusparseZcsrmv_mp);
-GKO_BIND_CUSPARSE64_SPMV(float, cusparseScsrmv_mp);
-GKO_BIND_CUSPARSE64_SPMV(double, cusparseDcsrmv_mp);
-GKO_BIND_CUSPARSE64_SPMV(std::complex<float>, cusparseCcsrmv_mp);
-GKO_BIND_CUSPARSE64_SPMV(std::complex<double>, cusparseZcsrmv_mp);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
-
-
-#undef GKO_BIND_CUSPARSE32_SPMV
-#undef GKO_BIND_CUSPARSE64_SPMV
-
-
-#define GKO_BIND_CUSPARSE32_SPMM(ValueType, CusparseName)                     \
-    inline void spmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                     int32 m, int32 n, int32 k, int32 nnz,                    \
-                     const ValueType* alpha, const cusparseMatDescr_t descrA, \
-                     const ValueType* csrValA, const int32* csrRowPtrA,       \
-                     const int32* csrColIndA, const ValueType* B, int32 ldb,  \
-                     const ValueType* beta, ValueType* C, int32 ldc)          \
-    {                                                                         \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
-            CusparseName(handle, transA, m, n, k, nnz, as_culibs_type(alpha), \
-                         descrA, as_culibs_type(csrValA), csrRowPtrA,         \
-                         csrColIndA, as_culibs_type(B), ldb,                  \
-                         as_culibs_type(beta), as_culibs_type(C), ldc));      \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_SPMM(ValueType, CusparseName)                     \
-    inline void spmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                     int64 m, int64 n, int64 k, int64 nnz,                    \
-                     const ValueType* alpha, const cusparseMatDescr_t descrA, \
-                     const ValueType* csrValA, const int64* csrRowPtrA,       \
-                     const int64* csrColIndA, const ValueType* B, int64 ldb,  \
-                     const ValueType* beta, ValueType* C, int64 ldc)          \
-        GKO_NOT_IMPLEMENTED;                                                  \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_SPMM(float, cusparseScsrmm);
-GKO_BIND_CUSPARSE32_SPMM(double, cusparseDcsrmm);
-GKO_BIND_CUSPARSE32_SPMM(std::complex<float>, cusparseCcsrmm);
-GKO_BIND_CUSPARSE32_SPMM(std::complex<double>, cusparseZcsrmm);
-GKO_BIND_CUSPARSE64_SPMM(float, cusparseScsrmm);
-GKO_BIND_CUSPARSE64_SPMM(double, cusparseDcsrmm);
-GKO_BIND_CUSPARSE64_SPMM(std::complex<float>, cusparseCcsrmm);
-GKO_BIND_CUSPARSE64_SPMM(std::complex<double>, cusparseZcsrmm);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_SPMM(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_SPMM(ValueType, detail::not_implemented);
-
-
-#undef GKO_BIND_CUSPARSE32_SPMM
-#undef GKO_BIND_CUSPARSE64_SPMM
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11021)
@@ -359,160 +202,6 @@ GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE(std::complex<double>);
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11021)
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#define GKO_BIND_CUSPARSE32_SPMV(ValueType, CusparseName)                     \
-    inline void spmv(cusparseHandle_t handle, cusparseOperation_t transA,     \
-                     const ValueType* alpha, const cusparseMatDescr_t descrA, \
-                     const cusparseHybMat_t hybA, const ValueType* x,         \
-                     const ValueType* beta, ValueType* y)                     \
-    {                                                                         \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                           \
-            handle, transA, as_culibs_type(alpha), descrA, hybA,              \
-            as_culibs_type(x), as_culibs_type(beta), as_culibs_type(y)));     \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_SPMV(float, cusparseShybmv);
-GKO_BIND_CUSPARSE32_SPMV(double, cusparseDhybmv);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<float>, cusparseChybmv);
-GKO_BIND_CUSPARSE32_SPMV(std::complex<double>, cusparseZhybmv);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
-
-
-#undef GKO_BIND_CUSPARSE32_SPMV
-
-
-template <typename ValueType, typename IndexType>
-void spgemm_buffer_size(
-    cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
-    const ValueType* alpha, const cusparseMatDescr_t descrA, IndexType nnzA,
-    const IndexType* csrRowPtrA, const IndexType* csrColIndA,
-    const cusparseMatDescr_t descrB, IndexType nnzB,
-    const IndexType* csrRowPtrB, const IndexType* csrColIndB,
-    const ValueType* beta, const cusparseMatDescr_t descrD, IndexType nnzD,
-    const IndexType* csrRowPtrD, const IndexType* csrColIndD,
-    csrgemm2Info_t info, size_type& result) GKO_NOT_IMPLEMENTED;
-
-#define GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(ValueType, CusparseName)          \
-    template <>                                                                \
-    inline void spgemm_buffer_size<ValueType, int32>(                          \
-        cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
-        const ValueType* alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
-        const int32* csrRowPtrA, const int32* csrColIndA,                      \
-        const cusparseMatDescr_t descrB, int32 nnzB, const int32* csrRowPtrB,  \
-        const int32* csrColIndB, const ValueType* beta,                        \
-        const cusparseMatDescr_t descrD, int32 nnzD, const int32* csrRowPtrD,  \
-        const int32* csrColIndD, csrgemm2Info_t info, size_type& result)       \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
-            CusparseName(handle, m, n, k, as_culibs_type(alpha), descrA, nnzA, \
-                         csrRowPtrA, csrColIndA, descrB, nnzB, csrRowPtrB,     \
-                         csrColIndB, as_culibs_type(beta), descrD, nnzD,       \
-                         csrRowPtrD, csrColIndD, info, &result));              \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(float, cusparseScsrgemm2_bufferSizeExt);
-GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(double, cusparseDcsrgemm2_bufferSizeExt);
-GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(std::complex<float>,
-                                     cusparseCcsrgemm2_bufferSizeExt);
-GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(std::complex<double>,
-                                     cusparseZcsrgemm2_bufferSizeExt);
-
-
-#undef GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE
-
-
-template <typename IndexType>
-void spgemm_nnz(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
-                const cusparseMatDescr_t descrA, IndexType nnzA,
-                const IndexType* csrRowPtrA, const IndexType* csrColIndA,
-                const cusparseMatDescr_t descrB, IndexType nnzB,
-                const IndexType* csrRowPtrB, const IndexType* csrColIndB,
-                const cusparseMatDescr_t descrD, IndexType nnzD,
-                const IndexType* csrRowPtrD, const IndexType* csrColIndD,
-                const cusparseMatDescr_t descrC, IndexType* csrRowPtrC,
-                IndexType* nnzC, csrgemm2Info_t info,
-                void* buffer) GKO_NOT_IMPLEMENTED;
-
-template <>
-inline void spgemm_nnz<int32>(
-    cusparseHandle_t handle, int32 m, int32 n, int32 k,
-    const cusparseMatDescr_t descrA, int32 nnzA, const int32* csrRowPtrA,
-    const int32* csrColIndA, const cusparseMatDescr_t descrB, int32 nnzB,
-    const int32* csrRowPtrB, const int32* csrColIndB,
-    const cusparseMatDescr_t descrD, int32 nnzD, const int32* csrRowPtrD,
-    const int32* csrColIndD, const cusparseMatDescr_t descrC, int32* csrRowPtrC,
-    int32* nnzC, csrgemm2Info_t info, void* buffer)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseXcsrgemm2Nnz(
-        handle, m, n, k, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
-        csrRowPtrB, csrColIndB, descrD, nnzD, csrRowPtrD, csrColIndD, descrC,
-        csrRowPtrC, nnzC, info, buffer));
-}
-
-
-template <typename ValueType, typename IndexType>
-void spgemm(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
-            const ValueType* alpha, const cusparseMatDescr_t descrA,
-            IndexType nnzA, const ValueType* csrValA,
-            const IndexType* csrRowPtrA, const IndexType* csrColIndA,
-            const cusparseMatDescr_t descrB, IndexType nnzB,
-            const ValueType* csrValB, const IndexType* csrRowPtrB,
-            const IndexType* csrColIndB, const ValueType* beta,
-            const cusparseMatDescr_t descrD, IndexType nnzD,
-            const ValueType* csrValD, const IndexType* csrRowPtrD,
-            const IndexType* csrColIndD, const cusparseMatDescr_t descrC,
-            ValueType* csrValC, const IndexType* csrRowPtrC,
-            IndexType* csrColIndC, csrgemm2Info_t info,
-            void* buffer) GKO_NOT_IMPLEMENTED;
-
-#define GKO_BIND_CUSPARSE_SPGEMM(ValueType, CusparseName)                      \
-    template <>                                                                \
-    inline void spgemm<ValueType, int32>(                                      \
-        cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
-        const ValueType* alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
-        const ValueType* csrValA, const int32* csrRowPtrA,                     \
-        const int32* csrColIndA, const cusparseMatDescr_t descrB, int32 nnzB,  \
-        const ValueType* csrValB, const int32* csrRowPtrB,                     \
-        const int32* csrColIndB, const ValueType* beta,                        \
-        const cusparseMatDescr_t descrD, int32 nnzD, const ValueType* csrValD, \
-        const int32* csrRowPtrD, const int32* csrColIndD,                      \
-        const cusparseMatDescr_t descrC, ValueType* csrValC,                   \
-        const int32* csrRowPtrC, int32* csrColIndC, csrgemm2Info_t info,       \
-        void* buffer)                                                          \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
-            handle, m, n, k, as_culibs_type(alpha), descrA, nnzA,              \
-            as_culibs_type(csrValA), csrRowPtrA, csrColIndA, descrB, nnzB,     \
-            as_culibs_type(csrValB), csrRowPtrB, csrColIndB,                   \
-            as_culibs_type(beta), descrD, nnzD, as_culibs_type(csrValD),       \
-            csrRowPtrD, csrColIndD, descrC, as_culibs_type(csrValC),           \
-            csrRowPtrC, csrColIndC, info, buffer));                            \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE_SPGEMM(float, cusparseScsrgemm2);
-GKO_BIND_CUSPARSE_SPGEMM(double, cusparseDcsrgemm2);
-GKO_BIND_CUSPARSE_SPGEMM(std::complex<float>, cusparseCcsrgemm2);
-GKO_BIND_CUSPARSE_SPGEMM(std::complex<double>, cusparseZcsrgemm2);
-
-
-#undef GKO_BIND_CUSPARSE_SPGEMM
-
-
-#else  // CUDA_VERSION >= 11000
-
-
 template <typename ValueType>
 void spgemm_work_estimation(cusparseHandle_t handle, const ValueType* alpha,
                             cusparseSpMatDescr_t a_descr,
@@ -575,101 +264,6 @@ void csr_set_pointers(cusparseSpMatDescr_t descr, IndexType* row_ptrs,
     cusparseCsrSetPointers(descr, row_ptrs, col_idxs, vals);
 }
 
-
-#endif  // CUDA_VERSION >= 11000
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#define GKO_BIND_CUSPARSE32_CSR2HYB(ValueType, CusparseName)                 \
-    inline void csr2hyb(cusparseHandle_t handle, int32 m, int32 n,           \
-                        const cusparseMatDescr_t descrA,                     \
-                        const ValueType* csrValA, const int32* csrRowPtrA,   \
-                        const int32* csrColIndA, cusparseHybMat_t hybA,      \
-                        int32 userEllWidth,                                  \
-                        cusparseHybPartition_t partitionType)                \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                          \
-            handle, m, n, descrA, as_culibs_type(csrValA), csrRowPtrA,       \
-            csrColIndA, hybA, userEllWidth, partitionType));                 \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_CSR2HYB(ValueType, CusparseName)                 \
-    inline void csr2hyb(                                                     \
-        cusparseHandle_t handle, int64 m, int64 n,                           \
-        const cusparseMatDescr_t descrA, const ValueType* csrValA,           \
-        const int64* csrRowPtrA, const int64* csrColIndA,                    \
-        cusparseHybMat_t hybA, int64 userEllWidth,                           \
-        cusparseHybPartition_t partitionType) GKO_NOT_IMPLEMENTED;           \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE32_CSR2HYB(float, cusparseScsr2hyb);
-GKO_BIND_CUSPARSE32_CSR2HYB(double, cusparseDcsr2hyb);
-GKO_BIND_CUSPARSE32_CSR2HYB(std::complex<float>, cusparseCcsr2hyb);
-GKO_BIND_CUSPARSE32_CSR2HYB(std::complex<double>, cusparseZcsr2hyb);
-GKO_BIND_CUSPARSE64_CSR2HYB(float, cusparseScsr2hyb);
-GKO_BIND_CUSPARSE64_CSR2HYB(double, cusparseDcsr2hyb);
-GKO_BIND_CUSPARSE64_CSR2HYB(std::complex<float>, cusparseCcsr2hyb);
-GKO_BIND_CUSPARSE64_CSR2HYB(std::complex<double>, cusparseZcsr2hyb);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_CSR2HYB(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_CSR2HYB(ValueType, detail::not_implemented);
-
-
-#undef GKO_BIND_CUSPARSE32_CSR2HYB
-#undef GKO_BIND_CUSPARSE64_CSR2HYB
-
-
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-template <typename ValueType, typename IndexType>
-inline void transpose(cusparseHandle_t handle, size_type m, size_type n,
-                      size_type nnz, const ValueType* OrigValA,
-                      const IndexType* OrigRowPtrA,
-                      const IndexType* OrigColIndA, ValueType* TransValA,
-                      IndexType* TransRowPtrA, IndexType* TransColIndA,
-                      cusparseAction_t copyValues,
-                      cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
-
-// Cusparse csr2csc use the order (row_inx, col_ptr) for csc, so we need to
-// switch row_ptr and col_idx of transposed csr here
-#define GKO_BIND_CUSPARSE_TRANSPOSE32(ValueType, CusparseName)                \
-    template <>                                                               \
-    inline void transpose<ValueType, int32>(                                  \
-        cusparseHandle_t handle, size_type m, size_type n, size_type nnz,     \
-        const ValueType* OrigValA, const int32* OrigRowPtrA,                  \
-        const int32* OrigColIndA, ValueType* TransValA, int32* TransRowPtrA,  \
-        int32* TransColIndA, cusparseAction_t copyValues,                     \
-        cusparseIndexBase_t idxBase)                                          \
-    {                                                                         \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
-            CusparseName(handle, m, n, nnz, as_culibs_type(OrigValA),         \
-                         OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
-                         TransColIndA, TransRowPtrA, copyValues, idxBase));   \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE_TRANSPOSE32(float, cusparseScsr2csc);
-GKO_BIND_CUSPARSE_TRANSPOSE32(double, cusparseDcsr2csc);
-GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<float>, cusparseCcsr2csc);
-GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<double>, cusparseZcsr2csc);
-
-#undef GKO_BIND_CUSPARSE_TRANSPOSE32
-
-
-#else  // CUDA_VERSION >= 11000
 
 template <typename ValueType, typename IndexType>
 inline void transpose_buffersize(
@@ -739,9 +333,6 @@ GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<float>);
 GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<double>);
 
 
-#endif
-
-
 inline cusparseMatDescr_t create_mat_descr()
 {
     cusparseMatDescr_t descr{};
@@ -774,26 +365,6 @@ inline void destroy(cusparseMatDescr_t descr)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
 }
-
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-inline csrgemm2Info_t create_spgemm_info()
-{
-    csrgemm2Info_t info{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsrgemm2Info(&info));
-    return info;
-}
-
-
-inline void destroy(csrgemm2Info_t info)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrgemm2Info(info));
-}
-
-
-#else  // CUDA_VERSION >= 11000
 
 
 inline cusparseSpGEMMDescr_t create_spgemm_descr()
@@ -888,7 +459,7 @@ inline void destroy(cusparseSpMatDescr_t descr)
 }
 
 
-#if (CUDA_VERSION >= 11031)
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 11031)
 
 
 template <typename AttribType>
@@ -917,9 +488,6 @@ inline void destroy(cusparseSpSMDescr_t info)
 #endif  // CUDA_VERSION >= 11031
 
 
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
-
-
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11031)
 
 
@@ -940,6 +508,7 @@ inline void destroy(csrsm2Info_t info)
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11031)
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 inline csrilu02Info_t create_ilu0_info()
 {
     csrilu02Info_t info{};
@@ -948,7 +517,7 @@ inline csrilu02Info_t create_ilu0_info()
 }
 
 
-inline void destroy(csrilu02Info_t info)
+inline void destroy_ilu0_info(csrilu02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrilu02Info(info));
 }
@@ -962,10 +531,11 @@ inline csric02Info_t create_ic0_info()
 }
 
 
-inline void destroy(csric02Info_t info)
+inline void destroy_ic0_info(csric02Info_t info)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsric02Info(info));
 }
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 #if (defined(CUDA_VERSION) && (CUDA_VERSION < 11031))
@@ -1175,19 +745,6 @@ void spsm_solve(cusparseHandle_t handle, cusparseOperation_t op_a,
 
 
 template <typename IndexType>
-void create_identity_permutation(cusparseHandle_t handle, IndexType size,
-                                 IndexType* permutation) GKO_NOT_IMPLEMENTED;
-
-template <>
-inline void create_identity_permutation<int32>(cusparseHandle_t handle,
-                                               int32 size, int32* permutation)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateIdentityPermutation(handle, size, permutation));
-}
-
-
-template <typename IndexType>
 void csrsort_buffer_size(cusparseHandle_t handle, IndexType m, IndexType n,
                          IndexType nnz, const IndexType* row_ptrs,
                          const IndexType* col_idxs,
@@ -1222,38 +779,6 @@ inline void csrsort<int32>(cusparseHandle_t handle, int32 m, int32 n, int32 nnz,
 }
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
-template <typename ValueType, typename IndexType>
-void gather(cusparseHandle_t handle, IndexType nnz, const ValueType* in,
-            ValueType* out, const IndexType* permutation) GKO_NOT_IMPLEMENTED;
-
-#define GKO_BIND_CUSPARSE_GATHER(ValueType, CusparseName)                      \
-    template <>                                                                \
-    inline void gather<ValueType, int32>(cusparseHandle_t handle, int32 nnz,   \
-                                         const ValueType* in, ValueType* out,  \
-                                         const int32* permutation)             \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
-            CusparseName(handle, nnz, as_culibs_type(in), as_culibs_type(out), \
-                         permutation, CUSPARSE_INDEX_BASE_ZERO));              \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-GKO_BIND_CUSPARSE_GATHER(float, cusparseSgthr);
-GKO_BIND_CUSPARSE_GATHER(double, cusparseDgthr);
-GKO_BIND_CUSPARSE_GATHER(std::complex<float>, cusparseCgthr);
-GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
-
-#undef GKO_BIND_CUSPARSE_GATHER
-
-
-#else  // CUDA_VERSION >= 11000
-
-
 inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,
                    cusparseSpVecDescr_t out)
 {
@@ -1261,9 +786,7 @@ inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,
 }
 
 
-#endif
-
-
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 template <typename ValueType, typename IndexType>
 void ilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
                       const cusparseMatDescr_t descr, const ValueType* vals,
@@ -1458,11 +981,26 @@ GKO_BIND_CUSPARSE_IC0(float, cusparseScsric02);
 GKO_BIND_CUSPARSE_IC0(double, cusparseDcsric02);
 GKO_BIND_CUSPARSE_IC0(std::complex<float>, cusparseCcsric02);
 GKO_BIND_CUSPARSE_IC0(std::complex<double>, cusparseZcsric02);
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 #undef GKO_BIND_CUSPARSE_IC0
 
 
 }  // namespace cusparse
+
+
+namespace sparselib {
+
+
+using namespace cusparse;
+
+
+#define SPARSELIB_OPERATION_TRANSPOSE CUSPARSE_OPERATION_TRANSPOSE
+#define SPARSELIB_OPERATION_NON_TRANSPOSE CUSPARSE_OPERATION_NON_TRANSPOSE
+#define SPARSELIB_SOLVE_POLICY_USE_LEVEL CUSPARSE_SOLVE_POLICY_USE_LEVEL
+
+
+}  // namespace sparselib
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

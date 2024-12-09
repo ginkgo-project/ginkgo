@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -17,9 +16,9 @@
 
 #if defined(GKO_COMPILING_CUDA)
 
-#define GKO_DEVICE_NAMESPACE cuda
 #define GKO_KERNEL __device__
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -44,9 +43,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_HIP)
 
-#define GKO_DEVICE_NAMESPACE hip
 #define GKO_KERNEL __device__
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -71,23 +70,15 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_DPCPP)
 
-#define GKO_DEVICE_NAMESPACE dpcpp
 #define GKO_KERNEL
 
+
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-
-
-template <typename T>
-using device_type = T;
-
-template <typename T>
-device_type<T> as_device_type(T value)
-{
-    return value;
-}
 
 
 template <typename T>
@@ -99,6 +90,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
     return value;
 }
 
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
@@ -106,7 +98,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #elif defined(GKO_COMPILING_OMP)
 
-#define GKO_DEVICE_NAMESPACE omp
 #define GKO_KERNEL
 
 
@@ -270,10 +261,8 @@ typename to_device_type_impl<T>::type map_to_device(T&& param)
 }  // namespace gko
 
 
-#if defined(GKO_COMPILING_CUDA)
-#include "cuda/base/kernel_launch.cuh"
-#elif defined(GKO_COMPILING_HIP)
-#include "hip/base/kernel_launch.hip.hpp"
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+#include "common/cuda_hip/base/kernel_launch.hpp"
 #elif defined(GKO_COMPILING_DPCPP)
 #include "dpcpp/base/kernel_launch.dp.hpp"
 #elif defined(GKO_COMPILING_OMP)

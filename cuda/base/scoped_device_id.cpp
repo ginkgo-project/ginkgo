@@ -2,17 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "cuda/base/scoped_device_id.hpp"
+
 #include <exception>
 #include <utility>
 
-
 #include <cuda_runtime.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-
-
-#include "cuda/base/scoped_device_id.hpp"
 
 
 namespace gko {

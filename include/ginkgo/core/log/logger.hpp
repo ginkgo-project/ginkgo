@@ -12,13 +12,13 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
 
+class half;
 
 /* Eliminate circular dependencies the hard way */
 template <typename ValueType>
@@ -580,6 +580,17 @@ protected:
         const array<int>& iters, const array<float>& residual_norms) const
     {}
 
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters, const array<gko::half>& residual_norms) const
+    {}
+
 public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
@@ -797,7 +808,7 @@ private:
     template <size_type Event, typename ConcreteLoggableT>
     struct propagate_log_helper<
         Event, ConcreteLoggableT,
-        xstd::void_t<
+        std::void_t<
             decltype(std::declval<ConcreteLoggableT>().get_executor())>> {
         template <typename... Args>
         static void propagate_log(const ConcreteLoggableT* loggable,

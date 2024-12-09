@@ -8,9 +8,7 @@
 
 #include <type_traits>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include "dpcpp/base/dpct.hpp"
 
@@ -25,6 +23,25 @@ constexpr auto local_space = sycl::access::address_space::local_space;
 constexpr auto global_space = sycl::access::address_space::global_space;
 
 
+// The defaults are based on:
+// https://github.com/intel/llvm/blob/51d92a339c7bc2ac11ec39bef42c039e1589ae3e/sycl/include/sycl/atomic.hpp#L56
+template <sycl::access::address_space addressSpace>
+struct memory_scope {};
+
+template <>
+struct memory_scope<global_space> {
+    static constexpr auto scope = sycl::memory_scope::device;
+};
+
+template <>
+struct memory_scope<local_space> {
+    static constexpr auto scope = sycl::memory_scope::work_group;
+};
+
+template <sycl::access::address_space addressSpace>
+constexpr auto memory_scope_v = memory_scope<addressSpace>::scope;
+
+
 }  // namespace atomic
 
 namespace {
@@ -37,7 +54,9 @@ T atomic_compare_exchange_strong(
     sycl::memory_order success = sycl::memory_order::relaxed,
     sycl::memory_order fail = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj(addr);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr.get());
     obj.compare_exchange_strong(expected, desired, success, fail);
     return expected;
 }
@@ -61,8 +80,10 @@ inline T atomic_fetch_add(
     T* addr, T operand,
     sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj((sycl::multi_ptr<T, addressSpace>(addr)));
-    return sycl::atomic_fetch_add(obj, operand, memoryOrder);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.fetch_add(operand, memoryOrder);
 }
 
 
@@ -72,8 +93,10 @@ inline T atomic_fetch_max(
     T* addr, T operand,
     sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
 {
-    sycl::atomic<T, addressSpace> obj((sycl::multi_ptr<T, addressSpace>(addr)));
-    return sycl::atomic_fetch_max(obj, operand, memoryOrder);
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.fetch_max(operand, memoryOrder);
 }
 
 
@@ -150,7 +173,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
-#define GKO_BIND_ATOMIC_HELPER_VALUETYPE(ValueType)                         \
+#define GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(ValueType)                    \
     template <sycl::access::address_space addressSpace>                     \
     struct atomic_helper<addressSpace, ValueType, std::enable_if_t<true>> { \
         __dpct_inline__ static ValueType atomic_add(                        \
@@ -160,9 +183,9 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
         }                                                                   \
     };
 
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(int);
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned int);
-GKO_BIND_ATOMIC_HELPER_VALUETYPE(unsigned long long int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(unsigned int);
+GKO_BIND_ATOMIC_HELPER_VALUETYPE_BASE(unsigned long long int);
 
 #undef GKO_BIND_ATOMIC_HELPER_VALUETYPE
 
@@ -210,15 +233,15 @@ struct atomic_helper<
         }                                                                   \
     };
 
-// Support 64-bit ATOMIC_ADD
+// Support 64-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned long long int);
-// Support 32-bit ATOMIC_ADD
+// Support 32-bit ATOMIC_MAX
 GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
 
 
 #undef GKO_BIND_ATOMIC_MAX_STRUCTURE
 
-#define GKO_BIND_ATOMIC_MAX_VALUETYPE(ValueType)              \
+#define GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(ValueType)         \
     template <sycl::access::address_space addressSpace>       \
     struct atomic_max_helper<addressSpace, ValueType,         \
                              std::enable_if_t<true>> {        \
@@ -229,9 +252,9 @@ GKO_BIND_ATOMIC_MAX_STRUCTURE(unsigned int);
         }                                                     \
     };
 
-GKO_BIND_ATOMIC_MAX_VALUETYPE(int);
-GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned int);
-GKO_BIND_ATOMIC_MAX_VALUETYPE(unsigned long long int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(unsigned int);
+GKO_BIND_ATOMIC_MAX_VALUETYPE_BASE(unsigned long long int);
 
 #undef GKO_BIND_ATOMIC_MAX_VALUETYPE
 
@@ -252,6 +275,31 @@ template <sycl::access::address_space addressSpace = atomic::global_space,
 __dpct_inline__ T atomic_max(T* __restrict__ addr, T val)
 {
     return detail::atomic_max_helper<addressSpace, T>::atomic_max(addr, val);
+}
+
+
+template <sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+__dpct_inline__ void store(
+    T* __restrict__ addr, T val,
+    sycl::memory_order memoryOrder = sycl::memory_order::relaxed)
+{
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    obj.store(val, memoryOrder);
+}
+
+
+template <sycl::access::address_space addressSpace = atomic::global_space,
+          typename T>
+__dpct_inline__ T load(T* __restrict__ addr, sycl::memory_order memoryOrder =
+                                                 sycl::memory_order::relaxed)
+{
+    sycl::atomic_ref<T, sycl::memory_order::relaxed,
+                     atomic::memory_scope_v<addressSpace>, addressSpace>
+        obj(*addr);
+    return obj.load(memoryOrder);
 }
 
 

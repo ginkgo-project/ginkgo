@@ -6,8 +6,7 @@
 #define GKO_DPCPP_COMPONENTS_THREAD_IDS_DP_HPP_
 
 
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dpct.hpp"

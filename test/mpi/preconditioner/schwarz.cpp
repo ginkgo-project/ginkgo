@@ -6,12 +6,9 @@
 #include <memory>
 #include <random>
 
-
 #include <mpi.h>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -29,11 +26,10 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/mpi/executor.hpp"
+#include "test/utils/mpi/common_fixture.hpp"
 
 
 #if GINKGO_DPCPP_SINGLE_MODE
@@ -147,7 +143,8 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(SchwarzPreconditioner, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(SchwarzPreconditioner,
+                 gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)

@@ -4,9 +4,7 @@
 
 #include <typeinfo>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -15,7 +13,6 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/registry_accessor.hpp"

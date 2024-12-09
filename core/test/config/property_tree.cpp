@@ -2,19 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/config/property_tree.hpp>
-
-
 #include <cstdint>
 #include <exception>
 #include <limits>
 #include <memory>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
 
 
 using namespace gko::config;

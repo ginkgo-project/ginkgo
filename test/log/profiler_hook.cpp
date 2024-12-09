@@ -4,14 +4,11 @@
 
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/log/profiler_hook.hpp>
 
-
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class ProfilerHook : public CommonTestFixture {

@@ -4,22 +4,18 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <limits>
 #include <memory>
 #include <random>
 #include <type_traits>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename T>
@@ -43,10 +39,7 @@ protected:
     gko::array<index_type> dvals;
 };
 
-using PrefixSumIndexTypes =
-    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
-
-TYPED_TEST_SUITE(PrefixSum, PrefixSumIndexTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(PrefixSum, gko::test::IntegerTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(PrefixSum, EqualsReference)
@@ -57,7 +50,7 @@ TYPED_TEST(PrefixSum, EqualsReference)
         SCOPED_TRACE(size);
         gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, this->vals.get_data(), size);
-        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+        gko::kernels::GKO_DEVICE_NAMESPACE::components::prefix_sum_nonnegative(
             this->exec, this->dvals.get_data(), size);
 
         GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
@@ -74,7 +67,7 @@ TYPED_TEST(PrefixSum, WorksCloseToOverflow)
                      std::is_unsigned<TypeParam>::value;
     gko::array<TypeParam> data{this->exec, I<TypeParam>({max - 1, 1, 0})};
 
-    gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::prefix_sum_nonnegative(
         this->exec, data.get_data(), data.get_size());
 
     GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, max - 1, max}));
@@ -86,7 +79,7 @@ TYPED_TEST(PrefixSum, DoesntOverflowFromLastElement)
     const auto max = std::numeric_limits<TypeParam>::max();
     gko::array<TypeParam> data{this->exec, I<TypeParam>({2, max - 1})};
 
-    gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::prefix_sum_nonnegative(
         this->exec, data.get_data(), data.get_size());
 
     GKO_ASSERT_ARRAY_EQ(data, I<TypeParam>({0, 2}));
@@ -103,7 +96,7 @@ TYPED_TEST(PrefixSum, ThrowsOnOverflow)
                                {max / 3, max / 2, max / 4, max / 3, max / 4}};
 
     ASSERT_THROW(
-        gko::kernels::EXEC_NAMESPACE::components::prefix_sum_nonnegative(
+        gko::kernels::GKO_DEVICE_NAMESPACE::components::prefix_sum_nonnegative(
             this->exec, data.get_data(), data.get_size()),
         gko::OverflowError);
 }

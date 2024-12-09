@@ -5,14 +5,12 @@
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/base/iterator_factory.hpp"
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 using gko::experimental::distributed::comm_index_type;
@@ -147,8 +145,8 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRanges)
     auto offsets = make_array(this->exec, create_ranges<index_type>(100));
     bool result = false;
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, offsets, result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::
+        check_consecutive_ranges(this->exec, offsets, result);
 
     ASSERT_TRUE(result);
 }
@@ -163,8 +161,8 @@ TYPED_TEST(PartitionHelpers, CanCheckNonConsecutiveRanges)
         make_array(this->exec, remove_indices(full_range_ends, removal_idxs));
     bool result = true;
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::
+        check_consecutive_ranges(this->exec, start_ends, result);
 
     ASSERT_FALSE(result);
 }
@@ -176,8 +174,8 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleRange)
     auto start_ends = make_array(this->ref, create_ranges<index_type>(1));
     bool result = false;
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::
+        check_consecutive_ranges(this->exec, start_ends, result);
 
     ASSERT_TRUE(result);
 }
@@ -189,8 +187,8 @@ TYPED_TEST(PartitionHelpers, CanCheckConsecutiveRangesWithSingleElement)
     auto start_ends = gko::array<index_type>(this->exec, {1});
     bool result = false;
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::check_consecutive_ranges(
-        this->exec, start_ends, result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::
+        check_consecutive_ranges(this->exec, start_ends, result);
 
     ASSERT_TRUE(result);
 }
@@ -206,7 +204,7 @@ TYPED_TEST(PartitionHelpers, CanSortConsecutiveRanges)
     auto expected_start_ends = start_ends;
     auto expected_part_ids = part_ids_arr;
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::sort_by_range_start(
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::sort_by_range_start(
         this->exec, start_ends, part_ids_arr);
 
     GKO_ASSERT_ARRAY_EQ(expected_start_ends, start_ends);
@@ -227,7 +225,7 @@ TYPED_TEST(PartitionHelpers, CanSortNonConsecutiveRanges)
     auto part_ids_arr = gko::array<comm_index_type>(
         this->exec, shuffled.second.begin(), shuffled.second.end());
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::sort_by_range_start(
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::sort_by_range_start(
         this->exec, start_ends, part_ids_arr);
 
     GKO_ASSERT_ARRAY_EQ(expected_start_ends, start_ends);
@@ -242,7 +240,7 @@ TYPED_TEST(PartitionHelpers, CanCompressRanges)
     auto ranges = make_array(this->exec, create_ranges(expected_offsets));
     gko::array<index_type> offsets{this->exec, expected_offsets.size()};
 
-    gko::kernels::EXEC_NAMESPACE::partition_helpers::compress_ranges(
+    gko::kernels::GKO_DEVICE_NAMESPACE::partition_helpers::compress_ranges(
         this->exec, ranges, offsets);
 
     GKO_ASSERT_ARRAY_EQ(offsets, make_array(this->exec, expected_offsets));

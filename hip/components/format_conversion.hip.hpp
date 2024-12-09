@@ -6,15 +6,12 @@
 #define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
 
 
-#include <hip/hip_runtime.h>
-
-
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING

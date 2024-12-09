@@ -4,19 +4,16 @@
 
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Jacobi : public CommonTestFixture {
@@ -889,4 +886,27 @@ TEST_F(
     d_bj->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(Jacobi, ScalarJacobiHandleZero)
+{
+    auto mtx = gko::share(
+        gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
+    auto b = gko::initialize<Vec>({1, 2, 3}, ref);
+    auto x = Vec::create(ref, gko::dim<2>(3, 1));
+    auto d_b = b->clone(exec);
+    auto d_x = x->clone(exec);
+    auto d_mtx = gko::share(mtx->clone(exec));
+
+    auto jacobi = Bj::build().with_max_block_size(1u).on(ref)->generate(mtx);
+    // Must generate from scratch because the clone copies the inverted
+    // information.
+    auto d_jacobi =
+        Bj::build().with_max_block_size(1u).on(exec)->generate(d_mtx);
+
+    // Jacobi uses 1 as the result when diagonal value is zero.
+    jacobi->apply(b, x);
+    d_jacobi->apply(d_b, d_x);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 0.0);
 }

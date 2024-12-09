@@ -8,7 +8,6 @@
 
 #include <omp.h>
 
-
 #include <ginkgo/core/base/math.hpp>
 
 

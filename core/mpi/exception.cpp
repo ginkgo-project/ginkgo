@@ -5,9 +5,7 @@
 #include <array>
 #include <string>
 
-
 #include <mpi.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 
