@@ -1191,34 +1191,34 @@ About
 
 Ginkgo 1.0.0 is brought to you by:
 
-**Karlsruhe Institute of Technology**, Germany
-**Universitat Jaume I**, Spain
-**University of Tennessee, Knoxville**, US
+**Karlsruhe Institute of Technology**, Germany  
+**Universitat Jaume I**, Spain  
+**University of Tennessee, Knoxville**, US  
 
 These universities, along with various project grants, supported the development team and provided resources needed for the development of Ginkgo.
 
 Ginkgo 1.0.0 contains contributions from:
 
-**Hartwig Anzt**, Karlsruhe Institute of Technology
-**Yenchen Chen**, National Taiwan University
-**Terry Cojean**, Karlsruhe Institute of Technology
-**Goran Flegar**, Universitat Jaume I
-**Fritz Göbel**, Karlsruhe Institute of Technology
-**Thomas Grützmacher**, Karlsruhe Institute of Technology
-**Pratik Nayak**, Karlsruhe Institute of Technology
-**Tobias Ribizel**, Karlsruhe Institute of Technology
-**Yuhsiang Tsai**, National Taiwan University
+**Hartwig Anzt**, Karlsruhe Institute of Technology  
+**Yenchen Chen**, National Taiwan University  
+**Terry Cojean**, Karlsruhe Institute of Technology  
+**Goran Flegar**, Universitat Jaume I  
+**Fritz Göbel**, Karlsruhe Institute of Technology  
+**Thomas Grützmacher**, Karlsruhe Institute of Technology  
+**Pratik Nayak**, Karlsruhe Institute of Technology  
+**Tobias Ribizel**, Karlsruhe Institute of Technology  
+**Yuhsiang Tsai**, National Taiwan University  
 
 Supporting materials are provided by the following individuals:
 
-**David Rogers** - the Ginkgo logo
-**Frithjof Fleischhammer** - the Ginkgo website
+**David Rogers** - the Ginkgo logo  
+**Frithjof Fleischhammer** - the Ginkgo website  
 
 The development team is grateful to the following individuals for discussions and comments:
 
-**Erik Boman**
-**Jelena Držaić**
-**Mike Heroux**
-**Mark Hoemmen**
-**Timo Heister**
-**Jens Saak**
+**Erik Boman**  
+**Jelena Držaić**  
+**Mike Heroux**  
+**Mark Hoemmen**  
+**Timo Heister**  
+**Jens Saak**  
