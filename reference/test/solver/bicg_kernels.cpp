@@ -2,22 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/bicg.hpp>
-
+#include "core/solver/bicg_kernels.hpp"
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
-#include "core/solver/bicg_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -34,6 +31,16 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          mtx_big(gko::initialize<Mtx>(
+              {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
+               {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
+               {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
+               {-3139.5, 73.0, 2656.0, 6048.0, 665.0, -132.0},
+               {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
+               {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
+              exec)),
+          mtx_non_symmetric(gko::initialize<Mtx>(
+              {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           stopped{},
           non_stopped{},
           bicg_factory(Solver::build()
@@ -44,14 +51,6 @@ protected:
                                gko::stop::ResidualNorm<value_type>::build()
                                    .with_reduction_factor(r<value_type>::value))
                            .on(exec)),
-          mtx_big(gko::initialize<Mtx>(
-              {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
-               {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
-               {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
-               {-3139.5, 73.0, 2656.0, 6048.0, 665.0, -132.0},
-               {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
-               {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
-              exec)),
           bicg_factory_big(
               Solver::build()
                   .with_criteria(
@@ -65,11 +64,7 @@ protected:
                       gko::stop::Iteration::build().with_max_iters(100u),
                       gko::stop::ImplicitResidualNorm<value_type>::build()
                           .with_reduction_factor(r<value_type>::value))
-                  .on(exec)),
-          mtx_non_symmetric(gko::initialize<Mtx>(
-              {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec))
-
-
+                  .on(exec))
     {
         auto small_size = gko::dim<2>{2, 2};
         auto small_scalar_size = gko::dim<2>{1, small_size[1]};
@@ -451,6 +446,8 @@ TYPED_TEST(Bicg, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->bicg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -468,6 +465,8 @@ TYPED_TEST(Bicg, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->bicg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
@@ -485,6 +484,8 @@ TYPED_TEST(Bicg, SolvesBigDenseSystemImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->bicg_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
@@ -516,6 +517,8 @@ TYPED_TEST(Bicg, SolvesMultipleDenseSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->bicg_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},

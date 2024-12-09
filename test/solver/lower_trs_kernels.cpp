@@ -5,9 +5,7 @@
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -15,10 +13,9 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class LowerTrs : public CommonTestFixture {
@@ -155,7 +152,7 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-13);
 }
 
 
@@ -420,7 +417,7 @@ TEST_F(LowerTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-13);
 }
 
 

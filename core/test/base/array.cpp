@@ -2,18 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/array.hpp>
-
-
 #include <algorithm>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/test/utils.hpp"
@@ -45,7 +40,7 @@ protected:
     gko::array<T> x;
 };
 
-TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Array, gko::test::ComplexAndPODTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)

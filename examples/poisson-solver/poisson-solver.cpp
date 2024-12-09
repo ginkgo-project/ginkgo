@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 // Creates a stencil matrix in CSR format for the given number of discretization

@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/cholesky.hpp>
-
+#include "ginkgo/core/factorization/cholesky.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -139,7 +137,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     exec->run(make_factorize(
         storage_offsets.get_const_data(), row_descs.get_const_data(),
         storage.get_const_data(), diag_idxs.get_const_data(),
-        transpose_idxs.get_const_data(), *forest, factors.get(), tmp));
+        transpose_idxs.get_const_data(), *forest, factors.get(), true, tmp));
     return factorization_type::create_from_combined_cholesky(
         std::move(factors));
 }

@@ -4,16 +4,13 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,13 +18,12 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -45,8 +41,7 @@ protected:
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(0, 10.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0, 10.0), rand_engine, ref);
         dmtx_ani = Csr::create(exec);
         dmtx_l_ani = Csr::create(exec);
         dmtx_l_ani_init = Csr::create(exec);
@@ -100,7 +95,7 @@ TYPED_TEST(ParIc, KernelInitFactorIsEquivalentToRef)
 
     gko::kernels::reference::par_ic_factorization::init_factor(
         this->ref, this->mtx_l.get());
-    gko::kernels::EXEC_NAMESPACE::par_ic_factorization::init_factor(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::init_factor(
         this->exec, this->dmtx_l.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l, this->dmtx_l, r<value_type>::value);
@@ -111,15 +106,30 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     this->mtx_l_ani->convert_to(mtx_l_coo);
     auto dmtx_l_coo = gko::clone(this->exec, mtx_l_coo);
+    // If we compute the mtx_near in half, we still get less 1e-4 in half
+    // precision By using double in mtx_near, we get around 2.4e-4.
+    // TODO: when gko::half support subnormal value, revisit this.
+    // Use the reference result as initial values in device::compute_factor, it
+    // still converges to the same result, which gives around 2.4e-4 against the
+    // reference result. Applying more iterations on the device side does not
+    // change the result. It might mean some values are subnormal such that both
+    // converges to different stable result.
+    auto tol = std::max(
+        1e-4, static_cast<double>(r<gko::remove_complex<value_type>>::value));
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
         this->ref, 1, mtx_l_coo.get(), this->mtx_l_ani_init.get());
-    gko::kernels::EXEC_NAMESPACE::par_ic_factorization::compute_factor(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::compute_factor(
         this->exec, 100, dmtx_l_coo.get(), this->dmtx_l_ani_init.get());
 
-    GKO_ASSERT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, 1e-4);
+    GKO_EXPECT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, tol);
 }

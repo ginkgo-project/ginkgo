@@ -4,7 +4,6 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/memory.hpp>
@@ -147,6 +146,9 @@ void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(cuda);
+
+
+std::string CudaExecutor::get_description() const GKO_NOT_COMPILED(cuda);
 
 
 std::string CudaError::get_error(int64)

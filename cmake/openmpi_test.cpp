@@ -4,7 +4,6 @@
 
 #include <cstdio>
 
-
 #include <mpi.h>
 
 

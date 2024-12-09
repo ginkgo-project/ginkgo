@@ -2,25 +2,21 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/device_matrix_data.hpp>
-
+#include "core/base/device_matrix_data_kernels.hpp"
 
 #include <memory>
 #include <random>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
-
-#include "core/base/device_matrix_data_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -39,8 +35,7 @@ protected:
             0, host_data.size[0] - 1);
         std::uniform_int_distribution<index_type> col_distr(
             0, host_data.size[1] - 1);
-        std::uniform_real_distribution<gko::remove_complex<value_type>>
-            val_distr(1.0, 2.0);
+        std::uniform_real_distribution<> val_distr(1.0, 2.0);
         // add random entries
         for (int i = 0; i < 1000; i++) {
             host_data.nonzeros.emplace_back(
@@ -245,6 +240,28 @@ TYPED_TEST(DeviceMatrixData, CopiesToHost)
 }
 
 
+TYPED_TEST(DeviceMatrixData, CanFillEntriesWithZeros)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
+    auto device_data = device_matrix_data{this->exec, gko::dim<2>{4, 3}, 10};
+
+    device_data.fill_zero();
+
+    auto arrays = device_data.empty_out();
+    auto expected_row_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_col_idxs = gko::array<index_type>(this->exec, 10);
+    auto expected_values = gko::array<value_type>(this->exec, 10);
+    expected_row_idxs.fill(0);
+    expected_col_idxs.fill(0);
+    expected_values.fill(0.0);
+    GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, expected_row_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.values, expected_values);
+}
+
+
 TYPED_TEST(DeviceMatrixData, SortsRowMajor)
 {
     using value_type = typename TestFixture::value_type;
@@ -321,7 +338,7 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
     arrays.values.set_executor(this->exec->get_master());
     for (int i = 0; i < arrays.values.get_size(); i++) {
         max_error = std::max<double>(
-            max_error, std::abs(arrays.values.get_const_data()[i] -
+            max_error, gko::abs(arrays.values.get_const_data()[i] -
                                 ref_arrays.values.get_const_data()[i]));
     }
     // when Hip with GNU < 7, it will give a little difference.

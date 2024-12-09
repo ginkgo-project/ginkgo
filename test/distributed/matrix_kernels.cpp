@@ -4,20 +4,16 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 using comm_index_type = gko::experimental::distributed::comm_index_type;
@@ -72,7 +68,7 @@ protected:
                     ref, input, row_partition.get(), col_partition.get(), part,
                     local_row_idxs, local_col_idxs, local_values,
                     non_local_row_idxs, non_local_col_idxs, non_local_values);
-            gko::kernels::EXEC_NAMESPACE::distributed_matrix::
+            gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
                 separate_local_nonlocal(
                     exec, d_input, d_row_partition.get(), d_col_partition.get(),
                     part, d_local_row_idxs, d_local_col_idxs, d_local_values,
@@ -91,7 +87,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 

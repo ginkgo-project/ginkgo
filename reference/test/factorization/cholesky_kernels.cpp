@@ -2,24 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/factorization/cholesky.hpp>
-
+#include "core/factorization/cholesky_kernels.hpp"
 
 #include <algorithm>
 #include <initializer_list>
 #include <memory>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
-
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -27,9 +23,6 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
-
-
-namespace {
 
 
 template <typename ValueIndexType>
@@ -430,7 +423,7 @@ TYPED_TEST(Cholesky, KernelFactorizeWorks)
                 this->row_descs.get_const_data(),
                 this->storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), *this->forest, this->combined.get(),
-                tmp);
+                true, tmp);
 
             GKO_ASSERT_MTX_NEAR(this->combined, this->combined_ref,
                                 r<value_type>::value);
@@ -494,6 +487,3 @@ TYPED_TEST(Cholesky, FactorizeWithKnownSparsityWorks)
         },
         false);
 }
-
-
-}  // namespace

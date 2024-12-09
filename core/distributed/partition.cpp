@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/partition.hpp>
-
+#include "ginkgo/core/distributed/partition.hpp"
 
 #include "core/base/array_access.hpp"
 #include "core/distributed/partition_kernels.hpp"

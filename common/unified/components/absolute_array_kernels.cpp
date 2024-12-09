@@ -4,7 +4,6 @@
 
 #include "core/components/absolute_array_kernels.hpp"
 
-
 #include "common/unified/base/kernel_launch.hpp"
 
 

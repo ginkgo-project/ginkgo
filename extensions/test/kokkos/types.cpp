@@ -5,17 +5,13 @@
 #include <cstring>
 #include <sstream>
 
-
 #include <Kokkos_Core.hpp>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/extensions/kokkos/spaces.hpp>
 #include <ginkgo/extensions/kokkos/types.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -33,7 +29,7 @@ protected:
     gko::array<value_type> array = {exec, I<value_type>{1, 2, 3, 4}};
 };
 
-TYPED_TEST_SUITE(ArrayMapper, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(ArrayMapper, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(ArrayMapper, CanMapDefault)
@@ -93,7 +89,7 @@ protected:
         gko::initialize<mtx_type>({1, 2, 3, 4}, exec);
 };
 
-TYPED_TEST_SUITE(DenseMapper, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(DenseMapper, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(DenseMapper, CanMapDefault)

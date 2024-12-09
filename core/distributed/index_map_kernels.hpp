@@ -6,13 +6,10 @@
 #define GKO_CORE_DISTRIBUTED_INDEX_MAP_KERNELS_HPP_
 
 
-#include <ginkgo/core/distributed/index_map.hpp>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 #include "core/base/segmented_array.hpp"

@@ -4,14 +4,13 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/matrix/coo.hpp>
 
-
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
@@ -122,10 +121,11 @@ void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
             grid_dim, block_size, 0, exec->get_queue(), num_elements,
             system_matrix->get_const_row_idxs(),
             system_matrix->get_const_col_idxs(),
-            system_matrix->get_const_values(), l_factor->get_const_row_ptrs(),
-            l_factor->get_const_col_idxs(), l_factor->get_values(),
+            as_device_type(system_matrix->get_const_values()),
+            l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
+            as_device_type(l_factor->get_values()),
             u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
-            u_factor->get_values());
+            as_device_type(u_factor->get_values()));
     }
 }
 

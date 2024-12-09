@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/diagonal.hpp>
-
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/test/utils.hpp"
 

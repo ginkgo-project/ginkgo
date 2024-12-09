@@ -4,9 +4,7 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -19,7 +17,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
@@ -378,6 +375,8 @@ void compute_mean(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
     }
+
+    if (x->get_size()[0] == 0) return;
 
     for (size_type i = 0; i < x->get_size()[1]; ++i) {
         for (size_type j = 0; j < x->get_size()[0]; ++j) {
@@ -1243,9 +1242,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
 
 template <typename ValueType, typename ScalarType>
 void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Dense<ScalarType>* const alpha,
-                         const matrix::Dense<ScalarType>* const beta,
-                         matrix::Dense<ValueType>* const mtx)
+                         const matrix::Dense<ScalarType>* alpha,
+                         const matrix::Dense<ScalarType>* beta,
+                         matrix::Dense<ValueType>* mtx)
 {
     const auto dim = mtx->get_size();
     for (size_type row = 0; row < dim[0]; row++) {

@@ -4,15 +4,11 @@
 
 #include "core/components/reduce_array_kernels.hpp"
 
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/array.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -35,7 +31,7 @@ protected:
     gko::array<value_type> vals;
 };
 
-TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,
+TYPED_TEST_SUITE(ReduceArray, gko::test::ComplexAndPODTypes,
                  TypenameNameGenerator);
 
 

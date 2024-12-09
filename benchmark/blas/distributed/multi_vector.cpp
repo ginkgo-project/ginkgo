@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 #define GKO_BENCHMARK_DISTRIBUTED
@@ -42,13 +41,13 @@ Parameters for a benchmark case are:
     std::string format = Generator::get_example_config();
     initialize_argument_parsing(&argc, &argv, header, format, do_print);
 
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
+
     if (do_print) {
         std::string extra_information =
             "The operations are " + FLAGS_operations;
-        print_general_information(extra_information);
+        print_general_information(extra_information, exec);
     }
-
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);

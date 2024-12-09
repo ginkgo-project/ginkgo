@@ -8,7 +8,6 @@
 
 #include <iostream>
 
-
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -83,8 +82,8 @@ struct batch_dim {
      * The default constructor
      */
     batch_dim()
-        : common_size_(dim<dimensionality, dimension_type>{}),
-          num_batch_items_(0)
+        : num_batch_items_(0),
+          common_size_(dim<dimensionality, dimension_type>{})
     {}
 
     /**
@@ -98,7 +97,7 @@ struct batch_dim {
      */
     explicit batch_dim(const size_type num_batch_items,
                        const dim<dimensionality, dimension_type>& common_size)
-        : common_size_(common_size), num_batch_items_(num_batch_items)
+        : num_batch_items_(num_batch_items), common_size_(common_size)
     {}
 
 private:

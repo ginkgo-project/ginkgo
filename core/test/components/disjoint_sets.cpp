@@ -4,17 +4,13 @@
 
 #include "core/components/disjoint_sets.hpp"
 
-
 #include <algorithm>
 #include <bitset>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
-
 
 #include "core/test/utils.hpp"
 

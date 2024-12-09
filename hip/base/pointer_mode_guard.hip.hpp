@@ -9,7 +9,6 @@
 #include <exception>
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hipsparse/hipsparse.h>
@@ -21,7 +20,8 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
+
+#include "common/cuda_hip/base/runtime.hpp"
 
 
 namespace gko {
@@ -43,6 +43,7 @@ public:
     pointer_mode_guard(hipblasContext* handle)
     {
         l_handle = handle;
+        uncaught_exceptions_ = std::uncaught_exceptions();
         GKO_ASSERT_NO_HIPBLAS_ERRORS(
             hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(handle),
                                   HIPBLAS_POINTER_MODE_HOST));
@@ -59,7 +60,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (xstd::uncaught_exception()) {
+        if (std::uncaught_exceptions() > uncaught_exceptions_) {
             hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(l_handle),
                                   HIPBLAS_POINTER_MODE_DEVICE);
         } else {
@@ -70,6 +71,7 @@ public:
     }
 
 private:
+    int uncaught_exceptions_;
     hipblasContext* l_handle;
 };
 
@@ -93,6 +95,7 @@ public:
     pointer_mode_guard(hipsparseContext* handle)
     {
         l_handle = handle;
+        uncaught_exceptions_ = std::uncaught_exceptions();
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(
             hipsparseSetPointerMode(reinterpret_cast<hipsparseHandle_t>(handle),
                                     HIPSPARSE_POINTER_MODE_HOST));
@@ -109,7 +112,7 @@ public:
     ~pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (xstd::uncaught_exception()) {
+        if (std::uncaught_exceptions() > uncaught_exceptions_) {
             hipsparseSetPointerMode(
                 reinterpret_cast<hipsparseHandle_t>(l_handle),
                 HIPSPARSE_POINTER_MODE_DEVICE);
@@ -121,6 +124,7 @@ public:
     }
 
 private:
+    int uncaught_exceptions_;
     hipsparseContext* l_handle;
 };
 

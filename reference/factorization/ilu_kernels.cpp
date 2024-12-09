@@ -4,12 +4,9 @@
 
 #include "core/factorization/ilu_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "core/base/allocator.hpp"
 
@@ -26,8 +23,8 @@ namespace ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
-                matrix::Csr<ValueType, IndexType>* m)
+void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::Csr<ValueType, IndexType>* m)
 {
     vector<IndexType> diagonals{m->get_size()[0], -1, exec};
     const auto row_ptrs = m->get_const_row_ptrs();
@@ -69,7 +66,7 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
+    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL);
 
 
 }  // namespace ilu_factorization

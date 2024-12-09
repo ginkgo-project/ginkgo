@@ -10,7 +10,6 @@
 #include <memory>
 
 
-#include <hip/hip_runtime.h>
 #if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
 #else
@@ -21,13 +20,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/pointer_mode_guard.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/sparselib_bindings.hpp"
+#include "common/cuda_hip/base/types.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/pointer_mode_guard.hip.hpp"
-#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
@@ -63,7 +62,7 @@ struct SolveStruct : gko::solver::SolveStruct {
             factor_descr, unit_diag ? HIPSPARSE_DIAG_TYPE_UNIT
                                     : HIPSPARSE_DIAG_TYPE_NON_UNIT));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateCsrsv2Info(&solve_info));
-        policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
+        policy = SPARSELIB_SOLVE_POLICY_USE_LEVEL;
     }
 
     SolveStruct(const SolveStruct&) = delete;
@@ -114,18 +113,18 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
     if (matrix->get_size()[0] == 0) {
         return;
     }
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         solve_struct =
             std::make_shared<solver::hip::SolveStruct>(is_upper, unit_diag);
         if (auto hip_solve_struct =
                 std::dynamic_pointer_cast<solver::hip::SolveStruct>(
                     solve_struct)) {
-            auto handle = exec->get_hipsparse_handle();
+            auto handle = exec->get_sparselib_handle();
 
             {
-                hipsparse::pointer_mode_guard pm_guard(handle);
-                hipsparse::csrsv2_buffer_size(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                sparselib::pointer_mode_guard pm_guard(handle);
+                sparselib::csrsv2_buffer_size(
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
                     matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
@@ -139,8 +138,8 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                 hip_solve_struct->factor_work_vec =
                     exec->alloc<void*>(hip_solve_struct->factor_work_size);
 
-                hipsparse::csrsv2_analysis(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                sparselib::csrsv2_analysis(
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
                     matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
@@ -170,17 +169,17 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
     }
     using vec = matrix::Dense<ValueType>;
 
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+    if (sparselib::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
                 dynamic_cast<const solver::hip::SolveStruct*>(solve_struct)) {
             ValueType one = 1.0;
-            auto handle = exec->get_hipsparse_handle();
+            auto handle = exec->get_sparselib_handle();
 
             {
-                hipsparse::pointer_mode_guard pm_guard(handle);
+                sparselib::pointer_mode_guard pm_guard(handle);
                 if (b->get_stride() == 1) {
-                    hipsparse::csrsv2_solve(
-                        handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                    sparselib::csrsv2_solve(
+                        handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0],
                         matrix->get_num_stored_elements(), &one,
                         hip_solve_struct->factor_descr,
@@ -194,8 +193,8 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                     dense::transpose(exec, b, trans_b);
                     dense::transpose(exec, x, trans_x);
                     for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
-                        hipsparse::csrsv2_solve(
-                            handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                        sparselib::csrsv2_solve(
+                            handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                             matrix->get_size()[0],
                             matrix->get_num_stored_elements(), &one,
                             hip_solve_struct->factor_descr,

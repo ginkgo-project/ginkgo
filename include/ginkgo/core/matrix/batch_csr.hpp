@@ -9,7 +9,6 @@
 #include <initializer_list>
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
@@ -47,10 +46,14 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
+#if GINKGO_ENABLE_HALF
+      public ConvertibleTo<
+          Csr<next_precision<next_precision<ValueType>>, IndexType>>,
+#endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
     friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
-    friend class Csr<next_precision<ValueType>, IndexType>;
+    friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 
@@ -68,6 +71,21 @@ public:
         Csr<next_precision<ValueType>, IndexType>* result) const override;
 
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+
+#if GINKGO_ENABLE_HALF
+    friend class Csr<previous_precision<previous_precision<ValueType>>,
+                     IndexType>;
+    using ConvertibleTo<
+        Csr<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Csr<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+
+    void convert_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                        result) const override;
+
+    void move_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
+                     result) override;
+#endif
 
     /**
      * Creates a mutable view (of matrix::Csr type) of one item of the

@@ -13,6 +13,16 @@
 #define GKO_VERSION_STR @Ginkgo_VERSION_MAJOR@, @Ginkgo_VERSION_MINOR@, @Ginkgo_VERSION_PATCH@
 // clang-format on
 
+
+// clang-format off
+#cmakedefine01 GINKGO_VERSION_TAG_DEPRECATED
+#if GINKGO_VERSION_TAG_DEPRECATED
+#pragma message ("The branch " GKO_VERSION_TAG " is deprecated and will stop receiving updates after 2025. " \
+ "Please use the main branch for the latest release, or the develop branch for the latest development updates.")
+#endif
+// clang-format on
+
+
 /*
  * Controls the amount of messages output by Ginkgo.
  * 0 disables all output (except for test, benchmarks and examples).
@@ -41,16 +51,17 @@
 
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off
-#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
+#cmakedefine01 GINKGO_HIP_PLATFORM_HCC
 
 
-#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
+#cmakedefine01 GINKGO_HIP_PLATFORM_NVCC
 // clang-format on
 
 
 /* What is the major version of dpcpp compiler */
 // clang-format off
 #define GINKGO_DPCPP_MAJOR_VERSION @GINKGO_DPCPP_MAJOR_VERSION@
+#define GINKGO_DPCPP_MINOR_VERSION @GINKGO_DPCPP_MINOR_VERSION@
 // clang-format on
 
 
@@ -103,6 +114,11 @@
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
+// clang-format on
+
+/* Is half operation available ? */
+// clang-format off
+#cmakedefine01 GINKGO_ENABLE_HALF
 // clang-format on
 
 

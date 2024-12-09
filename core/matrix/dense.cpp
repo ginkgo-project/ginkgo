@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/dense.hpp>
-
+#include "ginkgo/core/matrix/dense.hpp"
 
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -27,7 +25,6 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
@@ -604,6 +601,32 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<next_precision<ValueType>>>* result) const
+{
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_copy(
+        this, make_temporary_output_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(
+    Dense<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType>
@@ -1522,7 +1545,8 @@ template <typename ValueType, typename Function>
 void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    run<matrix::Dense, ValueType, next_precision<ValueType>>(out, fn);
+    run<matrix::Dense, ValueType, next_precision<ValueType>,
+        next_precision<next_precision<ValueType>>>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif
@@ -1909,8 +1933,7 @@ void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_identity_impl(const LinOp* const a,
-                                                const LinOp* const b)
+void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_beta, auto dense_x) {
@@ -2022,8 +2045,8 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
     : EnableLinOp<Dense>(exec, size),
-      values_{exec, std::move(values)},
-      stride_{stride}
+      stride_{stride},
+      values_{exec, std::move(values)}
 {
     if (size[0] > 0 && size[1] > 0) {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,

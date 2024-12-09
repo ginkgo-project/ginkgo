@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -17,6 +14,7 @@
 #include <sstream>
 #include <vector>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/solver/solver_common.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -45,9 +43,9 @@ int main(int argc, char* argv[])
         std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
         ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
         std::to_string(FLAGS_nrhs);
-    print_general_information(extra_information);
 
     auto exec = get_executor(FLAGS_gpu_timer);
+    print_general_information(extra_information, exec);
 
     json test_cases;
     if (!FLAGS_overhead) {

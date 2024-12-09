@@ -1,0 +1,35 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+
+Config file: config/cg.json
+{
+    "type": "solver::Cg",
+    "criteria": [
+        {
+            "type": "Iteration",
+            "max_iters": 20
+        },
+        {
+            "type": "ResidualNorm",
+            "reduction_factor": 1e-7
+        }
+    ]
+}
+Initial residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+25.9808
+Final residual norm sqrt(r^T r):
+%%MatrixMarket matrix array real general
+1 1
+58.79
+Solver iteration count:     20
+Solver generation time [ms]: 0.065244
+Solver execution time [ms]: 0.793764
+Solver execution time per iteration[ms]: 0.0396882
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>

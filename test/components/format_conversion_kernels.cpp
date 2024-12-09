@@ -4,17 +4,14 @@
 
 #include "core/components/format_conversion_kernels.hpp"
 
-
 #include <memory>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename IndexType>
@@ -63,7 +60,7 @@ TYPED_TEST(FormatConversion, ConvertsEmptyPtrsToIdxs)
     ptrs.fill(0);
     TypeParam* output = nullptr;
 
-    gko::kernels::EXEC_NAMESPACE::components::convert_ptrs_to_idxs(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_ptrs_to_idxs(
         this->exec, ptrs.get_const_data(), this->size, output);
 
     // mustn't segfault
@@ -75,7 +72,7 @@ TYPED_TEST(FormatConversion, ConvertPtrsToIdxs)
     auto ref_idxs = this->idxs;
     this->idxs.fill(-1);
 
-    gko::kernels::EXEC_NAMESPACE::components::convert_ptrs_to_idxs(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_ptrs_to_idxs(
         this->exec, this->ptrs.get_const_data(), this->size,
         this->idxs.get_data());
 
@@ -90,7 +87,7 @@ TYPED_TEST(FormatConversion, ConvertsEmptyIdxsToPtrs)
     this->ptrs.fill(-1);
     TypeParam* input = nullptr;
 
-    gko::kernels::EXEC_NAMESPACE::components::convert_idxs_to_ptrs(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_idxs_to_ptrs(
         this->exec, input, 0, this->size, this->ptrs.get_data());
 
     GKO_ASSERT_ARRAY_EQ(this->ptrs, ref_ptrs);
@@ -102,7 +99,7 @@ TYPED_TEST(FormatConversion, ConvertIdxsToPtrsIsEquivalentToRef)
     auto ref_ptrs = this->ptrs;
     this->ptrs.fill(-1);
 
-    gko::kernels::EXEC_NAMESPACE::components::convert_idxs_to_ptrs(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_idxs_to_ptrs(
         this->exec, this->idxs.get_const_data(), this->idxs.get_size(),
         this->size, this->ptrs.get_data());
 
@@ -115,7 +112,7 @@ TYPED_TEST(FormatConversion, ConvertPtrsToSizesIsEquivalentToRef)
     auto ref_sizes = this->sizes;
     this->sizes.fill(12345);
 
-    gko::kernels::EXEC_NAMESPACE::components::convert_ptrs_to_sizes(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_ptrs_to_sizes(
         this->exec, this->ptrs.get_const_data(), this->size,
         this->sizes.get_data());
 

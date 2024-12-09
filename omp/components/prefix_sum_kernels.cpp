@@ -4,13 +4,10 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 
-
 #include <algorithm>
 #include <limits>
 
-
 #include <omp.h>
-
 
 #include "core/base/allocator.hpp"
 
@@ -26,8 +23,7 @@ namespace components {
  */
 template <typename IndexType>
 void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
-                            IndexType* const counts,
-                            const size_type num_entries)
+                            IndexType* counts, const size_type num_entries)
 {
     // the operation only makes sense for arrays of size at least 2
     if (num_entries < 2) {

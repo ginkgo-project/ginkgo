@@ -6,7 +6,8 @@
 #define GKO_PUBLIC_CORE_SOLVER_SOLVER_TRAITS_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
+#include <type_traits>
+
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -33,12 +34,12 @@ struct has_with_criteria : std::false_type {};
  *
  * @internal  The second template parameter (which uses SFINAE) must match
  *            the default value of the general case in order to be accepted
- *            as a specialization, which is why `xstd::void_t` is used.
+ *            as a specialization, which is why `std::void_t` is used.
  */
 template <typename SolverType>
-struct has_with_criteria<
-    SolverType, xstd::void_t<decltype(SolverType::build().with_criteria(
-                    std::shared_ptr<const stop::CriterionFactory>()))>>
+struct has_with_criteria<SolverType,
+                         std::void_t<decltype(SolverType::build().with_criteria(
+                             std::shared_ptr<const stop::CriterionFactory>()))>>
     : std::true_type {};
 
 

@@ -10,7 +10,6 @@
 #include <memory>
 #include <type_traits>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>

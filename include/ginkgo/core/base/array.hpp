@@ -12,7 +12,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>

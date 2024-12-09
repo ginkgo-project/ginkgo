@@ -4,18 +4,18 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
 #include "accessor/reduced_row_major.hpp"
+#include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -60,11 +60,11 @@ void device_classical_spmv(const size_type num_rows,
     const auto subrow = thread::get_subwarp_num_flat<subgroup_size>(item_ct1);
     const auto subid = subgroup_tile.thread_rank();
     const IndexType column_id = item_ct1.get_group(1);
-    const arithmetic_type value = static_cast<arithmetic_type>(val[0]);
+    const auto value = static_cast<arithmetic_type>(val[0]);
     auto row = thread::get_subwarp_id_flat<subgroup_size>(item_ct1);
     for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
-        arithmetic_type temp_val = zero<arithmetic_type>();
+        auto temp_val = zero<arithmetic_type>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
              ind += subgroup_size) {
             temp_val += value * b(col_idxs[ind], column_id);
@@ -209,14 +209,17 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
-            a->get_const_value(), a->get_const_col_idxs(),
-            a->get_const_row_ptrs(), b_vals, c_vals);
+            as_device_type(a->get_const_value()), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), acc::as_device_range(b_vals),
+            acc::as_device_range(c_vals));
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
-            alpha->get_const_values(), a->get_const_value(),
-            a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
-            beta->get_const_values(), c_vals);
+            as_device_type(alpha->get_const_values()),
+            as_device_type(a->get_const_value()), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), acc::as_device_range(b_vals),
+            as_device_type(beta->get_const_values()),
+            acc::as_device_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }

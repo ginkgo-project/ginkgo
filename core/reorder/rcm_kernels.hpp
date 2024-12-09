@@ -6,11 +6,7 @@
 #define GKO_CORE_REORDER_RCM_KERNELS_HPP_
 
 
-#include <ginkgo/core/reorder/rcm.hpp>
-
-
 #include <memory>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -18,7 +14,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
+#include <ginkgo/core/reorder/rcm.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

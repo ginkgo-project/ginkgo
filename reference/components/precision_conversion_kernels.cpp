@@ -4,7 +4,6 @@
 
 #include "core/components/precision_conversion_kernels.hpp"
 
-
 #include <algorithm>
 
 

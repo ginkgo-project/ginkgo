@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <gtest/gtest.h>
+#include "core/distributed/helpers.hpp"
 
+#include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
 
-
-#include "core/distributed/helpers.hpp"
 #include "core/test/utils.hpp"
 
 

@@ -4,32 +4,23 @@
 
 #include "core/matrix/batch_ell_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
-
+#include "common/unified/base/kernel_launch.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "reference/base/batch_struct.hpp"
+#include "reference/matrix/batch_ell_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
-/**
- * @brief The Ell matrix format namespace.
- * @ref Ell
- * @ingroup batch_ell
- */
 namespace batch_ell {
-
-
-#include "reference/matrix/batch_ell_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -46,7 +37,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
         const auto mat_item = batch::matrix::extract_batch_item(mat_ub, batch);
         const auto b_item = batch::extract_batch_item(b_ub, batch);
         const auto x_item = batch::extract_batch_item(x_ub, batch);
-        simple_apply_kernel(mat_item, b_item, x_item);
+        batch_single_kernels::simple_apply(mat_item, b_item, x_item);
     }
 }
 
@@ -74,8 +65,9 @@ void advanced_apply(std::shared_ptr<const DefaultExecutor> exec,
         const auto x_item = batch::extract_batch_item(x_ub, batch);
         const auto alpha_item = batch::extract_batch_item(alpha_ub, batch);
         const auto beta_item = batch::extract_batch_item(beta_ub, batch);
-        advanced_apply_kernel(alpha_item.values[0], mat_item, b_item,
-                              beta_item.values[0], x_item);
+        batch_single_kernels::advanced_apply(alpha_item.values[0], mat_item,
+                                             b_item, beta_item.values[0],
+                                             x_item);
     }
 }
 
@@ -102,7 +94,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
         const auto row_scale_b = row_scale_vals + num_rows * batch_id;
         const auto mat_item =
             batch::matrix::extract_batch_item(mat_ub, batch_id);
-        scale(col_scale_b, row_scale_b, mat_item);
+        batch_single_kernels::scale(col_scale_b, row_scale_b, mat_item);
     }
 }
 
@@ -125,7 +117,8 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
         const auto alpha_b = batch::extract_batch_item(alpha_ub, batch_id);
         const auto beta_b = batch::extract_batch_item(beta_ub, batch_id);
         const auto mat_b = batch::matrix::extract_batch_item(mat_ub, batch_id);
-        add_scaled_identity_kernel(alpha_b.values[0], beta_b.values[0], mat_b);
+        batch_single_kernels::add_scaled_identity(alpha_b.values[0],
+                                                  beta_b.values[0], mat_b);
     }
 }
 

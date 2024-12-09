@@ -9,13 +9,12 @@
 #include <random>
 #include <vector>
 
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/log/batch_logger.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
@@ -106,7 +105,7 @@ std::unique_ptr<MatrixType> generate_3pt_stencil_batch_matrix(
         {}};
     for (int row = 0; row < num_rows; ++row) {
         if (row > 0) {
-            data.nonzeros.emplace_back(row - 1, row, value_type{-1.0});
+            data.nonzeros.emplace_back(row, row - 1, value_type{-1.0});
         }
         data.nonzeros.emplace_back(row, row, value_type{6.0});
         if (row < num_rows - 1) {
@@ -138,7 +137,7 @@ std::unique_ptr<MatrixType> generate_diag_dominant_batch_matrix(
                     static_cast<size_type>(num_cols)},
         {}};
     auto engine = std::default_random_engine(42);
-    auto rand_diag_dist = std::normal_distribution<real_type>(20.0, 1.0);
+    auto rand_diag_dist = std::normal_distribution<>(20.0, 1.0);
     for (int row = 0; row < num_rows; ++row) {
         std::uniform_int_distribution<index_type> rand_nnz_dist{1, row + 1};
         const auto k = rand_nnz_dist(engine);
@@ -336,7 +335,8 @@ ResultWithLogData<typename MatrixType::value_type> solve_linear_system(
     if (precond_factory) {
         precond = precond_factory->generate(sys.matrix);
     } else {
-        precond = nullptr;
+        precond = gko::batch::matrix::Identity<value_type>::create(
+            exec, sys.matrix->get_size());
     }
 
     solve_lambda(settings, precond.get(), sys.matrix.get(), sys.rhs.get(),

@@ -2,21 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/mtx_io.hpp>
-
-
 #include <cstring>
 #include <sstream>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -236,6 +232,32 @@ TEST(MtxReader, ReadsDenseComplexFloatMtxWith64Index)
 }
 
 
+TEST(MtxReader, ReadsDenseIgnoresExtraCharactersInRow)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3 -77\n"
+        "1.0\n"
+        "0.0 58\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+
+    auto data = gko::read_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 0.0));
+    ASSERT_EQ(v[4], tpl(1, 1, 5.0));
+    ASSERT_EQ(v[5], tpl(1, 2, 0.0));
+}
+
+
 TEST(MtxReader, ReadsSparseRealMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
@@ -390,7 +412,29 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
 }
 
 
-TEST(MtxReader, ReadIgnoresExtraCharacters)
+TEST(MtxReader, ReadsSparseIgnoresExtraCharactersInRow)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate real general\n"
+        "2 3 4 abc\n"
+        "1 1 1.0 some value\n"
+        "2 2 5.0 who knows?\n"
+        "1 2 3.0\n"
+        "1 3 2.0\n");
+
+    auto data = gko::read_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 1, 5.0));
+}
+
+
+TEST(MtxReader, ReadHeaderIgnoresExtraCharacters)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -527,6 +571,12 @@ TEST(MtxReader, ReadsBinary)
     test_read(gko::matrix_data<double, gko::int64>{});
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
+#if GINKGO_ENABLE_HALF
+    test_read(gko::matrix_data<gko::half, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::half>, gko::int32>{});
+    test_read(gko::matrix_data<gko::half, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::half>, gko::int64>{});
+#endif
 }
 
 
@@ -582,6 +632,12 @@ TEST(MtxReader, ReadsComplexBinary)
     test_read_fail(gko::matrix_data<double, gko::int64>{});
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
+#if GINKGO_ENABLE_HALF
+    test_read_fail(gko::matrix_data<gko::half, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::half>, gko::int32>{});
+    test_read_fail(gko::matrix_data<gko::half, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::half>, gko::int64>{});
+#endif
 }
 
 

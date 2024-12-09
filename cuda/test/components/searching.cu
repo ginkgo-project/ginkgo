@@ -2,22 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "cuda/components/searching.cuh"
-
+#include "common/cuda_hip/components/searching.hpp"
 
 #include <memory>
 #include <numeric>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-
-#include "cuda/components/cooperative_groups.cuh"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "cuda/test/utils.hpp"
 
 

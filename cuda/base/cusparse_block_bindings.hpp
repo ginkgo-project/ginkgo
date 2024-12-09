@@ -9,12 +9,10 @@
 #include <cuda.h>
 #include <cusparse.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
+#include "common/cuda_hip/base/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 
 
 namespace gko {
@@ -190,6 +188,7 @@ GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32(std::complex<double>, cusparseZgebsr2gebsc);
 #undef GKO_BIND_CUSPARSE_BLOCK_TRANSPOSE32
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 inline std::unique_ptr<std::remove_pointer_t<bsrsm2Info_t>,
                        std::function<void(bsrsm2Info_t)>>
 create_bsr_trsm_info()
@@ -457,6 +456,7 @@ GKO_BIND_CUSPARSE_BILU0(std::complex<float>, cusparseCbsrilu02);
 GKO_BIND_CUSPARSE_BILU0(std::complex<double>, cusparseZbsrilu02);
 
 #undef GKO_BIND_CUSPARSE_BILU0
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 }  // namespace cusparse

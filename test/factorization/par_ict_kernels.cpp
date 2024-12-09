@@ -4,16 +4,13 @@
 
 #include "core/factorization/par_ict_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,13 +18,12 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -51,15 +47,11 @@ protected:
         mtx = gko::test::generate_random_matrix<Csr>(
             mtx_size[0], mtx_size[1],
             std::uniform_int_distribution<index_type>(10, mtx_size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
-            std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
-                                                                      1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
         dmtx_ani = Csr::create(exec);
         dmtx_l_ani = Csr::create(exec);
@@ -108,6 +100,19 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+        // We set the diagonal larger than 1 in half precision to reduce the
+        // possibility of resulting inf. It might introduce (a - llh)/diag when
+        // the entry is not presented in the original matrix
+        auto dist = std::uniform_real_distribution<>(1.0, 10.0);
+        for (gko::size_type i = 0; i < this->mtx_l->get_size()[0]; i++) {
+            this->mtx_l
+                ->get_values()[this->mtx_l->get_const_row_ptrs()[i + 1] - 1] =
+                gko::detail::get_rand_value<value_type>(dist,
+                                                        this->rand_engine);
+        }
+        this->dmtx_l->copy_from(this->mtx_l);
+    }
     auto mtx_llh = Csr::create(this->ref, this->mtx_size);
     this->mtx_l->apply(this->mtx_l->conj_transpose(), mtx_llh);
     auto dmtx_llh = Csr::create(this->exec, this->mtx_size);
@@ -118,7 +123,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
     gko::kernels::reference::par_ict_factorization::add_candidates(
         this->ref, mtx_llh.get(), this->mtx.get(), this->mtx_l.get(),
         res_mtx_l.get());
-    gko::kernels::EXEC_NAMESPACE::par_ict_factorization::add_candidates(
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::add_candidates(
         this->exec, dmtx_llh.get(), this->dmtx.get(), this->dmtx_l.get(),
         dres_mtx_l.get());
 
@@ -131,6 +136,11 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);
     this->mtx_l_ani->convert_to(mtx_l_coo);
@@ -140,9 +150,9 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
     gko::kernels::reference::par_ict_factorization::compute_factor(
         this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get());
     for (int i = 0; i < 20; ++i) {
-        gko::kernels::EXEC_NAMESPACE::par_ict_factorization::compute_factor(
-            this->exec, this->dmtx_ani.get(), this->dmtx_l_ani.get(),
-            dmtx_l_coo.get());
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::
+            compute_factor(this->exec, this->dmtx_ani.get(),
+                           this->dmtx_l_ani.get(), dmtx_l_coo.get());
     }
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_ani, this->dmtx_l_ani, 1e-2);

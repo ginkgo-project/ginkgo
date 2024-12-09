@@ -2,11 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/multigrid.hpp>
-
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -16,10 +12,10 @@
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -158,7 +154,7 @@ protected:
     {
         auto alpha_value =
             gko::as<gko::matrix::Dense<ValueType>>(alpha)->at(0, 0);
-        gko::remove_complex<ValueType> scale = std::real(alpha_value);
+        gko::remove_complex<ValueType> scale = gko::real(alpha_value);
         global_step *= static_cast<int>(scale);
         step.push_back(global_step);
         global_step++;

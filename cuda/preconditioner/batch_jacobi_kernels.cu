@@ -4,34 +4,32 @@
 
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
-
+#include "common/cuda_hip/base/batch_struct.hpp"
+#include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/cuda_hip/matrix/batch_struct.hpp"
+#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/base/batch_struct.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/intrinsics.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/matrix/batch_struct.hpp"
-#include "cuda/preconditioner/jacobi_common.hpp"
+// generated header
+#include "common/cuda_hip/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 namespace batch_jacobi {
-
-
 namespace {
 
 
@@ -40,8 +38,6 @@ constexpr int default_block_size = 128;
 using batch_jacobi_cuda_compiled_max_block_sizes =
     gko::kernels::cuda::jacobi::compiled_kernels;
 
-#include "common/cuda_hip/preconditioner/batch_jacobi_kernels.hpp.inc"
-
 
 }  // namespace
 
@@ -49,14 +45,14 @@ using batch_jacobi_cuda_compiled_max_block_sizes =
 template <typename IndexType>
 void compute_cumulative_block_storage(
     std::shared_ptr<const DefaultExecutor> exec, const size_type num_blocks,
-    const IndexType* const block_pointers,
-    IndexType* const blocks_cumulative_offsets)
+    const IndexType* block_pointers, IndexType* blocks_cumulative_offsets)
 {
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks, default_block_size));
 
-    compute_block_storage_kernel<<<grid, block, 0, exec->get_stream()>>>(
-        num_blocks, block_pointers, blocks_cumulative_offsets);
+    batch_single_kernels::
+        compute_block_storage_kernel<<<grid, block, 0, exec->get_stream()>>>(
+            num_blocks, block_pointers, blocks_cumulative_offsets);
 
     components::prefix_sum_nonnegative(exec, blocks_cumulative_offsets,
                                        num_blocks + 1);
@@ -69,13 +65,14 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename IndexType>
 void find_row_block_map(std::shared_ptr<const DefaultExecutor> exec,
                         const size_type num_blocks,
-                        const IndexType* const block_pointers,
-                        IndexType* const map_block_to_row)
+                        const IndexType* block_pointers,
+                        IndexType* map_block_to_row)
 {
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks, default_block_size));
-    find_row_block_map_kernel<<<grid, block, 0, exec->get_stream()>>>(
-        num_blocks, block_pointers, map_block_to_row);
+    batch_single_kernels::
+        find_row_block_map_kernel<<<grid, block, 0, exec->get_stream()>>>(
+            num_blocks, block_pointers, map_block_to_row);
 }
 
 GKO_INSTANTIATE_FOR_INT32_TYPE(
@@ -85,16 +82,17 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* const first_sys_csr,
-    const size_type num_blocks, const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers,
-    const IndexType* const map_block_to_row, IndexType* const blocks_pattern)
+    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    const size_type num_blocks, const IndexType* cumulative_block_storage,
+    const IndexType* block_pointers, const IndexType* map_block_to_row,
+    IndexType* blocks_pattern)
 {
     const auto nrows = first_sys_csr->get_size()[0];
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nrows * config::warp_size, default_block_size));
 
-    extract_common_block_pattern_kernel<<<grid, block, 0, exec->get_stream()>>>(
+    batch_single_kernels::extract_common_block_pattern_kernel<<<
+        grid, block, 0, exec->get_stream()>>>(
         static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
         first_sys_csr->get_const_col_idxs(), num_blocks,
         cumulative_block_storage, block_pointers, map_block_to_row,
@@ -126,7 +124,7 @@ void compute_block_jacobi_helper(
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size, default_block_size));
 
-    compute_block_jacobi_kernel<subwarp_size>
+    batch_single_kernels::compute_block_jacobi_kernel<subwarp_size>
         <<<grid, block, 0, exec->get_stream()>>>(
             nbatch, static_cast<int>(nnz),
             as_cuda_type(sys_csr->get_const_values()), num_blocks,
@@ -144,11 +142,10 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_block_jacobi_helper,
 template <typename ValueType, typename IndexType>
 void compute_block_jacobi(
     std::shared_ptr<const DefaultExecutor> exec,
-    const batch::matrix::Csr<ValueType, IndexType>* const sys_csr,
+    const batch::matrix::Csr<ValueType, IndexType>* sys_csr,
     const uint32 max_block_size, const size_type num_blocks,
-    const IndexType* const cumulative_block_storage,
-    const IndexType* const block_pointers,
-    const IndexType* const blocks_pattern, ValueType* const blocks)
+    const IndexType* cumulative_block_storage, const IndexType* block_pointers,
+    const IndexType* blocks_pattern, ValueType* blocks)
 {
     select_compute_block_jacobi_helper(
         batch_jacobi_cuda_compiled_max_block_sizes(),

@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/index_map.hpp>
-
+#include "ginkgo/core/distributed/index_map.hpp"
 
 #include "core/distributed/index_map_kernels.hpp"
 
@@ -177,7 +176,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
 }
 
 
-#define GKO_DECLARE_INDEX_MAP(_ltype, _gtype) class index_map<_ltype, _gtype>
+#define GKO_DECLARE_INDEX_MAP(_ltype, _gtype) struct index_map<_ltype, _gtype>
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_INDEX_MAP);
 

@@ -4,12 +4,9 @@
 
 #include "core/solver/gmres_kernels.hpp"
 
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,10 +17,9 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Gmres : public CommonTestFixture {
@@ -78,8 +74,9 @@ protected:
         b = gen_mtx(m, nrhs);
         krylov_bases =
             gen_mtx(m * (gko::solver::gmres_default_krylov_dim + 1), nrhs);
-        hessenberg = gen_mtx(gko::solver::gmres_default_krylov_dim + 1,
-                             gko::solver::gmres_default_krylov_dim * nrhs);
+        hessenberg =
+            gen_mtx(gko::solver::gmres_default_krylov_dim,
+                    (gko::solver::gmres_default_krylov_dim + 1) * nrhs);
         hessenberg_iter =
             gen_mtx(gko::solver::gmres_default_krylov_dim + 1, nrhs);
         residual = gen_mtx(m, nrhs);
@@ -159,7 +156,7 @@ TEST_F(Gmres, GmresKernelInitializeIsEquivalentToRef)
     gko::kernels::reference::common_gmres::initialize(
         ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
         stop_status.get_data());
-    gko::kernels::EXEC_NAMESPACE::common_gmres::initialize(
+    gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::initialize(
         exec, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get_data());
 
@@ -180,7 +177,7 @@ TEST_F(Gmres, GmresKernelRestartIsEquivalentToRef)
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get_data());
-    gko::kernels::EXEC_NAMESPACE::gmres::restart(
+    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::restart(
         exec, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
         d_final_iter_nums.get_data());
@@ -202,7 +199,7 @@ TEST_F(Gmres, GmresKernelHessenbergQRIsEquivalentToRef)
         ref, givens_sin.get(), givens_cos.get(), residual_norm.get(),
         residual_norm_collection.get(), hessenberg_iter.get(), iter,
         final_iter_nums.get_data(), stop_status.get_const_data());
-    gko::kernels::EXEC_NAMESPACE::common_gmres::hessenberg_qr(
+    gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::hessenberg_qr(
         exec, d_givens_sin.get(), d_givens_cos.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get_data(), d_stop_status.get_const_data());
@@ -228,7 +225,7 @@ TEST_F(Gmres, GmresKernelHessenbergQROnSingleRHSIsEquivalentToRef)
         ref, givens_sin.get(), givens_cos.get(), residual_norm.get(),
         residual_norm_collection.get(), hessenberg_iter.get(), iter,
         final_iter_nums.get_data(), stop_status.get_const_data());
-    gko::kernels::EXEC_NAMESPACE::common_gmres::hessenberg_qr(
+    gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::hessenberg_qr(
         exec, d_givens_sin.get(), d_givens_cos.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get_data(), d_stop_status.get_const_data());
@@ -252,7 +249,7 @@ TEST_F(Gmres, GmresKernelSolveKrylovIsEquivalentToRef)
     gko::kernels::reference::common_gmres::solve_krylov(
         ref, residual_norm_collection.get(), hessenberg.get(), y.get(),
         final_iter_nums.get_const_data(), stop_status.get_const_data());
-    gko::kernels::EXEC_NAMESPACE::common_gmres::solve_krylov(
+    gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::solve_krylov(
         exec, d_residual_norm_collection.get(), d_hessenberg.get(), d_y.get(),
         d_final_iter_nums.get_const_data(), d_stop_status.get_const_data());
 
@@ -267,13 +264,45 @@ TEST_F(Gmres, GmresKernelMultiAxpyIsEquivalentToRef)
     gko::kernels::reference::gmres::multi_axpy(
         ref, krylov_bases.get(), y.get(), before_preconditioner.get(),
         final_iter_nums.get_const_data(), stop_status.get_data());
-    gko::kernels::EXEC_NAMESPACE::gmres::multi_axpy(
+    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_axpy(
         exec, d_krylov_bases.get(), d_y.get(), d_before_preconditioner.get(),
         d_final_iter_nums.get_const_data(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_before_preconditioner, before_preconditioner,
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(stop_status, d_stop_status);
+}
+
+TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
+{
+    initialize_data();
+
+    auto krylov_basis = krylov_bases->create_submatrix(
+        gko::span{
+            0, x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0, x->get_size()[1]});
+    auto d_krylov_basis = d_krylov_bases->create_submatrix(
+        gko::span{0, d_x->get_size()[0] *
+                         (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0, d_x->get_size()[1]});
+    auto next_krylov = krylov_bases->create_submatrix(
+        gko::span{
+            x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
+            x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+        gko::span{0, x->get_size()[1]});
+    auto d_next_krylov = d_krylov_bases->create_submatrix(
+        gko::span{
+            d_x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
+            d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+        gko::span{0, d_x->get_size()[1]});
+    gko::kernels::reference::gmres::multi_dot(
+        ref, krylov_basis.get(), next_krylov.get(), hessenberg_iter.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_dot(
+        exec, d_krylov_basis.get(), d_next_krylov.get(),
+        d_hessenberg_iter.get());
+
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        r<value_type>::value);
 }
 
 
@@ -298,18 +327,27 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 
 TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 5;
-    auto ref_solver = ref_gmres_factory->generate(mtx);
-    auto exec_solver = exec_gmres_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = gko::clone(exec, b);
-    auto d_x = gko::clone(exec, x);
+    using gko::solver::gmres::ortho_method;
+    auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
 
-    ref_solver->apply(b, x);
-    exec_solver->apply(d_b, d_x);
+    for (auto ortho :
+         {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
+        SCOPED_TRACE(ortho);
+        int m = 123;
+        int n = 5;
+        auto ref_solver =
+            base_params.with_ortho_method(ortho).on(ref)->generate(mtx);
+        auto exec_solver =
+            base_params.with_ortho_method(ortho).on(exec)->generate(d_mtx);
+        auto b = gen_mtx(m, n);
+        auto x = gen_mtx(m, n);
+        auto d_b = gko::clone(exec, b);
+        auto d_x = gko::clone(exec, x);
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+        ref_solver->apply(b, x);
+        exec_solver->apply(d_b, d_x);
+
+        GKO_ASSERT_MTX_NEAR(d_b, b, 0);
+        GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+    }
 }

@@ -4,14 +4,12 @@
 
 #include "core/solver/common_gmres_kernels.hpp"
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
-
 
 #include "core/solver/cb_gmres_kernels.hpp"
 
@@ -178,7 +176,7 @@ void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type j = i + 1; j < final_iter_nums[k]; ++j) {
                 temp -=
                     hessenberg->at(
-                        i, j * residual_norm_collection->get_size()[1] + k) *
+                        j, i * residual_norm_collection->get_size()[1] + k) *
                     y->at(j, k);
             }
             y->at(i, k) =

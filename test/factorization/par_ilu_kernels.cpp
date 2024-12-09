@@ -4,16 +4,13 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 #include <random>
 #include <string>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -21,12 +18,11 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/base/iterator_factory.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -63,8 +59,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(0, num_cols - 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
-            rand_engine, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
     std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
@@ -89,8 +84,8 @@ protected:
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, mtx.get(), l_row_ptrs, u_row_ptrs);
-        gko::kernels::EXEC_NAMESPACE::factorization::initialize_row_ptrs_l_u(
-            exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::
+            initialize_row_ptrs_l_u(exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
     }
 
     void initialize_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -121,7 +116,7 @@ protected:
 
         gko::kernels::reference::factorization::initialize_l_u(
             ref, mtx.get(), l.get(), u.get());
-        gko::kernels::EXEC_NAMESPACE::factorization::initialize_l_u(
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l_u(
             exec, dmtx.get(), dl.get(), du.get());
     }
 
@@ -139,7 +134,7 @@ protected:
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
             ref, iterations, coo.get(), l.get(), u_transpose_mtx.get());
-        gko::kernels::EXEC_NAMESPACE::par_ilu_factorization::
+        gko::kernels::GKO_DEVICE_NAMESPACE::par_ilu_factorization::
             compute_l_u_factors(exec, iterations, dcoo.get(), dl.get(),
                                 u_transpose_dmtx.get());
         auto u_lin_op = u_transpose_mtx->transpose();
@@ -160,7 +155,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), true);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
@@ -176,7 +171,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), false);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), false);
 
     ASSERT_FALSE(mtx->is_sorted_by_column_index());
@@ -193,7 +188,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
 
     gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, mtx.get(), true);
-    gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
         this->exec, dmtx.get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
@@ -241,6 +236,11 @@ TYPED_TEST(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};
@@ -259,6 +259,10 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+#endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
     std::unique_ptr<Csr> dl_mtx{};

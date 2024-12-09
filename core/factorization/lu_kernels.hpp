@@ -8,11 +8,9 @@
 
 #include <memory>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -35,7 +33,7 @@ namespace kernels {
                    const IndexType* lookup_offsets, const int64* lookup_descs, \
                    const int32* lookup_storage, const IndexType* diag_idxs,    \
                    matrix::Csr<ValueType, IndexType>* factors,                 \
-                   array<int>& tmp_storage)
+                   bool full_fillin, array<int>& tmp_storage)
 
 
 #define GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE(IndexType)                  \

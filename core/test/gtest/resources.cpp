@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/test/gtest/resources.hpp"
+
 #include <algorithm>
 #include <regex>
 #include <sstream>
-
-
-#include "core/test/gtest/resources.hpp"
 
 
 #ifdef GKO_COMPILING_OMP

@@ -8,7 +8,7 @@
 
 #include <string>
 
-
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
@@ -39,8 +39,10 @@ struct type_string {};
 TYPE_STRING_OVERLOAD(void, "void");
 TYPE_STRING_OVERLOAD(double, "float64");
 TYPE_STRING_OVERLOAD(float, "float32");
+TYPE_STRING_OVERLOAD(half, "float16");
 TYPE_STRING_OVERLOAD(std::complex<double>, "complex<float64>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float32>");
+TYPE_STRING_OVERLOAD(std::complex<half>, "complex<float16>");
 TYPE_STRING_OVERLOAD(int32, "int32");
 TYPE_STRING_OVERLOAD(int64, "int64");
 

@@ -1,0 +1,41 @@
+// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
+
+#include "common/cuda_hip/base/config.hpp"
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+namespace jacobi {
+
+
+/**
+ * A compile-time list of block sizes for which dedicated generate and apply
+ * kernels should be compiled.
+ */
+// clang-format off
+#cmakedefine GKO_JACOBI_BLOCK_SIZES_CODE @GKO_JACOBI_BLOCK_SIZES_CODE@
+// clang-format on
+// make things easier for IDEs
+#ifndef GKO_JACOBI_BLOCK_SIZES_CODE
+#define GKO_JACOBI_BLOCK_SIZES_CODE 1
+#endif
+
+
+using compiled_kernels = syn::value_list<int, GKO_JACOBI_BLOCK_SIZES_CODE>;
+
+
+constexpr int get_larger_power(int value, int guess = 1)
+{
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
+}
+
+
+}  // namespace jacobi
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko

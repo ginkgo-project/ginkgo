@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -16,6 +13,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,

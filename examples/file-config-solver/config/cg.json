@@ -1,0 +1,13 @@
+{
+    "type": "solver::Cg",
+    "criteria": [
+        {
+            "type": "Iteration",
+            "max_iters": 20
+        },
+        {
+            "type": "ResidualNorm",
+            "reduction_factor": 1e-7
+        }
+    ]
+}

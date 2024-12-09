@@ -4,18 +4,15 @@
 
 #include "core/factorization/par_ilut_kernels.hpp"
 
-
 #include <algorithm>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -194,7 +191,12 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
     // pick splitters
     for (IndexType i = 0; i < bucket_count - 1; ++i) {
         // shift by one so we get upper bounds for the buckets
-        sample[i] = sample[(i + 1) * sampleselect_oversampling];
+        // NVHPC 23.3 seems to handle assignment index with
+        // optimization wrongly on a custom class when IndexType is long. We set
+        // the index explicitly with volatile to solve it. NVHPC24.1 fixed this
+        // issue. https://godbolt.org/z/srYhGndKn
+        volatile auto index = (i + 1) * sampleselect_oversampling;
+        sample[i] = sample[index];
     }
     // count elements per bucket
     auto histogram = reinterpret_cast<IndexType*>(sample + bucket_count);

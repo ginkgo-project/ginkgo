@@ -4,22 +4,20 @@
 
 #include "core/factorization/lu_kernels.hpp"
 
-
 #include <algorithm>
 #include <fstream>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -31,7 +29,7 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename ValueIndexType>
@@ -135,14 +133,12 @@ using Types = gko::test::ValueIndexTypes;
 #elif defined(GKO_COMPILING_CUDA)
 // CUDA don't support long indices for sorting, and the triangular solvers
 // seem broken
-using Types = ::testing::Types<std::tuple<float, gko::int32>,
-                               std::tuple<double, gko::int32>,
-                               std::tuple<std::complex<float>, gko::int32>,
-                               std::tuple<std::complex<double>, gko::int32>>;
+using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypes,
+                                                  ::testing::Types<gko::int32>>;
 #else
 // HIP only supports real types and int32
-using Types = ::testing::Types<std::tuple<float, gko::int32>,
-                               std::tuple<double, gko::int32>>;
+using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypesBase,
+                                                  ::testing::Types<gko::int32>>;
 #endif
 
 TYPED_TEST_SUITE(Lu, Types, PairTypenameNameGenerator);
@@ -156,7 +152,7 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
         std::fill_n(this->mtx_lu->get_values(),
                     this->mtx_lu->get_num_stored_elements(),
                     gko::zero<value_type>());
-        gko::kernels::EXEC_NAMESPACE::components::fill_array(
+        gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_array(
             this->exec, this->dmtx_lu->get_values(),
             this->dmtx_lu->get_num_stored_elements(), gko::zero<value_type>());
         gko::array<index_type> diag_idxs{this->ref, this->num_rows};
@@ -166,7 +162,7 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), this->mtx_lu.get());
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -191,7 +187,7 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), this->mtx_lu.get());
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -200,11 +196,11 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
-        gko::kernels::EXEC_NAMESPACE::lu_factorization::factorize(
+            diag_idxs.get_const_data(), this->mtx_lu.get(), true, tmp);
+        gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
+            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
     });

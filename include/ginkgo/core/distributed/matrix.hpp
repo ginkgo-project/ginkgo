@@ -14,6 +14,7 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/lin_op.hpp>
@@ -55,7 +56,7 @@ struct is_matrix_type_builder : std::false_type {};
 template <typename Builder, typename ValueType, typename IndexType>
 struct is_matrix_type_builder<
     Builder, ValueType, IndexType,
-    gko::xstd::void_t<
+    xstd::void_t<
         decltype(std::declval<Builder>().template create<ValueType, IndexType>(
             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
@@ -130,6 +131,18 @@ auto with_matrix_type(Args&&... create_args)
 
 namespace experimental {
 namespace distributed {
+
+
+/**
+ * assembly_mode defines how the read_distributed function of the distributed
+ * matrix treats non-local indices in the (device_)matrix_data:
+ * - `communicate` communicates the overlap between ranks and adds up all local
+ *   contributions. Indices smaller than 0 or larger than the global size
+ *   of the matrix are ignored.
+ * - `local_only` does not communicate any overlap but ignores all non-local
+ *   indices.
+ */
+enum class assembly_mode { communicate, local_only };
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -244,14 +257,13 @@ class Vector;
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Matrix
-    : public EnableDistributedLinOp<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public ConvertibleTo<
-          Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+class Matrix : public EnableDistributedLinOp<
+                   Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+               public ConvertibleTo<Matrix<next_precision_base<ValueType>,
+                                           LocalIndexType, GlobalIndexType>>,
+               public DistributedBase {
     friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
-    friend class Matrix<next_precision<ValueType>, LocalIndexType,
+    friend class Matrix<next_precision_base<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
 
@@ -266,15 +278,15 @@ public:
 
     using EnableDistributedLinOp<Matrix>::convert_to;
     using EnableDistributedLinOp<Matrix>::move_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type>, local_index_type,
+    void convert_to(Matrix<next_precision_base<value_type>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision<value_type>, local_index_type,
+    void move_to(Matrix<next_precision_base<value_type>, local_index_type,
                         global_index_type>* result) override;
 
     /**
@@ -286,17 +298,19 @@ public:
      * are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
+     *       by the process. Entries for those rows are discarded.
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+            partition,
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -310,7 +324,8 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
+            partition,
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -321,11 +336,12 @@ public:
      * and columns of the device_matrix_data are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
+     *       by the process. Entries for those rows are discarded.
      *
      * @param data  The device_matrix_data structure.
      * @param row_partition  The global row partition.
      * @param col_partition  The global col partition.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -334,7 +350,8 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            col_partition,
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -350,7 +367,8 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            col_partition,
+        assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
      * Get read access to the stored local matrix.
@@ -436,7 +454,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
-              typename = std::enable_if_t<detail::is_matrix_type_builder<
+              typename = std::enable_if_t<gko::detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType>::value>>
     static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm,
@@ -477,10 +495,10 @@ public:
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType,
               typename = std::enable_if_t<
-                  detail::is_matrix_type_builder<LocalMatrixType, ValueType,
-                                                 LocalIndexType>::value &&
-                  detail::is_matrix_type_builder<NonLocalMatrixType, ValueType,
-                                                 LocalIndexType>::value>>
+                  gko::detail::is_matrix_type_builder<
+                      LocalMatrixType, ValueType, LocalIndexType>::value &&
+                  gko::detail::is_matrix_type_builder<
+                      NonLocalMatrixType, ValueType, LocalIndexType>::value>>
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         LocalMatrixType local_matrix_template,
@@ -574,6 +592,24 @@ public:
         std::vector<comm_index_type> recv_sizes,
         std::vector<comm_index_type> recv_offsets,
         array<local_index_type> recv_gather_idxs);
+
+    /**
+     * Scales the columns of the matrix by the respective entries of the vector.
+     * The vector's row partition has to be the same as the matrix's column
+     * partition. The scaling is done in-place.
+     *
+     * @param scaling_factors  The vector containing the scaling factors.
+     */
+    void col_scale(ptr_param<const global_vector_type> scaling_factors);
+
+    /**
+     * Scales the rows of the matrix by the respective entries of the vector.
+     * The vector and the matrix have to have the same row partition.
+     * The scaling is done in-place.
+     *
+     * @param scaling_factors  The vector containing the scaling factors.
+     */
+    void row_scale(ptr_param<const global_vector_type> scaling_factors);
 
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,

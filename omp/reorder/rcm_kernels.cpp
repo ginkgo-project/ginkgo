@@ -4,7 +4,6 @@
 
 #include "core/reorder/rcm_kernels.hpp"
 
-
 #include <algorithm>
 #include <iterator>
 #include <memory>
@@ -12,9 +11,7 @@
 #include <utility>
 #include <vector>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
@@ -24,7 +21,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -101,16 +97,6 @@ struct UbfsLinearQueue {
     }
 
     /**
-     * Computes the correct chunk size at a given moment.
-     * It is upper bounded by the chunk_bound and the half of all nodes.
-     */
-    IndexType chunk_size()
-    {
-        const auto available_nodes = tail - head;
-        return std::min<IndexType>((available_nodes + 1) / 2, chunk_bound);
-    }
-
-    /**
      * Returns a pointer to an exclusively owned chunk of length <= n/2.
      * Blocks in case no nodes are available and other threads are still
      * working, as indicated by `threads_working`. That way, if (nullptr,0) is
@@ -121,6 +107,18 @@ struct UbfsLinearQueue {
     {
         const auto data = &arr[0];
         std::lock_guard<omp_mutex> read_guard{read_mutex};
+
+        /**
+         * Computes the correct chunk size at a given moment.
+         * It is upper bounded by the chunk_bound and the half of all nodes.
+         */
+        auto chunk_size = [this]() {
+            // Can only acquire write_mutex as this function is called when a
+            // read_mutex is already acquired
+            std::lock_guard<omp_mutex> lock{write_mutex};
+            const auto available_nodes = tail - head;
+            return std::min<IndexType>((available_nodes + 1) / 2, chunk_bound);
+        };
 
         const auto n = chunk_size();
 
@@ -746,9 +744,8 @@ IndexType handle_isolated_nodes(std::shared_ptr<const OmpExecutor> exec,
 template <typename IndexType>
 void compute_permutation(std::shared_ptr<const OmpExecutor> exec,
                          const IndexType num_vertices,
-                         const IndexType* const row_ptrs,
-                         const IndexType* const col_idxs, IndexType* const perm,
-                         IndexType* const inv_perm,
+                         const IndexType* row_ptrs, const IndexType* col_idxs,
+                         IndexType* perm, IndexType* inv_perm,
                          const gko::reorder::starting_strategy strategy)
 {
     // compute node degrees

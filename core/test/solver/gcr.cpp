@@ -2,21 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/gcr.hpp>
-
-
 #include <typeinfo>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -32,8 +27,8 @@ protected:
     using Solver = gko::solver::Gcr<value_type>;
     using Big_solver = gko::solver::Gcr<double>;
 
-    static constexpr gko::remove_complex<T> reduction_factor =
-        gko::remove_complex<T>(1e-6);
+    const gko::remove_complex<T> reduction_factor =
+        r<gko::remove_complex<T>>::value;
 
     Gcr()
         : exec(gko::ReferenceExecutor::create()),
@@ -74,9 +69,6 @@ protected:
         }
     }
 };
-
-template <typename T>
-constexpr gko::remove_complex<T> Gcr<T>::reduction_factor;
 
 TYPED_TEST_SUITE(Gcr, gko::test::ValueTypes, TypenameNameGenerator);
 
@@ -165,10 +157,9 @@ TYPED_TEST(Gcr, CanSetPreconditionerGenerator)
     using value_type = typename TestFixture::value_type;
     auto gcr_factory =
         Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(this->reduction_factor))
             .with_preconditioner(Solver::build().with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u)))
             .on(this->exec);
@@ -215,10 +206,9 @@ TYPED_TEST(Gcr, CanSetKrylovDim)
     auto gcr_factory =
         Solver::build()
             .with_krylov_dim(4u)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(this->reduction_factor))
             .on(this->exec);
     auto solver = gcr_factory->generate(this->mtx);
     auto krylov_dim = solver->get_krylov_dim();
