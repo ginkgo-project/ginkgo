@@ -422,8 +422,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         matrix_data data{dim<2>{k_rows, num_rows}};
 
         // Random number generator setup
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 gen(123);
 
         for (int i = 0; i < num_rows; i++) {
             remove_complex<ValueType> v = 1.;
@@ -649,23 +648,42 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
         } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
-            // TODO change the signature and implementation
+            theta->apply(next_krylov, sketched_next_krylov);
             orthogonalize_rgs(hessenberg_iter.get(), krylov_bases,
                               next_krylov.get(), sketched_krylov_bases.get(),
                               d_hessenberg_iter.get(),
                               sketched_next_krylov2.get(), restart_iter,
                               num_rows, num_rhs, local_num_rows, k_rows);
         }
-        // normalize next_krylov:
-        // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
-        // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
-        // next_krylov /= hessenberg(restart_iter+1, restart_iter)
-        auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
-            span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
-        help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-            next_krylov.get(), hessenberg_norm_entry.get(),
-            next_krylov_norm_tmp, reduction_tmp);
-        next_krylov->inv_scale(hessenberg_norm_entry);
+        if (is_rgs) {
+            theta->apply(next_krylov, sketched_next_krylov);
+
+            auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
+                span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+
+            help_compute_norm<ValueType>::
+                compute_next_krylov_norm_into_hessenberg(
+                    sketched_next_krylov.get(), hessenberg_norm_entry.get(),
+                    next_krylov_norm_tmp, reduction_tmp);
+
+            next_krylov->inv_scale(hessenberg_norm_entry);
+
+            sketched_next_krylov->inv_scale(hessenberg_norm_entry);
+        } else {
+            // normalize next_krylov:
+            // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
+            // (stored in hessenberg(restart_iter, (restart_iter + 1) *
+            // num_rhs)) next_krylov /= hessenberg(restart_iter+1, restart_iter)
+            auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
+                span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+
+            help_compute_norm<ValueType>::
+                compute_next_krylov_norm_into_hessenberg(
+                    next_krylov.get(), hessenberg_norm_entry.get(),
+                    next_krylov_norm_tmp, reduction_tmp);
+
+            next_krylov->inv_scale(hessenberg_norm_entry);
+        }
         // End of Arnoldi
 
         // update QR factorization and Krylov RHS for last column:
