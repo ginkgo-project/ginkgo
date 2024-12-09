@@ -94,6 +94,7 @@ void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
         }
         for (size_type i = 0; i <= iter; i++) {
             for (size_type k = 0; k < num_rhs; k++) {
+                hessenberg_iter->at(i, k) = zero<ValueType>();
                 for (size_type j = 0; j < k_rows; j++){
                     sketched_next_krylov2->at(j, k) -= sketched_krylov_bases->at(j + i * k_rows, k) 
                         * d_hessenberg_iter->at(i, k);
