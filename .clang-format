@@ -70,7 +70,7 @@ IncludeCategories:
   - Regex:    '^<(omp|cu|hip|oneapi|thrust|CL/|cooperative|mpi|nvToolsExt|Kokkos).*'
     Priority: 2
     SortPriority: 3
-  - Regex:    '^<(nlohmann|gflags|gtest|sde_lib|papi).*'
+  - Regex:    '^<(yaml-cpp|nlohmann|gflags|gtest|sde_lib|papi).*'
     Priority: 4
   - Regex:    '<ginkgo/ginkgo.hpp>'
     Priority: 6
