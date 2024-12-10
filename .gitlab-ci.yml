@@ -400,7 +400,7 @@ build/windows-cuda/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DCMAKE_UNITY_BUILD=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
     - ctest --test-dir build -C Release --no-tests=error --output-on-failure
     - $env:PATH+=";$pwd/install/bin"
@@ -418,7 +418,7 @@ build/windows/release/shared:
     - if (Test-Path install) { rm -r -fo install }
     - mkdir build
     - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+    - cmake -B build -DBUILD_SHARED_LIBS=ON -DCMAKE_UNITY_BUILD=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
     - cmake --build build --config Release -j16
     - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
     - $env:PATH+=";$pwd/install/bin"
