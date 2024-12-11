@@ -45,8 +45,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
-    : EnableDistributedLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
@@ -72,8 +71,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> local_linop)
-    : EnableDistributedLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
@@ -98,8 +96,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::vector<comm_index_type> recv_sizes,
     std::vector<comm_index_type> recv_offsets,
     array<local_index_type> recv_gather_idxs)
-    : EnableDistributedLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
@@ -195,9 +192,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::vector<comm_index_type> recv_offsets,
     array<local_index_type> recv_gather_idxs)
 {
-    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop,
-                                              non_local_linop, recv_sizes,
-                                              recv_offsets, recv_gather_idxs}};
+    return std::unique_ptr<Matrix>{new Matrix{
+        exec, comm, size, local_linop, non_local_linop, std::move(recv_sizes),
+        std::move(recv_offsets), std::move(recv_gather_idxs)}};
 }
 
 
@@ -594,8 +591,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
-                                    global_index_type>>{other.get_executor()},
+    : EnableLinOp<Matrix<value_type, local_index_type,
+                         global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = other;
@@ -605,8 +602,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableDistributedLinOp<Matrix<value_type, local_index_type,
-                                    global_index_type>>{other.get_executor()},
+    : EnableLinOp<Matrix<value_type, local_index_type,
+                         global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = std::move(other);

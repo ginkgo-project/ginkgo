@@ -62,7 +62,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableLinOp<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -73,7 +73,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableDistributedLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableLinOp<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -85,9 +85,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableDistributedLinOp<Vector<ValueType>>{exec, {}},
-      DistributedBase{comm},
-      local_{exec}
+    : EnableLinOp<Vector>{exec, {}}, DistributedBase{comm}, local_{exec}
 {
     this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
@@ -141,9 +139,9 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
     auto non_const_local_vector =
         const_cast<local_vector_type*>(local_vector.release());
 
-    return std::unique_ptr<const Vector<ValueType>>(new Vector<ValueType>(
-        std::move(exec), std::move(comm), global_size,
-        std::unique_ptr<local_vector_type>{non_const_local_vector}));
+    return std::unique_ptr<const Vector>(
+        new Vector(std::move(exec), std::move(comm), global_size,
+                   std::unique_ptr<local_vector_type>{non_const_local_vector}));
 }
 
 
@@ -154,8 +152,8 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
 {
     auto global_size =
         compute_global_size(exec, comm, local_vector->get_size());
-    return Vector<ValueType>::create_const(
-        std::move(exec), std::move(comm), global_size, std::move(local_vector));
+    return Vector::create_const(std::move(exec), std::move(comm), global_size,
+                                std::move(local_vector));
 }
 
 
@@ -173,8 +171,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
 
 template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
-    ptr_param<const Vector<ValueType>> other,
-    std::shared_ptr<const Executor> exec)
+    ptr_param<const Vector> other, std::shared_ptr<const Executor> exec)
 {
     return (*other).create_with_type_of_impl(exec, {}, {}, 0);
 }
@@ -182,9 +179,8 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
 
 template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of(
-    ptr_param<const Vector<ValueType>> other,
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride)
+    ptr_param<const Vector> other, std::shared_ptr<const Executor> exec,
+    const dim<2>& global_size, const dim<2>& local_size, size_type stride)
 {
     return (*other).create_with_type_of_impl(exec, global_size, local_size,
                                              stride);
@@ -410,7 +406,7 @@ template <typename ValueType>
 void Vector<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
                                    ptr_param<const LinOp> b)
 {
-    auto dense_b = as<Vector<ValueType>>(b);
+    auto dense_b = as<Vector>(b);
     local_.add_scaled(alpha, dense_b->get_local_vector());
 }
 
@@ -419,7 +415,7 @@ template <typename ValueType>
 void Vector<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
                                    ptr_param<const LinOp> b)
 {
-    auto dense_b = as<Vector<ValueType>>(b);
+    auto dense_b = as<Vector>(b);
     local_.sub_scaled(alpha, dense_b->get_local_vector());
 }
 

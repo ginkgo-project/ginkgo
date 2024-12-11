@@ -13,9 +13,9 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -65,19 +65,19 @@ class Partition;
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableDistributedLinOp<Vector<ValueType>>,
+    : public EnableLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision_base<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnableDistributedPolymorphicObject<Vector, LinOp>;
+    friend class EnablePolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision_base<ValueType>>;
     friend class detail::VectorCache<ValueType>;
 
 public:
-    using EnableDistributedLinOp<Vector>::convert_to;
-    using EnableDistributedLinOp<Vector>::move_to;
+    using EnableLinOp<Vector>::convert_to;
+    using EnableLinOp<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision_base<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision_base<ValueType>>>::move_to;
 
