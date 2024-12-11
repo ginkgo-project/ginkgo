@@ -3,18 +3,19 @@ This is the expected output:
 
 @code{.cpp}
 
+Problem size: (8000, 8000)
 Initial residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
-4.3589
+163.578
 Final residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
-1.69858e-09
-CG iteration count:     39
-CG generation time [ms]: 2.04293
-CG execution time [ms]: 22.3874
-CG execution time per iteration[ms]: 0.574036
+7.61038e-09
+CG iteration count:     1
+CG generation time [ms]: 14.4458
+CG execution time [ms]: 10.975
+CG execution time per iteration[ms]: 10.975
 
 @endcode
 
