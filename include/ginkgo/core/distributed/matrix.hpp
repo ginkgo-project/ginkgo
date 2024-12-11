@@ -13,11 +13,11 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
-#include <ginkgo/core/distributed/lin_op.hpp>
 
 
 namespace gko {
@@ -257,12 +257,12 @@ class Vector;
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Matrix : public EnableDistributedLinOp<
-                   Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-               public ConvertibleTo<Matrix<next_precision_base<ValueType>,
-                                           LocalIndexType, GlobalIndexType>>,
-               public DistributedBase {
-    friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
+class Matrix
+    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<Matrix<next_precision_base<ValueType>,
+                                  LocalIndexType, GlobalIndexType>>,
+      public DistributedBase {
+    friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision_base<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
@@ -276,8 +276,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableDistributedLinOp<Matrix>::convert_to;
-    using EnableDistributedLinOp<Matrix>::move_to;
+    using EnableLinOp<Matrix>::convert_to;
+    using EnableLinOp<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
