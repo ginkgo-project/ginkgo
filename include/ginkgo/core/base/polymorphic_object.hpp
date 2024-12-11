@@ -22,7 +22,7 @@ namespace distributed {
 class DistributedBase;
 
 
-}
+}  // namespace distributed
 }  // namespace experimental
 
 
