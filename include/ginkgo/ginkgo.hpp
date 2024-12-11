@@ -147,6 +147,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
