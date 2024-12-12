@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 
@@ -88,9 +89,50 @@ GKO_REGISTER_MPI_TYPE(unsigned long long, MPI_UNSIGNED_LONG_LONG);
 GKO_REGISTER_MPI_TYPE(float, MPI_FLOAT);
 GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
+#if GINKGO_ENABLE_HALF
+// OpenMPI 5.0 have support from MPIX_C_FLOAT16 and MPICHv3.4a1 MPIX_C_FLOAT16
+// TODO: it only works on the transferring
+GKO_REGISTER_MPI_TYPE(half, MPI_UNSIGNED_SHORT);
+GKO_REGISTER_MPI_TYPE(std::complex<half>, MPI_FLOAT);
+#endif  // GKO_ENABLE_HALF
 GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_FLOAT_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
+
+namespace detail {
+
+inline void half_sum(void* input, void* output, int* len,
+                     MPI_Datatype* datatype)
+{
+    gko::half* input_ptr = static_cast<gko::half*>(input);
+    gko::half* output_ptr = static_cast<gko::half*>(output);
+    for (int i = 0; i < *len; i++) {
+        output_ptr[i] += input_ptr[i];
+    }
+}
+
+}  // namespace detail
+
+template <typename ValueType>
+inline MPI_Op sum()
+{
+    return MPI_SUM;
+}
+
+template <>
+inline MPI_Op sum<gko::half>()
+{
+    using handle_manager =
+        std::unique_ptr<MPI_Op, std::function<void(MPI_Op*)>>;
+    static handle_manager mpi_op(
+        []() {
+            MPI_Op* operation = new MPI_Op;
+            MPI_Op_create(&detail::half_sum, 1, operation);
+            return operation;
+        }(),
+        [](MPI_Op* op) { MPI_Op_free(op); });
+    return *mpi_op.get();
+}
 
 /**
  * A move-only wrapper for a contiguous MPI_Datatype.
