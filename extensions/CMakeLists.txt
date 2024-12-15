@@ -1,3 +1,3 @@
-if (GINKGO_BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
-endif ()
+endif()

@@ -1,6 +1,7 @@
 ginkgo_create_test(abstract_factory)
 ginkgo_create_test(allocator)
-ginkgo_create_test(array EXECUTABLE_NAME array_test) # array collides with C++ stdlib header
+ginkgo_create_test(array EXECUTABLE_NAME array_test) # array collides with C++
+                                                     # stdlib header
 ginkgo_create_test(batch_dim)
 ginkgo_create_test(batch_lin_op)
 ginkgo_create_test(batch_multi_vector)
@@ -10,7 +11,9 @@ ginkgo_create_test(composition)
 ginkgo_create_test(deferred_factory)
 ginkgo_create_test(dense_cache)
 ginkgo_create_test(dim)
-ginkgo_create_test(exception EXECUTABLE_NAME exception_test) # exception collides with C++ stdlib header
+ginkgo_create_test(
+    exception EXECUTABLE_NAME exception_test
+) # exception collides with C++ stdlib header
 ginkgo_create_test(exception_helpers)
 ginkgo_create_test(extended_float)
 ginkgo_create_test(executor)
@@ -31,4 +34,5 @@ ginkgo_create_test(segmented_array)
 ginkgo_create_test(segmented_range)
 ginkgo_create_test(types)
 ginkgo_create_test(utils)
-ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
+ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with
+                                                         # C++ stdlib header
