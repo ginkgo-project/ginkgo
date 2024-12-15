@@ -1,4 +1,5 @@
-# IntelSYCL for dpcpp and icpx if the config is existed and cmake reaches the requirement
+# IntelSYCL for dpcpp and icpx if the config is existed and cmake reaches the
+# requirement
 if(CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
     if(CMAKE_HOST_WIN32 AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.25)
         find_package(IntelSYCL QUIET)
@@ -6,10 +7,14 @@ if(CMAKE_CXX_COMPILER MATCHES "dpcpp|icpx")
         find_package(IntelSYCL QUIET)
     endif()
 endif()
-# If we do not have the config from compiler, try to set components to make it work.
-if(NOT COMMAND add_sycl_to_target) 
+# If we do not have the config from compiler, try to set components to make it
+# work.
+if(NOT COMMAND add_sycl_to_target)
     if(NOT DEFINED SYCL_FLAGS)
-        set(SYCL_FLAGS "-fsycl" CACHE STRING "SYCL flags for compiler")
+        set(SYCL_FLAGS
+            "-fsycl"
+            CACHE STRING "SYCL flags for compiler"
+        )
     endif()
 endif()
 
@@ -17,11 +22,9 @@ endif()
 function(gko_add_sycl_to_target)
     set(one_value_args TARGET)
     set(multi_value_args SOURCES)
-    cmake_parse_arguments(SYCL
-        ""
-        "${one_value_args}"
-        "${multi_value_args}"
-        ${ARGN})
+    cmake_parse_arguments(
+        SYCL "" "${one_value_args}" "${multi_value_args}" ${ARGN}
+    )
     if(COMMAND add_sycl_to_target)
         add_sycl_to_target(${ARGN})
         return()

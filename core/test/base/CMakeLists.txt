@@ -12,8 +12,8 @@ ginkgo_create_test(deferred_factory)
 ginkgo_create_test(dense_cache)
 ginkgo_create_test(dim)
 ginkgo_create_test(
-  exception EXECUTABLE_NAME exception_test) # exception collides with C++ stdlib
-                                            # header
+    exception EXECUTABLE_NAME exception_test
+) # exception collides with C++ stdlib header
 ginkgo_create_test(exception_helpers)
 ginkgo_create_test(extended_float)
 ginkgo_create_test(executor)
