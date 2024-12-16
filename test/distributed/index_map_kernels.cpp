@@ -537,7 +537,7 @@ TEST_F(IndexMap, RoundTripGlobalWithLocalIndexSpace)
     auto local_space = gko::array<global_index_type>(ref, local_size);
     std::iota(local_space.get_data(), local_space.get_data() + local_size,
               this_rank * local_size);
-    auto query = generate_query(ref, local_space, 33);
+    auto query = generate_query(exec, local_space, 33);
     auto local = gko::array<local_index_type>(exec);
     auto global = gko::array<global_index_type>(exec);
 
@@ -556,7 +556,7 @@ TEST_F(IndexMap, RoundTripGlobalWithLocalIndexSpace)
 
 TEST_F(IndexMap, RoundTripLocalWithLocalIndexSpace)
 {
-    auto query = generate_to_global_query(ref, local_size, 333);
+    auto query = generate_to_global_query(exec, local_size, 333);
     auto local = gko::array<local_index_type>(exec);
     auto global = gko::array<global_index_type>(exec);
 
@@ -595,7 +595,7 @@ TEST_F(IndexMap, RoundTripGlobalWithNonLocalIndexSpace)
 TEST_F(IndexMap, RoundTripLocalWithNonLocalIndexSpace)
 {
     auto query =
-        generate_to_global_query(ref, remote_global_idxs.get_size(), 33);
+        generate_to_global_query(exec, remote_global_idxs.get_size(), 33);
     auto local = gko::array<local_index_type>(exec);
     auto global = gko::array<global_index_type>(exec);
 
