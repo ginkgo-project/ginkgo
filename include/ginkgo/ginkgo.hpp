@@ -114,6 +114,7 @@
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
