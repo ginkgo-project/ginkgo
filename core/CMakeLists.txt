@@ -116,6 +116,7 @@ target_sources(${ginkgo_core}
     solver/gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
+    solver/minres.cpp
     solver/lower_trs.cpp
     solver/multigrid.cpp
     solver/upper_trs.cpp
