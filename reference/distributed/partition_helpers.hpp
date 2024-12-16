@@ -71,10 +71,10 @@ size_type find_local_range(
         return local_range_id_hint;
     }
 
-    auto it = std::lower_bound(
+    auto it = std::upper_bound(
         local_ranges.begin, local_ranges.end, idx,
-        [range_starting_indices, local_ranges](const auto rid, const auto idx) {
-            return range_starting_indices[rid] < idx;
+        [range_starting_indices](const auto value, const auto rid) {
+            return value < range_starting_indices[rid];
         });
     auto local_range_id = std::distance(local_ranges.begin, it) - 1;
     return local_range_id;
