@@ -87,6 +87,7 @@ target_sources(${ginkgo_core}
     matrix/identity.cpp
     matrix/permutation.cpp
     matrix/row_gatherer.cpp
+    matrix/row_scatterer.cpp
     matrix/scaled_permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
