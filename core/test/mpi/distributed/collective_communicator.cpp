@@ -26,6 +26,12 @@ protected:
     {
         auto part = gko::share(part_type::build_from_global_size_uniform(
             ref, comm.size(), comm.size() * 3));
+        gko::array<long> recv_connections[] = {{ref, {3, 5, 10, 11}},
+                                               {ref, {0, 1, 7, 12, 13}},
+                                               {ref, {3, 4, 17}},
+                                               {ref, {1, 2, 12, 14}},
+                                               {ref, {4, 5, 9, 10, 16, 15}},
+                                               {ref, {8, 12, 13, 14}}};
         auto imap = map_type{ref, part, comm.rank(), recv_connections[rank]};
 
         return {comm, imap};
@@ -166,9 +172,7 @@ TYPED_TEST(CollectiveCommunicator, CanMoveConstruct)
     auto moved(std::move(moved_from));
 
     ASSERT_EQ(moved, spcomm);
-    ;
     ASSERT_EQ(moved_from, empty_comm);
-    ;
 }
 
 
@@ -183,9 +187,7 @@ TYPED_TEST(CollectiveCommunicator, CanMoveAssign)
     moved = std::move(moved_from);
 
     ASSERT_EQ(moved, spcomm);
-    ;
     ASSERT_EQ(moved_from, empty_comm);
-    ;
 }
 
 
