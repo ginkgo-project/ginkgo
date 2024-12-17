@@ -11,6 +11,7 @@
 
 #if GINKGO_BUILD_MPI
 
+
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/index_map_fwd.hpp>
 
@@ -19,8 +20,9 @@ namespace gko {
 namespace experimental {
 namespace mpi {
 
+
 /**
- * Interface for an collective communicator.
+ * Interface for a collective communicator.
  *
  * A collective communicator only provides routines for collective
  * communications. At the moment this is restricted to the variable all-to-all.
@@ -42,6 +44,7 @@ public:
      *
      * @tparam SendType  the type of the elements to send
      * @tparam RecvType  the type of the elements to receive
+     *
      * @param exec  the executor for the communication
      * @param send_buffer  the send buffer
      * @param recv_buffer  the receive buffer
@@ -61,23 +64,23 @@ public:
                            void* recv_buffer, MPI_Datatype recv_type) const;
 
     /**
-     * Creates a new collective_communicator with the same dynamic type.
+     * Creates a new CollectiveCommunicator with the same dynamic type.
      *
      * @param base  The base communicator
      * @param imap  The index_map that defines the communication pattern
      *
-     * @return  a collective_communicator with the same dynamic type
+     * @return  a CollectiveCommunicator with the same dynamic type
      */
     [[nodiscard]] virtual std::unique_ptr<CollectiveCommunicator>
     create_with_same_type(communicator base,
                           const distributed::index_map_variant& imap) const = 0;
 
     /**
-     * Creates a collective_communicator with the inverse communication pattern
+     * Creates a CollectiveCommunicator with the inverse communication pattern
      * than this object.
      *
-     * @return  a collective_communicator with the inverse communication
-     * pattern.
+     * @return  a CollectiveCommunicator with the inverse communication
+     *          pattern.
      */
     [[nodiscard]] virtual std::unique_ptr<CollectiveCommunicator>
     create_inverse() const = 0;
@@ -124,6 +127,7 @@ request CollectiveCommunicator::i_all_to_all_v(
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko
+
 
 #endif
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_COLLECTIVE_COMMUNICATOR_HPP_
