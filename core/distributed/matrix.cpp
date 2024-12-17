@@ -7,16 +7,27 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/assembly.hpp>
+#include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 
 
 namespace gko {
+namespace conversion {
+namespace {
+
+
+GKO_REGISTER_OPERATION(convert, components::convert_precision);
+
+
+}  // anonymous namespace
+}  // namespace conversion
 namespace experimental {
 namespace distributed {
 namespace matrix {
@@ -210,6 +221,45 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<LinOp> local_linop)
 {
     return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
+    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
+    std::vector<comm_index_type> recv_sizes,
+    std::vector<comm_index_type> recv_offsets,
+    array<local_index_type> recv_gather_idxs)
+{
+    array<comm_index_type> part_ids(exec->get_master(), comm.size());
+    std::iota(part_ids.get_data(), part_ids.get_data() + part_ids.get_size(),
+              0);
+    auto uniform_partition =
+        share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
+            exec, comm, local_linop->get_size()[0]));
+    array<global_index_type> global_recv_gather_idxs(
+        exec, recv_gather_idxs.get_size());
+    for (int rank = 0; rank < comm.size(); ++rank) {
+        if (recv_sizes[rank] > 0) {
+            auto map = index_map<LocalIndexType, GlobalIndexType>(
+                exec, uniform_partition, rank, array<GlobalIndexType>{exec});
+            auto local_view = make_array_view(
+                exec, recv_sizes[rank],
+                recv_gather_idxs.get_data() + recv_offsets[rank]);
+            auto global_idxs =
+                map.map_to_global(local_view, index_space::local);
+            exec->copy(recv_sizes[rank], global_idxs.get_const_data(),
+                       global_recv_gather_idxs.get_data() + recv_offsets[rank]);
+        }
+    }
+
+    return Matrix::create(
+        exec, comm,
+        index_map<LocalIndexType, GlobalIndexType>(
+            exec, uniform_partition, comm.rank(), global_recv_gather_idxs),
+        std::move(local_linop), std::move(non_local_linop));
 }
 
 
