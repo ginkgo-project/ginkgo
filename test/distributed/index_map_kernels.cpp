@@ -561,9 +561,9 @@ TEST_F(IndexMap, RoundTripLocalWithLocalIndexSpace)
     auto global = gko::array<global_index_type>(exec);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query, gko::experimental::distributed::index_space::combined,
-        global);
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, global,
@@ -600,9 +600,9 @@ TEST_F(IndexMap, RoundTripLocalWithNonLocalIndexSpace)
     auto global = gko::array<global_index_type>(exec);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query, gko::experimental::distributed::index_space::combined,
-        global);
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, global,
@@ -649,9 +649,9 @@ TEST_F(IndexMap, RoundTripLocalWithCombinedIndexSpace)
     auto global = gko::array<global_index_type>(exec);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query, gko::experimental::distributed::index_space::combined,
-        global);
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
         exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
         this_rank, global,
