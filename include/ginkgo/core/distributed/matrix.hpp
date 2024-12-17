@@ -601,8 +601,31 @@ public:
      * @param local_linop  the local linop
      * @param non_local_linop  the non-local linop
      * @param recv_sizes  the size of non-local receiver
-     * @param recv_offset  the offset of non-local receiver
+     * @param recv_offsets  the offset of non-local receiver
      * @param recv_gather_idxs  the gathering index of non-local receiver
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    [[deprecated(
+        "Please use the overload with an index_map instead.")]] static std::
+        unique_ptr<Matrix>
+        create(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+               dim<2> size, std::shared_ptr<LinOp> local_linop,
+               std::shared_ptr<LinOp> non_local_linop,
+               std::vector<comm_index_type> recv_sizes,
+               std::vector<comm_index_type> recv_offsets,
+               array<local_index_type> recv_gather_idxs);
+
+    /**
+     * Creates distributed matrix with existent local and non-local LinOp and
+     * the corresponding mapping to collect the non-local data from the other
+     * ranks.
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param imap  The index map to define the communication pattern
+     * @param local_linop  the local linop
+     * @param non_local_linop  the non-local linop
      *
      * @return A smart pointer to the newly created matrix.
      */
