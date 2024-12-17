@@ -465,10 +465,9 @@ public:
     /**
      * Creates a new communicator and takes ownership of the MPI_Comm.
      *
-     * The ownership is shared with all communicators that are created as a
-     * copy from the new communicator.
-     * The underlying MPI_Comm will be freed when the last communicator with
-     * ownership is destroyed.
+     * The ownership is shared with all mpi::communicator objects that are a
+     * copy from the newly created communicator. The underlying MPI_Comm will be
+     * freed when the last communicator with ownership is destroyed.
      *
      * @see communicator(const MPI_Comm&, bool)
      */
