@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/collective_communicator.hpp"
 
+#include <mpi.h>
+
 
 namespace gko {
 namespace experimental {
