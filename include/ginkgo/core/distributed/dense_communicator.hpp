@@ -11,6 +11,7 @@
 
 #if GINKGO_BUILD_MPI
 
+
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
@@ -22,7 +23,7 @@ namespace mpi {
 
 
 /**
- * A collective_communicator that uses a dense communication.
+ * A CollectiveCommunicator that uses a dense communication.
  *
  * The dense communicator uses the MPI_Alltoall function for its communication.
  */
@@ -40,6 +41,7 @@ public:
 
     /**
      * Default constructor with empty communication pattern
+     *
      * @param base  the base communicator
      */
     explicit DenseCommunicator(communicator base);
@@ -47,12 +49,13 @@ public:
     /**
      * Create a DenseCommunicator from an index map.
      *
-     * The receive neighbors are defined by the remote indices and their
+     * The receiving neighbors are defined by the remote indices and their
      * owning ranks of the index map. The send neighbors are deduced
      * from that through collective communication.
      *
      * @tparam LocalIndexType  the local index type of the map
      * @tparam GlobalIndexType  the global index type of the map
+     *
      * @param base  the base communicator
      * @param imap  the index map that defines the communication pattern
      */
@@ -61,9 +64,6 @@ public:
         communicator base,
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
-    /**
-     * @copydoc collective_communicator::create_with_same_type
-     */
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_with_same_type(
         communicator base,
         const distributed::index_map_variant& imap) const override;
@@ -72,21 +72,14 @@ public:
      * Creates the inverse DenseCommunicator by switching sources
      * and destinations.
      *
-     * @return  collective_communicator with the inverse communication pattern
+     * @return  CollectiveCommunicator with the inverse communication pattern
      */
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_inverse()
         const override;
 
-    /**
-     * @copydoc collective_communicator::get_recv_size
-     */
     [[nodiscard]] comm_index_type get_recv_size() const override;
 
-    /**
-     * @copydoc collective_communicator::get_recv_size
-     */
     [[nodiscard]] comm_index_type get_send_size() const override;
-
 
     /**
      * Compares two communicators for equality.
@@ -133,6 +126,7 @@ private:
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko
+
 
 #endif
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_DENSE_COMMUNICATOR_HPP_

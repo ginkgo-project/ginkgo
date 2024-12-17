@@ -14,27 +14,27 @@ namespace mpi {
 
 
 /**
- * \brief Computes the inverse envelope (target-ids, sizes) for a given
+ * @brief Computes the inverse envelope (target-ids, sizes) for a given
  *        one-sided communication pattern.
  *
- * \param exec the executor, this will always use the host executor
- * \param comm communicator
- * \param ids target ids of the one-sided operation
- * \param sizes number of elements send to each id
+ * @param exec the executor, this will always use the host executor
+ * @param comm communicator
+ * @param ids target ids of the one-sided operation
+ * @param sizes number of elements send to each id
  *
- * \return the inverse envelope consisting of the target-ids and the sizes
+ * @return the inverse envelope consisting of the target-ids and the sizes
  */
 std::tuple<std::vector<comm_index_type>, std::vector<comm_index_type>>
 communicate_inverse_envelope(std::shared_ptr<const Executor> exec,
-                             mpi::communicator comm,
+                             communicator comm,
                              const std::vector<comm_index_type>& ids,
                              const std::vector<comm_index_type>& sizes)
 {
     auto host_exec = exec->get_master();
     std::vector<comm_index_type> inverse_sizes_full(comm.size());
-    mpi::window<comm_index_type> window(host_exec, inverse_sizes_full.data(),
-                                        inverse_sizes_full.size(), comm,
-                                        sizeof(comm_index_type), MPI_INFO_ENV);
+    window<comm_index_type> window(host_exec, inverse_sizes_full.data(),
+                                   inverse_sizes_full.size(), comm,
+                                   sizeof(comm_index_type), MPI_INFO_ENV);
     window.fence();
     for (int i = 0; i < ids.size(); ++i) {
         window.put(host_exec, sizes.data() + i, 1, ids[i], comm.rank(), 1);
@@ -61,8 +61,8 @@ communicate_inverse_envelope(std::shared_ptr<const Executor> exec,
  * The graph is unweighted and has the same rank ordering as the input
  * communicator.
  */
-mpi::communicator create_neighborhood_comm(
-    mpi::communicator base, const std::vector<comm_index_type>& sources,
+communicator create_neighborhood_comm(
+    communicator base, const std::vector<comm_index_type>& sources,
     const std::vector<comm_index_type>& destinations)
 {
     auto in_degree = static_cast<comm_index_type>(sources.size());
@@ -80,8 +80,7 @@ mpi::communicator create_neighborhood_comm(
         info, false, &graph_comm));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_free(&info));
 
-    return mpi::communicator::create_owning(graph_comm,
-                                            base.force_host_buffer());
+    return communicator::create_owning(graph_comm, base.force_host_buffer());
 }
 
 

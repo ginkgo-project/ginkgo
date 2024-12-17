@@ -11,6 +11,7 @@
 
 #if GINKGO_BUILD_MPI
 
+
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
@@ -22,7 +23,7 @@ namespace mpi {
 
 
 /**
- * A collective_communicator that uses a neighborhood topology.
+ * A CollectiveCommunicator that uses a neighborhood topology.
  *
  * The neighborhood communicator is defined by a list of neighbors this
  * rank sends data to and a list of neighbors this rank receives data from.
@@ -44,6 +45,7 @@ public:
 
     /**
      * Default constructor with empty communication pattern
+     *
      * @param base  the base communicator
      */
     explicit NeighborhoodCommunicator(communicator base);
@@ -51,12 +53,13 @@ public:
     /**
      * Create a NeighborhoodCommunicator from an index map.
      *
-     * The receive neighbors are defined by the remote indices and their
+     * The receiving neighbors are defined by the remote indices and their
      * owning ranks of the index map. The send neighbors are deduced
      * from that through collective communication.
      *
      * @tparam LocalIndexType  the local index type of the map
      * @tparam GlobalIndexType  the global index type of the map
+     *
      * @param base  the base communicator
      * @param imap  the index map that defines the communication pattern
      */
@@ -65,9 +68,6 @@ public:
         communicator base,
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
-    /**
-     * @copydoc collective_communicator::create_with_same_type
-     */
     std::unique_ptr<CollectiveCommunicator> create_with_same_type(
         communicator base,
         const distributed::index_map_variant& imap) const override;
@@ -76,19 +76,13 @@ public:
      * Creates the inverse NeighborhoodCommunicator by switching sources
      * and destinations.
      *
-     * @return  collective_communicator with the inverse communication pattern
+     * @return  CollectiveCommunicator with the inverse communication pattern
      */
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_inverse()
         const override;
 
-    /**
-     * @copydoc collective_communicator::get_recv_size
-     */
     [[nodiscard]] comm_index_type get_recv_size() const override;
 
-    /**
-     * @copydoc collective_communicator::get_recv_size
-     */
     [[nodiscard]] comm_index_type get_send_size() const override;
 
     /**
@@ -123,7 +117,6 @@ protected:
                                 void* recv_buffer,
                                 MPI_Datatype recv_type) const override;
 
-
 private:
     communicator comm_;
 
@@ -137,6 +130,7 @@ private:
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko
+
 
 #endif
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_NEIGHBORHOOD_COMMUNICATOR_HPP_
