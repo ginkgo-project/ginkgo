@@ -382,70 +382,71 @@ void Pgm<ValueType, IndexType>::generate()
 
             auto distributed_setup = [&](auto matrix) {
                 using global_index_type =
-                typename std::decay_t<decltype(*matrix)>::global_index_type;
+                    typename std::decay_t<decltype(*matrix)>::global_index_type;
 
-            auto exec = gko::as<LinOp>(matrix)->get_executor();
-            auto comm =
-                gko::as<experimental::distributed::DistributedBase>(matrix)
-                    ->get_communicator();
+                auto exec = gko::as<LinOp>(matrix)->get_executor();
+                auto comm =
+                    gko::as<experimental::distributed::DistributedBase>(matrix)
+                        ->get_communicator();
                 auto pgm_local_op =
                     gko::as<const csr_type>(matrix->get_local_matrix());
                 auto result = this->generate_local(pgm_local_op);
 
-            // create the coarse partition
-            // the coarse partition will have only one range per part
-            // and only one part per rank.
-            // The global indices are ordered block-wise by rank, i.e. rank 1
-            // owns [0, ..., N_1), rank 2 [N_1, ..., N_2), ...
-            auto coarse_local_size =
-                static_cast<int64>(std::get<1>(result)->get_size()[0]);
-            auto coarse_partition = gko::share(
-                experimental::distributed::build_partition_from_local_size<
-                    IndexType, global_index_type>(exec, comm,
-                                                  coarse_local_size));
+                // create the coarse partition
+                // the coarse partition will have only one range per part
+                // and only one part per rank.
+                // The global indices are ordered block-wise by rank, i.e. rank
+                // 1 owns [0, ..., N_1), rank 2 [N_1, ..., N_2), ...
+                auto coarse_local_size =
+                    static_cast<int64>(std::get<1>(result)->get_size()[0]);
+                auto coarse_partition = gko::share(
+                    experimental::distributed::build_partition_from_local_size<
+                        IndexType, global_index_type>(exec, comm,
+                                                      coarse_local_size));
 
-            // get the non-local aggregates as coarse global indices
-            auto non_local_agg =
-                communicate_non_local_agg(matrix, coarse_partition, agg_);
+                // get the non-local aggregates as coarse global indices
+                auto non_local_agg =
+                    communicate_non_local_agg(matrix, coarse_partition, agg_);
 
-                // create a coarse index map based on the connection given by the
-                // non-local aggregates
-            auto coarse_imap =
-                experimental::distributed::index_map<IndexType,
-                                                     global_index_type>(
-                    exec, coarse_partition, comm.rank(), non_local_agg);
+                // create a coarse index map based on the connection given by
+                // the non-local aggregates
+                auto coarse_imap =
+                    experimental::distributed::index_map<IndexType,
+                                                         global_index_type>(
+                        exec, coarse_partition, comm.rank(), non_local_agg);
 
-                // a mapping from the fine non-local indices to the coarse non-local
-            // indices.
-            // non_local_agg already maps the fine non-local indices to coarse
-            // global indices, so mapping it with the coarse index map results
-            // in the coarse non-local indices.
-            auto non_local_map = coarse_imap.map_to_local(
-                non_local_agg,
-                experimental::distributed::index_space::non_local);
+                // a mapping from the fine non-local indices to the coarse
+                // non-local indices.
+                // non_local_agg already maps the fine non-local indices to
+                // coarse global indices, so mapping it with the coarse index
+                // map results in the coarse non-local indices.
+                auto non_local_map = coarse_imap.map_to_local(
+                    non_local_agg,
+                    experimental::distributed::index_space::non_local);
 
                 // build csr from row and col map
                 // unlike non-distributed version, generate_coarse uses
                 // differentrow and col maps.
-            auto non_local_csr =
-                as<const csr_type>(matrix->get_non_local_matrix());
+                auto non_local_csr =
+                    as<const csr_type>(matrix->get_non_local_matrix());
                 auto result_non_local_csr = generate_coarse(
                     exec, non_local_csr.get(),
                     static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                    agg_, static_cast<IndexType>(coarse_imap.get_non_local_size()),
-                non_local_map);
+                    agg_,
+                    static_cast<IndexType>(coarse_imap.get_non_local_size()),
+                    non_local_map);
 
                 // setup the generated linop.
                 auto coarse = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm, std::move(coarse_imap), std::get<1>(result),
-                        result_non_local_csr));
-            auto restrict_op = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm,
-                        dim<2>(coarse->get_size()[0],
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm, std::move(coarse_imap),
+                            std::get<1>(result), result_non_local_csr));
+                auto restrict_op = share(
+                    experimental::distributed::
+                        Matrix<ValueType, IndexType, global_index_type>::create(
+                            exec, comm,
+                            dim<2>(coarse->get_size()[0],
                                    gko::as<LinOp>(matrix)->get_size()[0]),
                             std::get<2>(result)));
                 auto prolong_op = share(
