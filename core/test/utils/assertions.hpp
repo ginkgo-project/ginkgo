@@ -109,6 +109,20 @@ public:
 
 
 template <typename NonzeroIterator>
+auto get_next_value_optional(NonzeroIterator& it, const NonzeroIterator& end,
+                             size_type next_row, size_type next_col)
+    -> std::optional<typename std::decay<decltype(it->value)>::type>
+{
+    if (it != end && it->row == next_row && it->column == next_col) {
+        return std::optional((it++)->value);
+    } else {
+        // monostate
+        return {};
+    }
+}
+
+
+template <typename NonzeroIterator>
 auto get_next_value(NonzeroIterator& it, const NonzeroIterator& end,
                     size_type next_row, size_type next_col) ->
     typename std::decay<decltype(it->value)>::type
@@ -190,11 +204,12 @@ void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
         os << (row % 10);
         for (size_type col = 0; col < first.size[1]; col++) {
             const auto has_first =
-                get_next_value(first_it, end(first.nonzeros), row, col) !=
-                zero<typename MatrixData1::value_type>();
+                get_next_value_optional(first_it, end(first.nonzeros), row, col)
+                    .has_value();
             const auto has_second =
-                get_next_value(second_it, end(second.nonzeros), row, col) !=
-                zero<typename MatrixData2::value_type>();
+                get_next_value_optional(second_it, end(second.nonzeros), row,
+                                        col)
+                    .has_value();
             if (has_first) {
                 if (has_second) {
                     os << '+';
