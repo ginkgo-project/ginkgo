@@ -233,6 +233,37 @@ TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
+TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices(
+        [this] {
+            auto skeleton = matrix_type::create(
+                this->ref, this->mtx->get_size(), this->mtx->get_size()[0]);
+            std::unique_ptr<elimination_forest> skeleton_forest;
+            gko::factorization::compute_elim_forest(this->mtx.get(),
+                                                    this->forest);
+
+            gko::kernels::reference::cholesky::compute_skeleton_tree(
+                this->ref, this->mtx->get_const_row_ptrs(),
+                this->mtx->get_const_col_idxs(), this->mtx->get_size()[0],
+                skeleton->get_row_ptrs(), skeleton->get_col_idxs());
+
+            gko::factorization::compute_elim_forest(this->mtx.get(),
+                                                    this->forest);
+            gko::factorization::compute_elim_forest(skeleton.get(),
+                                                    skeleton_forest);
+
+            this->assert_equal_forests(*skeleton_forest, *this->forest);
+        },
+        true);
+}
+
+
 TYPED_TEST(Cholesky, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;

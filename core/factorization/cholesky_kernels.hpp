@@ -20,6 +20,13 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_CHOLESKY_COMPUTE_SKELETON_TREE(IndexType)               \
+    void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec, \
+                               const IndexType* row_ptrs,                   \
+                               const IndexType* cols, size_type size,       \
+                               IndexType* out_row_ptrs, IndexType* out_cols)
+
+
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType)        \
     void symbolic_count(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                     \
@@ -66,6 +73,8 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename IndexType>                                  \
+    GKO_DECLARE_CHOLESKY_COMPUTE_SKELETON_TREE(IndexType);         \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>              \

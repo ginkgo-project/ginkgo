@@ -9,6 +9,8 @@
 
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/base/allocator.hpp"
+#include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -26,6 +28,52 @@ namespace omp {
  * @ingroup factor
  */
 namespace cholesky {
+
+
+template <typename IndexType>
+void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* row_ptrs, const IndexType* cols,
+                           size_type size, IndexType* out_row_ptrs,
+                           IndexType* out_cols)
+{
+    disjoint_sets<IndexType> sets(exec, size);
+    const auto nnz = static_cast<size_type>(row_ptrs[size]);
+    vector<std::pair<IndexType, IndexType>> edges(nnz, exec);
+    // collect edge list
+    for (auto row : irange(static_cast<IndexType>(size))) {
+        for (auto nz : irange(row_ptrs[row], row_ptrs[row + 1])) {
+            const auto col = cols[nz];
+            // edge contains (max, min) pair
+            auto edge = std::minmax(row, col, std::greater{});
+            edges.push_back(edge);
+        }
+    }
+    // sort edge list ascending by edge weight
+    std::sort(edges.begin(), edges.end());
+    // output helper array: Store row indices for output rows
+    // since we sorted by edge.first == row, this will be sorted
+    std::vector<IndexType> out_rows(size);
+    IndexType output_count{};
+    // Kruskal algorithm: Connect unconnected components using edges with
+    // ascending weight
+    for (const auto edge : edges) {
+        const auto first_rep = sets.find(edge.first);
+        const auto second_rep = sets.find(edge.second);
+        if (first_rep != second_rep) {
+            // we are only interested in the lower triangle, so we add an edge
+            // max -> min
+            out_rows[output_count] = edge.first;
+            out_cols[output_count] = edge.second;
+            output_count++;
+            sets.join(first_rep, second_rep);
+        }
+    }
+    assert(std::is_sorted(out_rows.begin(), out_rows.begin() + output_count));
+    components::convert_idxs_to_ptrs(exec, out_rows.data(), output_count, size,
+                                     out_row_ptrs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CHOLESKY_COMPUTE_SKELETON_TREE);
 
 
 template <typename ValueType, typename IndexType>
