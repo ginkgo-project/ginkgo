@@ -416,8 +416,7 @@ void Pgm<ValueType, IndexType>::generate()
                         exec, coarse_partition, comm.rank(), non_local_agg);
 
                 // a mapping from the fine non-local indices to the coarse
-                // non-local
-                // indices.
+                // non-local indices.
                 // non_local_agg already maps the fine non-local indices to
                 // coarse global indices, so mapping it with the coarse index
                 // map results in the coarse non-local indices.
