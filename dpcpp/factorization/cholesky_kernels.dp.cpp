@@ -25,6 +25,15 @@ namespace dpcpp {
 namespace cholesky {
 
 
+template <typename IndexType>
+void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* row_ptrs, const IndexType* cols,
+                           size_type size, IndexType* out_row_ptrs,
+                           IndexType* out_cols) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CHOLESKY_COMPUTE_SKELETON_TREE);
+
+
 template <typename ValueType, typename IndexType>
 void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* mtx,
