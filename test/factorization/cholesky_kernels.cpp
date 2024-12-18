@@ -130,6 +130,30 @@ using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypesBase,
 TYPED_TEST_SUITE(CholeskySymbolic, Types, PairTypenameNameGenerator);
 
 
+TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size();
+        auto skeleton = matrix_type::create(this->ref, size, size[0]);
+        auto dskeleton = matrix_type::create(this->exec, size, size[0]);
+
+        gko::kernels::reference::cholesky::compute_skeleton_tree(
+            this->ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            size[0], skeleton->get_row_ptrs(), skeleton->get_col_idxs());
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::compute_skeleton_tree(
+            this->exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+            size[0], dskeleton->get_row_ptrs(), dskeleton->get_col_idxs());
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(skeleton, dskeleton);
+    }
+}
+
+
 TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;
