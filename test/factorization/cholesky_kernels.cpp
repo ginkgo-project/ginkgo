@@ -88,6 +88,11 @@ protected:
         std::ifstream ani1_amd_stream{gko::matrices::location_ani1_amd_mtx};
         matrices.emplace_back("ani1_amd",
                               gko::read<matrix_type>(ani1_amd_stream, ref));
+        std::ifstream ani4_stream{gko::matrices::location_ani4_mtx};
+        matrices.emplace_back("ani4", gko::read<matrix_type>(ani4_stream, ref));
+        std::ifstream ani4_amd_stream{gko::matrices::location_ani4_amd_mtx};
+        matrices.emplace_back("ani4_amd",
+                              gko::read<matrix_type>(ani4_amd_stream, ref));
     }
 
     void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
