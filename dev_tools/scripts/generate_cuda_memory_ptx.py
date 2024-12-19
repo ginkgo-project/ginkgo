@@ -17,6 +17,8 @@ class ordering:
     fn_load_suffix: str
     ptx_store_suffix: str
     fn_store_suffix: str
+    ptx_loadstore_suffix: str
+    fn_loadstore_suffix: str
     is_relaxed: bool
 
 
@@ -27,6 +29,13 @@ class type_desc:
     name: str
 
 
+@dataclasses.dataclass
+class operation:
+    fn_op_suffix: str
+    ptx_op_suffix: str
+    supports_float: bool
+    supports_signed: bool
+
 memory_spaces = [
     space(ptx_space_suffix=".shared", ptx_scope_suffix=".cta", fn_suffix="_shared",
           ptr_expr="convert_generic_ptr_to_smem_ptr({ptr})", ptr_constraint="r"),
@@ -35,14 +44,23 @@ memory_spaces = [
     space(ptx_space_suffix="", ptx_scope_suffix=".gpu", fn_suffix="", ptr_expr="{ptr}", ptr_constraint="l")]
 memory_orderings = [
     ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True),
+             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
+             ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True),
     ordering(ptx_load_suffix=".acquire", fn_load_suffix="_acquire",
-             ptx_store_suffix=".release", fn_store_suffix="_release", is_relaxed=False)
+             ptx_store_suffix=".release", fn_store_suffix="_release",
+             ptx_loadstore_suffix=".acq_rel", fn_loadstore_suffix="_acqrel", is_relaxed=False)
 ]
 types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
          type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
          type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
-         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+         type_desc(ptx_type_suffix=".u32", val_constraint="r", name="uint32"),
+         type_desc(ptx_type_suffix=".u64", val_constraint="l", name="uint64")]
+operations = [operation(fn_op_suffix="_add", ptx_op_suffix=".add", supports_float=True, supports_signed=True),
+              operation(fn_op_suffix="_min", ptx_op_suffix=".min", supports_float=False, supports_signed=True),
+              operation(fn_op_suffix="_max", ptx_op_suffix=".max", supports_float=False, supports_signed=True),
+              operation(fn_op_suffix="_and", ptx_op_suffix=".and", supports_float=False, supports_signed=False),
+              operation(fn_op_suffix="_or", ptx_op_suffix=".or", supports_float=False, supports_signed=False)]
 # header
 print("""// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
 //
@@ -148,6 +166,32 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 #endif
         :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(result)
         : "memory");
+}}
+""")
+            for op in operations:
+
+                if (not t.ptx_type_suffix.startswith(".f") or op.supports_float) and (not t.ptx_type_suffix.startswith(".s") or op.supports_signed):
+                    # for some reason there is no signed 64 bit atomic support,
+                    # but since the operations are equivalent in two's complement, we can use unsigned instead
+                    new_type = ".u64" if t.ptx_type_suffix == ".s64" and op.fn_op_suffix == "_add" else t.ptx_type_suffix
+                    # non-relaxed atomics are unsupported with SM 6.0 and below
+                    if o.is_relaxed:
+                        print(f"""
+__device__ __forceinline__ {t.name} atomic{op.fn_op_suffix}{o.fn_loadstore_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} value)
+{{
+    {t.name} result;
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom{s.ptx_space_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#elif __CUDA_ARCH__ < 700
+        "atom{s.ptx_space_suffix}{s.ptx_scope_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#else
+        "atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#endif
+        : "={t.val_constraint}"(result)
+        : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(value)
+        : "memory");
+    return result;
 }}
 """)
 
