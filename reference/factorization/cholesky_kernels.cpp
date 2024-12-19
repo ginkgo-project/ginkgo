@@ -40,7 +40,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
 {
     disjoint_sets<IndexType> sets(exec, size);
     const auto nnz = static_cast<size_type>(row_ptrs[size]);
-    vector<std::pair<IndexType, IndexType>> edges(nnz, exec);
+    vector<std::pair<IndexType, IndexType>> edges(exec);
+    edges.reserve(nnz);
     // collect edge list
     for (auto row : irange(static_cast<IndexType>(size))) {
         for (auto nz : irange(row_ptrs[row], row_ptrs[row + 1])) {
