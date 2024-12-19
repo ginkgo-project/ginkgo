@@ -14,6 +14,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/components/disjoint_sets.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
@@ -111,6 +112,27 @@ protected:
         }
     }
 
+    index_type check_mst(const std::unique_ptr<matrix_type>& mst) const
+    {
+        gko::matrix_data<value_type, index_type> mst_data;
+        const auto size = mst->get_size();
+        mst->write(mst_data);
+        gko::disjoint_sets<index_type> sets(this->ref, size[0]);
+        index_type weight_sum{};
+        // need an IIFE because the assertions would return something
+        [&] {
+            for (const auto entry : mst_data.nonzeros) {
+                ASSERT_GT(entry.row, entry.column);
+                weight_sum += entry.row;
+                const auto row_rep = sets.find(entry.row);
+                const auto col_rep = sets.find(entry.column);
+                ASSERT_NE(row_rep, col_rep);
+                sets.join(row_rep, col_rep);
+            }
+        }();
+        return weight_sum;
+    }
+
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
         matrices;
     gko::array<index_type> tmp;
@@ -136,14 +158,18 @@ TYPED_TEST_SUITE(CholeskySymbolic, Types, PairTypenameNameGenerator);
 TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
 {
     using matrix_type = typename TestFixture::matrix_type;
+    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
         SCOPED_TRACE(pair.first);
         const auto& mtx = pair.second;
+        // check for correctness: is mtx symmetric?
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx, gko::as<matrix_type>(mtx->transpose()));
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto size = mtx->get_size();
-        auto skeleton = matrix_type::create(this->ref, size, size[0]);
-        auto dskeleton = matrix_type::create(this->exec, size, size[0]);
+        const auto skeleton = matrix_type::create(this->ref, size, size[0]);
+        const auto dskeleton = matrix_type::create(this->exec, size, size[0]);
 
         gko::kernels::reference::cholesky::compute_skeleton_tree(
             this->ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
@@ -152,7 +178,24 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
             this->exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
             size[0], dskeleton->get_row_ptrs(), dskeleton->get_col_idxs());
 
-        GKO_ASSERT_MTX_EQ_SPARSITY(skeleton, dskeleton);
+        // check that the created graphs are trees and have the same edge sum
+        const auto weight_sum = this->check_mst(skeleton);
+        const auto dweight_sum = this->check_mst(dskeleton);
+        ASSERT_EQ(weight_sum, dweight_sum);
+        // while the MSTs may be different, they should produce the same
+        // elimination forest as the original matrix
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> skeleton_forest;
+        std::unique_ptr<elimination_forest> dskeleton_forest;
+        gko::factorization::compute_elim_forest(mtx.get(), forest);
+        gko::factorization::compute_elim_forest(skeleton.get(),
+                                                skeleton_forest);
+        gko::factorization::compute_elim_forest(dskeleton.get(),
+                                                dskeleton_forest);
+        // the parents array fully determines the elimination forest
+        GKO_ASSERT_ARRAY_EQ(forest->parents, skeleton_forest->parents);
+        GKO_ASSERT_ARRAY_EQ(skeleton_forest->parents,
+                            dskeleton_forest->parents);
     }
 }
 
