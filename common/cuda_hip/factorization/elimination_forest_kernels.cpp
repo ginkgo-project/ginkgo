@@ -23,6 +23,7 @@
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "core/base/index_range.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
@@ -192,6 +193,51 @@ __global__ __launch_bounds__(default_block_size) void mst_reset_min_edges(
 }
 
 
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
+    const IndexType* __restrict__ child_ptrs,
+    const IndexType* __restrict__ children, IndexType size,
+    IndexType* __restrict__ subtree_sizes)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto i = thread::get_thread_id_flat<IndexType>();
+    if (i >= size) {
+        return;
+    }
+    const auto child_begin = child_ptrs[i];
+    const auto child_end = child_ptrs[i + 1];
+    IndexType local_size{1};
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    for (const auto child_idx : irange{child_begin, child_end}) {
+        const auto child = children[child_idx];
+        auto child_size = load_relaxed_local(subtree_sizes + child);
+        while (child_size == invalid_index<IndexType>()) {
+            child_size = load_relaxed(subtree_sizes + child);
+        }
+        local_size += child_size;
+    }
+    store_relaxed(subtree_sizes + i, local_size);
+#else
+    if (child_begin == child_end) {
+        store_relaxed(subtree_sizes + i, local_size);
+    }
+    auto child_idx = child_begin;
+    auto child = child_idx < child_end ? children[child_idx] : IndexType{};
+    while (child_idx < child_end) {
+        const auto child_size = load_relaxed(subtree_sizes + child);
+        if (child_size != invalid_index<IndexType>()) {
+            local_size += child_size;
+            child_idx++;
+            child = child_idx < child_end ? children[child_idx] : IndexType{};
+            if (child_idx == child_end) {
+                store_relaxed(subtree_sizes + i, local_size);
+            }
+        }
+    }
+#endif
+}
+
+
 }  // namespace kernel
 
 
@@ -268,7 +314,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // initialize worklist1 with forward edges
     {
         const auto num_blocks = ceildiv(nnz, default_block_size);
-        kernel::mst_initialize_worklist<<<num_blocks, default_block_size>>>(
+        kernel::mst_initialize_worklist<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
             rows, cols, nnz, wl1_source, wl1_target, wl1_edge_id, wl1_counter);
     }
     auto wl1_size = get_wl1_size();
@@ -277,7 +324,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         // attach each node to its smallest adjacent non-cycle edge
         {
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_find_minimum<<<num_blocks, default_block_size>>>(
+            kernel::mst_find_minimum<<<num_blocks, default_block_size, 0,
+                                       exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, wl2_source, wl2_target, wl2_edge_id, wl2_counter);
         }
@@ -287,10 +335,12 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         if (wl1_size > 0) {
             // join minimal edges
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_join_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_join_edges<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, rows, cols, out_rows, out_cols, output_counter);
-            kernel::mst_reset_min_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_reset_min_edges<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_size, min_edges);
         }
     }
@@ -363,6 +413,29 @@ void from_factor(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR);
+
+
+template <typename IndexType>
+void compute_subtree_sizes(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* subtree_sizes)
+{
+    const auto size = static_cast<IndexType>(forest.parents.get_size());
+    const auto child_ptrs = forest.child_ptrs.get_const_data();
+    const auto children = forest.children.get_const_data();
+    components::fill_array(exec, subtree_sizes, size,
+                           invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_subtree_sizes<<<num_blocks, default_block_size, 0,
+                                        exec->get_stream()>>>(
+            child_ptrs, children, size, subtree_sizes);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
 
 
 }  // namespace elimination_forest

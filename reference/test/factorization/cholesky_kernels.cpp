@@ -15,6 +15,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/base/index_range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
@@ -261,6 +262,49 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
                                                            skeleton_forest);
 
             this->assert_equal_forests(*skeleton_forest, *this->forest);
+        },
+        true);
+}
+
+
+TYPED_TEST(Cholesky, KernelComputeSubtreeSizes)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices(
+        [this] {
+            const auto size = this->mtx->get_size()[0];
+            std::unique_ptr<elimination_forest> forest;
+            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::array<index_type> subtree_sizes{this->ref, size};
+            gko::array<index_type> ref_subtree_sizes{this->ref, size};
+            const auto child_ptrs = this->forest->child_ptrs.get_const_data();
+            const auto children = this->forest->children.get_const_data();
+            for (const auto node : gko::irange{static_cast<index_type>(size)}) {
+                index_type count{};
+                std::vector<index_type> queue;
+                queue.push_back(node);
+                while (!queue.empty()) {
+                    const auto cur_node = queue.back();
+                    queue.pop_back();
+                    const auto child_begin = child_ptrs[cur_node];
+                    const auto child_end = child_ptrs[cur_node + 1];
+                    for (const auto child_i :
+                         gko::irange{child_begin, child_end}) {
+                        const auto child = children[child_i];
+                        queue.push_back(child);
+                    }
+                    count++;
+                }
+                ref_subtree_sizes.get_data()[node] = count;
+            }
+
+            gko::kernels::reference::elimination_forest::compute_subtree_sizes(
+                this->ref, *forest, subtree_sizes.get_data());
+
+            GKO_ASSERT_ARRAY_EQ(subtree_sizes, ref_subtree_sizes);
         },
         true);
 }
