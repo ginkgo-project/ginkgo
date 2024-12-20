@@ -155,6 +155,33 @@ using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypesBase,
 TYPED_TEST_SUITE(CholeskySymbolic, Types, PairTypenameNameGenerator);
 
 
+TYPED_TEST(CholeskySymbolic, KernelComputeSubtreeSizesIsEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
+        gko::factorization::compute_elim_forest(mtx.get(), forest);
+        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
+        gko::array<index_type> subtree_sizes{this->ref, size};
+        gko::array<index_type> dsubtree_sizes{this->exec, size};
+
+        gko::kernels::reference::elimination_forest::compute_subtree_sizes(
+            this->ref, *forest, subtree_sizes.get_data());
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::
+            compute_subtree_sizes(this->exec, *dforest,
+                                  dsubtree_sizes.get_data());
+
+        GKO_ASSERT_ARRAY_EQ(subtree_sizes, dsubtree_sizes);
+    }
+}
+
+
 TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
 {
     using matrix_type = typename TestFixture::matrix_type;
