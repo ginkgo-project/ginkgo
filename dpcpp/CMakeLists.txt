@@ -27,6 +27,7 @@ target_sources(ginkgo_dpcpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
+    factorization/elimination_forest_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp

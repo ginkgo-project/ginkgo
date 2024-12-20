@@ -23,6 +23,7 @@
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -927,15 +928,24 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 namespace cholesky {
 
 
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_CHOLESKY_COMPUTE_SKELETON_TREE);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
-GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
 
 }  // namespace cholesky
+
+
+namespace elimination_forest {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR);
+
+}  // namespace elimination_forest
 
 
 namespace factorization {

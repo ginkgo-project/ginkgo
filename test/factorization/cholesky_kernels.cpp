@@ -18,6 +18,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
@@ -171,12 +172,14 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
         const auto skeleton = matrix_type::create(this->ref, size, size[0]);
         const auto dskeleton = matrix_type::create(this->exec, size, size[0]);
 
-        gko::kernels::reference::cholesky::compute_skeleton_tree(
+        gko::kernels::reference::elimination_forest::compute_skeleton_tree(
             this->ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
             size[0], skeleton->get_row_ptrs(), skeleton->get_col_idxs());
-        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::compute_skeleton_tree(
-            this->exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
-            size[0], dskeleton->get_row_ptrs(), dskeleton->get_col_idxs());
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::
+            compute_skeleton_tree(this->exec, dmtx->get_const_row_ptrs(),
+                                  dmtx->get_const_col_idxs(), size[0],
+                                  dskeleton->get_row_ptrs(),
+                                  dskeleton->get_col_idxs());
 
         // check that the created graphs are trees and have the same edge sum
         const auto weight_sum = this->check_mst(skeleton);
@@ -307,7 +310,7 @@ TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
         elimination_forest dforest{this->exec,
                                    static_cast<index_type>(mtx->get_size()[0])};
 
-        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::forest_from_factor(
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::from_factor(
             this->exec, dfactors.get(), dforest);
 
         this->assert_equal_forests(*forest, dforest);

@@ -15,6 +15,7 @@
 #include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -27,7 +28,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
+GKO_REGISTER_OPERATION(from_factor, elimination_forest::from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
@@ -102,7 +103,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
         forest =
             std::make_unique<gko::factorization::elimination_forest<IndexType>>(
                 exec, num_rows);
-        exec->run(make_forest_from_factor(factors.get(), *forest));
+        exec->run(make_from_factor(factors.get(), *forest));
     }
     // setup lookup structure on factors
     const auto lookup = matrix::csr::build_lookup(factors.get());
