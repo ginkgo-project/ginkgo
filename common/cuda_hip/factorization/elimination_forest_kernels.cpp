@@ -249,6 +249,54 @@ __global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
 }
 
 
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_levels(
+    const IndexType* __restrict__ parents, IndexType size,
+    IndexType* __restrict__ levels)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto rev_i = thread::get_thread_id_flat<IndexType>();
+    if (rev_i >= size) {
+        return;
+    }
+    // iterate through nodes in reverse order
+    const auto i = size - rev_i - 1;
+    const auto parent = parents[i];
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    // root nodes are at level 0
+    if (parent == size) {
+        store_relaxed(levels + i, IndexType{});
+        return;
+    }
+    // pull level from parents
+    // try to read level from L1 cache first
+    auto level = load_relaxed_local(levels + parent);
+    while (level == invalid_index<IndexType>()) {
+        level = load_relaxed(levels + parent);
+    }
+    store_relaxed(levels + i, level + 1);
+#else
+    // TODO broken in HIP
+    // root nodes are at level 0
+    if (parent == size) {
+        store_relaxed(levels + i, IndexType{});
+        return;
+    }
+    // push level to children
+    IndexType level{};
+    do {
+        level = load_relaxed(levels + i);
+        if (level != invalid_index<IndexType>()) {
+            for (const auto child_idx : irange{child_begin, child_end}) {
+                const auto child = children[child_idx];
+                store_relaxed(levels + child, level + 1);
+            }
+        }
+    } while (level == invalid_index<IndexType>());
+#endif
+}
+
+
 }  // namespace kernel
 
 
@@ -1130,6 +1178,26 @@ void compute_subtree_sizes(
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
+
+
+template <typename IndexType>
+void compute_levels(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* levels)
+{
+    const auto size = static_cast<IndexType>(forest.parents.get_size());
+    const auto parents = forest.parents.get_const_data();
+    components::fill_array(exec, levels, size, invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_levels<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(parents, size, levels);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS);
 
 
 }  // namespace elimination_forest

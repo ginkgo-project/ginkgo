@@ -511,6 +511,25 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
 
 
+template <typename IndexType>
+void compute_levels(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* levels)
+{
+    const auto size = static_cast<IndexType>(forest.parents.get_size());
+    const auto parents = forest.parents.get_const_data();
+    for (auto node = size - 1; node >= 0; node--) {
+        const auto parent = parents[node];
+        // root nodes are attached to pseudo-root at index ssize
+        levels[node] = parent == size ? IndexType{} : levels[parent] + 1;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS);
+
+
 }  // namespace elimination_forest
 }  // namespace omp
 }  // namespace kernels

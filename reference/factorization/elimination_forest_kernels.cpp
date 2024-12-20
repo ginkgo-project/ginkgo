@@ -291,6 +291,38 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
 
 
+template <typename IndexType>
+void compute_levels(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* levels)
+{
+    const auto size = static_cast<IndexType>(forest.parents.get_size());
+    const auto child_ptrs = forest.child_ptrs.get_const_data();
+    const auto children = forest.children.get_const_data();
+    vector<IndexType> queue(children + child_ptrs[size],
+                            children + child_ptrs[size + 1], exec);
+    vector<IndexType> new_queue(exec);
+    IndexType level{};
+    while (!queue.empty()) {
+        for (const auto node : queue) {
+            levels[node] = level;
+            const auto child_begin = child_ptrs[node];
+            const auto child_end = child_ptrs[node + 1];
+            for (const auto child_idx : irange{child_begin, child_end}) {
+                new_queue.push_back(children[child_idx]);
+            }
+        }
+        level++;
+        queue = std::move(new_queue);
+        new_queue.clear();
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS);
+
+
 }  // namespace elimination_forest
 }  // namespace reference
 }  // namespace kernels
