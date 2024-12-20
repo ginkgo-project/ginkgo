@@ -17,6 +17,7 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -248,7 +249,7 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
             gko::factorization::compute_elim_forest(this->mtx.get(),
                                                     this->forest);
 
-            gko::kernels::reference::cholesky::compute_skeleton_tree(
+            gko::kernels::reference::elimination_forest::compute_skeleton_tree(
                 this->ref, this->mtx->get_const_row_ptrs(),
                 this->mtx->get_const_col_idxs(), this->mtx->get_size()[0],
                 skeleton->get_row_ptrs(), skeleton->get_col_idxs());
@@ -360,7 +361,7 @@ TYPED_TEST(Cholesky, KernelForestFromFactorPlusPostprocessing)
             elimination_forest forest{this->ref,
                                       static_cast<index_type>(this->num_rows)};
 
-            gko::kernels::reference::cholesky::forest_from_factor(
+            gko::kernels::reference::elimination_forest::from_factor(
                 this->ref, combined_factor.get(), forest);
 
             this->assert_equal_forests(forest, *forest_ref);

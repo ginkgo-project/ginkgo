@@ -15,6 +15,7 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
@@ -24,7 +25,8 @@ namespace factorization {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_skeleton_tree, cholesky::compute_skeleton_tree);
+GKO_REGISTER_OPERATION(compute_skeleton_tree,
+                       elimination_forest::compute_skeleton_tree);
 GKO_REGISTER_OPERATION(symbolic_count, cholesky::symbolic_count);
 GKO_REGISTER_OPERATION(symbolic, cholesky::symbolic_factorize);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,

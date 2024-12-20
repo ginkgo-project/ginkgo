@@ -18,6 +18,7 @@
 #include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -37,7 +38,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 // for gko syncfree implementation
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
+GKO_REGISTER_OPERATION(from_factor, elimination_forest::from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
@@ -119,8 +120,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         forest =
             std::make_unique<gko::factorization::elimination_forest<IndexType>>(
                 exec, num_rows);
-        exec->run(
-            ic_factorization::make_forest_from_factor(factors.get(), *forest));
+        exec->run(ic_factorization::make_from_factor(factors.get(), *forest));
 
         // setup lookup structure on factors
         const auto lookup = matrix::csr::build_lookup(factors.get());
