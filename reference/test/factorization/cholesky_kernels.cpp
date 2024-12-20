@@ -269,9 +269,7 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
 
 TYPED_TEST(Cholesky, KernelComputeSubtreeSizes)
 {
-    using matrix_type = typename TestFixture::matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
-    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
@@ -305,6 +303,36 @@ TYPED_TEST(Cholesky, KernelComputeSubtreeSizes)
                 this->ref, *forest, subtree_sizes.get_data());
 
             GKO_ASSERT_ARRAY_EQ(subtree_sizes, ref_subtree_sizes);
+        },
+        true);
+}
+
+
+TYPED_TEST(Cholesky, KernelComputeLevels)
+{
+    using elimination_forest = typename TestFixture::elimination_forest;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices(
+        [this] {
+            const auto size = this->mtx->get_size()[0];
+            const auto ssize = static_cast<index_type>(size);
+            std::unique_ptr<elimination_forest> forest;
+            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::array<index_type> levels{this->ref, size};
+            gko::array<index_type> ref_levels{this->ref, size};
+            const auto parents = forest->parents.get_const_data();
+            const auto ref_level = ref_levels.get_data();
+            for (auto node = ssize - 1; node >= 0; node--) {
+                const auto parent = parents[node];
+                // root nodes are attached to pseudo-root at index ssize
+                ref_level[node] =
+                    parent == ssize ? index_type{} : ref_level[parent] + 1;
+            }
+
+            gko::kernels::reference::elimination_forest::compute_levels(
+                this->ref, *forest, levels.get_data());
+
+            GKO_ASSERT_ARRAY_EQ(levels, ref_levels);
         },
         true);
 }

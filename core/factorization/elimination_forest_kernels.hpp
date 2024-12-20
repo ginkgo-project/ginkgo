@@ -42,6 +42,13 @@ namespace kernels {
         IndexType* subtree_sizes)
 
 
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType)         \
+    void compute_levels(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        IndexType* levels)
+
+
 #define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)      \
     void compute_postorder(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                     \
@@ -57,6 +64,8 @@ namespace kernels {
     GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType); \
     template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType);  \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType);         \
     template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)
 
