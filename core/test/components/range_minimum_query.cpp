@@ -36,6 +36,19 @@ TEST(RangeMinimumQuery, BallotNumber)
 }
 
 
+TEST(RangeMinimumQuery, CachedBallotNumber)
+{
+    using gko::detail::cartesian_tree;
+    constexpr auto size = 10;
+    cartesian_tree::ballot_number_lookup<size> lookup;
+    for (const auto p : gko::irange{size}) {
+        for (const auto q : gko::irange{size}) {
+            ASSERT_EQ(lookup.get(p, q), cartesian_tree::ballot_number(p, q));
+        }
+    }
+}
+
+
 TEST(RangeMinimumQuery, ComputeTreeNumber)
 {
     using gko::detail::cartesian_tree;
@@ -47,7 +60,7 @@ TEST(RangeMinimumQuery, ComputeTreeNumber)
 }
 
 
-TEST(RangeMinimumQuery, Representatives)
+TEST(RangeMinimumQuery, RepresentativesConstexpr)
 {
     using gko::detail::cartesian_tree;
     constexpr auto size = 8;
@@ -64,18 +77,12 @@ TEST(RangeMinimumQuery, Representatives)
 }
 
 
-TEST(RangeMinimumQuery, Lookup)
+TEST(RangeMinimumQuery, LookupConstexpr)
 {
     using namespace gko::detail;
-    constexpr auto size = 8;
-    block_range_minimum_query_lookup_table<size> table;
+    constexpr auto size = 7;
+    constexpr block_range_minimum_query_lookup_table<size> table;
     auto reps = cartesian_tree::compute_tree_representatives<size>();
-    for (auto v : table.lookup_table) {
-        for (auto vv : v) {
-            std::cout << std::hex << vv << ' ';
-        }
-        std::cout << '\n';
-    }
     for (const auto& rep : reps) {
         const auto tree = cartesian_tree::compute_tree_index(rep);
         for (const auto first : gko::irange{size}) {
@@ -83,11 +90,31 @@ TEST(RangeMinimumQuery, Lookup)
                 const auto begin = rep.begin() + first;
                 const auto end = rep.begin() + last + 1;
                 const auto min_pos =
-                    begin > end ? 0
-                                : std::distance(rep.begin(),
-                                                std::min_element(begin, end));
-                ASSERT_EQ(table.lookup(tree, first, last), min_pos)
-                    << tree << ' ' << first << ' ' << last;
+                    first > last ? 0
+                                 : std::min_element(begin, end) - rep.begin();
+                ASSERT_EQ(table.lookup(tree, first, last), min_pos);
+            }
+        }
+    }
+}
+
+
+TEST(RangeMinimumQuery, LookupLarge)
+{
+    using namespace gko::detail;
+    constexpr auto size = 8;
+    block_range_minimum_query_lookup_table<size> table;
+    auto reps = cartesian_tree::compute_tree_representatives<size>();
+    for (const auto& rep : reps) {
+        const auto tree = cartesian_tree::compute_tree_index(rep);
+        for (const auto first : gko::irange{size}) {
+            for (const auto last : gko::irange{size}) {
+                const auto begin = rep.begin() + first;
+                const auto end = rep.begin() + last + 1;
+                const auto min_pos =
+                    first > last ? 0
+                                 : std::min_element(begin, end) - rep.begin();
+                ASSERT_EQ(table.lookup(tree, first, last), min_pos);
             }
         }
     }

@@ -36,7 +36,7 @@ struct cartesian_tree {
 
         constexpr static int get(int p, int q)
         {
-            if (p > q || p < 0 || q <= 0) {
+            if (p < 0 || q < 0) {
                 return 0;
             }
             assert(p <= max_value && q <= max_value);
@@ -46,9 +46,18 @@ struct cartesian_tree {
         constexpr static std::array<int, size2> compute()
         {
             std::array<int, size2> lut{};
-            for (const auto p : irange{size}) {
-                for (const auto q : irange{size}) {
-                    lut[p * size + q] = ballot_number(p, q);
+            for (int p = 0; p < size; p++) {
+                for (int q = 0; q < size; q++) {
+                    int value{};
+                    if (p == 0 && q == 0) {
+                        value = 1;
+                    } else if (p <= q && q > 0) {
+                        value = lut[p * size + (q - 1)];
+                        if (p > 0) {
+                            value += lut[(p - 1) * size + q];
+                        }
+                    }
+                    lut[p * size + q] = value;
                 }
             }
             return lut;
@@ -89,30 +98,34 @@ struct cartesian_tree {
             std::array<std::array<int, num_nodes>, catalan_number(num_nodes)>,
             num_nodes + 1>
             all_representatives{};
-        for (const int cur_num_nodes : irange{1, num_nodes + 1}) {
-            for (const int min_pos : irange{cur_num_nodes}) {
+        using ballot = ballot_number_lookup<num_nodes>;
+        for (int cur_num_nodes = 1; cur_num_nodes <= num_nodes;
+             cur_num_nodes++) {
+            for (int min_pos = 0; min_pos < cur_num_nodes; min_pos++) {
                 const auto left_size = min_pos;
                 const auto right_size = cur_num_nodes - min_pos - 1;
-                for (const int left_idx : irange{catalan_number(left_size)}) {
+                const auto left_count = ballot::get(left_size, left_size);
+                const auto right_count = ballot::get(right_size, right_size);
+                for (int left_idx = 0; left_idx < left_count; left_idx++) {
                     const auto& left_rep =
                         all_representatives[left_size][left_idx];
-                    for (const int right_idx :
-                         irange{catalan_number(right_size)}) {
+                    for (int right_idx = 0; right_idx < right_count;
+                         right_idx++) {
                         const auto& right_rep =
                             all_representatives[right_size][right_idx];
                         std::array<int, num_nodes> local_rep{{}};
                         local_rep[min_pos] = 0;
-                        for (const auto i : irange{left_size}) {
+                        for (int i = 0; i < left_size; i++) {
                             local_rep[i] = left_rep[i] + 1;
                         }
-                        for (const auto i : irange{right_size}) {
+                        for (int i = 0; i < right_size; i++) {
                             local_rep[i + min_pos + 1] = right_rep[i] + 1;
                         }
                         const auto tree_number =
                             compute_tree_index(local_rep, cur_num_nodes);
                         auto& output_rep =
                             all_representatives[cur_num_nodes][tree_number];
-                        for (const auto i : irange{cur_num_nodes}) {
+                        for (int i = 0; i < cur_num_nodes; i++) {
                             output_rep[i] = local_rep[i];
                         }
                     }
@@ -147,7 +160,7 @@ public:
     constexpr static int values_per_word = 32 / num_bits;
     // number of uint32 blocks in the LUT for a single tree
     constexpr static int tree_lut_size =
-        (block_size * block_size) / values_per_word;
+        (block_size * block_size + values_per_word - 1) / values_per_word;
 
 
     constexpr block_range_minimum_query_lookup_table() : lookup_table{}
@@ -157,10 +170,10 @@ public:
         for (const int tree :
              irange{static_cast<int>(representatives.size())}) {
             const auto& rep = representatives[tree];
-            for (const int first : irange{block_size}) {
-                for (const int last : irange{block_size}) {
-                    int min_index{};
-                    for (int i = first; i <= last; i++) {
+            for (int first = 0; first < block_size; first++) {
+                for (int last = first; last < block_size; last++) {
+                    int min_index = first;
+                    for (int i = first + 1; i <= last; i++) {
                         if (rep[i] < rep[min_index]) {
                             min_index = i;
                         }
