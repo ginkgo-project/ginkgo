@@ -42,6 +42,14 @@ namespace kernels {
         IndexType* subtree_sizes)
 
 
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES( \
+    IndexType)                                                           \
+    void compute_subtree_euler_path_sizes(                               \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        IndexType* subtree_euler_path_sizes)
+
+
 #define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType)         \
     void compute_levels(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                     \
@@ -57,6 +65,15 @@ namespace kernels {
         IndexType* inv_postorder)
 
 
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType)       \
+    void compute_euler_path(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const gko::factorization::elimination_forest<IndexType>& forest,   \
+        const IndexType* subtree_euler_tree_size, const IndexType* levels, \
+        IndexType* euler_path, IndexType* first_visit,                     \
+        IndexType* euler_levels)
+
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType);  \
@@ -65,9 +82,14 @@ namespace kernels {
     template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType);  \
     template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES(  \
+        IndexType);                                                   \
+    template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType);         \
     template <typename IndexType>                                     \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType);      \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(elimination_forest,
