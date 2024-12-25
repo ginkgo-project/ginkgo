@@ -59,6 +59,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
 
 
+template <typename IndexType>
+void compute_subtree_euler_path_sizes(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* subtree_sizes) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES);
+
+
 }  // namespace elimination_forest
 }  // namespace dpcpp
 }  // namespace kernels

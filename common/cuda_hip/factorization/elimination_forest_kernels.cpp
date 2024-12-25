@@ -204,7 +204,7 @@ __global__ __launch_bounds__(default_block_size) void mst_reset_min_edges(
 }
 
 
-template <typename IndexType>
+template <int node_count, int edge_count, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
     const IndexType* __restrict__ child_ptrs,
     const IndexType* __restrict__ children, IndexType size,
@@ -217,7 +217,7 @@ __global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
     }
     const auto child_begin = child_ptrs[i];
     const auto child_end = child_ptrs[i + 1];
-    IndexType local_size{1};
+    IndexType local_size{node_count};
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
     for (const auto child_idx : irange{child_begin, child_end}) {
         const auto child = children[child_idx];
@@ -225,7 +225,7 @@ __global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
         while (child_size == invalid_index<IndexType>()) {
             child_size = load_relaxed(subtree_sizes + child);
         }
-        local_size += child_size;
+        local_size += child_size + edge_count;
     }
     store_relaxed(subtree_sizes + i, local_size);
 #else
@@ -237,7 +237,7 @@ __global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
     while (child_idx < child_end) {
         const auto child_size = load_relaxed(subtree_sizes + child);
         if (child_size != invalid_index<IndexType>()) {
-            local_size += child_size;
+            local_size += child_size + edge_count;
             child_idx++;
             child = child_idx < child_end ? children[child_idx] : IndexType{};
             if (child_idx == child_end) {
@@ -261,39 +261,23 @@ __global__ __launch_bounds__(default_block_size) void compute_levels(
     }
     // iterate through nodes in reverse order
     const auto i = size - rev_i - 1;
-    const auto parent = parents[i];
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
-    // root nodes are at level 0
-    if (parent == size) {
-        store_relaxed(levels + i, IndexType{});
-        return;
-    }
-    // pull level from parents
-    // try to read level from L1 cache first
-    auto level = load_relaxed_local(levels + parent);
+    auto current = i;
+    // the pseudo-root is at level -1
+    IndexType delta{-1};
+    auto level = invalid_index<IndexType>();
     while (level == invalid_index<IndexType>()) {
-        level = load_relaxed(levels + parent);
-    }
-    store_relaxed(levels + i, level + 1);
-#else
-    // TODO broken in HIP
-    // root nodes are at level 0
-    if (parent == size) {
-        store_relaxed(levels + i, IndexType{});
-        return;
-    }
-    // push level to children
-    IndexType level{};
-    do {
-        level = load_relaxed(levels + i);
-        if (level != invalid_index<IndexType>()) {
-            for (const auto child_idx : irange{child_begin, child_end}) {
-                const auto child = children[child_idx];
-                store_relaxed(levels + child, level + 1);
-            }
+        if (current == size) {
+            level = 0;
+        } else {
+            level = load_relaxed(levels + current);
         }
-    } while (level == invalid_index<IndexType>());
-#endif
+        if (level != invalid_index<IndexType>()) {
+            store_relaxed(levels + i, level + delta);
+            return;
+        }
+        current = parents[current];
+        delta++;
+    }
 }
 
 
@@ -1170,14 +1154,37 @@ void compute_subtree_sizes(
                            invalid_index<IndexType>());
     const auto num_blocks = ceildiv(size, default_block_size);
     if (num_blocks > 0) {
-        kernel::compute_subtree_sizes<<<num_blocks, default_block_size, 0,
-                                        exec->get_stream()>>>(
-            child_ptrs, children, size, subtree_sizes);
+        kernel::compute_subtree_sizes<1, 0>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                child_ptrs, children, size, subtree_sizes);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
+
+
+template <typename IndexType>
+void compute_subtree_euler_path_sizes(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* subtree_euler_path_sizes)
+{
+    const auto size = static_cast<IndexType>(forest.parents.get_size());
+    const auto child_ptrs = forest.child_ptrs.get_const_data();
+    const auto children = forest.children.get_const_data();
+    components::fill_array(exec, subtree_euler_path_sizes, size,
+                           invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_subtree_sizes<0, 2>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                child_ptrs, children, size, subtree_euler_path_sizes);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES);
 
 
 template <typename IndexType>
