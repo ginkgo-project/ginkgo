@@ -123,25 +123,35 @@ struct cartesian_tree {
 };
 
 
-constexpr int ceil_log2(int value)
+constexpr int ceil_log2_constexpr(int value)
 {
     if (value == 1) {
         return 0;
     }
-    return 1 + ceil_log2((value + 1) / 2);
+    return 1 + ceil_log2_constexpr((value + 1) / 2);
 }
+
+
+constexpr int round_up_pow2_constexpr(int value)
+{
+    return 1 << ceil_log2_constexpr(value);
+}
+
+
+}  // namespace detail
 
 
 template <int block_size>
 class block_range_minimum_query_lookup_table {
 public:
-    using tree = cartesian_tree<block_size>;
+    using tree = detail::cartesian_tree<block_size>;
     // how many trees does the lookup table (LUT) contain?
     constexpr static int num_trees = tree::num_trees;
     // how many bits do we need theoretically for this block?
-    constexpr static int num_min_bits = ceil_log2(block_size);
+    constexpr static int num_min_bits = detail::ceil_log2_constexpr(block_size);
     // for actual bits we use a power of two
-    constexpr static int num_bits = 1 << ceil_log2(num_min_bits);
+    constexpr static int num_bits =
+        1 << detail::ceil_log2_constexpr(num_min_bits);
     constexpr static uint32 mask = (uint32{1} << num_bits) - 1u;
     // how many values are stored per uint32 block?
     constexpr static int values_per_word = 32 / num_bits;
@@ -212,12 +222,60 @@ public:
     }
 
 private:
-    typename cartesian_tree<block_size>::ballot_number_lookup ballot_number;
+    typename tree::ballot_number_lookup ballot_number;
     uint32 lookup_table[num_trees][tree_lut_size];
 };
 
 
-}  // namespace detail
+constexpr int rmq_blocksize = 8;
+
+
+template <typename IndexType>
+class range_minimum_query_superblocks {
+public:
+    using index_type = IndexType;
+    using storage_type = std::make_unsigned_t<IndexType>;
+    constexpr static auto index_type_bits = 8 * sizeof(index_type);
+
+    range_minimum_query_superblocks(index_type* values, storage_type* storage,
+                                    IndexType size)
+        : values_{values}, storage_{storage}, size_{size}
+    {}
+
+    IndexType block_argmin(int blocksize_log2, IndexType begin) const
+    {
+        constexpr auto block_offset_lookup = compute_block_offset_lookup();
+    }
+
+    constexpr static int compute_block_storage_size(int block_size_log2)
+    {
+        return detail::round_up_pow2_constexpr(block_size_log2);
+    }
+
+    constexpr static std::array<int, index_type_bits>
+    compute_block_offset_lookup()
+    {
+        std::array<int, index_type_bits> result{};
+        for (int i = 1; i < index_type_bits; i++) {
+            result[i] = result[i - 1] + compute_block_storage_size(i);
+        }
+        return result;
+    }
+
+private:
+    // These are the values we query range minima for
+    IndexType* values_;
+    // The storage stores the range minimum for every power-of-two block that is
+    // smaller than size. There are n - 1 ranges of size 2, n - 3 ranges of size
+    // 4, n - 7 ranges of size 8, ... so in total we have n log n ranges.
+    // For simplicity (and since the space savings are small), we always store
+    // information for all n ranges, where we add infinity padding to the end.
+    // Ranges of size 2 need 1 bit, ranges of size 4 need 2 bits, ranges of size
+    // 8 need 3 bits, ... but for better memory access patterns, we always make
+    // sure every value from the range fits into a full IndexType word.
+    storage_type* storage_;
+    IndexType size_;
+};
 
 
 }  // namespace gko
