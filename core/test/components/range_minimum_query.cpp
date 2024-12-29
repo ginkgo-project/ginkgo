@@ -9,9 +9,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 TEST(RangeMinimumQuery, RepresentativesAreExhaustive)
 {
     constexpr auto size = 8;
@@ -73,4 +70,47 @@ TEST(RangeMinimumQuery, LookupExhaustive)
 }
 
 
-}  // namespace
+TEST(RangeMinimumQuery, OffsetsAreCorrect)
+{
+    constexpr auto data = gko::range_minimum_query_superblocks<
+        int>::compute_block_offset_lookup();
+    constexpr auto data_long = gko::range_minimum_query_superblocks<
+        long>::compute_block_offset_lookup();
+    ASSERT_EQ(data[0], 0);
+    ASSERT_EQ(data_long[0], 0);
+    // blocks of size 2^1 need 1 bit each
+    ASSERT_EQ(data[1], 1);
+    ASSERT_EQ(data_long[1], 1);
+    // blocks of size 2^2 need 2 bits each
+    ASSERT_EQ(data[2], 3);
+    ASSERT_EQ(data_long[2], 3);
+    // blocks of size 2^3 need 4 bits each
+    ASSERT_EQ(data[3], 7);
+    ASSERT_EQ(data_long[3], 7);
+    // blocks of size 2^4 need 4 bits each
+    ASSERT_EQ(data[4], 11);
+    ASSERT_EQ(data_long[4], 11);
+    // blocks of size 2^5 need 8 bits each
+    ASSERT_EQ(data[5], 19);
+    ASSERT_EQ(data_long[5], 19);
+    // blocks of size 2^6 need 8 bits each
+    ASSERT_EQ(data[6], 27);
+    ASSERT_EQ(data_long[6], 27);
+    // blocks of size 2^7 need 8 bits each
+    ASSERT_EQ(data[7], 35);
+    ASSERT_EQ(data_long[7], 35);
+    // blocks of size 2^8 need 8 bits each
+    ASSERT_EQ(data[8], 43);
+    ASSERT_EQ(data_long[8], 43);
+    // blocks of size 2^9 - 2^16 need 16 bits each
+    ASSERT_EQ(data[9], 59);
+    ASSERT_EQ(data_long[9], 59);
+    ASSERT_EQ(data[16], 171);
+    ASSERT_EQ(data_long[16], 171);
+    // blocks of size 2^17-2^32 need 32 bits each
+    ASSERT_EQ(data[31], 651);
+    ASSERT_EQ(data_long[31], 651);
+    ASSERT_EQ(data_long[32], 683);
+    // blocks of size 2^33-2^64 need 64 bits each
+    ASSERT_EQ(data_long[63], 2667);
+}
