@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#ifndef GKO_CORE_COMPONENTS_RANGE_MINIMUM_QUERY_HPP_
+#define GKO_CORE_COMPONENTS_RANGE_MINIMUM_QUERY_HPP_
+
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -218,3 +221,5 @@ private:
 
 
 }  // namespace gko
+
+#endif  // GKO_CORE_COMPONENTS_RANGE_MINIMUM_QUERY_HPP_
