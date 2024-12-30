@@ -662,6 +662,8 @@ private:
     local_vector_type local_;
     ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
     ::gko::detail::DenseCache<remove_complex<ValueType>> host_norm_buffer_;
+    mpi::op_manager sum_op_;
+    mpi::op_manager norm_sum_op_;
 };
 
 
