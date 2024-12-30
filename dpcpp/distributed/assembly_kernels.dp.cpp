@@ -23,7 +23,7 @@ void count_non_owning_entries(
     array<GlobalIndexType>& send_positions,
     array<GlobalIndexType>& original_positions) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_COUNT_NON_OWNING_ENTRIES);
 
 

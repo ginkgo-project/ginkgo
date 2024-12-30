@@ -144,8 +144,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
 #define GKO_DECLARE_SCHWARZ(ValueType, LocalIndexType, GlobalIndexType) \
     class Schwarz<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
-    GKO_DECLARE_SCHWARZ);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
 
 
 }  // namespace preconditioner
