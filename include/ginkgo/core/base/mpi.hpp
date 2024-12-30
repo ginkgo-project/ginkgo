@@ -111,28 +111,139 @@ inline void half_sum(void* input, void* output, int* len,
     }
 }
 
+template <typename ValueType>
+inline void sum(void* input, void* output, int* len, MPI_Datatype* datatype)
+{
+    ValueType* input_ptr = static_cast<ValueType*>(input);
+    ValueType* output_ptr = static_cast<ValueType*>(output);
+    for (int i = 0; i < *len; i++) {
+        output_ptr[i] += input_ptr[i];
+    }
+}
+
 }  // namespace detail
 
-template <typename ValueType>
-inline MPI_Op sum()
+
+using op_manager = std::unique_ptr<ompi_op_t, std::function<void(MPI_Op)>>;
+
+template <typename ValueType,
+          std::enable_if_t<std::is_arithmetic_v<ValueType>>* = nullptr>
+inline op_manager sum()
 {
-    return MPI_SUM;
+    return op_manager([]() { return MPI_SUM; }(), [](MPI_Op op) {});
 }
 
-template <>
-inline MPI_Op sum<gko::half>()
+template <typename ValueType,
+          std::enable_if_t<!std::is_arithmetic_v<ValueType>>* = nullptr>
+inline op_manager sum()
 {
-    using handle_manager =
-        std::unique_ptr<MPI_Op, std::function<void(MPI_Op*)>>;
-    static handle_manager mpi_op(
+    // MPI_Op is MPI_ABI_Op*
+    return op_manager(
         []() {
-            MPI_Op* operation = new MPI_Op;
-            MPI_Op_create(&detail::half_sum, 1, operation);
+            MPI_Op operation;
+            MPI_Op_create(&detail::sum<ValueType>, 1, &operation);
+            // MPI_Op_create(&detail::half_sum, 1, operation);
+            std::cout << "custom operator" << std::endl;
             return operation;
         }(),
-        [](MPI_Op* op) { MPI_Op_free(op); });
-    return *mpi_op.get();
+        [](MPI_Op op) { MPI_Op_free(&op); });
 }
+
+/**
+ * A move-only wrapper for a contiguous MPI_Datatype.
+ *
+ * The underlying MPI_Datatype is automatically created and committed when an
+ * object of this type is constructed, and freed when it is destructed.
+ */
+template <typename ValueType>
+class op_type {
+public:
+    template <typename T>
+    struct mpi_native_type
+        : std::conditional_t<std::is_arithmetic_v<T>, std::true_type,
+                             std::false_type> {};
+
+    /**
+     * Constructs a wrapper for a contiguous MPI_Datatype.
+     *
+     * @param count  the number of old_type elements the new datatype contains.
+     * @param old_type  the MPI_Datatype that is contained.
+     */
+    template <typename AltFunc>
+    op_type(int commutativity, MPI_Op default_op, AltFunc&& alt_func)
+        : custom_(false), handle_(MPI_OP_NULL)
+    {
+        custom_ = mpi_native_type<ValueType>::value;
+        if constexpr (mpi_native_type<ValueType>::value) {
+            auto op = alt_func.template operator()<ValueType>;
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Op_create(&op, commutativity, &handle_));
+        } else {
+            handle_ = default_op;
+        }
+    }
+
+    /**
+     * Constructs empty wrapper with MPI_OP_NULL.
+     */
+    op_type() : handle_(MPI_OP_NULL) {}
+
+    /**
+     * Disallow copying of wrapper type.
+     */
+    op_type(const op_type&) = delete;
+
+    /**
+     * Disallow copying of wrapper type.
+     */
+    op_type& operator=(const op_type&) = delete;
+
+    /**
+     * Move constructor, leaves other with MPI_OP_NULL.
+     *
+     * @param other  to be moved from object.
+     */
+    op_type(op_type&& other) noexcept : handle_(MPI_OP_NULL)
+    {
+        *this = std::move(other);
+    }
+
+    /**
+     * Move assignment, leaves other with MPI_OP_NULL.
+     *
+     * @param other  to be moved from object.
+     *
+     * @return  this object.
+     */
+    op_type& operator=(op_type&& other) noexcept
+    {
+        if (this != &other) {
+            this->handle_ = std::exchange(other.handle_, MPI_OP_NULL);
+        }
+        return *this;
+    }
+
+    /**
+     * Destructs object by freeing wrapped MPI_Datatype.
+     */
+    ~op_type()
+    {
+        if (custom_ && handle_ != MPI_OP_NULL) {
+            MPI_Op_free(&handle_);
+        }
+    }
+
+    /**
+     * Access the underlying MPI_Op.
+     *
+     * @return  the underlying MPI_Op.
+     */
+    MPI_Op get() const { return handle_; }
+
+private:
+    bool custom_;
+    MPI_Op handle_;
+};
 
 /**
  * A move-only wrapper for a contiguous MPI_Datatype.
@@ -782,9 +893,22 @@ public:
                     ReduceType* recv_buffer, int count, MPI_Op operation) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
-            MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, this->get()));
+        if constexpr (std::is_same_v<ReduceType, gko::half>) {
+            if (operation == MPI_SUM) {
+                MPI_Op op;
+                MPI_Op_create(&detail::half_sum, 1, &op);
+                GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+                    MPI_IN_PLACE, recv_buffer, count,
+                    type_impl<ReduceType>::get_type(), op, this->get()));
+                MPI_Op_free(&op);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        } else {
+            GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+                MPI_IN_PLACE, recv_buffer, count,
+                type_impl<ReduceType>::get_type(), operation, this->get()));
+        }
     }
 
     /**
@@ -809,9 +933,24 @@ public:
     {
         auto guard = exec->get_scoped_device_id_guard();
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
-            MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, this->get(), req.get()));
+        if constexpr (std::is_same_v<ReduceType, gko::half>) {
+            if (operation == MPI_SUM) {
+                MPI_Op op;
+                MPI_Op_create(&detail::half_sum, 1, &op);
+                GKO_ASSERT_NO_MPI_ERRORS(
+                    MPI_Iallreduce(MPI_IN_PLACE, recv_buffer, count,
+                                   type_impl<ReduceType>::get_type(), op,
+                                   this->get(), req.get()));
+                MPI_Op_free(&op);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        } else {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Iallreduce(MPI_IN_PLACE, recv_buffer, count,
+                               type_impl<ReduceType>::get_type(), operation,
+                               this->get(), req.get()));
+        }
         return req;
     }
 
@@ -835,9 +974,22 @@ public:
                     int count, MPI_Op operation) const
     {
         auto guard = exec->get_scoped_device_id_guard();
+        // if constexpr (std::is_same_v<ReduceType, gko::half>) {
+        //     if (operation == MPI_SUM) {
+        //         MPI_Op op;
+        //         MPI_Op_create(&detail::half_sum, 1, &op);
+        //         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+        //             send_buffer, recv_buffer, count,
+        //             type_impl<ReduceType>::get_type(), op, this->get()));
+        //         MPI_Op_free(&op);
+        //     } else {
+        //         GKO_NOT_IMPLEMENTED;
+        //     }
+        // } else {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
             operation, this->get()));
+        // }
     }
 
     /**
@@ -863,9 +1015,24 @@ public:
     {
         auto guard = exec->get_scoped_device_id_guard();
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
-            send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, this->get(), req.get()));
+        if constexpr (std::is_same_v<ReduceType, gko::half>) {
+            if (operation == MPI_SUM) {
+                MPI_Op op;
+                MPI_Op_create(&detail::half_sum, 1, &op);
+                GKO_ASSERT_NO_MPI_ERRORS(
+                    MPI_Iallreduce(send_buffer, recv_buffer, count,
+                                   type_impl<ReduceType>::get_type(), op,
+                                   this->get(), req.get()));
+                MPI_Op_free(&op);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        } else {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Iallreduce(send_buffer, recv_buffer, count,
+                               type_impl<ReduceType>::get_type(), operation,
+                               this->get(), req.get()));
+        }
         return req;
     }
 

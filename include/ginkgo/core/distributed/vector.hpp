@@ -81,8 +81,8 @@ class Vector
 public:
     using EnableLinOp<Vector>::convert_to;
     using EnableLinOp<Vector>::move_to;
-    using ConvertibleTo<Vector<next_precision_base<ValueType>>>::convert_to;
-    using ConvertibleTo<Vector<next_precision_base<ValueType>>>::move_to;
+    using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<Vector>;
@@ -171,10 +171,9 @@ public:
     void read_distributed(const matrix_data<ValueType, int32>& data,
                           ptr_param<const Partition<int32, int32>> partition);
 
-    void convert_to(
-        Vector<next_precision_base<ValueType>>* result) const override;
+    void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
-    void move_to(Vector<next_precision_base<ValueType>>* result) override;
+    void move_to(Vector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF
     friend class Vector<previous_precision<previous_precision<ValueType>>>;
@@ -690,7 +689,7 @@ template <typename ValueType>
 struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     using target_type = experimental::distributed::Vector<ValueType>;
     using source_type =
-        experimental::distributed::Vector<previous_precision_base<ValueType>>;
+        experimental::distributed::Vector<previous_precision<ValueType>>;
 
     static std::unique_ptr<target_type> create_empty(const source_type* source)
     {
