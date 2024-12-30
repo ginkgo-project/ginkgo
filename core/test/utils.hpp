@@ -396,6 +396,9 @@ using TwoValueIndexTypes = add_to_cartesian_type_product_t<
 using ValueLocalGlobalIndexTypesBase =
     add_to_cartesian_type_product_left_t<ValueTypesBase, LocalGlobalIndexTypes>;
 
+using ValueLocalGlobalIndexTypes =
+    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
+
 
 template <typename Precision, typename OutputType>
 struct reduction_factor {
