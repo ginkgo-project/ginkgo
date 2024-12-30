@@ -124,22 +124,31 @@ inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
     }
 }
 
+template <typename ValueType>
+struct is_mpi_native {
+    constexpr static bool value =
+        std::is_arithmetic_v<ValueType> ||
+        std::is_same_v<ValueType, std::complex<float>> ||
+        std::is_same_v<ValueType, std::complex<double>>;
+};
+
 
 }  // namespace detail
 
 
-using op_manager = std::unique_ptr<std::pointer_traits<MPI_Op>::element_type,
-                                   std::function<void(MPI_Op)>>;
+// using op_manager = std::unique_ptr<std::pointer_traits<MPI_Op>::element_type,
+//                                    std::function<void(MPI_Op)>>;
+using op_manager = std::shared_ptr<std::pointer_traits<MPI_Op>::element_type>;
 
 template <typename ValueType,
-          std::enable_if_t<std::is_arithmetic_v<ValueType>>* = nullptr>
+          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager sum()
 {
     return op_manager([]() { return MPI_SUM; }(), [](MPI_Op op) {});
 }
 
 template <typename ValueType,
-          std::enable_if_t<!std::is_arithmetic_v<ValueType>>* = nullptr>
+          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager sum()
 {
     return op_manager(
@@ -153,14 +162,14 @@ inline op_manager sum()
 
 
 template <typename ValueType,
-          std::enable_if_t<std::is_arithmetic_v<ValueType>>* = nullptr>
+          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager max()
 {
     return op_manager([]() { return MPI_MAX; }(), [](MPI_Op op) {});
 }
 
 template <typename ValueType,
-          std::enable_if_t<!std::is_arithmetic_v<ValueType>>* = nullptr>
+          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager max()
 {
     return op_manager(
