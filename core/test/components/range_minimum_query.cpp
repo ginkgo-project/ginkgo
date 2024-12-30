@@ -26,6 +26,23 @@ TEST(RangeMinimumQuery, RepresentativesAreExhaustive)
 }
 
 
+TEST(RangeMinimumQuery, RepresentativesLargeAreExhaustive)
+{
+    constexpr auto size = 9;
+    using tree = gko::detail::cartesian_tree<size>;
+    int values[size]{};
+    std::iota(values, values + size, 0);
+    constexpr auto reps = tree::representatives;
+    do {
+        const auto tree_number = tree::compute_tree_index(values);
+        const auto rep_tree_number =
+            tree::compute_tree_index(reps[tree_number]);
+
+        ASSERT_EQ(tree_number, rep_tree_number);
+    } while (std::next_permutation(values, values + size));
+}
+
+
 TEST(RangeMinimumQuery, LookupRepresentatives)
 {
     constexpr auto size = 8;

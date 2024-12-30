@@ -9,6 +9,7 @@
 #include <limits>
 #include <utility>
 
+#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/index_range.hpp"
@@ -138,6 +139,98 @@ constexpr int round_up_pow2_constexpr(int value)
 }
 
 
+template <typename IndexType>
+constexpr int ceil_log2(IndexType value)
+{
+    assert(value >= 1);
+    return value > 1
+               ? detail::find_highest_bit(
+                     static_cast<std::make_unsigned_t<IndexType>>(value - 1)) +
+                     1
+               : 0;
+}
+
+
+template <typename IndexType>
+constexpr int round_up_pow2(IndexType value)
+{
+    return IndexType{1} << ceil_log2(value);
+}
+
+
+/**
+ * A compact representation of a span of unsigned integers with num_bits bits.
+ * Each integer gets stored using round_up_pow2_constexpr(num_bits) bits inside
+ * a WordType word.
+ */
+template <typename WordType>
+class bit_packed_span {
+    static_assert(std::is_unsigned_v<WordType>);
+
+public:
+    constexpr size_type storage_size(size_type size)
+    {
+        // TODO optimize with bitshift
+        return (size + values_per_word_ - 1) / values_per_word_;
+    }
+
+    constexpr void set_from_zero(size_type i, WordType value)
+    {
+        assert(value < max_val_plus_1_);
+        assert(i >= 0);
+        assert(i < size_);
+        data_[i / values_per_word_] |=
+            value << ((i % values_per_word_) * bits_per_value_);
+    }
+
+    constexpr void clear(size_type i)
+    {
+        assert(i >= 0);
+        assert(i < size_);
+        data_[i / values_per_word_] &=
+            ~(mask_ << ((i % values_per_word_) * bits_per_value_));
+    }
+
+    constexpr void set(size_type i, WordType value)
+    {
+        clear(i);
+        set_from_zero(i, value);
+    }
+
+    constexpr WordType get(size_type i) const
+    {
+        assert(i >= 0);
+        assert(i < size_);
+        return (data_[i / values_per_word_] >>
+                ((i % values_per_word_) * bits_per_value_)) &
+               mask_;
+    }
+
+    explicit constexpr bit_packed_span(WordType* data, int num_bits,
+                                       size_type size)
+        : data_{data},
+          size_{size},
+          num_bits_{num_bits},
+          max_val_plus_1_{WordType{1} << num_bits},
+          mask_{max_val_plus_1_ - 1},
+          bits_per_value_{round_up_pow2(num_bits)},
+          values_per_word_{bits_per_word / bits_per_value_}
+    {
+        assert(bits_per_value_ <= bits_per_word);
+    }
+
+private:
+    WordType* data_;
+    size_type size_;
+    int num_bits_;
+    WordType max_val_plus_1_;
+    WordType mask_;
+    int bits_per_value_;
+    int values_per_word_;
+    constexpr static int bits_per_word = sizeof(WordType) * CHAR_BIT;
+};
+
+
 }  // namespace detail
 
 
@@ -227,9 +320,6 @@ private:
 };
 
 
-constexpr int rmq_blocksize = 8;
-
-
 template <typename IndexType>
 class range_minimum_query_superblocks {
 public:
@@ -242,14 +332,24 @@ public:
         : values_{values}, storage_{storage}, size_{size}
     {}
 
-    IndexType block_argmin(int blocksize_log2, IndexType begin) const
+    constexpr int get_offset(int block_size_log2_m1) const
     {
-        constexpr auto block_offset_lookup = compute_block_offset_lookup();
+        constexpr auto offsets = compute_block_offset_lookup();
+        assert(block_size_log2_m1 >= 0);
+        assert(block_size_log2_m1 < index_type_bits);
+        return offsets[block_size_log2_m1] * get_num_blocks();
     }
 
-    constexpr static int compute_block_storage_size(int block_size_log2)
+    constexpr int get(int block_size_log2_m1, size_type index)
     {
-        return detail::round_up_pow2_constexpr(block_size_log2);
+        const auto values = storage_ + get_offset(block_size_log2_m1);
+        // TODO fix
+        return values[index];
+    }
+
+    constexpr IndexType get_num_blocks() const
+    {
+        return (size_ + index_type_bits - 1) / index_type_bits;
     }
 
     constexpr static std::array<int, index_type_bits>
@@ -263,6 +363,11 @@ public:
     }
 
 private:
+    constexpr static int compute_block_storage_size(int block_size_log2)
+    {
+        return detail::round_up_pow2_constexpr(block_size_log2);
+    }
+
     // These are the values we query range minima for
     IndexType* values_;
     // The storage stores the range minimum for every power-of-two block that is
