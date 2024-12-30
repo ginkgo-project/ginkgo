@@ -200,8 +200,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision_base<value_type>, local_index_type,
-           global_index_type>* result) const
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -219,8 +219,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision_base<value_type>, local_index_type,
-           global_index_type>* result)
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -701,7 +701,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
     class Matrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_DISTRIBUTED_MATRIX);
 
 

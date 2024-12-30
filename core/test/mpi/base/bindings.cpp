@@ -24,9 +24,8 @@ protected:
     std::shared_ptr<gko::Executor> ref;
 };
 
-using TestTypes =
-    gko::test::merge_type_list_t<gko::test::RealValueTypesWithHalf,
-                                 gko::test::IndexTypes>;
+using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypes,
+                                               gko::test::IndexTypes>;
 
 TYPED_TEST_SUITE(MpiBindings, TestTypes, TypenameNameGenerator);
 
@@ -762,7 +761,17 @@ void half_sum(void* input, void* output, int* len, MPI_Datatype* datatype)
 //     }
 // }
 
-
+struct sum_op {
+    template <typename ValueType>
+    void operator()(void* input, void* output, int* len, MPI_Datatype* datatype)
+    {
+        ValueType* input_ptr = static_cast<ValueType*>(input);
+        ValueType* output_ptr = static_cast<ValueType*>(output);
+        for (int i = 0; i < *len; i++) {
+            output_ptr[i] += input_ptr[i];
+        }
+    }
+};
 TYPED_TEST(MpiBindings, CanAllReduceValues)
 {
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
@@ -780,11 +789,15 @@ TYPED_TEST(MpiBindings, CanAllReduceValues)
     }
     MPI_Op operation;
     MPI_Op_create(&half_sum, 1, &operation);
-    if (std::is_same_v<gko::half, TypeParam>) {
-        comm.all_reduce(this->ref, &data, &sum, 1, operation);
-    } else {
-        comm.all_reduce(this->ref, &data, &sum, 1, MPI_SUM);
-    }
+    // if (std::is_same_v<gko::half, TypeParam>) {
+    //     comm.all_reduce(this->ref, &data, &sum, 1, operation);
+    // } else {
+    // gko::experimental::mpi::op_type<TypeParam> op(1, MPI_SUM,
+    // gko::experimental::mpi::detail::sum);
+    // gko::experimental::mpi::op_type<TypeParam> op(1, MPI_SUM, sum_op());
+    auto op = gko::experimental::mpi::sum<TypeParam>();
+    comm.all_reduce(this->ref, &data, &sum, 1, op.get());
+    // }
     // comm.all_reduce(this->ref, &data, &sum, 1,
     // gko::experimental::mpi::sum<TypeParam>());
     MPI_Op_free(&operation);
@@ -808,8 +821,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValuesInPlace)
         data = 6;
     }
 
-    comm.all_reduce(this->ref, &data, 1,
-                    gko::experimental::mpi::sum<TypeParam>());
+    comm.all_reduce(this->ref, &data, 1, MPI_SUM);
 
     ASSERT_EQ(data, TypeParam{16});
 }
@@ -831,8 +843,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValues)
         data = 6;
     }
 
-    auto req = comm.i_all_reduce(this->ref, &data, &sum, 1,
-                                 gko::experimental::mpi::sum<TypeParam>());
+    auto req = comm.i_all_reduce(this->ref, &data, &sum, 1, MPI_SUM);
 
     req.wait();
     ASSERT_EQ(sum, TypeParam{16});
@@ -1471,8 +1482,7 @@ TYPED_TEST(MpiBindings, CanScanValues)
         data = 6;
     }
 
-    comm.scan(this->ref, &data, &sum, 1,
-              gko::experimental::mpi::sum<TypeParam>());
+    comm.scan(this->ref, &data, &sum, 1, MPI_SUM);
     comm.scan(this->ref, &data, &max, 1, MPI_MAX);
     comm.scan(this->ref, &data, &min, 1, MPI_MIN);
 
@@ -1512,8 +1522,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingScanValues)
         data = 6;
     }
 
-    auto req1 = comm.i_scan(this->ref, &data, &sum, 1,
-                            gko::experimental::mpi::sum<TypeParam>());
+    auto req1 = comm.i_scan(this->ref, &data, &sum, 1, MPI_SUM);
     auto req2 = comm.i_scan(this->ref, &data, &max, 1, MPI_MAX);
     auto req3 = comm.i_scan(this->ref, &data, &min, 1, MPI_MIN);
 

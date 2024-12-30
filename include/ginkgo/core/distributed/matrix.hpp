@@ -267,7 +267,7 @@ class Matrix
 #endif
       public DistributedBase {
     friend class EnablePolymorphicObject<Matrix, LinOp>;
-     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
+    friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
 
@@ -283,15 +283,15 @@ public:
 
     using EnableLinOp<Matrix>::convert_to;
     using EnableLinOp<Matrix>::move_to;
-    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision_base<value_type>, local_index_type,
+    void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision_base<value_type>, local_index_type,
+    void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
 #if GINKGO_ENABLE_HALF
     friend class Matrix<previous_precision<previous_precision<ValueType>>,
