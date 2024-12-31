@@ -190,11 +190,11 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
         std::unique_ptr<elimination_forest> forest;
         std::unique_ptr<elimination_forest> skeleton_forest;
         std::unique_ptr<elimination_forest> dskeleton_forest;
-        gko::factorization::compute_elim_forest(mtx.get(), forest);
-        gko::factorization::compute_elim_forest(skeleton.get(),
-                                                skeleton_forest);
-        gko::factorization::compute_elim_forest(dskeleton.get(),
-                                                dskeleton_forest);
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(skeleton.get(),
+                                                       skeleton_forest);
+        gko::factorization::compute_elimination_forest(dskeleton.get(),
+                                                       dskeleton_forest);
         // the parents array fully determines the elimination forest
         GKO_ASSERT_ARRAY_EQ(forest->parents, skeleton_forest->parents);
         GKO_ASSERT_ARRAY_EQ(skeleton_forest->parents,
@@ -214,8 +214,8 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
         const auto dmtx = gko::clone(this->exec, mtx);
         std::unique_ptr<elimination_forest> forest;
         std::unique_ptr<elimination_forest> dforest;
-        gko::factorization::compute_elim_forest(mtx.get(), forest);
-        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
         gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
         gko::array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
 
@@ -241,7 +241,7 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto num_rows = mtx->get_size()[0];
         std::unique_ptr<elimination_forest> forest;
-        gko::factorization::compute_elim_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::symbolic_count(
             this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
@@ -258,7 +258,7 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
             gko::array<index_type>{this->exec, nnz}, row_ptrs);
         // need to call the device kernels to initialize dtmp
         std::unique_ptr<elimination_forest> dforest;
-        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
         gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_count(
             this->exec, dmtx.get(), *dforest, dtmp_ptrs.get_data(), this->dtmp);
@@ -358,8 +358,9 @@ protected:
         mtx_chol_sparsity->copy_from(mtx_chol.get());
         dmtx_chol_sparsity = sparsity_pattern_type::create(exec);
         dmtx_chol_sparsity->copy_from(mtx_chol_sparsity.get());
-        gko::factorization::compute_elim_forest(mtx_chol.get(), forest);
-        gko::factorization::compute_elim_forest(dmtx_chol.get(), dforest);
+        gko::factorization::compute_elimination_forest(mtx_chol.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx_chol.get(),
+                                                       dforest);
     }
 
     void forall_matrices(std::function<void()> fn)

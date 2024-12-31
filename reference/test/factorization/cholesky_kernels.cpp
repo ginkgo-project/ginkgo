@@ -92,7 +92,8 @@ protected:
                                        l_factor_ref->get_num_stored_elements());
         combined = matrix_type::create(ref, combined_ref->get_size(),
                                        combined_ref->get_num_stored_elements());
-        gko::factorization::compute_elim_forest(l_factor_ref.get(), forest);
+        gko::factorization::compute_elimination_forest(l_factor_ref.get(),
+                                                       forest);
         // init sparsity lookup
         ref->copy(num_rows + 1, l_factor_ref->get_const_row_ptrs(),
                   l_factor->get_row_ptrs());
@@ -246,18 +247,18 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
             auto skeleton = matrix_type::create(
                 this->ref, this->mtx->get_size(), this->mtx->get_size()[0]);
             std::unique_ptr<elimination_forest> skeleton_forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
 
             gko::kernels::reference::elimination_forest::compute_skeleton_tree(
                 this->ref, this->mtx->get_const_row_ptrs(),
                 this->mtx->get_const_col_idxs(), this->mtx->get_size()[0],
                 skeleton->get_row_ptrs(), skeleton->get_col_idxs());
 
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
-            gko::factorization::compute_elim_forest(skeleton.get(),
-                                                    skeleton_forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
+            gko::factorization::compute_elimination_forest(skeleton.get(),
+                                                           skeleton_forest);
 
             this->assert_equal_forests(*skeleton_forest, *this->forest);
         },
@@ -273,8 +274,8 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
             gko::array<index_type> row_nnz{this->ref, this->num_rows};
 
             gko::kernels::reference::cholesky::symbolic_count(
@@ -295,8 +296,8 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
             gko::kernels::reference::cholesky::symbolic_count(
                 this->ref, this->mtx.get(), *this->forest,
                 this->l_factor->get_row_ptrs(), this->tmp);
