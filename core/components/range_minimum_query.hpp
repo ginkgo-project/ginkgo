@@ -56,7 +56,7 @@ struct cartesian_tree {
         int lut[size2];
     };
 
-    constexpr static ballot_number_lookup ballot_number;
+    constexpr static ballot_number_lookup ballot_number{};
 
     constexpr static int num_trees = ballot_number(num_nodes);
 
