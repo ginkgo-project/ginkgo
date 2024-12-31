@@ -35,7 +35,8 @@ GKO_REGISTER_OPERATION(symbolic_factorize_simple,
                        lu_factorization::symbolic_factorize_simple);
 GKO_REGISTER_OPERATION(symbolic_factorize_simple_finalize,
                        lu_factorization::symbolic_factorize_simple_finalize);
-GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
+GKO_REGISTER_HOST_OPERATION(compute_elimination_forest,
+                            compute_elimination_forest);
 
 
 }  // namespace
@@ -51,7 +52,7 @@ void symbolic_cholesky(
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     const auto exec = mtx->get_executor();
     const auto host_exec = exec->get_master();
-    exec->run(make_compute_elim_forest(mtx, forest));
+    exec->run(make_compute_elimination_forest(mtx, forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
@@ -100,7 +101,7 @@ void symbolic_cholesky_device(
         exec->run(make_compute_skeleton_tree(
             mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), num_rows,
             skeleton->get_row_ptrs(), skeleton->get_col_idxs()));
-        exec->run(make_compute_elim_forest(skeleton.get(), forest));
+        exec->run(make_compute_elimination_forest(skeleton.get(), forest));
     }
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};

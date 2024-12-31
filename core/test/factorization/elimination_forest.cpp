@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,7 +55,7 @@ TYPED_TEST(EliminationForest, WorksForExample)
         this->ref);
 
     std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::factorization::compute_elimination_forest(mtx.get(), forest);
 
     GKO_ASSERT_ARRAY_EQ(forest->parents,
                         I<index_type>({2, 4, 6, 8, 8, 6, 7, 8, 9, 10}));
@@ -92,7 +92,7 @@ TYPED_TEST(EliminationForest, WorksForSeparable)
         this->ref);
 
     std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::factorization::compute_elimination_forest(mtx.get(), forest);
 
     GKO_ASSERT_ARRAY_EQ(forest->parents,
                         I<index_type>({2, 2, 10, 4, 5, 9, 7, 9, 9, 10}));
@@ -128,7 +128,7 @@ TYPED_TEST(EliminationForest, WorksForPostOrderNotSelfInverse)
         },
         this->ref);
     std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::factorization::compute_elimination_forest(mtx.get(), forest);
     GKO_ASSERT_ARRAY_EQ(forest->parents,
                         I<index_type>({2, 4, 6, 8, 5, 6, 7, 8, 9, 10}));
     GKO_ASSERT_ARRAY_EQ(forest->child_ptrs,
@@ -152,7 +152,7 @@ TYPED_TEST(EliminationForest, WorksForAni1)
     auto mtx = gko::read<matrix_type>(stream, this->ref);
 
     std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::factorization::compute_elimination_forest(mtx.get(), forest);
 
     // the elimination tree is a path
     gko::array<index_type> iota_arr{this->ref, 36};
@@ -178,7 +178,7 @@ TYPED_TEST(EliminationForest, WorksForAni1Amd)
     auto mtx = gko::read<matrix_type>(stream, this->ref);
 
     std::unique_ptr<gko::factorization::elimination_forest<index_type>> forest;
-    gko::factorization::compute_elim_forest(mtx.get(), forest);
+    gko::factorization::compute_elimination_forest(mtx.get(), forest);
 
     GKO_ASSERT_ARRAY_EQ(
         forest->parents,
