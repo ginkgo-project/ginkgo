@@ -21,7 +21,7 @@ namespace detail {
 GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
 {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-    return __popc(bitmask);
+    return __popc(static_cast<unsigned>(bitmask));
 #else
     std::bitset<32> bits{bitmask};
     return bits.count();
@@ -33,7 +33,7 @@ GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
 GKO_ATTRIBUTES GKO_INLINE int popcount(uint64 bitmask)
 {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-    return __popcll(bitmask);
+    return __popcll(static_cast<unsigned long long>(bitmask));
 #else
     std::bitset<64> bits{bitmask};
     return bits.count();
@@ -49,7 +49,7 @@ GKO_ATTRIBUTES GKO_INLINE int find_highest_bit(uint32 bitmask)
 {
     return 31 -
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-           __clz(bitmask)
+           __clz(static_cast<unsigned>(bitmask))
 #else
            __builtin_clz(bitmask)
 #endif
@@ -62,7 +62,7 @@ GKO_ATTRIBUTES GKO_INLINE int find_highest_bit(uint64 bitmask)
 {
     return 63 -
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-           __clzll(bitmask)
+           __clzll(static_cast<unsigned long long>(bitmask))
 #else
            __builtin_clzll(bitmask)
 #endif
@@ -78,7 +78,7 @@ GKO_ATTRIBUTES GKO_INLINE int find_lowest_bit(uint32 bitmask)
 {
     return
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        __ffs(bitmask)
+        __ffs(static_cast<unsigned>(bitmask))
 #else
         __builtin_ffs(bitmask)
 #endif
@@ -91,7 +91,7 @@ GKO_ATTRIBUTES GKO_INLINE int find_lowest_bit(uint64 bitmask)
 {
     return
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        __ffsll(bitmask)
+        __ffsll(static_cast<unsigned long long>(bitmask))
 #else
         __builtin_ffsll(bitmask)
 #endif
