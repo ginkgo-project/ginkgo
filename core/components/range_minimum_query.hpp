@@ -179,33 +179,40 @@ public:
         return round_up_pow2(num_bits);
     }
 
+    // the constexpr here is only signalling for CUDA,
+    // since we don't have if consteval to switch between two implementations
+    constexpr static int bits_per_value_log2(int num_bits)
+    {
+        return ceil_log2(num_bits);
+    }
+
     constexpr static int values_per_word(int num_bits)
     {
-        return bits_per_word / bits_per_value(num_bits);
+        return bits_per_word >> bits_per_value_log2(num_bits);
+    }
+
+    constexpr static int values_per_word_log2(int num_bits)
+    {
+        return bits_per_word_log2 - bits_per_value_log2(num_bits);
     }
 
     constexpr static size_type storage_size(size_type size, int num_bits)
     {
-        // TODO optimize with bitshift
-        const auto div = values_per_word(num_bits);
-        return (size + div - 1) / div;
+        const auto shift = values_per_word_log2(num_bits);
+        const auto div = WordType{1} << shift;
+        return (size + div - 1) >> shift;
     }
 
     constexpr void set_from_zero(size_type i, WordType value)
     {
-        assert(value < max_val_plus_1_);
-        assert(i >= 0);
-        assert(i < size_);
-        data_[i / values_per_word_] |=
-            value << ((i % values_per_word_) * bits_per_value_);
+        const auto [block, shift] = get_block_and_shift(i);
+        data_[block] |= value << shift;
     }
 
     constexpr void clear(size_type i)
     {
-        assert(i >= 0);
-        assert(i < size_);
-        data_[i / values_per_word_] &=
-            ~(mask_ << ((i % values_per_word_) * bits_per_value_));
+        const auto [block, shift] = get_block_and_shift(i);
+        data_[block] &= ~(mask_ << shift);
     }
 
     constexpr void set(size_type i, WordType value)
@@ -216,11 +223,16 @@ public:
 
     constexpr WordType get(size_type i) const
     {
+        const auto [block, shift] = get_block_and_shift(i);
+        return (data_[block] >> shift) & mask_;
+    }
+
+    constexpr std::pair<int, int> get_block_and_shift(size_type i) const
+    {
         assert(i >= 0);
         assert(i < size_);
-        return (data_[i / values_per_word_] >>
-                ((i % values_per_word_) * bits_per_value_)) &
-               mask_;
+        return std::make_pair(i >> values_per_word_log2_,
+                              (i & (values_per_word_ - 1)) * bits_per_value_);
     }
 
     explicit constexpr bit_packed_span(WordType* data, int num_bits,
@@ -231,7 +243,8 @@ public:
           max_val_plus_1_{WordType{1} << num_bits},
           mask_{max_val_plus_1_ - 1},
           bits_per_value_{round_up_pow2(num_bits)},
-          values_per_word_{bits_per_word / bits_per_value_}
+          values_per_word_log2_{values_per_word_log2(num_bits)},
+          values_per_word_{1 << values_per_word_log2_}
     {
         assert(bits_per_value_ <= bits_per_word);
     }
@@ -243,6 +256,7 @@ private:
     WordType max_val_plus_1_;
     WordType mask_;
     int bits_per_value_;
+    int values_per_word_log2_;
     int values_per_word_;
 };
 
