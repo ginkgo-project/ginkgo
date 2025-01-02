@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,7 +100,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(AssemblyHelpers, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
