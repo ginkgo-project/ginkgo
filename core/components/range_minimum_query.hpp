@@ -174,21 +174,9 @@ public:
 
     // the constexpr here is only signalling for CUDA,
     // since we don't have if consteval to switch between two implementations
-    constexpr static int bits_per_value(int num_bits)
-    {
-        return round_up_pow2(num_bits);
-    }
-
-    // the constexpr here is only signalling for CUDA,
-    // since we don't have if consteval to switch between two implementations
     constexpr static int bits_per_value_log2(int num_bits)
     {
         return ceil_log2(num_bits);
-    }
-
-    constexpr static int values_per_word(int num_bits)
-    {
-        return bits_per_word >> bits_per_value_log2(num_bits);
     }
 
     constexpr static int values_per_word_log2(int num_bits)
@@ -232,19 +220,17 @@ public:
         assert(i >= 0);
         assert(i < size_);
         return std::make_pair(i >> values_per_word_log2_,
-                              (i & (values_per_word_ - 1)) * bits_per_value_);
+                              (i & local_index_mask_) * bits_per_value_);
     }
 
     explicit constexpr bit_packed_span(WordType* data, int num_bits,
                                        size_type size)
         : data_{data},
           size_{size},
-          num_bits_{num_bits},
-          max_val_plus_1_{WordType{1} << num_bits},
-          mask_{max_val_plus_1_ - 1},
+          mask_{(WordType{1} << num_bits) - 1},
           bits_per_value_{round_up_pow2(num_bits)},
           values_per_word_log2_{values_per_word_log2(num_bits)},
-          values_per_word_{1 << values_per_word_log2_}
+          local_index_mask_{(1 << values_per_word_log2_) - 1}
     {
         assert(bits_per_value_ <= bits_per_word);
     }
@@ -252,12 +238,10 @@ public:
 private:
     WordType* data_;
     size_type size_;
-    int num_bits_;
-    WordType max_val_plus_1_;
     WordType mask_;
     int bits_per_value_;
     int values_per_word_log2_;
-    int values_per_word_;
+    int local_index_mask_;
 };
 
 
