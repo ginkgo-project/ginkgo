@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -168,10 +168,27 @@ class bit_packed_span {
     static_assert(std::is_unsigned_v<WordType>);
 
 public:
-    constexpr size_type storage_size(size_type size)
+    constexpr static int bits_per_word = sizeof(WordType) * CHAR_BIT;
+    constexpr static int bits_per_word_log2 =
+        ceil_log2_constexpr(bits_per_word);
+
+    // the constexpr here is only signalling for CUDA,
+    // since we don't have if consteval to switch between two implementations
+    constexpr static int bits_per_value(int num_bits)
+    {
+        return round_up_pow2(num_bits);
+    }
+
+    constexpr static int values_per_word(int num_bits)
+    {
+        return bits_per_word / bits_per_value(num_bits);
+    }
+
+    constexpr static size_type storage_size(size_type size, int num_bits)
     {
         // TODO optimize with bitshift
-        return (size + values_per_word_ - 1) / values_per_word_;
+        const auto div = values_per_word(num_bits);
+        return (size + div - 1) / div;
     }
 
     constexpr void set_from_zero(size_type i, WordType value)
@@ -227,7 +244,6 @@ private:
     WordType mask_;
     int bits_per_value_;
     int values_per_word_;
-    constexpr static int bits_per_word = sizeof(WordType) * CHAR_BIT;
 };
 
 
