@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,9 +15,8 @@
 
 #include "core/test/utils.hpp"
 
-
-namespace {
-
+template <typename T>
+using workspace_traits = gko::solver::workspace_traits<T>;
 
 template <typename T>
 class Chebyshev : public ::testing::Test {
@@ -67,10 +66,10 @@ TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithoutIteration)
 
     solver->apply(b.get(), x.get());
 
-    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
-    auto beta = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    auto alpha =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
+    auto beta =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
     // if the stop criterion does not contain iteration limit, it will use the
     // default value.
     ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
@@ -98,10 +97,10 @@ TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithLessIteration)
 
     solver->apply(b.get(), x.get());
 
-    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
-    auto beta = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    auto alpha =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
+    auto beta =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
     // if the iteration limit less than the default value, it will use the
     // default value.
     ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
@@ -127,10 +126,10 @@ TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
 
     solver->apply(b.get(), x.get());
 
-    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
-    auto beta = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    auto alpha =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
+    auto beta =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
     // the iteration is more than default
     ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
     ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 7}));
@@ -171,10 +170,10 @@ TYPED_TEST(Chebyshev, AlphaBetaFromChangingCriterion)
     // same as previous test, but it works with combined factory
     solver->apply(b.get(), x.get());
 
-    auto alpha = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::alpha));
-    auto beta = gko::as<gko::matrix::Dense<value_type>>(
-        solver->get_workspace_op(gko::solver::workspace_traits<Solver>::beta));
+    auto alpha =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
+    auto beta =
+        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
     auto alpha_ref = alpha->clone();
     auto beta_ref = beta->clone();
     // if the iteration limit is less than the default value, it will use the
@@ -188,12 +187,10 @@ TYPED_TEST(Chebyshev, AlphaBetaFromChangingCriterion)
 
         solver->apply(b.get(), x.get());
 
-        auto alpha_tmp =
-            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
-                gko::solver::workspace_traits<Solver>::alpha));
-        auto beta_tmp =
-            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
-                gko::solver::workspace_traits<Solver>::beta));
+        auto alpha_tmp = gko::as<Mtx>(
+            solver->get_workspace_op(workspace_traits<Solver>::alpha));
+        auto beta_tmp = gko::as<Mtx>(
+            solver->get_workspace_op(workspace_traits<Solver>::beta));
         // if the iteration limit is less than the previous one, it keeps the
         // storage.
         ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 7}));
@@ -210,12 +207,10 @@ TYPED_TEST(Chebyshev, AlphaBetaFromChangingCriterion)
 
         solver->apply(b.get(), x.get());
 
-        auto alpha_tmp =
-            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
-                gko::solver::workspace_traits<Solver>::alpha));
-        auto beta_tmp =
-            gko::as<gko::matrix::Dense<value_type>>(solver->get_workspace_op(
-                gko::solver::workspace_traits<Solver>::beta));
+        auto alpha_tmp = gko::as<Mtx>(
+            solver->get_workspace_op(workspace_traits<Solver>::alpha));
+        auto beta_tmp = gko::as<Mtx>(
+            solver->get_workspace_op(workspace_traits<Solver>::beta));
         // if the iteration limit is more than the previous one, it regenerates
         // workspace
         ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 11}));
@@ -242,16 +237,16 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystem)
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<MixedMtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
-                        (r_mixed<value_type, TypeParam>()) * 1e1);
+                        (r_mixed<mixed_type, TypeParam>()) * 1e1);
 }
 
 
@@ -278,23 +273,26 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemComplex)
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystemMixedComplex)
 {
-    using value_type =
+    using mixed_complex_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
+    auto b = gko::initialize<MixedMtx>(
+        {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
+         mixed_complex_type{2.2, -4.4}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+    auto x = gko::initialize<MixedMtx>(
+        {mixed_complex_type{0.0, 0.0}, mixed_complex_type{0.0, 0.0},
+         mixed_complex_type{0.0, 0.0}},
         this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-                           value_type{2.0, -4.0}}),
-                        (r_mixed<value_type, TypeParam>()) * 1e1);
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({mixed_complex_type{1.0, -2.0}, mixed_complex_type{3.0, -6.0},
+           mixed_complex_type{2.0, -4.0}}),
+        (r_mixed<mixed_complex_type, TypeParam>()) * 1e1);
 }
 
 
@@ -361,17 +359,18 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApply)
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
+    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<MixedMtx>({2.0}, this->exec);
+    auto beta = gko::initialize<MixedMtx>({-1.0}, this->exec);
+    auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<MixedMtx>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
+                        (r_mixed<mixed_type, TypeParam>()) * 1e1);
 }
 
 
@@ -401,26 +400,29 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_type>;
+    using Scalar = gko::matrix::Dense<mixed_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
-        {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
+    auto b = gko::initialize<MixedMtx>(
+        {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
+         mixed_complex_type{2.2, -4.4}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+    auto x = gko::initialize<MixedMtx>(
+        {mixed_complex_type{0.5, -1.0}, mixed_complex_type{1.0, -2.0},
+         mixed_complex_type{2.0, -4.0}},
         this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({mixed_complex_type{1.5, -3.0}, mixed_complex_type{5.0, -10.0},
+           mixed_complex_type{2.0, -4.0}}),
+        (r_mixed<mixed_complex_type, TypeParam>()) * 1e1);
 }
 
 
@@ -509,6 +511,3 @@ TYPED_TEST(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
     }
 }
-
-
-}  // namespace
