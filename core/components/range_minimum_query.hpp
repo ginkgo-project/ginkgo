@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/index_range.hpp"
+#include "core/components/bit_packed_storage.hpp"
 
 namespace gko {
 namespace detail {
@@ -255,17 +256,7 @@ public:
     // how many trees does the lookup table (LUT) contain?
     constexpr static int num_trees = tree::num_trees;
     // how many bits do we need theoretically for this block?
-    constexpr static int num_min_bits = detail::ceil_log2_constexpr(block_size);
-    // for actual bits we use a power of two
-    constexpr static int num_bits =
-        1 << detail::ceil_log2_constexpr(num_min_bits);
-    constexpr static uint32 mask = (uint32{1} << num_bits) - 1u;
-    // how many values are stored per uint32 block?
-    constexpr static int values_per_word = 32 / num_bits;
-    // number of uint32 blocks in the LUT for a single tree
-    constexpr static int tree_lut_size =
-        (block_size * block_size + values_per_word - 1) / values_per_word;
-
+    constexpr static int num_bits = detail::ceil_log2_constexpr(block_size);
 
     constexpr block_range_minimum_query_lookup_table() : lookup_table{}
     {
@@ -280,10 +271,8 @@ public:
                             min_index = i;
                         }
                     }
-                    const auto block_id = lookup_block(first, last);
-                    const auto shift = lookup_shift(first, last);
-                    lookup_table[tree][block_id] |=
-                        static_cast<uint32>(min_index) << shift;
+                    lookup_table[tree].set(first + block_size * last,
+                                           min_index);
                 }
             }
         }
@@ -308,29 +297,14 @@ public:
         return number;
     }
 
-    constexpr int lookup_block(int first, int last) const
-    {
-        const auto flat_entry = first + block_size * last;
-        return flat_entry / values_per_word;
-    }
-
-    constexpr int lookup_shift(int first, int last) const
-    {
-        const auto flat_entry = first + block_size * last;
-        return (flat_entry % values_per_word) * num_bits;
-    }
-
     constexpr int lookup(int tree, int first, int last) const
     {
-        const auto block_id = lookup_block(first, last);
-        const auto shift = lookup_shift(first, last);
-        const auto block = lookup_table[tree][block_id];
-        return static_cast<int>((block >> shift) & mask);
+        return lookup_table[tree].get(first + block_size * last);
     }
 
 private:
     typename tree::ballot_number_lookup ballot_number;
-    uint32 lookup_table[num_trees][tree_lut_size];
+    bit_packed_array<num_bits, block_size * block_size> lookup_table[num_trees];
 };
 
 
