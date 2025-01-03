@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,6 +59,7 @@
 #include "core/solver/cb_gmres_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
+#include "core/solver/chebyshev_kernels.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gcr_kernels.hpp"
@@ -651,6 +652,16 @@ GKO_STUB_CB_GMRES_CONST(GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres
+
+
+namespace chebyshev {
+
+
+GKO_STUB_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
+GKO_STUB_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);
+
+
+}  // namespace chebyshev
 
 
 namespace ir {
