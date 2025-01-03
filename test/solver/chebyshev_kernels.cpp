@@ -53,13 +53,11 @@ TEST_F(Chebyshev, ApplyIsEquivalentToRef)
     // both executors
     auto chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(ref);
     auto d_chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(exec);
     auto solver = chebyshev_factory->generate(std::move(mtx));
     auto d_solver = d_chebyshev_factory->generate(std::move(d_mtx));
@@ -82,24 +80,16 @@ TEST_F(Chebyshev, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
             .with_preconditioner(
-                gko::solver::Gmres<value_type>::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(1u).on(
-                            ref))
-                    .on(ref))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+                gko::solver::Gmres<value_type>::build().with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u)))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(ref);
     auto d_chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
             .with_preconditioner(
-                gko::solver::Gmres<value_type>::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(1u).on(
-                            exec))
-                    .on(exec))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::solver::Gmres<value_type>::build().with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u)))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(exec);
     auto solver = chebyshev_factory->generate(std::move(mtx));
     auto d_solver = d_chebyshev_factory->generate(std::move(d_mtx));
@@ -127,14 +117,12 @@ TEST_F(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
         auto d_x = clone(exec, x);
         auto chebyshev_factory =
             gko::solver::Chebyshev<value_type>::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
                 .with_default_initial_guess(guess)
                 .on(ref);
         auto d_chebyshev_factory =
             gko::solver::Chebyshev<value_type>::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
                 .with_default_initial_guess(guess)
                 .on(exec);
         auto solver = chebyshev_factory->generate(mtx);
