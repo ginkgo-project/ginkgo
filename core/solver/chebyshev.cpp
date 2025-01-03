@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/solver/chebyshev_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -23,6 +24,8 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, ir::initialize);
+GKO_REGISTER_OPERATION(init_update, chebyshev::init_update);
+GKO_REGISTER_OPERATION(update, chebyshev::update);
 
 
 }  // anonymous namespace
@@ -274,8 +277,12 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 num_generated_scalar_++;
             }
             // x = x + alpha * inner_solution
-            dense_x->add_scaled(alpha_scalar.get(), inner_solution);
-            update_solution->copy_from(inner_solution);
+            // update_solultion = inner_solution
+            exec->run(chebyshev::make_init_update(
+                alpha_scalar->get_const_values(),
+                gko::detail::get_local(inner_solution),
+                gko::detail::get_local(update_solution),
+                gko::detail::get_local(dense_x)));
             continue;
         }
         // beta_ref for iter == 1 is initialized in the beginning
@@ -295,10 +302,12 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         // z = z + beta * p
         // p = z
-        inner_solution->add_scaled(beta_scalar.get(), update_solution);
-        update_solution->copy_from(inner_solution);
-        // x + alpha * p
-        dense_x->add_scaled(alpha_scalar.get(), update_solution);
+        // x += alpha * p
+        exec->run(chebyshev::make_update(
+            alpha_scalar->get_const_values(), beta_scalar->get_const_values(),
+            gko::detail::get_local(inner_solution),
+            gko::detail::get_local(update_solution),
+            gko::detail::get_local(dense_x)));
     }
 }
 
