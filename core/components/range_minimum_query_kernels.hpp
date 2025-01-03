@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,9 +37,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     constexpr int small_block_size = 8;                                     \
-    using block_argmin_storage_type =                                       \
-        detail::bit_packed_span<uint32, detail::ceil_log2_constexpr(        \
-                                            small_block_size)>;             \
+    using block_argmin_storage_type = detail::bit_packed_span<uint32>;      \
     template <typename IndexType>                                           \
     GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_SMALL_KERNEL(IndexType); \
     template <typename IndexType>                                           \

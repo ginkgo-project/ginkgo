@@ -1,3 +1,4 @@
 ginkgo_create_test(addressable_pq)
+ginkgo_create_test(bit_packed_storage)
 ginkgo_create_test(disjoint_sets)
 ginkgo_create_test(range_minimum_query)
