@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,12 +26,12 @@ namespace solver {
 
 
 /**
- * Chebyshev iteration is an iterative method that can solving nonsymeetric
- * problems. Chebyshev Iterations avoids the inner products for computation
- * which may be the bottleneck for distributed system. Chebyshev Iteration is
- * developed based on the Chebyshev polynomials of the first kind. Moreover,
- * this method requires knowledge about the spectrum of the preconditioned
- * matrix. This implementation follows the algorithm in "Templates for the
+ * Chebyshev iteration is an iterative method for solving nonsymmetric problems
+ * based on some knowledge of the spectrum of the (preconditioned) system
+ * matrix. It avoids the computation of inner products, which may be a
+ * performance bottleneck for distributed system. Chebyshev iteration is
+ * developed based on Chebyshev polynomials of the first kind.
+ * This implementation follows the algorithm in "Templates for the
  * Solution of Linear Systems: Building Blocks for Iterative Methods, 2nd
  * Edition".
  *
