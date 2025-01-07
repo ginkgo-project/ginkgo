@@ -70,9 +70,7 @@ void compute_lookup_large(
         superblocks.set(0, i, min1 <= min2 ? 0 : 1);
     }
     // we computed argmins for blocks of size 2, now recursively combine them.
-    // the biggest block size needs to be able to span any subrange of [0, size)
-    // subtracting 1 prevents an unnecessary last level at power-of-two sizes
-    const auto num_levels = floor_log2(num_blocks - 1);
+    const auto num_levels = superblocks.num_levels();
     for (int block_level = 1; block_level < num_levels; block_level++) {
         const auto block_size = IndexType{1} << (block_level + 1);
         for (const auto i : irange{num_blocks}) {
