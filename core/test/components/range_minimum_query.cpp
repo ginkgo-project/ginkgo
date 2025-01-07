@@ -23,7 +23,7 @@ TEST(RangeMinimumQuery, RepresentativesAreExhaustive)
         const auto rep_tree_number =
             tree::compute_tree_index(reps[tree_number]);
 
-        ASSERT_EQ(tree_number, rep_tree_number);
+        EXPECT_EQ(tree_number, rep_tree_number);
     } while (std::next_permutation(values, values + size));
 }
 
@@ -40,7 +40,7 @@ TEST(RangeMinimumQuery, RepresentativesLargeAreExhaustive)
         const auto rep_tree_number =
             tree::compute_tree_index(reps[tree_number]);
 
-        ASSERT_EQ(tree_number, rep_tree_number);
+        EXPECT_EQ(tree_number, rep_tree_number);
     } while (std::next_permutation(values, values + size));
 }
 
@@ -49,7 +49,7 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
 {
     constexpr auto size = 8;
     using tree = gko::detail::cartesian_tree<size>;
-    constexpr gko::block_range_minimum_query_lookup_table<size> table;
+    /*constexpr*/ gko::block_range_minimum_query_lookup_table<size> table;
     auto reps = tree::compute_tree_representatives();
     for (const auto& rep : reps) {
         const auto tree = tree::compute_tree_index(rep);
@@ -60,7 +60,7 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
                 const auto min_pos =
                     first > last ? 0 : std::min_element(begin, end) - rep;
 
-                ASSERT_EQ(table.lookup(tree, first, last), min_pos);
+                EXPECT_EQ(table.lookup(tree, first, last), min_pos);
             }
         }
     }
@@ -82,7 +82,7 @@ TEST(RangeMinimumQuery, LookupExhaustive)
                     std::min_element(values + first, values + last + 1) -
                     values;
 
-                ASSERT_EQ(lookup_val, actual_val);
+                EXPECT_EQ(lookup_val, actual_val);
             }
         }
     } while (std::next_permutation(values, values + size));
@@ -92,44 +92,75 @@ TEST(RangeMinimumQuery, LookupExhaustive)
 TEST(RangeMinimumQuery, OffsetsAreCorrect)
 {
     constexpr auto data = gko::range_minimum_query_superblocks<
-        int>::compute_block_offset_lookup();
+        gko::int32>::compute_block_offset_lookup();
     constexpr auto data_long = gko::range_minimum_query_superblocks<
-        long>::compute_block_offset_lookup();
-    ASSERT_EQ(data[0], 0);
-    ASSERT_EQ(data_long[0], 0);
+        gko::int64>::compute_block_offset_lookup();
+    EXPECT_EQ(data[0], 0);
+    EXPECT_EQ(data_long[0], 0);
     // blocks of size 2^1 need 1 bit each
-    ASSERT_EQ(data[1], 1);
-    ASSERT_EQ(data_long[1], 1);
+    EXPECT_EQ(data[1], 1);
+    EXPECT_EQ(data_long[1], 1);
     // blocks of size 2^2 need 2 bits each
-    ASSERT_EQ(data[2], 3);
-    ASSERT_EQ(data_long[2], 3);
+    EXPECT_EQ(data[2], 3);
+    EXPECT_EQ(data_long[2], 3);
     // blocks of size 2^3 need 4 bits each
-    ASSERT_EQ(data[3], 7);
-    ASSERT_EQ(data_long[3], 7);
+    EXPECT_EQ(data[3], 7);
+    EXPECT_EQ(data_long[3], 7);
     // blocks of size 2^4 need 4 bits each
-    ASSERT_EQ(data[4], 11);
-    ASSERT_EQ(data_long[4], 11);
+    EXPECT_EQ(data[4], 11);
+    EXPECT_EQ(data_long[4], 11);
     // blocks of size 2^5 need 8 bits each
-    ASSERT_EQ(data[5], 19);
-    ASSERT_EQ(data_long[5], 19);
+    EXPECT_EQ(data[5], 19);
+    EXPECT_EQ(data_long[5], 19);
     // blocks of size 2^6 need 8 bits each
-    ASSERT_EQ(data[6], 27);
-    ASSERT_EQ(data_long[6], 27);
+    EXPECT_EQ(data[6], 27);
+    EXPECT_EQ(data_long[6], 27);
     // blocks of size 2^7 need 8 bits each
-    ASSERT_EQ(data[7], 35);
-    ASSERT_EQ(data_long[7], 35);
+    EXPECT_EQ(data[7], 35);
+    EXPECT_EQ(data_long[7], 35);
     // blocks of size 2^8 need 8 bits each
-    ASSERT_EQ(data[8], 43);
-    ASSERT_EQ(data_long[8], 43);
+    EXPECT_EQ(data[8], 43);
+    EXPECT_EQ(data_long[8], 43);
     // blocks of size 2^9 - 2^16 need 16 bits each
-    ASSERT_EQ(data[9], 59);
-    ASSERT_EQ(data_long[9], 59);
-    ASSERT_EQ(data[16], 171);
-    ASSERT_EQ(data_long[16], 171);
+    EXPECT_EQ(data[9], 59);
+    EXPECT_EQ(data_long[9], 59);
+    EXPECT_EQ(data[16], 171);
+    EXPECT_EQ(data_long[16], 171);
     // blocks of size 2^17-2^32 need 32 bits each
-    ASSERT_EQ(data[31], 651);
-    ASSERT_EQ(data_long[31], 651);
-    ASSERT_EQ(data_long[32], 683);
+    EXPECT_EQ(data[31], 651);
+    EXPECT_EQ(data_long[31], 651);
+    EXPECT_EQ(data_long[32], 683);
     // blocks of size 2^33-2^64 need 64 bits each
-    ASSERT_EQ(data_long[63], 2667);
+    EXPECT_EQ(data_long[63], 2667);
+}
+
+
+TEST(RangeMinimumQuery, NumLevelsIsCorrect)
+{
+    using superblocks32 = gko::range_minimum_query_superblocks<gko::int32>;
+    using superblocks64 = gko::range_minimum_query_superblocks<gko::int64>;
+    EXPECT_EQ(superblocks32::compute_num_levels(0), 0);
+    EXPECT_EQ(superblocks64::compute_num_levels(0), 0);
+    EXPECT_EQ(superblocks32::compute_num_levels(1), 0);
+    EXPECT_EQ(superblocks64::compute_num_levels(1), 0);
+    EXPECT_EQ(superblocks32::compute_num_levels(2), 1);
+    EXPECT_EQ(superblocks64::compute_num_levels(2), 1);
+    EXPECT_EQ(superblocks32::compute_num_levels(3), 1);
+    EXPECT_EQ(superblocks64::compute_num_levels(3), 1);
+    EXPECT_EQ(superblocks32::compute_num_levels(4), 1);
+    EXPECT_EQ(superblocks64::compute_num_levels(4), 1);
+    EXPECT_EQ(superblocks32::compute_num_levels(5), 2);
+    EXPECT_EQ(superblocks64::compute_num_levels(5), 2);
+    EXPECT_EQ(superblocks32::compute_num_levels(8), 2);
+    EXPECT_EQ(superblocks64::compute_num_levels(8), 2);
+    EXPECT_EQ(superblocks32::compute_num_levels(9), 3);
+    EXPECT_EQ(superblocks64::compute_num_levels(9), 3);
+    EXPECT_EQ(superblocks32::compute_num_levels(16), 3);
+    EXPECT_EQ(superblocks64::compute_num_levels(16), 3);
+    EXPECT_EQ(superblocks32::compute_num_levels(17), 4);
+    EXPECT_EQ(superblocks64::compute_num_levels(17), 4);
+    EXPECT_EQ(superblocks32::compute_num_levels(32), 4);
+    EXPECT_EQ(superblocks64::compute_num_levels(32), 4);
+    EXPECT_EQ(superblocks32::compute_num_levels(33), 5);
+    EXPECT_EQ(superblocks64::compute_num_levels(33), 5);
 }

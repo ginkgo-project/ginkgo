@@ -12,18 +12,20 @@
 #include "gtest/gtest.h"
 
 
-template <typename WordType>
+template <typename IndexWordType>
 class BitPackedSpan : public ::testing::Test {
 public:
-    using word_type = WordType;
-    using bit_packed_span = gko::bit_packed_span<WordType>;
+    using index_type = std::tuple_element_t<0, IndexWordType>;
+    using word_type = std::tuple_element_t<1, IndexWordType>;
+    using bit_packed_span = gko::bit_packed_span<index_type, word_type>;
 
     std::default_random_engine rng{2457};
 };
 
-using WordTypes = ::testing::Types<gko::uint32, gko::uint64>;
+using WordTypes = ::testing::Types<std::pair<gko::int32, gko::uint32>,
+                                   std::pair<gko::int32, gko::uint64>>;
 
-TYPED_TEST_SUITE(BitPackedSpan, WordTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(BitPackedSpan, WordTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(BitPackedSpan, Works)
@@ -54,10 +56,8 @@ TYPED_TEST(BitPackedSpan, Works)
                 val = dist2(this->rng);
             }
 
-            bit_packed_span span{packed_data.data(), num_bits,
-                                 static_cast<gko::size_type>(size)};
-            bit_packed_span span2{packed_data2.data(), num_bits,
-                                  static_cast<gko::size_type>(size)};
+            bit_packed_span span{packed_data.data(), num_bits, size};
+            bit_packed_span span2{packed_data2.data(), num_bits, size};
             for (const auto i : gko::irange{size}) {
                 span.set_from_zero(i, data[i]);
                 span2.set(i, data[i]);
