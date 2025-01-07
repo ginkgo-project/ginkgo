@@ -21,6 +21,7 @@ target_sources(ginkgo_dpcpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/assembly_kernels.dp.cpp
+    distributed/dd_matrix_kernels.dp.cpp
     distributed/index_map_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_helpers_kernels.dp.cpp

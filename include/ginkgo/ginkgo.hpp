@@ -61,6 +61,7 @@
 
 #include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/dd_matrix.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
