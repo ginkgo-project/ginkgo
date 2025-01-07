@@ -9,6 +9,7 @@
 #include <limits>
 #include <utility>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -158,7 +159,7 @@ public:
     }
 
     template <typename T>
-    constexpr int compute_tree_index(const T values[block_size])
+    constexpr int compute_tree_index(const T values[block_size]) const
     {
         // build cartesian tree left-to-right and traverse ballot number
         // triangle in parallel
@@ -184,6 +185,30 @@ public:
 private:
     typename tree::ballot_number_lookup ballot_number;
     bit_packed_array<num_bits, block_size * block_size> lookup_table[num_trees];
+};
+
+
+template <int block_size>
+class device_block_range_minimum_query_lookup_table {
+public:
+    using type = block_range_minimum_query_lookup_table<block_size>;
+    device_block_range_minimum_query_lookup_table(
+        std::shared_ptr<const Executor> exec)
+        : data_{exec, sizeof(type)}
+    {
+        type lut{};
+        exec->copy_from(exec->get_master(), sizeof(type), &lut, get());
+    }
+
+    const type* get() const
+    {
+        return reinterpret_cast<const type*>(data_.get_const_data());
+    }
+
+    type* get() { return reinterpret_cast<type*>(data_.get_data()); }
+
+private:
+    array<char> data_;
 };
 
 
