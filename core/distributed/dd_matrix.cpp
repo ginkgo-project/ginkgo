@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,7 +44,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     ptr_param<const LinOp> matrix_template)
-    : EnableDistributedLinOp<
+    : EnableLinOp<
           DdMatrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
@@ -68,7 +68,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> local_linop)
-    : EnableDistributedLinOp<
+    : EnableLinOp<
           DdMatrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
@@ -107,8 +107,8 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    DdMatrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result) const
+    DdMatrix<next_precision_base<value_type>, local_index_type,
+             global_index_type>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -125,8 +125,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    DdMatrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result)
+    DdMatrix<next_precision_base<value_type>, local_index_type,
+             global_index_type>* result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -430,8 +430,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     const DdMatrix& other)
-    : EnableDistributedLinOp<DdMatrix<value_type, local_index_type,
-                                      global_index_type>>{other.get_executor()},
+    : EnableLinOp<DdMatrix<value_type, local_index_type,
+                           global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = other;
@@ -441,8 +441,8 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     DdMatrix&& other) noexcept
-    : EnableDistributedLinOp<DdMatrix<value_type, local_index_type,
-                                      global_index_type>>{other.get_executor()},
+    : EnableLinOp<DdMatrix<value_type, local_index_type,
+                           global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
 {
     *this = std::move(other);
@@ -499,7 +499,7 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
 #define GKO_DECLARE_DISTRIBUTED_DD_MATRIX(ValueType, LocalIndexType, \
                                           GlobalIndexType)           \
     class DdMatrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_DISTRIBUTED_DD_MATRIX);
 
 
