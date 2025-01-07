@@ -165,20 +165,6 @@ void Chebyshev<ValueType>::apply_with_initial_guess_impl(
 }
 
 
-template <typename Fn>
-void visit_criteria(Fn&& fn,
-                    std::shared_ptr<const gko::stop::CriterionFactory> c)
-{
-    fn(c);
-    if (auto combined =
-            std::dynamic_pointer_cast<const stop::Combined::Factory>(c)) {
-        for (const auto& factory : combined->get_parameters().criteria) {
-            visit_criteria(std::forward<Fn>(fn), factory);
-        }
-    }
-}
-
-
 template <typename ValueType>
 template <typename VectorType>
 void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
@@ -194,27 +180,6 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(residual, dense_b);
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
     GKO_SOLVER_VECTOR(update_solution, dense_b);
-
-    auto old_num_max_generation = num_max_generation_;
-    // Use the scalar first
-    // get the iteration information from stopping criterion.
-    visit_criteria(
-        [&](auto factory) {
-            if (auto iter = std::dynamic_pointer_cast<
-                    const gko::stop::Iteration::Factory>(factory)) {
-                num_max_generation_ = std::max(
-                    num_max_generation_, iter->get_parameters().max_iters);
-            }
-        },
-        this->get_stop_criterion_factory());
-    // Regenerate the vector if we realloc the memory.
-    if (old_num_max_generation != num_max_generation_) {
-        num_generated_scalar_ = 0;
-    }
-    auto alpha = this->template create_workspace_scalar<ValueType>(
-        GKO_SOLVER_TRAITS::alpha, num_max_generation_ + 1);
-    auto beta = this->template create_workspace_scalar<ValueType>(
-        GKO_SOLVER_TRAITS::beta, num_max_generation_ + 1);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -263,24 +228,11 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             inner_solution->copy_from(residual_ptr);
         }
         this->get_preconditioner()->apply(residual_ptr, inner_solution);
-        size_type index =
-            (iter >= num_max_generation_) ? num_max_generation_ : iter;
-        auto alpha_scalar =
-            alpha->create_submatrix(span{0, 1}, span{index, index + 1});
-        auto beta_scalar =
-            beta->create_submatrix(span{0, 1}, span{index, index + 1});
         if (iter == 0) {
-            if (num_generated_scalar_ < num_max_generation_) {
-                alpha_scalar->fill(alpha_ref);
-                // unused beta for first iteration, but fill zero
-                beta_scalar->fill(zero<ValueType>());
-                num_generated_scalar_++;
-            }
             // x = x + alpha * inner_solution
             // update_solultion = inner_solution
             exec->run(chebyshev::make_init_update(
-                alpha_scalar->get_const_values(),
-                gko::detail::get_local(inner_solution),
+                alpha_ref, gko::detail::get_local(inner_solution),
                 gko::detail::get_local(update_solution),
                 gko::detail::get_local(dense_x)));
             continue;
@@ -291,21 +243,11 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
                        (foci_direction_ * alpha_ref / ValueType{2.0});
         }
         alpha_ref = ValueType{1.0} / (center_ - beta_ref / alpha_ref);
-        // The last one is always the updated one
-        if (num_generated_scalar_ < num_max_generation_ ||
-            iter >= num_max_generation_) {
-            alpha_scalar->fill(alpha_ref);
-            beta_scalar->fill(beta_ref);
-        }
-        if (num_generated_scalar_ < num_max_generation_) {
-            num_generated_scalar_++;
-        }
         // z = z + beta * p
         // p = z
         // x += alpha * p
         exec->run(chebyshev::make_update(
-            alpha_scalar->get_const_values(), beta_scalar->get_const_values(),
-            gko::detail::get_local(inner_solution),
+            alpha_ref, beta_ref, gko::detail::get_local(inner_solution),
             gko::detail::get_local(update_solution),
             gko::detail::get_local(dense_x)));
     }
@@ -351,7 +293,7 @@ int workspace_traits<Chebyshev<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Chebyshev<ValueType>>::num_vectors(const Solver&)
 {
-    return 7;
+    return 5;
 }
 
 
@@ -360,8 +302,7 @@ std::vector<std::string> workspace_traits<Chebyshev<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "residual", "inner_solution", "update_solution", "alpha", "beta",
-        "one",      "minus_one",
+        "residual", "inner_solution", "update_solution", "one", "minus_one",
     };
 }
 
