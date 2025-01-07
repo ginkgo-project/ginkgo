@@ -63,7 +63,7 @@ void compute_lookup_large(
 {
     constexpr auto infinity = std::numeric_limits<IndexType>::max();
     // initialize the first level of blocks
-    for (IndexType i = 0; i < num_blocks; i += 2) {
+    for (IndexType i = 0; i < num_blocks; i++) {
         const auto min1 = block_min[i];
         const auto min2 = i + 1 < num_blocks ? block_min[i + 1] : infinity;
         // we need to use <= here to make sure ties always break to the left
