@@ -22,14 +22,14 @@ namespace chebyshev {
 
 #define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType, ScalarType) \
     void init_update(std::shared_ptr<const DefaultExecutor> exec,       \
-                     const ScalarType* alpha,                           \
+                     const ScalarType alpha,                            \
                      const matrix::Dense<ValueType>* inner_sol,         \
                      matrix::Dense<ValueType>* update_sol,              \
                      matrix::Dense<ValueType>* output)
 
 #define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType, ScalarType) \
     void update(std::shared_ptr<const DefaultExecutor> exec,       \
-                const ScalarType* alpha, const ScalarType* beta,   \
+                const ScalarType alpha, const ScalarType beta,     \
                 matrix::Dense<ValueType>* inner_sol,               \
                 matrix::Dense<ValueType>* update_sol,              \
                 matrix::Dense<ValueType>* output)

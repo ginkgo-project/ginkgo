@@ -182,12 +182,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> solver_{};
-    // num_generated_scalar_ tracks the number of generated scalar alpha
-    // and beta.
-    mutable size_type num_generated_scalar_ = 0;
-    // num_max_generation_ is the number of generated scalar kept in the
-    // workspace.
-    mutable size_type num_max_generation_ = 3;
     ValueType center_;
     ValueType foci_direction_;
 };
@@ -215,14 +209,10 @@ struct workspace_traits<Chebyshev<ValueType>> {
     constexpr static int inner_solution = 1;
     // update solution
     constexpr static int update_solution = 2;
-    // alpha
-    constexpr static int alpha = 3;
-    // beta
-    constexpr static int beta = 4;
     // constant 1.0 scalar
-    constexpr static int one = 5;
+    constexpr static int one = 3;
     // constant -1.0 scalar
-    constexpr static int minus_one = 6;
+    constexpr static int minus_one = 4;
 
     // stopping status array
     constexpr static int stop = 0;

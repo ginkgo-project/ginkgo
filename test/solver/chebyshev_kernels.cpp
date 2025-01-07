@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/solver/chebyshev_kernels.hpp"
+
 #include <random>
 
 #include <gtest/gtest.h>
@@ -15,6 +17,7 @@
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
+#include "test/utils/common_fixture.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -40,14 +43,112 @@ protected:
 };
 
 
+TEST_F(Chebyshev, KernelInitUpdate)
+{
+    value_type alpha(0.5);
+    auto inner_sol = gen_mtx(30, 3, 3);
+    auto update_sol = gen_mtx(30, 3, 3);
+    auto output = gen_mtx(30, 3, 3);
+    auto d_inner_sol = gko::clone(exec, inner_sol);
+    auto d_update_sol = gko::clone(exec, update_sol);
+    auto d_output = gko::clone(exec, output);
+
+    gko::kernels::reference::chebyshev::init_update(
+        ref, alpha, inner_sol.get(), update_sol.get(), output.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::init_update(
+        exec, alpha, d_inner_sol.get(), d_update_sol.get(), d_output.get());
+
+    GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_update_sol, update_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_inner_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_output, output, r<value_type>::value);
+}
+
+
+TEST_F(Chebyshev, KernelUpdate)
+{
+    value_type alpha(0.5);
+    value_type beta(0.25);
+    auto inner_sol = gen_mtx(30, 3, 3);
+    auto update_sol = gen_mtx(30, 3, 3);
+    auto output = gen_mtx(30, 3, 3);
+    auto d_inner_sol = gko::clone(exec, inner_sol);
+    auto d_update_sol = gko::clone(exec, update_sol);
+    auto d_output = gko::clone(exec, output);
+
+    gko::kernels::reference::chebyshev::update(
+        ref, alpha, beta, inner_sol.get(), update_sol.get(), output.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::update(
+        exec, alpha, beta, d_inner_sol.get(), d_update_sol.get(),
+        d_output.get());
+
+    GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_inner_sol, inner_sol, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_output, output, r<value_type>::value);
+}
+
+
+#ifdef GINKGO_MIXED_PRECISION
+
+
+TEST_F(Chebyshev, MixedKernelInitUpdate)
+{
+    using scalar_type = gko::next_precision<value_type>;
+    scalar_type alpha(0.5);
+    auto inner_sol = gen_mtx(30, 3, 3);
+    auto update_sol = gen_mtx(30, 3, 3);
+    auto output = gen_mtx(30, 3, 3);
+    auto d_inner_sol = gko::clone(exec, inner_sol);
+    auto d_update_sol = gko::clone(exec, update_sol);
+    auto d_output = gko::clone(exec, output);
+
+    gko::kernels::reference::chebyshev::init_update(
+        ref, alpha, inner_sol.get(), update_sol.get(), output.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::init_update(
+        exec, alpha, d_inner_sol.get(), d_update_sol.get(), d_output.get());
+
+    GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_update_sol, update_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_inner_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_output, output, (r_mixed<value_type, scalar_type>()));
+}
+
+
+TEST_F(Chebyshev, MixedKernelUpdate)
+{
+    using scalar_type = gko::next_precision<value_type>;
+    value_type alpha(0.5);
+    value_type beta(0.25);
+    auto inner_sol = gen_mtx(30, 3, 3);
+    auto update_sol = gen_mtx(30, 3, 3);
+    auto output = gen_mtx(30, 3, 3);
+    auto d_inner_sol = gko::clone(exec, inner_sol);
+    auto d_update_sol = gko::clone(exec, update_sol);
+    auto d_output = gko::clone(exec, output);
+
+    gko::kernels::reference::chebyshev::update(
+        ref, alpha, beta, inner_sol.get(), update_sol.get(), output.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::update(
+        exec, alpha, beta, d_inner_sol.get(), d_update_sol.get(),
+        d_output.get());
+
+    GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(d_inner_sol, inner_sol, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_output, output, r<value_type>::value);
+}
+
+
+#endif
+
+
 TEST_F(Chebyshev, ApplyIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50, 52);
     auto x = gen_mtx(50, 3, 8);
     auto b = gen_mtx(50, 3, 5);
-    auto d_mtx = clone(exec, mtx);
-    auto d_x = clone(exec, x);
-    auto d_b = clone(exec, b);
+    auto d_mtx = gko::clone(exec, mtx);
+    auto d_x = gko::clone(exec, x);
+    auto d_b = gko::clone(exec, b);
     // Forget about accuracy - Chebyshev is not going to converge for a random
     // matrix, just check that a couple of iterations gives the same result on
     // both executors
@@ -74,9 +175,9 @@ TEST_F(Chebyshev, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     auto mtx = gen_mtx(50, 50, 54);
     auto x = gen_mtx(50, 3, 6);
     auto b = gen_mtx(50, 3, 10);
-    auto d_mtx = clone(exec, mtx);
-    auto d_x = clone(exec, x);
-    auto d_b = clone(exec, b);
+    auto d_mtx = gko::clone(exec, mtx);
+    auto d_x = gko::clone(exec, x);
+    auto d_b = gko::clone(exec, b);
     auto chebyshev_factory =
         gko::solver::Chebyshev<value_type>::build()
             .with_preconditioner(
@@ -110,11 +211,11 @@ TEST_F(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
     auto mtx = gko::share(gen_mtx(50, 50, 52));
     auto b = gen_mtx(50, 3, 7);
     auto d_mtx = gko::share(clone(exec, mtx));
-    auto d_b = clone(exec, b);
+    auto d_b = gko::clone(exec, b);
     for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
                        initial_guess_mode::zero}) {
         auto x = gen_mtx(50, 3, 4);
-        auto d_x = clone(exec, x);
+        auto d_x = gko::clone(exec, x);
         auto chebyshev_factory =
             gko::solver::Chebyshev<value_type>::build()
                 .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))

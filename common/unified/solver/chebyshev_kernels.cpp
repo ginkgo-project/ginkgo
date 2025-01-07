@@ -17,7 +17,7 @@ namespace chebyshev {
 
 template <typename ValueType, typename ScalarType>
 void init_update(std::shared_ptr<const DefaultExecutor> exec,
-                 const ScalarType* alpha,
+                 const ScalarType alpha,
                  const matrix::Dense<ValueType>* inner_sol,
                  matrix::Dense<ValueType>* update_sol,
                  matrix::Dense<ValueType>* output)
@@ -27,8 +27,8 @@ void init_update(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto inner_sol,
                       auto update_sol, auto output) {
             const auto inner_val = inner_sol(row, col);
-            update_sol(row, col) = val;
-            output(row, col) += alpha_val * inner_val;
+            update_sol(row, col) = inner_val;
+            output(row, col) += alpha * inner_val;
         },
         output->get_size(), alpha, inner_sol, update_sol, output);
 }
@@ -38,9 +38,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType, typename ScalarType>
-void update(std::shared_ptr<const DefaultExecutor> exec,
-            const ScalarType* alpha, const ScalarType* beta,
-            matrix::Dense<ValueType>* inner_sol,
+void update(std::shared_ptr<const DefaultExecutor> exec, const ScalarType alpha,
+            const ScalarType beta, matrix::Dense<ValueType>* inner_sol,
             matrix::Dense<ValueType>* update_sol,
             matrix::Dense<ValueType>* output)
 {
@@ -48,11 +47,10 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto beta, auto inner_sol,
                       auto update_sol, auto output) {
-            const auto val =
-                inner_sol(row, col) + beta[0] * update_sol(row, col);
+            const auto val = inner_sol(row, col) + beta * update_sol(row, col);
             inner_sol(row, col) = val;
             update_sol(row, col) = val;
-            output(row, col) += alpha[0] * val;
+            output(row, col) += alpha * val;
         },
         output->get_size(), alpha, beta, inner_sol, update_sol, output);
 }

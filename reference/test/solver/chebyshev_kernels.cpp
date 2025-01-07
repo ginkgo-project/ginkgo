@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/solver/chebyshev_kernels.hpp"
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -14,9 +16,6 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
-
-template <typename T>
-using workspace_traits = gko::solver::workspace_traits<T>;
 
 template <typename T>
 class Chebyshev : public ::testing::Test {
@@ -47,178 +46,138 @@ protected:
 TYPED_TEST_SUITE(Chebyshev, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithoutIteration)
+TYPED_TEST(Chebyshev, KernelInitUpdate)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto upper = value_type{1.1};
-    auto lower = value_type{0.9};
-    auto factory =
-        Solver::build()
-            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value))
-            .with_foci(lower, upper)
-            .on(this->exec);
-    auto solver = factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    using Mtx = typename TestFixture::Mtx;
+    value_type alpha(0.5);
+    auto inner_sol = gko::initialize<Mtx>(
+        {{0.5, 0.125, -0.125}, {0.25, 0.5, -1.0}, {1.5, -0.25, 1.5}},
+        this->exec);
+    auto update_sol = gko::initialize<Mtx>(
+        {{0.125, 0.0, -0.5}, {0.5, 0.125, -1.0}, {-1.5, -1.25, 1.0}},
+        this->exec);
+    auto output = gko::initialize<Mtx>(
+        {{-1.0, 0.5, -0.0}, {0.75, 0.25, -1.25}, {1.0, -1.25, 3.0}},
+        this->exec);
 
-    solver->apply(b.get(), x.get());
+    gko::kernels::reference::chebyshev::init_update(
+        this->exec, alpha, inner_sol.get(), update_sol.get(), output.get());
 
-    auto alpha =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
-    auto beta =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
-    // if the stop criterion does not contain iteration limit, it will use the
-    // default value.
-    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
-    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+    GKO_ASSERT_MTX_NEAR(update_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(output,
+                        gko::initialize<Mtx>({{-0.75, 0.5625, -0.0625},
+                                              {0.875, 0.5, -1.75},
+                                              {1.75, -1.375, 3.75}},
+                                             this->exec),
+                        r<value_type>::value);
 }
 
 
-TYPED_TEST(Chebyshev, CheckDefaultNumAlphaBetaWithLessIteration)
+TYPED_TEST(Chebyshev, KernelUpdate)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto upper = value_type{1.1};
-    auto lower = value_type{0.9};
-    auto factory =
-        Solver::build()
-            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value),
-                           gko::stop::Iteration::build().with_max_iters(1u))
-            .with_foci(lower, upper)
-            .on(this->exec);
-    auto solver = factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    using Mtx = typename TestFixture::Mtx;
+    value_type alpha(0.5);
+    value_type beta(0.25);
+    auto inner_sol = gko::initialize<Mtx>(
+        {{0.5, 0.125, -0.125}, {0.25, 0.5, -1.0}, {1.5, -0.25, 1.5}},
+        this->exec);
+    auto update_sol = gko::initialize<Mtx>(
+        {{1.0, 0.0, -0.5}, {0.5, 1.0, -1.0}, {-1.5, -0.5, 1.0}}, this->exec);
+    auto output = gko::initialize<Mtx>(
+        {{-1.0, 0.5, -0.0}, {0.75, 0.25, -1.25}, {1.0, -1.25, 3.0}},
+        this->exec);
 
-    solver->apply(b.get(), x.get());
+    gko::kernels::reference::chebyshev::update(this->exec, alpha, beta,
+                                               inner_sol.get(),
+                                               update_sol.get(), output.get());
 
-    auto alpha =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
-    auto beta =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
-    // if the iteration limit less than the default value, it will use the
-    // default value.
-    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 4}));
-    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 4}));
+    GKO_ASSERT_MTX_NEAR(update_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(
+        inner_sol,
+        gko::initialize<Mtx>(
+            {{0.75, 0.125, -0.25}, {0.375, 0.75, -1.25}, {1.125, -0.375, 1.75}},
+            this->exec),
+        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(output,
+                        gko::initialize<Mtx>({{-0.625, 0.5625, -0.125},
+                                              {0.9375, 0.625, -1.875},
+                                              {1.5625, -1.4375, 3.875}},
+                                             this->exec),
+                        r<value_type>::value);
 }
 
 
-TYPED_TEST(Chebyshev, CheckStoredAlphaBeta)
+#ifdef GINKGO_MIXED_PRECISION
+
+
+TYPED_TEST(Chebyshev, MixedKernelInitUpdate)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto upper = value_type{1.1};
-    auto lower = value_type{0.9};
-    auto factory =
-        Solver::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(6u))
-            .with_foci(lower, upper)
-            .on(this->exec);
-    auto solver = factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    using scalar_type = gko::next_precision<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    scalar_type alpha(0.5);
+    auto inner_sol = gko::initialize<Mtx>(
+        {{0.5, 0.125, -0.125}, {0.25, 0.5, -1.0}, {1.5, -0.25, 1.5}},
+        this->exec);
+    auto update_sol = gko::initialize<Mtx>(
+        {{0.125, 0.0, -0.5}, {0.5, 0.125, -1.0}, {-1.5, -1.25, 1.0}},
+        this->exec);
+    auto output = gko::initialize<Mtx>(
+        {{-1.0, 0.5, -0.0}, {0.75, 0.25, -1.25}, {1.0, -1.25, 3.0}},
+        this->exec);
 
-    solver->apply(b.get(), x.get());
+    gko::kernels::reference::chebyshev::init_update(
+        this->exec, alpha, inner_sol.get(), update_sol.get(), output.get());
 
-    auto alpha =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
-    auto beta =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
-    // the iteration is more than default
-    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
-    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 7}));
-    // check the num_keep alpha, beta
-    auto d = (upper + lower) / value_type{2};
-    auto c = (upper - lower) / value_type{2};
-    EXPECT_EQ(alpha->at(0, 0), value_type{1} / d);
-    EXPECT_EQ(beta->at(0, 0), value_type{0});
-    EXPECT_EQ(beta->at(0, 1),
-              value_type{0.5} * (c * alpha->at(0, 0)) * (c * alpha->at(0, 0)));
-    EXPECT_EQ(alpha->at(0, 1),
-              value_type{1} / (d - beta->at(0, 1) / alpha->at(0, 0)));
-    EXPECT_EQ(beta->at(0, 2), (c * alpha->at(0, 1) / value_type{2}) *
-                                  (c * alpha->at(0, 1) / value_type{2}));
-    EXPECT_EQ(alpha->at(0, 2),
-              value_type{1} / (d - beta->at(0, 2) / alpha->at(0, 1)));
+    GKO_ASSERT_MTX_NEAR(update_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(output,
+                        gko::initialize<Mtx>({{-0.75, 0.5625, -0.0625},
+                                              {0.875, 0.5, -1.75},
+                                              {1.75, -1.375, 3.75}},
+                                             this->exec),
+                        (r_mixed<value_type, scalar_type>()));
 }
 
 
-TYPED_TEST(Chebyshev, AlphaBetaFromChangingCriterion)
+TYPED_TEST(Chebyshev, MixedKernelUpdate)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto upper = value_type{1.1};
-    auto lower = value_type{0.9};
-    auto factory =
-        Solver::build()
-            .with_criteria(gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value),
-                           gko::stop::Iteration::build().with_max_iters(6u))
-            .with_foci(lower, upper)
-            .on(this->exec);
-    auto solver = factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    using scalar_type = gko::next_precision<value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    value_type alpha(0.5);
+    value_type beta(0.25);
+    auto inner_sol = gko::initialize<Mtx>(
+        {{0.5, 0.125, -0.125}, {0.25, 0.5, -1.0}, {1.5, -0.25, 1.5}},
+        this->exec);
+    auto update_sol = gko::initialize<Mtx>(
+        {{1.0, 0.0, -0.5}, {0.5, 1.0, -1.0}, {-1.5, -0.5, 1.0}}, this->exec);
+    auto output = gko::initialize<Mtx>(
+        {{-1.0, 0.5, -0.0}, {0.75, 0.25, -1.25}, {1.0, -1.25, 3.0}},
+        this->exec);
 
-    // same as previous test, but it works with combined factory
-    solver->apply(b.get(), x.get());
+    gko::kernels::reference::chebyshev::update(this->exec, alpha, beta,
+                                               inner_sol.get(),
+                                               update_sol.get(), output.get());
 
-    auto alpha =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::alpha));
-    auto beta =
-        gko::as<Mtx>(solver->get_workspace_op(workspace_traits<Solver>::beta));
-    auto alpha_ref = alpha->clone();
-    auto beta_ref = beta->clone();
-    // if the iteration limit is less than the default value, it will use the
-    // default value.
-    ASSERT_EQ(alpha->get_size(), (gko::dim<2>{1, 7}));
-    ASSERT_EQ(beta->get_size(), (gko::dim<2>{1, 7}));
-    {
-        // Set less iteration limit
-        solver->set_stop_criterion_factory(
-            gko::stop::Iteration::build().with_max_iters(4u).on(this->exec));
-
-        solver->apply(b.get(), x.get());
-
-        auto alpha_tmp = gko::as<Mtx>(
-            solver->get_workspace_op(workspace_traits<Solver>::alpha));
-        auto beta_tmp = gko::as<Mtx>(
-            solver->get_workspace_op(workspace_traits<Solver>::beta));
-        // if the iteration limit is less than the previous one, it keeps the
-        // storage.
-        ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 7}));
-        ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 7}));
-        ASSERT_EQ(alpha_tmp->get_const_values(), alpha->get_const_values());
-        ASSERT_EQ(beta_tmp->get_const_values(), beta->get_const_values());
-        GKO_ASSERT_MTX_NEAR(alpha_tmp, alpha_ref, 0.0);
-        GKO_ASSERT_MTX_NEAR(beta_tmp, beta_ref, 0.0);
-    }
-    {
-        // Set more iteration limit
-        solver->set_stop_criterion_factory(
-            gko::stop::Iteration::build().with_max_iters(10u).on(this->exec));
-
-        solver->apply(b.get(), x.get());
-
-        auto alpha_tmp = gko::as<Mtx>(
-            solver->get_workspace_op(workspace_traits<Solver>::alpha));
-        auto beta_tmp = gko::as<Mtx>(
-            solver->get_workspace_op(workspace_traits<Solver>::beta));
-        // if the iteration limit is more than the previous one, it regenerates
-        // workspace
-        ASSERT_EQ(alpha_tmp->get_size(), (gko::dim<2>{1, 11}));
-        ASSERT_EQ(beta_tmp->get_size(), (gko::dim<2>{1, 11}));
-        ASSERT_NE(alpha_tmp->get_const_values(), alpha->get_const_values());
-        ASSERT_NE(beta_tmp->get_const_values(), beta->get_const_values());
-    }
+    GKO_ASSERT_MTX_NEAR(update_sol, inner_sol, 0);
+    GKO_ASSERT_MTX_NEAR(
+        inner_sol,
+        gko::initialize<Mtx>(
+            {{0.75, 0.125, -0.25}, {0.375, 0.75, -1.25}, {1.125, -0.375, 1.75}},
+            this->exec),
+        (r_mixed<value_type, scalar_type>()));
+    GKO_ASSERT_MTX_NEAR(output,
+                        gko::initialize<Mtx>({{-0.625, 0.5625, -0.125},
+                                              {0.9375, 0.625, -1.875},
+                                              {1.5625, -1.4375, 3.875}},
+                                             this->exec),
+                        (r_mixed<value_type, scalar_type>()));
 }
+
+
+#endif
 
 
 TYPED_TEST(Chebyshev, SolvesTriangularSystem)
