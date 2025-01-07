@@ -30,4 +30,3 @@ while (<>) {
     # Otherwise print the line
     print;
 }	
-

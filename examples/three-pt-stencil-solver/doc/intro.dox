@@ -46,4 +46,3 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 `solve_system` function.
 
 <h3> About the example </h3>
-

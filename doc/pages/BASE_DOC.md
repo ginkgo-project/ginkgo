@@ -9,4 +9,3 @@ The Ginkgo library can be grouped into [modules](modules.html) and these modules
     * @ref mat_formats : Perform a sparse matrix vector multiplication with a particular matrix format.
 *   @ref log : Monitor your code execution.
 *   @ref stop : Manage your iteration stopping criteria.
-
