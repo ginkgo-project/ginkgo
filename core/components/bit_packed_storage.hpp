@@ -32,6 +32,20 @@ constexpr int ceil_log2_constexpr(T value)
 
 
 /**
+ * Computes the rounded-down binary logarithm of a number in constexpr fashion.
+ * In performance-critical runtime contexts, use floor_log2 instead.
+ */
+template <typename T>
+constexpr int floor_log2_constexpr(T value)
+{
+    if (value == 1) {
+        return 0;
+    }
+    return 1 + floor_log2_constexpr(value / 2);
+}
+
+
+/**
  * Computes the next larger (or equal) power of two for a number in constexpr
  * fashion.
  */
@@ -39,6 +53,17 @@ template <typename T>
 constexpr int round_up_pow2_constexpr(T value)
 {
     return T{1} << ceil_log2_constexpr(value);
+}
+
+
+/**
+ * Computes the next smaller (or equal) power of two for a number in constexpr
+ * fashion.
+ */
+template <typename T>
+constexpr int round_down_pow2_constexpr(T value)
+{
+    return T{1} << floor_log2_constexpr(value);
 }
 
 
@@ -57,6 +82,18 @@ constexpr int ceil_log2(T value)
 
 
 /**
+ * Computes the rounded-down binary logarithm of a number.
+ */
+template <typename T>
+constexpr int floor_log2(T value)
+{
+    assert(value >= 1);
+    return detail::find_highest_bit(
+        static_cast<std::make_unsigned_t<T>>(value));
+}
+
+
+/**
  * Computes the next larger (or equal) power of two for a number.
  */
 template <typename T>
@@ -67,11 +104,21 @@ constexpr int round_up_pow2(T value)
 
 
 /**
+ * Computes the next smaller (or equal) power of two for a number.
+ */
+template <typename T>
+constexpr int round_down_pow2(T value)
+{
+    return T{1} << floor_log2(value);
+}
+
+
+/**
  * A compact representation of a span of unsigned integers with num_bits bits.
  * Each integer gets stored using round_up_pow2(num_bits) bits inside a WordType
  * word.
  */
-template <typename WordType>
+template <typename IndexType, typename WordType>
 class bit_packed_span {
     static_assert(std::is_unsigned_v<WordType>);
 
@@ -92,38 +139,40 @@ public:
         return bits_per_word_log2 - bits_per_value_log2(num_bits);
     }
 
-    constexpr static size_type storage_size(size_type size, int num_bits)
+    constexpr static IndexType storage_size(IndexType size, int num_bits)
     {
         const auto shift = values_per_word_log2(num_bits);
         const auto div = WordType{1} << shift;
         return (size + div - 1) >> shift;
     }
 
-    constexpr void set_from_zero(size_type i, WordType value)
+    constexpr void set_from_zero(IndexType i, WordType value)
     {
+        assert(value >= 0);
+        assert(value <= mask_);
         const auto [block, shift] = get_block_and_shift(i);
         data_[block] |= value << shift;
     }
 
-    constexpr void clear(size_type i)
+    constexpr void clear(IndexType i)
     {
         const auto [block, shift] = get_block_and_shift(i);
         data_[block] &= ~(mask_ << shift);
     }
 
-    constexpr void set(size_type i, WordType value)
+    constexpr void set(IndexType i, WordType value)
     {
         clear(i);
         set_from_zero(i, value);
     }
 
-    constexpr WordType get(size_type i) const
+    constexpr WordType get(IndexType i) const
     {
         const auto [block, shift] = get_block_and_shift(i);
         return (data_[block] >> shift) & mask_;
     }
 
-    constexpr std::pair<int, int> get_block_and_shift(size_type i) const
+    constexpr std::pair<int, int> get_block_and_shift(IndexType i) const
     {
         assert(i >= 0);
         assert(i < size_);
@@ -132,7 +181,7 @@ public:
     }
 
     explicit constexpr bit_packed_span(WordType* data, int num_bits,
-                                       size_type size)
+                                       IndexType size)
         : data_{data},
           size_{size},
           mask_{(WordType{1} << num_bits) - 1},
@@ -145,7 +194,7 @@ public:
 
 private:
     WordType* data_;
-    size_type size_;
+    IndexType size_;
     WordType mask_;
     int bits_per_value_;
     int values_per_word_log2_;
@@ -177,7 +226,7 @@ public:
 
     constexpr void set_from_zero(int i, int value)
     {
-        assert(value > 0);
+        assert(value >= 0);
         assert(value <= mask);
         data_[i / values_per_word] |=
             value << ((i % values_per_word) * bits_per_value);

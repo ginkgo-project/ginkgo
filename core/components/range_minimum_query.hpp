@@ -125,127 +125,6 @@ struct cartesian_tree {
 };
 
 
-constexpr int ceil_log2_constexpr(int value)
-{
-    if (value == 1) {
-        return 0;
-    }
-    return 1 + ceil_log2_constexpr((value + 1) / 2);
-}
-
-
-constexpr int round_up_pow2_constexpr(int value)
-{
-    return 1 << ceil_log2_constexpr(value);
-}
-
-
-template <typename IndexType>
-constexpr int ceil_log2(IndexType value)
-{
-    assert(value >= 1);
-    return value > 1
-               ? detail::find_highest_bit(
-                     static_cast<std::make_unsigned_t<IndexType>>(value - 1)) +
-                     1
-               : 0;
-}
-
-
-template <typename IndexType>
-constexpr int round_up_pow2(IndexType value)
-{
-    return IndexType{1} << ceil_log2(value);
-}
-
-
-/**
- * A compact representation of a span of unsigned integers with num_bits bits.
- * Each integer gets stored using round_up_pow2_constexpr(num_bits) bits inside
- * a WordType word.
- */
-template <typename WordType>
-class bit_packed_span {
-    static_assert(std::is_unsigned_v<WordType>);
-
-public:
-    constexpr static int bits_per_word = sizeof(WordType) * CHAR_BIT;
-    constexpr static int bits_per_word_log2 =
-        ceil_log2_constexpr(bits_per_word);
-
-    // the constexpr here is only signalling for CUDA,
-    // since we don't have if consteval to switch between two implementations
-    constexpr static int bits_per_value_log2(int num_bits)
-    {
-        return ceil_log2(num_bits);
-    }
-
-    constexpr static int values_per_word_log2(int num_bits)
-    {
-        return bits_per_word_log2 - bits_per_value_log2(num_bits);
-    }
-
-    constexpr static size_type storage_size(size_type size, int num_bits)
-    {
-        const auto shift = values_per_word_log2(num_bits);
-        const auto div = WordType{1} << shift;
-        return (size + div - 1) >> shift;
-    }
-
-    constexpr void set_from_zero(size_type i, WordType value)
-    {
-        const auto [block, shift] = get_block_and_shift(i);
-        data_[block] |= value << shift;
-    }
-
-    constexpr void clear(size_type i)
-    {
-        const auto [block, shift] = get_block_and_shift(i);
-        data_[block] &= ~(mask_ << shift);
-    }
-
-    constexpr void set(size_type i, WordType value)
-    {
-        clear(i);
-        set_from_zero(i, value);
-    }
-
-    constexpr WordType get(size_type i) const
-    {
-        const auto [block, shift] = get_block_and_shift(i);
-        return (data_[block] >> shift) & mask_;
-    }
-
-    constexpr std::pair<int, int> get_block_and_shift(size_type i) const
-    {
-        assert(i >= 0);
-        assert(i < size_);
-        return std::make_pair(i >> values_per_word_log2_,
-                              (i & local_index_mask_) * bits_per_value_);
-    }
-
-    explicit constexpr bit_packed_span(WordType* data, int num_bits,
-                                       size_type size)
-        : data_{data},
-          size_{size},
-          mask_{(WordType{1} << num_bits) - 1},
-          bits_per_value_{round_up_pow2(num_bits)},
-          values_per_word_log2_{values_per_word_log2(num_bits)},
-          local_index_mask_{(1 << values_per_word_log2_) - 1}
-    {
-        assert(bits_per_value_ <= bits_per_word);
-    }
-
-private:
-    WordType* data_;
-    size_type size_;
-    WordType mask_;
-    int bits_per_value_;
-    int values_per_word_log2_;
-    int local_index_mask_;
-};
-
-
 }  // namespace detail
 
 
@@ -256,7 +135,7 @@ public:
     // how many trees does the lookup table (LUT) contain?
     constexpr static int num_trees = tree::num_trees;
     // how many bits do we need theoretically for this block?
-    constexpr static int num_bits = detail::ceil_log2_constexpr(block_size);
+    constexpr static int num_bits = ceil_log2_constexpr(block_size);
 
     constexpr block_range_minimum_query_lookup_table() : lookup_table{}
     {
@@ -315,10 +194,30 @@ public:
     using storage_type = std::make_unsigned_t<IndexType>;
     constexpr static auto index_type_bits = 8 * sizeof(index_type);
 
-    range_minimum_query_superblocks(index_type* values, storage_type* storage,
-                                    IndexType size)
-        : values_{values}, storage_{storage}, size_{size}
+    range_minimum_query_superblocks(storage_type* storage, index_type size)
+        : storage_{storage}, size_{size}
     {}
+
+    constexpr int get(int block_size_log2_m1, size_type index) const
+    {
+        return get_level(block_size_log2_m1).get(index);
+    }
+
+    constexpr void set(int block_size_log2_m1, size_type index,
+                       index_type value)
+    {
+        get_level(block_size_log2_m1).set(index, value);
+    }
+
+    constexpr static std::array<int, index_type_bits + 1>
+    compute_block_offset_lookup()
+    {
+        std::array<int, index_type_bits + 1> result{};
+        for (int i = 1; i <= index_type_bits; i++) {
+            result[i] = result[i - 1] + compute_block_storage_size(i);
+        }
+        return result;
+    }
 
     constexpr int get_offset(int block_size_log2_m1) const
     {
@@ -328,36 +227,60 @@ public:
         return offsets[block_size_log2_m1] * get_num_blocks();
     }
 
-    constexpr int get(int block_size_log2_m1, size_type index)
+    constexpr index_type size() const { return size_; }
+
+    constexpr index_type storage_size() const
     {
-        const auto values = storage_ + get_offset(block_size_log2_m1);
-        // TODO fix
-        return values[index];
+        return compute_storage_size(size());
     }
 
-    constexpr IndexType get_num_blocks() const
+    constexpr int num_levels() const { return compute_num_levels(size()); }
+
+    constexpr static index_type compute_storage_size(index_type size)
     {
-        return (size_ + index_type_bits - 1) / index_type_bits;
+        return compute_block_offset_lookup()[compute_num_levels(size)] *
+               get_num_blocks(size);
     }
 
-    constexpr static std::array<int, index_type_bits>
-    compute_block_offset_lookup()
+    constexpr static int compute_num_levels(index_type size)
     {
-        std::array<int, index_type_bits> result{};
-        for (int i = 1; i < index_type_bits; i++) {
-            result[i] = result[i - 1] + compute_block_storage_size(i);
-        }
-        return result;
+        return size > 1 ? (size > 2 ? ceil_log2(size) - 1 : 1) : 0;
     }
 
 private:
-    constexpr static int compute_block_storage_size(int block_size_log2)
+    constexpr index_type get_num_blocks() const
     {
-        return detail::round_up_pow2_constexpr(block_size_log2);
+        return get_num_blocks(size_);
     }
 
-    // These are the values we query range minima for
-    IndexType* values_;
+    constexpr static index_type get_num_blocks(index_type size)
+    {
+        return (size + index_type_bits - 1) / index_type_bits;
+    }
+
+    constexpr static int compute_block_storage_size(int block_size_log2)
+    {
+        return round_up_pow2_constexpr(block_size_log2);
+    }
+
+    constexpr bit_packed_span<index_type, const storage_type> get_level(
+        int block_size_log2_m1) const
+    {
+        const auto values = storage_ + get_offset(block_size_log2_m1);
+        const int num_bits = round_up_pow2(block_size_log2_m1 + 1);
+        return bit_packed_span<index_type, const storage_type>{values, num_bits,
+                                                               size_};
+    }
+
+    constexpr bit_packed_span<index_type, storage_type> get_level(
+        int block_size_log2_m1)
+    {
+        const auto values = storage_ + get_offset(block_size_log2_m1);
+        const int num_bits = round_up_pow2(block_size_log2_m1 + 1);
+        return bit_packed_span<index_type, storage_type>{values, num_bits,
+                                                         size_};
+    }
+
     // The storage stores the range minimum for every power-of-two block that is
     // smaller than size. There are n - 1 ranges of size 2, n - 3 ranges of size
     // 4, n - 7 ranges of size 8, ... so in total we have n log n ranges.
@@ -365,9 +288,9 @@ private:
     // information for all n ranges, where we add infinity padding to the end.
     // Ranges of size 2 need 1 bit, ranges of size 4 need 2 bits, ranges of size
     // 8 need 3 bits, ... but for better memory access patterns, we always make
-    // sure every value from the range fits into a full IndexType word.
+    // sure every value from the range fits into a full index_type word.
     storage_type* storage_;
-    IndexType size_;
+    index_type size_;
 };
 
 
