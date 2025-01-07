@@ -113,8 +113,7 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
     for (index_type num_blocks :
          {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
         SCOPED_TRACE(num_blocks);
-        const auto values = this->create_random_values(num_blocks);
-        std::vector<index_type> block_min(num_blocks);
+        const auto block_min = this->create_random_values(num_blocks);
         std::vector<word_type> superblock_storage(
             superblock_storage_type::compute_storage_size(num_blocks));
         superblock_storage_type superblocks(superblock_storage.data(),
@@ -124,6 +123,7 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
             this->ref, block_min.data(), num_blocks, superblocks);
 
         for (auto level : gko::irange(superblocks.num_levels())) {
+            SCOPED_TRACE(level);
             const auto block_size = index_type{1} << (level + 1);
             for (auto block : gko::irange(num_blocks)) {
                 const auto begin = block_min.begin() + block;
