@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,11 +13,11 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
-#include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 
 
@@ -169,13 +169,12 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class DdMatrix
-    : public EnableDistributedLinOp<
-          DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>,
-      public ConvertibleTo<
-          DdMatrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+    : public EnableLinOp<DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<DdMatrix<next_precision_base<ValueType>,
+                                    LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
-    friend class EnableDistributedPolymorphicObject<DdMatrix, LinOp>;
-    friend class DdMatrix<next_precision<ValueType>, LocalIndexType,
+    friend class EnablePolymorphicObject<DdMatrix, LinOp>;
+    friend class DdMatrix<next_precision_base<ValueType>, LocalIndexType,
                           GlobalIndexType>;
 
 public:
@@ -189,17 +188,17 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableDistributedLinOp<DdMatrix>::convert_to;
-    using EnableDistributedLinOp<DdMatrix>::move_to;
-    using ConvertibleTo<DdMatrix<next_precision<ValueType>, LocalIndexType,
+    using EnableLinOp<DdMatrix>::convert_to;
+    using EnableLinOp<DdMatrix>::move_to;
+    using ConvertibleTo<DdMatrix<next_precision_base<ValueType>, LocalIndexType,
                                  GlobalIndexType>>::convert_to;
-    using ConvertibleTo<DdMatrix<next_precision<ValueType>, LocalIndexType,
+    using ConvertibleTo<DdMatrix<next_precision_base<ValueType>, LocalIndexType,
                                  GlobalIndexType>>::move_to;
 
-    void convert_to(DdMatrix<next_precision<value_type>, local_index_type,
+    void convert_to(DdMatrix<next_precision_base<value_type>, local_index_type,
                              global_index_type>* result) const override;
 
-    void move_to(DdMatrix<next_precision<value_type>, local_index_type,
+    void move_to(DdMatrix<next_precision_base<value_type>, local_index_type,
                           global_index_type>* result) override;
 
     /**
