@@ -13,4 +13,3 @@ jobs:
       uses: crate-ci/typos@master
       with:
         config: .github/_typos.toml
-
