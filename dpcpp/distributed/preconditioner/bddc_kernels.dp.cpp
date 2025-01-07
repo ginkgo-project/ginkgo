@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ void classify_dofs(
     size_type& n_faces, size_type& n_edges, size_type& n_constraints,
     int& n_owning_interfaces) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS);
 
 
@@ -41,7 +41,7 @@ void generate_constraints(
     size_type n_edges_faces, const array<IndexType>& interface_sizes,
     device_matrix_data<ValueType, IndexType>& constraints) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_GENERATE_CONSTRAINTS);
 
 
@@ -50,7 +50,7 @@ void fill_coarse_data(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::Dense<ValueType>* phi_P,
                       matrix::Dense<ValueType>* lambda_rhs) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_COARSE_DATA);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYP_BASE_BASE(GKO_DECLARE_FILL_COARSE_DATA);
 
 
 template <typename ValueType>
@@ -62,7 +62,7 @@ void build_coarse_contribution(
     device_matrix_data<ValueType, int>& coarse_contribution)
     GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
 
 
 }  // namespace bddc

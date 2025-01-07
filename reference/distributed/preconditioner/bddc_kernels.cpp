@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -197,7 +197,7 @@ void classify_dofs(
     n_owning_interfaces *= n_cols;
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS);
 
 
@@ -227,7 +227,7 @@ void generate_constraints(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_GENERATE_CONSTRAINTS);
 
 
@@ -245,7 +245,7 @@ void fill_coarse_data(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_COARSE_DATA);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_FILL_COARSE_DATA);
 
 
 template <typename ValueType>
@@ -285,7 +285,7 @@ void build_coarse_contribution(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_BUILD_COARSE_CONTRIBUTION);
 
 
 }  // namespace bddc

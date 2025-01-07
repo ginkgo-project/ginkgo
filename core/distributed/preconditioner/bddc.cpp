@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -418,7 +418,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
 #define GKO_DECLARE_BDDC(ValueType, LocalIndexType, GlobalIndexType) \
     class Bddc<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BDDC);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_BDDC);
 
 
 }  // namespace preconditioner
