@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,7 +38,7 @@ namespace gko {
  * index beyond the end indices of the subsets and the last
  * (superset_cumulative_indices) storing the cumulative number of indices in the
  * subsequent subsets with an initial zero which speeds up the
- * querying. Additionally, the arrays conataining the range boundaries
+ * querying. Additionally, the arrays containing the range boundaries
  * (subsets_begin, subsets_end) are stored in a sorted fashion.
  *
  * Therefore the storage would look as follows
