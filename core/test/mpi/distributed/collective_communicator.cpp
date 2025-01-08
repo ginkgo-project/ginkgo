@@ -26,12 +26,6 @@ protected:
     {
         auto part = gko::share(part_type::build_from_global_size_uniform(
             ref, comm.size(), comm.size() * 3));
-        gko::array<long> recv_connections[] = {{ref, {3, 5, 10, 11}},
-                                               {ref, {0, 1, 7, 12, 13}},
-                                               {ref, {3, 4, 17}},
-                                               {ref, {1, 2, 12, 14}},
-                                               {ref, {4, 5, 9, 10, 16, 15}},
-                                               {ref, {8, 12, 13, 14}}};
         auto imap = map_type{ref, part, comm.rank(), recv_connections[rank]};
 
         return {comm, imap};
@@ -39,6 +33,13 @@ protected:
 
     std::shared_ptr<gko::Executor> ref = gko::ReferenceExecutor::create();
     gko::experimental::mpi::communicator comm = MPI_COMM_WORLD;
+    std::array<gko::array<long>, 6> recv_connections{
+        {{ref, {3, 5, 10, 11}},
+         {ref, {0, 1, 7, 12, 13}},
+         {ref, {3, 4, 17}},
+         {ref, {1, 2, 12, 14}},
+         {ref, {4, 5, 9, 10, 16, 15}},
+         {ref, {8, 12, 13, 14}}}};
     int rank = comm.rank();
 };
 
@@ -71,19 +72,14 @@ TYPED_TEST(CollectiveCommunicator, CanConstructFromIndexMap)
     using map_type = typename TestFixture::map_type;
     auto part = gko::share(part_type::build_from_global_size_uniform(
         this->ref, this->comm.size(), this->comm.size() * 3));
-    gko::array<long> recv_connections[] = {{this->ref, {3, 5, 10, 11}},
-                                           {this->ref, {0, 1, 7, 12, 13}},
-                                           {this->ref, {3, 4, 17}},
-                                           {this->ref, {1, 2, 12, 14}},
-                                           {this->ref, {4, 5, 9, 10, 16, 15}},
-                                           {this->ref, {8, 12, 13, 14}}};
-    auto imap =
-        map_type{this->ref, part, this->rank, recv_connections[this->rank]};
+    auto imap = map_type{this->ref, part, this->rank,
+                         this->recv_connections[this->rank]};
 
     communicator_type spcomm{this->comm, imap};
 
     std::array<gko::size_type, 6> send_sizes = {4, 6, 2, 4, 7, 3};
-    ASSERT_EQ(spcomm.get_recv_size(), recv_connections[this->rank].get_size());
+    ASSERT_EQ(spcomm.get_recv_size(),
+              this->recv_connections[this->rank].get_size());
     ASSERT_EQ(spcomm.get_send_size(), send_sizes[this->rank]);
 }
 
@@ -142,7 +138,8 @@ TYPED_TEST(CollectiveCommunicator, CanCopyConstruct)
 
     auto copy(spcomm);
 
-    ASSERT_TRUE(copy == spcomm);
+    ASSERT_EQ(copy, spcomm);
+    ;
 }
 
 
@@ -154,7 +151,8 @@ TYPED_TEST(CollectiveCommunicator, CanCopyAssign)
 
     copy = spcomm;
 
-    ASSERT_TRUE(copy == spcomm);
+    ASSERT_EQ(copy, spcomm);
+    ;
 }
 
 
@@ -167,8 +165,10 @@ TYPED_TEST(CollectiveCommunicator, CanMoveConstruct)
 
     auto moved(std::move(moved_from));
 
-    ASSERT_TRUE(moved == spcomm);
-    ASSERT_TRUE(moved_from == empty_comm);
+    ASSERT_EQ(moved, spcomm);
+    ;
+    ASSERT_EQ(moved_from, empty_comm);
+    ;
 }
 
 
@@ -182,29 +182,18 @@ TYPED_TEST(CollectiveCommunicator, CanMoveAssign)
 
     moved = std::move(moved_from);
 
-    ASSERT_TRUE(moved == spcomm);
-    ASSERT_TRUE(moved_from == empty_comm);
+    ASSERT_EQ(moved, spcomm);
+    ;
+    ASSERT_EQ(moved_from, empty_comm);
+    ;
 }
 
 
 TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoall)
 {
-    using communicator_type = typename TestFixture::communicator_type;
-    using part_type = typename TestFixture::part_type;
-    using map_type = typename TestFixture::map_type;
-    auto part = gko::share(part_type::build_from_global_size_uniform(
-        this->ref, this->comm.size(), this->comm.size() * 3));
-    gko::array<long> recv_connections[] = {{this->ref, {3, 5, 10, 11}},
-                                           {this->ref, {0, 1, 7, 12, 13}},
-                                           {this->ref, {3, 4, 17}},
-                                           {this->ref, {1, 2, 12, 14}},
-                                           {this->ref, {4, 5, 9, 10, 16, 15}},
-                                           {this->ref, {8, 12, 13, 14}}};
-    auto imap =
-        map_type{this->ref, part, this->rank, recv_connections[this->rank]};
-    communicator_type spcomm{this->comm, imap};
+    auto spcomm = this->create_default_comm();
     gko::array<long> recv_buffer{this->ref,
-                                 recv_connections[this->rank].get_size()};
+                                 this->recv_connections[this->rank].get_size()};
     gko::array<long> send_buffers[] = {
         {this->ref, {0, 1, 1, 2}},
         {this->ref, {3, 5, 3, 4, 4, 5}},
@@ -218,7 +207,7 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoall)
                                      recv_buffer.get_data());
     req.wait();
 
-    GKO_ASSERT_ARRAY_EQ(recv_buffer, recv_connections[this->rank]);
+    GKO_ASSERT_ARRAY_EQ(recv_buffer, this->recv_connections[this->rank]);
 }
 
 
@@ -229,7 +218,8 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoallWhenEmpty)
 
     auto req = spcomm.i_all_to_all_v(this->ref, static_cast<int*>(nullptr),
                                      static_cast<int*>(nullptr));
-    req.wait();
+
+    ASSERT_NO_THROW(req.wait());
 }
 
 
@@ -246,20 +236,7 @@ TYPED_TEST(CollectiveCommunicator, CanCreateInverse)
 
 TYPED_TEST(CollectiveCommunicator, CanCommunicateRoundTrip)
 {
-    using communicator_type = typename TestFixture::communicator_type;
-    using part_type = typename TestFixture::part_type;
-    using map_type = typename TestFixture::map_type;
-    auto part = gko::share(part_type::build_from_global_size_uniform(
-        this->ref, this->comm.size(), this->comm.size() * 3));
-    gko::array<long> recv_connections[] = {{this->ref, {3, 5, 10, 11}},
-                                           {this->ref, {0, 1, 7, 12, 13}},
-                                           {this->ref, {3, 4, 17}},
-                                           {this->ref, {1, 2, 12, 14}},
-                                           {this->ref, {4, 5, 9, 10, 16, 15}},
-                                           {this->ref, {8, 12, 13, 14}}};
-    auto imap =
-        map_type{this->ref, part, this->rank, recv_connections[this->rank]};
-    communicator_type spcomm{this->comm, imap};
+    auto spcomm = this->create_default_comm();
     auto inverse = spcomm.create_inverse();
     gko::array<long> send_buffers[] = {
         {this->ref, {1, 2, 3, 4}},
@@ -269,7 +246,7 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateRoundTrip)
         {this->ref, {17, 18, 19, 20, 21, 22, 23}},
         {this->ref, {24, 25, 26}}};
     gko::array<long> recv_buffer{this->ref,
-                                 recv_connections[this->rank].get_size()};
+                                 this->recv_connections[this->rank].get_size()};
     gko::array<long> round_trip{this->ref, send_buffers[this->rank].get_size()};
 
     spcomm

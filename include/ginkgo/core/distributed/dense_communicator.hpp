@@ -105,8 +105,8 @@ protected:
     /**
      * @copydoc CollectiveCommunicator::i_all_to_all_v
      *
-     * This implementation uses the neighborhood communication
-     * MPI_Ineighbor_alltoallv. See MPI documentation for more details.
+     * This implementation uses the dense communication
+     * MPI_Alltoallv. See MPI documentation for more details.
      */
     request i_all_to_all_v_impl(std::shared_ptr<const Executor> exec,
                                 const void* send_buffer, MPI_Datatype send_type,

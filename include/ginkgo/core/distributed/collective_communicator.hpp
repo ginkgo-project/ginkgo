@@ -48,6 +48,7 @@ public:
      * @param exec  the executor for the communication
      * @param send_buffer  the send buffer
      * @param recv_buffer  the receive buffer
+     *
      * @return  a request handle
      */
     template <typename SendType, typename RecvType>
