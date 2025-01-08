@@ -107,30 +107,64 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
     using superblock_storage_type =
         typename TestFixture::superblock_storage_type;
     using word_type = typename TestFixture::word_type;
-    constexpr auto block_size =
-        gko::kernels::reference::range_minimum_query::small_block_size;
-    // keep these in sync with small_block_size
     for (index_type num_blocks :
          {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
         SCOPED_TRACE(num_blocks);
         const auto block_min = this->create_random_values(num_blocks);
         std::vector<word_type> superblock_storage(
             superblock_storage_type::compute_storage_size(num_blocks));
-        superblock_storage_type superblocks(superblock_storage.data(),
-                                            num_blocks);
+        superblock_storage_type superblocks(
+            block_min.data(), superblock_storage.data(), num_blocks);
 
         gko::kernels::reference::range_minimum_query::compute_lookup_large(
             this->ref, block_min.data(), num_blocks, superblocks);
 
         for (auto level : gko::irange(superblocks.num_levels())) {
             SCOPED_TRACE(level);
-            const auto block_size = index_type{1} << (level + 1);
+            const auto block_size =
+                superblock_storage_type::block_size_for_level(level);
             for (auto block : gko::irange(num_blocks)) {
                 const auto begin = block_min.begin() + block;
                 const auto end = block_min.begin() +
                                  std::min(block + block_size, num_blocks);
                 const auto argmin = std::min_element(begin, end) - begin;
-                ASSERT_EQ(superblocks.get(level, block), argmin);
+                ASSERT_EQ(superblocks.block_argmin(level, block), argmin);
+            }
+        }
+    }
+}
+
+
+TYPED_TEST(RangeMinimumQuery, Query)
+{
+    using index_type = typename TestFixture::index_type;
+    using superblock_storage_type =
+        typename TestFixture::superblock_storage_type;
+    using word_type = typename TestFixture::word_type;
+    for (index_type num_blocks :
+         {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+        SCOPED_TRACE(num_blocks);
+        const auto block_min = this->create_random_values(num_blocks);
+        std::vector<word_type> superblock_storage(
+            superblock_storage_type::compute_storage_size(num_blocks));
+        superblock_storage_type superblocks(
+            block_min.data(), superblock_storage.data(), num_blocks);
+        gko::kernels::reference::range_minimum_query::compute_lookup_large(
+            this->ref, block_min.data(), num_blocks, superblocks);
+        for (auto first : gko::irange{num_blocks}) {
+            SCOPED_TRACE(first);
+            for (auto last : gko::irange{first, num_blocks}) {
+                SCOPED_TRACE(last);
+                const auto begin = block_min.begin() + first;
+                const auto end = block_min.begin() + last + 1;
+                const auto min_it = std::min_element(begin, end);
+                const auto argmin = std::distance(block_min.begin(), min_it);
+                const auto min = *min_it;
+
+                const auto result = superblocks.query(first, last);
+
+                ASSERT_EQ(min, result.min);
+                ASSERT_EQ(argmin, result.argmin);
             }
         }
     }
