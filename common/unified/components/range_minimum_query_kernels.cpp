@@ -40,6 +40,7 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
             const auto i = block_idx * small_block_size;
             IndexType local_values[small_block_size];
             int argmin = 0;
+#pragma unroll
             for (int local_i = 0; local_i < small_block_size; local_i++) {
                 // use "infinity" as sentinel for minimum computations
                 local_values[local_i] =
@@ -68,6 +69,7 @@ void compute_lookup_large(
     IndexType num_blocks,
     range_minimum_query_superblocks<IndexType>& superblocks)
 {
+    using superblock_type = range_minimum_query_superblocks<IndexType>;
     constexpr auto infinity = std::numeric_limits<IndexType>::max();
     // initialize the first level of blocks
     run_kernel(
@@ -77,7 +79,7 @@ void compute_lookup_large(
             const auto min1 = block_min[i];
             const auto min2 = i + 1 < num_blocks ? block_min[i] : infinity;
             // we need to use <= here to make sure ties always break to the left
-            superblocks.set(0, i, min1 <= min2 ? 0 : 1);
+            superblocks.set_block_argmin(0, i, min1 <= min2 ? 0 : 1);
         },
         num_blocks, block_min, superblocks, num_blocks);
     // we computed argmins for blocks of size 2, now recursively combine them.
@@ -87,18 +89,21 @@ void compute_lookup_large(
             exec,
             [] GKO_KERNEL(auto i, auto block_level, auto block_min,
                           auto superblocks, auto num_blocks) {
-                const auto block_size = IndexType{1} << (block_level + 1);
+                const auto block_size =
+                    superblock_type::block_size_for_level(block_level);
                 const auto i2 = i + block_size / 2;
-                const auto argmin1 = i + superblocks.get(block_level - 1, i);
+                const auto argmin1 =
+                    i + superblocks.block_argmin(block_level - 1, i);
                 const auto argmin2 =
-                    i2 < num_blocks ? i2 + superblocks.get(block_level - 1, i2)
-                                    : argmin1;
+                    i2 < num_blocks
+                        ? i2 + superblocks.block_argmin(block_level - 1, i2)
+                        : argmin1;
                 const auto min1 = block_min[argmin1];
                 const auto min2 = block_min[argmin2];
                 // we need to use <= here to make sure ties always break to the
                 // left
-                superblocks.set(block_level, i,
-                                min1 <= min2 ? argmin1 - i : argmin2 - i);
+                superblocks.set_block_argmin(
+                    block_level, i, min1 <= min2 ? argmin1 - i : argmin2 - i);
             },
             num_blocks, block_level, block_min, superblocks, num_blocks);
     }

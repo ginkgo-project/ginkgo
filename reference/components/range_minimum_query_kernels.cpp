@@ -61,29 +61,33 @@ void compute_lookup_large(
     IndexType num_blocks,
     range_minimum_query_superblocks<IndexType>& superblocks)
 {
+    using superblock_type = range_minimum_query_superblocks<IndexType>;
     constexpr auto infinity = std::numeric_limits<IndexType>::max();
     // initialize the first level of blocks
     for (IndexType i = 0; i < num_blocks; i++) {
         const auto min1 = block_min[i];
         const auto min2 = i + 1 < num_blocks ? block_min[i + 1] : infinity;
         // we need to use <= here to make sure ties always break to the left
-        superblocks.set(0, i, min1 <= min2 ? 0 : 1);
+        superblocks.set_block_argmin(0, i, min1 <= min2 ? 0 : 1);
     }
     // we computed argmins for blocks of size 2, now recursively combine them.
     const auto num_levels = superblocks.num_levels();
     for (int block_level = 1; block_level < num_levels; block_level++) {
-        const auto block_size = IndexType{1} << (block_level + 1);
+        const auto block_size =
+            superblock_type::block_size_for_level(block_level);
         for (const auto i : irange{num_blocks}) {
             const auto i2 = i + block_size / 2;
-            const auto argmin1 = i + superblocks.get(block_level - 1, i);
-            const auto argmin2 = i2 < num_blocks
-                                     ? i2 + superblocks.get(block_level - 1, i2)
-                                     : argmin1;
+            const auto argmin1 =
+                i + superblocks.block_argmin(block_level - 1, i);
+            const auto argmin2 =
+                i2 < num_blocks
+                    ? i2 + superblocks.block_argmin(block_level - 1, i2)
+                    : argmin1;
             const auto min1 = block_min[argmin1];
             const auto min2 = block_min[argmin2];
             // we need to use <= here to make sure ties always break to the left
-            superblocks.set(block_level, i,
-                            min1 <= min2 ? argmin1 - i : argmin2 - i);
+            superblocks.set_block_argmin(
+                block_level, i, min1 <= min2 ? argmin1 - i : argmin2 - i);
         }
     }
 }

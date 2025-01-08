@@ -219,17 +219,62 @@ public:
     using storage_type = std::make_unsigned_t<IndexType>;
     constexpr static auto index_type_bits = 8 * sizeof(index_type);
 
-    range_minimum_query_superblocks(storage_type* storage, index_type size)
-        : storage_{storage}, size_{size}
+    range_minimum_query_superblocks(const index_type* values,
+                                    storage_type* storage, index_type size)
+        : values_{values}, storage_{storage}, size_{size}
     {}
 
-    constexpr int get(int block_size_log2_m1, size_type index) const
+    constexpr index_type min(index_type i) const
+    {
+        assert(i >= 0);
+        assert(i < size());
+        return values_[i];
+    }
+
+    constexpr static int level_for_distance(index_type distance)
+    {
+        assert(distance >= 0);
+        return distance >= 2 ? floor_log2(distance) - 1 : 0;
+    }
+
+    constexpr static index_type block_size_for_level(int level)
+    {
+        assert(level >= 0);
+        return index_type{1} << (level + 1);
+    }
+
+    struct query_result {
+        index_type argmin;
+        index_type min;
+    };
+
+    constexpr query_result query(index_type first, index_type last) const
+    {
+        assert(first >= 0);
+        assert(first <= last);
+        assert(last < size());
+        const auto len = last - first;
+        if (len == 0) {
+            return query_result{first, min(first)};
+        }
+        const auto level = level_for_distance(len);
+        const auto argmin1 = first + block_argmin(level, first);
+        const auto mid = last - block_size_for_level(level) + 1;
+        const auto argmin2 = mid + block_argmin(level, mid);
+        const auto min1 = min(argmin1);
+        const auto min2 = min(argmin2);
+        // we need <= here so the tie always breaks to the smaller argmin
+        return min1 <= min2 ? query_result{argmin1, min1}
+                            : query_result{argmin2, min2};
+    }
+
+    constexpr int block_argmin(int block_size_log2_m1, size_type index) const
     {
         return get_level(block_size_log2_m1).get(index);
     }
 
-    constexpr void set(int block_size_log2_m1, size_type index,
-                       index_type value)
+    constexpr void set_block_argmin(int block_size_log2_m1, size_type index,
+                                    index_type value)
     {
         get_level(block_size_log2_m1).set(index, value);
     }
@@ -306,6 +351,7 @@ private:
                                                          size_};
     }
 
+    const index_type* values_;
     // The storage stores the range minimum for every power-of-two block that is
     // smaller than size. There are n - 1 ranges of size 2, n - 3 ranges of size
     // 4, n - 7 ranges of size 8, ... so in total we have n log n ranges.
