@@ -40,4 +40,3 @@ function(ginkgo_check_hip_detection_issue)
         endif ()
     endif ()
 endfunction()
-
