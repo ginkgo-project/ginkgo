@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -267,14 +267,14 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
+    if (nwarps > 0 && b_ncols > 0) {
 // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
-        GKO_NOT_SUPPORTED(c);
-    } else
+        if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
+            GKO_NOT_SUPPORTED(c);
+        } else
 #endif
-    {
-        if (nwarps > 0 && b_ncols > 0) {
+        {
             // TODO: b_ncols needs to be tuned for ROCm.
             if (b_ncols < 4) {
                 const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
@@ -318,14 +318,14 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
-    // not support 16 bit atomic
+    if (nwarps > 0 && b_ncols > 0) {
+        // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
-        GKO_NOT_SUPPORTED(c);
-    } else
+        if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
+            GKO_NOT_SUPPORTED(c);
+        } else
 #endif
-    {
-        if (nwarps > 0 && b_ncols > 0) {
+        {
             // TODO: b_ncols needs to be tuned for ROCm.
             if (b_ncols < 4) {
                 int num_lines = ceildiv(nnz, nwarps * config::warp_size);
