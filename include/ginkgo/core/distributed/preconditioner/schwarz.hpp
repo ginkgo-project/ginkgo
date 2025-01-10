@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -177,13 +177,12 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
-
-    detail::VectorCache<ValueType> cache_;
-
-    std::shared_ptr<const multigrid::MultigridLevel> coarse_solver_;
-    std::shared_ptr<const multigrid::MultigridLevel> galerkin_ops_;
+    std::shared_ptr<const LinOp> galerkin_ops_;
+    std::shared_ptr<const LinOp> coarse_solver_;
     std::shared_ptr<LinOp> csol_;
     std::shared_ptr<const LinOp> half_;
+
+    detail::VectorCache<ValueType> cache_;
 };
 
 

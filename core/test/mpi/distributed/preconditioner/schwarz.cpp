@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -204,6 +204,3 @@ TYPED_TEST(SchwarzFactory, ApplyUsesInitialGuessAsLocalSolver)
     ASSERT_EQ(schwarz_with_jacobi->apply_uses_initial_guess(), false);
     ASSERT_EQ(schwarz_with_cg->apply_uses_initial_guess(), true);
 }
-
-
-}  // namespace

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -114,8 +114,8 @@ enum _GKO_DATATYPE_CONST {
         return new gko_matrix_dense_##_name##_st{                           \
             gko::matrix::Dense<_ctype>::create(                             \
                 (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols},      \
-                gko::array<_ctype>::view((*exec).shared_ptr, size.rows,     \
-                                         values),                           \
+                gko::array<_ctype>::view((*exec).shared_ptr,                \
+                                         size.rows * stride, values),       \
                 stride)};                                                   \
     }                                                                       \
                                                                             \
@@ -832,7 +832,21 @@ gko_linop ginkgo_linop_bicgstab_preconditioned_f64_create(
 
 gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter,
+    int krylov_dim);
+
+gko_linop ginkgo_linop_cg_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
+
+gko_linop ginkgo_linop_bicgstab_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter);
+
+gko_linop ginkgo_linop_gmres_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter,
+    int krylov_dim);
 
 //-------------------- Direct solvers -----------------------------
 gko_linop ginkgo_linop_spd_direct_f64_i64_create(gko_executor exec_st_ptr,

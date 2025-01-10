@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -448,7 +448,8 @@ gko_linop ginkgo_linop_bicgstab_preconditioned_f64_create(
 
 gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
-    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter)
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter,
+    int krylov_dim)
 {
     return new gko_linop_st{
         gko::solver::Gmres<double>::build()
@@ -458,6 +459,59 @@ gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
                 gko::stop::ResidualNorm<double>::build().with_reduction_factor(
                     reduction))
             .with_preconditioner(dfp_st_ptr->parameter)
+            .with_krylov_dim(static_cast<gko::uint32>(krylov_dim))
+            .on(exec_st_ptr->shared_ptr)
+            ->generate(A_st_ptr->shared_ptr)};
+}
+
+gko_linop ginkgo_linop_cg_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter)
+{
+    return new gko_linop_st{
+        gko::solver::Cg<float>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(
+                    static_cast<gko::uint32>(maxiter)),
+                gko::stop::ResidualNorm<float>::build().with_reduction_factor(
+                    reduction))
+            .with_preconditioner(dfp_st_ptr->parameter)
+            .on(exec_st_ptr->shared_ptr)
+            ->generate(A_st_ptr->shared_ptr)};
+}
+
+
+gko_linop ginkgo_linop_bicgstab_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter)
+{
+    return new gko_linop_st{
+        gko::solver::Bicgstab<float>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(
+                    static_cast<gko::uint32>(maxiter)),
+                gko::stop::ResidualNorm<float>::build().with_reduction_factor(
+                    reduction))
+            .with_preconditioner(dfp_st_ptr->parameter)
+            .on(exec_st_ptr->shared_ptr)
+            ->generate(A_st_ptr->shared_ptr)};
+}
+
+
+gko_linop ginkgo_linop_gmres_preconditioned_f32_create(
+    gko_executor exec_st_ptr, gko_linop A_st_ptr,
+    gko_deferred_factory_parameter dfp_st_ptr, double reduction, int maxiter,
+    int krylov_dim)
+{
+    return new gko_linop_st{
+        gko::solver::Gmres<float>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(
+                    static_cast<gko::uint32>(maxiter)),
+                gko::stop::ResidualNorm<float>::build().with_reduction_factor(
+                    reduction))
+            .with_preconditioner(dfp_st_ptr->parameter)
+            .with_krylov_dim(static_cast<gko::uint32>(krylov_dim))
             .on(exec_st_ptr->shared_ptr)
             ->generate(A_st_ptr->shared_ptr)};
 }
