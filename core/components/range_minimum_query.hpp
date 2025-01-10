@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/intrinsics.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/index_range.hpp"
@@ -361,6 +362,118 @@ private:
     // 8 need 3 bits, ... but for better memory access patterns, we always make
     // sure every value from the range fits into a full index_type word.
     storage_type* storage_;
+    index_type size_;
+};
+
+
+template <int block_size, typename IndexType>
+class range_minimum_query {
+public:
+    using index_type = IndexType;
+    using block_lookup_type =
+        block_range_minimum_query_lookup_table<block_size>;
+    using superblock_lookup_type =
+        range_minimum_query_superblocks<const index_type>;
+    using word_type = typename superblock_lookup_type::storage_type;
+
+    constexpr range_minimum_query(const index_type* values,
+                                  const index_type* block_min,
+                                  const uint32* block_argmin,
+                                  const uint16* block_type,
+                                  const word_type* superblock_storage,
+                                  const block_lookup_type* block_lut,
+                                  index_type size)
+        : num_blocks_{static_cast<index_type>(ceildiv(size, block_size))},
+          values_{values},
+          block_types_{block_type},
+          block_argmin_{block_argmin, ceil_log2_constexpr(block_size),
+                        num_blocks_},
+          superblocks_{block_min, superblock_storage, num_blocks_},
+          block_lut_{block_lut},
+          size_{size}
+    {}
+
+    struct query_result {
+        index_type argmin;
+        index_type min;
+    };
+
+    constexpr query_result query(index_type first, index_type last) const
+    {
+        assert(first >= 0);
+        assert(first <= last);
+        assert(last < size());
+        // shortcut for trivial queries
+        if (first == last) {
+            return query_result{first, values_[first]};
+        }
+        const auto first_block = first / block_size;
+        const auto last_block = last / block_size;
+        const auto first_block_base = first_block * block_size;
+        const auto first_local = first - first_block_base;
+        const auto last_block_base = last_block * block_size;
+        const auto last_local = last - last_block_base;
+        const auto first_block_type = block_types_[first_block];
+        const auto last_block_type = block_types_[last_block];
+        // both values in the same block
+        if (first_block == last_block) {
+            const auto argmin =
+                first_block_base +
+                block_lut_->lookup(first_block_type, first_local, last_local);
+            return query_result{argmin, values_[argmin]};
+        }
+        // both values in adjacent blocks
+        if (last_block == first_block + 1) {
+            // from first to the end of the block
+            const auto first_argmin =
+                first_block_base + block_lut_->lookup(first_block_type,
+                                                      first_local,
+                                                      block_size - 1);
+            // from beginning of the block to last
+            const auto last_argmin =
+                last_block_base +
+                block_lut_->lookup(last_block_type, 0, last_local);
+            const auto first_min = values_[first_argmin];
+            const auto last_min = values_[last_argmin];
+            return first_min <= last_min ? query_result{first_argmin, first_min}
+                                         : query_result{last_argmin, last_min};
+        }
+        // general case: both values in different non-adjacent blocks
+        const auto first_full_block =
+            first_local == 0 ? first_block : first_block + 1;
+        const auto last_full_block =
+            last_local == block_size - 1 ? last_block : last_block - 1;
+        const auto full_block_result =
+            superblocks_.query(first_full_block, last_full_block);
+        const auto first_block_argmin =
+            first_block_base +
+            block_lut_->lookup(first_block_type, first_local, block_size - 1);
+        const auto last_block_argmin =
+            last_block_base +
+            block_lut_->lookup(last_block_type, 0, last_local);
+        const auto first_block_min = values_[first_block_argmin];
+        const auto last_block_min = values_[last_block_argmin];
+        auto result = query_result{last_block_argmin, last_block_min};
+        if (full_block_result.min <= result.min) {
+            result.min = full_block_result.min;
+            result.argmin = full_block_result.argmin * block_size +
+                            block_argmin_.get(full_block_result.argmin);
+        }
+        if (first_block_min <= result.min) {
+            result = query_result{first_block_argmin, first_block_min};
+        }
+        return result;
+    }
+
+    constexpr index_type size() const { return size_; }
+
+private:
+    index_type num_blocks_;
+    const index_type* values_;
+    const uint16* block_types_;
+    bit_packed_span<index_type, const uint32> block_argmin_;
+    superblock_lookup_type superblocks_;
+    const block_lookup_type* block_lut_;
     index_type size_;
 };
 
