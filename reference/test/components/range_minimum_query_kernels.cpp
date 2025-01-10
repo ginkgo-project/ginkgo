@@ -135,7 +135,7 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
 }
 
 
-TYPED_TEST(RangeMinimumQuery, Query)
+TYPED_TEST(RangeMinimumQuery, SuperblockQuery)
 {
     using index_type = typename TestFixture::index_type;
     using superblock_storage_type =
@@ -163,6 +163,74 @@ TYPED_TEST(RangeMinimumQuery, Query)
 
                 const auto result = superblocks.query(first, last);
 
+                // checking min first tells us when the minimum is correct, but
+                // the location is incorrect
+                ASSERT_EQ(min, result.min);
+                ASSERT_EQ(argmin, result.argmin);
+            }
+        }
+    }
+}
+
+
+TYPED_TEST(RangeMinimumQuery, FullQuery)
+{
+    using index_type = typename TestFixture::index_type;
+    using block_argmin_storage_type =
+        typename TestFixture::block_argmin_storage_type;
+    constexpr auto block_size =
+        gko::kernels::reference::range_minimum_query::small_block_size;
+    constexpr auto block_argmin_num_bits = gko::ceil_log2_constexpr(block_size);
+    using superblock_storage_type =
+        typename TestFixture::superblock_storage_type;
+    using word_type = typename TestFixture::word_type;
+    for (index_type size : {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+        SCOPED_TRACE(size);
+        const auto values = this->create_random_values(size);
+        const auto num_blocks = static_cast<index_type>(gko::ceildiv(
+            size,
+            gko::kernels::reference::range_minimum_query::small_block_size));
+        std::vector<gko::uint32> block_argmin_storage(
+            block_argmin_storage_type::storage_size(num_blocks,
+                                                    block_argmin_num_bits));
+        block_argmin_storage_type block_argmin{
+            block_argmin_storage.data(), block_argmin_num_bits, num_blocks};
+        std::vector<index_type> block_min(num_blocks);
+        std::vector<gko::uint16> block_type(num_blocks);
+        std::vector<word_type> superblock_storage(
+            superblock_storage_type::compute_storage_size(num_blocks));
+        superblock_storage_type superblocks(
+            block_min.data(), superblock_storage.data(), num_blocks);
+        gko::block_range_minimum_query_lookup_table<block_size> small_lut;
+        gko::kernels::reference::range_minimum_query::compute_lookup_small(
+            this->ref, values.data(), size, block_argmin, block_min.data(),
+            block_type.data());
+        gko::kernels::reference::range_minimum_query::compute_lookup_large(
+            this->ref, block_min.data(), num_blocks, superblocks);
+
+        gko::range_minimum_query<block_size, index_type> rmq{
+            values.data(),
+            block_min.data(),
+            block_argmin_storage.data(),
+            block_type.data(),
+            superblock_storage.data(),
+            &small_lut,
+            size};
+
+        for (auto first : gko::irange{size}) {
+            SCOPED_TRACE(first);
+            for (auto last : gko::irange{first, size}) {
+                SCOPED_TRACE(last);
+                const auto begin = values.begin() + first;
+                const auto end = values.begin() + last + 1;
+                const auto min_it = std::min_element(begin, end);
+                const auto argmin = std::distance(values.begin(), min_it);
+                const auto min = *min_it;
+
+                const auto result = rmq.query(first, last);
+
+                // checking min first tells us when the minimum is correct, but
+                // the location is incorrect
                 ASSERT_EQ(min, result.min);
                 ASSERT_EQ(argmin, result.argmin);
             }

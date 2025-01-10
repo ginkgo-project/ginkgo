@@ -63,6 +63,9 @@ void compute_lookup_large(
 {
     using superblock_type = range_minimum_query_superblocks<IndexType>;
     constexpr auto infinity = std::numeric_limits<IndexType>::max();
+    if (num_blocks < 2) {
+        return;
+    }
     // initialize the first level of blocks
     for (IndexType i = 0; i < num_blocks; i++) {
         const auto min1 = block_min[i];
