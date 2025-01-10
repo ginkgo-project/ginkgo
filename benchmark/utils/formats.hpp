@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -161,17 +161,19 @@ std::shared_ptr<csr::strategy_type> create_gpu_strategy(
  *
  * @throws gko::Error if the imbalance limit is exceeded
  */
-void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
+void check_ell_admissibility(const gko::device_matrix_data<etype, itype>& data)
 {
-    if (data.size[0] == 0 || FLAGS_ell_imbalance_limit < 0) {
+    auto host_data = data.copy_to_host();
+    if (host_data.size[0] == 0 || FLAGS_ell_imbalance_limit < 0) {
         return;
     }
-    std::vector<gko::size_type> row_lengths(data.size[0]);
-    for (auto nz : data.nonzeros) {
+    std::vector<gko::size_type> row_lengths(host_data.size[0]);
+    for (auto nz : host_data.nonzeros) {
         row_lengths[nz.row]++;
     }
     auto max_len = *std::max_element(row_lengths.begin(), row_lengths.end());
-    auto avg_len = data.nonzeros.size() / std::max<double>(data.size[0], 1);
+    auto avg_len =
+        host_data.nonzeros.size() / std::max<double>(host_data.size[0], 1);
     if (max_len / avg_len > FLAGS_ell_imbalance_limit) {
         throw gko::Error(__FILE__, __LINE__,
                          "Matrix exceeds ELL imbalance limit");
@@ -267,18 +269,19 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
 
 std::unique_ptr<gko::LinOp> matrix_factory(
     const std::string& format, std::shared_ptr<const gko::Executor> exec,
-    const gko::matrix_data<etype, itype>& data)
+    const gko::device_matrix_data<etype, itype>& data)
 {
     auto mat = matrix_type_factory.at(format)(exec);
     if (format == "ell" || format == "ell_mixed") {
         check_ell_admissibility(data);
     }
     if (format == "ell_mixed") {
+        auto host_data = data.copy_to_host();
         gko::matrix_data<gko::next_precision_base<etype>, itype> conv_data;
-        conv_data.size = data.size;
-        conv_data.nonzeros.resize(data.nonzeros.size());
+        conv_data.size = host_data.size;
+        conv_data.nonzeros.resize(host_data.nonzeros.size());
         auto it = conv_data.nonzeros.begin();
-        for (auto& el : data.nonzeros) {
+        for (auto& el : host_data.nonzeros) {
             it->row = el.row;
             it->column = el.column;
             it->value = el.value;

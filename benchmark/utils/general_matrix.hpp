@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,7 +38,7 @@ DEFINE_string(reorder, "none", reordering_algorithm_desc.c_str());
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
-    gko::matrix_data<ValueType, IndexType>& data, json& test_case)
+    gko::device_matrix_data<ValueType, IndexType>& data, json& test_case)
 {
 #ifndef GKO_BENCHMARK_DISTRIBUTED
     if (FLAGS_reorder == "none") {
@@ -68,9 +68,13 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
         throw std::runtime_error{"Unknown reordering algorithm " +
                                  FLAGS_reorder};
     }
-    auto perm_arr =
-        gko::array<IndexType>::view(ref, data.size[0], perm->get_permutation());
-    gko::as<Csr>(mtx->permute(&perm_arr))->write(data);
+    auto perm_arr = gko::array<IndexType>::view(ref, data.get_size()[0],
+                                                perm->get_permutation());
+    // @TODO: simplify by writing directly to device_matrix_data
+    gko::matrix_data<ValueType, IndexType> host_data;
+    gko::as<Csr>(mtx->permute(&perm_arr))->write(host_data);
+    data = gko::device_matrix_data<ValueType, IndexType>::create_from_host(
+        data.get_executor(), host_data);
     test_case["reordered"] = FLAGS_reorder;
     return perm;
 #else

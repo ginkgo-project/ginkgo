@@ -62,7 +62,7 @@ endfunction()
 # All remaining arguments will be treated as source files
 function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def type)
     add_executable("${name}" ${ARGN})
-    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
+    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json benchmark_utils)
     # always include the device timer
     if (GINKGO_BUILD_CUDA)
         target_compile_definitions("${name}" PRIVATE HAS_CUDA_TIMER=1)
@@ -117,6 +117,13 @@ function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
         "${name}_scomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" "c" ${ARGN})
 endfunction(ginkgo_add_typed_benchmark_executables)
 
+function(ginkgo_add_utils_library)
+    add_library(benchmark_utils utils/stencil_matrix.cpp)
+    target_link_libraries(benchmark_utils PRIVATE ginkgo)
+    ginkgo_compile_features(benchmark_utils)
+endfunction()
+
+ginkgo_add_utils_library()
 
 if (GINKGO_BUILD_CUDA)
     ginkgo_benchmark_cusparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)

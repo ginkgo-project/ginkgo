@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,16 +23,18 @@ struct DefaultSystemGenerator {
     using value_type = ValueType;
     using Vec = vec<ValueType>;
 
-    static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
-        const json& config)
+    static gko::device_matrix_data<ValueType, IndexType> generate_matrix_data(
+        std::shared_ptr<const gko::Executor> exec, const json& config)
     {
-        gko::matrix_data<ValueType, IndexType> data;
+        gko::device_matrix_data<ValueType, IndexType> data(exec);
         if (config.contains("filename")) {
             std::ifstream in(config["filename"].get<std::string>());
-            data = gko::read_generic_raw<ValueType, IndexType>(in);
+            data =
+                gko::device_matrix_data<ValueType, IndexType>::create_from_host(
+                    exec, gko::read_generic_raw<ValueType, IndexType>(in));
         } else if (config.contains("stencil")) {
             data = generate_stencil<ValueType, IndexType>(
-                config["stencil"].get<std::string>(),
+                exec, config["stencil"].get<std::string>(),
                 config["size"].get<gko::int64>());
         } else {
             throw std::runtime_error(
@@ -83,7 +85,7 @@ struct DefaultSystemGenerator {
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
-        const gko::matrix_data<ValueType, itype>& data,
+        const gko::device_matrix_data<ValueType, itype>& data,
         json* spmv_case = nullptr)
     {
         auto storage_logger = std::make_shared<StorageLogger>();
@@ -104,7 +106,7 @@ struct DefaultSystemGenerator {
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<gko::Executor> exec,
-        const gko::matrix_data<ValueType, itype>& data)
+        const gko::device_matrix_data<ValueType, itype>& data)
     {
         return generate_matrix_with_format(std::move(exec), "coo", data);
     }
@@ -162,18 +164,20 @@ struct DistributedDefaultSystemGenerator {
     using Mtx = dist_mtx<value_type, local_index_type, index_type>;
     using Vec = dist_vec<value_type>;
 
-    gko::matrix_data<value_type, index_type> generate_matrix_data(
-        const json& config) const
+    gko::device_matrix_data<value_type, index_type> generate_matrix_data(
+        std::shared_ptr<const gko::Executor> exec, const json& config) const
     {
-        gko::matrix_data<value_type, index_type> data;
+        gko::device_matrix_data<value_type, index_type> data(exec);
         if (config.contains("filename")) {
             std::ifstream in(config["filename"].get<std::string>());
-            data = gko::read_generic_raw<value_type, index_type>(in);
+            data = gko::device_matrix_data<value_type, index_type>::
+                create_from_host(
+                    exec, gko::read_generic_raw<value_type, index_type>(in));
         } else if (config.contains("stencil")) {
             auto local_size = static_cast<global_itype>(
                 config["size"].get<gko::int64>() / comm.size());
             data = generate_stencil<value_type, index_type>(
-                config["stencil"].get<std::string>(), comm, local_size,
+                exec, config["stencil"].get<std::string>(), comm, local_size,
                 config["comm_pattern"].get<std::string>() ==
                     std::string("optimal"));
         } else {
@@ -219,14 +223,14 @@ struct DistributedDefaultSystemGenerator {
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
-        const gko::matrix_data<value_type, index_type>& data,
+        const gko::device_matrix_data<value_type, index_type>& data,
         json* spmv_case = nullptr) const
     {
         auto part = gko::share(
             gko::experimental::distributed::Partition<itype, global_itype>::
                 build_from_global_size_uniform(
                     exec, comm.size(),
-                    static_cast<global_itype>(data.size[0])));
+                    static_cast<global_itype>(data.get_size()[0])));
         auto formats = split(format_name, '-');
         if (formats.size() != 2) {
             throw std::runtime_error{"Invalid distributed format specifier " +
@@ -255,7 +259,7 @@ struct DistributedDefaultSystemGenerator {
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<gko::Executor> exec,
-        const gko::matrix_data<value_type, global_itype>& data) const
+        const gko::device_matrix_data<value_type, global_itype>& data) const
     {
         return generate_matrix_with_format(std::move(exec), "coo-coo", data);
     }

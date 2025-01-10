@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,10 +25,13 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 template <typename Generator>
 struct spmv_benchmark_state {
-    gko::matrix_data<etype, typename Generator::index_type> data;
+    gko::device_matrix_data<etype, typename Generator::index_type> data;
     std::unique_ptr<typename Generator::Vec> x;
     std::unique_ptr<typename Generator::Vec> b;
     std::unique_ptr<typename Generator::Vec> answer;
+
+    spmv_benchmark_state(std::shared_ptr<const gko::Executor> exec) : data(exec)
+    {}
 };
 
 
@@ -75,23 +78,23 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     spmv_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
                                           json& test_case) const override
     {
-        spmv_benchmark_state<Generator> state;
-        state.data = generator.generate_matrix_data(test_case);
+        spmv_benchmark_state<Generator> state(exec);
+        state.data = generator.generate_matrix_data(exec, test_case);
         reorder(state.data, test_case);
 
         auto nrhs = FLAGS_nrhs;
         state.b = generator.create_multi_vector_random(
-            exec, gko::dim<2>{state.data.size[1], nrhs});
+            exec, gko::dim<2>{state.data.get_size()[1], nrhs});
         state.x = generator.create_multi_vector_random(
-            exec, gko::dim<2>{state.data.size[0], nrhs});
+            exec, gko::dim<2>{state.data.get_size()[0], nrhs});
         if (do_print) {
-            std::clog << "Matrix is of size (" << state.data.size[0] << ", "
-                      << state.data.size[1] << "), "
-                      << state.data.nonzeros.size() << std::endl;
+            std::clog << "Matrix is of size (" << state.data.get_size()[0]
+                      << ", " << state.data.get_size()[1] << "), "
+                      << state.data.get_num_stored_elements() << std::endl;
         }
-        test_case["rows"] = state.data.size[0];
-        test_case["cols"] = state.data.size[1];
-        test_case["nonzeros"] = state.data.nonzeros.size();
+        test_case["rows"] = state.data.get_size()[0];
+        test_case["cols"] = state.data.get_size()[1];
+        test_case["nonzeros"] = state.data.get_num_stored_elements();
         if (FLAGS_detailed) {
             state.answer = gko::clone(state.x);
             auto system_matrix =

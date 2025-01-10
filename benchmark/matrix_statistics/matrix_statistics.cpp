@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -91,7 +91,7 @@ void compute_distribution_properties(const std::vector<gko::size_type>& dist,
 }
 
 
-void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>& data,
+void extract_matrix_statistics(gko::matrix_data<etype, gko::int64>&& data,
                                json& problem)
 {
     std::vector<gko::size_type> row_dist(data.size[0]);
@@ -154,15 +154,16 @@ struct MatrixStatistics : Benchmark<empty_state> {
     empty_state setup(std::shared_ptr<gko::Executor> exec,
                       json& test_case) const override
     {
-        auto data = Generator::generate_matrix_data(test_case);
+        auto data = Generator::generate_matrix_data(exec, test_case);
         // no reordering here, as it doesn't change statistics
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
-                  << data.size[1] << "), " << data.nonzeros.size() << std::endl;
-        test_case["rows"] = data.size[0];
-        test_case["cols"] = data.size[1];
-        test_case["nonzeros"] = data.nonzeros.size();
+        std::clog << "Matrix is of size (" << data.get_size()[0] << ", "
+                  << data.get_size()[1] << "), "
+                  << data.get_num_stored_elements() << std::endl;
+        test_case["rows"] = data.get_size()[0];
+        test_case["cols"] = data.get_size()[1];
+        test_case["nonzeros"] = data.get_num_stored_elements();
 
-        extract_matrix_statistics(data, test_case["problem"]);
+        extract_matrix_statistics(data.copy_to_host(), test_case["problem"]);
         return {};
     }
 

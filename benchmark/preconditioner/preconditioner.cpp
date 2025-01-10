@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -151,21 +151,22 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                                          json& test_case) const override
     {
         preconditioner_benchmark_state state;
-        auto data = Generator::generate_matrix_data(test_case);
+        auto data = Generator::generate_matrix_data(exec, test_case);
         reorder(data, test_case);
 
         state.system_matrix =
             formats::matrix_factory(FLAGS_formats, exec, data);
         state.b = Generator::create_multi_vector_random(
-            exec, gko::dim<2>{data.size[0]});
+            exec, gko::dim<2>{data.get_size()[0]});
         state.x = Generator::create_multi_vector(
-            exec, gko::dim<2>{data.size[0]}, gko::zero<etype>());
+            exec, gko::dim<2>{data.get_size()[0]}, gko::zero<etype>());
 
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
-                  << data.size[1] << "), " << data.nonzeros.size() << std::endl;
-        test_case["rows"] = data.size[0];
-        test_case["cols"] = data.size[1];
-        test_case["nonzeros"] = data.nonzeros.size();
+        std::clog << "Matrix is of size (" << data.get_size()[0] << ", "
+                  << data.get_size()[1] << "), "
+                  << data.get_num_stored_elements() << std::endl;
+        test_case["rows"] = data.get_size()[0];
+        test_case["cols"] = data.get_size()[1];
+        test_case["nonzeros"] = data.get_num_stored_elements();
         return state;
     }
 

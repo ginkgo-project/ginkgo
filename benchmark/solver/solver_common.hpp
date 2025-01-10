@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -414,7 +414,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
             state.x = generator.initialize({0.0}, exec);
         } else {
-            auto data = generator.generate_matrix_data(test_case);
+            auto data = generator.generate_matrix_data(exec, test_case);
             auto permutation = reorder(data, test_case);
 
             state.system_matrix = generator.generate_matrix_with_format(
