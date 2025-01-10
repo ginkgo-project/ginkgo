@@ -24,6 +24,7 @@
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+#include "ginkgo/core/base/types.hpp"
 #include "matrices/config.hpp"
 
 
@@ -414,16 +415,19 @@ TYPED_TEST(Cholesky, KernelComputeLevels)
 template <typename IndexType>
 void reference_euler_path(const IndexType* child_ptrs,
                           const IndexType* children, IndexType node,
-                          IndexType level,
-                          std::vector<std::pair<IndexType, IndexType>>& path)
+                          IndexType level, std::vector<IndexType>& path,
+                          std::vector<IndexType>& levels)
 {
-    path.emplace_back(node, level);
+    path.emplace_back(node);
+    levels.emplace_back(level);
     const auto child_begin = child_ptrs[node];
     const auto child_end = child_ptrs[node + 1];
     for (const auto child_idx : gko::irange{child_begin, child_end}) {
         const auto child = children[child_idx];
-        reference_euler_path(child_ptrs, children, child, level + 1, path);
-        path.emplace_back(node, level);
+        reference_euler_path(child_ptrs, children, child, level + 1, path,
+                             levels);
+        path.emplace_back(node);
+        levels.emplace_back(level);
     }
 }
 
@@ -439,20 +443,43 @@ TYPED_TEST(Cholesky, KernelComputeEulerPath)
             std::unique_ptr<elimination_forest> forest;
             gko::factorization::compute_elim_forest(this->mtx.get(), forest);
             gko::array<index_type> levels{this->ref, size};
-            gko::array<index_type> euler_path{this->ref, size};
-            gko::array<index_type> euler_first{this->ref, size};
-            gko::array<index_type> euler_levels{this->ref, size};
+            gko::array<index_type> euler_path{this->ref, 2 * size};
+            gko::array<index_type> euler_first{this->ref, 2 * size};
+            gko::array<index_type> euler_levels{this->ref, 2 * size};
             gko::array<index_type> subtree_sizes{this->ref, size};
+            euler_path.fill(gko::invalid_index<index_type>());
+            euler_levels.fill(gko::invalid_index<index_type>());
             gko::kernels::reference::elimination_forest::
                 compute_subtree_euler_path_sizes(this->ref, *forest,
                                                  subtree_sizes.get_data());
             gko::kernels::reference::elimination_forest::compute_levels(
                 this->ref, *forest, levels.get_data());
+            std::vector<index_type> ref_path;
+            std::vector<index_type> ref_levels;
+            const auto child_ptrs = forest->child_ptrs.get_const_data();
+            const auto children = forest->children.get_const_data();
+            for (auto root_idx :
+                 gko::irange{child_ptrs[size], child_ptrs[size + 1]}) {
+                const auto root = forest->children.get_const_data()[root_idx];
+                reference_euler_path(child_ptrs, children, root, index_type{},
+                                     ref_path, ref_levels);
+            }
+            ASSERT_LT(ref_path.size(), 2 * size);
+            ASSERT_LT(ref_levels.size(), 2 * size);
+            ref_path.resize(2 * size, gko::invalid_index<index_type>());
+            ref_levels.resize(2 * size, gko::invalid_index<index_type>());
+            const gko::array<index_type> ref_path_array{
+                this->ref, ref_path.begin(), ref_path.end()};
+            const gko::array<index_type> ref_levels_array{
+                this->ref, ref_levels.begin(), ref_levels.end()};
 
             gko::kernels::reference::elimination_forest::compute_euler_path(
                 this->ref, *forest, subtree_sizes.get_const_data(),
                 levels.get_const_data(), euler_path.get_data(),
                 euler_first.get_data(), euler_levels.get_data());
+
+            GKO_ASSERT_ARRAY_EQ(ref_path_array, euler_path);
+            GKO_ASSERT_ARRAY_EQ(ref_levels_array, euler_levels);
         },
         true);
 }

@@ -396,7 +396,7 @@ void compute_postorder(
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER);
 
-/*
+
 template <typename IndexType>
 IndexType traverse_euler_path(const IndexType* child_ptrs,
                               const IndexType* children, IndexType node,
@@ -406,14 +406,26 @@ IndexType traverse_euler_path(const IndexType* child_ptrs,
 {
     const auto child_begin = child_ptrs[node];
     const auto child_end = child_ptrs[node + 1];
+    if (child_begin == child_end) {
+        euler_path[index] = node;
+        euler_first[node] = index;
+        euler_level[index] = level;
+        return index + 1;
+    }
+    euler_path[index] = node;
+    euler_first[node] = index;
+    euler_level[index] = level;
+    index++;
     for (const auto child_idx : irange{child_begin, child_end}) {
         const auto child = children[child_idx];
-        index = traverse_postorder(child_ptrs, children, child, index,
-                                   postorder, inv_postorder);
+        index =
+            traverse_euler_path(child_ptrs, children, child, index, level + 1,
+                                euler_path, euler_first, euler_level);
+        euler_path[index] = node;
+        euler_level[index] = level;
+        index++;
     }
-    postorder[index] = node;
-    inv_postorder[node] = index;
-    return index + 1;
+    return index;
 }
 
 
@@ -432,13 +444,14 @@ void compute_euler_path(
     IndexType index{};
     for (const auto root_idx : irange{root_begin, root_end}) {
         const auto root = children[root_idx];
-        index = traverse_euler_path(child_ptrs, children, root, index,
-                                    postorder, inv_postorder);
+        index =
+            traverse_euler_path(child_ptrs, children, root, index, IndexType{0},
+                                euler_path, first_visit, euler_levels);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH);*/
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH);
 
 
 }  // namespace elimination_forest
