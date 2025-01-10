@@ -198,7 +198,7 @@ public:
         : data_{exec, sizeof(type)}
     {
         type lut{};
-        exec->copy_from(exec->get_master(), sizeof(type), &lut, get());
+        exec->copy_from(exec->get_master(), 1, &lut, get());
     }
 
     const type* get() const
@@ -300,6 +300,7 @@ public:
 
     constexpr index_type size() const { return size_; }
 
+    // TODO naming consistency with bit_packed_span
     constexpr index_type storage_size() const
     {
         return compute_storage_size(size());

@@ -51,6 +51,8 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
             }
             const auto tree_number = lut->compute_tree_index(local_values);
             const auto min = local_values[argmin];
+            // TODO collate these so a single thread handles the argmins for an
+            // entire memory word
             block_argmin.set(block_idx, argmin);
             block_min[block_idx] = min;
             block_type[block_idx] = static_cast<tree_index_type>(tree_number);
@@ -77,9 +79,11 @@ void compute_lookup_large(
         [] GKO_KERNEL(auto i, auto block_min, auto superblocks,
                       auto num_blocks) {
             const auto min1 = block_min[i];
-            const auto min2 = i + 1 < num_blocks ? block_min[i] : infinity;
+            const auto min2 = i + 1 < num_blocks ? block_min[i + 1] : infinity;
             // we need to use <= here to make sure ties always break to the left
             superblocks.set_block_argmin(0, i, min1 <= min2 ? 0 : 1);
+            // TODO collate these so a single thread handles the argmins for
+            // an entire memory word
         },
         num_blocks, block_min, superblocks, num_blocks);
     // we computed argmins for blocks of size 2, now recursively combine them.
@@ -100,10 +104,12 @@ void compute_lookup_large(
                         : argmin1;
                 const auto min1 = block_min[argmin1];
                 const auto min2 = block_min[argmin2];
-                // we need to use <= here to make sure ties always break to the
-                // left
+                // we need to use <= here to make sure
+                // ties always break to the left
                 superblocks.set_block_argmin(
                     block_level, i, min1 <= min2 ? argmin1 - i : argmin2 - i);
+                // TODO collate these so a single thread handles the argmins for
+                // an entire memory word
             },
             num_blocks, block_level, block_min, superblocks, num_blocks);
     }
