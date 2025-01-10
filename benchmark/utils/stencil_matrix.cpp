@@ -186,15 +186,6 @@ gko::device_matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     return {exec, A_data};
 }
 
-#define GKO_DECLARE_GENERATE_2D_STENCIL_BOX(_vtype, _itype)                   \
-    gko::device_matrix_data<_vtype, _itype> generate_2d_stencil_box(          \
-        std::shared_ptr<const gko::Executor> exec, std::array<int, 2> dims,   \
-        std::array<int, 2> positions, const gko::size_type target_local_size, \
-        bool restricted)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_GENERATE_2D_STENCIL_BOX);
-
 
 /**
  * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
@@ -364,11 +355,147 @@ gko::device_matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     return {exec, A_data};
 }
 
-#define GKO_DECLARE_GENERATE_3D_STENCIL_BOX(_vtype, _itype)                   \
-    gko::device_matrix_data<_vtype, _itype> generate_3d_stencil_box(          \
-        std::shared_ptr<const gko::Executor> exec, std::array<int, 3> dims,   \
-        std::array<int, 3> positions, const gko::size_type target_local_size, \
-        bool restricted)
+
+template <typename ValueType, typename IndexType>
+gko::device_matrix_data<ValueType, IndexType> generate_stencil(
+    std::shared_ptr<const gko::Executor> exec, std::string stencil_name,
+    const gko::size_type target_local_size)
+{
+    if (stencil_name == "5pt") {
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            exec, {1, 1}, {0, 0}, target_local_size, true);
+    } else if (stencil_name == "9pt") {
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            exec, {1, 1}, {0, 0}, target_local_size, false);
+    } else if (stencil_name == "7pt") {
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            exec, {1, 1, 1}, {0, 0, 0}, target_local_size, true);
+    } else if (stencil_name == "27pt") {
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            exec, {1, 1, 1}, {0, 0, 0}, target_local_size, false);
+    } else {
+        throw std::runtime_error("Stencil " + stencil_name +
+                                 " not implemented");
+    }
+}
+
+#define GKO_DECLARE_GENERATE_STENCIL(_vtype, _itype)                         \
+    gko::device_matrix_data<_vtype, _itype> generate_stencil(                \
+        std::shared_ptr<const gko::Executor> exec, std::string stencil_name, \
+        const gko::size_type target_local_size)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_GENERATE_3D_STENCIL_BOX);
+    GKO_DECLARE_GENERATE_STENCIL);
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Generates matrix data for a given 2D stencil, where the position of this
+ * block is given by it's MPI rank.
+ *
+ * @see generate_2d_stencil_box
+ */
+template <typename ValueType, typename IndexType>
+gko::device_matrix_data<ValueType, IndexType> generate_2d_stencil(
+    std::shared_ptr<const gko::Executor> exec,
+    gko::experimental::mpi::communicator comm,
+    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+{
+    if (optimal_comm) {
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            exec, {comm.size(), 1}, {comm.rank(), 0}, target_local_size,
+            restricted);
+    } else {
+        std::array<int, 2> dims{};
+        MPI_Dims_create(comm.size(), dims.size(), dims.data());
+
+        std::array<int, 2> coords{};
+        coords[0] = comm.rank() % dims[0];
+        coords[1] = comm.rank() / dims[0];
+
+        return generate_2d_stencil_box<ValueType, IndexType>(
+            exec, dims, coords, target_local_size, restricted);
+    }
+}
+
+/**
+ * Generates matrix data for a given 23 stencil, where the position of this
+ * block is given by it's MPI rank.
+ *
+ * @see generate_3d_stencil_box
+ */
+template <typename ValueType, typename IndexType>
+gko::device_matrix_data<ValueType, IndexType> generate_3d_stencil(
+    std::shared_ptr<const gko::Executor> exec,
+    gko::experimental::mpi::communicator comm,
+    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+{
+    if (optimal_comm) {
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            exec, {comm.size(), 1, 1}, {comm.rank(), 0, 0}, target_local_size,
+            restricted);
+    } else {
+        std::array<int, 3> dims{};
+
+        MPI_Dims_create(comm.size(), dims.size(), dims.data());
+
+        std::array<int, 3> coords{};
+        coords[0] = comm.rank() % dims[0];
+        coords[1] = (comm.rank() / dims[0]) % dims[1];
+        coords[2] = comm.rank() / (dims[0] * dims[1]);
+
+        return generate_3d_stencil_box<ValueType, IndexType>(
+            exec, dims, coords, target_local_size, restricted);
+    }
+}
+
+
+/**
+ * Generates matrix data for the requested stencil.
+ *
+ * @copydoc  generate_stencil(const gko::size_type, bool)
+ *
+ * @param comm  The MPI communicator to determine the rank.
+ * @param optimal_comm  If true, a  1D domain decomposition is used which leads
+ *                      to each processor having at most two neighbors. This
+ *                      also changes the domain shape to an elongated channel.
+ *                      If false, a mostly uniform 2D or 3D decomposition is
+ *                      used, and the domain shape is mostly cubic.
+ */
+template <typename ValueType, typename IndexType>
+gko::device_matrix_data<ValueType, IndexType> generate_stencil(
+    std::shared_ptr<const gko::Executor> exec, std::string stencil_name,
+    gko::experimental::mpi::communicator comm,
+    const gko::size_type target_local_size, bool optimal_comm)
+{
+    if (stencil_name == "5pt") {
+        return generate_2d_stencil<ValueType, IndexType>(
+            exec, std::move(comm), target_local_size, true, optimal_comm);
+    } else if (stencil_name == "9pt") {
+        return generate_2d_stencil<ValueType, IndexType>(
+            exec, std::move(comm), target_local_size, false, optimal_comm);
+    } else if (stencil_name == "7pt") {
+        return generate_3d_stencil<ValueType, IndexType>(
+            exec, std::move(comm), target_local_size, true, optimal_comm);
+    } else if (stencil_name == "27pt") {
+        return generate_3d_stencil<ValueType, IndexType>(
+            exec, std::move(comm), target_local_size, false, optimal_comm);
+    } else {
+        throw std::runtime_error("Stencil " + stencil_name +
+                                 " not implemented");
+    }
+}
+
+#define GKO_DECLARE_GENERATE_STENCIL_MPI(_vtype, _itype)                     \
+    gko::device_matrix_data<_vtype, _itype> generate_stencil(                \
+        std::shared_ptr<const gko::Executor> exec, std::string stencil_name, \
+        gko::experimental::mpi::communicator comm,                           \
+        const gko::size_type target_local_size, bool optimal_comm)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_GENERATE_STENCIL_MPI);
+
+
+#endif
