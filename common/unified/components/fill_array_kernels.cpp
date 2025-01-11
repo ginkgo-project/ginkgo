@@ -4,6 +4,8 @@
 
 #include "core/components/fill_array_kernels.hpp"
 
+#include <type_traits>
+
 #include "common/unified/base/kernel_launch.hpp"
 
 
@@ -27,7 +29,16 @@ GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
+
+
+// this is necessary because compilers use different types for uint64_t and
+// size_t, namely unsigned long long and unsigned long
+void fill_array_instantiation_helper()
+{
+    if constexpr (!std::is_same_v<uint64, size_type>) {
+        fill_array<uint64>(nullptr, nullptr, 0, 0);
+    }
+}
 
 
 template <typename ValueType>
