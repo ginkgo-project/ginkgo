@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -588,6 +588,16 @@ void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_validate(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* system_matrix,
+                       const matrix::Csr<ValueType, IndexType>* factors,
+                       bool& valid) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL);
 
 
 }  // namespace factorization
