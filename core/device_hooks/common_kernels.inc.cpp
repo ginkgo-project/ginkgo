@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <type_traits>
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -249,7 +251,16 @@ GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
+
+
+// this is necessary because compilers use different types for uint64_t and
+// size_t, namely unsigned long long and unsigned long
+void fill_array_instantiation_helper()
+{
+    if constexpr (!std::is_same_v<uint64, size_type>) {
+        fill_array<uint64>(nullptr, nullptr, 0, 0);
+    }
+}
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
