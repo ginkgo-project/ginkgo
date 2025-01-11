@@ -254,7 +254,7 @@ __global__ __launch_bounds__(default_block_size) void compute_levels(
     const IndexType* __restrict__ parents, IndexType size,
     IndexType* __restrict__ levels)
 {
-    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    constexpr auto sentinel = std::numeric_limits<IndexType>::lowest();
     const auto rev_i = thread::get_thread_id_flat<IndexType>();
     if (rev_i >= size) {
         return;
@@ -262,16 +262,17 @@ __global__ __launch_bounds__(default_block_size) void compute_levels(
     // iterate through nodes in reverse order
     const auto i = size - rev_i - 1;
     auto current = i;
-    // the pseudo-root is at level -1
-    IndexType delta{-1};
-    auto level = invalid_index<IndexType>();
-    while (level == invalid_index<IndexType>()) {
+    // how many steps up did we have to go?
+    IndexType delta{0};
+    auto level = sentinel;
+    while (level == sentinel) {
         if (current == size) {
-            level = 0;
+            // the pseudo-root is at level -1
+            level = -1;
         } else {
             level = load_relaxed(levels + current);
         }
-        if (level != invalid_index<IndexType>()) {
+        if (level != sentinel) {
             store_relaxed(levels + i, level + delta);
             return;
         }
@@ -1195,7 +1196,8 @@ void compute_levels(
 {
     const auto size = static_cast<IndexType>(forest.parents.get_size());
     const auto parents = forest.parents.get_const_data();
-    components::fill_array(exec, levels, size, invalid_index<IndexType>());
+    components::fill_array(exec, levels, size,
+                           std::numeric_limits<IndexType>::lowest());
     const auto num_blocks = ceildiv(size, default_block_size);
     if (num_blocks > 0) {
         kernel::compute_levels<<<num_blocks, default_block_size, 0,
