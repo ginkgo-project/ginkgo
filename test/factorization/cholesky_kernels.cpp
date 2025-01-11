@@ -188,7 +188,6 @@ TYPED_TEST(CholeskySymbolic, KernelComputeLevelsIsEquivalentToRef)
     using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
         SCOPED_TRACE(pair.first);
-        std::cout << pair.first << '\n';
         const auto& mtx = pair.second;
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto size = mtx->get_size()[0];
