@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,6 @@
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -27,8 +26,6 @@ namespace {
 
 GKO_REGISTER_OPERATION(symbolic_count, cholesky::symbolic_count);
 GKO_REGISTER_OPERATION(symbolic, cholesky::symbolic_factorize);
-GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
-GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(symbolic_factorize_simple,
@@ -115,29 +112,15 @@ void symbolic_lu_near_symm(
         symbolic_cholesky(symm_mtx.get(), true, symm_factors, forest);
     }
     // build lookup structure
-    array<IndexType> storage_offsets{exec, size[0] + 1};
-    array<int64> row_descs{exec, size[0]};
+    const auto lookup = matrix::csr::build_lookup(symm_factors.get());
     array<IndexType> diag_idxs{exec, size[0]};
-    const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
-                                  gko::matrix::csr::sparsity_type::full |
-                                  gko::matrix::csr::sparsity_type::hash;
-    exec->run(make_build_lookup_offsets(
-        symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
-        size[0], allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size =
-        static_cast<size_type>(get_element(storage_offsets, size[0]));
-    array<int32> storage{exec, storage_size};
-    exec->run(make_build_lookup(
-        symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
-        size[0], allowed_sparsity, storage_offsets.get_const_data(),
-        row_descs.get_data(), storage.get_data()));
     // compute "numerical" factorization with 1s and 0s
     array<IndexType> factor_row_ptrs{exec, size[0] + 1};
     exec->run(make_symbolic_factorize_simple(
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        storage_offsets.get_const_data(), row_descs.get_const_data(),
-        storage.get_const_data(), symm_factors.get(),
-        factor_row_ptrs.get_data()));
+        lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        symm_factors.get(), factor_row_ptrs.get_data()));
     // build row pointers from nnz
     exec->run(
         make_prefix_sum_nonnegative(factor_row_ptrs.get_data(), size[0] + 1));

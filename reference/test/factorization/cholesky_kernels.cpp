@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,9 +42,7 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           tmp{ref},
           ref_row_nnz{ref},
-          storage_offsets{ref},
-          storage{ref},
-          row_descs{ref}
+          lookup{ref}
     {}
 
     std::unique_ptr<matrix_type> combined_factor(
@@ -103,8 +101,6 @@ protected:
                   combined->get_row_ptrs());
         ref->copy(combined_ref->get_num_stored_elements(),
                   combined_ref->get_const_col_idxs(), combined->get_col_idxs());
-        storage_offsets.resize_and_reset(num_rows + 1);
-        row_descs.resize_and_reset(num_rows);
 
         ref_row_nnz.resize_and_reset(num_rows);
         const auto ref_row_ptrs = l_factor_ref->get_const_row_ptrs();
@@ -113,17 +109,7 @@ protected:
                 ref_row_ptrs[row + 1] - ref_row_ptrs[row];
         }
 
-        const auto allowed = gko::matrix::csr::sparsity_type::bitmap |
-                             gko::matrix::csr::sparsity_type::full |
-                             gko::matrix::csr::sparsity_type::hash;
-        gko::kernels::reference::csr::build_lookup_offsets(
-            ref, combined->get_const_row_ptrs(), combined->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_data());
-        storage.resize_and_reset(storage_offsets.get_const_data()[num_rows]);
-        gko::kernels::reference::csr::build_lookup(
-            ref, combined->get_const_row_ptrs(), combined->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data());
+        lookup = gko::matrix::csr::build_lookup(combined.get());
     }
 
     void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
@@ -234,9 +220,7 @@ protected:
     gko::size_type num_rows;
     gko::array<index_type> tmp;
     gko::array<index_type> ref_row_nnz;
-    gko::array<index_type> storage_offsets;
-    gko::array<gko::int32> storage;
-    gko::array<gko::int64> row_descs;
+    gko::matrix::csr::lookup_data<index_type> lookup;
     std::shared_ptr<matrix_type> mtx;
     std::unique_ptr<elimination_forest> forest;
     std::shared_ptr<matrix_type> l_factor;
@@ -369,9 +353,9 @@ TYPED_TEST(Cholesky, KernelInitializeWorks)
 
             gko::kernels::reference::cholesky::initialize(
                 this->ref, this->mtx.get(),
-                this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), this->combined.get());
 
             GKO_ASSERT_MTX_NEAR(this->mtx, this->combined, 0.0);
@@ -413,15 +397,15 @@ TYPED_TEST(Cholesky, KernelFactorizeWorks)
             gko::array<int> tmp{this->ref};
             gko::kernels::reference::cholesky::initialize(
                 this->ref, this->mtx.get(),
-                this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), this->combined.get());
 
             gko::kernels::reference::cholesky::factorize(
-                this->ref, this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->ref, this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), *this->forest, this->combined.get(),
                 true, tmp);
 

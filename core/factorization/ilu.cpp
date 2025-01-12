@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,8 +19,6 @@
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/lu_kernels.hpp"
-#include "core/factorization/par_ilu_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -38,8 +36,6 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
 GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 // for gko syncfree implementation
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
-GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
 GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
 
@@ -117,32 +113,18 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         factors->set_strategy(factors->get_strategy());
 
         // setup lookup structure on factors
-        array<IndexType> storage_offsets{exec, num_rows + 1};
-        array<int64> row_descs{exec, num_rows};
+        const auto lookup = matrix::csr::build_lookup(factors.get());
         array<IndexType> diag_idxs{exec, num_rows};
-        const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
-                                      gko::matrix::csr::sparsity_type::full |
-                                      gko::matrix::csr::sparsity_type::hash;
-        exec->run(ilu_factorization::make_build_lookup_offsets(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            num_rows, allowed_sparsity, storage_offsets.get_data()));
-        const auto storage_size =
-            static_cast<size_type>(get_element(storage_offsets, num_rows));
-        array<int32> storage{exec, storage_size};
-        exec->run(ilu_factorization::make_build_lookup(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            num_rows, allowed_sparsity, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data()));
         exec->run(ilu_factorization::make_initialize(
-            local_system_matrix.get(), storage_offsets.get_const_data(),
-            row_descs.get_const_data(), storage.get_const_data(),
+            local_system_matrix.get(), lookup.storage_offsets.get_const_data(),
+            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
             diag_idxs.get_data(), factors.get()));
         // run numerical factorization
         array<int> tmp{exec};
         exec->run(ilu_factorization::make_factorize(
-            storage_offsets.get_const_data(), row_descs.get_const_data(),
-            storage.get_const_data(), diag_idxs.get_const_data(), factors.get(),
-            false, tmp));
+            lookup.storage_offsets.get_const_data(),
+            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+            diag_idxs.get_const_data(), factors.get(), false, tmp));
         ilu = factors;
     } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
                !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
