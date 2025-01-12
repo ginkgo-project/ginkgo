@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,8 +27,6 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
-GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
@@ -107,37 +105,24 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
         exec->run(make_forest_from_factor(factors.get(), *forest));
     }
     // setup lookup structure on factors
-    array<IndexType> storage_offsets{exec, num_rows + 1};
-    array<int64> row_descs{exec, num_rows};
+    const auto lookup = matrix::csr::build_lookup(factors.get());
     array<IndexType> diag_idxs{exec, num_rows};
     array<IndexType> transpose_idxs{exec, factors->get_num_stored_elements()};
-    const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
-                                  gko::matrix::csr::sparsity_type::full |
-                                  gko::matrix::csr::sparsity_type::hash;
-    exec->run(make_build_lookup_offsets(
-        factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
-        allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size =
-        static_cast<size_type>(get_element(storage_offsets, num_rows));
-    array<int32> storage{exec, storage_size};
-    exec->run(make_build_lookup(
-        factors->get_const_row_ptrs(), factors->get_const_col_idxs(), num_rows,
-        allowed_sparsity, storage_offsets.get_const_data(),
-        row_descs.get_data(), storage.get_data()));
     // initialize factors
     exec->run(make_fill_array(factors->get_values(),
                               factors->get_num_stored_elements(),
                               zero<ValueType>()));
-    exec->run(make_initialize(mtx.get(), storage_offsets.get_const_data(),
-                              row_descs.get_const_data(),
-                              storage.get_const_data(), diag_idxs.get_data(),
-                              transpose_idxs.get_data(), factors.get()));
+    exec->run(make_initialize(
+        mtx.get(), lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        diag_idxs.get_data(), transpose_idxs.get_data(), factors.get()));
     // run numerical factorization
     array<int> tmp{exec};
     exec->run(make_factorize(
-        storage_offsets.get_const_data(), row_descs.get_const_data(),
-        storage.get_const_data(), diag_idxs.get_const_data(),
-        transpose_idxs.get_const_data(), *forest, factors.get(), true, tmp));
+        lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        diag_idxs.get_const_data(), transpose_idxs.get_const_data(), *forest,
+        factors.get(), true, tmp));
     return factorization_type::create_from_combined_cholesky(
         std::move(factors));
 }
