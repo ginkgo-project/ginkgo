@@ -543,6 +543,9 @@ private:
 
 bool validate_symbolic_factorization(const Mtx* input, const Mtx* factors)
 {
+    if (!factors->is_sorted_by_column_index()) {
+        return false;
+    }
     const auto exec = factors->get_executor();
     bool valid = false;
     exec->run(make_symbolic_validate(
