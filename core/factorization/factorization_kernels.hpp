@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/csr_lookup.hpp"
 
 
 namespace gko {
@@ -57,7 +58,9 @@ namespace kernels {
     void symbolic_validate(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         const matrix::Csr<ValueType, IndexType>* system_matrix,       \
-        const matrix::Csr<ValueType, IndexType>* factors, bool& valid)
+        const matrix::Csr<ValueType, IndexType>* factors,             \
+        const matrix::csr::lookup_data<IndexType>& factors_lookup,    \
+        bool& valid)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \

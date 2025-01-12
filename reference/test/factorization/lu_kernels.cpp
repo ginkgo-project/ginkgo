@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "core/base/index_range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
@@ -340,9 +341,33 @@ TYPED_TEST(Lu, ValidateValidFactors)
         bool valid = false;
 
         gko::kernels::reference::factorization::symbolic_validate(
-            this->ref, this->mtx.get(), this->mtx_lu.get(), valid);
+            this->ref, this->mtx.get(), this->mtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->mtx_lu.get()), valid);
 
         ASSERT_TRUE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, ValidateInvalidFactorsIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data(this->mtx_lu->get_size());
+        // an identity matrix is a valid factorization, but doesn't contain the
+        // system matrix
+        for (auto row : gko::irange{static_cast<index_type>(data.size[0])}) {
+            data.nonzeros.emplace_back(row, row, gko::one<value_type>());
+        }
+        this->mtx_lu->read(data);
+
+        gko::kernels::reference::factorization::symbolic_validate(
+            this->ref, this->mtx.get(), this->mtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->mtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
     });
 }
 
@@ -352,7 +377,7 @@ TYPED_TEST(Lu, ValidateInvalidFactorsMissing)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
-        bool valid = false;
+        bool valid = true;
         gko::matrix_data<value_type, index_type> data;
         this->mtx_lu->write(data);
         // delete a random entry somewhere in the middle of the matrix
@@ -361,7 +386,8 @@ TYPED_TEST(Lu, ValidateInvalidFactorsMissing)
         this->mtx_lu->read(data);
 
         gko::kernels::reference::factorization::symbolic_validate(
-            this->ref, this->mtx.get(), this->mtx_lu.get(), valid);
+            this->ref, this->mtx.get(), this->mtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->mtx_lu.get()), valid);
 
         ASSERT_FALSE(valid);
     });
@@ -373,7 +399,7 @@ TYPED_TEST(Lu, ValidateInvalidFactorsExtra)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices([this] {
-        bool valid = false;
+        bool valid = true;
         gko::matrix_data<value_type, index_type> data;
         this->mtx_lu->write(data);
         const auto it = std::adjacent_find(
@@ -385,7 +411,8 @@ TYPED_TEST(Lu, ValidateInvalidFactorsExtra)
         this->mtx_lu->read(data);
 
         gko::kernels::reference::factorization::symbolic_validate(
-            this->ref, this->mtx.get(), this->mtx_lu.get(), valid);
+            this->ref, this->mtx.get(), this->mtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->mtx_lu.get()), valid);
 
         ASSERT_FALSE(valid);
     });
