@@ -19,10 +19,12 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "core/base/index_range.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -185,6 +187,95 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
             this->dmtx_lu.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateValidFactors)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = false;
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_TRUE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data(
+            this->dmtx_lu->get_size());
+        // an identity matrix is a valid factorization, but doesn't contain the
+        // system matrix
+        for (auto row : gko::irange{static_cast<index_type>(data.size[0])}) {
+            data.nonzeros.emplace_back(row, row, gko::one<value_type>());
+        }
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsMissing)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data;
+        this->dmtx_lu->write(data);
+        // delete a random entry somewhere in the middle of the matrix
+        data.nonzeros.erase(data.nonzeros.begin() +
+                            data.nonzeros.size() * 3 / 4);
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsExtra)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data;
+        this->dmtx_lu->write(data);
+        // insert an entry between two non-adjacent values in a row somewhere
+        // not at the beginning
+        const auto it = std::adjacent_find(
+            data.nonzeros.begin() + data.nonzeros.size() / 5,
+            data.nonzeros.end(), [](auto a, auto b) {
+                return a.row == b.row && a.column < b.column - 1;
+            });
+        data.nonzeros.insert(it, {it->row, it->column + 1, it->value});
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
     });
 }
 

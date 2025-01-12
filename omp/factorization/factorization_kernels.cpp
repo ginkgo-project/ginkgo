@@ -339,10 +339,11 @@ bool symbolic_validate_impl(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 template <typename ValueType, typename IndexType>
-void symbolic_validate(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* system_matrix,
-                       const matrix::Csr<ValueType, IndexType>* factors,
-                       bool& valid)
+void symbolic_validate(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    const matrix::csr::lookup_data<IndexType>& factors_lookup, bool& valid)
 {
     valid = symbolic_validate_impl(
         exec, system_matrix->get_const_row_ptrs(),

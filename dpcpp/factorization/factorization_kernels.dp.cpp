@@ -591,10 +591,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void symbolic_validate(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* system_matrix,
-                       const matrix::Csr<ValueType, IndexType>* factors,
-                       bool& valid) GKO_NOT_IMPLEMENTED;
+void symbolic_validate(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    const matrix::csr::lookup_data<IndexType>& factors_lookup,
+    bool& valid) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL);
