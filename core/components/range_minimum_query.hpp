@@ -122,8 +122,6 @@ struct cartesian_tree {
         }
         return all_representatives[num_nodes];
     }
-
-    constexpr static auto representatives = compute_tree_representatives();
 };
 
 
@@ -141,7 +139,7 @@ public:
 
     constexpr block_range_minimum_query_lookup_table() : lookup_table{}
     {
-        const auto& representatives = tree::representatives;
+        const auto& representatives = tree::compute_tree_representatives();
         for (int tree = 0; tree < num_trees; tree++) {
             const auto& rep = representatives[tree];
             for (int first = 0; first < block_size; first++) {

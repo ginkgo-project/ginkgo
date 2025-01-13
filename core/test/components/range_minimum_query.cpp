@@ -17,7 +17,7 @@ TEST(RangeMinimumQuery, RepresentativesAreExhaustive)
     using tree = gko::detail::cartesian_tree<size>;
     int values[size]{};
     std::iota(values, values + size, 0);
-    constexpr auto reps = tree::representatives;
+    const auto reps = tree::compute_tree_representatives();
     do {
         const auto tree_number = tree::compute_tree_index(values);
         const auto rep_tree_number =
@@ -34,7 +34,7 @@ TEST(RangeMinimumQuery, RepresentativesLargeAreExhaustive)
     using tree = gko::detail::cartesian_tree<size>;
     int values[size]{};
     std::iota(values, values + size, 0);
-    constexpr auto reps = tree::representatives;
+    const auto reps = tree::compute_tree_representatives();
     do {
         const auto tree_number = tree::compute_tree_index(values);
         const auto rep_tree_number =
@@ -49,8 +49,8 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
 {
     constexpr auto size = 8;
     using tree = gko::detail::cartesian_tree<size>;
-    /*constexpr*/ gko::block_range_minimum_query_lookup_table<size> table;
-    auto reps = tree::compute_tree_representatives();
+    gko::block_range_minimum_query_lookup_table<size> table;
+    const auto reps = tree::compute_tree_representatives();
     for (const auto& rep : reps) {
         const auto tree = tree::compute_tree_index(rep);
         for (const auto first : gko::irange{size}) {

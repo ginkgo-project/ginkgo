@@ -35,11 +35,11 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
         1 << (std::decay_t<decltype(block_argmin)>::bits_per_word_log2 -
               ceil_log2_constexpr(ceil_log2_constexpr(small_block_size)));
     const device_lut_type lut{exec};
-    constexpr auto infinity = std::numeric_limits<IndexType>::max();
     run_kernel(
         exec,
         [] GKO_KERNEL(auto collated_block_idx, auto values, auto block_argmin,
                       auto block_min, auto block_type, auto lut, auto size) {
+            constexpr auto infinity = std::numeric_limits<IndexType>::max();
             const auto num_blocks = ceildiv(size, small_block_size);
             for (auto block_idx = collated_block_idx * collation_width;
                  block_idx <
@@ -87,12 +87,12 @@ void compute_lookup_large(
     // we need to collate all writes that target the same memory word in a
     // single thread
     constexpr auto level0_collation_width = sizeof(word_type) * CHAR_BIT;
-    constexpr auto infinity = std::numeric_limits<IndexType>::max();
     // initialize the first level of blocks
     run_kernel(
         exec,
         [] GKO_KERNEL(auto collated_i, auto block_min, auto superblocks,
                       auto num_blocks) {
+            constexpr auto infinity = std::numeric_limits<IndexType>::max();
             for (auto i = collated_i * level0_collation_width;
                  i < std::min<int64>((collated_i + 1) * level0_collation_width,
                                      num_blocks);
