@@ -10,6 +10,14 @@
 
 #include <ginkgo/core/base/types.hpp>
 
+// MSVC needs different intrinsics
+#ifdef _MSC_VER
+#include <intrin.h>
+
+#pragma intrinsic(_BitScanForward, _BitScanForward64, _BitScanReverse, \
+                  _BitScanReverse64)
+#endif
+
 
 namespace gko {
 namespace detail {
@@ -47,26 +55,30 @@ GKO_ATTRIBUTES GKO_INLINE int popcount(uint64 bitmask)
  */
 GKO_ATTRIBUTES GKO_INLINE int find_highest_bit(uint32 bitmask)
 {
-    return 31 -
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-           __clz(static_cast<unsigned>(bitmask))
+    return 31 - __clz(static_cast<unsigned>(bitmask));
+#elif defined(_MSC_VER)
+    unsigned long index{};
+    _BitScanReverse(&index, bitmask);
+    return index;
 #else
-           __builtin_clz(bitmask)
+    return 31 - __builtin_clz(bitmask);
 #endif
-        ;
 }
 
 
 /** @copydoc find_highest_bit(uint32) */
 GKO_ATTRIBUTES GKO_INLINE int find_highest_bit(uint64 bitmask)
 {
-    return 63 -
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-           __clzll(static_cast<unsigned long long>(bitmask))
+    return 63 - __clzll(static_cast<unsigned long long>(bitmask));
+#elif defined(_MSC_VER)
+    unsigned long index{};
+    _BitScanReverse64(&index, bitmask);
+    return index;
 #else
-           __builtin_clzll(bitmask)
+    return 63 - __builtin_clzll(bitmask);
 #endif
-        ;
 }
 
 
@@ -76,26 +88,30 @@ GKO_ATTRIBUTES GKO_INLINE int find_highest_bit(uint64 bitmask)
  */
 GKO_ATTRIBUTES GKO_INLINE int find_lowest_bit(uint32 bitmask)
 {
-    return
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        __ffs(static_cast<unsigned>(bitmask))
+    return __ffs(static_cast<unsigned>(bitmask)) - 1;
+#elif defined(_MSC_VER)
+    unsigned long index{};
+    _BitScanForward(&index, bitmask);
+    return index;
 #else
-        __builtin_ffs(bitmask)
+    return __builtin_ffs(bitmask) - 1;
 #endif
-        - 1;
 }
 
 
 /** @copydoc find_lowest_bit(uint32) */
 GKO_ATTRIBUTES GKO_INLINE int find_lowest_bit(uint64 bitmask)
 {
-    return
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        __ffsll(static_cast<unsigned long long>(bitmask))
+    return __ffsll(static_cast<unsigned long long>(bitmask)) - 1;
+#elif defined(_MSC_VER)
+    unsigned long index{};
+    _BitScanForward64(&index, bitmask);
+    return index;
 #else
-        __builtin_ffsll(bitmask)
+    return __builtin_ffsll(bitmask) - 1;
 #endif
-        - 1;
 }
 
 
