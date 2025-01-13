@@ -311,6 +311,7 @@ __global__ __launch_bounds__(default_block_size) void symbolic_validate(
         const auto idx = local_idx + factor_begin;
         if (local_idx == invalid_index<IndexType>()) {
             local_missing = true;
+            return;
         }
         found[idx] = true;
     };
