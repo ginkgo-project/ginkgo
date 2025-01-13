@@ -25,6 +25,9 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
                           block_argmin_storage_type<IndexType>& block_argmin,
                           IndexType* block_min, uint16* block_type)
 {
+#ifdef GKO_COMPILING_DPCPP
+    GKO_NOT_IMPLEMENTED;
+#else
     using tree_index_type = std::decay_t<decltype(*block_type)>;
     using device_lut_type =
         gko::device_block_range_minimum_query_lookup_table<small_block_size>;
@@ -70,6 +73,7 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
         },
         ceildiv(ceildiv(size, small_block_size), collation_width), values,
         block_argmin, block_min, block_type, lut.get(), size);
+#endif
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -82,6 +86,9 @@ void compute_lookup_large(
     IndexType num_blocks,
     range_minimum_query_superblocks<IndexType>& superblocks)
 {
+#ifdef GKO_COMPILING_DPCPP
+    GKO_NOT_IMPLEMENTED;
+#else
     using superblock_type = range_minimum_query_superblocks<IndexType>;
     using word_type = typename superblock_type::storage_type;
     // we need to collate all writes that target the same memory word in a
@@ -146,6 +153,7 @@ void compute_lookup_large(
             ceildiv(num_blocks, collation_width), block_level, block_min,
             superblocks, num_blocks, collation_width);
     }
+#endif
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
