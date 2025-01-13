@@ -17,6 +17,7 @@
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"

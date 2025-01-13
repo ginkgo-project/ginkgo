@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -662,8 +662,6 @@ private:
     local_vector_type local_;
     ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
     ::gko::detail::DenseCache<remove_complex<ValueType>> host_norm_buffer_;
-    mpi::op_manager sum_op_;
-    mpi::op_manager norm_sum_op_;
 };
 
 
@@ -700,7 +698,7 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     }
 
     // Allow to create_empty of the same type
-    // For distributed case, next<next<V>> will be V in the candicated list.
+    // For distributed case, next<next<V>> will be V in the candidate list.
     // TODO: decide to whether to add this or add condition to the list
     static std::unique_ptr<target_type> create_empty(const target_type* source)
     {
