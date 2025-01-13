@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -91,95 +91,12 @@ GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
 #if GINKGO_ENABLE_HALF
 // OpenMPI 5.0 have support from MPIX_C_FLOAT16 and MPICHv3.4a1 MPIX_C_FLOAT16
-// TODO: it only works on the transferring
+// TODO: adapt it when MPI is configured to support half natively
 GKO_REGISTER_MPI_TYPE(half, MPI_UNSIGNED_SHORT);
 GKO_REGISTER_MPI_TYPE(std::complex<half>, MPI_FLOAT);
 #endif  // GKO_ENABLE_HALF
 GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_FLOAT_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
-
-
-namespace detail {
-
-
-template <typename ValueType>
-inline void sum(void* input, void* output, int* len, MPI_Datatype* datatype)
-{
-    ValueType* input_ptr = static_cast<ValueType*>(input);
-    ValueType* output_ptr = static_cast<ValueType*>(output);
-    for (int i = 0; i < *len; i++) {
-        output_ptr[i] += input_ptr[i];
-    }
-}
-
-template <typename ValueType>
-inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
-{
-    ValueType* input_ptr = static_cast<ValueType*>(input);
-    ValueType* output_ptr = static_cast<ValueType*>(output);
-    for (int i = 0; i < *len; i++) {
-        if (input_ptr[i] > output_ptr[i]) {
-            output_ptr[i] = input_ptr[i];
-        }
-    }
-}
-
-template <typename ValueType>
-struct is_mpi_native {
-    constexpr static bool value =
-        std::is_arithmetic_v<ValueType> ||
-        std::is_same_v<ValueType, std::complex<float>> ||
-        std::is_same_v<ValueType, std::complex<double>>;
-};
-
-
-}  // namespace detail
-
-
-// using op_manager = std::unique_ptr<std::pointer_traits<MPI_Op>::element_type,
-//                                    std::function<void(MPI_Op)>>;
-using op_manager = std::shared_ptr<std::pointer_traits<MPI_Op>::element_type>;
-
-template <typename ValueType,
-          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager sum()
-{
-    return op_manager([]() { return MPI_SUM; }(), [](MPI_Op op) {});
-}
-
-template <typename ValueType,
-          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager sum()
-{
-    return op_manager(
-        []() {
-            MPI_Op operation;
-            MPI_Op_create(&detail::sum<ValueType>, 1, &operation);
-            return operation;
-        }(),
-        [](MPI_Op op) { MPI_Op_free(&op); });
-}
-
-
-template <typename ValueType,
-          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager max()
-{
-    return op_manager([]() { return MPI_MAX; }(), [](MPI_Op op) {});
-}
-
-template <typename ValueType,
-          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager max()
-{
-    return op_manager(
-        []() {
-            MPI_Op operation;
-            MPI_Op_create(&detail::max<ValueType>, 1, &operation);
-            return operation;
-        }(),
-        [](MPI_Op op) { MPI_Op_free(&op); });
-}
 
 
 /**
