@@ -420,7 +420,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (num_rows != local_num_rows || is_flexible) {
             GKO_NOT_IMPLEMENTED;
         }
-        k_rows = std::ceil(num_rows / std::log(num_rows));
+        k_rows = std::ceil(num_rows / std::log(static_cast<double>(num_rows)));
         using matrix_data = gko::matrix_data<ValueType, int>;
         matrix_data data{dim<2>{k_rows, num_rows}};
 
