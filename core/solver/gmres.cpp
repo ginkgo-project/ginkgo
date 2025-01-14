@@ -6,6 +6,10 @@
 
 #include <random>
 #include <cmath>
+#include <iostream>
+#include <fstream>
+
+#include <ginkgo/core/base/mtx_io.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -426,7 +430,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 std::uniform_int_distribution<>(0, k_rows-1)(gen), i, v);
         }
         theta->read(data);
- 
+
         sketched_krylov_bases = VectorType::create(
             exec, dim<2>{k_rows * (krylov_dim + 1), num_rhs});
 
@@ -527,6 +531,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      *       1x norm2               n
      *       1x scal               2n
      */
+
+
+
+
+
     while (true) {
         ++total_iter;
         bool all_stopped =
