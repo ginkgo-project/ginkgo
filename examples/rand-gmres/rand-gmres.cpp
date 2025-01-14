@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_baseline(gko::stop::mode::rhs_norm)
                                .with_reduction_factor(reduction_factor))
-            .with_krylov_dim(100u)
+            .with_krylov_dim(100)
             .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the
