@@ -5,6 +5,8 @@
 #include "ginkgo/core/solver/gmres.hpp"
 
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include <random>
 #include <string>
 
@@ -13,6 +15,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -528,6 +531,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      *       1x norm2               n
      *       1x scal               2n
      */
+
+
     while (true) {
         ++total_iter;
         bool all_stopped =
