@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/base/allocator.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/factorization/factorization_helpers.hpp"
@@ -289,6 +290,70 @@ void initialize_l(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
+template <typename IndexType>
+bool symbolic_validate_impl(std::shared_ptr<const DefaultExecutor> exec,
+                            const IndexType* row_ptrs, const IndexType* cols,
+                            const IndexType* factor_row_ptrs,
+                            const IndexType* factor_cols, IndexType size)
+{
+    unordered_set<IndexType> columns(exec);
+    bool valid = true;
+#pragma omp parallel for firstprivate(columns) reduction(&& : valid)
+    for (IndexType row = 0; row < size; row++) {
+        const auto in_begin = cols + row_ptrs[row];
+        const auto in_end = cols + row_ptrs[row + 1];
+        const auto factor_begin = factor_cols + factor_row_ptrs[row];
+        const auto factor_end = factor_cols + factor_row_ptrs[row + 1];
+        if (!valid) {
+            continue;
+        }
+        columns.clear();
+        // the factor needs to contain the original matrix
+        // plus the diagonal if that was missing
+        columns.insert(in_begin, in_end);
+        columns.insert(row);
+        for (auto col_it = factor_begin; col_it < factor_end; ++col_it) {
+            const auto col = *col_it;
+            if (col >= row) {
+                break;
+            }
+            const auto dep_begin = factor_cols + factor_row_ptrs[col];
+            const auto dep_end = factor_cols + factor_row_ptrs[col + 1];
+            // insert the upper triangular part of the row
+            const auto dep_diag = std::find(dep_begin, dep_end, col);
+            columns.insert(dep_diag, dep_end);
+        }
+        // the factor should contain exactly these columns, no more
+        if (factor_end - factor_begin != columns.size()) {
+            valid = false;
+        }
+        for (auto col_it = factor_begin; col_it < factor_end; ++col_it) {
+            if (columns.find(*col_it) == columns.end()) {
+                valid = false;
+            }
+        }
+    }
+    return valid;
+}
+
+template <typename ValueType, typename IndexType>
+void symbolic_validate(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    const matrix::csr::lookup_data<IndexType>& factors_lookup, bool& valid)
+{
+    valid = symbolic_validate_impl(
+        exec, system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(), factors->get_const_row_ptrs(),
+        factors->get_const_col_idxs(),
+        static_cast<IndexType>(system_matrix->get_size()[0]));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL);
 
 
 }  // namespace factorization

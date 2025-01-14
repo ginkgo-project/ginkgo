@@ -78,6 +78,7 @@ target_sources(${ginkgo_core}
     matrix/batch_identity.cpp
     matrix/coo.cpp
     matrix/csr.cpp
+    matrix/csr_lookup.cpp
     matrix/dense.cpp
     matrix/diagonal.cpp
     matrix/ell.cpp

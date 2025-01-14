@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,6 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/symbolic.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
@@ -255,14 +254,7 @@ protected:
     using elimination_forest =
         gko::factorization::elimination_forest<index_type>;
 
-    Cholesky()
-        : storage_offsets{ref},
-          dstorage_offsets{exec},
-          storage{ref},
-          dstorage{exec},
-          row_descs{ref},
-          drow_descs{exec}
-    {}
+    Cholesky() : lookup{ref}, dlookup{exec} {}
 
     void initialize_data(const char* mtx_filename,
                          const char* mtx_chol_filename)
@@ -280,23 +272,9 @@ protected:
         mtx_chol_data.sort_row_major();
         mtx_chol = matrix_type::create(ref);
         mtx_chol->read(mtx_chol_data);
-        storage_offsets.resize_and_reset(num_rows + 1);
-        row_descs.resize_and_reset(num_rows);
+        lookup = gko::matrix::csr::build_lookup(mtx_chol.get());
 
-        const auto allowed = gko::matrix::csr::sparsity_type::bitmap |
-                             gko::matrix::csr::sparsity_type::full |
-                             gko::matrix::csr::sparsity_type::hash;
-        gko::kernels::reference::csr::build_lookup_offsets(
-            ref, mtx_chol->get_const_row_ptrs(), mtx_chol->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_data());
-        storage.resize_and_reset(storage_offsets.get_const_data()[num_rows]);
-        gko::kernels::reference::csr::build_lookup(
-            ref, mtx_chol->get_const_row_ptrs(), mtx_chol->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data());
-        dstorage_offsets = storage_offsets;
-        dstorage = storage;
-        drow_descs = row_descs;
+        dlookup = lookup;
         dmtx_chol = gko::clone(exec, mtx_chol);
         mtx_chol_sparsity = sparsity_pattern_type::create(ref);
         mtx_chol_sparsity->copy_from(mtx_chol.get());
@@ -343,12 +321,8 @@ protected:
     std::shared_ptr<matrix_type> dmtx_chol;
     std::unique_ptr<elimination_forest> dforest;
     std::shared_ptr<sparsity_pattern_type> dmtx_chol_sparsity;
-    gko::array<index_type> storage_offsets;
-    gko::array<index_type> dstorage_offsets;
-    gko::array<gko::int32> storage;
-    gko::array<gko::int32> dstorage;
-    gko::array<gko::int64> row_descs;
-    gko::array<gko::int64> drow_descs;
+    gko::matrix::csr::lookup_data<index_type> lookup;
+    gko::matrix::csr::lookup_data<index_type> dlookup;
 };
 
 TYPED_TEST_SUITE(Cholesky, Types, PairTypenameNameGenerator);
@@ -370,16 +344,17 @@ TYPED_TEST(Cholesky, KernelInitializeIsEquivalentToRef)
         gko::array<index_type> dtranspose_idxs{this->exec, nnz};
 
         gko::kernels::reference::cholesky::initialize(
-            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), transpose_idxs.get_data(),
-            this->mtx_chol.get());
+            this->ref, this->mtx.get(),
+            this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_data(),
+            transpose_idxs.get_data(), this->mtx_chol.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
             this->exec, this->dmtx.get(),
-            this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-            this->dmtx_chol.get());
+            this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
+            dtranspose_idxs.get_data(), this->dmtx_chol.get());
 
         GKO_ASSERT_MTX_NEAR(this->dmtx_chol, this->dmtx_chol, 0.0);
         GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
@@ -400,27 +375,30 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
         gko::array<int> tmp{this->ref};
         gko::array<int> dtmp{this->exec};
         gko::kernels::reference::cholesky::initialize(
-            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), transpose_idxs.get_data(),
-            this->mtx_chol.get());
+            this->ref, this->mtx.get(),
+            this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_data(),
+            transpose_idxs.get_data(), this->mtx_chol.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
             this->exec, this->dmtx.get(),
-            this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_data(), dtranspose_idxs.get_data(),
-            this->dmtx_chol.get());
+            this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
+            dtranspose_idxs.get_data(), this->dmtx_chol.get());
 
         gko::kernels::reference::cholesky::factorize(
-            this->ref, this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-            *this->forest, this->mtx_chol.get(), true, tmp);
+            this->ref, this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_const_data(),
+            transpose_idxs.get_const_data(), *this->forest,
+            this->mtx_chol.get(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::factorize(
-            this->exec, this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-            *this->dforest, this->dmtx_chol.get(), true, dtmp);
+            this->exec, this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_const_data(),
+            dtranspose_idxs.get_const_data(), *this->dforest,
+            this->dmtx_chol.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
                             r<value_type>::value);
