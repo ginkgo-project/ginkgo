@@ -540,6 +540,29 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
+void compute_postorder(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    const IndexType* subtree_size, IndexType* postorder,
+    IndexType* inv_postorder) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER);
+
+
+template <typename IndexType>
+void compute_euler_path(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    const IndexType* subtree_euler_tree_size, const IndexType* levels,
+    IndexType* euler_path, IndexType* first_visit,
+    IndexType* euler_levels) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH);
+
+
+template <typename IndexType>
 void compute_levels(
     std::shared_ptr<const DefaultExecutor> exec,
     const gko::factorization::elimination_forest<IndexType>& forest,

@@ -400,27 +400,23 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 IndexType traverse_euler_path(const IndexType* child_ptrs,
                               const IndexType* children, IndexType node,
-                              IndexType index, IndexType level,
+                              IndexType index, IndexType size, IndexType level,
                               IndexType* euler_path, IndexType* euler_first,
                               IndexType* euler_level)
 {
     const auto child_begin = child_ptrs[node];
     const auto child_end = child_ptrs[node + 1];
-    if (child_begin == child_end) {
-        euler_path[index] = node;
-        euler_first[node] = index;
-        euler_level[index] = level;
-        return index + 1;
-    }
     euler_path[index] = node;
-    euler_first[node] = index;
+    if (node < size) {
+        euler_first[node] = index;
+    }
     euler_level[index] = level;
     index++;
     for (const auto child_idx : irange{child_begin, child_end}) {
         const auto child = children[child_idx];
-        index =
-            traverse_euler_path(child_ptrs, children, child, index, level + 1,
-                                euler_path, euler_first, euler_level);
+        index = traverse_euler_path(child_ptrs, children, child, index, size,
+                                    level + 1, euler_path, euler_first,
+                                    euler_level);
         euler_path[index] = node;
         euler_level[index] = level;
         index++;
@@ -439,15 +435,9 @@ void compute_euler_path(
     const auto child_ptrs = forest.child_ptrs.get_const_data();
     const auto children = forest.children.get_const_data();
     const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto root_begin = child_ptrs[size];
-    const auto root_end = child_ptrs[size + 1];
-    IndexType index{};
-    for (const auto root_idx : irange{root_begin, root_end}) {
-        const auto root = children[root_idx];
-        index =
-            traverse_euler_path(child_ptrs, children, root, index, IndexType{0},
-                                euler_path, first_visit, euler_levels);
-    }
+    const auto pseudo_root = size;
+    traverse_euler_path(child_ptrs, children, pseudo_root, IndexType{}, size,
+                        IndexType{-1}, euler_path, first_visit, euler_levels);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

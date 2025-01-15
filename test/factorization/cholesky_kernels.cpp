@@ -182,6 +182,34 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSubtreeSizesIsEquivalentToRef)
 }
 
 
+TYPED_TEST(CholeskySymbolic, KernelComputeEulerPathSizesIsEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
+        gko::array<index_type> subtree_sizes{this->ref, size};
+        gko::array<index_type> dsubtree_sizes{this->exec, size};
+
+        gko::kernels::reference::elimination_forest::
+            compute_subtree_euler_path_sizes(this->ref, *forest,
+                                             subtree_sizes.get_data());
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::
+            compute_subtree_euler_path_sizes(this->exec, *dforest,
+                                             dsubtree_sizes.get_data());
+
+        GKO_ASSERT_ARRAY_EQ(subtree_sizes, dsubtree_sizes);
+    }
+}
+
+
 TYPED_TEST(CholeskySymbolic, KernelComputeLevelsIsEquivalentToRef)
 {
     using index_type = typename TestFixture::index_type;
@@ -204,6 +232,88 @@ TYPED_TEST(CholeskySymbolic, KernelComputeLevelsIsEquivalentToRef)
             this->exec, *dforest, dlevels.get_data());
 
         GKO_ASSERT_ARRAY_EQ(levels, dlevels);
+    }
+}
+
+
+TYPED_TEST(CholeskySymbolic, KernelComputePostorderIsEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
+        gko::array<index_type> subtree_sizes{this->ref, size};
+        gko::kernels::reference::elimination_forest::compute_subtree_sizes(
+            this->ref, *forest, subtree_sizes.get_data());
+        gko::array<index_type> dsubtree_sizes{this->exec, subtree_sizes};
+        gko::array<index_type> postorder{this->ref, size};
+        gko::array<index_type> dpostorder{this->exec, size};
+        gko::array<index_type> inv_postorder{this->ref, size};
+        gko::array<index_type> dinv_postorder{this->exec, size};
+
+        gko::kernels::reference::elimination_forest::compute_postorder(
+            this->ref, *forest, subtree_sizes.get_const_data(),
+            postorder.get_data(), inv_postorder.get_data());
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::
+            compute_postorder(this->exec, *dforest,
+                              dsubtree_sizes.get_const_data(),
+                              dpostorder.get_data(), dinv_postorder.get_data());
+
+        GKO_ASSERT_ARRAY_EQ(inv_postorder, dinv_postorder);
+        GKO_ASSERT_ARRAY_EQ(postorder, dpostorder);
+    }
+}
+
+
+TYPED_TEST(CholeskySymbolic, KernelComputeEulerPathIsEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        std::unique_ptr<elimination_forest> forest;
+        std::unique_ptr<elimination_forest> dforest;
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
+        gko::array<index_type> euler_path_sizes{this->ref, size};
+        gko::kernels::reference::elimination_forest::
+            compute_subtree_euler_path_sizes(this->ref, *forest,
+                                             euler_path_sizes.get_data());
+        gko::array<index_type> deuler_path_sizes{this->exec, euler_path_sizes};
+        gko::array<index_type> levels{this->ref, size};
+        gko::kernels::reference::elimination_forest::compute_levels(
+            this->ref, *forest, levels.get_data());
+        gko::array<index_type> dlevels{this->exec, levels};
+        gko::array<index_type> euler_path{this->ref, 2 * size + 1};
+        gko::array<index_type> deuler_path{this->exec, 2 * size + 1};
+        gko::array<index_type> euler_levels{this->ref, 2 * size + 1};
+        gko::array<index_type> deuler_levels{this->exec, 2 * size + 1};
+        gko::array<index_type> euler_first{this->ref, size};
+        gko::array<index_type> deuler_first{this->exec, size};
+
+        gko::kernels::reference::elimination_forest::compute_euler_path(
+            this->ref, *forest, euler_path_sizes.get_const_data(),
+            levels.get_data(), euler_path.get_data(), euler_first.get_data(),
+            euler_levels.get_data());
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::
+            compute_euler_path(
+                this->exec, *dforest, deuler_path_sizes.get_const_data(),
+                dlevels.get_data(), deuler_path.get_data(),
+                deuler_first.get_data(), deuler_levels.get_data());
+
+        GKO_ASSERT_ARRAY_EQ(euler_first, deuler_first);
+        GKO_ASSERT_ARRAY_EQ(euler_path, deuler_path);
+        GKO_ASSERT_ARRAY_EQ(euler_levels, deuler_levels);
     }
 }
 
