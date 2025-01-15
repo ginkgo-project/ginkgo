@@ -605,11 +605,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                        local_num_rows * (restart_iter + 2)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
 
-        auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-            sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
-            span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
-            span{0, num_rhs});
-
         std::unique_ptr<VectorType> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
@@ -653,6 +648,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
         } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+            auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
+                sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
+                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
+                span{0, num_rhs});
             theta->apply(next_krylov, sketched_next_krylov);
             orthogonalize_rgs(hessenberg_iter.get(), krylov_bases,
                               next_krylov.get(), sketched_krylov_bases.get(),
@@ -661,6 +660,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                               num_rows, num_rhs, local_num_rows, k_rows);
         }
         if (is_rgs) {
+            auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
+                sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
+                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
+                span{0, num_rhs});
+
             theta->apply(next_krylov, sketched_next_krylov);
 
             auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
