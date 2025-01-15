@@ -51,7 +51,6 @@ void symbolic_cholesky(
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     const auto exec = mtx->get_executor();
-    const auto host_exec = exec->get_master();
     exec->run(make_compute_elimination_forest(mtx, forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
@@ -94,7 +93,6 @@ void symbolic_cholesky_device(
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     const auto exec = mtx->get_executor();
     const auto num_rows = mtx->get_size()[0];
-    const auto host_exec = exec->get_master();
     {
         const auto skeleton =
             matrix_type::create(exec, mtx->get_size(), num_rows);
