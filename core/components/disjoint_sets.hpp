@@ -1,12 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_COMPONENTS_DISJOINT_SETS_HPP_
 #define GKO_CORE_COMPONENTS_DISJOINT_SETS_HPP_
 
-
-#include <ginkgo/core/base/array.hpp>
+#include "core/base/allocator.hpp"
 
 
 namespace gko {
@@ -31,10 +30,8 @@ public:
      *              allocate storage.
      */
     explicit disjoint_sets(std::shared_ptr<const Executor> exec, IndexType size)
-        : parents_{exec->get_master(), static_cast<size_type>(size)}
-    {
-        parents_.fill(-1);
-    }
+        : parents_{static_cast<size_type>(size), -1, exec->get_master()}
+    {}
 
     /**
      * Returns true if and only if the element x is the representative of its
@@ -138,17 +135,14 @@ public:
      *
      * @return the number of elements represented in this data structure.
      */
-    IndexType get_size() const { return parents_.get_size(); }
+    IndexType get_size() const { return parents_.size(); }
 
 private:
-    const IndexType& parent(IndexType x) const
-    {
-        return parents_.get_const_data()[x];
-    }
+    const IndexType& parent(IndexType x) const { return parents_[x]; }
 
-    IndexType& parent(IndexType x) { return parents_.get_data()[x]; }
+    IndexType& parent(IndexType x) { return parents_[x]; }
 
-    array<IndexType> parents_;
+    vector<IndexType> parents_;
 };
 
 
