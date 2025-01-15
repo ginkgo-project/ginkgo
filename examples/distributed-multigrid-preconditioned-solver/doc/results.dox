@@ -1,0 +1,18 @@
+<h1>Results</h1>
+This is the expected output for `mpirun -n 4 ./distributed-multigrid-preconditioned-solver`:
+
+@code{.cpp}
+
+Num rows in matrix: 100
+Num ranks: 4
+Final Res norm: 1.87487e-08
+Iteration count: 23
+Init time: 0.000153159
+Read time: 0.000563957
+Solver generate time: 0.000484838
+Solver apply time: 0.073985
+Total time: 0.0750338
+
+@endcode
+
+The timings may vary depending on the machine.
