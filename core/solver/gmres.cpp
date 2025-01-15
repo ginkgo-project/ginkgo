@@ -204,11 +204,11 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
                                    hessenberg_reduce->get_size());
         host_reduction_buffer->copy_from(hessenberg_reduce);
         comm.all_reduce(exec->get_master(), host_reduction_buffer->get_values(),
-                        message_size, sum_op.get());
+                        message_size, *sum_op.get());
         hessenberg_reduce->copy_from(host_reduction_buffer.get());
     } else {
         comm.all_reduce(exec, hessenberg_reduce->get_values(), message_size,
-                        sum_op.get());
+                        *sum_op.get());
     }
 }
 #endif

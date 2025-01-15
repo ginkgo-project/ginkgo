@@ -42,7 +42,13 @@ template <typename ValueType,
           std::enable_if_t<std::is_arithmetic_v<ValueType>>* = nullptr>
 inline op_manager min()
 {
-    return op_manager([]() { return MPI_MIN; }(), [](MPI_Op op) {});
+    return op_manager(
+        []() {
+            MPI_Op* operation = new MPI_Op;
+            *operation = MPI_MIN;
+            return operation;
+        }(),
+        [](MPI_Op* op) { delete op; });
 }
 
 template <typename ValueType,
@@ -51,11 +57,14 @@ inline op_manager min()
 {
     return op_manager(
         []() {
-            MPI_Op operation;
-            MPI_Op_create(&detail::min<ValueType>, 1, &operation);
+            MPI_Op* operation = new MPI_Op;
+            MPI_Op_create(&detail::min<ValueType>, 1, operation);
             return operation;
         }(),
-        [](MPI_Op op) { MPI_Op_free(&op); });
+        [](MPI_Op* op) {
+            MPI_Op_free(op);
+            delete op;
+        });
 }
 
 template <typename T>
@@ -757,9 +766,9 @@ TYPED_TEST(MpiBindings, CanReduceValues)
         data = 6;
     }
 
-    comm.reduce(this->ref, &data, &sum, 1, this->sum_op.get(), 0);
-    comm.reduce(this->ref, &data, &max, 1, this->max_op.get(), 0);
-    comm.reduce(this->ref, &data, &min, 1, this->min_op.get(), 0);
+    comm.reduce(this->ref, &data, &sum, 1, *this->sum_op.get(), 0);
+    comm.reduce(this->ref, &data, &max, 1, *this->max_op.get(), 0);
+    comm.reduce(this->ref, &data, &min, 1, *this->min_op.get(), 0);
 
     if (my_rank == 0) {
         EXPECT_EQ(sum, TypeParam{16});
@@ -785,9 +794,12 @@ TYPED_TEST(MpiBindings, CanNonBlockingReduceValues)
         data = 6;
     }
 
-    auto req1 = comm.i_reduce(this->ref, &data, &sum, 1, this->sum_op.get(), 0);
-    auto req2 = comm.i_reduce(this->ref, &data, &max, 1, this->max_op.get(), 0);
-    auto req3 = comm.i_reduce(this->ref, &data, &min, 1, this->min_op.get(), 0);
+    auto req1 =
+        comm.i_reduce(this->ref, &data, &sum, 1, *this->sum_op.get(), 0);
+    auto req2 =
+        comm.i_reduce(this->ref, &data, &max, 1, *this->max_op.get(), 0);
+    auto req3 =
+        comm.i_reduce(this->ref, &data, &min, 1, *this->min_op.get(), 0);
 
     req1.wait();
     req2.wait();
@@ -816,7 +828,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValues)
         data = 6;
     }
 
-    comm.all_reduce(this->ref, &data, &sum, 1, this->sum_op.get());
+    comm.all_reduce(this->ref, &data, &sum, 1, *this->sum_op.get());
 
     ASSERT_EQ(sum, TypeParam{16});
 }
@@ -838,7 +850,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValuesInPlace)
         data = 6;
     }
 
-    comm.all_reduce(this->ref, &data, 1, this->sum_op.get());
+    comm.all_reduce(this->ref, &data, 1, *this->sum_op.get());
 
     ASSERT_EQ(data, TypeParam{16});
 }
@@ -860,7 +872,8 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValues)
         data = 6;
     }
 
-    auto req = comm.i_all_reduce(this->ref, &data, &sum, 1, this->sum_op.get());
+    auto req =
+        comm.i_all_reduce(this->ref, &data, &sum, 1, *this->sum_op.get());
 
     req.wait();
     ASSERT_EQ(sum, TypeParam{16});
@@ -883,7 +896,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValuesInPlace)
         data = 6;
     }
 
-    auto req = comm.i_all_reduce(this->ref, &data, 1, this->sum_op.get());
+    auto req = comm.i_all_reduce(this->ref, &data, 1, *this->sum_op.get());
 
     req.wait();
     ASSERT_EQ(data, TypeParam{16});
@@ -1499,9 +1512,9 @@ TYPED_TEST(MpiBindings, CanScanValues)
         data = 6;
     }
 
-    comm.scan(this->ref, &data, &sum, 1, this->sum_op.get());
-    comm.scan(this->ref, &data, &max, 1, this->max_op.get());
-    comm.scan(this->ref, &data, &min, 1, this->min_op.get());
+    comm.scan(this->ref, &data, &sum, 1, *this->sum_op.get());
+    comm.scan(this->ref, &data, &max, 1, *this->max_op.get());
+    comm.scan(this->ref, &data, &min, 1, *this->min_op.get());
 
     if (my_rank == 0) {
         EXPECT_EQ(sum, TypeParam{3});
@@ -1539,9 +1552,9 @@ TYPED_TEST(MpiBindings, CanNonBlockingScanValues)
         data = 6;
     }
 
-    auto req1 = comm.i_scan(this->ref, &data, &sum, 1, this->sum_op.get());
-    auto req2 = comm.i_scan(this->ref, &data, &max, 1, this->max_op.get());
-    auto req3 = comm.i_scan(this->ref, &data, &min, 1, this->min_op.get());
+    auto req1 = comm.i_scan(this->ref, &data, &sum, 1, *this->sum_op.get());
+    auto req2 = comm.i_scan(this->ref, &data, &max, 1, *this->max_op.get());
+    auto req3 = comm.i_scan(this->ref, &data, &min, 1, *this->min_op.get());
 
     req1.wait();
     req2.wait();

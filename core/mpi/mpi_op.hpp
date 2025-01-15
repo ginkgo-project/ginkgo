@@ -60,11 +60,10 @@ inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
 template <typename ValueType>
 struct is_mpi_native {
     constexpr static bool value =
-#if defined(MPIX_C_FLOAT16) && MPIX_C_FLOAT16 != MPI_DATATYPE_NULL
+#if defined(MPIX_C_FLOAT16)
         std::is_same_v<ValueType, half> ||
 #endif
-#if defined(MPIX_C_SHORT_FLOAT_COMPLEX) && \
-    MPIX_C_SHORT_FLOAT_COMPLEX != MPI_DATATYPE_NULL
+#if defined(MPIX_C_SHORT_FLOAT_COMPLEX)
         std::is_same_v<ValueType, std::complex<half>> ||
 #endif
         std::is_arithmetic_v<ValueType> ||
@@ -76,14 +75,20 @@ struct is_mpi_native {
 }  // namespace detail
 
 
-using op_manager = std::shared_ptr<std::pointer_traits<MPI_Op>::element_type>;
+using op_manager = std::shared_ptr<MPI_Op>;
 
 
 template <typename ValueType,
           std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager sum()
 {
-    return op_manager([]() { return MPI_SUM; }(), [](MPI_Op op) {});
+    return op_manager(
+        []() {
+            MPI_Op* operation = new MPI_Op;
+            *operation = MPI_SUM;
+            return operation;
+        }(),
+        [](MPI_Op* op) { delete op; });
 }
 
 template <typename ValueType,
@@ -92,11 +97,14 @@ inline op_manager sum()
 {
     return op_manager(
         []() {
-            MPI_Op operation;
-            MPI_Op_create(&detail::sum<ValueType>, 1, &operation);
+            MPI_Op* operation = new MPI_Op;
+            MPI_Op_create(&detail::sum<ValueType>, 1, operation);
             return operation;
         }(),
-        [](MPI_Op op) { MPI_Op_free(&op); });
+        [](MPI_Op* op) {
+            MPI_Op_free(op);
+            delete op;
+        });
 }
 
 
@@ -104,7 +112,13 @@ template <typename ValueType,
           std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
 inline op_manager max()
 {
-    return op_manager([]() { return MPI_MAX; }(), [](MPI_Op op) {});
+    return op_manager(
+        []() {
+            MPI_Op* operation = new MPI_Op;
+            *operation = MPI_MAX;
+            return operation;
+        }(),
+        [](MPI_Op* op) { delete op; });
 }
 
 template <typename ValueType,
@@ -113,11 +127,14 @@ inline op_manager max()
 {
     return op_manager(
         []() {
-            MPI_Op operation;
-            MPI_Op_create(&detail::max<ValueType>, 1, &operation);
+            MPI_Op* operation = new MPI_Op;
+            MPI_Op_create(&detail::max<ValueType>, 1, operation);
             return operation;
         }(),
-        [](MPI_Op op) { MPI_Op_free(&op); });
+        [](MPI_Op* op) {
+            MPI_Op_free(op);
+            delete op;
+        });
 }
 
 }  // namespace mpi
