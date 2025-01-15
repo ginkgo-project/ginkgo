@@ -242,7 +242,6 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
 {
     using matrix_type = typename TestFixture::matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
-    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
