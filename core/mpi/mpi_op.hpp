@@ -15,7 +15,21 @@
 #include <mpi.h>
 
 
+#if defined(OPEN_MPI) && OPEN_MPI
+
+
+#include <mpi-ext.h>
+
+
+#endif
+
+
 namespace gko {
+
+
+class half;
+
+
 namespace experimental {
 namespace mpi {
 namespace detail {
@@ -46,6 +60,13 @@ inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
 template <typename ValueType>
 struct is_mpi_native {
     constexpr static bool value =
+#if defined(MPIX_C_FLOAT16) && MPIX_C_FLOAT16 != MPI_DATATYPE_NULL
+        std::is_same_v<ValueType, half> ||
+#endif
+#if defined(MPIX_C_SHORT_FLOAT_COMPLEX) && \
+    MPIX_C_SHORT_FLOAT_COMPLEX != MPI_DATATYPE_NULL
+        std::is_same_v<ValueType, std::complex<half>> ||
+#endif
         std::is_arithmetic_v<ValueType> ||
         std::is_same_v<ValueType, std::complex<float>> ||
         std::is_same_v<ValueType, std::complex<double>>;
