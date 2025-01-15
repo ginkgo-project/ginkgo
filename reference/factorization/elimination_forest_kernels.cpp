@@ -39,9 +39,11 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     for (auto row : irange(static_cast<IndexType>(size))) {
         for (auto nz : irange(row_ptrs[row], row_ptrs[row + 1])) {
             const auto col = cols[nz];
+            if (col >= row) {
+                continue;
+            }
             // edge contains (max, min) pair
-            auto edge = std::minmax(row, col, std::greater{});
-            edges.push_back(edge);
+            edges.emplace_back(row, col);
         }
     }
     // sort edge list ascending by edge weight
