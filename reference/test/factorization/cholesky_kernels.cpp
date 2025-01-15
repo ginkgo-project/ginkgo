@@ -443,12 +443,13 @@ TYPED_TEST(Cholesky, KernelComputeEulerPath)
             std::unique_ptr<elimination_forest> forest;
             gko::factorization::compute_elim_forest(this->mtx.get(), forest);
             gko::array<index_type> levels{this->ref, size};
-            gko::array<index_type> euler_path{this->ref, 2 * size};
-            gko::array<index_type> euler_first{this->ref, 2 * size};
-            gko::array<index_type> euler_levels{this->ref, 2 * size};
+            gko::array<index_type> euler_path{this->ref, 2 * size + 1};
+            gko::array<index_type> euler_levels{this->ref, 2 * size + 1};
+            gko::array<index_type> euler_first{this->ref, size};
             gko::array<index_type> subtree_sizes{this->ref, size};
             euler_path.fill(gko::invalid_index<index_type>());
             euler_levels.fill(gko::invalid_index<index_type>());
+            euler_first.fill(gko::invalid_index<index_type>());
             gko::kernels::reference::elimination_forest::
                 compute_subtree_euler_path_sizes(this->ref, *forest,
                                                  subtree_sizes.get_data());
@@ -458,16 +459,11 @@ TYPED_TEST(Cholesky, KernelComputeEulerPath)
             std::vector<index_type> ref_levels;
             const auto child_ptrs = forest->child_ptrs.get_const_data();
             const auto children = forest->children.get_const_data();
-            for (auto root_idx :
-                 gko::irange{child_ptrs[size], child_ptrs[size + 1]}) {
-                const auto root = forest->children.get_const_data()[root_idx];
-                reference_euler_path(child_ptrs, children, root, index_type{},
-                                     ref_path, ref_levels);
-            }
-            ASSERT_LT(ref_path.size(), 2 * size);
-            ASSERT_LT(ref_levels.size(), 2 * size);
-            ref_path.resize(2 * size, gko::invalid_index<index_type>());
-            ref_levels.resize(2 * size, gko::invalid_index<index_type>());
+            const auto pseudo_root = ssize;
+            reference_euler_path(child_ptrs, children, pseudo_root,
+                                 index_type{-1}, ref_path, ref_levels);
+            ASSERT_EQ(ref_path.size(), 2 * size + 1);
+            ASSERT_EQ(ref_levels.size(), 2 * size + 1);
             const gko::array<index_type> ref_path_array{
                 this->ref, ref_path.begin(), ref_path.end()};
             const gko::array<index_type> ref_levels_array{
