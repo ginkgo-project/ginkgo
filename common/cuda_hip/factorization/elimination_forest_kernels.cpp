@@ -18,17 +18,13 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "common/cuda_hip/base/math.hpp"
-#include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
-#include "common/cuda_hip/components/reduction.hpp"
-#include "common/cuda_hip/components/syncfree.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
-#include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 
 
@@ -232,7 +228,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     const auto worklist_size =
         ceildiv(nnz, config::warp_size * 2) * config::warp_size;
     // create 2 worklists consisting of (start, end, edge_id)
-    array<IndexType> worklist{exec, static_cast<size_type>(worklist_size * 8)};
+    array<IndexType> worklist{exec, static_cast<size_type>(worklist_size * 6)};
     auto wl1_source = worklist.get_data();
     auto wl1_target = wl1_source + worklist_size;
     auto wl1_edge_id = wl1_target + worklist_size;

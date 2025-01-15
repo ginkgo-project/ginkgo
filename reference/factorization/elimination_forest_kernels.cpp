@@ -13,9 +13,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 
 
@@ -34,7 +32,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     disjoint_sets<IndexType> sets(exec, size);
     const auto nnz = static_cast<size_type>(row_ptrs[size]);
     vector<std::pair<IndexType, IndexType>> edges(exec);
-    edges.reserve(nnz);
+    edges.reserve(nnz / 2);
     // collect edge list
     for (auto row : irange(static_cast<IndexType>(size))) {
         for (auto nz : irange(row_ptrs[row], row_ptrs[row + 1])) {
@@ -50,7 +48,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     std::sort(edges.begin(), edges.end());
     // output helper array: Store row indices for output rows
     // since we sorted by edge.first == row, this will be sorted
-    std::vector<IndexType> out_rows(size);
+    vector<IndexType> out_rows(size, exec);
     IndexType output_count{};
     // Kruskal algorithm: Connect unconnected components using edges with
     // ascending weight

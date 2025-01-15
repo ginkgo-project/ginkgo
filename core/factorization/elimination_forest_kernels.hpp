@@ -35,30 +35,11 @@ namespace kernels {
         gko::factorization::elimination_forest<IndexType>& forest)
 
 
-#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType)  \
-    void compute_subtree_sizes(                                          \
-        std::shared_ptr<const DefaultExecutor> exec,                     \
-        const gko::factorization::elimination_forest<IndexType>& forest, \
-        IndexType* subtree_size)
-
-
-#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)      \
-    void compute_postorder(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                     \
-        const gko::factorization::elimination_forest<IndexType>& forest, \
-        const IndexType* subtree_size, IndexType* postorder,             \
-        IndexType* inv_postorder)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
-    template <typename IndexType>                                     \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType);  \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType); \
-    template <typename IndexType>                                     \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType);  \
-    template <typename IndexType>                                     \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    template <typename IndexType>                                    \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType); \
+    template <typename ValueType, typename IndexType>                \
+    GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(elimination_forest,

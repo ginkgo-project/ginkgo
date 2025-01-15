@@ -142,6 +142,9 @@ protected:
             fn();
         }
         {
+            // structurally this is the example from Liu 1990
+            // "The Role of Elimination Trees in Sparse Factorization"
+            // https://doi.org/10.1137/0611010.
             SCOPED_TRACE("example");
             this->setup(
                 {{4, 0, 1, 0, 0, 0, 0, 1, 0, 0},
@@ -238,7 +241,6 @@ TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
 TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -249,7 +251,6 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
             std::unique_ptr<elimination_forest> skeleton_forest;
             gko::factorization::compute_elimination_forest(this->mtx.get(),
                                                            this->forest);
-
             gko::kernels::reference::elimination_forest::compute_skeleton_tree(
                 this->ref, this->mtx->get_const_row_ptrs(),
                 this->mtx->get_const_col_idxs(), this->mtx->get_size()[0],
@@ -269,7 +270,6 @@ TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
 TYPED_TEST(Cholesky, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
@@ -291,7 +291,6 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
 TYPED_TEST(Cholesky, KernelSymbolicFactorize)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
