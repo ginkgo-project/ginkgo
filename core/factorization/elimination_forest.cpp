@@ -169,12 +169,13 @@ void compute_elimination_forest(
 }
 
 
-#define GKO_DECLARE_COMPUTE_ELIM_FOREST(ValueType, IndexType) \
-    void compute_elimination_forest(                          \
-        const matrix::Csr<ValueType, IndexType>* mtx,         \
+#define GKO_DECLARE_COMPUTE_ELIMINATION_FOREST(ValueType, IndexType) \
+    void compute_elimination_forest(                                 \
+        const matrix::Csr<ValueType, IndexType>* mtx,                \
         std::unique_ptr<elimination_forest<IndexType>>& forest)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMPUTE_ELIM_FOREST);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_ELIMINATION_FOREST);
 
 
 }  // namespace factorization

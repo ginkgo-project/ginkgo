@@ -616,7 +616,7 @@ class SymbolicCholeskyOperation : public BenchmarkOperation {
 public:
     explicit SymbolicCholeskyOperation(const Mtx* mtx, bool device,
                                        bool symmetric)
-        : mtx_{mtx}, symmetric_{symmetric}, device_{device}, result_{}
+        : mtx_{mtx}, device_{device}, symmetric_{symmetric}, result_{}
     {}
 
     std::pair<bool, double> validate() const override
@@ -660,8 +660,8 @@ public:
 
 private:
     const Mtx* mtx_;
-    bool symmetric_;
     bool device_;
+    bool symmetric_;
     std::unique_ptr<Mtx> result_;
     std::unique_ptr<gko::factorization::elimination_forest<itype>> forest_;
 };

@@ -6,16 +6,13 @@
 
 #include <algorithm>
 #include <memory>
-#include <numeric>
 
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/allocator.hpp"
-#include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"

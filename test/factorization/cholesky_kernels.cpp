@@ -50,7 +50,6 @@ protected:
                 {{1, 0, 1, 0}, {0, 1, 0, 1}, {1, 0, 1, 0}, {0, 1, 0, 1}}, ref));
         // this is the example from Liu 1990 https://doi.org/10.1137/0611010.
         // "The Role of Elimination Trees in Sparse Factorization"
-
         matrices.emplace_back("example", gko::initialize<matrix_type>(
                                              {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
                                               {0, 1, 0, 0, 1, 0, 0, 0, 0, 1},
@@ -159,7 +158,6 @@ TYPED_TEST_SUITE(CholeskySymbolic, Types, PairTypenameNameGenerator);
 TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     for (const auto& pair : this->matrices) {
