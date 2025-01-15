@@ -17,7 +17,7 @@
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace climination_forest {
+namespace elimination_forest {
 
 
 template <typename IndexType>
@@ -40,7 +40,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR);
 
 
-}  // namespace climination_forest
+}  // namespace elimination_forest
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
