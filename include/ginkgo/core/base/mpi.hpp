@@ -25,6 +25,15 @@
 #include <mpi.h>
 
 
+#if defined(OPEN_MPI) && OPEN_MPI
+
+
+#include <mpi-ext.h>
+
+
+#endif
+
+
 namespace gko {
 namespace experimental {
 /**
@@ -91,9 +100,18 @@ GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
 #if GINKGO_ENABLE_HALF
 // OpenMPI 5.0 have support from MPIX_C_FLOAT16 and MPICHv3.4a1 MPIX_C_FLOAT16
-// TODO: adapt it when MPI is configured to support half natively
+#if defined(MPIX_C_FLOAT16) && MPIX_C_FLOAT16 != MPI_DATATYPE_NULL
+GKO_REGISTER_MPI_TYPE(half, MPIX_C_FLOAT16);
+#else
 GKO_REGISTER_MPI_TYPE(half, MPI_UNSIGNED_SHORT);
+#endif
+// only OpenMPI support complex version
+#if defined(MPIX_C_SHORT_FLOAT_COMPLEX) && \
+    MPIX_C_SHORT_FLOAT_COMPLEX != MPI_DATATYPE_NULL
+GKO_REGISTER_MPI_TYPE(std::complex<half>, MPIX_C_SHORT_FLOAT_COMPLEX);
+#else
 GKO_REGISTER_MPI_TYPE(std::complex<half>, MPI_FLOAT);
+#endif
 #endif  // GKO_ENABLE_HALF
 GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_FLOAT_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
