@@ -44,10 +44,12 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
             edges.emplace_back(row, col);
         }
     }
-    // sort edge list ascending by edge weight
-    std::sort(edges.begin(), edges.end());
+    // the edge list is now sorted by row, which also matches the edge weight
+    // we don't need to do any additional sorting operations
+    assert(std::is_sorted(edges.begin(), edges.end(),
+                          [](auto a, auto b) { return a.first < b.first; }));
     // output helper array: Store row indices for output rows
-    // since we sorted by edge.first == row, this will be sorted
+    // since the input is sorted by edge.first == row, this will be sorted
     vector<IndexType> out_rows(size, exec);
     IndexType output_count{};
     // Kruskal algorithm: Connect unconnected components using edges with
