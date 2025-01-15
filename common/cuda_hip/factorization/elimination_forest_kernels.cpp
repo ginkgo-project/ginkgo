@@ -307,8 +307,9 @@ __global__ __launch_bounds__(default_block_size) void compute_postorder(
                 postorder_base += child_subtree_size;
             }
             child_idx++;
+        } else {
+            postorder_idx = load_relaxed(inv_postorder + i);
         }
-        postorder_idx = load_relaxed(inv_postorder + i);
     }
 #endif
 }
@@ -340,23 +341,38 @@ __global__ __launch_bounds__(default_block_size) void compute_euler_path(
     while (euler_idx == invalid_index<IndexType>()) {
         euler_idx = load_relaxed(euler_first + i);
     }
-    // printf("%d at %d in level %d\n", int(i), int(euler_idx), int(level));
     euler_path[euler_idx] = i;
     euler_level[euler_idx] = level;
     for (auto child_idx : irange{child_begin, child_end}) {
         euler_idx++;
         const auto child = children[child_idx];
         const auto child_subtree_size = euler_path_sizes[child];
-        /*printf("%d descending to %d at index %d\n", int(i), int(child),
-               int(euler_idx));*/
         store_relaxed(euler_first + child, euler_idx);
         euler_idx += child_subtree_size + 1;
-        // printf("%d ascending at index %d\n", int(i), int(euler_idx));
         euler_path[euler_idx] = i;
         euler_level[euler_idx] = level;
     }
 #else
-    // TODO
+    auto child_idx = child_begin - 1;
+    while (child_idx < child_end) {
+        if (euler_idx != invalid_index<IndexType>()) {
+            if (child_idx == child_begin - 1) {
+                euler_path[euler_idx] = i;
+                euler_level[euler_idx] = level;
+            } else {
+                euler_idx++;
+                const auto child = children[child_idx];
+                const auto child_subtree_size = euler_path_sizes[child];
+                store_relaxed(euler_first + child, euler_idx);
+                euler_idx += child_subtree_size + 1;
+                euler_path[euler_idx] = i;
+                euler_level[euler_idx] = level;
+            }
+            child_idx++;
+        } else {
+            euler_idx = load_relaxed(euler_first + i);
+        }
+    }
 #endif
 }
 
