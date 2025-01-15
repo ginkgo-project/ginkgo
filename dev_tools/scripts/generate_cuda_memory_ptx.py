@@ -62,7 +62,7 @@ operations = [operation(fn_op_suffix="_add", ptx_op_suffix=".add", supports_floa
               operation(fn_op_suffix="_and", ptx_op_suffix=".and", supports_float=False, supports_signed=False),
               operation(fn_op_suffix="_or", ptx_op_suffix=".or", supports_float=False, supports_signed=False)]
 # header
-print("""// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+print("""// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -289,7 +289,8 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 
 for s in memory_spaces_without_shared:
     o = ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-                 ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True)
+                 ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
+                 ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True)
     const_ptr_expr = s.ptr_expr.format(
         ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)")
     mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
