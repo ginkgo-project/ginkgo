@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,29 +154,12 @@ __device__ __forceinline__ IndexType disjoint_set_find(IndexType node,
 
 
 template <typename IndexType>
-struct atomic_map {};
-
-
-template <>
-struct atomic_map<int32> {
-    using type = int;
-};
-
-
-template <>
-struct atomic_map<int64> {
-    using type = unsigned long long;
-};
-
-
-template <typename IndexType>
 __global__
 __launch_bounds__(default_block_size) void connected_components_combine(
     const IndexType* __restrict__ row_ptrs,
     const IndexType* __restrict__ col_idxs, IndexType num_rows,
     IndexType* __restrict__ parents)
 {
-    using atomic_type = typename atomic_map<IndexType>::type;
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row >= num_rows) {
         return;
@@ -196,10 +179,8 @@ __launch_bounds__(default_block_size) void connected_components_combine(
                 auto& max_parent = col_parent < parent ? parent : col_parent;
                 // attempt to attach the (assumed unattached) larger node to the
                 // smaller node
-                const auto old_parent = static_cast<IndexType>(atomicCAS(
-                    reinterpret_cast<atomic_type*>(parents + max_parent),
-                    static_cast<atomic_type>(max_parent),
-                    static_cast<atomic_type>(min_parent)));
+                const auto old_parent = atomic_cas_relaxed(
+                    parents + max_parent, max_parent, min_parent);
                 // if unsuccessful, proceed with the parent of the (now known
                 // attached) node
                 if (old_parent != max_parent) {
@@ -354,7 +335,6 @@ __global__ __launch_bounds__(default_block_size) void ubfs_level_kernel(
     IndexType level, IndexType* __restrict__ node_levels,
     IndexType* __restrict__ level_nodes, IndexType* __restrict__ output_ptr)
 {
-    using atomic_type = typename atomic_map<IndexType>::type;
     const auto source = thread::get_thread_id_flat();
     if (source >= num_sources) {
         return;
@@ -362,17 +342,13 @@ __global__ __launch_bounds__(default_block_size) void ubfs_level_kernel(
     const auto row = sources[source];
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
-    atomic_type unsigned_unattached{};
     const auto unattached = invalid_index<IndexType>();
-    memcpy(&unsigned_unattached, &unattached, sizeof(IndexType));
     for (auto nz = begin; nz < end; nz++) {
         const auto col = col_idxs[nz];
         if (node_levels[col] == unattached &&
-            atomicCAS(reinterpret_cast<atomic_type*>(node_levels + col),
-                      unsigned_unattached,
-                      static_cast<atomic_type>(level)) == unsigned_unattached) {
-            const auto output_pos =
-                atomicAdd(reinterpret_cast<atomic_type*>(output_ptr), 1);
+            atomic_cas_relaxed(node_levels + col, unattached, level) ==
+                unattached) {
+            const auto output_pos = atomic_add_relaxed(output_ptr, 1);
             level_nodes[output_pos] = col;
         }
     }
