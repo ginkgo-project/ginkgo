@@ -67,7 +67,7 @@ void compute_lookup_large(
         return;
     }
     // initialize the first level of blocks
-    for (IndexType i = 0; i < num_blocks; i++) {
+    for (const auto i : irange{num_blocks}) {
         const auto min1 = block_min[i];
         const auto min2 = i + 1 < num_blocks ? block_min[i + 1] : infinity;
         // we need to use <= here to make sure ties always break to the left
@@ -75,7 +75,7 @@ void compute_lookup_large(
     }
     // we computed argmins for blocks of size 2, now recursively combine them.
     const auto num_levels = superblocks.num_levels();
-    for (int block_level = 1; block_level < num_levels; block_level++) {
+    for (const auto block_level : irange{1, num_levels}) {
         const auto block_size =
             superblock_type::block_size_for_level(block_level);
         for (const auto i : irange{num_blocks}) {

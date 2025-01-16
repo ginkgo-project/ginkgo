@@ -21,12 +21,26 @@ namespace gko {
 namespace detail {
 
 
+/**
+ * Helper structure that contains information about the set of Cartesian trees
+ * on num_nodes nodes.
+ */
 template <int num_nodes>
 struct cartesian_tree {
+    /**
+     * A pre-computed lookup table for the recursively defined Ballot numbers.
+     * Donald E. Knuth, "Generating All Trees — History of Combinatorial
+     * Generation" In: The Art of Computer Programming. Vol. 4, Fasc. 4
+     * Definition:
+     * C(0,0) = 1,
+     * C(p,q) = C(p,q−1) + C(p−1,q) if 0 <= p <= q != 0
+     * C(p,q) = 0 elsewhere
+     */
     struct ballot_number_lookup {
         constexpr static int size = num_nodes + 1;
         constexpr static int size2 = size * size;
 
+        /** Builds the lookup table */
         constexpr ballot_number_lookup() : lut{}
         {
             for (int p = 0; p < size; p++) {
@@ -45,6 +59,7 @@ struct cartesian_tree {
             }
         }
 
+        /** Returns the ballot number C(p, q). */
         constexpr int operator()(int p, int q) const
         {
             if (p < 0 || q < 0) {
@@ -54,6 +69,7 @@ struct cartesian_tree {
             return lut[p * size + q];
         }
 
+        /** Returns the Catalan number C_s = C(s, s). */
         constexpr int operator()(int s) const { return operator()(s, s); }
 
         int lut[size2];
@@ -61,13 +77,29 @@ struct cartesian_tree {
 
     constexpr static ballot_number_lookup ballot_number{};
 
+    /**
+     * The number of Cartesian trees on num_nodes nodes. It is given by the
+     * num_nodes'th Catalan number, which grows asymptotically like 4^num_nodes.
+     */
     constexpr static int num_trees = ballot_number(num_nodes);
 
+    /**
+     * Computes the index of the Cartesian tree for the given values.
+     *
+     * @param values  The values to build the Cartesian tree for. Only the first
+     *               cur_num_nodes values are considered.
+     * @param cur_num_nodes  How many values from values to consider as input.
+     * @return  the tree index in range [0, C_(cur_num_nodes)) where C_s is the
+     *          s'th Catalan number.
+     */
     constexpr static int compute_tree_index(const int values[num_nodes],
                                             int cur_num_nodes = num_nodes)
     {
         // build cartesian tree left-to-right and traverse ballot number
-        // triangle in parallel
+        // triangle simultaneously
+        // This is Algorithm 1 from J. Fischer and V. Heun, "Space-Efficient
+        // Preprocessing Schemes for Range Minimum Queries on Static Arrays,"
+        // doi: 10.1137/090779759.
         int rightmost[num_nodes + 1]{};
         rightmost[0] = std::numeric_limits<int>::lowest();
         int number = 0;
@@ -82,18 +114,39 @@ struct cartesian_tree {
         return number;
     }
 
+    /**
+     * For each possible Cartesian tree on num_nodes nodes, this builds an
+     * array of values that has that Cartesian tree.
+     * This means that compute_tree_index(representatives[i]) == i.
+     */
     constexpr static std::array<int[num_nodes], num_trees>
     compute_tree_representatives()
     {
+        // all_representatives[i] contains the representatives for all Cartesian
+        // trees on i nodes, the trailing entries of this array are
+        // zero-initialized.
+        // all_representatives[i][j] contains the representative for the
+        // Cartesian tree with i nodes and index j.
         std::array<std::array<int[num_nodes], num_trees>, num_nodes + 1>
             all_representatives{};
+
+        // Recursively combine representatives for smaller inputs to larger
+        // representatives.
         for (int cur_num_nodes = 1; cur_num_nodes <= num_nodes;
              cur_num_nodes++) {
+            // The root node of a Cartesian tree is its minimum, so we can
+            // enumerate all possible Cartesian trees by choosing all possible
+            // minimum positions, and the left and right subtrees/left and right
+            // halves around the minimum can be choosen independently.
+            // This enumeration does not list representatives in order of their
+            // tree index, so we need to use compute_tree_index internally.
             for (int min_pos = 0; min_pos < cur_num_nodes; min_pos++) {
                 const auto left_size = min_pos;
                 const auto right_size = cur_num_nodes - min_pos - 1;
                 const auto left_count = ballot_number(left_size);
                 const auto right_count = ballot_number(right_size);
+                // We go through all possible pairs of representatives for the
+                // left and right subtree
                 for (int left_idx = 0; left_idx < left_count; left_idx++) {
                     const auto& left_rep =
                         all_representatives[left_size][left_idx];
@@ -102,17 +155,26 @@ struct cartesian_tree {
                         const auto& right_rep =
                             all_representatives[right_size][right_idx];
                         int local_rep[num_nodes]{};
+                        // The minimum is the smallest with value 0
                         local_rep[min_pos] = 0;
+                        // The left subtree gets increased by 1 so its minimum
+                        // is larger than the overall minimum, and copied to the
+                        // subrange left of the minimum
                         for (int i = 0; i < left_size; i++) {
                             local_rep[i] = left_rep[i] + 1;
                         }
+                        // The right subtree gets increased and copied to the
+                        // right of the minimum
                         for (int i = 0; i < right_size; i++) {
                             local_rep[i + min_pos + 1] = right_rep[i] + 1;
                         }
+                        // The we can figure out what the tree index of this
+                        // representative is...
                         const auto tree_number =
                             compute_tree_index(local_rep, cur_num_nodes);
                         auto& output_rep =
                             all_representatives[cur_num_nodes][tree_number];
+                        // ... and copy over its values to the right location
                         for (int i = 0; i < cur_num_nodes; i++) {
                             output_rep[i] = local_rep[i];
                         }
@@ -157,6 +219,7 @@ public:
         }
     }
 
+    /** Computes the tree index of the Cartesian tree for the given values. */
     template <typename T>
     constexpr int compute_tree_index(const T values[block_size]) const
     {
@@ -176,6 +239,16 @@ public:
         return number;
     }
 
+    /**
+     * Returns the range minimum for an array with the given Cartesian tree
+     * index in the range [first, last].
+     *
+     * @param tree  the tree index for the Cartesian tree.
+     * @param first  the first index in the range.
+     * @param last  the last index in the range.
+     * @return  the range minimum, i.e. $\argmin_{i \in [first, last]}(values)$
+     *          where `compute_tree_index(values) == tree`.
+     */
     constexpr int lookup(int tree, int first, int last) const
     {
         return lookup_table[tree].get(first + block_size * last);
@@ -187,10 +260,18 @@ private:
 };
 
 
+/**
+ * Represents a small block RMQ lookup table in device memory.
+ * It will be initialized on the host side and copied to the device.
+ *
+ * @tparam block_size  the small block size to build the lookup table for.
+ */
 template <int block_size>
 class device_block_range_minimum_query_lookup_table {
 public:
     using type = block_range_minimum_query_lookup_table<block_size>;
+
+    /** Initializes the lookup table in device memory for the given executor. */
     device_block_range_minimum_query_lookup_table(
         std::shared_ptr<const Executor> exec)
         : data_{exec, sizeof(type)}
@@ -199,14 +280,15 @@ public:
         exec->copy_from(exec->get_master(), 1, &lut, get());
     }
 
+    /** Returns a pointer to the lookup table. */
     const type* get() const
     {
         return reinterpret_cast<const type*>(data_.get_const_data());
     }
 
+private:
     type* get() { return reinterpret_cast<type*>(data_.get_data()); }
 
-private:
     array<char> data_;
 };
 
