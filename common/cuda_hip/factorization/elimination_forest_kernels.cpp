@@ -48,8 +48,6 @@ __global__ __launch_bounds__(default_block_size) void mst_initialize_worklist(
     IndexType* __restrict__ worklist_edge_ids,
     IndexType* __restrict__ worklist_counter)
 {
-    using atomic_type = std::conditional_t<std::is_same_v<IndexType, int32>,
-                                           int32, unsigned long long>;
     const auto i = thread::get_thread_id_flat<IndexType>();
     if (i >= size) {
         return;
@@ -57,8 +55,7 @@ __global__ __launch_bounds__(default_block_size) void mst_initialize_worklist(
     const auto row = rows[i];
     const auto col = cols[i];
     if (col < row) {
-        const auto out_i = static_cast<IndexType>(atomicAdd(
-            reinterpret_cast<atomic_type*>(worklist_counter), atomic_type{1}));
+        const auto out_i = atomic_add_relaxed(worklist_counter, 1);
         worklist_sources[out_i] = row;
         worklist_targets[out_i] = col;
         worklist_edge_ids[out_i] = i;
@@ -93,12 +90,9 @@ __device__ IndexType mst_find_relaxed(const IndexType* parents, IndexType node)
 template <typename IndexType>
 __device__ void guarded_atomic_min(IndexType* ptr, IndexType value)
 {
-    using atomic_type = std::conditional_t<std::is_same_v<IndexType, int32>,
-                                           int32, unsigned long long>;
     // only execute the atomic if we know that it might have an effect
     if (load_relaxed_local(ptr) > value) {
-        atomicMin(reinterpret_cast<atomic_type*>(ptr),
-                  static_cast<atomic_type>(value));
+        atomic_min_relaxed(ptr, value);
     }
 }
 
@@ -114,8 +108,6 @@ __global__ __launch_bounds__(default_block_size) void mst_find_minimum(
     IndexType* __restrict__ worklist_edge_ids,
     IndexType* __restrict__ worklist_counter)
 {
-    using atomic_type = std::conditional_t<std::is_same_v<IndexType, int32>,
-                                           int32, unsigned long long>;
     const auto i = thread::get_thread_id_flat<IndexType>();
     if (i >= size) {
         return;
@@ -126,8 +118,7 @@ __global__ __launch_bounds__(default_block_size) void mst_find_minimum(
     const auto source_rep = mst_find(parents, source);
     const auto target_rep = mst_find(parents, target);
     if (source_rep != target_rep) {
-        const auto out_i = static_cast<IndexType>(atomicAdd(
-            reinterpret_cast<atomic_type*>(worklist_counter), atomic_type{1}));
+        const auto out_i = atomic_add_relaxed(worklist_counter, 1);
         worklist_sources[out_i] = source_rep;
         worklist_targets[out_i] = target_rep;
         worklist_edge_ids[out_i] = edge_id;
@@ -178,8 +169,7 @@ __global__ __launch_bounds__(default_block_size) void mst_join_edges(
                 repeat = true;
             }
         } while (repeat);
-        const auto out_i = static_cast<IndexType>(atomicAdd(
-            reinterpret_cast<atomic_type*>(out_counter), atomic_type{1}));
+        const auto out_i = atomic_add_relaxed(out_counter, 1);
         out_sources[out_i] = edge_sources[edge_id];
         out_targets[out_i] = edge_targets[edge_id];
     }
@@ -309,6 +299,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         }
     }
     const auto num_mst_edges = exec->copy_val_to_host(output_counter);
+    // two separate sort calls get turned into efficient RadixSort invocations
     thrust::sort_by_key(policy, out_cols, out_cols + num_mst_edges, out_rows);
     thrust::stable_sort_by_key(policy, out_rows, out_rows + num_mst_edges,
                                out_cols);

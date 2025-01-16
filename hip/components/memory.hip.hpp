@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -125,6 +125,30 @@ __device__ __forceinline__ void store_generic(ValueType* ptr, ValueType value)
     memcpy(&cast_value, &value, sizeof(ValueType));
     HIP_ATOMIC_STORE(reinterpret_cast<atomic_type*>(ptr), cast_value, memorder,
                      scope);
+}
+
+
+template <typename ValueType, typename AddType>
+__device__ __forceinline__ ValueType atomic_add_relaxed(ValueType* ptr,
+                                                        AddType value)
+{
+    return __atomic_fetch_add(ptr, value, __ATOMIC_RELAXED);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_min_relaxed(ValueType* ptr,
+                                                        ValueType value)
+{
+    return __atomic_fetch_min(ptr, value, __ATOMIC_RELAXED);
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_max_relaxed(ValueType* ptr,
+                                                        ValueType value)
+{
+    return __atomic_fetch_max(ptr, value, __ATOMIC_RELAXED);
 }
 
 
