@@ -139,8 +139,6 @@ __global__ __launch_bounds__(default_block_size) void mst_join_edges(
     IndexType* __restrict__ out_sources, IndexType* __restrict__ out_targets,
     IndexType* __restrict__ out_counter)
 {
-    using atomic_type = std::conditional_t<std::is_same_v<IndexType, int32>,
-                                           int32, unsigned long long>;
     const auto i = thread::get_thread_id_flat<IndexType>();
     if (i >= size) {
         return;
@@ -159,9 +157,7 @@ __global__ __launch_bounds__(default_block_size) void mst_join_edges(
         do {
             repeat = false;
             auto old_parent =
-                atomicCAS(reinterpret_cast<atomic_type*>(parents + old_rep),
-                          static_cast<atomic_type>(old_rep),
-                          static_cast<atomic_type>(new_rep));
+                atomic_cas_relaxed(parents + old_rep, old_rep, new_rep);
             // if this fails, the parent of old_rep changed recently, so we need
             // to try again by updating the parent's parent (hopefully its rep)
             if (old_parent != old_rep) {

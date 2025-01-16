@@ -153,6 +153,27 @@ __device__ __forceinline__ ValueType atomic_max_relaxed(ValueType* ptr,
 
 
 template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_relaxed(ValueType* ptr,
+                                                        ValueType old_val,
+                                                        ValueType new_val)
+{
+    __atomic_compare_exchange_n(ptr, &old_val, new_val, false, __ATOMIC_RELAXED,
+                                __ATOMIC_RELAXED);
+    return old_val;
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_cas_relaxed_local(ValueType* ptr,
+                                                              ValueType old_val,
+                                                              ValueType new_val)
+{
+    // no special optimization available for threadblock-local atomic CAS
+    return atomic_cas_relaxed(ptr, old_val, new_val);
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ ValueType load_relaxed(const ValueType* ptr)
 {
     return load_generic<__ATOMIC_RELAXED, HIP_SCOPE_GPU>(ptr);

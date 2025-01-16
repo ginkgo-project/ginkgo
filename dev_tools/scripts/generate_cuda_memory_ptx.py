@@ -169,7 +169,6 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 }}
 """)
             for op in operations:
-
                 if (not t.ptx_type_suffix.startswith(".f") or op.supports_float) and (not t.ptx_type_suffix.startswith(".s") or op.supports_signed):
                     # for some reason there is no signed 64 bit atomic support,
                     # but since the operations are equivalent in two's complement, we can use unsigned instead
@@ -190,6 +189,27 @@ __device__ __forceinline__ {t.name} atomic{op.fn_op_suffix}{o.fn_loadstore_suffi
 #endif
         : "={t.val_constraint}"(result)
         : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(value)
+        : "memory");
+    return result;
+}}
+""")
+            # non-relaxed atomics are unsupported with SM 6.0 and below
+            if o.is_relaxed and not t.ptx_type_suffix.startswith(".f"):
+                new_type = ".b" + t.ptx_type_suffix[2:]
+                print(f"""
+__device__ __forceinline__ {t.name} atomic_cas{o.fn_loadstore_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} old_val, {t.name} new_val)
+{{
+    {t.name} result;
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom{s.ptx_space_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#elif __CUDA_ARCH__ < 700
+        "atom{s.ptx_space_suffix}{s.ptx_scope_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#else
+        "atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#endif
+        : "={t.val_constraint}"(result)
+        : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(old_val), "{t.val_constraint}"(new_val)
         : "memory");
     return result;
 }}
