@@ -614,8 +614,9 @@ private:
 
 class SymbolicCholeskyOperation : public BenchmarkOperation {
 public:
-    explicit SymbolicCholeskyOperation(const Mtx* mtx, bool symmetric)
-        : mtx_{mtx}, symmetric_{symmetric}, result_{}
+    explicit SymbolicCholeskyOperation(const Mtx* mtx, bool device,
+                                       bool symmetric)
+        : mtx_{mtx}, device_{device}, symmetric_{symmetric}, result_{}
     {}
 
     std::pair<bool, double> validate() const override
@@ -643,8 +644,13 @@ public:
 
     void run() override
     {
-        gko::factorization::symbolic_cholesky(mtx_, symmetric_, result_,
-                                              forest_);
+        if (device_) {
+            gko::factorization::symbolic_cholesky_device(mtx_, symmetric_,
+                                                         result_, forest_);
+        } else {
+            gko::factorization::symbolic_cholesky(mtx_, symmetric_, result_,
+                                                  forest_);
+        }
     }
 
     void write_stats(json& object) override
@@ -654,6 +660,7 @@ public:
 
 private:
     const Mtx* mtx_;
+    bool device_;
     bool symmetric_;
     std::unique_ptr<Mtx> result_;
     std::unique_ptr<gko::factorization::elimination_forest<itype>> forest_;
@@ -791,13 +798,25 @@ const std::map<std::string,
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicLuNearSymmOperation>(mtx);
          }},
+        {"symbolic_cholesky_device",
+         [](const Mtx* mtx) {
+             return std::make_unique<SymbolicCholeskyOperation>(mtx, true,
+                                                                false);
+         }},
+        {"symbolic_cholesky_device_symmetric",
+         [](const Mtx* mtx) {
+             return std::make_unique<SymbolicCholeskyOperation>(mtx, true,
+                                                                true);
+         }},
         {"symbolic_cholesky",
          [](const Mtx* mtx) {
-             return std::make_unique<SymbolicCholeskyOperation>(mtx, false);
+             return std::make_unique<SymbolicCholeskyOperation>(mtx, false,
+                                                                false);
          }},
         {"symbolic_cholesky_symmetric",
          [](const Mtx* mtx) {
-             return std::make_unique<SymbolicCholeskyOperation>(mtx, true);
+             return std::make_unique<SymbolicCholeskyOperation>(mtx, false,
+                                                                true);
          }},
         {"reorder_rcm",
          [](const Mtx* mtx) {

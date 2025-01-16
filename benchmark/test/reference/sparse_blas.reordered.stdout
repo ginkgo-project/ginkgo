@@ -9,7 +9,7 @@
                 "bandwidth": 1.0,
                 "repetitions": 10,
                 "components": {
-                    "compute_elim_forest": 1.0,
+                    "compute_elimination_forest": 1.0,
                     "allocate": 1.0,
                     "free": 1.0,
                     "components::fill_array": 1.0,

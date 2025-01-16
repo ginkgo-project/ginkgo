@@ -17,6 +17,8 @@ class ordering:
     fn_load_suffix: str
     ptx_store_suffix: str
     fn_store_suffix: str
+    ptx_loadstore_suffix: str
+    fn_loadstore_suffix: str
     is_relaxed: bool
 
 
@@ -27,6 +29,13 @@ class type_desc:
     name: str
 
 
+@dataclasses.dataclass
+class operation:
+    fn_op_suffix: str
+    ptx_op_suffix: str
+    supports_float: bool
+    supports_signed: bool
+
 memory_spaces = [
     space(ptx_space_suffix=".shared", ptx_scope_suffix=".cta", fn_suffix="_shared",
           ptr_expr="convert_generic_ptr_to_smem_ptr({ptr})", ptr_constraint="r"),
@@ -35,16 +44,25 @@ memory_spaces = [
     space(ptx_space_suffix="", ptx_scope_suffix=".gpu", fn_suffix="", ptr_expr="{ptr}", ptr_constraint="l")]
 memory_orderings = [
     ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True),
+             ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
+             ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True),
     ordering(ptx_load_suffix=".acquire", fn_load_suffix="_acquire",
-             ptx_store_suffix=".release", fn_store_suffix="_release", is_relaxed=False)
+             ptx_store_suffix=".release", fn_store_suffix="_release",
+             ptx_loadstore_suffix=".acq_rel", fn_loadstore_suffix="_acqrel", is_relaxed=False)
 ]
 types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
          type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
          type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
-         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+         type_desc(ptx_type_suffix=".u32", val_constraint="r", name="uint32"),
+         type_desc(ptx_type_suffix=".u64", val_constraint="l", name="uint64")]
+operations = [operation(fn_op_suffix="_add", ptx_op_suffix=".add", supports_float=True, supports_signed=True),
+              operation(fn_op_suffix="_min", ptx_op_suffix=".min", supports_float=False, supports_signed=True),
+              operation(fn_op_suffix="_max", ptx_op_suffix=".max", supports_float=False, supports_signed=True),
+              operation(fn_op_suffix="_and", ptx_op_suffix=".and", supports_float=False, supports_signed=False),
+              operation(fn_op_suffix="_or", ptx_op_suffix=".or", supports_float=False, supports_signed=False)]
 # header
-print("""// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+print("""// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -150,6 +168,52 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
         : "memory");
 }}
 """)
+            for op in operations:
+                if (not t.ptx_type_suffix.startswith(".f") or op.supports_float) and (not t.ptx_type_suffix.startswith(".s") or op.supports_signed):
+                    # for some reason there is no signed 64 bit atomic support,
+                    # but since the operations are equivalent in two's complement, we can use unsigned instead
+                    new_type = ".u64" if t.ptx_type_suffix == ".s64" and op.fn_op_suffix == "_add" else t.ptx_type_suffix
+                    # non-relaxed atomics are unsupported with SM 6.0 and below
+                    if o.is_relaxed:
+                        print(f"""
+__device__ __forceinline__ {t.name} atomic{op.fn_op_suffix}{o.fn_loadstore_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} value)
+{{
+    {t.name} result;
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom{s.ptx_space_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#elif __CUDA_ARCH__ < 700
+        "atom{s.ptx_space_suffix}{s.ptx_scope_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#else
+        "atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{op.ptx_op_suffix}{new_type} %0, [%1], %2;"
+#endif
+        : "={t.val_constraint}"(result)
+        : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(value)
+        : "memory");
+    return result;
+}}
+""")
+            # non-relaxed atomics are unsupported with SM 6.0 and below
+            if o.is_relaxed and not t.ptx_type_suffix.startswith(".f"):
+                new_type = ".b" + t.ptx_type_suffix[2:]
+                print(f"""
+__device__ __forceinline__ {t.name} atomic_cas{o.fn_loadstore_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} old_val, {t.name} new_val)
+{{
+    {t.name} result;
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom{s.ptx_space_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#elif __CUDA_ARCH__ < 700
+        "atom{s.ptx_space_suffix}{s.ptx_scope_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#else
+        "atom{o.ptx_loadstore_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}.cas{new_type} %0, [%1], %2, %3;"
+#endif
+        : "={t.val_constraint}"(result)
+        : "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(old_val), "{t.val_constraint}"(new_val)
+        : "memory");
+    return result;
+}}
+""")
 
 # vectorized relaxed loads for thrust::complex
 types = [type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
@@ -209,14 +273,14 @@ for s in memory_spaces_without_shared:
 __device__ __forceinline__ {t.name} load{o.fn_load_suffix}{s.fn_suffix}(const {t.name}* ptr)
 {{
     {t.parent_name} result;
-    asm volatile("{{\\n\\t"
-        "  .reg {t.ptx_type_suffix} t;\\n\\t"
+    asm volatile("{{"
+        "  .reg {t.ptx_type_suffix} t;"
     #if __CUDA_ARCH__ < 700
-        "  ld.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];\\n\\t"
+        "  ld.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];"
     #else
-        "  ld{o.ptx_load_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];\\n\\t"
+        "  ld{o.ptx_load_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];"
     #endif
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t;\\n\\t"
+        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t;"
         "}}"
         : "={t.val_constraint}"(result)
         : "{s.ptr_constraint}"({const_ptr_expr})
@@ -229,13 +293,13 @@ __device__ __forceinline__ {t.name} load{o.fn_load_suffix}{s.fn_suffix}(const {t
 __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* ptr, {t.name} result)
 {{
     {membar_expression}
-    asm volatile("{{\\n\\t"
-        "  .reg {t.ptx_type_suffix} t;\\n\\t"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t, %1;\\n\\t"
+    asm volatile("{{"
+        "  .reg {t.ptx_type_suffix} t;"
+        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t, %1;"
     #if __CUDA_ARCH__ < 700
-        "  st.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;\\n\\t"
+        "  st.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;"
     #else
-        "  st{o.ptx_store_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;\\n\\t"
+        "  st{o.ptx_store_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;"
     #endif
         "}}"
         :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(static_cast<{t.parent_name}>(result))
@@ -245,7 +309,8 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 
 for s in memory_spaces_without_shared:
     o = ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-                 ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", is_relaxed=True)
+                 ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
+                 ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True)
     const_ptr_expr = s.ptr_expr.format(
         ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)")
     mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
@@ -254,15 +319,15 @@ __device__ __forceinline__ thrust::complex<{t.name}> load_relaxed{s.fn_suffix}(c
 {{
     {t.parent_name} real_result;
     {t.parent_name} imag_result;
-    asm volatile("{{\\n\\t"
-        "  .reg .v2 {t.ptx_type_suffix} t;\\n\\t"
+    asm volatile("{{"
+        "  .reg .v2 {t.ptx_type_suffix} t;"
 #if __CUDA_ARCH__ < 700
-        "ld.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];\\n\\t"
+        "ld.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
 #else
-        "ld.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];\\n\\t"
+        "ld.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
 #endif
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t.x;\\n\\t"
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %1, t.y;\\n\\t"
+        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t.x;"
+        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %1, t.y;"
         "}}"
         : "={t.val_constraint}"(real_result), "={t.val_constraint}"(imag_result)
         : "{s.ptr_constraint}"({const_ptr_expr})
@@ -275,14 +340,14 @@ __device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.na
 {{
     auto real_result = static_cast<{t.parent_name}>(result.real());
     auto imag_result = static_cast<{t.parent_name}>(result.imag());
-    asm volatile("{{\\n\\t"
-        "  .reg .v2 {t.ptx_type_suffix} t;\\n\\t"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.x, %1;\\n\\t"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.y, %2;\\n\\t"
+    asm volatile("{{"
+        "  .reg .v2 {t.ptx_type_suffix} t;"
+        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.x, %1;"
+        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.y, %2;"
 #if __CUDA_ARCH__ < 700
-        "st.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;\\n\\t"
+        "st.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;"
 #else
-        "st.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;\\n\\t"
+        "st.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;"
 #endif
         "}}"
         :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(real_result), "{t.val_constraint}"(imag_result)

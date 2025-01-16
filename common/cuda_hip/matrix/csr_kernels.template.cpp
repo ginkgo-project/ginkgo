@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,6 +35,7 @@
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/merging.hpp"
 #include "common/cuda_hip/components/prefix_sum.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
@@ -1293,7 +1294,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         }
 #else
         if (i < row_len) {
-            while (atomicCAS(local_storage + hash, empty, i) != empty) {
+            while (atomic_cas_relaxed_local(local_storage + hash, empty,
+                                            static_cast<int32>(i)) != empty) {
                 hash++;
                 if (hash >= available_storage) {
                     hash = 0;

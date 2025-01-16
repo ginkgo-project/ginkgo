@@ -17,6 +17,7 @@ target_sources(ginkgo_omp
     distributed/partition_kernels.cpp
     distributed/vector_kernels.cpp
     factorization/cholesky_kernels.cpp
+    factorization/elimination_forest_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
