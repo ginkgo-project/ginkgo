@@ -255,11 +255,13 @@ TYPED_TEST(Gmres, KernelRestartRgs)
             expected_sketch_krylov_basis->at(i, j) /= this->small_residual_norm->at(0, j);
         }
     }
+
     gko::kernels::reference::gmres::restart_rgs(
         this->exec, this->small_residual.get(), this->small_residual_norm.get(),
         this->small_residual_norm_collection.get(),
         this->small_krylov_bases.get(), sketched_krylov_basis.get(),
         this->small_final_iter_nums.get_data(), k_rows);
+    
     ASSERT_EQ(this->small_final_iter_nums.get_size(),
               this->small_residual_norm_collection->get_size()[1]);
     for (int i = 0; i < this->small_final_iter_nums.get_size(); ++i) {
