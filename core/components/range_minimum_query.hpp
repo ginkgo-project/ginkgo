@@ -139,7 +139,7 @@ struct cartesian_tree {
             // The root node of a Cartesian tree is its minimum, so we can
             // enumerate all possible Cartesian trees by choosing all possible
             // minimum positions, and the left and right subtrees/left and right
-            // halves around the minimum can be choosen independently.
+            // halves around the minimum can be chosen independently.
             // This enumeration does not list representatives in order of their
             // tree index, so we need to use compute_tree_index internally.
             for (int min_pos = 0; min_pos < cur_num_nodes; min_pos++) {
@@ -558,7 +558,7 @@ public:
         const block_lookup_type* block_lut, index_type size)
         : num_blocks_{static_cast<index_type>(ceildiv(size, block_size))},
           values_{values},
-          block_tree_indexs_{block_tree_index},
+          block_tree_indices_{block_tree_index},
           block_argmin_{block_argmin, ceil_log2_constexpr(block_size),
                         num_blocks_},
           superblocks_{block_min, superblock_storage, num_blocks_},
@@ -588,8 +588,8 @@ public:
         const auto first_local = first - first_block_base;
         const auto last_block_base = last_block * block_size;
         const auto last_local = last - last_block_base;
-        const auto first_block_tree_index = block_tree_indexs_[first_block];
-        const auto last_block_tree_index = block_tree_indexs_[last_block];
+        const auto first_block_tree_index = block_tree_indices_[first_block];
+        const auto last_block_tree_index = block_tree_indices_[last_block];
         // both values in the same block
         if (first_block == last_block) {
             const auto argmin =
@@ -647,7 +647,7 @@ public:
 private:
     index_type num_blocks_;
     const index_type* values_;
-    const uint16* block_tree_indexs_;
+    const uint16* block_tree_indices_;
     bit_packed_span<int, index_type, const uint32> block_argmin_;
     superblock_lookup_type superblocks_;
     const block_lookup_type* block_lut_;
@@ -695,7 +695,7 @@ public:
 private:
     index_type num_blocks_;
     block_lut_type lut_;
-    array<uint16> block_tree_indexs_;
+    array<uint16> block_tree_indices_;
     array<block_argmin_storage_type> block_argmin_storage_;
     array<index_type> block_min_;
     array<superblock_storage_type> superblock_storage_;
