@@ -19,9 +19,10 @@ TEST(RangeMinimumQuery, RepresentativesAreExhaustive)
     std::iota(values, values + size, 0);
     const auto reps = tree::compute_tree_representatives();
     do {
-        const auto tree_number = tree::compute_tree_index(values);
+        const auto tree_number =
+            tree::compute_tree_index(values, tree::ballot_number);
         const auto rep_tree_number =
-            tree::compute_tree_index(reps[tree_number]);
+            tree::compute_tree_index(reps[tree_number], tree::ballot_number);
 
         ASSERT_EQ(tree_number, rep_tree_number);
     } while (std::next_permutation(values, values + size));
@@ -35,7 +36,7 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
     gko::block_range_minimum_query_lookup_table<size> table;
     const auto reps = tree::compute_tree_representatives();
     for (const auto& rep : reps) {
-        const auto tree = tree::compute_tree_index(rep);
+        const auto tree = tree::compute_tree_index(rep, tree::ballot_number);
         for (const auto first : gko::irange{size}) {
             for (const auto last : gko::irange{size}) {
                 const auto begin = rep + first;
@@ -123,21 +124,21 @@ TEST(RangeMinimumQuery, NumLevelsIsCorrect)
     const auto test = [](auto value) {
         using index_type = decltype(value);
         using superblocks = gko::range_minimum_query_superblocks<index_type>;
-        ASSERT_EQ(superblocks::compute_num_levels(0), 0);
-        ASSERT_EQ(superblocks::compute_num_levels(1), 0);
-        ASSERT_EQ(superblocks::compute_num_levels(2), 1);
-        ASSERT_EQ(superblocks::compute_num_levels(3), 1);
-        ASSERT_EQ(superblocks::compute_num_levels(4), 1);
-        ASSERT_EQ(superblocks::compute_num_levels(5), 2);
-        ASSERT_EQ(superblocks::compute_num_levels(8), 2);
-        ASSERT_EQ(superblocks::compute_num_levels(9), 3);
-        ASSERT_EQ(superblocks::compute_num_levels(16), 3);
-        ASSERT_EQ(superblocks::compute_num_levels(17), 4);
-        ASSERT_EQ(superblocks::compute_num_levels(32), 4);
-        ASSERT_EQ(superblocks::compute_num_levels(33), 5);
-        ASSERT_EQ(superblocks::compute_num_levels(
-                      std::numeric_limits<index_type>::max()),
-                  sizeof(index_type) * CHAR_BIT - 2);
+        ASSERT_EQ(superblocks::num_levels(0), 0);
+        ASSERT_EQ(superblocks::num_levels(1), 0);
+        ASSERT_EQ(superblocks::num_levels(2), 1);
+        ASSERT_EQ(superblocks::num_levels(3), 1);
+        ASSERT_EQ(superblocks::num_levels(4), 1);
+        ASSERT_EQ(superblocks::num_levels(5), 2);
+        ASSERT_EQ(superblocks::num_levels(8), 2);
+        ASSERT_EQ(superblocks::num_levels(9), 3);
+        ASSERT_EQ(superblocks::num_levels(16), 3);
+        ASSERT_EQ(superblocks::num_levels(17), 4);
+        ASSERT_EQ(superblocks::num_levels(32), 4);
+        ASSERT_EQ(superblocks::num_levels(33), 5);
+        ASSERT_EQ(
+            superblocks::num_levels(std::numeric_limits<index_type>::max()),
+            sizeof(index_type) * CHAR_BIT - 2);
     };
     test(gko::int32{});
     test(gko::int64{});

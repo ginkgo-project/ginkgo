@@ -21,19 +21,20 @@ namespace range_minimum_query {
 template <typename IndexType>
 void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* values, IndexType size,
-                          block_argmin_storage_type<IndexType>& block_argmin,
-                          IndexType* block_min, uint16* block_type)
+                          bit_packed_span<int, IndexType, uint32>& block_argmin,
+                          IndexType* block_min, uint16* block_tree_index)
 {
-    using tree_index_type = std::decay_t<decltype(*block_type)>;
-    using lut_type =
-        gko::block_range_minimum_query_lookup_table<small_block_size>;
+    using device_type = device_range_minimum_query<IndexType>;
+    constexpr auto block_size = device_type::block_size;
+    using tree_index_type = std::decay_t<decltype(*block_tree_index)>;
+    using lut_type = typename device_type::block_lut_view_type;
     lut_type table;
     static_assert(
         lut_type::num_trees <= std::numeric_limits<tree_index_type>::max(),
         "block type storage too small");
-    for (IndexType i = 0; i < size; i += small_block_size) {
-        IndexType local_values[small_block_size];
-        for (int local_i = 0; local_i < small_block_size; local_i++) {
+    for (IndexType i = 0; i < size; i += block_size) {
+        IndexType local_values[block_size];
+        for (int local_i = 0; local_i < block_size; local_i++) {
             // use "infinity" as sentinel for minimum computations
             local_values[local_i] = local_i + i < size
                                         ? values[local_i + i]
@@ -41,13 +42,13 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
         }
         const auto tree_number = table.compute_tree_index(local_values);
         const auto min_it =
-            std::min_element(local_values, local_values + small_block_size);
+            std::min_element(local_values, local_values + block_size);
         const auto min_idx =
             static_cast<uint32>(std::distance(local_values, min_it));
-        const auto block_idx = i / small_block_size;
+        const auto block_idx = i / block_size;
         block_argmin.set(block_idx, min_idx);
         block_min[block_idx] = *min_it;
-        block_type[block_idx] = static_cast<tree_index_type>(tree_number);
+        block_tree_index[block_idx] = static_cast<tree_index_type>(tree_number);
     }
 }
 

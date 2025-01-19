@@ -22,38 +22,56 @@ namespace range_minimum_query {
 template <typename IndexType>
 void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* values, IndexType size,
-                          block_argmin_storage_type<IndexType>& block_argmin,
-                          IndexType* block_min, uint16* block_type)
+                          bit_packed_span<int, IndexType, uint32>& block_argmin,
+                          IndexType* block_min, uint16* block_tree_index)
 {
 #ifdef GKO_COMPILING_DPCPP
+    // The Intel SYCL compiler doesn't support constexpr initialization of
+    // non-trivial objects on the device.
     GKO_NOT_IMPLEMENTED;
 #else
-    using tree_index_type = std::decay_t<decltype(*block_type)>;
-    using device_lut_type =
-        gko::device_block_range_minimum_query_lookup_table<small_block_size>;
-    static_assert(device_lut_type::view_type::num_trees <=
-                      std::numeric_limits<tree_index_type>::max(),
-                  "block type storage too small");
+    using device_type = device_range_minimum_query<IndexType>;
+    constexpr auto block_size = device_type::block_size;
+    using tree_index_type = std::decay_t<decltype(*block_tree_index)>;
+    using device_lut_type = typename device_type::block_lut_type;
+    using lut_type = typename device_type::block_lut_view_type;
+    static_assert(
+        lut_type::num_trees <= std::numeric_limits<tree_index_type>::max(),
+        "block type storage too small");
+    // block_argmin stores multiple values per memory word, so we need to make
+    // sure that no two different threads write to the same memory location.
+    // The easiest way to do that is to have every thread handle all elements
+    // that map to the same memory location.
+    // The argmin inside a block is in the range [0, block_size - 1], so
+    // it needs ceil_log2_constexpr(block_size) bits. For efficiency
+    // reasons, we round that up to the next power of two.
+    // This expression is essentially bits_per_word /
+    // round_up_pow2_constexpr(ceil_log2_constexpr(block_size)), i.e. how
+    // many values are stored per word.
     constexpr auto collation_width =
         1 << (std::decay_t<decltype(block_argmin)>::bits_per_word_log2 -
-              ceil_log2_constexpr(ceil_log2_constexpr(small_block_size)));
+              ceil_log2_constexpr(ceil_log2_constexpr(block_size)));
     const device_lut_type lut{exec};
     run_kernel(
         exec,
         [] GKO_KERNEL(auto collated_block_idx, auto values, auto block_argmin,
-                      auto block_min, auto block_type, auto lut, auto size) {
+                      auto block_min, auto block_tree_index, auto lut,
+                      auto size) {
+            // we need to put this here because some compilers interpret capture
+            // rules around constexpr incorrectly
+            constexpr auto block_size = device_type::block_size;
             constexpr auto infinity = std::numeric_limits<IndexType>::max();
-            const auto num_blocks = ceildiv(size, small_block_size);
+            const auto num_blocks = ceildiv(size, block_size);
             for (auto block_idx = collated_block_idx * collation_width;
                  block_idx <
                  std::min<int64>((collated_block_idx + 1) * collation_width,
                                  num_blocks);
                  block_idx++) {
-                const auto i = block_idx * small_block_size;
-                IndexType local_values[small_block_size];
+                const auto i = block_idx * block_size;
+                IndexType local_values[block_size];
                 int argmin = 0;
 #pragma unroll
-                for (int local_i = 0; local_i < small_block_size; local_i++) {
+                for (int local_i = 0; local_i < block_size; local_i++) {
                     // use "infinity" as sentinel for minimum computations
                     local_values[local_i] =
                         local_i + i < size ? values[local_i + i] : infinity;
@@ -63,16 +81,14 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 const auto tree_number = lut->compute_tree_index(local_values);
                 const auto min = local_values[argmin];
-                // TODO collate these so a single thread handles the argmins for
-                // an entire memory word
                 block_argmin.set(block_idx, argmin);
                 block_min[block_idx] = min;
-                block_type[block_idx] =
+                block_tree_index[block_idx] =
                     static_cast<tree_index_type>(tree_number);
             }
         },
-        ceildiv(ceildiv(size, small_block_size), collation_width), values,
-        block_argmin, block_min, block_type, lut.get(), size);
+        ceildiv(ceildiv(size, block_size), collation_width), values,
+        block_argmin, block_min, block_tree_index, lut.get(), size);
 #endif
 }
 

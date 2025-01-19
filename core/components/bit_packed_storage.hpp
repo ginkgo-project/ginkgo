@@ -86,19 +86,22 @@ constexpr int round_up_pow2(T value)
  * non-power-of-two number of bits would make hard otherwise.
  * The cass is a non-owning view.
  *
+ * @tparam ValueType  the type used to represent values in the span
  * @tparam IndexType  the type used to represent indices in the span
- * @tparam StorageType  the type used to represent values in the span, and also
- *                      used internally to access the underlying memory. It
+ * @tparam StorageType  the type used to internally represent the values. It
  *                      needs to be large enough to represent all values to be
  *                      stored.
  */
-template <typename IndexType, typename StorageType>
+template <typename ValueType, typename IndexType, typename StorageType>
 class bit_packed_span {
     static_assert(std::is_unsigned_v<StorageType>);
 
 public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using storage_type = StorageType;
     /** How many bits are available in StorageType */
-    constexpr static int bits_per_word = sizeof(StorageType) * CHAR_BIT;
+    constexpr static int bits_per_word = sizeof(storage_type) * CHAR_BIT;
     /** Binary logarithm of bits_per_word */
     constexpr static int bits_per_word_log2 =
         ceil_log2_constexpr(bits_per_word);
@@ -118,7 +121,7 @@ public:
 
     /*
      * Returns the binary logarithm of the number of values can be stored inside
-     * a single StorageType word. This gets used to avoid integer divisions in
+     * a single storage_type word. This gets used to avoid integer divisions in
      * favor of faster bit shifts.
      */
     constexpr static int values_per_word_log2(int num_bits)
@@ -127,7 +130,7 @@ public:
     }
 
     /**
-     * Computes how many StorageType words will be necessary to store size
+     * Computes how many storage_type words will be necessary to store size
      * values requiring num_bits bits.
      *
      * @param size  The number of values to store
@@ -135,10 +138,10 @@ public:
      *                  span. This means that all values need to be in the range
      *                  [0, 2^num_bits).
      */
-    constexpr static IndexType storage_size(IndexType size, int num_bits)
+    constexpr static index_type storage_size(index_type size, int num_bits)
     {
         const auto shift = values_per_word_log2(num_bits);
-        const auto div = StorageType{1} << shift;
+        const auto div = storage_type{1} << shift;
         return (size + div - 1) >> shift;
     }
 
@@ -149,12 +152,12 @@ public:
      * @param i  The index to write to
      * @param value  The value to write. It needs to be in [0, 2^num_bits).
      */
-    constexpr void set_from_zero(IndexType i, StorageType value)
+    constexpr void set_from_zero(index_type i, value_type value)
     {
         assert(value >= 0);
-        assert(value <= mask_);
+        assert(value <= static_cast<value_type>(mask_));
         const auto [block, shift] = get_block_and_shift(i);
-        data_[block] |= value << shift;
+        data_[block] |= static_cast<storage_type>(value) << shift;
     }
 
     /**
@@ -163,7 +166,7 @@ public:
      * @param i  The index to clear
      * @param value  The value to write. It needs to be in [0, 2^num_bits).
      */
-    constexpr void clear(IndexType i)
+    constexpr void clear(index_type i)
     {
         const auto [block, shift] = get_block_and_shift(i);
         data_[block] &= ~(mask_ << shift);
@@ -175,7 +178,7 @@ public:
      * @param i  The index to write to
      * @param value  The value to write. It needs to be in [0, 2^num_bits).
      */
-    constexpr void set(IndexType i, StorageType value)
+    constexpr void set(index_type i, value_type value)
     {
         clear(i);
         set_from_zero(i, value);
@@ -187,17 +190,17 @@ public:
      * @param i  The index to write to
      * @param value  The value to write. It needs to be in [0, 2^num_bits).
      */
-    constexpr StorageType get(IndexType i) const
+    constexpr value_type get(index_type i) const
     {
         const auto [block, shift] = get_block_and_shift(i);
-        return (data_[block] >> shift) & mask_;
+        return static_cast<value_type>((data_[block] >> shift) & mask_);
     }
 
-    explicit constexpr bit_packed_span(StorageType* data, int num_bits,
-                                       IndexType size)
+    explicit constexpr bit_packed_span(storage_type* data, int num_bits,
+                                       index_type size)
         : data_{data},
           size_{size},
-          mask_{(StorageType{1} << num_bits) - 1},
+          mask_{(storage_type{1} << num_bits) - 1},
           bits_per_value_{round_up_pow2(num_bits)},
           values_per_word_log2_{values_per_word_log2(num_bits)},
           local_index_mask_{(1 << values_per_word_log2_) - 1}
@@ -206,7 +209,7 @@ public:
     }
 
 private:
-    constexpr std::pair<int, int> get_block_and_shift(IndexType i) const
+    constexpr std::pair<int, int> get_block_and_shift(index_type i) const
     {
         assert(i >= 0);
         assert(i < size_);
@@ -214,9 +217,9 @@ private:
                               (i & local_index_mask_) * bits_per_value_);
     }
 
-    StorageType* data_;
-    IndexType size_;
-    StorageType mask_;
+    storage_type* data_;
+    index_type size_;
+    storage_type mask_;
     int bits_per_value_;
     int values_per_word_log2_;
     int local_index_mask_;

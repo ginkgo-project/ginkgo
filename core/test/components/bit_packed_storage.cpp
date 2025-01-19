@@ -17,7 +17,8 @@ class BitPackedSpan : public ::testing::Test {
 public:
     using index_type = std::tuple_element_t<0, IndexWordType>;
     using storage_type = std::tuple_element_t<1, IndexWordType>;
-    using bit_packed_span = gko::bit_packed_span<index_type, storage_type>;
+    using bit_packed_span =
+        gko::bit_packed_span<index_type, index_type, storage_type>;
 
     std::default_random_engine rng{2457};
 };
@@ -31,25 +32,25 @@ TYPED_TEST_SUITE(BitPackedSpan, WordTypes, PairTypenameNameGenerator);
 TYPED_TEST(BitPackedSpan, Works)
 {
     using bit_packed_span = typename TestFixture::bit_packed_span;
+    using index_type = typename TestFixture::index_type;
     using storage_type = typename TestFixture::storage_type;
     for (const auto size : {0, 10, 100, 1000, 1023, 1024, 1025}) {
         SCOPED_TRACE(size);
         for (const auto num_bits : {2, 3, 5, 7, 8, 9, 31}) {
             SCOPED_TRACE(num_bits);
-            const storage_type max_value = 1ull << num_bits;
+            const auto max_value = index_type{1} << num_bits;
             std::vector<storage_type> packed_data(
                 bit_packed_span::storage_size(size, num_bits));
             std::vector<storage_type> packed_data2(
                 bit_packed_span::storage_size(size, num_bits));
-            std::vector<storage_type> data(size);
-            std::vector<storage_type> retrieved_data(size);
-            std::vector<storage_type> retrieved_data2(size);
-            std::uniform_int_distribution<storage_type> dist{
-                0, static_cast<storage_type>(max_value - 1)};
+            std::vector<index_type> data(size);
+            std::vector<index_type> retrieved_data(size);
+            std::vector<index_type> retrieved_data2(size);
+            std::uniform_int_distribution<index_type> dist{0, max_value - 1};
             for (auto& val : data) {
                 val = dist(this->rng);
             }
-            // scrable packed_data2 to check proper initialization
+            // scramble packed_data2 to check proper initialization
             std::uniform_int_distribution<storage_type> dist2{storage_type{},
                                                               ~storage_type{}};
             for (auto& val : packed_data2) {
