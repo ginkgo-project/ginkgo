@@ -132,7 +132,6 @@ void compute_subtree_sizes(
         const auto child_end = child_ptrs[node + 1];
         for (const auto child_idx : irange{child_begin, child_end}) {
             const auto child = children[child_idx];
-            assert(finished[child]);
             local_size += subtree_sizes[child];
         }
         subtree_sizes[node] = local_size;
@@ -158,7 +157,6 @@ void compute_subtree_euler_path_sizes(
         const auto child_end = child_ptrs[node + 1];
         for (const auto child_idx : irange{child_begin, child_end}) {
             const auto child = children[child_idx];
-            assert(finished[child]);
             // euler path: follow the edge into the subtree, traverse, follow
             // edge back
             local_size += subtree_euler_path_sizes[child] + 2;

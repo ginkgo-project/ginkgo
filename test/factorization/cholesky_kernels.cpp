@@ -166,8 +166,8 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSubtreeSizesIsEquivalentToRef)
         const auto size = mtx->get_size()[0];
         std::unique_ptr<elimination_forest> forest;
         std::unique_ptr<elimination_forest> dforest;
-        gko::factorization::compute_elim_forest(mtx.get(), forest);
-        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
         gko::array<index_type> subtree_sizes{this->ref, size};
         gko::array<index_type> dsubtree_sizes{this->exec, size};
 
@@ -221,8 +221,8 @@ TYPED_TEST(CholeskySymbolic, KernelComputeLevelsIsEquivalentToRef)
         const auto size = mtx->get_size()[0];
         std::unique_ptr<elimination_forest> forest;
         std::unique_ptr<elimination_forest> dforest;
-        gko::factorization::compute_elim_forest(mtx.get(), forest);
-        gko::factorization::compute_elim_forest(dmtx.get(), dforest);
+        gko::factorization::compute_elimination_forest(mtx.get(), forest);
+        gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
         gko::array<index_type> levels{this->ref, size};
         gko::array<index_type> dlevels{this->exec, size};
 

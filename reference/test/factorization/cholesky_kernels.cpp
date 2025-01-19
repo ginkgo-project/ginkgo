@@ -276,7 +276,8 @@ TYPED_TEST(Cholesky, KernelComputeSubtreeSizes)
         [this] {
             const auto size = this->mtx->get_size()[0];
             std::unique_ptr<elimination_forest> forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           forest);
             gko::array<index_type> subtree_sizes{this->ref, size};
             gko::array<index_type> ref_subtree_sizes{this->ref, size};
             const auto child_ptrs = this->forest->child_ptrs.get_const_data();
@@ -317,7 +318,8 @@ TYPED_TEST(Cholesky, KernelComputeSubtreeEulerPathSizes)
         [this] {
             const auto size = this->mtx->get_size()[0];
             std::unique_ptr<elimination_forest> forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           forest);
             gko::array<index_type> subtree_euler_path_sizes{this->ref, size};
             gko::array<index_type> ref_subtree_euler_path_sizes{this->ref,
                                                                 size};
@@ -364,7 +366,8 @@ TYPED_TEST(Cholesky, KernelComputePostorder)
             const auto size = this->mtx->get_size()[0];
             const auto ssize = static_cast<index_type>(size);
             std::unique_ptr<elimination_forest> forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           forest);
             gko::array<index_type> postorder{this->ref, size};
             gko::array<index_type> inv_postorder{this->ref, size};
             gko::array<index_type> subtree_sizes{this->ref, size};
@@ -391,7 +394,8 @@ TYPED_TEST(Cholesky, KernelComputeLevels)
             const auto size = this->mtx->get_size()[0];
             const auto ssize = static_cast<index_type>(size);
             std::unique_ptr<elimination_forest> forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           forest);
             gko::array<index_type> levels{this->ref, size};
             gko::array<index_type> ref_levels{this->ref, size};
             const auto parents = forest->parents.get_const_data();
@@ -441,7 +445,8 @@ TYPED_TEST(Cholesky, KernelComputeEulerPath)
             const auto size = this->mtx->get_size()[0];
             const auto ssize = static_cast<index_type>(size);
             std::unique_ptr<elimination_forest> forest;
-            gko::factorization::compute_elim_forest(this->mtx.get(), forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           forest);
             gko::array<index_type> levels{this->ref, size};
             gko::array<index_type> euler_path{this->ref, 2 * size + 1};
             gko::array<index_type> euler_levels{this->ref, 2 * size + 1};
