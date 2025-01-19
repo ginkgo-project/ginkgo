@@ -21,12 +21,18 @@ class RangeMinimumQuery : public ::testing::Test {
 protected:
     using index_type = IndexType;
     using storage_type = std::make_unsigned_t<index_type>;
-    using block_argmin_storage_type =
-        gko::kernels::reference::range_minimum_query::block_argmin_storage_type<
-            IndexType>;
-    using superblock_storage_type =
-        gko::range_minimum_query_superblocks<index_type>;
-    RangeMinimumQuery() : ref{gko::ReferenceExecutor::create()}, rng{167349} {}
+    using device_type = gko::device_range_minimum_query<index_type>;
+    using block_argmin_view_type = typename device_type::block_argmin_view_type;
+    using superblock_view_type = typename device_type::superblock_view_type;
+    constexpr static auto block_size = device_type::block_size;
+    RangeMinimumQuery()
+        : ref{gko::ReferenceExecutor::create()},
+          rng{167349},
+          // keep these in sync with small_block_size:
+          // we should cover a single incomplete block, multiple blocks with the
+          // last block being either complete or incomplete
+          sizes{0, 1, 2, 3, 7, 8, 9, 10, 15, 16, 17, 25, 127, 128, 129, 1023}
+    {}
 
     std::vector<index_type> create_random_values(index_type size)
     {
@@ -40,6 +46,7 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::default_random_engine rng;
+    std::vector<index_type> sizes;
 };
 
 TYPED_TEST_SUITE(RangeMinimumQuery, gko::test::IndexTypes,
@@ -49,31 +56,26 @@ TYPED_TEST_SUITE(RangeMinimumQuery, gko::test::IndexTypes,
 TYPED_TEST(RangeMinimumQuery, ComputeLookupSmall)
 {
     using index_type = typename TestFixture::index_type;
-    using block_argmin_storage_type =
-        typename TestFixture::block_argmin_storage_type;
-    constexpr auto block_size =
-        gko::kernels::reference::range_minimum_query::small_block_size;
+    using block_argmin_view_type = typename TestFixture::block_argmin_view_type;
+    constexpr auto block_size = TestFixture::block_size;
     constexpr auto block_argmin_num_bits = gko::ceil_log2_constexpr(block_size);
-    // keep these in sync with small_block_size
-    for (index_type size :
-         {0, 1, 2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+    for (index_type size : this->sizes) {
         SCOPED_TRACE(size);
         const auto values = this->create_random_values(size);
-        const auto num_blocks = static_cast<index_type>(gko::ceildiv(
-            size,
-            gko::kernels::reference::range_minimum_query::small_block_size));
+        const auto num_blocks =
+            static_cast<index_type>(gko::ceildiv(size, block_size));
         std::vector<gko::uint32> block_argmin_storage(
-            block_argmin_storage_type::storage_size(num_blocks,
-                                                    block_argmin_num_bits));
-        block_argmin_storage_type block_argmin{
-            block_argmin_storage.data(), block_argmin_num_bits, num_blocks};
+            block_argmin_view_type::storage_size(num_blocks,
+                                                 block_argmin_num_bits));
+        block_argmin_view_type block_argmin{block_argmin_storage.data(),
+                                            block_argmin_num_bits, num_blocks};
         std::vector<index_type> block_min(num_blocks);
-        std::vector<gko::uint16> block_type(num_blocks);
+        std::vector<gko::uint16> block_tree_index(num_blocks);
         gko::block_range_minimum_query_lookup_table<block_size> small_lut;
 
         gko::kernels::reference::range_minimum_query::compute_lookup_small(
             this->ref, values.data(), size, block_argmin, block_min.data(),
-            block_type.data());
+            block_tree_index.data());
 
         for (auto block : gko::irange{num_blocks}) {
             SCOPED_TRACE(block);
@@ -86,7 +88,7 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmall)
             const auto min_pos = min_it - block_begin;
             ASSERT_EQ(min_pos, block_argmin.get(block));
             ASSERT_EQ(min_value, block_min[block]);
-            const auto tree = block_type[block];
+            const auto tree = block_tree_index[block];
             for (auto first : gko::irange{block_local_size}) {
                 for (auto last : gko::irange{first, block_local_size}) {
                     const auto argmin = std::distance(
@@ -104,17 +106,15 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmall)
 TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
 {
     using index_type = typename TestFixture::index_type;
-    using superblock_storage_type =
-        typename TestFixture::superblock_storage_type;
+    using superblock_view_type = typename TestFixture::superblock_view_type;
     using storage_type = typename TestFixture::storage_type;
-    for (index_type num_blocks :
-         {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+    for (index_type num_blocks : this->sizes) {
         SCOPED_TRACE(num_blocks);
         const auto block_min = this->create_random_values(num_blocks);
         std::vector<storage_type> superblock_storage(
-            superblock_storage_type::compute_storage_size(num_blocks));
-        superblock_storage_type superblocks(
-            block_min.data(), superblock_storage.data(), num_blocks);
+            superblock_view_type::storage_size(num_blocks));
+        superblock_view_type superblocks(block_min.data(),
+                                         superblock_storage.data(), num_blocks);
 
         gko::kernels::reference::range_minimum_query::compute_lookup_large(
             this->ref, block_min.data(), num_blocks, superblocks);
@@ -122,7 +122,7 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
         for (auto level : gko::irange(superblocks.num_levels())) {
             SCOPED_TRACE(level);
             const auto block_size =
-                superblock_storage_type::block_size_for_level(level);
+                superblock_view_type::block_size_for_level(level);
             for (auto block : gko::irange(num_blocks)) {
                 const auto begin = block_min.begin() + block;
                 const auto end = block_min.begin() +
@@ -138,17 +138,15 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
 TYPED_TEST(RangeMinimumQuery, SuperblockQuery)
 {
     using index_type = typename TestFixture::index_type;
-    using superblock_storage_type =
-        typename TestFixture::superblock_storage_type;
+    using superblock_view_type = typename TestFixture::superblock_view_type;
     using storage_type = typename TestFixture::storage_type;
-    for (index_type num_blocks :
-         {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+    for (index_type num_blocks : this->sizes) {
         SCOPED_TRACE(num_blocks);
         const auto block_min = this->create_random_values(num_blocks);
         std::vector<storage_type> superblock_storage(
-            superblock_storage_type::compute_storage_size(num_blocks));
-        superblock_storage_type superblocks(
-            block_min.data(), superblock_storage.data(), num_blocks);
+            superblock_view_type::storage_size(num_blocks));
+        superblock_view_type superblocks(block_min.data(),
+                                         superblock_storage.data(), num_blocks);
         gko::kernels::reference::range_minimum_query::compute_lookup_large(
             this->ref, block_min.data(), num_blocks, superblocks);
         for (auto first : gko::irange{num_blocks}) {
@@ -176,15 +174,12 @@ TYPED_TEST(RangeMinimumQuery, SuperblockQuery)
 TYPED_TEST(RangeMinimumQuery, FullQuery)
 {
     using index_type = typename TestFixture::index_type;
-    using block_argmin_storage_type =
-        typename TestFixture::block_argmin_storage_type;
-    constexpr auto block_size =
-        gko::kernels::reference::range_minimum_query::small_block_size;
+    using block_argmin_view_type = typename TestFixture::block_argmin_view_type;
+    constexpr auto block_size = TestFixture::block_size;
     constexpr auto block_argmin_num_bits = gko::ceil_log2_constexpr(block_size);
-    using superblock_storage_type =
-        typename TestFixture::superblock_storage_type;
+    using superblock_view_type = typename TestFixture::superblock_view_type;
     using storage_type = typename TestFixture::storage_type;
-    for (index_type size : {2, 3, 10, 15, 16, 17, 25, 127, 128, 129, 1023}) {
+    for (index_type size : this->sizes) {
         SCOPED_TRACE(size);
         const auto values = this->create_random_values(size);
         gko::device_range_minimum_query<index_type> rmq{
