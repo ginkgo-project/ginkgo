@@ -269,25 +269,25 @@ private:
 template <int block_size>
 class device_block_range_minimum_query_lookup_table {
 public:
-    using type = block_range_minimum_query_lookup_table<block_size>;
+    using view_type = block_range_minimum_query_lookup_table<block_size>;
 
     /** Initializes the lookup table in device memory for the given executor. */
     device_block_range_minimum_query_lookup_table(
         std::shared_ptr<const Executor> exec)
-        : data_{exec, sizeof(type)}
+        : data_{exec, sizeof(view_type)}
     {
-        type lut{};
+        view_type lut{};
         exec->copy_from(exec->get_master(), 1, &lut, get());
     }
 
     /** Returns a pointer to the lookup table. */
-    const type* get() const
+    const view_type* get() const
     {
-        return reinterpret_cast<const type*>(data_.get_const_data());
+        return reinterpret_cast<const view_type*>(data_.get_const_data());
     }
 
 private:
-    type* get() { return reinterpret_cast<type*>(data_.get_data()); }
+    view_type* get() { return reinterpret_cast<view_type*>(data_.get_data()); }
 
     array<char> data_;
 };
@@ -300,8 +300,9 @@ public:
     using storage_type = std::make_unsigned_t<IndexType>;
     constexpr static auto index_type_bits = 8 * sizeof(index_type);
 
-    range_minimum_query_superblocks(const index_type* values,
-                                    storage_type* storage, index_type size)
+    explicit constexpr range_minimum_query_superblocks(const index_type* values,
+                                                       storage_type* storage,
+                                                       index_type size)
         : values_{values}, storage_{storage}, size_{size}
     {}
 
@@ -455,15 +456,13 @@ public:
         block_range_minimum_query_lookup_table<block_size>;
     using superblock_lookup_type =
         range_minimum_query_superblocks<const index_type>;
-    using word_type = typename superblock_lookup_type::storage_type;
+    using storage_type = typename superblock_lookup_type::storage_type;
 
-    constexpr range_minimum_query(const index_type* values,
-                                  const index_type* block_min,
-                                  const uint32* block_argmin,
-                                  const uint16* block_type,
-                                  const word_type* superblock_storage,
-                                  const block_lookup_type* block_lut,
-                                  index_type size)
+    explicit constexpr range_minimum_query(
+        const index_type* values, const index_type* block_min,
+        const uint32* block_argmin, const uint16* block_type,
+        const storage_type* superblock_storage,
+        const block_lookup_type* block_lut, index_type size)
         : num_blocks_{static_cast<index_type>(ceildiv(size, block_size))},
           values_{values},
           block_types_{block_type},
@@ -556,6 +555,36 @@ private:
     superblock_lookup_type superblocks_;
     const block_lookup_type* block_lut_;
     index_type size_;
+};
+
+
+template <typename IndexType>
+class device_range_minimum_query {
+public:
+    constexpr static int block_size = 8;
+    constexpr static int block_argmin_num_bits =
+        ceil_log2_constexpr(block_size);
+    using index_type = IndexType;
+    using view_type = range_minimum_query<block_size, index_type>;
+    using block_lut_type =
+        device_block_range_minimum_query_lookup_table<block_size>;
+    using block_lut_view_type = typename block_lut_type::view_type;
+    using block_argmin_view_type = bit_packed_span<index_type, uint32>;
+    using superblock_view_type = range_minimum_query_superblocks<index_type>;
+    using superblock_storage_type = typename superblock_view_type::storage_type;
+
+    device_range_minimum_query(array<IndexType> data);
+
+    view_type get() const;
+
+private:
+    index_type num_blocks_;
+    block_lut_type lut_;
+    array<uint16> block_types_;
+    array<uint32> block_argmin_storage_;
+    array<index_type> block_min_;
+    array<superblock_storage_type> superblock_storage_;
+    array<index_type> values_;
 };
 
 

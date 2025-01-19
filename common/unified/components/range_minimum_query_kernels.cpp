@@ -31,7 +31,7 @@ void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
     using tree_index_type = std::decay_t<decltype(*block_type)>;
     using device_lut_type =
         gko::device_block_range_minimum_query_lookup_table<small_block_size>;
-    static_assert(device_lut_type::type::num_trees <=
+    static_assert(device_lut_type::view_type::num_trees <=
                       std::numeric_limits<tree_index_type>::max(),
                   "block type storage too small");
     constexpr auto collation_width =
@@ -89,11 +89,14 @@ void compute_lookup_large(
 #ifdef GKO_COMPILING_DPCPP
     GKO_NOT_IMPLEMENTED;
 #else
+    if (num_blocks < 2) {
+        return;
+    }
     using superblock_type = range_minimum_query_superblocks<IndexType>;
-    using word_type = typename superblock_type::storage_type;
+    using storage_type = typename superblock_type::storage_type;
     // we need to collate all writes that target the same memory word in a
     // single thread
-    constexpr auto level0_collation_width = sizeof(word_type) * CHAR_BIT;
+    constexpr auto level0_collation_width = sizeof(storage_type) * CHAR_BIT;
     // initialize the first level of blocks
     run_kernel(
         exec,

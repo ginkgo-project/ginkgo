@@ -42,6 +42,7 @@ target_sources(${ginkgo_core}
     base/segmented_array.cpp
     base/timer.cpp
     base/version.cpp
+    components/range_minimum_query.cpp
     config/config.cpp
     config/config_helper.cpp
     config/property_tree.cpp

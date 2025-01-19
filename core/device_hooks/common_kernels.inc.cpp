@@ -17,6 +17,7 @@
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/components/range_minimum_query_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/assembly_kernels.hpp"
 #include "core/distributed/index_map_kernels.hpp"
@@ -290,6 +291,18 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 
 
 }  // namespace components
+
+
+namespace range_minimum_query {
+
+
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_SMALL_KERNEL);
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_LARGE_KERNEL);
+
+
+}  // namespace range_minimum_query
 
 
 namespace idx_set {

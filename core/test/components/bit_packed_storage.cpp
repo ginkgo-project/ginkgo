@@ -16,8 +16,8 @@ template <typename IndexWordType>
 class BitPackedSpan : public ::testing::Test {
 public:
     using index_type = std::tuple_element_t<0, IndexWordType>;
-    using word_type = std::tuple_element_t<1, IndexWordType>;
-    using bit_packed_span = gko::bit_packed_span<index_type, word_type>;
+    using storage_type = std::tuple_element_t<1, IndexWordType>;
+    using bit_packed_span = gko::bit_packed_span<index_type, storage_type>;
 
     std::default_random_engine rng{2457};
 };
@@ -31,27 +31,27 @@ TYPED_TEST_SUITE(BitPackedSpan, WordTypes, PairTypenameNameGenerator);
 TYPED_TEST(BitPackedSpan, Works)
 {
     using bit_packed_span = typename TestFixture::bit_packed_span;
-    using word_type = typename TestFixture::word_type;
-    for (const auto size : {0, 10, 100, 1000, 1023, 1023}) {
+    using storage_type = typename TestFixture::storage_type;
+    for (const auto size : {0, 10, 100, 1000, 1023, 1024, 1025}) {
         SCOPED_TRACE(size);
         for (const auto num_bits : {2, 3, 5, 7, 8, 9, 31}) {
             SCOPED_TRACE(num_bits);
-            const word_type max_value = 1ull << num_bits;
-            std::vector<word_type> packed_data(
+            const storage_type max_value = 1ull << num_bits;
+            std::vector<storage_type> packed_data(
                 bit_packed_span::storage_size(size, num_bits));
-            std::vector<word_type> packed_data2(
+            std::vector<storage_type> packed_data2(
                 bit_packed_span::storage_size(size, num_bits));
-            std::vector<word_type> data(size);
-            std::vector<word_type> retrieved_data(size);
-            std::vector<word_type> retrieved_data2(size);
-            std::uniform_int_distribution<word_type> dist{
-                0, static_cast<word_type>(max_value - 1)};
+            std::vector<storage_type> data(size);
+            std::vector<storage_type> retrieved_data(size);
+            std::vector<storage_type> retrieved_data2(size);
+            std::uniform_int_distribution<storage_type> dist{
+                0, static_cast<storage_type>(max_value - 1)};
             for (auto& val : data) {
                 val = dist(this->rng);
             }
             // scrable packed_data2 to check proper initialization
-            std::uniform_int_distribution<word_type> dist2{word_type{},
-                                                           ~word_type{}};
+            std::uniform_int_distribution<storage_type> dist2{storage_type{},
+                                                              ~storage_type{}};
             for (auto& val : packed_data2) {
                 val = dist2(this->rng);
             }
@@ -109,13 +109,13 @@ TYPED_TEST(BitPackedArray, Works)
     constexpr auto num_bits = TestFixture::num_bits;
     constexpr auto size = TestFixture::size;
     using bit_packed_array = typename TestFixture::bit_packed_array;
-    using word_type = typename bit_packed_array::word_type;
-    const auto max_value = word_type{2} << (num_bits - 1);
-    std::array<word_type, size> data{};
-    std::array<word_type, size> retrieved_data{};
-    std::array<word_type, size> retrieved_data2{};
-    std::uniform_int_distribution<word_type> dist{
-        0, static_cast<word_type>(max_value - 1)};
+    using storage_type = typename bit_packed_array::storage_type;
+    const auto max_value = storage_type{2} << (num_bits - 1);
+    std::array<storage_type, size> data{};
+    std::array<storage_type, size> retrieved_data{};
+    std::array<storage_type, size> retrieved_data2{};
+    std::uniform_int_distribution<storage_type> dist{
+        0, static_cast<storage_type>(max_value - 1)};
     for (auto& val : data) {
         val = dist(this->rng);
     }
