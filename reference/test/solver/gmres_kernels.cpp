@@ -899,6 +899,34 @@ TYPED_TEST(Gmres, SolvesWithRgs)
                             r<value_type>::value * 1e3);
 }
 
+TYPED_TEST(Gmres, SolvesWithRgsTwoRhs)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto gmres_factory_preconditioner =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    auto solver = gmres_factory_preconditioner->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        //{72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
+        {175352.1, 313410.5, 131114.1, -134116.3, 179529.3, -43564.9},
+        this->exec);
+    auto x =
+        gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, //l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
+                           l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                            r<value_type>::value * 1e3);
+}
+
 TYPED_TEST(Gmres, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
