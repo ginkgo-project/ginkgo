@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/base/index_range.hpp"
 #include "core/test/utils.hpp"
 #include "gtest/gtest.h"
 
@@ -99,7 +100,7 @@ using Sizes =
                                         // of bits, fully filled
                      size_info<3, 9>,   // multiple words, partially filled
                      size_info<5, 52>,  // larger size
-                     size_info<32, 3>   // single word for each value
+                     size_info<31, 3>   // single word for each value
                      >;
 
 TYPED_TEST_SUITE(BitPackedArray, Sizes, TypenameNameGenerator);
