@@ -106,7 +106,8 @@ build/cuda110/nompi/gcc/cuda/release/shared:
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    # this is seemingly broken with CUDA 11
+    # EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
 
 # nvhpc and friends
