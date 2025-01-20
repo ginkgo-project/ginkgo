@@ -20,6 +20,10 @@
 #include "test/utils/common_fixture.hpp"
 
 
+// workaround for cudafe 11.0 bug
+using gko::irange;
+
+
 template <typename T>
 class RangeMinimumQuery : public CommonTestFixture {
 protected:
