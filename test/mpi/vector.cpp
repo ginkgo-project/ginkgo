@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -443,8 +443,8 @@ public:
         dense_real_res = real_dense_type ::create(exec);
         real_res = real_dense_type ::create(exec);
 
-        dense_tmp = gko::Array<char>(exec);
-        tmp = gko::Array<char>(exec);
+        dense_tmp = gko::array<char>(exec);
+        tmp = gko::array<char>(exec);
 
         auto num_parts =
             static_cast<gko::experimental::distributed::comm_index_type>(
