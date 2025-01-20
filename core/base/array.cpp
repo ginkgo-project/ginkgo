@@ -93,11 +93,9 @@ ValueType reduce_add(const array<ValueType>& input_arr,
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 template GKO_DECLARE_ARRAY_FILL(uint16);
 template GKO_DECLARE_ARRAY_FILL(uint32);
-
-
-// this is necessary because compilers use different types for uint64_t and
-// size_t, namely unsigned long long and unsigned long
-void array_fill_instantiation_helper(array<uint64>& a) { a.fill(0); }
+#ifndef GKO_SIZE_T_IS_UINT64_T
+template GKO_DECLARE_ARRAY_FILL(uint64);
+#endif
 
 
 #define GKO_DECLARE_ARRAY_REDUCE_ADD(_type) \

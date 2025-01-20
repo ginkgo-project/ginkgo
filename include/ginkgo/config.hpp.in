@@ -37,6 +37,10 @@
 #cmakedefine GKO_HAVE_CXXABI_H
 
 
+/* Is std::size_t the same type as std::uint64_t? */
+#cmakedefine GKO_SIZE_T_IS_UINT64_T
+
+
 /* Should we use all optimizations for Jacobi? */
 #cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
 
