@@ -9,8 +9,9 @@
 #include <limits>
 #include <utility>
 
-#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+#include "core/base/intrinsics.hpp"
 
 namespace gko {
 

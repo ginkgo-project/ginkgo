@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/base/intrinsics.hpp"
+
 #include <memory>
 
 #include <gtest/gtest.h>

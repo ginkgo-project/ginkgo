@@ -10,11 +10,11 @@
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/index_range.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/components/bit_packed_storage.hpp"
 
 namespace gko {

@@ -6,9 +6,8 @@
 
 #include <limits>
 
-#include <ginkgo/core/base/intrinsics.hpp>
-
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/components/bit_packed_storage.hpp"
 #include "core/components/range_minimum_query.hpp"
 
