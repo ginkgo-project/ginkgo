@@ -165,6 +165,11 @@
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                              \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(_macro)
 
+#define GKO_STUB_FOR_EACH_MIXED_VALUE_TYPE_2(_macro)                 \
+    template <typename ValueType, typename ScalarType>               \
+    _macro(ValueType, ScalarType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_TYPE_2(_macro)
+
 #define GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2_BASE(_macro)       \
     template <typename InputValueType, typename OutputValueType, \
               typename IndexType>                                \
@@ -657,8 +662,8 @@ GKO_STUB_CB_GMRES_CONST(GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 namespace chebyshev {
 
 
-GKO_STUB_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
-GKO_STUB_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);
+GKO_STUB_FOR_EACH_MIXED_VALUE_TYPE_2(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
+GKO_STUB_FOR_EACH_MIXED_VALUE_TYPE_2(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);
 
 
 }  // namespace chebyshev

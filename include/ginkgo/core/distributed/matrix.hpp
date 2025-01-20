@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,7 +28,11 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 
-}
+template <typename ValueType>
+class Dense;
+
+
+}  // namespace matrix
 
 
 namespace multigrid {
@@ -661,7 +665,9 @@ protected:
      *                 shared values is automatically extracted.
      * @return  MPI request for the non-blocking communication.
      */
-    mpi::request communicate(const local_vector_type* local_b) const;
+    template <typename VectorValueType>
+    mpi::request communicate(
+        const gko::matrix::Dense<VectorValueType>* local_b) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -676,12 +682,13 @@ private:
     array<local_index_type> gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> host_send_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
-    gko::detail::DenseCache<value_type> send_buffer_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
+    gko::detail::DenseCacheN host_send_buffer_;
+    gko::detail::DenseCacheN host_recv_buffer_;
+    gko::detail::DenseCacheN send_buffer_;
+    gko::detail::DenseCacheN recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
+    bool local_only_;
 };
 
 

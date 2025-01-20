@@ -387,6 +387,38 @@ void precision_dispatch(Function fn, Args*... linops)
     fn(distributed::make_temporary_conversion<ValueType>(linops).get()...);
 }
 
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = Vector<ValueType>;
+    using snd_type = Vector<next_precision<ValueType>>;
+    using trd_type = Vector<next_precision<next_precision<ValueType>>>;
+    auto dispatch_out_vector = [&](auto vector_in) {
+        if (auto vector_out = dynamic_cast<fst_type*>(out)) {
+            fn(vector_in, vector_out);
+        } else if (auto vector_out = dynamic_cast<snd_type*>(out)) {
+            fn(vector_in, vector_out);
+        } else if (auto vector_out = dynamic_cast<trd_type*>(out)) {
+            fn(vector_in, vector_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    };
+    if (auto vector_in = dynamic_cast<const fst_type*>(in)) {
+        dispatch_out_vector(vector_in);
+    } else if (auto vector_in = dynamic_cast<const snd_type*>(in)) {
+        dispatch_out_vector(vector_in);
+    } else if (auto vector_in = dynamic_cast<const trd_type*>(in)) {
+        dispatch_out_vector(vector_in);
+    } else {
+        GKO_NOT_SUPPORTED(in);
+    }
+#else
+    precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
 
 /**
  * Calls the given function with the given LinOps temporarily converted to
@@ -417,6 +449,27 @@ void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
            dynamic_cast<Vector*>(dense_out->create_real_view().get()));
     } else {
         distributed::precision_dispatch<ValueType>(fn, in, out);
+    }
+}
+
+
+template <typename ValueType, typename Function>
+void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
+                                           LinOp* out)
+{
+    auto complex_to_real = !(
+        is_complex<ValueType>() ||
+        dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            in));
+    if (complex_to_real) {
+        distributed::mixed_precision_dispatch<to_complex<ValueType>>(
+            [&fn](auto vector_in, auto vector_out) {
+                fn(vector_in->create_real_view().get(),
+                   vector_out->create_real_view().get());
+            },
+            in, out);
+    } else {
+        distributed::mixed_precision_dispatch<ValueType>(fn, in, out);
     }
 }
 

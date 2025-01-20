@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/components/prefix_sum_kernels.hpp"
@@ -55,7 +56,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      non_local_mtx_{non_local_matrix_template->clone(exec)},
+      local_only_{false}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -81,7 +83,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
-          exec, dim<2>{local_linop->get_size()[0], 0}))
+          exec, dim<2>{local_linop->get_size()[0], 0})),
+      local_only_{true}
 {
     this->set_size(size);
     one_scalar_.init(exec, dim<2>{1, 1});
@@ -104,7 +107,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
       non_local_to_global_{exec},
-      one_scalar_{}
+      one_scalar_{},
+      local_only_{false}
 {
     this->set_size(size);
     local_mtx_ = std::move(local_linop);
@@ -445,8 +449,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+template <typename VectorValueType>
 mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
-    const local_vector_type* local_b) const
+    const gko::matrix::Dense<VectorValueType>* local_b) const
 {
     // This function can never return early!
     // Even if the non-local part is empty, i.e. this process doesn't need
@@ -460,23 +465,26 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     auto recv_size = recv_offsets_.back();
     auto send_dim = dim<2>{static_cast<size_type>(send_size), num_cols};
     auto recv_dim = dim<2>{static_cast<size_type>(recv_size), num_cols};
-    recv_buffer_.init(exec, recv_dim);
-    send_buffer_.init(exec, send_dim);
-
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
+    auto recv_buffer =
+        recv_buffer_.template get<VectorValueType>(exec, recv_dim);
+    auto send_buffer =
+        send_buffer_.template get<VectorValueType>(exec, send_dim);
+    local_b->row_gather(&gather_idxs_, send_buffer);
 
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    auto send_ptr = send_buffer->get_const_values();
+    auto recv_ptr = recv_buffer->get_values();
     if (use_host_buffer) {
-        host_recv_buffer_.init(exec->get_master(), recv_dim);
-        host_send_buffer_.init(exec->get_master(), send_dim);
-        host_send_buffer_->copy_from(send_buffer_.get());
+        auto host_recv_buffer = host_recv_buffer_.template get<VectorValueType>(
+            exec->get_master(), recv_dim);
+        auto host_send_buffer = host_send_buffer_.template get<VectorValueType>(
+            exec->get_master(), send_dim);
+        host_send_buffer->copy_from(send_buffer);
+        send_ptr = host_send_buffer->get_const_values();
+        recv_ptr = host_recv_buffer->get_values();
     }
 
     mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    auto send_ptr = use_host_buffer ? host_send_buffer_->get_const_values()
-                                    : send_buffer_->get_const_values();
-    auto recv_ptr = use_host_buffer ? host_recv_buffer_->get_values()
-                                    : recv_buffer_->get_values();
     exec->synchronize();
 #ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
     comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
@@ -497,10 +505,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
-    distributed::precision_dispatch_real_complex<ValueType>(
+    distributed::mixed_precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
             auto x_exec = dense_x->get_executor();
-            auto local_x = gko::matrix::Dense<ValueType>::create(
+            using x_value_type =
+                typename std::decay_t<decltype(*dense_x)>::value_type;
+            using b_value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            auto local_x = gko::matrix::Dense<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,
@@ -509,16 +521,30 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = this->communicate(dense_b->get_local_vector());
+            mpi::request req;
+            if (!local_only_) {
+                req = this->communicate(dense_b->get_local_vector());
+            }
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
+            if (local_only_) {
+                return;
+            }
             req.wait();
-
             auto exec = this->get_executor();
             auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+
+            auto recv_size = recv_offsets_.back();
+            auto recv_dim = dim<2>{static_cast<size_type>(recv_size),
+                                   dense_b->get_size()[1]};
+            auto recv_buffer =
+                recv_buffer_.template get<b_value_type>(exec, recv_dim);
             if (use_host_buffer) {
-                recv_buffer_->copy_from(host_recv_buffer_.get());
+                auto host_recv_buffer =
+                    host_recv_buffer_.template get<b_value_type>(
+                        exec->get_master(), recv_dim);
+                recv_buffer->copy_from(host_recv_buffer);
             }
-            non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+            non_local_mtx_->apply(one_scalar_.get(), recv_buffer,
                                   one_scalar_.get(), local_x);
         },
         b, x);
@@ -529,11 +555,17 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    distributed::precision_dispatch_real_complex<ValueType>(
-        [this](const auto local_alpha, const auto dense_b,
-               const auto local_beta, auto dense_x) {
+    distributed::mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](const auto dense_b, auto dense_x) {
             const auto x_exec = dense_x->get_executor();
-            auto local_x = gko::matrix::Dense<ValueType>::create(
+            using x_value_type =
+                typename std::decay_t<decltype(*dense_x)>::value_type;
+            using b_value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            auto local_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+            auto local_beta =
+                gko::make_temporary_conversion<x_value_type>(beta);
+            auto local_x = gko::matrix::Dense<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,
@@ -542,20 +574,34 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 dense_x->get_local_vector()->get_stride());
 
             auto comm = this->get_communicator();
-            auto req = this->communicate(dense_b->get_local_vector());
-            local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
-                              local_beta, local_x);
+            mpi::request req;
+            if (!local_only_) {
+                req = this->communicate(dense_b->get_local_vector());
+            }
+            local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
+                              local_beta.get(), local_x);
+            if (local_only_) {
+                return;
+            }
             req.wait();
 
             auto exec = this->get_executor();
             auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+            auto recv_size = recv_offsets_.back();
+            auto recv_dim = dim<2>{static_cast<size_type>(recv_size),
+                                   dense_b->get_size()[1]};
+            auto recv_buffer =
+                recv_buffer_.template get<b_value_type>(exec, recv_dim);
             if (use_host_buffer) {
-                recv_buffer_->copy_from(host_recv_buffer_.get());
+                auto host_recv_buffer =
+                    host_recv_buffer_.template get<b_value_type>(
+                        exec->get_master(), recv_dim);
+                recv_buffer->copy_from(host_recv_buffer);
             }
-            non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
+            non_local_mtx_->apply(local_alpha.get(), recv_buffer,
                                   one_scalar_.get(), local_x);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 
@@ -563,6 +609,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
+    std::cout << "col_scale" << std::endl;
     GKO_ASSERT_CONFORMANT(this, scaling_factors.get());
     GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
@@ -582,21 +629,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
         exec, n_local_cols,
         make_const_array_view(exec, n_local_cols, scale_values));
 
-    auto req = this->communicate(
-        stride == 1 ? scaling_factors->get_local_vector()
-                    : scaling_factors_single_stride->get_local_vector());
+    auto factors = stride == 1
+                       ? scaling_factors->get_local_vector()
+                       : scaling_factors_single_stride->get_local_vector();
+    auto req = this->communicate(factors);
     scale_diag->rapply(local_mtx_, local_mtx_);
     req.wait();
     if (n_non_local_cols > 0) {
         auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+        auto recv_size = recv_offsets_.back();
+        auto recv_buffer = recv_buffer_.template get<ValueType>(
+            exec, gko::dim<2>(recv_size, 1));
         if (use_host_buffer) {
-            recv_buffer_->copy_from(host_recv_buffer_.get());
+            auto host_recv_buffer = host_recv_buffer_.template get<ValueType>(
+                exec->get_master(), gko::dim<2>(recv_size, 1));
+            recv_buffer->copy_from(host_recv_buffer);
         }
         const auto non_local_scale_diag =
             gko::matrix::Diagonal<ValueType>::create_const(
                 exec, n_non_local_cols,
                 make_const_array_view(exec, n_non_local_cols,
-                                      recv_buffer_->get_const_values()));
+                                      recv_buffer->get_const_values()));
         non_local_scale_diag->rapply(non_local_mtx_, non_local_mtx_);
     }
 }

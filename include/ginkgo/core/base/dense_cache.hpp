@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -87,6 +88,36 @@ struct DenseCache {
      * @return  Pointer to the stored vector.
      */
     matrix::Dense<ValueType>* get() const { return vec.get(); }
+};
+
+
+struct DenseCacheN {
+    DenseCacheN() = default;
+    ~DenseCacheN() = default;
+    DenseCacheN(const DenseCacheN&) {}
+    DenseCacheN(DenseCacheN&&) noexcept {}
+    DenseCacheN& operator=(const DenseCacheN&) { return *this; }
+    DenseCacheN& operator=(DenseCacheN&&) noexcept { return *this; }
+    mutable array<char> workspace;
+
+    /**
+     * Pointer access to the underlying vector.
+     * @return  Pointer to the stored vector.
+     */
+    template <typename ValueType>
+    std::shared_ptr<matrix::Dense<ValueType>> get(
+        std::shared_ptr<const Executor> exec, dim<2> size) const
+    {
+        workspace.set_executor(exec);
+        if (size[0] * size[1] * sizeof(ValueType) > workspace.get_size()) {
+            workspace.resize_and_reset(size[0] * size[1] * sizeof(ValueType));
+        }
+        return matrix::Dense<ValueType>::create(
+            exec, size,
+            make_array_view(exec, size[0] * size[1],
+                            reinterpret_cast<ValueType*>(workspace.get_data())),
+            size[1]);
+    }
 };
 
 

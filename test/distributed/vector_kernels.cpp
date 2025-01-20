@@ -134,9 +134,7 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
             num_rows, num_cols,
             std::uniform_int_distribution<int>(0,
                                                static_cast<int>(num_cols - 1)),
-            std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
-                                                                            1),
-            this->engine, this->ref);
+            std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
@@ -169,9 +167,7 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
             num_rows, num_cols,
             std::uniform_int_distribution<int>(0,
                                                static_cast<int>(num_cols - 1)),
-            std::uniform_real_distribution<gko::remove_complex<value_type>>(0,
-                                                                            1),
-            this->engine, this->ref);
+            std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,

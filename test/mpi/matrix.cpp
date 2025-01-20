@@ -300,10 +300,13 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     x->read_distributed(vec_md, col_part);
     y->read_distributed(vec_md, row_part);
 
+    std::cout << "test" << std::endl;
     auto mat = dist_mtx_type::create(
         this->exec, this->comm, gko::dim<2>{5, 5}, local, non_local,
         recv_sizes[rank], recv_offsets[rank], recv_gather_index[rank]);
+    std::cout << "test2" << std::endl;
     mat->apply(x, y);
+    std::cout << "test3" << std::endl;
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
                         0);
