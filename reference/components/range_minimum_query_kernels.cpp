@@ -23,10 +23,10 @@ void compute_lookup_inside_blocks(
     IndexType size, bit_packed_span<int, IndexType, uint32>& block_argmin,
     IndexType* block_min, uint16* block_tree_index)
 {
-    using device_type = device_range_minimum_query<IndexType>;
-    constexpr auto block_size = device_type::block_size;
+    using rmq_type = gko::range_minimum_query<IndexType>;
+    constexpr auto block_size = rmq_type::block_size;
     using tree_index_type = std::decay_t<decltype(*block_tree_index)>;
-    using lut_type = typename device_type::block_lut_view_type;
+    using lut_type = typename rmq_type::block_lut_view_type;
     lut_type table;
     static_assert(
         lut_type::num_trees <= std::numeric_limits<tree_index_type>::max(),
@@ -59,9 +59,9 @@ template <typename IndexType>
 void compute_lookup_across_blocks(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* block_min,
     IndexType num_blocks,
-    range_minimum_query_superblocks<IndexType>& superblocks)
+    device_range_minimum_query_superblocks<IndexType>& superblocks)
 {
-    using superblock_type = range_minimum_query_superblocks<IndexType>;
+    using superblock_type = device_range_minimum_query_superblocks<IndexType>;
     constexpr auto infinity = std::numeric_limits<IndexType>::max();
     if (num_blocks < 2) {
         return;

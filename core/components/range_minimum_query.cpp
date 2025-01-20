@@ -23,8 +23,7 @@ GKO_REGISTER_OPERATION(compute_lookup_across_blocks,
 
 
 template <typename IndexType>
-device_range_minimum_query<IndexType>::device_range_minimum_query(
-    array<IndexType> data)
+range_minimum_query<IndexType>::range_minimum_query(array<IndexType> data)
     : num_blocks_{static_cast<index_type>(
           ceildiv(static_cast<index_type>(data.get_size()), block_size))},
       lut_{data.get_executor()},
@@ -55,21 +54,22 @@ device_range_minimum_query<IndexType>::device_range_minimum_query(
 
 
 template <typename IndexType>
-typename device_range_minimum_query<IndexType>::view_type
-device_range_minimum_query<IndexType>::get() const
+typename range_minimum_query<IndexType>::view_type
+range_minimum_query<IndexType>::get() const
 {
-    return range_minimum_query{values_.get_const_data(),
-                               block_min_.get_const_data(),
-                               block_argmin_storage_.get_const_data(),
-                               block_tree_indices_.get_const_data(),
-                               superblock_storage_.get_const_data(),
-                               lut_.get(),
-                               static_cast<index_type>(values_.get_size())};
+    return device_range_minimum_query{
+        values_.get_const_data(),
+        block_min_.get_const_data(),
+        block_argmin_storage_.get_const_data(),
+        block_tree_indices_.get_const_data(),
+        superblock_storage_.get_const_data(),
+        lut_.get(),
+        static_cast<index_type>(values_.get_size())};
 }
 
 
 #define GKO_DEFINE_DEVICE_RANGE_MINIMUM_QUERY(IndexType) \
-    class device_range_minimum_query<IndexType>
+    class range_minimum_query<IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DEFINE_DEVICE_RANGE_MINIMUM_QUERY);
 

@@ -25,12 +25,12 @@ class RangeMinimumQuery : public CommonTestFixture {
 protected:
     using index_type = T;
     using storage_type = std::make_unsigned_t<index_type>;
-    using block_argmin_view_type = typename gko::device_range_minimum_query<
-        index_type>::block_argmin_view_type;
+    using block_argmin_view_type =
+        typename gko::range_minimum_query<index_type>::block_argmin_view_type;
     using superblock_view_type =
-        gko::range_minimum_query_superblocks<index_type>;
+        gko::device_range_minimum_query_superblocks<index_type>;
     constexpr static auto block_size =
-        gko::device_range_minimum_query<index_type>::block_size;
+        gko::range_minimum_query<index_type>::block_size;
 
     RangeMinimumQuery()
         : rng{19654}, sizes{0, 1, 7, 8, 9, 1023, 1024, 1025, 10000, 100000}
@@ -189,7 +189,7 @@ template <typename IndexType>
 void run_rmq_device(std::shared_ptr<const gko::EXEC_TYPE> exec,
                     const gko::array<IndexType>& dbegins,
                     const gko::array<IndexType>& dends,
-                    const gko::device_range_minimum_query<IndexType>& drmq,
+                    const gko::range_minimum_query<IndexType>& drmq,
                     gko::array<IndexType>& doutput_min,
                     gko::array<IndexType>& doutput_argmin)
 {
@@ -222,8 +222,8 @@ TYPED_TEST(RangeMinimumQuery, QueryIsEquivalentToRef)
         gko::array<index_type> dends{this->exec, ends};
         gko::array<index_type> doutput_min{this->exec, begins.get_size()};
         gko::array<index_type> doutput_argmin{this->exec, begins.get_size()};
-        gko::device_range_minimum_query<index_type> rmq{std::move(values)};
-        gko::device_range_minimum_query<index_type> drmq{std::move(dvalues)};
+        gko::range_minimum_query<index_type> rmq{std::move(values)};
+        gko::range_minimum_query<index_type> drmq{std::move(dvalues)};
 
         for (const auto i :
              gko::irange{static_cast<index_type>(begins.get_size())}) {

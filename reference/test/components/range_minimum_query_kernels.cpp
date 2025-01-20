@@ -21,7 +21,7 @@ class RangeMinimumQuery : public ::testing::Test {
 protected:
     using index_type = IndexType;
     using storage_type = std::make_unsigned_t<index_type>;
-    using device_type = gko::device_range_minimum_query<index_type>;
+    using device_type = gko::range_minimum_query<index_type>;
     using block_argmin_view_type = typename device_type::block_argmin_view_type;
     using superblock_view_type = typename device_type::superblock_view_type;
     constexpr static auto block_size = device_type::block_size;
@@ -71,7 +71,8 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmall)
                                             block_argmin_num_bits, num_blocks};
         std::vector<index_type> block_min(num_blocks);
         std::vector<gko::uint16> block_tree_index(num_blocks);
-        gko::block_range_minimum_query_lookup_table<block_size> small_lut;
+        gko::device_block_range_minimum_query_lookup_table<block_size>
+            small_lut;
 
         gko::kernels::reference::range_minimum_query::
             compute_lookup_inside_blocks(this->ref, values.data(), size,
@@ -185,7 +186,7 @@ TYPED_TEST(RangeMinimumQuery, FullQuery)
     for (index_type size : this->sizes) {
         SCOPED_TRACE(size);
         const auto values = this->create_random_values(size);
-        gko::device_range_minimum_query<index_type> rmq{
+        gko::range_minimum_query<index_type> rmq{
             gko::array<index_type>{this->ref, values.begin(), values.end()}};
 
         for (auto first : gko::irange{size}) {
