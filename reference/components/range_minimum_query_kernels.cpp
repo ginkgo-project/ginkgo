@@ -18,10 +18,10 @@ namespace range_minimum_query {
 
 
 template <typename IndexType>
-void compute_lookup_small(std::shared_ptr<const DefaultExecutor> exec,
-                          const IndexType* values, IndexType size,
-                          bit_packed_span<int, IndexType, uint32>& block_argmin,
-                          IndexType* block_min, uint16* block_tree_index)
+void compute_lookup_inside_blocks(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* values,
+    IndexType size, bit_packed_span<int, IndexType, uint32>& block_argmin,
+    IndexType* block_min, uint16* block_tree_index)
 {
     using device_type = device_range_minimum_query<IndexType>;
     constexpr auto block_size = device_type::block_size;
@@ -56,7 +56,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_lookup_large(
+void compute_lookup_across_blocks(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* block_min,
     IndexType num_blocks,
     range_minimum_query_superblocks<IndexType>& superblocks)

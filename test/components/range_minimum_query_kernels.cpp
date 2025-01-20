@@ -139,13 +139,14 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmallAndLargeIsEquivalentToRef)
         gko::array<gko::uint16> block_tree_index{this->ref, num_blocks};
         gko::array<gko::uint16> dblock_tree_index{this->exec, num_blocks};
 
-        gko::kernels::reference::range_minimum_query::compute_lookup_small(
-            this->ref, values.get_const_data(), size, block_argmin,
-            block_min.get_data(), block_tree_index.get_data());
+        gko::kernels::reference::range_minimum_query::
+            compute_lookup_inside_blocks(
+                this->ref, values.get_const_data(), size, block_argmin,
+                block_min.get_data(), block_tree_index.get_data());
         gko::kernels::GKO_DEVICE_NAMESPACE::range_minimum_query::
-            compute_lookup_small(this->exec, dvalues.get_const_data(), size,
-                                 dblock_argmin, dblock_min.get_data(),
-                                 dblock_tree_index.get_data());
+            compute_lookup_inside_blocks(
+                this->exec, dvalues.get_const_data(), size, dblock_argmin,
+                dblock_min.get_data(), dblock_tree_index.get_data());
 
         GKO_ASSERT_ARRAY_EQ(block_min, dblock_min);
         GKO_ASSERT_ARRAY_EQ(block_tree_index, dblock_tree_index);
@@ -167,13 +168,14 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmallAndLargeIsEquivalentToRef)
                 dblock_min.get_const_data(), dsuperblock_storage.get_data(),
                 static_cast<index_type>(num_blocks)};
 
-            gko::kernels::reference::range_minimum_query::compute_lookup_large(
-                this->ref, block_min.get_const_data(),
-                static_cast<index_type>(num_blocks), superblocks);
+            gko::kernels::reference::range_minimum_query::
+                compute_lookup_across_blocks(
+                    this->ref, block_min.get_const_data(),
+                    static_cast<index_type>(num_blocks), superblocks);
             gko::kernels::GKO_DEVICE_NAMESPACE::range_minimum_query::
-                compute_lookup_large(this->exec, dblock_min.get_const_data(),
-                                     static_cast<index_type>(num_blocks),
-                                     dsuperblocks);
+                compute_lookup_across_blocks(
+                    this->exec, dblock_min.get_const_data(),
+                    static_cast<index_type>(num_blocks), dsuperblocks);
 
             GKO_ASSERT_ARRAY_EQ(superblock_storage, dsuperblock_storage);
         }

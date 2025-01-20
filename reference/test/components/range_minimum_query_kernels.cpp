@@ -73,9 +73,10 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupSmall)
         std::vector<gko::uint16> block_tree_index(num_blocks);
         gko::block_range_minimum_query_lookup_table<block_size> small_lut;
 
-        gko::kernels::reference::range_minimum_query::compute_lookup_small(
-            this->ref, values.data(), size, block_argmin, block_min.data(),
-            block_tree_index.data());
+        gko::kernels::reference::range_minimum_query::
+            compute_lookup_inside_blocks(this->ref, values.data(), size,
+                                         block_argmin, block_min.data(),
+                                         block_tree_index.data());
 
         for (auto block : gko::irange{num_blocks}) {
             SCOPED_TRACE(block);
@@ -116,8 +117,9 @@ TYPED_TEST(RangeMinimumQuery, ComputeLookupLarge)
         superblock_view_type superblocks(block_min.data(),
                                          superblock_storage.data(), num_blocks);
 
-        gko::kernels::reference::range_minimum_query::compute_lookup_large(
-            this->ref, block_min.data(), num_blocks, superblocks);
+        gko::kernels::reference::range_minimum_query::
+            compute_lookup_across_blocks(this->ref, block_min.data(),
+                                         num_blocks, superblocks);
 
         for (auto level : gko::irange(superblocks.num_levels())) {
             SCOPED_TRACE(level);
@@ -147,8 +149,9 @@ TYPED_TEST(RangeMinimumQuery, SuperblockQuery)
             superblock_view_type::storage_size(num_blocks));
         superblock_view_type superblocks(block_min.data(),
                                          superblock_storage.data(), num_blocks);
-        gko::kernels::reference::range_minimum_query::compute_lookup_large(
-            this->ref, block_min.data(), num_blocks, superblocks);
+        gko::kernels::reference::range_minimum_query::
+            compute_lookup_across_blocks(this->ref, block_min.data(),
+                                         num_blocks, superblocks);
         for (auto first : gko::irange{num_blocks}) {
             SCOPED_TRACE(first);
             for (auto last : gko::irange{first, num_blocks}) {
