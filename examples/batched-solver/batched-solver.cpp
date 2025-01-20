@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,7 +54,7 @@ auto unbatch(const InputType* batch_object)
 //
 // We use raw pointers below to demonstrate how to handle the situation when
 // the application only gives us raw pointers. Ideally, one should use
-// Ginkgo's gko::Array class here. In this example, we assume that the data is
+// Ginkgo's gko::array class here. In this example, we assume that the data is
 // in a format that can directly be given to a batch::matrix::Csr object.
 struct ApplSysData {
     // Number of small systems in the batch.
