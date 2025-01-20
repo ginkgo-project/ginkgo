@@ -13,10 +13,10 @@ namespace gko {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_lookup_small,
-                       range_minimum_query::compute_lookup_small);
-GKO_REGISTER_OPERATION(compute_lookup_large,
-                       range_minimum_query::compute_lookup_large);
+GKO_REGISTER_OPERATION(compute_lookup_inside_blocks,
+                       range_minimum_query::compute_lookup_inside_blocks);
+GKO_REGISTER_OPERATION(compute_lookup_across_blocks,
+                       range_minimum_query::compute_lookup_across_blocks);
 
 
 }  // namespace
@@ -43,14 +43,14 @@ device_range_minimum_query<IndexType>::device_range_minimum_query(
     const auto exec = values_.get_executor();
     auto block_argmin = block_argmin_view_type{
         block_argmin_storage_.get_data(), block_argmin_num_bits, num_blocks_};
-    exec->run(make_compute_lookup_small(
+    exec->run(make_compute_lookup_inside_blocks(
         values_.get_const_data(), static_cast<index_type>(values_.get_size()),
         block_argmin, block_min_.get_data(), block_tree_indices_.get_data()));
     auto superblocks =
         superblock_view_type{block_min_.get_const_data(),
                              superblock_storage_.get_data(), num_blocks_};
-    exec->run(make_compute_lookup_large(block_min_.get_const_data(),
-                                        num_blocks_, superblocks));
+    exec->run(make_compute_lookup_across_blocks(block_min_.get_const_data(),
+                                                num_blocks_, superblocks));
 }
 
 
