@@ -57,15 +57,15 @@ protected:
     {
         std::vector<index_type> begins;
         std::vector<index_type> ends;
-        std::uniform_int_distribution<index_type> dist{0, size - 1};
-        const auto add_query = [&](index_type begin, index_type end) {
-            assert(begin <= end);
-            assert(begin >= 0);
-            assert(end < size);
-            begins.push_back(begin);
-            ends.push_back(end);
-        };
         if (size > 0) {
+            std::uniform_int_distribution<index_type> dist{0, size - 1};
+            const auto add_query = [&](index_type begin, index_type end) {
+                assert(begin <= end);
+                assert(begin >= 0);
+                assert(end < size);
+                begins.push_back(begin);
+                ends.push_back(end);
+            };
             for (const auto i : gko::irange{size}) {
                 // singleton queries
                 add_query(i, i);
