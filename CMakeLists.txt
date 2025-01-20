@@ -122,6 +122,7 @@ include(cmake/build_type_helpers.cmake)
 # Load other CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
+include(cmake/compiler_features.cmake)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")

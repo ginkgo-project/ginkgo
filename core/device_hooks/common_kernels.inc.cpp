@@ -252,14 +252,9 @@ GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
-
-
-// this is necessary because compilers use different types for uint64_t and
-// size_t, namely unsigned long long and unsigned long
-void fill_array_instantiation_helper()
-{
-    fill_array<uint64>(nullptr, nullptr, 0, 0);
-}
+#ifndef GKO_SIZE_T_IS_UINT64_T
+template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
+#endif
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
