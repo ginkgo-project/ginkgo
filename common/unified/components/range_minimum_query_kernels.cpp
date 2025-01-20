@@ -29,11 +29,11 @@ void compute_lookup_inside_blocks(
     // non-trivial objects on the device.
     GKO_NOT_IMPLEMENTED;
 #else
-    using device_type = device_range_minimum_query<IndexType>;
-    constexpr auto block_size = device_type::block_size;
+    using rmq_type = gko::range_minimum_query<IndexType>;
+    constexpr auto block_size = rmq_type::block_size;
     using tree_index_type = std::decay_t<decltype(*block_tree_index)>;
-    using device_lut_type = typename device_type::block_lut_type;
-    using lut_type = typename device_type::block_lut_view_type;
+    using device_lut_type = typename rmq_type::block_lut_type;
+    using lut_type = typename rmq_type::block_lut_view_type;
     static_assert(
         lut_type::num_trees <= std::numeric_limits<tree_index_type>::max(),
         "block type storage too small");
@@ -58,7 +58,7 @@ void compute_lookup_inside_blocks(
                       auto size) {
             // we need to put this here because some compilers interpret capture
             // rules around constexpr incorrectly
-            constexpr auto block_size = device_type::block_size;
+            constexpr auto block_size = rmq_type::block_size;
             constexpr auto infinity = std::numeric_limits<IndexType>::max();
             const auto num_blocks = ceildiv(size, block_size);
             for (auto block_idx = collated_block_idx * collation_width;
@@ -99,7 +99,7 @@ template <typename IndexType>
 void compute_lookup_across_blocks(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* block_min,
     IndexType num_blocks,
-    range_minimum_query_superblocks<IndexType>& superblocks)
+    device_range_minimum_query_superblocks<IndexType>& superblocks)
 {
 #ifdef GKO_COMPILING_DPCPP
     GKO_NOT_IMPLEMENTED;
@@ -107,7 +107,7 @@ void compute_lookup_across_blocks(
     if (num_blocks < 2) {
         return;
     }
-    using superblock_type = range_minimum_query_superblocks<IndexType>;
+    using superblock_type = device_range_minimum_query_superblocks<IndexType>;
     using storage_type = typename superblock_type::storage_type;
     // we need to collate all writes that target the same memory word in a
     // single thread

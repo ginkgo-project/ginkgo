@@ -193,7 +193,7 @@ struct cartesian_tree {
 
 
 template <int block_size>
-class block_range_minimum_query_lookup_table {
+class device_block_range_minimum_query_lookup_table {
 public:
     using tree = detail::cartesian_tree<block_size>;
     // how many trees does the lookup table (LUT) contain?
@@ -201,7 +201,7 @@ public:
     // how many bits do we need theoretically for this block?
     constexpr static int num_bits = ceil_log2_constexpr(block_size);
 
-    constexpr block_range_minimum_query_lookup_table() : lookup_table{}
+    constexpr device_block_range_minimum_query_lookup_table() : lookup_table{}
     {
         const auto& representatives = tree::compute_tree_representatives();
         for (int tree = 0; tree < num_trees; tree++) {
@@ -269,13 +269,12 @@ private:
  * @tparam block_size  the small block size to build the lookup table for.
  */
 template <int block_size>
-class device_block_range_minimum_query_lookup_table {
+class block_range_minimum_query_lookup_table {
 public:
-    using view_type = block_range_minimum_query_lookup_table<block_size>;
+    using view_type = device_block_range_minimum_query_lookup_table<block_size>;
 
     /** Initializes the lookup table in device memory for the given executor. */
-    device_block_range_minimum_query_lookup_table(
-        std::shared_ptr<const Executor> exec)
+    block_range_minimum_query_lookup_table(std::shared_ptr<const Executor> exec)
         : data_{exec, sizeof(view_type)}
     {
         view_type lut{};
@@ -321,7 +320,7 @@ struct range_minimum_query_result {
  * with infinity values, which are never the minimum.
  */
 template <typename IndexType>
-class range_minimum_query_superblocks {
+class device_range_minimum_query_superblocks {
 public:
     using index_type = IndexType;
     using storage_type = std::make_unsigned_t<index_type>;
@@ -337,9 +336,8 @@ public:
      *                 `storage_size(size)`
      * @param size  the number of values in the value array
      */
-    explicit constexpr range_minimum_query_superblocks(const index_type* values,
-                                                       storage_type* storage,
-                                                       index_type size)
+    explicit constexpr device_range_minimum_query_superblocks(
+        const index_type* values, storage_type* storage, index_type size)
         : values_{values}, storage_{storage}, size_{size}
     {}
 
@@ -530,13 +528,13 @@ private:
  * Minimum Queries on Static Arrays," doi: 10.1137/090779759.
  */
 template <int block_size, typename IndexType>
-class range_minimum_query {
+class device_range_minimum_query {
 public:
     using index_type = IndexType;
     using block_lookup_type =
-        block_range_minimum_query_lookup_table<block_size>;
+        device_block_range_minimum_query_lookup_table<block_size>;
     using superblock_lookup_type =
-        range_minimum_query_superblocks<const index_type>;
+        device_range_minimum_query_superblocks<const index_type>;
     using storage_type = typename superblock_lookup_type::storage_type;
     using query_result = range_minimum_query_result<index_type>;
 
@@ -551,7 +549,7 @@ public:
      * @param block_lut  the lookup table for RMQs inside small Cartesian trees
      * @param size  the number of elements in the value array
      */
-    explicit constexpr range_minimum_query(
+    explicit constexpr device_range_minimum_query(
         const index_type* values, const index_type* block_min,
         const uint32* block_argmin, const uint16* block_tree_index,
         const storage_type* superblock_storage,
@@ -656,26 +654,26 @@ private:
 
 
 /**
- * Owning version of range_minimum_query, which creates the necessary data from
- * an input array automatically.
+ * Owning version of device_range_minimum_query, which creates the necessary
+ * data from an input array automatically.
  *
  * @tparam IndexType  the type of indices and values in the underlying array.
  */
 template <typename IndexType>
-class device_range_minimum_query {
+class range_minimum_query {
 public:
     constexpr static int block_size = 8;
     constexpr static int block_argmin_num_bits =
         ceil_log2_constexpr(block_size);
     using index_type = IndexType;
-    using view_type = range_minimum_query<block_size, index_type>;
-    using block_lut_type =
-        device_block_range_minimum_query_lookup_table<block_size>;
+    using view_type = device_range_minimum_query<block_size, index_type>;
+    using block_lut_type = block_range_minimum_query_lookup_table<block_size>;
     using block_lut_view_type = typename block_lut_type::view_type;
     using block_argmin_view_type = bit_packed_span<int, index_type, uint32>;
     using block_argmin_storage_type =
         typename block_argmin_view_type::storage_type;
-    using superblock_view_type = range_minimum_query_superblocks<index_type>;
+    using superblock_view_type =
+        device_range_minimum_query_superblocks<index_type>;
     using superblock_storage_type = typename superblock_view_type::storage_type;
 
     /**
@@ -685,10 +683,11 @@ public:
      *
      * @param data  the value array
      */
-    device_range_minimum_query(array<IndexType> data);
+    range_minimum_query(array<IndexType> data);
 
     /**
-     * Returns the range_minimum_query view for the data, to be used in kernels.
+     * Returns the device_range_minimum_query view for the data, for use in
+     * kernels.
      */
     view_type get() const;
 

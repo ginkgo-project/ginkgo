@@ -33,7 +33,7 @@ namespace kernels {
     void compute_lookup_across_blocks(                                         \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const IndexType* block_min, IndexType num_blocks,                      \
-        range_minimum_query_superblocks<IndexType>& superblocks)
+        device_range_minimum_query_superblocks<IndexType>& superblocks)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \

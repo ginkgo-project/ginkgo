@@ -33,7 +33,7 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
 {
     constexpr auto size = 8;
     using tree = gko::detail::cartesian_tree<size>;
-    gko::block_range_minimum_query_lookup_table<size> table;
+    gko::device_block_range_minimum_query_lookup_table<size> table;
     const auto reps = tree::compute_tree_representatives();
     for (const auto& rep : reps) {
         const auto tree = tree::compute_tree_index(rep, tree::ballot_number);
@@ -54,7 +54,7 @@ TEST(RangeMinimumQuery, LookupRepresentatives)
 TEST(RangeMinimumQuery, LookupExhaustive)
 {
     constexpr auto size = 8;
-    gko::block_range_minimum_query_lookup_table<size> table;
+    gko::device_block_range_minimum_query_lookup_table<size> table;
     int values[size]{};
     std::iota(values, values + size, 0);
     do {
@@ -75,9 +75,9 @@ TEST(RangeMinimumQuery, LookupExhaustive)
 
 TEST(RangeMinimumQuery, OffsetsAreCorrect)
 {
-    constexpr auto data = gko::range_minimum_query_superblocks<
+    constexpr auto data = gko::device_range_minimum_query_superblocks<
         gko::int32>::compute_block_offset_lookup();
-    constexpr auto data_long = gko::range_minimum_query_superblocks<
+    constexpr auto data_long = gko::device_range_minimum_query_superblocks<
         gko::int64>::compute_block_offset_lookup();
     ASSERT_EQ(data[0], 0);
     ASSERT_EQ(data_long[0], 0);
@@ -123,7 +123,8 @@ TEST(RangeMinimumQuery, NumLevelsIsCorrect)
 {
     const auto test = [](auto value) {
         using index_type = decltype(value);
-        using superblocks = gko::range_minimum_query_superblocks<index_type>;
+        using superblocks =
+            gko::device_range_minimum_query_superblocks<index_type>;
         ASSERT_EQ(superblocks::num_levels(0), 0);
         ASSERT_EQ(superblocks::num_levels(1), 0);
         ASSERT_EQ(superblocks::num_levels(2), 1);
@@ -149,7 +150,8 @@ TEST(RangeMinimumQuery, LevelForDistanceIsCorrect)
 {
     const auto test = [](auto value) {
         using index_type = decltype(value);
-        using superblocks = gko::range_minimum_query_superblocks<index_type>;
+        using superblocks =
+            gko::device_range_minimum_query_superblocks<index_type>;
         ASSERT_EQ(superblocks::level_for_distance(0), 0);
         ASSERT_EQ(superblocks::level_for_distance(1), 0);
         ASSERT_EQ(superblocks::level_for_distance(2), 0);
