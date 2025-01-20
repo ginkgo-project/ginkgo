@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <type_traits>
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -15,6 +17,7 @@
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/components/range_minimum_query_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/assembly_kernels.hpp"
 #include "core/distributed/index_map_kernels.hpp"
@@ -247,6 +250,11 @@ template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
+#ifndef GKO_SIZE_T_IS_UINT64_T
+template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
+#endif
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
@@ -278,6 +286,18 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 
 
 }  // namespace components
+
+
+namespace range_minimum_query {
+
+
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_SMALL_KERNEL);
+GKO_STUB_INDEX_TYPE(
+    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_LARGE_KERNEL);
+
+
+}  // namespace range_minimum_query
 
 
 namespace idx_set {

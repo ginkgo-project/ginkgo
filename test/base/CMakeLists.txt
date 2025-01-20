@@ -1,6 +1,7 @@
 ginkgo_create_common_test(batch_multi_vector_kernels)
 ginkgo_create_common_and_reference_test(device_matrix_data_kernels)
 ginkgo_create_common_device_test(index_range)
+ginkgo_create_common_device_test(intrinsics)
 ginkgo_create_common_device_test(iterator_factory)
 ginkgo_create_common_device_test(kernel_launch_generic)
 ginkgo_create_common_and_reference_test(executor)
