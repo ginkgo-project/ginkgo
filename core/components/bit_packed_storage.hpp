@@ -12,8 +12,6 @@
 #include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-#include "core/base/index_range.hpp"
-
 namespace gko {
 
 
@@ -106,8 +104,6 @@ public:
     constexpr static int bits_per_word_log2 =
         ceil_log2_constexpr(bits_per_word);
 
-    // the constexpr here is only signalling for CUDA,
-    // since we don't have if consteval to switch between two implementations
     /**
      * Returns the binary logarithm of the number of bits that should be used
      * internally to store num_bits bits. This is used to allow faster accesses
@@ -119,7 +115,7 @@ public:
         return ceil_log2(num_bits);
     }
 
-    /*
+    /**
      * Returns the binary logarithm of the number of values can be stored inside
      * a single storage_type word. This gets used to avoid integer divisions in
      * favor of faster bit shifts.
@@ -164,7 +160,6 @@ public:
      * Clears a value inside the span, setting it to zero.
      *
      * @param i  The index to clear
-     * @param value  The value to write. It needs to be in [0, 2^num_bits).
      */
     constexpr void clear(index_type i)
     {
@@ -187,8 +182,8 @@ public:
     /**
      * Returns a value from the span.
      *
-     * @param i  The index to write to
-     * @param value  The value to write. It needs to be in [0, 2^num_bits).
+     * @param i  The index to read from
+     * @return  the read value
      */
     constexpr value_type get(index_type i) const
     {
@@ -196,6 +191,14 @@ public:
         return static_cast<value_type>((data_[block] >> shift) & mask_);
     }
 
+    /**
+     * Construct a span from the underlying data.
+     *
+     * @param data  the data array of size `storage_size(size, num_bits)`.
+     * @param num_bits  the number of bits necessary to store a single value.
+     * @param size  the number of elements in the span.
+     *
+     */
     explicit constexpr bit_packed_span(storage_type* data, int num_bits,
                                        index_type size)
         : data_{data},
@@ -205,7 +208,8 @@ public:
           values_per_word_log2_{values_per_word_log2(num_bits)},
           local_index_mask_{(1 << values_per_word_log2_) - 1}
     {
-        assert(bits_per_value_ <= bits_per_word);
+        // ignore the sign bit in this comparison
+        assert(num_bits < bits_per_word);
     }
 
 private:
@@ -247,7 +251,8 @@ public:
     // we need to shift by less than 32 to avoid UB
     constexpr static storage_type mask =
         (storage_type{2} << (bits_per_value - 1)) - storage_type{1};
-    static_assert(num_bits <= bits_per_word);
+    // ignore the sign bit in this comparison
+    static_assert(num_bits < bits_per_word);
     static_assert(num_bits > 0);
     static_assert(size >= 0);
 
