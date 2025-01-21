@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,6 +73,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
+
+    const auto dx = gko::one<ValueType>() /
+                    static_cast<ValueType>(discretization_points + 1);
 
     /**
      * This computes the offsets in the global indices for a box at (position_y,
@@ -150,7 +153,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         }
         return num_neighbors;
     };
-    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
+    const auto scale = dx * dx;
+    std::cout << scale << std::endl;
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1) / scale;
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
@@ -165,7 +170,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
                                       static_cast<IndexType>(global_size))) {
                             if (col != row) {
                                 A_data.nonzeros.emplace_back(
-                                    row, col, -gko::one<ValueType>());
+                                    row, col, -gko::one(scale) / scale);
                             } else {
                                 A_data.nonzeros.emplace_back(row, col,
                                                              diag_value);
@@ -217,6 +222,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
+
+    const auto dx = gko::one<ValueType>() /
+                    static_cast<ValueType>(discretization_points + 1);
 
     /**
      * This computes the offsets in the global indices for a box at (position_z,
@@ -305,7 +313,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         }
         return num_neighbors;
     };
-    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
+    const auto scale = dx * dx;
+    const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1) / scale;
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
@@ -322,7 +331,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
                                                        global_size))) {
                                     if (col != row) {
                                         A_data.nonzeros.emplace_back(
-                                            row, col, -gko::one<ValueType>());
+                                            row, col, -gko::one(scale) / scale);
                                     } else {
                                         A_data.nonzeros.emplace_back(
                                             row, col, diag_value);
