@@ -60,7 +60,7 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-solver distributed-multigrid-preconditioned-solver distributed-multigrid-preconditioned-solver-customized)
+    list(APPEND EXAMPLES_LIST distributed-solver distributed-multigrid-preconditioned-solver-customized)
 endif()
 
 find_package(Kokkos 4.1.00 QUIET)
