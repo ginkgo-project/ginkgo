@@ -38,18 +38,6 @@ public:
     using value_type = ValueType;
     using transposed_type = Combination<ValueType>;
 
-    /**
-     * Creates an empty linear combination with given size.
-     *
-     * @param exec  Executor associated to the linear combination
-     */
-    explicit Combination(std::shared_ptr<const Executor> exec,
-                         const gko::dim<2>& size)
-        : EnableLinOp<Combination>(exec)
-    {
-        this->set_size(size);
-    }
-
 
     /**
      * Returns a list of coefficients of the combination.
@@ -133,6 +121,18 @@ protected:
     explicit Combination(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Combination>(exec)
     {}
+
+    /**
+     * Creates an empty linear combination with given size.
+     *
+     * @param exec  Executor associated to the linear combination
+     */
+    explicit Combination(std::shared_ptr<const Executor> exec,
+                         const gko::dim<2>& size)
+        : EnableLinOp<Combination>(exec)
+    {
+        this->set_size(size);
+    }
 
     /**
      * Creates a linear combination of operators using the specified list of
