@@ -7,8 +7,11 @@
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
+
 #if GINKGO_BUILD_MPI
+
 #include <ginkgo/core/base/mpi.hpp>
+
 #endif
 
 
@@ -62,20 +65,61 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     std::array<int, 2> dims, std::array<int, 2> positions,
     const gko::size_type target_local_size, bool restricted)
 {
-    auto num_boxes =
+    auto num_subdomains =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto local_size = static_cast<gko::size_type>(discretization_points *
-                                                        discretization_points);
-    const auto global_size = local_size * num_boxes;
+    const auto target_global_size = target_local_size * num_subdomains;
+    const auto global_discretization_points =
+        static_cast<IndexType>(closest_nth_root(target_global_size, 2));
+
+    const std::array<IndexType, 2> discretization_points_min = {
+        global_discretization_points / dims[0],
+        global_discretization_points / dims[1]};
+    const std::array<IndexType, 2> discretization_points_rest = {
+        global_discretization_points % dims[0],
+        global_discretization_points % dims[1]};
+
+
+    auto host_exec = gko::ReferenceExecutor::create();
+    using Partition =
+        gko::experimental::distributed::Partition<IndexType, IndexType>;
+    auto partition_x = Partition::build_from_global_size_uniform(
+        host_exec, dims[0], global_discretization_points);
+    auto partition_y = Partition::build_from_global_size_uniform(
+        host_exec, dims[1], global_discretization_points);
+    const std::array<const Partition*, 2> partitions = {partition_x.get(),
+                                                        partition_y.get()};
+
+    const std::array<IndexType, 2> discretization_points = {
+        partition_x->get_part_size(positions[0]),
+        partition_y->get_part_size(positions[1])};
+
+    std::vector<IndexType> offsets{0};
+    for (int j = 0; j < dims[1]; ++j) {
+        for (int i = 0; i < dims[0]; ++i) {
+            offsets.push_back(
+                offsets.back() +
+                static_cast<IndexType>(partition_x->get_part_size(i) *
+                                       partition_y->get_part_size(j)));
+        }
+    }
+    std::vector<gko::size_type> part_ids(num_subdomains);
+    std::iota(part_ids.begin(), part_ids.end(), 0);
+    auto global_partition = Partition::build_from_contiguous(
+        host_exec, {host_exec, offsets.begin(), offsets.end()},
+        {host_exec, part_ids.begin(), part_ids.end()});
+
+    const auto local_size =
+        static_cast<gko::size_type>(partition_x->get_part_size(positions[0]) *
+                                    partition_y->get_part_size(positions[1]));
+    const auto global_size = static_cast<gko::size_type>(
+        global_discretization_points * global_discretization_points);
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
     const auto dx = gko::one<ValueType>() /
-                    static_cast<ValueType>(discretization_points + 1);
+                    static_cast<ValueType>(global_discretization_points + 1);
 
     /**
      * This computes the offsets in the global indices for a box at (position_y,
@@ -83,8 +127,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
      */
     auto global_offset = [&](const IndexType position_y,
                              const IndexType position_x) {
-        return static_cast<IndexType>(local_size) * position_x +
-               static_cast<IndexType>(local_size) * dims[0] * position_y;
+        return global_partition
+            ->get_range_bounds()[position_x + dims[0] * position_y];
     };
 
     /**
@@ -93,8 +137,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
      * If the index is within the local indices [0, discretization_points) this
      * returns the current position, otherwise it is shifted by +-1.
      */
-    auto target_position = [&](const IndexType i, const int position) {
-        return is_in_box(i, discretization_points)
+    auto target_position = [&](const IndexType dim, const IndexType i,
+                               const int position) {
+        return is_in_box(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
@@ -106,11 +151,14 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
      * discretization_points), this returns the index unchanged, otherwise it is
      * projected into the index set of the owning, adjacent box.
      */
-    auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, discretization_points)
+    auto target_local_idx = [&](const IndexType dim, const IndexType i) {
+        return is_in_box(i, discretization_points[dim])
                    ? i
-                   : (i < 0 ? discretization_points + i
-                            : discretization_points - i);
+                   : (i < 0
+                          ? partitions[dim]->get_part_size(positions[dim] - 1) +
+                                i
+                          : partitions[dim]->get_part_size(positions[dim] + 1) -
+                                i);
     };
 
     /**
@@ -120,11 +168,11 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
      * [0, dims[1]] then the invalid index -1 is returned.
      */
     auto flat_idx = [&](const IndexType iy, const IndexType ix) {
-        auto tpx = target_position(ix, positions[0]);
-        auto tpy = target_position(iy, positions[1]);
+        auto tpx = target_position(0, ix, positions[0]);
+        auto tpy = target_position(1, iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return global_offset(tpy, tpx) + target_local_idx(ix) +
-                   target_local_idx(iy) * discretization_points;
+            return global_offset(tpy, tpx) + target_local_idx(0, ix) +
+                   target_local_idx(1, iy) * partitions[0]->get_part_size(tpy);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -154,13 +202,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         return num_neighbors;
     };
     const auto scale = dx * dx;
-    std::cout << scale << std::endl;
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1) / scale;
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
-    for (IndexType iy = 0; iy < discretization_points; ++iy) {
-        for (IndexType ix = 0; ix < discretization_points; ++ix) {
+    for (IndexType iy = 0; iy < discretization_points[1]; ++iy) {
+        for (IndexType ix = 0; ix < discretization_points[0]; ++ix) {
             auto row = flat_idx(iy, ix);
             for (IndexType dy : {-1, 0, 1}) {
                 for (IndexType dx : {-1, 0, 1}) {
