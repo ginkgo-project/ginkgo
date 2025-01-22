@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,8 +7,11 @@
 
 
 #include <ginkgo/core/base/matrix_data.hpp>
+
 #if GINKGO_BUILD_MPI
+
 #include <ginkgo/core/base/mpi.hpp>
+
 #endif
 
 
@@ -42,86 +45,135 @@ bool is_in_box(const IndexType i, const IndexType bound)
  * creates a 5-pt stencil, if it is false creates a 9-pt stencil.
  *
  * If `dim != [1 1]` then the matrix data is a subset of a larger matrix.
- * The total matrix is a discretization of `[0, dims[0]] x [0, dims[1]]`, and
- * each box is square. The position of the box defines the subset of the matrix.
- * The degrees of freedom are ordered box-wise and the boxes themselves are
- * ordered lexicographical. This means that the indices are with respect to the
- * larger matrix, i.e. they might not start with 0.
+ * The total matrix is a discretization of `[0, 1]^2`, and each subdomain has
+ * (roughly) the shape `global_size_1d / dims[0] x global_size_1d / dims[1]`.
+ * The position of the subdomain defines the subset of the matrix.
+ * The degrees of freedom are ordered subdomain-wise and the subdomains
+ * themselves are ordered lexicographical. This means that the indices are with
+ * respect to the larger matrix, i.e. they might not start with 0.
  *
- * @param dims  The number of boxes in each dimension.
- * @param positions  The position of this box with respect to each dimension.
- * @param target_local_size  The desired size of the boxes. The actual size can
- *                           deviate from this to accommodate the square size of
- *                           the boxes.
+ * @param dims  The number of subdomains in each dimension.
+ * @param positions  The position of this subdomain with respect to each
+ *                   dimension.
+ * @param target_local_size  The desired size of the subdomains. The actual size
+ *                           can deviate from this to accommodate the square
+ *                           size of the subdomains.
  * @param restricted  If true, a 5-pt stencil is used, else a 9-pt stencil.
  *
- * @return  matrix data of a box using either 5-pt or 9-pt stencil.
+ * @return  matrix data of a subdomain using either 5-pt or 9-pt stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
-    std::array<int, 2> dims, std::array<int, 2> positions,
-    const gko::size_type target_local_size, bool restricted)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_2d_stencil_subdomain(std::array<int, 2> dims,
+                              std::array<int, 2> positions,
+                              const gko::size_type target_local_size,
+                              bool restricted)
 {
-    auto num_boxes =
+    auto num_subdomains =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 2));
-    const auto local_size = static_cast<gko::size_type>(discretization_points *
-                                                        discretization_points);
-    const auto global_size = local_size * num_boxes;
+    const auto target_global_size = target_local_size * num_subdomains;
+    const auto global_discretization_points =
+        static_cast<IndexType>(closest_nth_root(target_global_size, 2));
+
+    // The rounded-down number of local discrectization points per dimension
+    // and its rest.
+    const std::array<IndexType, 2> discretization_points_min = {
+        global_discretization_points / dims[0],
+        global_discretization_points / dims[1]};
+    const std::array<IndexType, 2> discretization_points_rest = {
+        global_discretization_points % dims[0],
+        global_discretization_points % dims[1]};
+
+    /**
+     * The subdomain size in a single dimension. This is either
+     * discretization_points_min[dim], or discretization_points_min[dim]+1.
+     * The first R process have the +1 added, such that the sum of the
+     * subdomain size over all processes equals to the
+     * global_discretization_points.
+     */
+    auto subdomain_size_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] +
+               (i < discretization_points_rest[dim] ? 1 : 0);
+    };
+
+    /**
+     * The offset of a subdomain in a single dimension. Since the first R
+     * processes have a subdomain size of discretization_points_min[dim]+1, the
+     * offset adds min(subdomain-id, R) to
+     * discretization_points_min[dim]*subdomain-id
+     */
+    auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] * i +
+               std::min(i, discretization_points_rest[dim]);
+    };
+
+    const std::array<IndexType, 2> discretization_points = {
+        subdomain_size_1d(0, positions[0]), subdomain_size_1d(1, positions[1])};
+
+    const auto local_size = static_cast<gko::size_type>(
+        discretization_points[0] * discretization_points[1]);
+    const auto global_size = static_cast<gko::size_type>(
+        global_discretization_points * global_discretization_points);
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
     /**
-     * This computes the offsets in the global indices for a box at (position_y,
-     * position_x).
+     * This computes the offsets in the global indices for a subdomain at
+     * (position_y, position_x).
      */
-    auto global_offset = [&](const IndexType position_y,
-                             const IndexType position_x) {
-        return static_cast<IndexType>(local_size) * position_x +
-               static_cast<IndexType>(local_size) * dims[0] * position_y;
+    auto subdomain_offset = [&](const IndexType position_y,
+                                const IndexType position_x) {
+        return global_discretization_points *
+                   subdomain_offset_1d(1, position_y) +
+               subdomain_size_1d(1, position_y) *
+                   subdomain_offset_1d(0, position_x);
     };
 
     /**
-     * This computes a single dimension of the target box position
-     * for a given index. The target box is the box that owns the given index.
-     * If the index is within the local indices [0, discretization_points) this
-     * returns the current position, otherwise it is shifted by +-1.
+     * This computes a single dimension of the target subdomain position
+     * for a given index. The target subdomain is the subdomain that owns the
+     * given index. If the index is within the local indices [0,
+     * discretization_points) this returns the current position, otherwise it is
+     * shifted by +-1.
      */
-    auto target_position = [&](const IndexType i, const int position) {
-        return is_in_box(i, discretization_points)
+    auto target_position = [&](const IndexType dim, const IndexType i,
+                               const int position) {
+        return is_in_box(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
 
     /**
      * This computes a single dimension of target local index for a given index.
-     * The target local index is the local index within the index set of the box
-     * that owns the index. If the index is within the local indices [0,
-     * discretization_points), this returns the index unchanged, otherwise it is
-     * projected into the index set of the owning, adjacent box.
+     * The target local index is the local index within the index set of the
+     * subdomain that owns the index. If the index is within the local indices
+     * [0, discretization_points), this returns the index unchanged, otherwise
+     * it is projected into the index set of the owning, adjacent subdomain.
      */
-    auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, discretization_points)
+    auto target_local_idx = [&](const IndexType dim, const IndexType pos,
+                                const IndexType i) {
+        return is_in_box(i, subdomain_size_1d(dim, pos))
                    ? i
-                   : (i < 0 ? discretization_points + i
-                            : discretization_points - i);
+                   : (i < 0 ? i + subdomain_size_1d(dim, pos)
+                            : i - subdomain_size_1d(dim, positions[dim]));
     };
 
     /**
      * For a two dimensional pair of local indices (iy, ix), this computes the
      * corresponding global one dimensional index.
-     * If any target positions of the owning box is not inside [0, dims[0]] x
-     * [0, dims[1]] then the invalid index -1 is returned.
+     * If any target positions of the owning subdomain is not inside [0,
+     * dims[0]] x [0, dims[1]] then the invalid index -1 is returned.
      */
     auto flat_idx = [&](const IndexType iy, const IndexType ix) {
-        auto tpx = target_position(ix, positions[0]);
-        auto tpy = target_position(iy, positions[1]);
+        auto tpx = target_position(0, ix, positions[0]);
+        auto tpy = target_position(1, iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return global_offset(tpy, tpx) + target_local_idx(ix) +
-                   target_local_idx(iy) * discretization_points;
+            return subdomain_offset(tpy, tpx) + target_local_idx(0, tpx, ix) +
+                   target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -154,8 +206,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
-    for (IndexType iy = 0; iy < discretization_points; ++iy) {
-        for (IndexType ix = 0; ix < discretization_points; ++ix) {
+    for (IndexType iy = 0; iy < discretization_points[1]; ++iy) {
+        for (IndexType ix = 0; ix < discretization_points[0]; ++ix) {
             auto row = flat_idx(iy, ix);
             for (IndexType dy : {-1, 0, 1}) {
                 for (IndexType dx : {-1, 0, 1}) {
@@ -177,7 +229,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         }
     }
 
-    return A_data;
+    return {A_data, {local_size, local_size}};
 }
 
 
@@ -185,95 +237,163 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
  * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
  * creates a 7-pt stencil, if it is false creates a 27-pt stencil.
  *
- * If `dim != [1 1 1]` then the matrix data is a subset of a larger matrix.
- * The total matrix is a discretization of `[0, dims[0]] x [0, dims[1]] x [0,
- * dims[2]]`, and each box is a cube. The position of the box defines the subset
- * of the matrix. The degrees of freedom are ordered box-wise and the boxes
+ *
+ * If `dim != [1 1]` then the matrix data is a subset of a larger matrix.
+ * The total matrix is a discretization of `[0, 1]^2`, and each subdomain has
+ * (roughly) the shape `[global_size_1d / dims[0]; global_size_1d / dims[1]]`.
+ * The position of the subdomain defines the subset of the matrix.
+ * The degrees of freedom are ordered subdomain-wise and the subdomains
  * themselves are ordered lexicographical. This means that the indices are with
  * respect to the larger matrix, i.e. they might not start with 0.
  *
- * @param dims  The number of boxes in each dimension.
- * @param positions  The position of this box with respect to each dimension.
- * @param target_local_size  The desired size of the boxes. The actual size can
- *                           deviate from this to accommodate the uniform size
- *                           of the boxes.
+ * If `dim != [1 1 1]` then the matrix data is a subset of a larger matrix.
+ * The total matrix is a discretization of `[0, 1]^3`, and each subdomain has
+ * (roughly) the shape
+ * `global_size_1d / dims[0] x global_size_1d / dims[1] x
+ *  global_size_1d / dims[2]`. The position of the subdomain
+ * defines the subset of the matrix. The degrees of freedom are ordered
+ * subdomain-wise and the subdomains themselves are ordered lexicographical.
+ * This means that the indices are with respect to the larger matrix, i.e. they
+ * might not start with 0.
+ *
+ * @param dims  The number of subdomains in each dimension.
+ * @param positions  The position of this subdomain with respect to each
+ *                   dimension.
+ * @param target_local_size  The desired size of the subdomains. The actual size
+ *                           can deviate from this to accommodate the uniform
+ *                           size of the subdomains.
  * @param restricted  If true, a 7-pt stencil is used, else a 27-pt stencil.
  *
- * @return  matrix data of a box using either 7-pt or 27-pt stencil.
+ * @return  matrix data of a subdomain using either 7-pt or 27-pt stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
-    std::array<int, 3> dims, std::array<int, 3> positions,
-    const gko::size_type target_local_size, bool restricted)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_3d_stencil_subdomain(std::array<int, 3> dims,
+                              std::array<int, 3> positions,
+                              const gko::size_type target_local_size,
+                              bool restricted)
 {
-    auto num_boxes =
+    auto num_subdomains =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 3));
+    const auto target_global_size = target_local_size * num_subdomains;
+    const auto global_discretization_points =
+        static_cast<IndexType>(closest_nth_root(target_global_size, 3));
+
+    // The rounded-down number of local discrectization points per dimension
+    // and its rest.
+    const std::array<IndexType, 3> discretization_points_min = {
+        global_discretization_points / dims[0],
+        global_discretization_points / dims[1],
+        global_discretization_points / dims[2]};
+    const std::array<IndexType, 3> discretization_points_rest = {
+        global_discretization_points % dims[0],
+        global_discretization_points % dims[1],
+        global_discretization_points % dims[2]};
+
+    /**
+     * The subdomain size in a single dimension. This is either
+     * discretization_points_min[dim], or discretization_points_min[dim]+1.
+     * The first R process have the +1 added, such that the sum of the
+     * subdomain size over all processes equals to the
+     * global_discretization_points.
+     */
+    auto subdomain_size_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] +
+               (i < discretization_points_rest[dim] ? 1 : 0);
+    };
+
+    /**
+     * The offset of a subdomain in a single dimension. Since the first R
+     * processes have a subdomain size of discretization_points_min[dim]+1, the
+     * offset adds min(subdomain-id, R) to
+     * discretization_points_min[dim]*subdomain-id
+     */
+    auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] * i +
+               std::min(i, discretization_points_rest[dim]);
+    };
+
+    // The local number of discretization points per dimension
+    const std::array<IndexType, 3> discretization_points = {
+        subdomain_size_1d(0, positions[0]), subdomain_size_1d(1, positions[1]),
+        subdomain_size_1d(2, positions[2])};
+
     const auto local_size = static_cast<gko::size_type>(
-        discretization_points * discretization_points * discretization_points);
-    const auto global_size = local_size * num_boxes;
+        discretization_points[0] * discretization_points[1] *
+        discretization_points[2]);
+    const auto global_size = global_discretization_points *
+                             global_discretization_points *
+                             global_discretization_points;
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
     /**
-     * This computes the offsets in the global indices for a box at (position_z,
-     * position_y, position_x).
+     * This computes the offsets in the global indices for a subdomain at
+     * (position_z, position_y, position_x).
      */
-    auto global_offset = [&](const IndexType position_z,
-                             const IndexType position_y,
-                             const IndexType position_x) {
-        return position_x * static_cast<IndexType>(local_size) +
-               position_y * static_cast<IndexType>(local_size) * dims[0] +
-               position_z * static_cast<IndexType>(local_size) * dims[0] *
-                   dims[1];
+    auto subdomain_offset = [&](const IndexType position_z,
+                                const IndexType position_y,
+                                const IndexType position_x) {
+        return global_discretization_points * global_discretization_points *
+                   subdomain_offset_1d(2, position_z) +
+               global_discretization_points * subdomain_size_1d(2, position_z) *
+                   subdomain_offset_1d(1, position_y) +
+               subdomain_size_1d(2, position_z) *
+                   subdomain_size_1d(1, position_y) *
+                   subdomain_offset_1d(0, position_x);
     };
 
     /**
-     * This computes a single dimension of the target box position
-     * for a given index. The target box is the box that owns the given index.
-     * If the index is within the local indices [0, discretization_points) this
-     * returns the current position, otherwise it is shifted by +-1.
+     * This computes a single dimension of the target subdomain position
+     * for a given index. The target subdomain is the subdomain that owns the
+     * given index. If the index is within the local indices [0,
+     * discretization_points) this returns the current position, otherwise it is
+     * shifted by +-1.
      */
-    auto target_position = [&](const IndexType i, const int position) {
-        return is_in_box(i, discretization_points)
+    auto target_position = [&](const IndexType dim, const IndexType i,
+                               const int position) {
+        return is_in_box(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
 
     /**
      * This computes a single dimension of target local index for a given index.
-     * The target local index is the local index within the index set of the box
-     * that owns the index. If the index is within the local indices [0,
-     * discretization_points), this returns the index unchanged, otherwise it is
-     * projected into the index set of the owning, adjacent box.
+     * The target local index is the local index within the index set of the
+     * subdomain that owns the index. If the index is within the local indices
+     * [0, discretization_points), this returns the index unchanged, otherwise
+     * it is projected into the index set of the owning, adjacent subdomain.
      */
-    auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, discretization_points)
+    auto target_local_idx = [&](const IndexType dim, const IndexType pos,
+                                const IndexType i) {
+        return is_in_box(i, subdomain_size_1d(dim, pos))
                    ? i
-                   : (i < 0 ? discretization_points + i
-                            : discretization_points - i);
+                   : (i < 0 ? i + subdomain_size_1d(dim, pos)
+                            : i - subdomain_size_1d(dim, positions[dim]));
     };
 
     /**
      * For a three dimensional tuple of local indices (iz, iy, ix), this
      * computes the corresponding global one dimensional index. If any target
-     * positions of the owning box is not inside [0, dims[0]] x [0, dims[1]] x
-     * [0, dims[2]] then the invalid index -1 is returned.
+     * positions of the owning subdomain is not inside [0, dims[0]] x [0,
+     * dims[1]] x [0, dims[2]] then the invalid index -1 is returned.
      */
     auto flat_idx = [&](const IndexType iz, const IndexType iy,
                         const IndexType ix) {
-        auto tpx = target_position(ix, positions[0]);
-        auto tpy = target_position(iy, positions[1]);
-        auto tpz = target_position(iz, positions[2]);
+        auto tpx = target_position(0, ix, positions[0]);
+        auto tpy = target_position(1, iy, positions[1]);
+        auto tpz = target_position(2, iz, positions[2]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
             is_in_box(tpz, dims[2])) {
-            return global_offset(tpz, tpy, tpx) + target_local_idx(ix) +
-                   target_local_idx(iy) * discretization_points +
-                   target_local_idx(iz) * discretization_points *
-                       discretization_points;
+            return subdomain_offset(tpz, tpy, tpx) +
+                   target_local_idx(0, tpx, ix) +
+                   target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx) +
+                   target_local_idx(2, tpz, iz) * subdomain_size_1d(0, tpx) *
+                       subdomain_size_1d(1, tpy);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -309,9 +429,9 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
-    for (IndexType iz = 0; iz < discretization_points; ++iz) {
-        for (IndexType iy = 0; iy < discretization_points; ++iy) {
-            for (IndexType ix = 0; ix < discretization_points; ++ix) {
+    for (IndexType iz = 0; iz < discretization_points[2]; ++iz) {
+        for (IndexType iy = 0; iy < discretization_points[1]; ++iy) {
+            for (IndexType ix = 0; ix < discretization_points[0]; ++ix) {
                 auto row = flat_idx(iz, iy, ix);
                 for (IndexType dz : {-1, 0, 1}) {
                     for (IndexType dy : {-1, 0, 1}) {
@@ -336,14 +456,14 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
         }
     }
 
-    return A_data;
+    return {A_data, gko::dim<2>{local_size, local_size}};
 }
 
 
 /**
  * Generates matrix data for the requested stencil.
  *
- * @see generate_2d_stencil_box, generate_3d_stencil_box
+ * @see generate_2d_stencil_subdomain, generate_3d_stencil_subdomain
  *
  * @param stencil_name  The name of the stencil.
  * @param target_local_size  The desired size of the matrix. The actual size can
@@ -352,20 +472,20 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
  * @return  matrix data using the requested stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_stencil(
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
     std::string stencil_name, const gko::size_type target_local_size)
 {
     if (stencil_name == "5pt") {
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        return generate_2d_stencil_subdomain<ValueType, IndexType>(
             {1, 1}, {0, 0}, target_local_size, true);
     } else if (stencil_name == "9pt") {
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        return generate_2d_stencil_subdomain<ValueType, IndexType>(
             {1, 1}, {0, 0}, target_local_size, false);
     } else if (stencil_name == "7pt") {
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        return generate_3d_stencil_subdomain<ValueType, IndexType>(
             {1, 1, 1}, {0, 0, 0}, target_local_size, true);
     } else if (stencil_name == "27pt") {
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        return generate_3d_stencil_subdomain<ValueType, IndexType>(
             {1, 1, 1}, {0, 0, 0}, target_local_size, false);
     } else {
         throw std::runtime_error("Stencil " + stencil_name +
@@ -381,15 +501,16 @@ gko::matrix_data<ValueType, IndexType> generate_stencil(
  * Generates matrix data for a given 2D stencil, where the position of this
  * block is given by it's MPI rank.
  *
- * @see generate_2d_stencil_box
+ * @see generate_2d_stencil_subdomain
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
-    gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_2d_stencil(gko::experimental::mpi::communicator comm,
+                    const gko::size_type target_local_size, bool restricted,
+                    bool optimal_comm)
 {
     if (optimal_comm) {
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        return generate_2d_stencil_subdomain<ValueType, IndexType>(
             {comm.size(), 1}, {comm.rank(), 0}, target_local_size, restricted);
     } else {
         std::array<int, 2> dims{};
@@ -399,7 +520,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
         coords[0] = comm.rank() % dims[0];
         coords[1] = comm.rank() / dims[0];
 
-        return generate_2d_stencil_box<ValueType, IndexType>(
+        return generate_2d_stencil_subdomain<ValueType, IndexType>(
             dims, coords, target_local_size, restricted);
     }
 }
@@ -409,15 +530,16 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
  * Generates matrix data for a given 23 stencil, where the position of this
  * block is given by it's MPI rank.
  *
- * @see generate_3d_stencil_box
+ * @see generate_3d_stencil_subdomain
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
-    gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_3d_stencil(gko::experimental::mpi::communicator comm,
+                    const gko::size_type target_local_size, bool restricted,
+                    bool optimal_comm)
 {
     if (optimal_comm) {
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        return generate_3d_stencil_subdomain<ValueType, IndexType>(
             {comm.size(), 1, 1}, {comm.rank(), 0, 0}, target_local_size,
             restricted);
     } else {
@@ -430,7 +552,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
         coords[1] = (comm.rank() / dims[0]) % dims[1];
         coords[2] = comm.rank() / (dims[0] * dims[1]);
 
-        return generate_3d_stencil_box<ValueType, IndexType>(
+        return generate_3d_stencil_subdomain<ValueType, IndexType>(
             dims, coords, target_local_size, restricted);
     }
 }
@@ -449,7 +571,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
  *                      used, and the domain shape is mostly cubic.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_stencil(
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
     std::string stencil_name, gko::experimental::mpi::communicator comm,
     const gko::size_type target_local_size, bool optimal_comm)
 {
