@@ -79,39 +79,21 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         global_discretization_points % dims[0],
         global_discretization_points % dims[1]};
 
+    auto subdomain_size_1d = [&](const IndexType dim, const IndexType i) {
+        return discretization_points_min[dim] +
+               (i < discretization_points_rest[dim] ? 1 : 0);
+    };
 
-    auto host_exec = gko::ReferenceExecutor::create();
-    using Partition =
-        gko::experimental::distributed::Partition<IndexType, IndexType>;
-    auto partition_x = Partition::build_from_global_size_uniform(
-        host_exec, dims[0], global_discretization_points);
-    auto partition_y = Partition::build_from_global_size_uniform(
-        host_exec, dims[1], global_discretization_points);
-    const std::array<const Partition*, 2> partitions = {partition_x.get(),
-                                                        partition_y.get()};
+    auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
+        return discretization_points_min[dim] * i +
+               std::min(i, discretization_points_rest[dim]);
+    };
 
     const std::array<IndexType, 2> discretization_points = {
-        partition_x->get_part_size(positions[0]),
-        partition_y->get_part_size(positions[1])};
+        subdomain_size_1d(0, positions[0]), subdomain_size_1d(1, positions[1])};
 
-    std::vector<IndexType> offsets{0};
-    for (int j = 0; j < dims[1]; ++j) {
-        for (int i = 0; i < dims[0]; ++i) {
-            offsets.push_back(
-                offsets.back() +
-                static_cast<IndexType>(partition_x->get_part_size(i) *
-                                       partition_y->get_part_size(j)));
-        }
-    }
-    std::vector<gko::size_type> part_ids(num_subdomains);
-    std::iota(part_ids.begin(), part_ids.end(), 0);
-    auto global_partition = Partition::build_from_contiguous(
-        host_exec, {host_exec, offsets.begin(), offsets.end()},
-        {host_exec, part_ids.begin(), part_ids.end()});
-
-    const auto local_size =
-        static_cast<gko::size_type>(partition_x->get_part_size(positions[0]) *
-                                    partition_y->get_part_size(positions[1]));
+    const auto local_size = static_cast<gko::size_type>(
+        discretization_points[0] * discretization_points[1]);
     const auto global_size = static_cast<gko::size_type>(
         global_discretization_points * global_discretization_points);
     auto A_data = gko::matrix_data<ValueType, IndexType>(
@@ -125,10 +107,12 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
      * This computes the offsets in the global indices for a box at (position_y,
      * position_x).
      */
-    auto global_offset = [&](const IndexType position_y,
-                             const IndexType position_x) {
-        return global_partition
-            ->get_range_bounds()[position_x + dims[0] * position_y];
+    auto subdomain_offset = [&](const IndexType position_y,
+                                const IndexType position_x) {
+        return global_discretization_points *
+                   subdomain_offset_1d(1, position_y) +
+               subdomain_size_1d(1, position_y) *
+                   subdomain_offset_1d(0, position_x);
     };
 
     /**
@@ -154,11 +138,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
     auto target_local_idx = [&](const IndexType dim, const IndexType i) {
         return is_in_box(i, discretization_points[dim])
                    ? i
-                   : (i < 0
-                          ? partitions[dim]->get_part_size(positions[dim] - 1) +
-                                i
-                          : partitions[dim]->get_part_size(positions[dim] + 1) -
-                                i);
+                   : (i < 0 ? subdomain_size_1d(dim, positions[dim] - 1) + i
+                            : subdomain_size_1d(dim, positions[dim] + 1) - i);
     };
 
     /**
@@ -171,8 +152,8 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         auto tpx = target_position(0, ix, positions[0]);
         auto tpy = target_position(1, iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return global_offset(tpy, tpx) + target_local_idx(0, ix) +
-                   target_local_idx(1, iy) * partitions[0]->get_part_size(tpy);
+            return subdomain_offset(tpy, tpx) + target_local_idx(0, ix) +
+                   target_local_idx(1, iy) * subdomain_size_1d(0, tpx);
         } else {
             return static_cast<IndexType>(-1);
         }
