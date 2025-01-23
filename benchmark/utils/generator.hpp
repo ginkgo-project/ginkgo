@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,23 +23,26 @@ struct DefaultSystemGenerator {
     using value_type = ValueType;
     using Vec = vec<ValueType>;
 
-    static gko::matrix_data<ValueType, IndexType> generate_matrix_data(
-        const json& config)
+    static std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+    generate_matrix_data(const json& config)
     {
-        gko::matrix_data<ValueType, IndexType> data;
-        if (config.contains("filename")) {
-            std::ifstream in(config["filename"].get<std::string>());
-            data = gko::read_generic_raw<ValueType, IndexType>(in);
-        } else if (config.contains("stencil")) {
-            data = generate_stencil<ValueType, IndexType>(
-                config["stencil"].get<std::string>(),
-                config["size"].get<gko::int64>());
-        } else {
-            throw std::runtime_error(
-                "No known way to generate matrix data found.");
-        }
+        auto [data, size] = [&] {
+            if (config.contains("filename")) {
+                std::ifstream in(config["filename"].get<std::string>());
+                return std::make_pair(
+                    gko::read_generic_raw<ValueType, IndexType>(in),
+                    gko::dim<2>());
+            } else if (config.contains("stencil")) {
+                return generate_stencil<ValueType, IndexType>(
+                    config["stencil"].get<std::string>(),
+                    config["size"].get<gko::int64>());
+            } else {
+                throw std::runtime_error(
+                    "No known way to generate matrix data found.");
+            }
+        }();
         data.sort_row_major();
-        return data;
+        return {data, size};
     }
 
     static std::string get_example_config()
@@ -162,26 +165,30 @@ struct DistributedDefaultSystemGenerator {
     using Mtx = dist_mtx<value_type, local_index_type, index_type>;
     using Vec = dist_vec<value_type>;
 
-    gko::matrix_data<value_type, index_type> generate_matrix_data(
-        const json& config) const
+    std::pair<gko::matrix_data<value_type, index_type>, gko::dim<2>>
+    generate_matrix_data(const json& config) const
     {
-        gko::matrix_data<value_type, index_type> data;
-        if (config.contains("filename")) {
-            std::ifstream in(config["filename"].get<std::string>());
-            data = gko::read_generic_raw<value_type, index_type>(in);
-        } else if (config.contains("stencil")) {
-            auto local_size = static_cast<global_itype>(
-                config["size"].get<gko::int64>() / comm.size());
-            data = generate_stencil<value_type, index_type>(
-                config["stencil"].get<std::string>(), comm, local_size,
-                config["comm_pattern"].get<std::string>() ==
-                    std::string("optimal"));
-        } else {
-            throw std::runtime_error(
-                "No known way to generate matrix data found.");
-        }
+        auto [data, local_size] = [&] {
+            if (config.contains("filename")) {
+                std::ifstream in(config["filename"].get<std::string>());
+                return std::make_pair(
+                    gko::read_generic_raw<value_type, index_type>(in),
+                    gko::dim<2>());
+            } else if (config.contains("stencil")) {
+                auto target_local_size = static_cast<global_itype>(
+                    config["size"].get<gko::int64>() / comm.size());
+                return generate_stencil<value_type, index_type>(
+                    config["stencil"].get<std::string>(), comm,
+                    target_local_size,
+                    config["comm_pattern"].get<std::string>() ==
+                        std::string("optimal"));
+            } else {
+                throw std::runtime_error(
+                    "No known way to generate matrix data found.");
+            }
+        }();
         data.sort_row_major();
-        return data;
+        return {data, local_size};
     }
 
     static std::string get_example_config()
@@ -223,10 +230,8 @@ struct DistributedDefaultSystemGenerator {
         json* spmv_case = nullptr) const
     {
         auto part = gko::share(
-            gko::experimental::distributed::Partition<itype, global_itype>::
-                build_from_global_size_uniform(
-                    exec, comm.size(),
-                    static_cast<global_itype>(data.size[0])));
+            gko::experimental::distributed::build_partition_from_local_size<
+                itype, global_itype>(exec, comm, data.size[0]));
         auto formats = split(format_name, '-');
         if (formats.size() != 2) {
             throw std::runtime_error{"Invalid distributed format specifier " +
@@ -243,6 +248,8 @@ struct DistributedDefaultSystemGenerator {
 
         auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
             exec, comm, local_mat, non_local_mat);
+        gko::matrix_data<value_type, index_type> global_data(
+            {part->get_size(), part->get_size()});
         dist_mat->read_distributed(data, part);
 
         if (spmv_case) {

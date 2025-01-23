@@ -61,9 +61,9 @@ bool is_in_box(const IndexType i, const IndexType bound)
  * @return  matrix data of a box using either 5-pt or 9-pt stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
-    std::array<int, 2> dims, std::array<int, 2> positions,
-    const gko::size_type target_local_size, bool restricted)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
+                        const gko::size_type target_local_size, bool restricted)
 {
     auto num_subdomains =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
@@ -210,7 +210,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
         }
     }
 
-    return A_data;
+    return {A_data, {local_size, local_size}};
 }
 
 
@@ -235,9 +235,9 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil_box(
  * @return  matrix data of a box using either 7-pt or 27-pt stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
-    std::array<int, 3> dims, std::array<int, 3> positions,
-    const gko::size_type target_local_size, bool restricted)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
+                        const gko::size_type target_local_size, bool restricted)
 {
     auto num_boxes =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
@@ -389,7 +389,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil_box(
  * @return  matrix data using the requested stencil.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_stencil(
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
     std::string stencil_name, const gko::size_type target_local_size)
 {
     if (stencil_name == "5pt") {
@@ -421,9 +421,10 @@ gko::matrix_data<ValueType, IndexType> generate_stencil(
  * @see generate_2d_stencil_box
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
-    gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_2d_stencil(gko::experimental::mpi::communicator comm,
+                    const gko::size_type target_local_size, bool restricted,
+                    bool optimal_comm)
 {
     if (optimal_comm) {
         return generate_2d_stencil_box<ValueType, IndexType>(
@@ -449,9 +450,10 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
  * @see generate_3d_stencil_box
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
-    gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool restricted, bool optimal_comm)
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
+generate_3d_stencil(gko::experimental::mpi::communicator comm,
+                    const gko::size_type target_local_size, bool restricted,
+                    bool optimal_comm)
 {
     if (optimal_comm) {
         return generate_3d_stencil_box<ValueType, IndexType>(
@@ -486,7 +488,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
  *                      used, and the domain shape is mostly cubic.
  */
 template <typename ValueType, typename IndexType>
-gko::matrix_data<ValueType, IndexType> generate_stencil(
+std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
     std::string stencil_name, gko::experimental::mpi::communicator comm,
     const gko::size_type target_local_size, bool optimal_comm)
 {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,13 @@
 
 
 using global_itype = gko::int64;
+
+
+template <typename ValueType, typename IndexType>
+struct distributed_matrix_data {
+    gko::dim<2> global_size;
+    gko::dim<2> local_size;
+};
 
 
 template <typename ValueType>
