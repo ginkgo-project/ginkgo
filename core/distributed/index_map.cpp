@@ -98,8 +98,8 @@ index_map<LocalIndexType, GlobalIndexType>::map_to_global(
     array<GlobalIndexType> global_ids(exec_);
 
     exec_->run(index_map_kernels::make_map_to_global(
-        to_device(partition_.get()), to_device(remote_global_idxs_), rank_,
-        local_ids, index_space_v, global_ids));
+        to_device_const(partition_.get()), to_device(remote_global_idxs_),
+        rank_, local_ids, index_space_v, global_ids));
 
     return global_ids;
 }

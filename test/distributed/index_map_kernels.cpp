@@ -120,8 +120,6 @@ protected:
         std::random_device rd;
         std::uniform_int_distribution<> engine_dist(
             0, std::numeric_limits<int>::max());
-        auto seed = engine_dist(rd);
-        std::cout << "seed = " << seed << std::endl;
         engine.seed(490729788);
 
         auto connections =

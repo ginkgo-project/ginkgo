@@ -87,6 +87,8 @@ GlobalIndexType map_to_global(
     device_partition<const LocalIndexType, const GlobalIndexType> partition,
     size_type range_id)
 {
+    assert(range_id <
+           std::distance(partition.offsets_begin, partition.offsets_end) - 1);
     auto range_bounds = partition.offsets_begin;
     auto starting_indices = partition.starting_indices_begin;
     return static_cast<GlobalIndexType>(idx - starting_indices[range_id]) +
