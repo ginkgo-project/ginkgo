@@ -999,6 +999,38 @@ template <typename ValueType>
 }
 
 
+template <typename ValueType>
+::testing::AssertionResult segmented_array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const segmented_array<ValueType>& first,
+    const segmented_array<ValueType>& second)
+{
+    auto view_first =
+        gko::make_const_array_view(first.get_executor(), first.get_size(),
+                                   first.get_const_flat_data())
+            .copy_to_array();
+    auto view_second =
+        gko::make_const_array_view(second.get_executor(), second.get_size(),
+                                   second.get_const_flat_data())
+            .copy_to_array();
+
+    auto buffer_result = array_equal(first_expression, second_expression,
+                                     view_first, view_second);
+    if (buffer_result == ::testing::AssertionFailure()) {
+        return buffer_result << "Buffers of the segmented arrays mismatch";
+    }
+
+    auto offsets_result =
+        array_equal(first_expression, second_expression, first.get_offsets(),
+                    second.get_offsets());
+    if (offsets_result == ::testing::AssertionFailure()) {
+        return offsets_result << "Offsets of the segmented arrays mismatch";
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
+
 /**
  * This is a gtest predicate which checks if one string is contained in another.
  *
@@ -1380,6 +1412,16 @@ T* plain_ptr(T* ptr)
         EXPECT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
                             _array2, _tol);                               \
     }
+
+
+#define GKO_ASSERT_SEGMENTED_ARRAY_EQ(_array1, _array2)                      \
+    {                                                                        \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::segmented_array_equal,  \
+                            _array1, _array2);                               \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**
