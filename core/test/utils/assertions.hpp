@@ -24,6 +24,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/batch_utilities.hpp"
@@ -1014,17 +1015,17 @@ template <typename ValueType>
                                    second.get_const_flat_data())
             .copy_to_array();
 
-    auto buffer_result = array_equal(first_expression, second_expression,
-                                     view_first, view_second);
-    if (buffer_result == ::testing::AssertionFailure()) {
-        return buffer_result << "Buffers of the segmented arrays mismatch";
-    }
-
     auto offsets_result =
         array_equal(first_expression, second_expression, first.get_offsets(),
                     second.get_offsets());
     if (offsets_result == ::testing::AssertionFailure()) {
         return offsets_result << "Offsets of the segmented arrays mismatch";
+    }
+
+    auto buffer_result = array_equal(first_expression, second_expression,
+                                     view_first, view_second);
+    if (buffer_result == ::testing::AssertionFailure()) {
+        return buffer_result << "Buffers of the segmented arrays mismatch";
     }
 
     return ::testing::AssertionSuccess();
@@ -1414,6 +1415,18 @@ T* plain_ptr(T* ptr)
     }
 
 
+/**
+ * Checks if two `gko::segmented_array`s are equal.
+ *
+ * Both the flat array buffer and the offsets of both arrays are tested
+ * for equality.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::segmented_array_equal().
+ *
+ * @param _array1 first segmented array
+ * @param _array2 second segmented array
+ */
 #define GKO_ASSERT_SEGMENTED_ARRAY_EQ(_array1, _array2)                      \
     {                                                                        \
         ASSERT_PRED_FORMAT2(::gko::test::assertions::segmented_array_equal,  \
