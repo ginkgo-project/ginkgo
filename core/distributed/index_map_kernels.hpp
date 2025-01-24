@@ -54,11 +54,11 @@ namespace kernels {
  * space defined by is. The resulting indices are stored in local_ids.
  * The index map is defined by the input parameters:
  *
- * - partition:  the global partition
+ * - partition: the global partition
  * - remote_target_ids: the owning part ids of each segment of
  *                      remote_global_idxs
  * - remote_global_idxs: the remote global indices, segmented by the owning part
- *   ids
+ *                       ids, and each segment sorted
  * - rank: the part id of this process
  *
  * Any global index that is not in the specified local index space is mapped
@@ -81,7 +81,7 @@ namespace kernels {
  *
  * The relevant input parameter from the index map are:
  *
- * - partition:  the global partition
+ * - partition: the global partition
  * - remote_global_idxs: the remote global indices, segmented by the owning part
  *                       ids
  * - rank: the part id of this process

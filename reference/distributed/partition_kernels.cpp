@@ -5,6 +5,7 @@
 #include "core/distributed/partition_kernels.hpp"
 
 #include "core/base/segmented_array.hpp"
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -128,7 +129,7 @@ void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,
               });
 
     sizes.resize_and_reset(num_parts);
-    std::fill_n(sizes.get_data(), num_parts, int64(0));
+    std::fill_n(sizes.get_data(), num_parts, zero<int64>());
     for (size_type i = 0; i < num_ranges; ++i) {
         sizes.get_data()[range_parts[i]]++;
     }
