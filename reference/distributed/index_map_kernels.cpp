@@ -205,14 +205,14 @@ void map_to_global(
     device_partition<const LocalIndexType, const GlobalIndexType> partition,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
-    const array<LocalIndexType>& local_ids,
+    const array<LocalIndexType>& local_idxs,
     experimental::distributed::index_space is,
-    array<GlobalIndexType>& global_ids)
+    array<GlobalIndexType>& global_idxs)
 {
     const auto& ranges_by_part = partition.ranges_by_part;
     auto local_ranges = ranges_by_part.get_segment(rank);
 
-    global_ids.resize_and_reset(local_ids.get_size());
+    global_idxs.resize_and_reset(local_idxs.get_size());
 
     auto local_size =
         static_cast<LocalIndexType>(partition.part_sizes_begin[rank]);
@@ -246,22 +246,14 @@ void map_to_global(
         }
     };
 
-    if (is == experimental::distributed::index_space::local) {
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
-            global_ids.get_data()[i] = map_local(lid);
-        }
-    }
-    if (is == experimental::distributed::index_space::non_local) {
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
-            global_ids.get_data()[i] = map_non_local(lid);
-        }
-    }
-    if (is == experimental::distributed::index_space::combined) {
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
-            global_ids.get_data()[i] = map_combined(lid);
+    for (size_type i = 0; i < local_idxs.get_size(); ++i) {
+        auto lid = local_idxs.get_const_data()[i];
+        if (is == experimental::distributed::index_space::local) {
+            global_idxs.get_data()[i] = map_local(lid);
+        } else if (is == experimental::distributed::index_space::non_local) {
+            global_idxs.get_data()[i] = map_non_local(lid);
+        } else if (is == experimental::distributed::index_space::combined) {
+            global_idxs.get_data()[i] = map_combined(lid);
         }
     }
 }

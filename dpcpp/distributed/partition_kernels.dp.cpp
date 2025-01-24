@@ -140,10 +140,7 @@ void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,
 
     range_ids.resize_and_reset(num_ranges);
     auto range_ids_ptr = range_ids.get_data();
-    // fill range_ids with 0,...,num_ranges - 1
-    run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto rid) { rid[i] = i; }, num_ranges,
-        range_ids_ptr);
+    components::fill_seq_array(exec, range_ids_ptr, num_ranges);
 
     oneapi::dpl::stable_sort(policy, range_ids_ptr, range_ids_ptr + num_ranges,
                              [range_parts](const auto rid_a, const auto rid_b) {
