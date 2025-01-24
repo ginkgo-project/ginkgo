@@ -50,9 +50,9 @@ void map_to_global(
     device_partition<const LocalIndexType, const GlobalIndexType> partition,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
-    const array<LocalIndexType>& local_ids,
+    const array<LocalIndexType>& local_idxs,
     experimental::distributed::index_space is,
-    array<GlobalIndexType>& global_ids) GKO_NOT_IMPLEMENTED;
+    array<GlobalIndexType>& global_idxs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL);

@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GINKGO_PARTITION_HPP
-#define GINKGO_PARTITION_HPP
+#pragma once
 
 #include <ginkgo/core/distributed/partition.hpp>
 
@@ -34,34 +33,7 @@ struct device_partition {
 
 
 /**
- * Create device_segmented_array from a segmented_array.
- */
-template <typename LocalIndexType, typename GlobalIndexType>
-constexpr device_partition<const LocalIndexType, const GlobalIndexType>
-to_device(
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
-        partition)
-{
-    auto num_ranges = partition->get_num_ranges();
-    auto num_parts = partition->get_num_parts();
-    return {num_parts,
-            partition->get_num_empty_parts(),
-            partition->get_size(),
-            partition->get_range_bounds(),
-            partition->get_range_bounds() + num_ranges + 1,
-            partition->get_range_starting_indices(),
-            partition->get_range_starting_indices() + num_ranges,
-            partition->get_part_sizes(),
-            partition->get_part_sizes() + num_parts,
-            partition->get_part_ids(),
-            partition->get_part_ids() + num_parts,
-            to_device(partition->get_ranges_by_part())};
-}
-
-/**
- * Explicitly create a const version of device_segmented_array.
- *
- * This is mostly relevant for tests.
+ * Explicitly create a const version of device_partition.
  */
 template <typename LocalIndexType, typename GlobalIndexType>
 constexpr device_partition<const LocalIndexType, const GlobalIndexType>
@@ -87,6 +59,3 @@ to_device_const(
 
 
 }  // namespace gko
-
-
-#endif  // GINKGO_PARTITION_HPP
