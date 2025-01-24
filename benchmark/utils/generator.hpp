@@ -87,7 +87,7 @@ struct DefaultSystemGenerator {
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
         const gko::matrix_data<ValueType, itype>& data,
-        json* spmv_case = nullptr)
+        [[maybe_unused]] const gko::dim<2> size, json* spmv_case = nullptr)
     {
         auto storage_logger = std::make_shared<StorageLogger>();
         if (spmv_case) {
@@ -107,9 +107,11 @@ struct DefaultSystemGenerator {
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<gko::Executor> exec,
-        const gko::matrix_data<ValueType, itype>& data)
+        const gko::matrix_data<ValueType, itype>& data,
+        const gko::dim<2> local_size)
     {
-        return generate_matrix_with_format(std::move(exec), "coo", data);
+        return generate_matrix_with_format(std::move(exec), "coo", data,
+                                           local_size);
     }
 
     static std::unique_ptr<Vec> create_multi_vector(
@@ -227,11 +229,17 @@ struct DistributedDefaultSystemGenerator {
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
         const gko::matrix_data<value_type, index_type>& data,
-        json* spmv_case = nullptr) const
+        const gko::dim<2> local_size, json* spmv_case = nullptr) const
     {
         auto part = gko::share(
-            gko::experimental::distributed::build_partition_from_local_size<
-                itype, global_itype>(exec, comm, data.size[0]));
+            local_size
+                ? gko::experimental::distributed::
+                      build_partition_from_local_size<itype, global_itype>(
+                          exec, comm, local_size[0])
+                : gko::experimental::distributed::Partition<itype,
+                                                            global_itype>::
+                      build_from_global_size_uniform(exec, comm.size(),
+                                                     data.size[0]));
         auto formats = split(format_name, '-');
         if (formats.size() != 2) {
             throw std::runtime_error{"Invalid distributed format specifier " +
@@ -262,9 +270,11 @@ struct DistributedDefaultSystemGenerator {
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_default_format(
         std::shared_ptr<gko::Executor> exec,
-        const gko::matrix_data<value_type, global_itype>& data) const
+        const gko::matrix_data<value_type, global_itype>& data,
+        const gko::dim<2> local_size) const
     {
-        return generate_matrix_with_format(std::move(exec), "coo-coo", data);
+        return generate_matrix_with_format(std::move(exec), "coo-coo", data,
+                                           local_size);
     }
 
     std::unique_ptr<Vec> create_multi_vector(

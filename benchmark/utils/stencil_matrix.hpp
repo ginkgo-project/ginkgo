@@ -80,11 +80,13 @@ generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
         global_discretization_points % dims[1]};
 
     auto subdomain_size_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
         return discretization_points_min[dim] +
                (i < discretization_points_rest[dim] ? 1 : 0);
     };
 
     auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
         return discretization_points_min[dim] * i +
                std::min(i, discretization_points_rest[dim]);
     };
@@ -135,11 +137,12 @@ generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
      * discretization_points), this returns the index unchanged, otherwise it is
      * projected into the index set of the owning, adjacent box.
      */
-    auto target_local_idx = [&](const IndexType dim, const IndexType i) {
-        return is_in_box(i, discretization_points[dim])
+    auto target_local_idx = [&](const IndexType dim, const IndexType pos,
+                                const IndexType i) {
+        return is_in_box(i, subdomain_size_1d(dim, pos))
                    ? i
-                   : (i < 0 ? subdomain_size_1d(dim, positions[dim] - 1) + i
-                            : subdomain_size_1d(dim, positions[dim] + 1) - i);
+                   : (i < 0 ? i + subdomain_size_1d(dim, pos)
+                            : i - subdomain_size_1d(dim, positions[dim]));
     };
 
     /**
@@ -152,8 +155,8 @@ generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
         auto tpx = target_position(0, ix, positions[0]);
         auto tpy = target_position(1, iy, positions[1]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
-            return subdomain_offset(tpy, tpx) + target_local_idx(0, ix) +
-                   target_local_idx(1, iy) * subdomain_size_1d(0, tpx);
+            return subdomain_offset(tpy, tpx) + target_local_idx(0, tpx, ix) +
+                   target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -373,7 +376,7 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
         }
     }
 
-    return A_data;
+    return {A_data, gko::dim<2>{}};
 }
 
 
