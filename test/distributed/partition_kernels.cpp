@@ -70,15 +70,8 @@ protected:
                 this->exec, dpart->get_num_parts(),
                 const_cast<local_index_type*>(dpart->get_part_sizes())));
 
-        GKO_ASSERT_ARRAY_EQ(
-            gko::make_const_array_view(
-                this->ref, part->get_num_ranges(),
-                part->get_ranges_by_part().get_const_flat_data()),
-            gko::make_const_array_view(
-                this->exec, dpart->get_num_ranges(),
-                dpart->get_ranges_by_part().get_const_flat_data()));
-        GKO_ASSERT_ARRAY_EQ(part->get_ranges_by_part().get_offsets(),
-                            dpart->get_ranges_by_part().get_offsets())
+        GKO_ASSERT_SEGMENTED_ARRAY_EQ(part->get_ranges_by_part(),
+                                      dpart->get_ranges_by_part());
     }
 
     std::default_random_engine rand_engine;
