@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/components/range_minimum_query.hpp"
 #include "core/factorization/elimination_forest.hpp"
 
 
@@ -28,11 +29,33 @@ namespace kernels {
         IndexType* row_nnz, array<IndexType>& tmp_storage)
 
 
+#define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT_LCA(ValueType, IndexType)      \
+    void symbolic_count_lca(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::Csr<ValueType, IndexType>* mtx,                      \
+        const gko::factorization::elimination_forest<IndexType>& forest,   \
+        const IndexType* euler_walk_first,                                 \
+        const typename range_minimum_query<IndexType>::view_type& lca_rmq, \
+        IndexType* nz_path_lengths, IndexType* row_nnz,                    \
+        array<IndexType>& tmp_storage)
+
+
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType)    \
     void symbolic_factorize(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
+        matrix::Csr<ValueType, IndexType>* l_factor,                     \
+        const array<IndexType>& tmp_storage)
+
+
+#define GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE_FLATTENED(ValueType,     \
+                                                          IndexType)     \
+    void symbolic_factorize_flattened(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* mtx,                    \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        const IndexType* nz_path_lengths,                                \
         matrix::Csr<ValueType, IndexType>* l_factor,                     \
         const array<IndexType>& tmp_storage)
 
@@ -58,14 +81,18 @@ namespace kernels {
         array<int>& tmp_storage)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>              \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT_LCA(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE_FLATTENED(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)
 
 

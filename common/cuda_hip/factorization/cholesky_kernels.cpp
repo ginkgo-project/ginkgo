@@ -82,7 +82,8 @@ template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void symbolic_count(
     IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
     const IndexType* inv_postorder, const IndexType* postorder_cols,
-    const IndexType* postorder_parent, IndexType* row_nnz)
+    const IndexType* postorder_parent, IndexType* row_nnz,
+    IndexType* path_lengths)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
@@ -99,13 +100,58 @@ __global__ __launch_bounds__(default_block_size) void symbolic_count(
     const auto lane = subwarp.thread_rank();
     IndexType count{};
     for (auto nz = row_begin + lane; nz < lower_end; nz += subwarp_size) {
+        IndexType local_count{};
         auto node = postorder_cols[nz];
         const auto next_node =
             nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
         while (node < next_node) {
-            count++;
+            local_count++;
             node = postorder_parent[node];
         }
+        // path_lengths[nz] = count;
+        count += local_count;
+    }
+    // lower entries plus diagonal
+    count = reduce(subwarp, count, thrust::plus<IndexType>{}) + 1;
+    if (lane == 0) {
+        row_nnz[row] = count;
+    }
+}
+
+
+template <int subwarp_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void symbolic_count_lca(
+    IndexType num_rows, const IndexType* row_ptrs, const IndexType* lower_ends,
+    const IndexType* inv_postorder, const IndexType* postorder_cols,
+    const IndexType* levels, const IndexType* euler_first,
+    const range_minimum_query<IndexType> lca_rmq, IndexType* row_nnz,
+    IndexType* path_lengths)
+{
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto row_begin = row_ptrs[row];
+    // instead of relying on the input containing a diagonal, we artificially
+    // introduce the diagonal entry (in postorder indexing) as a sentinel after
+    // the last lower triangular entry.
+    const auto diag_postorder = inv_postorder[row];
+    const auto level = lca_rmq.min(euler_first[row]);
+    const auto lower_end = lower_ends[row];
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto lane = subwarp.thread_rank();
+    IndexType count{};
+    for (auto nz = row_begin + lane; nz < lower_end; nz += subwarp_size) {
+        const auto node = postorder_cols[nz];
+        const auto euler_pos = euler_first[node];
+        const auto next_node =
+            nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
+        const auto next_euler_pos = euler_first[next_node];
+        const auto lca_level = lca_rmq.query(euler_pos, next_euler_pos).min;
+        const auto path_length = level - lca_level;
+        path_lengths[nz] = path_length;
+        count += path_length;
     }
     // lower entries plus diagonal
     count = reduce(subwarp, count, thrust::plus<IndexType>{}) + 1;
@@ -382,7 +428,7 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
         kernel::symbolic_count<config::warp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 num_rows, row_ptrs, lower_ends, inv_postorder, postorder_cols,
-                postorder_parent, row_nnz);
+                postorder_parent, row_nnz, static_cast<IndexType*>(nullptr));
     }
 }
 

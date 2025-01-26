@@ -14,6 +14,7 @@
 #include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 
 
@@ -21,6 +22,34 @@ namespace gko {
 namespace kernels {
 namespace reference {
 namespace elimination_forest {
+
+
+template <typename IndexType>
+void compute_children(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* parents, IndexType size,
+                      IndexType* child_ptrs, IndexType* children)
+{
+    // count how many times each parent occurs, excluding pseudo-root at
+    // parent == size
+    std::fill_n(child_ptrs, size + 2, IndexType{});
+    for (IndexType i = 0; i < size; i++) {
+        const auto p = parents[i];
+        if (p < size) {
+            child_ptrs[p + 2]++;
+        }
+    }
+    // shift by 2 leads to exclusive prefix sum with 0 padding
+    std::partial_sum(child_ptrs, child_ptrs + size + 2, child_ptrs);
+    // we count the same again, this time shifted by 1 => exclusive prefix sum
+    for (IndexType i = 0; i < size; i++) {
+        const auto p = parents[i];
+        children[child_ptrs[p + 1]] = i;
+        child_ptrs[p + 1]++;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN);
 
 
 template <typename IndexType>
@@ -228,14 +257,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* factors,
-                 gko::factorization::elimination_forest<IndexType>& forest)
+                 IndexType* parents)
 {
     const auto row_ptrs = factors->get_const_row_ptrs();
     const auto col_idxs = factors->get_const_col_idxs();
     const auto num_rows = static_cast<IndexType>(factors->get_size()[0]);
-    const auto parents = forest.parents.get_data();
-    const auto children = forest.children.get_data();
-    const auto child_ptrs = forest.child_ptrs.get_data();
     // filled with sentinel for unattached nodes
     std::fill_n(parents, num_rows, num_rows);
     for (IndexType row = 0; row < num_rows; row++) {
@@ -249,13 +275,6 @@ void from_factor(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
-    // group by parent
-    vector<IndexType> parents_copy(parents, parents + num_rows, {exec});
-    std::iota(children, children + num_rows, 0);
-    const auto it = detail::make_zip_iterator(parents_copy.begin(), children);
-    std::stable_sort(it, it + num_rows);
-    components::convert_idxs_to_ptrs(exec, parents_copy.data(), num_rows,
-                                     num_rows + 1, child_ptrs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -263,14 +282,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_subtree_sizes(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    IndexType* subtree_sizes)
+void compute_subtree_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* child_ptrs,
+                           const IndexType* children, IndexType size,
+                           IndexType* subtree_sizes)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
     vector<bool> finished(size, exec);
     for (const auto node : irange{size}) {
         IndexType local_size{1};
@@ -293,13 +309,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename IndexType>
 void compute_subtree_euler_path_sizes(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* child_ptrs,
+    const IndexType* children, IndexType size,
     IndexType* subtree_euler_path_sizes)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
     vector<bool> finished(size, exec);
     for (const auto node : irange{size}) {
         IndexType local_size{};
@@ -323,30 +336,30 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_levels(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    IndexType* levels)
+void compute_levels(std::shared_ptr<const DefaultExecutor> exec,
+                    const IndexType* parents, IndexType size, IndexType* levels)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
-    vector<IndexType> queue(children + child_ptrs[size],
-                            children + child_ptrs[size + 1], exec);
-    vector<IndexType> new_queue(exec);
-    IndexType level{};
-    while (!queue.empty()) {
-        for (const auto node : queue) {
-            levels[node] = level;
-            const auto child_begin = child_ptrs[node];
-            const auto child_end = child_ptrs[node + 1];
-            for (const auto child_idx : irange{child_begin, child_end}) {
-                new_queue.push_back(children[child_idx]);
-            }
+    constexpr IndexType sentinel = -2;
+    std::fill_n(levels, size, sentinel);
+    for (const auto i : irange{size}) {
+        auto cur = i;
+        auto parent = parents[cur];
+        auto parent_level = parent == size ? IndexType{-1} : levels[parent];
+        IndexType delta{1};
+        // walk up until we find a node we know the level of
+        while (parent_level == sentinel) {
+            cur = parent;
+            parent = parents[cur];
+            parent_level = parent == size ? IndexType{-1} : levels[parent];
+            delta++;
         }
-        level++;
-        queue = std::move(new_queue);
-        new_queue.clear();
+        // walk up from the original node to set the level for all nodes
+        cur = i;
+        while (cur != parent) {
+            levels[cur] = parent_level + delta;
+            cur = parents[cur];
+            delta--;
+        }
     }
 }
 
@@ -374,15 +387,11 @@ IndexType traverse_postorder(const IndexType* child_ptrs,
 
 
 template <typename IndexType>
-void compute_postorder(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    const IndexType* subtree_size, IndexType* postorder,
-    IndexType* inv_postorder)
+void compute_postorder(std::shared_ptr<const DefaultExecutor> exec,
+                       const IndexType* child_ptrs, const IndexType* children,
+                       IndexType size, const IndexType* subtree_size,
+                       IndexType* postorder, IndexType* inv_postorder)
 {
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
     const auto root_begin = child_ptrs[size];
     const auto root_end = child_ptrs[size + 1];
     IndexType index{};
@@ -395,6 +404,45 @@ void compute_postorder(
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER);
+
+
+template <typename IndexType>
+void map_postorder(std::shared_ptr<const DefaultExecutor> exec,
+                   const IndexType* parents, const IndexType* child_ptrs,
+                   const IndexType* children, IndexType size,
+                   const IndexType* subtree_size, const IndexType* postorder,
+                   const IndexType* inv_postorder, IndexType* postorder_parents,
+                   IndexType* postorder_child_ptrs,
+                   IndexType* postorder_children)
+{
+    // map parents and child counts
+    for (const auto i : irange{size}) {
+        const auto postorder_i = postorder[i];
+        const auto parent = parents[postorder_i];
+        postorder_parents[i] = parent == size ? size : inv_postorder[parent];
+        postorder_child_ptrs[i] =
+            child_ptrs[postorder_i + 1] - child_ptrs[postorder_i];
+    }
+    // we don't store a parent for the pseudo-root, but child ptrs
+    postorder_child_ptrs[size] = child_ptrs[size + 1] - child_ptrs[size];
+    // build postorder_child_ptrs from sizes
+    components::prefix_sum_nonnegative(exec, postorder_child_ptrs,
+                                       static_cast<size_type>(size + 1));
+    // now map children for all nodes (including pseudo-root, thus + 1)
+    for (const auto i : irange{size + 1}) {
+        const auto postorder_i = i == size ? size : postorder[i];
+        const auto in_begin = child_ptrs[postorder_i];
+        const auto in_end = child_ptrs[postorder_i + 1];
+        auto out_idx = postorder_child_ptrs[i];
+        for (const auto child : irange{in_begin, in_end}) {
+            postorder_children[out_idx] = inv_postorder[children[child]];
+            out_idx++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_MAP_POSTORDER);
 
 
 template <typename IndexType>
@@ -426,15 +474,13 @@ IndexType traverse_euler_path(const IndexType* child_ptrs,
 
 
 template <typename IndexType>
-void compute_euler_path(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    const IndexType* subtree_euler_tree_size, const IndexType* levels,
-    IndexType* euler_path, IndexType* first_visit, IndexType* euler_levels)
+void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,
+                        const IndexType* child_ptrs, const IndexType* children,
+                        IndexType size,
+                        const IndexType* subtree_euler_tree_size,
+                        const IndexType* levels, IndexType* euler_path,
+                        IndexType* first_visit, IndexType* euler_levels)
 {
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
     const auto pseudo_root = size;
     traverse_euler_path(child_ptrs, children, pseudo_root, IndexType{}, size,
                         IndexType{-1}, euler_path, first_visit, euler_levels);

@@ -1213,57 +1213,55 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 
 
 template <typename IndexType>
-void build_children_from_parents(
-    std::shared_ptr<const DefaultExecutor> exec,
-    gko::factorization::elimination_forest<IndexType>& forest)
+void compute_children(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* parents, IndexType size,
+                      IndexType* child_ptrs, IndexType* children)
 {
-    const auto num_rows = forest.parents.get_size();
+    const auto usize = static_cast<size_type>(size);
     // build COO representation of the tree
-    array<IndexType> col_idx_array{exec, num_rows};
+    array<IndexType> col_idx_array{exec, usize};
     const auto col_idxs = col_idx_array.get_data();
-    const auto parents = forest.parents.get_const_data();
-    const auto children = forest.children.get_data();
-    const auto child_ptrs = forest.child_ptrs.get_data();
-    exec->copy(num_rows, parents, col_idxs);
-    thrust::sequence(thrust_policy(exec), children, children + num_rows,
-                     IndexType{});
+    exec->copy(usize, parents, col_idxs);
+    components::fill_seq_array(exec, children, usize);
     // group by parent
-    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
-                               col_idxs + num_rows, children);
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs, col_idxs + size,
+                               children);
     // create child pointers for groups of children
-    components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
-                                     num_rows + 1,  // rows plus sentinel
+    components::convert_idxs_to_ptrs(exec, col_idxs, usize,
+                                     usize + 1,  // rows plus sentinel
                                      child_ptrs);
 }
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN);
 
 
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* factors,
-                 gko::factorization::elimination_forest<IndexType>& forest)
+                 IndexType* parents)
 {
     const auto num_rows = factors->get_size()[0];
     const auto it = thrust::make_counting_iterator(IndexType{});
-    thrust::transform(
-        thrust_policy(exec), it, it + num_rows, forest.parents.get_data(),
-        [row_ptrs = factors->get_const_row_ptrs(),
-         col_idxs = factors->get_const_col_idxs(),
-         num_rows] __device__(IndexType l_col) {
-            const auto llt_row_begin = row_ptrs[l_col];
-            const auto llt_row_end = row_ptrs[l_col + 1];
-            for (auto nz = llt_row_begin; nz < llt_row_end; nz++) {
-                const auto l_row = col_idxs[nz];
-                // parent[j] = min(i | i > j and l_ij =/= 0)
-                // we read from L^T stored above the diagonal in factors
-                // assuming a sorted order of the columns
-                if (l_row > l_col) {
-                    return l_row;
-                }
-            }
-            // sentinel pseudo-root
-            return static_cast<IndexType>(num_rows);
-        });
-    build_children_from_parents(exec, forest);
+    thrust::transform(thrust_policy(exec), it, it + num_rows, parents,
+                      [row_ptrs = factors->get_const_row_ptrs(),
+                       col_idxs = factors->get_const_col_idxs(),
+                       num_rows] __device__(IndexType l_col) {
+                          const auto llt_row_begin = row_ptrs[l_col];
+                          const auto llt_row_end = row_ptrs[l_col + 1];
+                          for (auto nz = llt_row_begin; nz < llt_row_end;
+                               nz++) {
+                              const auto l_row = col_idxs[nz];
+                              // parent[j] = min(i | i > j and l_ij =/= 0)
+                              // we read from L^T stored above the diagonal in
+                              // factors assuming a sorted order of the columns
+                              if (l_row > l_col) {
+                                  return l_row;
+                              }
+                          }
+                          // sentinel pseudo-root
+                          return static_cast<IndexType>(num_rows);
+                      });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1271,14 +1269,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_subtree_sizes(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    IndexType* subtree_sizes)
+void compute_subtree_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* child_ptrs,
+                           const IndexType* children, IndexType size,
+                           IndexType* subtree_sizes)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
     components::fill_array(exec, subtree_sizes, size,
                            invalid_index<IndexType>());
     const auto num_blocks = ceildiv(size, default_block_size);
@@ -1295,13 +1290,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename IndexType>
 void compute_subtree_euler_path_sizes(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* child_ptrs,
+    const IndexType* children, IndexType size,
     IndexType* subtree_euler_path_sizes)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
     components::fill_array(exec, subtree_euler_path_sizes, size,
                            invalid_index<IndexType>());
     const auto num_blocks = ceildiv(size, default_block_size);
@@ -1317,15 +1309,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_postorder(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    const IndexType* subtree_size, IndexType* postorder,
-    IndexType* inv_postorder)
+void compute_postorder(std::shared_ptr<const DefaultExecutor> exec,
+                       const IndexType* child_ptrs, const IndexType* children,
+                       IndexType size, const IndexType* subtree_size,
+                       IndexType* postorder, IndexType* inv_postorder)
 {
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
     components::fill_array(exec, inv_postorder, size,
                            invalid_index<IndexType>());
     const auto num_blocks = ceildiv(size + 1, default_block_size);
@@ -1339,15 +1327,13 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_euler_path(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    const IndexType* subtree_euler_tree_size, const IndexType* levels,
-    IndexType* euler_path, IndexType* first_visit, IndexType* euler_levels)
+void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,
+                        const IndexType* child_ptrs, const IndexType* children,
+                        IndexType size,
+                        const IndexType* subtree_euler_tree_size,
+                        const IndexType* levels, IndexType* euler_path,
+                        IndexType* first_visit, IndexType* euler_levels)
 {
-    const auto child_ptrs = forest.child_ptrs.get_const_data();
-    const auto children = forest.children.get_const_data();
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
     components::fill_array(exec, first_visit, size, invalid_index<IndexType>());
     const auto num_blocks = ceildiv(size + 1, default_block_size);
     kernel::compute_euler_path<<<num_blocks, default_block_size, 0,
@@ -1361,13 +1347,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_levels(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const gko::factorization::elimination_forest<IndexType>& forest,
-    IndexType* levels)
+void compute_levels(std::shared_ptr<const DefaultExecutor> exec,
+                    const IndexType* parents, IndexType size, IndexType* levels)
 {
-    const auto size = static_cast<IndexType>(forest.parents.get_size());
-    const auto parents = forest.parents.get_const_data();
     components::fill_array(exec, levels, size,
                            std::numeric_limits<IndexType>::lowest());
     const auto num_blocks = ceildiv(size, default_block_size);
