@@ -6,10 +6,20 @@
 
 #include <ginkgo/core/base/types.hpp>
 
+#include "core/factorization/elimination_forest_kernels.hpp"
+
 
 namespace gko {
 namespace factorization {
 namespace {
+
+
+GKO_REGISTER_OPERATION(compute_children, elimination_forest::compute_children);
+GKO_REGISTER_OPERATION(compute_subtree_sizes,
+                       elimination_forest::compute_subtree_sizes);
+GKO_REGISTER_OPERATION(compute_postorder,
+                       elimination_forest::compute_postorder);
+GKO_REGISTER_OPERATION(map_postorder, elimination_forest::map_postorder);
 
 
 template <typename IndexType>
@@ -44,32 +54,6 @@ void compute_elimination_forest_parent_impl(
                 }
             }
         }
-    }
-}
-
-
-template <typename IndexType>
-void compute_elimination_forest_children_impl(const IndexType* parent,
-                                              IndexType size,
-                                              IndexType* child_ptr,
-                                              IndexType* child)
-{
-    // count how many times each parent occurs, excluding pseudo-root at
-    // parent == size
-    std::fill_n(child_ptr, size + 2, IndexType{});
-    for (IndexType i = 0; i < size; i++) {
-        const auto p = parent[i];
-        if (p < size) {
-            child_ptr[p + 2]++;
-        }
-    }
-    // shift by 2 leads to exclusive prefix sum with 0 padding
-    std::partial_sum(child_ptr, child_ptr + size + 2, child_ptr);
-    // we count the same again, this time shifted by 1 => exclusive prefix sum
-    for (IndexType i = 0; i < size; i++) {
-        const auto p = parent[i];
-        child[child_ptr[p + 1]] = i;
-        child_ptr[p + 1]++;
     }
 }
 
@@ -111,18 +95,6 @@ void compute_elimination_forest_postorder_impl(
 }
 
 
-template <typename IndexType>
-void compute_elimination_forest_postorder_parent_impl(
-    const IndexType* parent, const IndexType* inv_postorder, IndexType size,
-    IndexType* postorder_parent)
-{
-    for (IndexType row = 0; row < size; row++) {
-        postorder_parent[inv_postorder[row]] =
-            parent[row] == size ? size : inv_postorder[parent[row]];
-    }
-}
-
-
 }  // namespace
 
 
@@ -142,37 +114,79 @@ void elimination_forest<IndexType>::set_executor(
 template <typename ValueType, typename IndexType>
 void compute_elimination_forest(
     const matrix::Csr<ValueType, IndexType>* mtx,
-    std::unique_ptr<elimination_forest<IndexType>>& forest)
+    std::unique_ptr<elimination_forest<IndexType>>& forest,
+    elimination_forest_algorithm algorithm)
 {
-    const auto host_exec = mtx->get_executor()->get_master();
+    const auto exec = mtx->get_executor();
+    const auto host_exec = exec->get_master();
     const auto host_mtx = make_temporary_clone(host_exec, mtx);
     const auto num_rows = static_cast<IndexType>(host_mtx->get_size()[0]);
-    forest =
-        std::make_unique<elimination_forest<IndexType>>(host_exec, num_rows);
+    forest = std::make_unique<elimination_forest<IndexType>>(exec, num_rows,
+                                                             algorithm);
     compute_elimination_forest_parent_impl(
         host_exec, host_mtx->get_const_row_ptrs(),
         host_mtx->get_const_col_idxs(), num_rows, forest->parents.get_data());
-    compute_elimination_forest_children_impl(
-        forest->parents.get_const_data(), num_rows,
-        forest->child_ptrs.get_data(), forest->children.get_data());
-    compute_elimination_forest_postorder_impl(
-        host_exec, forest->parents.get_const_data(),
-        forest->child_ptrs.get_const_data(), forest->children.get_const_data(),
-        num_rows, forest->postorder.get_data(),
-        forest->inv_postorder.get_data());
-    compute_elimination_forest_postorder_parent_impl(
-        forest->parents.get_const_data(),
-        forest->inv_postorder.get_const_data(), num_rows,
-        forest->postorder_parents.get_data());
-
-    forest->set_executor(mtx->get_executor());
+    if (algorithm == elimination_forest_algorithm::device_children) {
+        // from now on we do everything on the device
+        forest->set_executor(exec);
+        exec->run(make_compute_children(forest->parents.get_const_data(),
+                                        num_rows, forest->child_ptrs.get_data(),
+                                        forest->children.get_data()));
+    } else {
+        host_exec->run(make_compute_children(
+            forest->parents.get_const_data(), num_rows,
+            forest->child_ptrs.get_data(), forest->children.get_data()));
+    }
+    if (algorithm == elimination_forest_algorithm::device_children ||
+        algorithm == elimination_forest_algorithm::device_postorder) {
+        // from now on we do everything on the device
+        forest->set_executor(exec);
+        array<IndexType> subtree_sizes{exec, static_cast<size_type>(num_rows)};
+        exec->run(
+            make_compute_subtree_sizes(forest->child_ptrs.get_const_data(),
+                                       forest->children.get_const_data(),
+                                       num_rows, subtree_sizes.get_data()));
+        exec->run(make_compute_postorder(
+            forest->child_ptrs.get_const_data(),
+            forest->children.get_const_data(), num_rows,
+            subtree_sizes.get_const_data(), forest->postorder.get_data(),
+            forest->inv_postorder.get_data()));
+    } else {
+        host_exec->run(make_compute_postorder(
+            forest->child_ptrs.get_const_data(),
+            forest->children.get_const_data(), num_rows,
+            static_cast<const IndexType*>(nullptr),
+            forest->postorder.get_data(), forest->inv_postorder.get_data()));
+    }
+    if (algorithm != elimination_forest_algorithm::host) {
+        // from now on we do everything on the device
+        forest->set_executor(exec);
+        exec->run(make_map_postorder(forest->parents.get_const_data(),
+                                     forest->child_ptrs.get_const_data(),
+                                     forest->children.get_const_data(),
+                                     forest->inv_postorder.get_const_data(),
+                                     num_rows,
+                                     forest->postorder_parents.get_data(),
+                                     forest->postorder_child_ptrs.get_data(),
+                                     forest->postorder_children.get_data()));
+    } else {
+        host_exec->run(
+            make_map_postorder(forest->parents.get_const_data(),
+                               forest->child_ptrs.get_const_data(),
+                               forest->children.get_const_data(),
+                               forest->inv_postorder.get_const_data(), num_rows,
+                               forest->postorder_parents.get_data(),
+                               forest->postorder_child_ptrs.get_data(),
+                               forest->postorder_children.get_data()));
+        forest->set_executor(exec);
+    }
 }
-
 
 #define GKO_DECLARE_COMPUTE_ELIMINATION_FOREST(ValueType, IndexType) \
     void compute_elimination_forest(                                 \
         const matrix::Csr<ValueType, IndexType>* mtx,                \
-        std::unique_ptr<elimination_forest<IndexType>>& forest)
+        std::unique_ptr<elimination_forest<IndexType>>& forest,      \
+        elimination_forest_algorithm algorithm)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COMPUTE_ELIMINATION_FOREST);
