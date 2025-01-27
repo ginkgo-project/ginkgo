@@ -102,8 +102,8 @@ generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    const auto dx = gko::one<ValueType>() /
-                    static_cast<ValueType>(global_discretization_points + 1);
+    const auto h = gko::one<ValueType>() /
+                   static_cast<ValueType>(global_discretization_points + 1);
 
     /**
      * This computes the offsets in the global indices for a box at (position_y,
@@ -185,7 +185,7 @@ generate_2d_stencil_box(std::array<int, 2> dims, std::array<int, 2> positions,
         }
         return num_neighbors;
     };
-    const auto scale = dx * dx;
+    const auto scale = h * h;
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1) / scale;
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
@@ -242,32 +242,65 @@ std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
 generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
                         const gko::size_type target_local_size, bool restricted)
 {
-    auto num_boxes =
+    auto num_subdomains =
         std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>{});
 
-    const auto discretization_points =
-        static_cast<IndexType>(closest_nth_root(target_local_size, 3));
+    const auto target_global_size = target_local_size * num_subdomains;
+    const auto global_discretization_points =
+        static_cast<IndexType>(closest_nth_root(target_global_size, 3));
+
+    const std::array<IndexType, 3> discretization_points_min = {
+        global_discretization_points / dims[0],
+        global_discretization_points / dims[1],
+        global_discretization_points / dims[2]};
+    const std::array<IndexType, 3> discretization_points_rest = {
+        global_discretization_points % dims[0],
+        global_discretization_points % dims[1],
+        global_discretization_points % dims[2]};
+
+    auto subdomain_size_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] +
+               (i < discretization_points_rest[dim] ? 1 : 0);
+    };
+
+    auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
+        assert(0 <= i && i < dims[dim]);
+        return discretization_points_min[dim] * i +
+               std::min(i, discretization_points_rest[dim]);
+    };
+
+    const std::array<IndexType, 3> discretization_points = {
+        subdomain_size_1d(0, positions[0]), subdomain_size_1d(1, positions[1]),
+        subdomain_size_1d(2, positions[2])};
+
     const auto local_size = static_cast<gko::size_type>(
-        discretization_points * discretization_points * discretization_points);
-    const auto global_size = local_size * num_boxes;
+        discretization_points[0] * discretization_points[1] *
+        discretization_points[2]);
+    const auto global_size = global_discretization_points *
+                             global_discretization_points *
+                             global_discretization_points;
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{static_cast<gko::size_type>(global_size),
                     static_cast<gko::size_type>(global_size)});
 
-    const auto dx = gko::one<ValueType>() /
-                    static_cast<ValueType>(discretization_points + 1);
+    const auto h = gko::one<ValueType>() /
+                   static_cast<ValueType>(global_discretization_points + 1);
 
     /**
      * This computes the offsets in the global indices for a box at (position_z,
      * position_y, position_x).
      */
-    auto global_offset = [&](const IndexType position_z,
-                             const IndexType position_y,
-                             const IndexType position_x) {
-        return position_x * static_cast<IndexType>(local_size) +
-               position_y * static_cast<IndexType>(local_size) * dims[0] +
-               position_z * static_cast<IndexType>(local_size) * dims[0] *
-                   dims[1];
+    auto subdomain_offset = [&](const IndexType position_z,
+                                const IndexType position_y,
+                                const IndexType position_x) {
+        return global_discretization_points * global_discretization_points *
+                   subdomain_offset_1d(2, position_z) +
+               global_discretization_points * subdomain_size_1d(2, position_z) *
+                   subdomain_offset_1d(1, position_y) +
+               subdomain_size_1d(2, position_z) *
+                   subdomain_size_1d(1, position_y) *
+                   subdomain_offset_1d(0, position_x);
     };
 
     /**
@@ -276,8 +309,9 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
      * If the index is within the local indices [0, discretization_points) this
      * returns the current position, otherwise it is shifted by +-1.
      */
-    auto target_position = [&](const IndexType i, const int position) {
-        return is_in_box(i, discretization_points)
+    auto target_position = [&](const IndexType dim, const IndexType i,
+                               const int position) {
+        return is_in_box(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
@@ -289,11 +323,12 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
      * discretization_points), this returns the index unchanged, otherwise it is
      * projected into the index set of the owning, adjacent box.
      */
-    auto target_local_idx = [&](const IndexType i) {
-        return is_in_box(i, discretization_points)
+    auto target_local_idx = [&](const IndexType dim, const IndexType pos,
+                                const IndexType i) {
+        return is_in_box(i, subdomain_size_1d(dim, pos))
                    ? i
-                   : (i < 0 ? discretization_points + i
-                            : discretization_points - i);
+                   : (i < 0 ? i + subdomain_size_1d(dim, pos)
+                            : i - subdomain_size_1d(dim, positions[dim]));
     };
 
     /**
@@ -304,15 +339,16 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
      */
     auto flat_idx = [&](const IndexType iz, const IndexType iy,
                         const IndexType ix) {
-        auto tpx = target_position(ix, positions[0]);
-        auto tpy = target_position(iy, positions[1]);
-        auto tpz = target_position(iz, positions[2]);
+        auto tpx = target_position(0, ix, positions[0]);
+        auto tpy = target_position(1, iy, positions[1]);
+        auto tpz = target_position(2, iz, positions[2]);
         if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
             is_in_box(tpz, dims[2])) {
-            return global_offset(tpz, tpy, tpx) + target_local_idx(ix) +
-                   target_local_idx(iy) * discretization_points +
-                   target_local_idx(iz) * discretization_points *
-                       discretization_points;
+            return subdomain_offset(tpz, tpy, tpx) +
+                   target_local_idx(0, tpx, ix) +
+                   target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx) +
+                   target_local_idx(2, tpz, iz) * subdomain_size_1d(0, tpx) *
+                       subdomain_size_1d(1, tpy);
         } else {
             return static_cast<IndexType>(-1);
         }
@@ -344,14 +380,14 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
         }
         return num_neighbors;
     };
-    const auto scale = dx * dx;
+    const auto scale = h * h;
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1) / scale;
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
 
-    for (IndexType iz = 0; iz < discretization_points; ++iz) {
-        for (IndexType iy = 0; iy < discretization_points; ++iy) {
-            for (IndexType ix = 0; ix < discretization_points; ++ix) {
+    for (IndexType iz = 0; iz < discretization_points[2]; ++iz) {
+        for (IndexType iy = 0; iy < discretization_points[1]; ++iy) {
+            for (IndexType ix = 0; ix < discretization_points[0]; ++ix) {
                 auto row = flat_idx(iz, iy, ix);
                 for (IndexType dz : {-1, 0, 1}) {
                     for (IndexType dy : {-1, 0, 1}) {
@@ -376,7 +412,7 @@ generate_3d_stencil_box(std::array<int, 3> dims, std::array<int, 3> positions,
         }
     }
 
-    return {A_data, gko::dim<2>{}};
+    return {A_data, gko::dim<2>{local_size, local_size}};
 }
 
 
