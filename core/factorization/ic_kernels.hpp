@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,9 +23,33 @@ namespace kernels {
     void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec, \
                       matrix::Csr<ValueType, IndexType>* system_matrix)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_IC_SPARSELIB_IC_KERNEL(ValueType, IndexType)
+
+#define GKO_DECLARE_IC_INITIALIZE(ValueType, IndexType)                       \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec,              \
+                    const matrix::Csr<ValueType, IndexType>* mtx,             \
+                    const IndexType* factor_lookup_offsets,                   \
+                    const int64* factor_lookup_descs,                         \
+                    const int32* factor_lookup_storage, IndexType* diag_idxs, \
+                    IndexType* transpose_idxs,                                \
+                    matrix::Csr<ValueType, IndexType>* factors)
+
+
+#define GKO_DECLARE_IC_FACTORIZE(ValueType, IndexType)                         \
+    void factorize(std::shared_ptr<const DefaultExecutor> exec,                \
+                   const IndexType* lookup_offsets, const int64* lookup_descs, \
+                   const int32* lookup_storage, const IndexType* diag_idxs,    \
+                   const IndexType* transpose_idxs,                            \
+                   matrix::Csr<ValueType, IndexType>* factors,                 \
+                   array<int>& tmp_storage)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    template <typename ValueType, typename IndexType>         \
+    GKO_DECLARE_IC_SPARSELIB_IC_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>         \
+    GKO_DECLARE_IC_INITIALIZE(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>         \
+    GKO_DECLARE_IC_FACTORIZE(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ic_factorization,

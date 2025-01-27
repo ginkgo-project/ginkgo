@@ -29,14 +29,15 @@ namespace kernels {
         IndexType* row_nnz, array<IndexType>& tmp_storage)
 
 
-#define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT_LCA(ValueType, IndexType)      \
-    void symbolic_count_lca(                                               \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* mtx,                      \
-        const gko::factorization::elimination_forest<IndexType>& forest,   \
-        const IndexType* euler_walk_first,                                 \
-        const typename range_minimum_query<IndexType>::view_type& lca_rmq, \
-        IndexType* nz_path_lengths, IndexType* row_nnz,                    \
+#define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT_LCA(ValueType, IndexType)    \
+    void symbolic_count_lca(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* mtx,                    \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        const IndexType* euler_walk_first,                               \
+        const typename gko::range_minimum_query<IndexType>::view_type&   \
+            lca_rmq,                                                     \
+        IndexType* nz_path_lengths, IndexType* row_nnz,                  \
         array<IndexType>& tmp_storage)
 
 
@@ -70,15 +71,13 @@ namespace kernels {
                     matrix::Csr<ValueType, IndexType>* factors)
 
 
-#define GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)             \
-    void factorize(                                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                     \
-        const IndexType* lookup_offsets, const int64* lookup_descs,      \
-        const int32* lookup_storage, const IndexType* diag_idxs,         \
-        const IndexType* transpose_idxs,                                 \
-        const gko::factorization::elimination_forest<IndexType>& forest, \
-        matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,    \
-        array<int>& tmp_storage)
+#define GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)                   \
+    void factorize(std::shared_ptr<const DefaultExecutor> exec,                \
+                   const IndexType* lookup_offsets, const int64* lookup_descs, \
+                   const int32* lookup_storage, const IndexType* diag_idxs,    \
+                   const IndexType* transpose_idxs,                            \
+                   matrix::Csr<ValueType, IndexType>* factors,                 \
+                   bool full_fillin, array<int>& tmp_storage)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \

@@ -102,8 +102,8 @@ template <typename IndexType>
 void map_postorder(std::shared_ptr<const DefaultExecutor> exec,
                    const IndexType* parents, const IndexType* child_ptrs,
                    const IndexType* children, IndexType size,
-                   const IndexType* subtree_size, const IndexType* postorder,
-                   const IndexType* inv_postorder, IndexType* postorder_parents,
+                   const IndexType* postorder, const IndexType* inv_postorder,
+                   IndexType* postorder_parents,
                    IndexType* postorder_child_ptrs,
                    IndexType* postorder_children) GKO_NOT_IMPLEMENTED;
 

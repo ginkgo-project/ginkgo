@@ -16,9 +16,6 @@
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
-#include "core/factorization/cholesky_kernels.hpp"
-#include "core/factorization/elimination_forest.hpp"
-#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -31,6 +28,8 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(sparselib_ic, ic_factorization::sparselib_ic);
+GKO_REGISTER_OPERATION(initialize, ic_factorization::initialize);
+GKO_REGISTER_OPERATION(factorize, ic_factorization::factorize);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
                        factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
@@ -38,9 +37,6 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 // for gko syncfree implementation
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(from_factor, elimination_forest::from_factor);
-GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
-GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
 
 }  // anonymous namespace
@@ -105,8 +101,6 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     // Compute LC factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||
         exec == exec->get_master()) {
-        std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
-            forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
         auto factors = share(
@@ -118,10 +112,6 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
                         factors->get_row_ptrs());
         // update srow to be safe
         factors->set_strategy(factors->get_strategy());
-        forest =
-            std::make_unique<gko::factorization::elimination_forest<IndexType>>(
-                exec, num_rows);
-        exec->run(ic_factorization::make_from_factor(factors.get(), *forest));
 
         // setup lookup structure on factors
         const auto lookup = matrix::csr::build_lookup(factors.get());
@@ -142,7 +132,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             lookup.storage_offsets.get_const_data(),
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
             diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-            *forest, factors.get(), false, tmp));
+            factors.get(), tmp));
         ic = factors;
     } else {
         exec->run(

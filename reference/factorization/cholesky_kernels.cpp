@@ -143,7 +143,6 @@ void factorize_impl(std::shared_ptr<const DefaultExecutor> exec,
                     const IndexType* lookup_offsets, const int64* lookup_descs,
                     const int32* lookup_storage, const IndexType* diag_idxs,
                     const IndexType* transpose_idxs,
-                    const factorization::elimination_forest<IndexType>& forest,
                     matrix::Csr<ValueType, IndexType>* factors,
                     array<int>& tmp_storage)
 {
@@ -199,17 +198,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
-               const factorization::elimination_forest<IndexType>& forest,
                matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage)
 {
     if (full_fillin) {
         factorize_impl<true>(exec, lookup_offsets, lookup_descs, lookup_storage,
-                             diag_idxs, transpose_idxs, forest, factors,
-                             tmp_storage);
+                             diag_idxs, transpose_idxs, factors, tmp_storage);
     } else {
         factorize_impl<false>(exec, lookup_offsets, lookup_descs,
-                              lookup_storage, diag_idxs, transpose_idxs, forest,
+                              lookup_storage, diag_idxs, transpose_idxs,
                               factors, tmp_storage);
     }
 }

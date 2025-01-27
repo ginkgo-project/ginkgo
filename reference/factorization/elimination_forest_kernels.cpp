@@ -410,30 +410,29 @@ template <typename IndexType>
 void map_postorder(std::shared_ptr<const DefaultExecutor> exec,
                    const IndexType* parents, const IndexType* child_ptrs,
                    const IndexType* children, IndexType size,
-                   const IndexType* subtree_size, const IndexType* postorder,
                    const IndexType* inv_postorder, IndexType* postorder_parents,
                    IndexType* postorder_child_ptrs,
                    IndexType* postorder_children)
 {
     // map parents and child counts
     for (const auto i : irange{size}) {
-        const auto postorder_i = postorder[i];
-        const auto parent = parents[postorder_i];
-        postorder_parents[i] = parent == size ? size : inv_postorder[parent];
-        postorder_child_ptrs[i] =
-            child_ptrs[postorder_i + 1] - child_ptrs[postorder_i];
+        const auto postorder_i = inv_postorder[i];
+        const auto parent = parents[i];
+        postorder_parents[postorder_i] =
+            parent == size ? size : inv_postorder[parent];
+        postorder_child_ptrs[postorder_i] = child_ptrs[i + 1] - child_ptrs[i];
     }
     // we don't store a parent for the pseudo-root, but child ptrs
     postorder_child_ptrs[size] = child_ptrs[size + 1] - child_ptrs[size];
     // build postorder_child_ptrs from sizes
     components::prefix_sum_nonnegative(exec, postorder_child_ptrs,
-                                       static_cast<size_type>(size + 1));
+                                       static_cast<size_type>(size + 2));
     // now map children for all nodes (including pseudo-root, thus + 1)
     for (const auto i : irange{size + 1}) {
-        const auto postorder_i = i == size ? size : postorder[i];
-        const auto in_begin = child_ptrs[postorder_i];
-        const auto in_end = child_ptrs[postorder_i + 1];
-        auto out_idx = postorder_child_ptrs[i];
+        const auto postorder_i = i == size ? size : inv_postorder[i];
+        const auto in_begin = child_ptrs[i];
+        const auto in_end = child_ptrs[i + 1];
+        auto out_idx = postorder_child_ptrs[postorder_i];
         for (const auto child : irange{in_begin, in_end}) {
             postorder_children[out_idx] = inv_postorder[children[child]];
             out_idx++;
@@ -488,6 +487,20 @@ void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH);
+
+
+template <typename IndexType>
+void pointer_double(std::shared_ptr<const DefaultExecutor> exec,
+                    const IndexType* input, IndexType size, IndexType* output)
+{
+    for (const auto i : irange{size}) {
+        const auto target = input[i];
+        output[i] = target == size ? size : input[target];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_POINTER_DOUBLE);
 
 
 }  // namespace elimination_forest
