@@ -4,8 +4,6 @@ The random seed for right hand sides is 42
 Running cg with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
 Running test case stencil(100, 7pt, stencil)
-DEBUG: begin partition::build_ranges_from_global_size
-DEBUG: end   partition::build_ranges_from_global_size
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
