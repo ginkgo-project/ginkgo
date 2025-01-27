@@ -159,7 +159,6 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
-               const factorization::elimination_forest<IndexType>& forest,
                matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
                array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 

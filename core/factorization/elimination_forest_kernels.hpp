@@ -73,8 +73,7 @@ namespace kernels {
     void map_postorder(                                                        \
         std::shared_ptr<const DefaultExecutor> exec, const IndexType* parents, \
         const IndexType* child_ptrs, const IndexType* children,                \
-        IndexType size, const IndexType* subtree_size,                         \
-        const IndexType* postorder, const IndexType* inv_postorder,            \
+        IndexType size, const IndexType* inv_postorder,                        \
         IndexType* postorder_parents, IndexType* postorder_child_ptrs,         \
         IndexType* postorder_children)
 
@@ -86,6 +85,12 @@ namespace kernels {
                             const IndexType* subtree_euler_tree_size,       \
                             const IndexType* levels, IndexType* euler_path, \
                             IndexType* first_visit, IndexType* euler_levels)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_POINTER_DOUBLE(IndexType)     \
+    void pointer_double(std::shared_ptr<const DefaultExecutor> exec, \
+                        const IndexType* input, IndexType size,      \
+                        IndexType* output)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
@@ -107,7 +112,9 @@ namespace kernels {
     template <typename IndexType>                                     \
     GKO_DECLARE_ELIMINATION_FOREST_MAP_POSTORDER(IndexType);          \
     template <typename IndexType>                                     \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType)
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType);     \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_POINTER_DOUBLE(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(elimination_forest,

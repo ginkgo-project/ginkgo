@@ -70,6 +70,14 @@ struct elimination_forest {
         default:
             break;
         }
+        const auto usize = static_cast<size_type>(size);
+        child_ptrs.resize_and_reset(usize + 2);
+        children.resize_and_reset(usize);
+        postorder.resize_and_reset(usize);
+        inv_postorder.resize_and_reset(usize);
+        postorder_parents.resize_and_reset(usize);
+        postorder_child_ptrs.resize_and_reset(usize + 2);
+        postorder_children.resize_and_reset(usize);
     }
 
     void set_executor(std::shared_ptr<const Executor> exec);
@@ -88,6 +96,14 @@ struct elimination_forest {
 template <typename ValueType, typename IndexType>
 void compute_elimination_forest(
     const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<elimination_forest<IndexType>>& forest,
+    elimination_forest_algorithm algorithm =
+        elimination_forest_algorithm::host);
+
+
+template <typename ValueType, typename IndexType>
+void elimination_forest_from_factors(
+    const matrix::Csr<ValueType, IndexType>* factors,
     std::unique_ptr<elimination_forest<IndexType>>& forest,
     elimination_forest_algorithm algorithm =
         elimination_forest_algorithm::host);

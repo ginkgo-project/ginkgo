@@ -164,8 +164,8 @@ void compute_elimination_forest(
         exec->run(make_map_postorder(forest->parents.get_const_data(),
                                      forest->child_ptrs.get_const_data(),
                                      forest->children.get_const_data(),
-                                     forest->inv_postorder.get_const_data(),
                                      num_rows,
+                                     forest->inv_postorder.get_const_data(),
                                      forest->postorder_parents.get_data(),
                                      forest->postorder_child_ptrs.get_data(),
                                      forest->postorder_children.get_data()));
@@ -173,8 +173,8 @@ void compute_elimination_forest(
         host_exec->run(
             make_map_postorder(forest->parents.get_const_data(),
                                forest->child_ptrs.get_const_data(),
-                               forest->children.get_const_data(),
-                               forest->inv_postorder.get_const_data(), num_rows,
+                               forest->children.get_const_data(), num_rows,
+                               forest->inv_postorder.get_const_data(),
                                forest->postorder_parents.get_data(),
                                forest->postorder_child_ptrs.get_data(),
                                forest->postorder_children.get_data()));

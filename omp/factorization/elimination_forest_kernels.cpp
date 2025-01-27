@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -14,8 +14,6 @@
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
-#include "core/factorization/elimination_forest_kernels.hpp"
 
 
 namespace gko {
@@ -34,6 +32,8 @@ void compute_children(std::shared_ptr<const DefaultExecutor> exec,
     components::fill_seq_array(exec, children, static_cast<size_type>(size));
     const auto it = detail::make_zip_iterator(tmp.get_data(), children);
     std::sort(it, it + size);
+    components::convert_idxs_to_ptrs(exec, tmp.get_const_data(), size, size + 1,
+                                     child_ptrs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
