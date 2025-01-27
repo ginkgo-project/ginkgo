@@ -21,6 +21,14 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_CHOLESKY_SYMBOLIC_POSTORDER(ValueType, IndexType)    \
+    void symbolic_postorder(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* mtx,                    \
+        const gko::factorization::elimination_forest<IndexType>& forest, \
+        IndexType* postorder_cols, IndexType* postorder_lower_ends)
+
+
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType)        \
     void symbolic_count(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                     \

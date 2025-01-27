@@ -379,6 +379,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 
 
 template <typename ValueType, typename IndexType>
+void symbolic_postorder(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    matrix::Csr<ValueType>* postorder_lower_mtx)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_POSTORDER);
+
+
+template <typename ValueType, typename IndexType>
 void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* mtx,
                     const factorization::elimination_forest<IndexType>& forest,

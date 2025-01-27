@@ -108,6 +108,8 @@ void elimination_forest<IndexType>::set_executor(
     postorder.set_executor(exec);
     inv_postorder.set_executor(exec);
     postorder_parents.set_executor(exec);
+    postorder_child_ptrs.set_executor(exec);
+    postorder_children.set_executor(exec);
 }
 
 
