@@ -22,12 +22,43 @@
 namespace gko {
 namespace kernels {
 namespace omp {
-/**
- * @brief The Cholesky namespace.
- *
- * @ingroup factor
- */
 namespace cholesky {
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_postorder(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    const gko::factorization::elimination_forest<IndexType>& forest,
+    IndexType* postorder_cols, IndexType* postorder_lower_ends)
+{
+    const auto size = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto inv_postorder = forest.inv_postorder.get_const_data();
+#pragma omp parallel for
+    for (IndexType row = 0; row < size; row++) {
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto cols = mtx->get_const_col_idxs();
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        auto lower_end = row_begin;
+        for (auto nz = row_begin; nz < row_end; nz++) {
+            const auto col = cols[nz];
+            if (col < row) {
+                postorder_cols[lower_end] = inv_postorder[cols[nz]];
+                lower_end++;
+            }
+        }
+        // fill the rest with sentinels
+        for (auto nz = lower_end; nz < row_end; nz++) {
+            postorder_cols[nz] = size - 1;
+        }
+        postorder_lower_ends[row] = lower_end;
+        std::sort(postorder_cols + row_begin, postorder_cols + lower_end);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_POSTORDER);
 
 
 template <typename ValueType, typename IndexType>
