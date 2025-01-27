@@ -291,10 +291,15 @@ struct SolverGenerator : DefaultSystemGenerator<> {
             return gko::read_generic<Vec>(rhs_fd, std::move(exec));
         } else {
             gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
+            gko::dim<2> local_vec_size{
+                gko::detail::get_local(system_matrix)->get_size()[1],
+                FLAGS_nrhs};
             if (FLAGS_rhs_generation == "1") {
-                return create_multi_vector(exec, vec_size, gko::one<etype>());
+                return create_multi_vector(exec, vec_size, local_vec_size,
+                                           gko::one<etype>());
             } else if (FLAGS_rhs_generation == "random") {
-                return create_multi_vector_random(exec, vec_size);
+                return create_multi_vector_random(exec, vec_size,
+                                                  local_vec_size);
             } else if (FLAGS_rhs_generation == "sinus") {
                 return create_manufactured_rhs(
                     exec, system_matrix,
@@ -311,10 +316,13 @@ struct SolverGenerator : DefaultSystemGenerator<> {
         const gko::LinOp* system_matrix, const Vec* rhs) const
     {
         gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
+        gko::dim<2> local_vec_size{
+            gko::detail::get_local(system_matrix)->get_size()[1], FLAGS_nrhs};
         if (FLAGS_initial_guess_generation == "0") {
-            return create_multi_vector(exec, vec_size, gko::zero<etype>());
+            return create_multi_vector(exec, vec_size, local_vec_size,
+                                       gko::zero<etype>());
         } else if (FLAGS_initial_guess_generation == "random") {
-            return create_multi_vector_random(exec, vec_size);
+            return create_multi_vector_random(exec, vec_size, local_vec_size);
         } else if (FLAGS_initial_guess_generation == "rhs") {
             return rhs->clone();
         }
@@ -400,11 +408,12 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
             state.x = generator.initialize({0.0}, exec);
         } else {
-            auto data = generator.generate_matrix_data(test_case);
+            auto [data, size] = generator.generate_matrix_data(test_case);
             auto permutation = reorder(data, test_case);
 
             state.system_matrix = generator.generate_matrix_with_format(
-                exec, test_case["optimal"]["spmv"].get<std::string>(), data);
+                exec, test_case["optimal"]["spmv"].get<std::string>(), data,
+                size);
             state.b = generator.generate_rhs(exec, state.system_matrix.get(),
                                              test_case);
             if (permutation) {
