@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -296,23 +296,9 @@ struct SolverGenerator : DefaultSystemGenerator<> {
             } else if (FLAGS_rhs_generation == "random") {
                 return create_multi_vector_random(exec, vec_size);
             } else if (FLAGS_rhs_generation == "sinus") {
-                auto rhs = vec<etype>::create(exec, vec_size);
-
-                auto tmp = create_matrix_sin<etype>(exec, vec_size);
-                auto scalar = gko::matrix::Dense<rc_etype>::create(
-                    exec->get_master(), gko::dim<2>{1, vec_size[1]});
-                tmp->compute_norm2(scalar);
-                for (gko::size_type i = 0; i < vec_size[1]; ++i) {
-                    scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
-                }
-                // normalize sin-vector
-                if (gko::is_complex_s<etype>::value) {
-                    tmp->scale(scalar->make_complex());
-                } else {
-                    tmp->scale(scalar);
-                }
-                system_matrix->apply(tmp, rhs);
-                return rhs;
+                return create_manufactured_rhs(
+                    exec, system_matrix,
+                    create_matrix_sin<etype>(exec, vec_size).get(), true);
             }
             throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
                                         FLAGS_rhs_generation +
