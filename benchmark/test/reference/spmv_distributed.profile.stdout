@@ -5,15 +5,15 @@
         "comm_pattern": "stencil",
         "spmv": {
             "csr-csr": {
-                "storage": 6420,
+                "storage": 10948,
                 "time": 1.0,
                 "repetitions": 1,
                 "completed": true
             }
         },
-        "rows": 81,
-        "cols": 81,
-        "nonzeros": 144,
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 285,
         "optimal": {
             "spmv": "csr-csr"
         }
