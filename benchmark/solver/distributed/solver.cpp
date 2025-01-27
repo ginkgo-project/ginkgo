@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,6 +28,18 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
                                       const gko::LinOp* system_matrix,
                                       json& config) const
     {
+        if (FLAGS_rhs_generation == "sinus") {
+            gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
+            gko::dim<2> local_vec_size{
+                gko::detail::get_local(system_matrix)->get_size()[1],
+                FLAGS_nrhs};
+            return create_manufactured_rhs(
+                exec, system_matrix,
+                Vec::create(exec, comm, vec_size,
+                            create_matrix_sin<etype>(exec, local_vec_size))
+                    .get(),
+                true);
+        }
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
             local_generator.generate_rhs(
