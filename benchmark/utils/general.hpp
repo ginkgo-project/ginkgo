@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -525,6 +525,36 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
             max_relative_norm2);
     }
     return max_relative_norm2;
+}
+
+
+template <typename VectorType>
+std::unique_ptr<VectorType> create_manufactured_rhs(
+    std::shared_ptr<const gko::Executor> exec, const gko::LinOp* system_matrix,
+    const VectorType* solution, bool normalize)
+{
+    auto rhs = VectorType::create_with_config_of(solution);
+
+    if (!normalize) {
+        system_matrix->apply(solution, rhs);
+    } else {
+        auto vec_size = solution->get_size();
+        auto scaled_solution = gko::clone(solution);
+        auto scalar = gko::matrix::Dense<rc_etype>::create(
+            exec->get_master(), gko::dim<2>{1, vec_size[1]});
+        solution->compute_norm2(scalar);
+        for (gko::size_type i = 0; i < vec_size[1]; ++i) {
+            scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
+        }
+        // normalize sin-vector
+        if (gko::is_complex_s<etype>::value) {
+            scaled_solution->scale(scalar->make_complex());
+        } else {
+            scaled_solution->scale(scalar);
+        }
+        system_matrix->apply(scaled_solution, rhs);
+    }
+    return rhs;
 }
 
 
