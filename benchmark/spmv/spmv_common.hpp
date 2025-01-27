@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,9 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 
 template <typename Generator>
 struct spmv_benchmark_state {
-    gko::matrix_data<etype, typename Generator::index_type> data;
+    std::pair<gko::matrix_data<etype, typename Generator::index_type>,
+              gko::dim<2>>
+        data;
     std::unique_ptr<typename Generator::Vec> x;
     std::unique_ptr<typename Generator::Vec> b;
     std::unique_ptr<typename Generator::Vec> answer;
@@ -77,25 +79,27 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     {
         spmv_benchmark_state<Generator> state;
         state.data = generator.generate_matrix_data(test_case);
-        reorder(state.data, test_case);
+        reorder(state.data.first, test_case);
 
         auto nrhs = FLAGS_nrhs;
         state.b = generator.create_multi_vector_random(
-            exec, gko::dim<2>{state.data.size[1], nrhs});
+            exec, gko::dim<2>{state.data.first.size[1], nrhs},
+            gko::dim<2>{state.data.second[1], nrhs});
         state.x = generator.create_multi_vector_random(
-            exec, gko::dim<2>{state.data.size[0], nrhs});
+            exec, gko::dim<2>{state.data.first.size[0], nrhs},
+            gko::dim<2>{state.data.second[0], nrhs});
         if (do_print) {
-            std::clog << "Matrix is of size (" << state.data.size[0] << ", "
-                      << state.data.size[1] << "), "
-                      << state.data.nonzeros.size() << std::endl;
+            std::clog << "Matrix is of size (" << state.data.first.size[0]
+                      << ", " << state.data.first.size[1] << "), "
+                      << state.data.first.nonzeros.size() << std::endl;
         }
-        test_case["rows"] = state.data.size[0];
-        test_case["cols"] = state.data.size[1];
-        test_case["nonzeros"] = state.data.nonzeros.size();
+        test_case["rows"] = state.data.first.size[0];
+        test_case["cols"] = state.data.first.size[1];
+        test_case["nonzeros"] = state.data.first.nonzeros.size();
         if (FLAGS_detailed) {
             state.answer = gko::clone(state.x);
-            auto system_matrix =
-                generator.generate_matrix_with_default_format(exec, state.data);
+            auto system_matrix = generator.generate_matrix_with_default_format(
+                exec, state.data.first, state.data.second);
             exec->synchronize();
             system_matrix->apply(state.b, state.answer);
             exec->synchronize();
@@ -108,7 +112,8 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
              const std::string& format_name, json& format_case) const override
     {
         auto system_matrix = generator.generate_matrix_with_format(
-            exec, format_name, state.data, &format_case);
+            exec, format_name, state.data.first, state.data.second,
+            &format_case);
 
         // check the residual
         if (FLAGS_detailed) {

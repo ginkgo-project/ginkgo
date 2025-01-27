@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,10 +67,11 @@ public:
                   gko::size_type cols, gko::size_type stride_in,
                   gko::size_type stride_out)
     {
+        auto size = gko::dim<2>{rows, cols};
         in_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_in);
+            exec, size, generator.create_default_local_size(size), stride_in);
         out_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_out);
+            exec, size, generator.create_default_local_size(size), stride_out);
         as_vector<Generator>(in_)->fill(1);
     }
 
@@ -103,12 +104,13 @@ public:
                   gko::size_type cols, gko::size_type stride_in,
                   gko::size_type stride_out, bool multi)
     {
+        auto size = gko::dim<2>{rows, cols};
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
         x_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_in);
+            exec, size, generator.create_default_local_size(size), stride_in);
         y_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_out);
+            exec, size, generator.create_default_local_size(size), stride_out);
         alpha_->fill(1);
         as_vector<Generator>(x_)->fill(1);
     }
@@ -141,10 +143,11 @@ public:
                   const Generator& generator, gko::size_type rows,
                   gko::size_type cols, gko::size_type stride, bool multi)
     {
+        auto size = gko::dim<2>{rows, cols};
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
         y_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride);
+            exec, size, generator.create_default_local_size(size), stride);
         alpha_->fill(1);
     }
 
@@ -176,11 +179,12 @@ public:
                  gko::size_type cols, gko::size_type stride_x,
                  gko::size_type stride_y)
     {
+        auto size = gko::dim<2>{rows, cols};
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
         x_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_x);
+            exec, size, generator.create_default_local_size(size), stride_x);
         y_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride_y);
+            exec, size, generator.create_default_local_size(size), stride_y);
         as_vector<Generator>(x_)->fill(1);
         as_vector<Generator>(y_)->fill(1);
     }
@@ -211,9 +215,10 @@ public:
                   const Generator& generator, gko::size_type rows,
                   gko::size_type cols, gko::size_type stride)
     {
+        auto size = gko::dim<2>{rows, cols};
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
         y_ = generator.create_multi_vector_strided(
-            exec, gko::dim<2>{rows, cols}, stride);
+            exec, size, generator.create_default_local_size(size), stride);
         as_vector<Generator>(y_)->fill(1);
     }
 
@@ -243,12 +248,14 @@ public:
                    gko::size_type k, gko::size_type m, gko::size_type stride_A,
                    gko::size_type stride_B, gko::size_type stride_C)
     {
+        // Since dense distributed matrices are not supported we can use
+        // local_size == global_size
         A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   stride_A);
+                                                   gko::dim<2>{n, k}, stride_A);
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
-                                                   stride_B);
+                                                   gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
-                                                   stride_C);
+                                                   gko::dim<2>{n, m}, stride_C);
         as_vector<Generator>(A_)->fill(1);
         as_vector<Generator>(B_)->fill(1);
     }
@@ -284,12 +291,14 @@ public:
                            gko::size_type stride_A, gko::size_type stride_B,
                            gko::size_type stride_C)
     {
+        // Since dense distributed matrices are not supported we can use
+        // local_size == global_size
         A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   stride_A);
+                                                   gko::dim<2>{n, k}, stride_A);
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
-                                                   stride_B);
+                                                   gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
-                                                   stride_C);
+                                                   gko::dim<2>{n, m}, stride_C);
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
         beta_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
         as_vector<Generator>(A_)->fill(1);
