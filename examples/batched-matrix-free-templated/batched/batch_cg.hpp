@@ -19,7 +19,6 @@
 #include "backend/omp/batch_cg_kernels.hpp"
 #include "backend/reference/batch_cg_kernels.hpp"
 #include "backend/sycl/batch_cg_kernels.hpp"
-#include "batch_multi_vector.hpp"
 
 
 namespace gko::batch_template::solver {
