@@ -11,6 +11,7 @@
 
 #include "gpu.hpp"
 
+using gko::half;
 using ValueType = double;
 
 __device__ __noinline__ void advanced_apply_gpu(

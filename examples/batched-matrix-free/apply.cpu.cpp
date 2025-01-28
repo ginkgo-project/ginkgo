@@ -7,6 +7,9 @@
 #include <ginkgo/core/base/math.hpp>
 
 
+using gko::half;
+
+
 template <typename ValueType>
 void advanced_apply(gko::size_type id, gko::dim<2> size, const ValueType alpha,
                     const ValueType* b, const ValueType beta, ValueType* x,

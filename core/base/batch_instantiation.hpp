@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_external.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
@@ -27,7 +28,8 @@ namespace batch {
 #define GKO_BATCH_INSTANTIATE_MATRIX(_next, ...)                 \
     GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Ell));   \
     GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Dense)); \
-    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Csr))
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::Csr));   \
+    GKO_INDIRECT(_next(__VA_ARGS__, gko::batch::matrix::External))
 
 /**
  * Instantiates a template for each valid combination of value type, batch

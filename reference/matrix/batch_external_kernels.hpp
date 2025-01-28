@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
-#include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_external.hpp>
 
 #include "core/base/batch_struct.hpp"
 #include "core/matrix/batch_struct.hpp"
@@ -48,6 +48,7 @@ void advanced_apply_kernel(
                       static_cast<size_type>(a.num_cols)},
                      &alpha, b.values, &beta, c.values, a.payload);
 }
+
 
 }  // namespace batch_single_kernels
 }  // namespace GKO_DEVICE_NAMESPACE

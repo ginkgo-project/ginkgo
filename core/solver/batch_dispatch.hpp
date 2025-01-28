@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -209,7 +209,8 @@ enum class log_type { simple_convergence_completion };
 #define GKO_BATCH_INSTANTIATE_MATRIX_BATCH(_next, ...)                     \
     GKO_INDIRECT(_next(__VA_ARGS__, batch::matrix::ell::uniform_batch));   \
     GKO_INDIRECT(_next(__VA_ARGS__, batch::matrix::dense::uniform_batch)); \
-    GKO_INDIRECT(_next(__VA_ARGS__, batch::matrix::csr::uniform_batch))
+    GKO_INDIRECT(_next(__VA_ARGS__, batch::matrix::csr::uniform_batch));   \
+    GKO_INDIRECT(_next(__VA_ARGS__, batch::matrix::external::uniform_batch))
 
 /**
  * Passes each valid configuration of batch solver template parameter to a

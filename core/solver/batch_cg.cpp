@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
+#include <ginkgo/core/matrix/batch_external.hpp>
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
@@ -56,7 +57,7 @@ void Cg<ValueType>::solver_apply(
     auto exec = this->get_executor();
 
     run<batch::matrix::Dense<ValueType>, batch::matrix::Csr<ValueType>,
-        batch::matrix::Ell<ValueType>>(
+        batch::matrix::Ell<ValueType>, batch::matrix::External<ValueType>>(
         this->system_matrix_.get(), [&](auto matrix) {
             run<batch::matrix::Identity<ValueType>,
                 batch::preconditioner::Jacobi<ValueType>>(
