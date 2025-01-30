@@ -84,7 +84,7 @@ struct simple_apply_fn {
         const T a, const batch::multi_vector::batch_item<const ValueType> b,
         batch::multi_vector::batch_item<ValueType> c) const
     {
-        simple_apply(a, b, c, cuda_hip_kernel{});
+        simple_apply(a, b, c, device_kernel{});
     }
 };
 
@@ -110,7 +110,7 @@ struct advanced_apply_fn {
         const ValueType beta,
         batch::multi_vector::batch_item<ValueType> c) const
     {
-        advanced_apply(alpha, a, b, beta, c, cuda_hip_kernel{});
+        advanced_apply(alpha, a, b, beta, c, device_kernel{});
     }
 };
 
