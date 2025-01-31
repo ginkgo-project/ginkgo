@@ -1,0 +1,2 @@
+ginkgo_create_test(tensor NO_GTEST_MAIN ADDITIONAL_LIBRARIES Kokkos::kokkos ginkgo_gtest_main_kokkos)
+target_link_libraries(test_tensor PRIVATE Kokkos::kokkos)

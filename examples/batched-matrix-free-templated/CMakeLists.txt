@@ -50,3 +50,7 @@ add_executable(batched-matrix-free-templated batched-matrix-free-templated.cpp)
 target_compile_features(batched-matrix-free-templated PRIVATE cxx_std_17 hip_std_17 cuda_std_17)
 target_compile_definitions(batched-matrix-free-templated PRIVATE ${definitions})
 target_link_libraries(batched-matrix-free-templated Ginkgo::ginkgo cxxopts::cxxopts Kokkos::kokkos)
+
+if(GINKGO_BUILD_TESTS)
+    add_subdirectory(test)
+endif ()
