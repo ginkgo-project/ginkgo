@@ -4,11 +4,14 @@
 
 #pragma once
 
+#include <variant>
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/extensions/kokkos.hpp>
 
+#include "examples/batched-matrix-free-templated/batched/kernel_tags.hpp"
 #include "ginkgo/core/matrix/identity.hpp"
 
 namespace tensor {
@@ -95,24 +98,21 @@ void convert_tensor(gko::ptr_param<const gko::matrix::Identity<value_type>> A,
 
 struct tensor_left_view {
     gko::size_type num_batch_items;
-    gko::int32 num_rows;
-    gko::int32 num_cols;
     gko::int32 stride;
+    gko::int32 size_1d;
     const value_type* data;
 };
 
 struct tensor_left_item {
-    gko::int32 num_rows;
-    gko::int32 num_cols;
     gko::int32 stride;
+    gko::int32 size_1d;
     const value_type* data;
 };
 
 constexpr tensor_left_item extract_batch_item(tensor_left_view op,
                                               gko::size_type batch_id)
 {
-    return {op.num_rows, op.num_cols, op.stride,
-            op.data + batch_id * op.num_rows * op.stride};
+    return {op.stride, op.size_1d, op.data + batch_id * op.size_1d * op.stride};
 }
 
 class TensorLeft : public gko::EnablePolymorphicObject<TensorLeft> {
@@ -143,8 +143,7 @@ public:
     [[nodiscard]] tensor_left_view create_view() const
     {
         return {this->get_num_batch_items(),
-                static_cast<gko::int32>(this->get_common_size()[0]),
-                static_cast<gko::int32>(this->get_common_size()[1]),
+                static_cast<gko::int32>(data_->get_common_size()[0]),
                 static_cast<gko::int32>(data_->get_common_size()[1]),
                 data_->get_const_values()};
     }
@@ -170,6 +169,40 @@ private:
     gko::batch_dim<2> size_;
     std::unique_ptr<gko::batch::matrix::Dense<value_type>> data_;
 };
+
+
+constexpr void advanced_apply(
+    double alpha, tensor_left_item a,
+    gko::batch::multi_vector::batch_item<const double> b, double beta,
+    gko::batch::multi_vector::batch_item<double> x,
+    [[maybe_unused]] std::variant<gko::reference_kernel, gko::omp_kernel>)
+{
+    for (gko::int32 k = 0; k < a.size_1d; ++k) {
+        for (gko::int32 j = 0; j < a.size_1d; ++j) {
+            for (gko::int32 i = 0; i < a.size_1d; ++i) {
+                auto vector_start = k * a.size_1d * a.size_1d + i;
+
+                value_type acc = 0;
+                for (gko::size_type q = 0; q < a.size_1d; q++) {
+                    auto vector_index = vector_start + q * a.size_1d;
+                    acc = a.data[j * a.size_1d + q] * b.values[vector_index] +
+                          acc;
+                }
+                auto row = k * a.size_1d * a.size_1d + j * a.size_1d + i;
+                x.values[row] = alpha * acc + beta * x.values[row];
+            }
+        }
+    }
+}
+
+constexpr void simple_apply(
+    const tensor_left_item& a,
+    const gko::batch::multi_vector::batch_item<const double>& b,
+    const gko::batch::multi_vector::batch_item<double>& x,
+    std::variant<gko::reference_kernel, gko::omp_kernel> tag)
+{
+    advanced_apply(1.0, a, b, 0.0, x, tag);
+}
 
 
 std::unique_ptr<gko::batch::matrix::Dense<value_type>> convert(

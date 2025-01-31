@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 
 auto exec = gko::ReferenceExecutor::create();
@@ -104,9 +105,32 @@ public:
         }
 
         tensor = std::make_unique<tensor::TensorLeft>(std::move(data));
+
+        auto num_rows = tensor->get_common_size()[0];
+        auto vector_size = gko::batch_dim<2>{tensor->get_num_batch_items(),
+                                             gko::dim<2>{num_rows, 1}};
+        x = gko::batch::MultiVector<tensor::value_type>::create(exec,
+                                                                vector_size);
+        b = gko::batch::MultiVector<tensor::value_type>::create(exec,
+                                                                vector_size);
+        for (gko::size_type batch = 0; batch < x->get_num_batch_items();
+             ++batch) {
+            x->create_view_for_item(batch)->read(
+                gko::test::generate_random_matrix_data<tensor::value_type,
+                                                       gko::int32>(
+                    vector_size.get_common_size()[0],
+                    vector_size.get_common_size()[1],
+                    std::uniform_int_distribution<>(1, 1),
+                    std::uniform_real_distribution<>(), engine));
+            b->create_view_for_item(batch)->fill(0.0);
+        }
     }
 
+    std::default_random_engine engine{42};
+
     std::unique_ptr<tensor::TensorLeft> tensor;
+    std::unique_ptr<gko::batch::MultiVector<tensor::value_type>> x;
+    std::unique_ptr<gko::batch::MultiVector<tensor::value_type>> b;
 };
 
 TEST_F(Tensor2, CanConvert)
@@ -115,4 +139,25 @@ TEST_F(Tensor2, CanConvert)
 
     ASSERT_EQ(mat->get_size(), tensor->get_size());
     gko::write(std::ofstream("batch.mtx"), mat->create_view_for_item(1));
+}
+
+
+TEST_F(Tensor2, CanApply)
+{
+    gko::size_type batch_id = 1;
+    auto view = tensor->create_view();
+    auto item = tensor::extract_batch_item(view, batch_id);
+    auto x_view = gko::batch::to_const(x->create_view());
+    auto b_view = b->create_view();
+
+    tensor::simple_apply(item, gko::batch::extract_batch_item(x_view, batch_id),
+                         gko::batch::extract_batch_item(b_view, batch_id),
+                         gko::reference_kernel{});
+
+    auto dense = convert(tensor);
+    auto expected_b = gko::clone(b);
+    dense->apply(x, expected_b);
+    GKO_ASSERT_MTX_NEAR(b->create_view_for_item(batch_id).get(),
+                        expected_b->create_view_for_item(batch_id).get(),
+                        r<tensor::value_type>::value);
 }
