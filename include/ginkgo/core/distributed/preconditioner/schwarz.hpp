@@ -189,10 +189,10 @@ private:
     std::shared_ptr<const LinOp> local_solver_;
 
     detail::VectorCache<ValueType> cache_;
+    detail::VectorCache<ValueType> csol_cache_;
 
     std::shared_ptr<const LinOp> galerkin_ops_;
     std::shared_ptr<const LinOp> coarse_solver_;
-    std::shared_ptr<LinOp> csol_;
     std::shared_ptr<const LinOp> half_;
 };
 
