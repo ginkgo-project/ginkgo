@@ -9,9 +9,89 @@
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/extensions/kokkos.hpp>
 
+#include "ginkgo/core/matrix/identity.hpp"
+
 namespace tensor {
 
 using value_type = double;
+
+
+void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
+                    gko::ptr_param<const gko::matrix::Dense<value_type>> B,
+                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+{
+    auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
+                                     A->get_size()[1] * B->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, expected_dims);
+    auto exec = result->get_executor();
+    auto host_result = gko::make_temporary_clone(exec->get_master(), result);
+    auto host_a = gko::make_temporary_clone(exec->get_master(), A);
+    auto host_b = gko::make_temporary_clone(exec->get_master(), B);
+
+    for (gko::size_type ai = 0; ai < A->get_size()[0]; ++ai) {
+        for (gko::size_type aj = 0; aj < A->get_size()[1]; ++aj) {
+            for (gko::size_type bi = 0; bi < B->get_size()[0]; ++bi) {
+                for (gko::size_type bj = 0; bj < B->get_size()[1]; ++bj) {
+                    auto i = ai * A->get_size()[0] + bi;
+                    auto j = aj * A->get_size()[1] + bj;
+                    host_result->at(i, j) =
+                        host_a->at(ai, aj) * host_b->at(bi, bj);
+                }
+            }
+        }
+    }
+}
+
+void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
+                    gko::ptr_param<const gko::matrix::Identity<value_type>> B,
+                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+{
+    auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
+                                     A->get_size()[1] * B->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, expected_dims);
+
+    result->fill(0.0);
+
+    auto exec = result->get_executor();
+    auto host_result = gko::make_temporary_clone(exec->get_master(), result);
+    auto host_a = gko::make_temporary_clone(exec->get_master(), A);
+
+    for (gko::size_type ai = 0; ai < A->get_size()[0]; ++ai) {
+        for (gko::size_type aj = 0; aj < A->get_size()[1]; ++aj) {
+            for (gko::size_type bi = 0; bi < B->get_size()[0]; ++bi) {
+                auto i = ai * B->get_size()[0] + bi;
+                auto j = aj * B->get_size()[1] + bi;
+                host_result->at(i, j) = host_a->at(ai, aj);
+            }
+        }
+    }
+}
+
+void convert_tensor(gko::ptr_param<const gko::matrix::Identity<value_type>> A,
+                    gko::ptr_param<const gko::matrix::Dense<value_type>> B,
+                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+{
+    auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
+                                     A->get_size()[1] * B->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, expected_dims);
+
+    result->fill(0.0);
+
+    auto exec = result->get_executor();
+    auto host_result = gko::make_temporary_clone(exec->get_master(), result);
+    auto host_b = gko::make_temporary_clone(exec->get_master(), B);
+
+    for (gko::size_type ai = 0; ai < A->get_size()[0]; ++ai) {
+        for (gko::size_type bi = 0; bi < B->get_size()[0]; ++bi) {
+            for (gko::size_type bj = 0; bj < B->get_size()[1]; ++bj) {
+                auto i = ai * B->get_size()[0] + bi;
+                auto j = ai * B->get_size()[1] + bj;
+                host_result->at(i, j) = host_b->at(bi, bj);
+            }
+        }
+    }
+}
+
 
 struct tensor_left_view {
     gko::size_type num_batch_items;
@@ -60,7 +140,7 @@ public:
           data_(std::move(data))
     {}
 
-    [[nodiscard]] constexpr tensor_left_view create_view() const
+    [[nodiscard]] tensor_left_view create_view() const
     {
         return {this->get_num_batch_items(),
                 static_cast<gko::int32>(this->get_common_size()[0]),
@@ -80,70 +160,37 @@ public:
     {
         return size_.get_num_batch_items();
     }
-    std::unique_ptr<gko::batch::matrix::Dense<value_type>> convert_to_dense()
-        const;
+
+    [[nodiscard]] const gko::batch::matrix::Dense<value_type>* get_data() const
+    {
+        return data_.get();
+    }
 
 private:
     gko::batch_dim<2> size_;
     std::unique_ptr<gko::batch::matrix::Dense<value_type>> data_;
 };
 
-inline std::unique_ptr<gko::batch::matrix::Dense<value_type>>
-TensorLeft::convert_to_dense() const
+
+std::unique_ptr<gko::batch::matrix::Dense<value_type>> convert(
+    gko::ptr_param<const TensorLeft> tensor)
 {
-    gko::array<value_type> result_array{this->get_executor(),
-                                        this->get_num_batch_items() *
-                                            this->get_common_size()[0] *
-                                            this->get_common_size()[1]};
-    result_array.fill(gko::zero<value_type>());
+    auto result = gko::batch::matrix::Dense<value_type>::create(
+        tensor->get_executor(), tensor->get_size());
 
-    auto size_1d = data_->get_common_size()[0];
-
-    for (gko::size_type outer_block = 0; outer_block < size_1d; ++outer_block) {
-        for (gko::size_type inner_block_row = 0; inner_block_row < size_1d;
-             ++inner_block_row) {
-            for (gko::size_type inner_block_col = 0; inner_block_col < size_1d;
-                 ++inner_block_col) {
-                for (gko::size_type i = 0; i < size_1d; ++i) {
-                    auto row = outer_block * size_1d * size_1d +
-                               inner_block_row * size_1d + i;
-                    auto col = outer_block * size_1d * size_1d +
-                               inner_block_col * size_1d + i;
-                    result_array
-                        .get_data()[row * (size_1d * size_1d * size_1d) + col] =
-                        data_->at(outer_block, inner_block_row,
-                                  inner_block_col);
-                }
-            }
-        }
+    auto size_1d = tensor->get_data()->get_common_size()[0];
+    auto id = gko::matrix::Identity<value_type>::create(tensor->get_executor(),
+                                                        size_1d);
+    auto intermediate = gko::matrix::Dense<value_type>::create(
+        tensor->get_executor(), gko::dim<2>{size_1d * size_1d});
+    for (gko::size_type batch = 0; batch < tensor->get_num_batch_items();
+         ++batch) {
+        convert_tensor(tensor->get_data()->create_const_view_for_item(batch),
+                       id, intermediate);
+        convert_tensor(id, intermediate, result->create_view_for_item(batch));
     }
 
-    //
-    // struct functor {
-    //
-    //     KOKKOS_INLINE_FUNCTION void operator()(int row) const
-    //     {
-    //         auto outer_block_id = row / (size_1d * size_1d);
-    //         auto inner_block_col = (row % (size_1d * size_1d)) % size_1d;
-    //         auto inner_block_row = row % size_1d;
-    //         auto val = block[outer_block_id * size_1d * size_1d +
-    //         inner_block_row * size_1d + inner_block_col]; for (gko::size_type
-    //         j = 0; j < size_1d ; ++j) {
-    //             auto col = outer_block_id * size_1d * size_1d + j * size_1d +
-    //             inner_block_row; dense[col + row * size_1d * size_1d *
-    //             size_1d] = block[outer_block_id * size_1d * size_1d]
-    //         }
-    //     }
-    //
-    //
-    //     gko::size_type size_1d;
-    //     value_type* dense;
-    //     const value_type* block;
-    // };
-
-
-    return gko::batch::matrix::Dense<value_type>::create(
-        this->get_executor(), this->get_size(), std::move(result_array));
+    return result;
 }
 
 
