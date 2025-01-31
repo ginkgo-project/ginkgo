@@ -47,6 +47,16 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
+    if (auto& obj = config.get("galerkin_ops")) {
+        params.with_galerkin_ops(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("coarse_solver")) {
+        params.with_coarse_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
 
     return params;
 }
