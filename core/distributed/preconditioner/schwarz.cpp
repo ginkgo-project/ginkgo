@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,6 +44,16 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     }
     if (auto& obj = config.get("local_solver")) {
         params.with_local_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("galerkin_ops")) {
+        params.with_galerkin_ops(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("coarse_solver")) {
+        params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
