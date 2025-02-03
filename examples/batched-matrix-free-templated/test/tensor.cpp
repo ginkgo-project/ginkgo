@@ -8,12 +8,32 @@
 
 #include <gtest/gtest.h>
 
+#include <test/utils/common_fixture.hpp>
+
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 
-auto exec = gko::ReferenceExecutor::create();
 
-TEST(Tensor, CanCreateEmpty)
+constexpr auto get_kernel_tag()
+{
+#if GKO_COMPILING_REFERENCE
+    return gko::reference_kernel{};
+#elif GKO_COMPILING_OMP
+    return gko::omp_kernel{};
+#elif GKO_COMPILING_CUDA
+    return gko::cuda_kernel{};
+#elif GKO_COMPILING_HIP
+    return gko::hip_kernel{};
+#elif GKO_COMPILING_DPCPP
+    return gko::sycl_kernel{};
+#endif
+}
+
+
+class TensorCreate : public CommonTestFixture {};
+
+
+TEST_F(TensorCreate, CanCreateEmpty)
 {
     auto tensor = std::make_unique<tensor::TensorLeft>(exec);
 
@@ -21,7 +41,7 @@ TEST(Tensor, CanCreateEmpty)
     ASSERT_EQ(tensor->get_executor(), exec);
 }
 
-TEST(Tensor, CanCreateWithSize)
+TEST_F(TensorCreate, CanCreateWithSize)
 {
     auto tensor = std::make_unique<tensor::TensorLeft>(exec, 3, 4);
 
@@ -29,7 +49,7 @@ TEST(Tensor, CanCreateWithSize)
     ASSERT_EQ(tensor->get_size(), expected_size);
 }
 
-TEST(Tensor, CanCreateFromData)
+TEST_F(TensorCreate, CanCreateFromData)
 {
     auto data = gko::batch::matrix::Dense<tensor::ValueType>::create(
         exec, gko::batch_dim<2>{3, gko::dim<2>{4, 4}});
@@ -51,7 +71,10 @@ TEST(Tensor, CanCreateFromData)
 }
 
 
-TEST(TensorConvert, CanConvertDenseId)
+class TensorConvert : public CommonTestFixture {};
+
+
+TEST_F(TensorConvert, CanConvertDenseId)
 {
     auto A = gko::initialize<gko::matrix::Dense<tensor::ValueType>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
@@ -72,7 +95,7 @@ TEST(TensorConvert, CanConvertDenseId)
     GKO_ASSERT_MTX_NEAR(result, expected, 0.0);
 }
 
-TEST(TensorConvert, CanConvertIdDense)
+TEST_F(TensorConvert, CanConvertIdDense)
 {
     auto A = gko::initialize<gko::matrix::Dense<tensor::ValueType>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
@@ -94,9 +117,9 @@ TEST(TensorConvert, CanConvertIdDense)
 }
 
 
-class Tensor2 : public testing::Test {
+class TensorApply : public CommonTestFixture {
 public:
-    Tensor2()
+    TensorApply()
     {
         auto data = gko::batch::matrix::Dense<tensor::ValueType>::create(
             exec, gko::batch_dim<2>{3, gko::dim<2>{4, 4}});
@@ -133,7 +156,7 @@ public:
     std::unique_ptr<gko::batch::MultiVector<tensor::ValueType>> b;
 };
 
-TEST_F(Tensor2, CanConvert)
+TEST_F(TensorApply, CanConvert)
 {
     auto mat = convert(tensor);
 
@@ -141,7 +164,38 @@ TEST_F(Tensor2, CanConvert)
     gko::write(std::ofstream("batch.mtx"), mat->create_view_for_item(1));
 }
 
-TEST_F(Tensor2, CanApplySingleBatch)
+#if defined(GKO_COMPILING_HIP) || defined(GKO_COMPILING_CUDA)
+
+__global__ void call_simple_apply_kernel(
+    const tensor::tensor_left_item a,
+    const gko::batch::multi_vector::batch_item<const double> b,
+    const gko::batch::multi_vector::batch_item<double> x)
+{
+    tensor::simple_apply(a, b, x, get_kernel_tag());
+}
+
+void call_simple_apply(
+    const tensor::tensor_left_item a,
+    const gko::batch::multi_vector::batch_item<const double> b,
+    const gko::batch::multi_vector::batch_item<double> x)
+{
+    call_simple_apply_kernel<<<1, 512>>>(a, b, x);
+}
+
+#else
+
+void call_simple_apply(
+    const tensor::tensor_left_item a,
+    const gko::batch::multi_vector::batch_item<const double> b,
+    const gko::batch::multi_vector::batch_item<double> x)
+{
+    tensor::simple_apply(a, b, x, get_kernel_tag());
+}
+
+#endif
+
+
+TEST_F(TensorApply, CanApplySingleBatch)
 {
     gko::size_type batch_id = 1;
     auto view = tensor->create_view();
@@ -149,9 +203,9 @@ TEST_F(Tensor2, CanApplySingleBatch)
     auto x_view = gko::batch::to_const(x->create_view());
     auto b_view = b->create_view();
 
-    tensor::simple_apply(item, gko::batch::extract_batch_item(x_view, batch_id),
-                         gko::batch::extract_batch_item(b_view, batch_id),
-                         gko::reference_kernel{});
+    call_simple_apply(item, gko::batch::extract_batch_item(x_view, batch_id),
+                      gko::batch::extract_batch_item(b_view, batch_id));
+    exec->synchronize();
 
     auto dense = convert(tensor);
     auto expected_b = gko::clone(b);
@@ -161,7 +215,7 @@ TEST_F(Tensor2, CanApplySingleBatch)
                         r<tensor::ValueType>::value);
 }
 
-TEST_F(Tensor2, CanApply)
+TEST_F(TensorApply, CanApply)
 {
     tensor->apply(x, b);
 

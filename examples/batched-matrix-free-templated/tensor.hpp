@@ -195,6 +195,48 @@ constexpr void simple_apply(
     advanced_apply(1.0, a, b, 0.0, x, tag);
 }
 
+#if defined(GINKGO_BUILD_CUDA) || defined(GINKGO_BUILD_HIP)
+
+
+__device__ void advanced_apply(
+    double alpha, tensor_left_item a,
+    gko::batch::multi_vector::batch_item<const double> b, double beta,
+    gko::batch::multi_vector::batch_item<double> x,
+    [[maybe_unused]] gko::cuda_hip_kernel)
+{
+    auto row =
+        static_cast<gko::size_type>(blockIdx.x * blockDim.x + threadIdx.x);
+    auto n = a.size_1d;
+    auto num_rows = n * n * n;
+
+    if (row >= num_rows) {
+        return;
+    }
+
+    auto k = row / (n * n);
+    auto j = (row - k * n * n) / n;
+    auto i = (row - k * n * n) % n;
+    auto vector_start = k * n * n + i;
+
+    ValueType acc = 0;
+    for (gko::size_type q = 0; q < n; q++) {
+        auto vector_index = vector_start + q * n;
+        acc = a.data[j * n + q] * b.values[vector_index] + acc;
+    }
+    x.values[row] = alpha * acc + beta * x.values[row];
+}
+
+__device__ void simple_apply(
+    const tensor_left_item& a,
+    const gko::batch::multi_vector::batch_item<const double>& b,
+    const gko::batch::multi_vector::batch_item<double>& x,
+    gko::cuda_hip_kernel tag)
+{
+    advanced_apply(1.0, a, b, 0.0, x, tag);
+}
+
+#endif
+
 
 std::unique_ptr<gko::batch::matrix::Dense<ValueType>> convert(
     gko::ptr_param<const TensorLeft> tensor)
