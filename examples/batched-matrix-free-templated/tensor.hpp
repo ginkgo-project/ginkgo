@@ -11,17 +11,18 @@
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/extensions/kokkos.hpp>
 
-#include "examples/batched-matrix-free-templated/batched/kernel_tags.hpp"
+#include "batched/batch_user_linop.hpp"
+#include "batched/kernel_tags.hpp"
 #include "ginkgo/core/matrix/identity.hpp"
 
 namespace tensor {
 
-using value_type = double;
+using ValueType = double;
 
 
-void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
-                    gko::ptr_param<const gko::matrix::Dense<value_type>> B,
-                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+void convert_tensor(gko::ptr_param<const gko::matrix::Dense<ValueType>> A,
+                    gko::ptr_param<const gko::matrix::Dense<ValueType>> B,
+                    gko::ptr_param<gko::matrix::Dense<ValueType>> result)
 {
     auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
                                      A->get_size()[1] * B->get_size()[1]};
@@ -45,9 +46,9 @@ void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
     }
 }
 
-void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
-                    gko::ptr_param<const gko::matrix::Identity<value_type>> B,
-                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+void convert_tensor(gko::ptr_param<const gko::matrix::Dense<ValueType>> A,
+                    gko::ptr_param<const gko::matrix::Identity<ValueType>> B,
+                    gko::ptr_param<gko::matrix::Dense<ValueType>> result)
 {
     auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
                                      A->get_size()[1] * B->get_size()[1]};
@@ -70,9 +71,9 @@ void convert_tensor(gko::ptr_param<const gko::matrix::Dense<value_type>> A,
     }
 }
 
-void convert_tensor(gko::ptr_param<const gko::matrix::Identity<value_type>> A,
-                    gko::ptr_param<const gko::matrix::Dense<value_type>> B,
-                    gko::ptr_param<gko::matrix::Dense<value_type>> result)
+void convert_tensor(gko::ptr_param<const gko::matrix::Identity<ValueType>> A,
+                    gko::ptr_param<const gko::matrix::Dense<ValueType>> B,
+                    gko::ptr_param<gko::matrix::Dense<ValueType>> result)
 {
     auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
                                      A->get_size()[1] * B->get_size()[1]};
@@ -100,13 +101,13 @@ struct tensor_left_view {
     gko::size_type num_batch_items;
     gko::int32 stride;
     gko::int32 size_1d;
-    const value_type* data;
+    const ValueType* data;
 };
 
 struct tensor_left_item {
     gko::int32 stride;
     gko::int32 size_1d;
-    const value_type* data;
+    const ValueType* data;
 };
 
 constexpr tensor_left_item extract_batch_item(tensor_left_view op,
@@ -115,16 +116,19 @@ constexpr tensor_left_item extract_batch_item(tensor_left_view op,
     return {op.stride, op.size_1d, op.data + batch_id * op.size_1d * op.stride};
 }
 
-class TensorLeft : public gko::EnablePolymorphicObject<TensorLeft> {
+class TensorLeft
+    : public gko::batch_template::EnableBatchUserLinOp<ValueType, TensorLeft> {
 public:
+    using value_type = ValueType;
     struct const_item {};
 
     explicit TensorLeft(std::shared_ptr<const gko::Executor> exec,
                         gko::size_type num_batch_items = 0,
                         gko::size_type num_rows_1d = 0)
-        : EnablePolymorphicObject(exec),
-          size_(num_batch_items,
-                gko::dim<2>{num_rows_1d * num_rows_1d * num_rows_1d}),
+        : EnableBatchUserLinOp(
+              exec, gko::batch_dim<2>{num_batch_items,
+                                      gko::dim<2>{num_rows_1d * num_rows_1d *
+                                                  num_rows_1d}}),
           data_(gko::batch::matrix::Dense<value_type>::create(
               exec,
               gko::batch_dim<2>{num_batch_items, gko::dim<2>{num_rows_1d}}))
@@ -132,11 +136,12 @@ public:
 
     explicit TensorLeft(
         std::unique_ptr<gko::batch::matrix::Dense<value_type>> data)
-        : EnablePolymorphicObject(data->get_executor()),
-          size_(data->get_num_batch_items(),
-                gko::dim<2>{data->get_common_size()[0] *
-                            data->get_common_size()[0] *
-                            data->get_common_size()[0]}),
+        : EnableBatchUserLinOp(
+              data->get_executor(),
+              gko::batch_dim<2>{data->get_num_batch_items(),
+                                gko::dim<2>{data->get_common_size()[0] *
+                                            data->get_common_size()[0] *
+                                            data->get_common_size()[0]}}),
           data_(std::move(data))
     {}
 
@@ -148,26 +153,13 @@ public:
                 data_->get_const_values()};
     }
 
-    [[nodiscard]] constexpr gko::batch_dim<2> get_size() const { return size_; }
-
-    [[nodiscard]] constexpr gko::dim<2> get_common_size() const
-    {
-        return size_.get_common_size();
-    }
-
-    [[nodiscard]] constexpr gko::size_type get_num_batch_items() const
-    {
-        return size_.get_num_batch_items();
-    }
-
     [[nodiscard]] const gko::batch::matrix::Dense<value_type>* get_data() const
     {
         return data_.get();
     }
 
 private:
-    gko::batch_dim<2> size_;
-    std::unique_ptr<gko::batch::matrix::Dense<value_type>> data_;
+    std::shared_ptr<gko::batch::matrix::Dense<value_type>> data_;
 };
 
 
@@ -182,7 +174,7 @@ constexpr void advanced_apply(
             for (gko::int32 i = 0; i < a.size_1d; ++i) {
                 auto vector_start = k * a.size_1d * a.size_1d + i;
 
-                value_type acc = 0;
+                ValueType acc = 0;
                 for (gko::size_type q = 0; q < a.size_1d; q++) {
                     auto vector_index = vector_start + q * a.size_1d;
                     acc = a.data[j * a.size_1d + q] * b.values[vector_index] +
@@ -205,16 +197,16 @@ constexpr void simple_apply(
 }
 
 
-std::unique_ptr<gko::batch::matrix::Dense<value_type>> convert(
+std::unique_ptr<gko::batch::matrix::Dense<ValueType>> convert(
     gko::ptr_param<const TensorLeft> tensor)
 {
-    auto result = gko::batch::matrix::Dense<value_type>::create(
+    auto result = gko::batch::matrix::Dense<ValueType>::create(
         tensor->get_executor(), tensor->get_size());
 
     auto size_1d = tensor->get_data()->get_common_size()[0];
-    auto id = gko::matrix::Identity<value_type>::create(tensor->get_executor(),
-                                                        size_1d);
-    auto intermediate = gko::matrix::Dense<value_type>::create(
+    auto id = gko::matrix::Identity<ValueType>::create(tensor->get_executor(),
+                                                       size_1d);
+    auto intermediate = gko::matrix::Dense<ValueType>::create(
         tensor->get_executor(), gko::dim<2>{size_1d * size_1d});
     for (gko::size_type batch = 0; batch < tensor->get_num_batch_items();
          ++batch) {

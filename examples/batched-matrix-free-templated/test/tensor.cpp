@@ -31,7 +31,7 @@ TEST(Tensor, CanCreateWithSize)
 
 TEST(Tensor, CanCreateFromData)
 {
-    auto data = gko::batch::matrix::Dense<tensor::value_type>::create(
+    auto data = gko::batch::matrix::Dense<tensor::ValueType>::create(
         exec, gko::batch_dim<2>{3, gko::dim<2>{4, 4}});
     for (auto i = 0; i < data->get_num_batch_items(); ++i) {
         data->create_view_for_item(i)->fill(i + 1);
@@ -43,53 +43,53 @@ TEST(Tensor, CanCreateFromData)
     auto expected_size = gko::batch_dim<2>{3, gko::dim<2>{64, 64}};
     ASSERT_EQ(tensor->get_size(), expected_size);
     auto view = tensor->create_view();
-    auto tensor_data = gko::batch::matrix::Dense<tensor::value_type>::create(
+    auto tensor_data = gko::batch::matrix::Dense<tensor::ValueType>::create(
         exec, orig->get_size(),
         gko::make_array_view(exec, orig->get_num_stored_elements(),
-                             const_cast<tensor::value_type*>(view.data)));
+                             const_cast<tensor::ValueType*>(view.data)));
     GKO_ASSERT_BATCH_MTX_NEAR(tensor_data, orig, 0.0);
 }
 
 
 TEST(TensorConvert, CanConvertDenseId)
 {
-    auto A = gko::initialize<gko::matrix::Dense<tensor::value_type>>(
+    auto A = gko::initialize<gko::matrix::Dense<tensor::ValueType>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
-    auto Id = gko::matrix::Identity<tensor::value_type>::create(exec, 2);
+    auto Id = gko::matrix::Identity<tensor::ValueType>::create(exec, 2);
     auto result =
-        gko::matrix::Dense<tensor::value_type>::create(exec, gko::dim<2>{6, 4});
+        gko::matrix::Dense<tensor::ValueType>::create(exec, gko::dim<2>{6, 4});
 
     tensor::convert_tensor(A, Id, result);
 
     auto expected =
-        gko::initialize<gko::matrix::Dense<tensor::value_type>>({{1, 0, 2, 0},
-                                                                 {0, 1, 0, 2},
-                                                                 {3, 0, 4, 0},
-                                                                 {0, 3, 0, 4},
-                                                                 {5, 0, 6, 0},
-                                                                 {0, 5, 0, 6}},
-                                                                exec);
+        gko::initialize<gko::matrix::Dense<tensor::ValueType>>({{1, 0, 2, 0},
+                                                                {0, 1, 0, 2},
+                                                                {3, 0, 4, 0},
+                                                                {0, 3, 0, 4},
+                                                                {5, 0, 6, 0},
+                                                                {0, 5, 0, 6}},
+                                                               exec);
     GKO_ASSERT_MTX_NEAR(result, expected, 0.0);
 }
 
 TEST(TensorConvert, CanConvertIdDense)
 {
-    auto A = gko::initialize<gko::matrix::Dense<tensor::value_type>>(
+    auto A = gko::initialize<gko::matrix::Dense<tensor::ValueType>>(
         {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
-    auto Id = gko::matrix::Identity<tensor::value_type>::create(exec, 2);
+    auto Id = gko::matrix::Identity<tensor::ValueType>::create(exec, 2);
     auto result =
-        gko::matrix::Dense<tensor::value_type>::create(exec, gko::dim<2>{6, 4});
+        gko::matrix::Dense<tensor::ValueType>::create(exec, gko::dim<2>{6, 4});
 
     tensor::convert_tensor(Id, A, result);
 
     auto expected =
-        gko::initialize<gko::matrix::Dense<tensor::value_type>>({{1, 2, 0, 0},
-                                                                 {3, 4, 0, 0},
-                                                                 {5, 6, 0, 0},
-                                                                 {0, 0, 1, 2},
-                                                                 {0, 0, 3, 4},
-                                                                 {0, 0, 5, 6}},
-                                                                exec);
+        gko::initialize<gko::matrix::Dense<tensor::ValueType>>({{1, 2, 0, 0},
+                                                                {3, 4, 0, 0},
+                                                                {5, 6, 0, 0},
+                                                                {0, 0, 1, 2},
+                                                                {0, 0, 3, 4},
+                                                                {0, 0, 5, 6}},
+                                                               exec);
     GKO_ASSERT_MTX_NEAR(result, expected, 0.0);
 }
 
@@ -98,7 +98,7 @@ class Tensor2 : public testing::Test {
 public:
     Tensor2()
     {
-        auto data = gko::batch::matrix::Dense<tensor::value_type>::create(
+        auto data = gko::batch::matrix::Dense<tensor::ValueType>::create(
             exec, gko::batch_dim<2>{3, gko::dim<2>{4, 4}});
         for (auto i = 0; i < data->get_num_batch_items(); ++i) {
             data->create_view_for_item(i)->fill(i + 1);
@@ -109,14 +109,14 @@ public:
         auto num_rows = tensor->get_common_size()[0];
         auto vector_size = gko::batch_dim<2>{tensor->get_num_batch_items(),
                                              gko::dim<2>{num_rows, 1}};
-        x = gko::batch::MultiVector<tensor::value_type>::create(exec,
-                                                                vector_size);
-        b = gko::batch::MultiVector<tensor::value_type>::create(exec,
-                                                                vector_size);
+        x = gko::batch::MultiVector<tensor::ValueType>::create(exec,
+                                                               vector_size);
+        b = gko::batch::MultiVector<tensor::ValueType>::create(exec,
+                                                               vector_size);
         for (gko::size_type batch = 0; batch < x->get_num_batch_items();
              ++batch) {
             x->create_view_for_item(batch)->read(
-                gko::test::generate_random_matrix_data<tensor::value_type,
+                gko::test::generate_random_matrix_data<tensor::ValueType,
                                                        gko::int32>(
                     vector_size.get_common_size()[0],
                     vector_size.get_common_size()[1],
@@ -129,8 +129,8 @@ public:
     std::default_random_engine engine{42};
 
     std::unique_ptr<tensor::TensorLeft> tensor;
-    std::unique_ptr<gko::batch::MultiVector<tensor::value_type>> x;
-    std::unique_ptr<gko::batch::MultiVector<tensor::value_type>> b;
+    std::unique_ptr<gko::batch::MultiVector<tensor::ValueType>> x;
+    std::unique_ptr<gko::batch::MultiVector<tensor::ValueType>> b;
 };
 
 TEST_F(Tensor2, CanConvert)
@@ -141,8 +141,7 @@ TEST_F(Tensor2, CanConvert)
     gko::write(std::ofstream("batch.mtx"), mat->create_view_for_item(1));
 }
 
-
-TEST_F(Tensor2, CanApply)
+TEST_F(Tensor2, CanApplySingleBatch)
 {
     gko::size_type batch_id = 1;
     auto view = tensor->create_view();
@@ -159,5 +158,15 @@ TEST_F(Tensor2, CanApply)
     dense->apply(x, expected_b);
     GKO_ASSERT_MTX_NEAR(b->create_view_for_item(batch_id).get(),
                         expected_b->create_view_for_item(batch_id).get(),
-                        r<tensor::value_type>::value);
+                        r<tensor::ValueType>::value);
+}
+
+TEST_F(Tensor2, CanApply)
+{
+    tensor->apply(x, b);
+
+    auto dense = convert(tensor);
+    auto expected_b = gko::clone(b);
+    dense->apply(x, expected_b);
+    GKO_ASSERT_BATCH_MTX_NEAR(b, expected_b, r<tensor::ValueType>::value);
 }
