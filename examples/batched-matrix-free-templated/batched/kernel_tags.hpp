@@ -14,6 +14,7 @@ struct cuda_kernel {};
 struct hip_kernel {};
 struct sycl_kernel {};
 
+using cpu_kernel = std::variant<reference_kernel, omp_kernel>;
 using cuda_hip_kernel = std::variant<cuda_kernel, hip_kernel>;
 using any_kernel = std::variant<reference_kernel, omp_kernel, cuda_kernel,
                                 hip_kernel, sycl_kernel>;

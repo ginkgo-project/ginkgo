@@ -167,7 +167,7 @@ constexpr void advanced_apply(
     double alpha, tensor_left_item a,
     gko::batch::multi_vector::batch_item<const double> b, double beta,
     gko::batch::multi_vector::batch_item<double> x,
-    [[maybe_unused]] std::variant<gko::reference_kernel, gko::omp_kernel>)
+    [[maybe_unused]] gko::cpu_kernel)
 {
     for (gko::int32 k = 0; k < a.size_1d; ++k) {
         for (gko::int32 j = 0; j < a.size_1d; ++j) {
@@ -190,8 +190,7 @@ constexpr void advanced_apply(
 constexpr void simple_apply(
     const tensor_left_item& a,
     const gko::batch::multi_vector::batch_item<const double>& b,
-    const gko::batch::multi_vector::batch_item<double>& x,
-    std::variant<gko::reference_kernel, gko::omp_kernel> tag)
+    const gko::batch::multi_vector::batch_item<double>& x, gko::cpu_kernel tag)
 {
     advanced_apply(1.0, a, b, 0.0, x, tag);
 }
