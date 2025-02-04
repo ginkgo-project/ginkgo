@@ -99,6 +99,7 @@ void convert_tensor(gko::ptr_param<const gko::matrix::Identity<ValueType>> A,
 
 struct tensor_left_view {
     gko::size_type num_batch_items;
+    gko::int32 num_rows;
     gko::int32 stride;
     gko::int32 size_1d;
     const ValueType* data;
@@ -148,6 +149,7 @@ public:
     [[nodiscard]] tensor_left_view create_view() const
     {
         return {this->get_num_batch_items(),
+                static_cast<gko::int32>(this->get_common_size()[0]),
                 static_cast<gko::int32>(data_->get_common_size()[0]),
                 static_cast<gko::int32>(data_->get_common_size()[1]),
                 data_->get_const_values()};
