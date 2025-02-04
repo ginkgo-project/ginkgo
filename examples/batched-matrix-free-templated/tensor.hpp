@@ -204,26 +204,26 @@ __device__ void advanced_apply(
     gko::batch::multi_vector::batch_item<double> x,
     [[maybe_unused]] gko::cuda_hip_kernel)
 {
-    auto row =
-        static_cast<gko::size_type>(blockIdx.x * blockDim.x + threadIdx.x);
     auto n = a.size_1d;
     auto num_rows = n * n * n;
 
-    if (row >= num_rows) {
-        return;
-    }
+    for (gko::size_type row = threadIdx.x; row < num_rows; row += blockDim.x) {
+        if (row >= num_rows) {
+            return;
+        }
 
-    auto k = row / (n * n);
-    auto j = (row - k * n * n) / n;
-    auto i = (row - k * n * n) % n;
-    auto vector_start = k * n * n + i;
+        auto k = row / (n * n);
+        auto j = (row - k * n * n) / n;
+        auto i = (row - k * n * n) % n;
+        auto vector_start = k * n * n + i;
 
-    ValueType acc = 0;
-    for (gko::size_type q = 0; q < n; q++) {
-        auto vector_index = vector_start + q * n;
-        acc = a.data[j * n + q] * b.values[vector_index] + acc;
+        ValueType acc = 0;
+        for (gko::size_type q = 0; q < n; q++) {
+            auto vector_index = vector_start + q * n;
+            acc = a.data[j * n + q] * b.values[vector_index] + acc;
+        }
+        x.values[row] = alpha * acc + beta * x.values[row];
     }
-    x.values[row] = alpha * acc + beta * x.values[row];
 }
 
 __device__ void simple_apply(
