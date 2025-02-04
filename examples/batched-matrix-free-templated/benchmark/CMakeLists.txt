@@ -1,0 +1,10 @@
+set(definitions)
+if (GINKGO_BUILD_CUDA)
+    set(definitions GKO_COMPILING_CUDA=1 GKO_DEVICE_NAMESPACE=cuda)
+elseif (GINKGO_BUILD_HIP)
+    set(definitions GKO_COMPILING_HIP=1 GKO_DEVICE_NAMESPACE=hip)
+endif ()
+
+ginkgo_add_single_benchmark_executable(bench_tensor "NO" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" "d" tensor.cpp)
+target_link_libraries(bench_tensor GTest::GTest Kokkos::kokkos)
+target_compile_definitions(bench_tensor PRIVATE ${definitions})

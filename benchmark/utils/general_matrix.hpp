@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,7 +11,6 @@
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
-#include "benchmark/utils/generator.hpp"
 
 
 std::string reordering_algorithm_desc =

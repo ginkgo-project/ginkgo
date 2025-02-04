@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,6 +77,26 @@ std::unique_ptr<MatrixType> generate_random_batch_matrix(
     }
 
     return result;
+}
+
+
+/**
+ * Generates a batch of random matrices of the specified type.
+ */
+template <typename MatrixType, typename ValueDistribution, typename Engine>
+std::unique_ptr<MatrixType> generate_random_batch_dense_matrix(
+    const size_type num_batch_items, const size_type num_rows,
+    const size_type num_cols, ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec)
+{
+    using value_type = typename MatrixType::value_type;
+    auto random_array = generate_random_array<value_type>(
+        num_batch_items * num_rows * num_cols,
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine), exec);
+    return MatrixType::create(
+        exec, batch_dim<2>(num_batch_items, dim<2>(num_rows, num_cols)),
+        std::move(random_array));
 }
 
 
