@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -215,23 +215,26 @@ TYPED_TEST(Gmres, KernelRestartRgs)
         std::numeric_limits<gko::remove_complex<value_type>>::quiet_NaN();
 
     const auto small_size = this->small_residual->get_size();
-    const auto small_restart = this->small_residual_norm_collection->get_size()[0] - 1;
-    const gko::size_type k_rows = std::ceil(small_size[0] / std::log(static_cast<double>(small_size[0])));
-    auto sketched_krylov_basis = Mtx::create(this->exec, gko::dim<2>(k_rows * (small_restart + 1), small_size[1]));
+    const auto small_restart =
+        this->small_residual_norm_collection->get_size()[0] - 1;
+    const gko::size_type k_rows =
+        std::ceil(small_size[0] / std::log(static_cast<double>(small_size[0])));
+    auto sketched_krylov_basis = Mtx::create(
+        this->exec, gko::dim<2>(k_rows * (small_restart + 1), small_size[1]));
     sketched_krylov_basis->fill(9);
     auto Theta = Mtx::create(this->exec, gko::dim<2>(k_rows, small_size[0]));
     for (int i = 0; i < k_rows; i++) {
         for (int j = 0; j < small_size[0]; j++) {
-          if (i == j) {
-            Theta->at(i, j) = 1;
-            if (j % 2) Theta->at(i, j) = -1;
-          }
-          else {
-            Theta->at(i, j) = 0;
-          }
+            if (i == j) {
+                Theta->at(i, j) = 1;
+                if (j % 2) Theta->at(i, j) = -1;
+            } else {
+                Theta->at(i, j) = 0;
+            }
         }
     }
-    auto sketched_next_krylov = sketched_krylov_basis->create_submatrix(gko::span{0, k_rows}, gko::span{0, small_size[1]});
+    auto sketched_next_krylov = sketched_krylov_basis->create_submatrix(
+        gko::span{0, k_rows}, gko::span{0, small_size[1]});
     this->small_residual->copy_from(this->small_b);
     Theta->apply(this->small_residual, sketched_next_krylov);
     sketched_next_krylov->compute_norm2(this->small_residual_norm);
@@ -249,10 +252,12 @@ TYPED_TEST(Gmres, KernelRestartRgs)
                 this->small_residual_norm->get_const_values()[j];
         }
     }
-    auto expected_sketch_krylov_basis = gko::clone(this->exec, sketched_krylov_basis);
+    auto expected_sketch_krylov_basis =
+        gko::clone(this->exec, sketched_krylov_basis);
     for (int i = 0; i < k_rows; ++i) {
         for (int j = 0; j < small_size[1]; ++j) {
-            expected_sketch_krylov_basis->at(i, j) /= this->small_residual_norm->at(0, j);
+            expected_sketch_krylov_basis->at(i, j) /=
+                this->small_residual_norm->at(0, j);
         }
     }
 
@@ -261,7 +266,7 @@ TYPED_TEST(Gmres, KernelRestartRgs)
         this->small_residual_norm_collection.get(),
         this->small_krylov_bases.get(), sketched_krylov_basis.get(),
         this->small_final_iter_nums.get_data(), k_rows);
-    
+
     ASSERT_EQ(this->small_final_iter_nums.get_size(),
               this->small_residual_norm_collection->get_size()[1]);
     for (int i = 0; i < this->small_final_iter_nums.get_size(); ++i) {
@@ -273,6 +278,122 @@ TYPED_TEST(Gmres, KernelRestartRgs)
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(sketched_krylov_basis, expected_sketch_krylov_basis,
                         r<value_type>::value);
+}
+
+TYPED_TEST(Gmres, KernelRichardsonLsq)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const auto one_mtx = gko::initialize<Mtx>(I<T>{1}, this->exec);
+    const auto neg_one_mtx = gko::initialize<Mtx>(I<T>{-1}, this->exec);
+    const auto zero_mtx = gko::initialize<Mtx>(I<T>{0}, this->exec);
+    const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const gko::size_type num_rhs = 1;
+    const gko::size_type k_rows = 3;
+    const gko::size_type krylov_dim = 4;
+    const gko::size_type iter = 2;
+    // d_hessenberg_iter is rewritten from scratch -> Fill it with NaN
+    // hessenberg_iter = dim<2>{iter + 2, num_rhs}
+    auto hessenberg_iter =
+        Mtx::create(this->exec, gko::dim<2>{iter + 2, num_rhs});
+    hessenberg_iter->fill(nan);
+    auto exp_hessenberg_iter =
+        Mtx::create(this->exec, gko::dim<2>{iter + 2, num_rhs});
+    for (gko::size_type i = iter + 1; i < iter + 2; ++i) {
+        for (gko::size_type r = 0; r < num_rhs; ++r) {
+            // These entries should not be touched!
+            hessenberg_iter->at(i, r) = 42.;
+            exp_hessenberg_iter->at(i, r) = 42.;
+        }
+    }
+    // The Axpy uses this matrix:
+    // TODO fill with NaN
+    auto d_hessenberg_iter =
+        Mtx::create(this->exec, gko::dim<2>{krylov_dim + 1, num_rhs});
+    // auto sketched_krylov_bases = Mtx::create(
+    //     this->exec, gko::dim<2>{k_rows * (krylov_dim + 1), num_rhs});
+    auto sketched_next_krylov2 =
+        Mtx::create(this->exec, gko::dim<2>{k_rows, num_rhs});
+    sketched_next_krylov2->fill(nan);
+    d_hessenberg_iter->fill(nan);
+    // size of sketched_krylov_bases: gko::dim<2>{k_rows * (krylov_dim + 1),
+    // num_rhs}
+    auto sketched_krylov_bases = gko::initialize<Mtx>(
+        // clang-format off
+        I<T>{  2., -4., 1.,  5.,  1.,
+              -1., -3., -2,  1.,  3.,
+               .5, -.5, 2., 1.5, -1.,
+            }, this->exec);
+    // clang-format on
+    // Normalize vectors
+    // TODO fix actual normalization!!!
+    for (gko::size_type i = 0; i < krylov_dim + 1; ++i) {
+        // normalize
+        gko::remove_complex<T> norm{0};
+        for (gko::size_type k = 0; k < k_rows; ++k) {
+            norm += gko::squared_norm(
+                sketched_krylov_bases->at(k * (krylov_dim + 1) + i, 0));
+        }
+        norm = std::sqrt(norm);
+        for (gko::size_type k = 0; k < k_rows; ++k) {
+            sketched_krylov_bases->at(i * k_rows + k, 0) /= norm;
+        }
+    }
+    auto exp_d_hessenberg_iter =
+        Mtx::create(this->exec, gko::dim<2>{krylov_dim + 1, num_rhs});
+    auto exp_sketched_next_krylov2 =
+        Mtx::create(this->exec, gko::dim<2>{k_rows, num_rhs});
+
+    gko::kernels::reference::gmres::richardson_lsq(
+        this->exec, sketched_krylov_bases.get(), hessenberg_iter.get(),
+        d_hessenberg_iter.get(), sketched_next_krylov2.get(), iter, k_rows);
+
+    // Adjust the dimensions for the GEMV and AXPY operations
+    auto shrunk_sketched_krylov_bases = Mtx::create_const(
+        this->exec, gko::dim<2>{k_rows, iter + 1},
+        gko::make_const_array_view<T>(
+            this->exec, sketched_krylov_bases->get_num_stored_elements(),
+            sketched_krylov_bases->get_const_values()),
+        krylov_dim + 1);
+
+    auto exp_shrunk_hessenberg = exp_hessenberg_iter->create_submatrix(
+        gko::span{0, iter + 1}, gko::span{0, num_rhs});
+    auto exp_shrunk_d_hessenberg = exp_d_hessenberg_iter->create_submatrix(
+        gko::span{0, iter + 1}, gko::span{0, num_rhs});
+
+    // sketched_krylov2 = sketched_krylov_bases[iter + 1, :];
+    for (gko::size_type k = 0; k < num_rhs; k++) {
+        for (gko::size_type j = 0; j < k_rows; j++)
+            exp_sketched_next_krylov2->at(j, k) =
+                sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
+    }
+    exp_shrunk_hessenberg->fill(0);
+    for (int i = 0; i < 3; ++i) {
+        // d_hessenberg_iter = Transpose(sketched_krylov_bases) *
+        // sketched_krylov2;
+        shrunk_sketched_krylov_bases->transpose()->apply(
+            exp_sketched_next_krylov2.get(), exp_shrunk_d_hessenberg.get());
+
+        // sketched_krylov2 = sketched_krylov2 - sketched_krylov_bases *
+        // d_hessenberg_iter;
+        shrunk_sketched_krylov_bases->apply(neg_one_mtx,
+                                            exp_shrunk_d_hessenberg, one_mtx,
+                                            exp_sketched_next_krylov2.get());
+
+        // hessenberg_iter = hessenberg_iter + d_hessenberg_iter;
+        exp_shrunk_hessenberg->add_scaled(one_mtx, exp_shrunk_d_hessenberg);
+    }
+
+    // TODO Asserts
+    GKO_EXPECT_MTX_NEAR(hessenberg_iter, exp_hessenberg_iter, r<T>::value);
+    GKO_EXPECT_MTX_NEAR(d_hessenberg_iter, exp_d_hessenberg_iter, r<T>::value);
+    GKO_EXPECT_MTX_NEAR(sketched_next_krylov2, exp_sketched_next_krylov2,
+                        r<T>::value);
+    auto print_1 =
+        Mtx::create(this->exec, gko::dim<2>{k_rows * (krylov_dim + 1), 1});
+    auto print_2 = Mtx::create(this->exec, gko::dim<2>{k_rows, iter + 1});
+    GKO_EXPECT_MTX_NEAR(sketched_krylov_bases, print_1, r<T>::value);
+    GKO_EXPECT_MTX_NEAR(shrunk_sketched_krylov_bases, print_2, r<T>::value);
 }
 
 TYPED_TEST(Gmres, KernelHessenbergQrIter0)
@@ -872,31 +993,39 @@ TYPED_TEST(Gmres, SolvesWithRgs)
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
     auto mtx_big = gko::share(gko::initialize<Mtx>(
-    {{.666666666666667 ,  .366555998208319,  .300110668458348,  .366555998208319,  .300110668458348},
-     {.100036889486116 ,  .533407112305565, 0.,                 .200073778972232, 0.},
-     {.122185332736106 , 0.,                 .577703998805546, 0.,                 .244370665472212},
-     {.050018444743058 ,  .100036889486116, 0.,                 .283314888590275,  .183277999104159},
-     {.0610926663680531, 0.,                 .122185332736106,  .150055334229174,  .27224066696528}},
-     this->exec));
+        {{.666666666666667, .366555998208319, .300110668458348,
+          .366555998208319, .300110668458348},
+         {.100036889486116, .533407112305565, 0., .200073778972232, 0.},
+         {.122185332736106, 0., .577703998805546, 0., .244370665472212},
+         {.050018444743058, .100036889486116, 0., .283314888590275,
+          .183277999104159},
+         {.0610926663680531, 0., .122185332736106, .150055334229174,
+          .27224066696528}},
+        this->exec));
     auto gmres_factory_preconditioner =
         Solver::build()
             .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .on(this->exec);
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
-        {1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.)},
+        {1. / std::sqrt(5.), 1. / std::sqrt(5.), 1. / std::sqrt(5.),
+         1. / std::sqrt(5.), 1. / std::sqrt(5.)},
         this->exec);
-    auto x =
-        gko::initialize<Mtx>({1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.), 1./std::sqrt(5.)}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {1. / std::sqrt(5.), 1. / std::sqrt(5.), 1. / std::sqrt(5.),
+         1. / std::sqrt(5.), 1. / std::sqrt(5.)},
+        this->exec);
 
     solver->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({-0.85923684338397632, 0.77653471734309876, 0.39257463891282696, 0.59457983985732143, 1.3316156247705211}),
-                            r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({-0.85923684338397632, 0.77653471734309876, 0.39257463891282696,
+           0.59457983985732143, 1.3316156247705211}),
+        r<value_type>::value * 1e3);
 }
 
 TYPED_TEST(Gmres, SolvesWithRgsBigAndPreconditioner)
@@ -904,23 +1033,22 @@ TYPED_TEST(Gmres, SolvesWithRgsBigAndPreconditioner)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto mtx_big = gko::share(gko::initialize<Mtx>(
-    {{0.67, 0.37, 0.30, 0.37, 0.30, 0.00, 0.00, 0.00},
-     {0.10, 0.53, 0.00, 0.20, 0.00, 0.00, 0.00, 0.00},
-     {0.12, 0.00, 0.58, 0.00, 0.24, 0.00, 0.00, 0.00},
-     {0.05, 0.10, 0.00, 0.28, 0.18, 0.00, 0.00, 0.00},
-     {0.06, 0.00, 0.12, 0.15, 0.27, 0.00, 0.00, 0.00},
-     {0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00},
-     {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00},
-     {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00}},
-     this->exec));
+    auto mtx_big = gko::share(
+        gko::initialize<Mtx>({{0.67, 0.37, 0.30, 0.37, 0.30, 0.00, 0.00, 0.00},
+                              {0.10, 0.53, 0.00, 0.20, 0.00, 0.00, 0.00, 0.00},
+                              {0.12, 0.00, 0.58, 0.00, 0.24, 0.00, 0.00, 0.00},
+                              {0.05, 0.10, 0.00, 0.28, 0.18, 0.00, 0.00, 0.00},
+                              {0.06, 0.00, 0.12, 0.15, 0.27, 0.00, 0.00, 0.00},
+                              {0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00},
+                              {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00},
+                              {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00}},
+                             this->exec));
     auto gmres_factory_preconditioner =
         Solver::build()
             .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(r<value_type>::value))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
                     .with_max_block_size(3u))
@@ -928,22 +1056,16 @@ TYPED_TEST(Gmres, SolvesWithRgsBigAndPreconditioner)
     auto solver = gmres_factory_preconditioner->generate(mtx_big);
     auto b = gko::initialize<Mtx>(
         //{72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
-        {5.29, 1.96, 3.06, 2.27, 2.37, 6.00, 7.00, 8.00},
-        this->exec);
-    auto x =
-        gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.00}, this->exec);
+        {5.29, 1.96, 3.06, 2.27, 2.37, 6.00, 7.00, 8.00}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.00},
+                                  this->exec);
 
     solver->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x, //l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
-                           l({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}),
-                            r<value_type>::value * 1e14);
+    GKO_ASSERT_MTX_NEAR(x,  // l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
+                        l({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}),
+                        r<value_type>::value * 1e14);
 }
-
-
-
-
-
 
 
 TYPED_TEST(Gmres, SolvesTransposedBigDenseSystem)
