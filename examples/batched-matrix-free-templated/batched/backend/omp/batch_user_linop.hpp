@@ -6,8 +6,6 @@
 
 #include <ginkgo/config.hpp>
 
-#if GINKGO_BUILD_OMP
-
 #include "batch_csr_kernels.hpp"
 
 
@@ -17,11 +15,13 @@ namespace omp {
 namespace batch_template {
 namespace batch_user {
 
+
 template <typename ValueType, typename UserOpView>
 void apply(std::shared_ptr<const DefaultExecutor> exec, const UserOpView mat,
            batch::multi_vector::uniform_batch<const ValueType> b,
            batch::multi_vector::uniform_batch<ValueType> x)
 {
+#if GINKGO_BUILD_OMP
     const size_type num_batch_items = mat.num_batch_items;
     const auto num_rhs = b.num_rhs;
     if (num_rhs > 1) {
@@ -35,11 +35,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, const UserOpView mat,
             batch::extract_batch_item(b, batch_id),
             batch::extract_batch_item(x, batch_id));
     }
+#else
+    GKO_NOT_IMPLEMENTED;
+#endif
 }
+
+
 }  // namespace batch_user
 }  // namespace batch_template
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
-
-#endif
