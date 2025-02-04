@@ -358,12 +358,12 @@ endif()
 # Non core directories and targets
 add_subdirectory(extensions)
 
-if(GINKGO_BUILD_EXAMPLES)
-    add_subdirectory(examples)
-endif()
-
 if(GINKGO_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
+endif()
+
+if(GINKGO_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 if(GINKGO_DEVEL_TOOLS)
