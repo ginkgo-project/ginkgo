@@ -292,8 +292,6 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
     const gko::size_type k_rows = 3;
     const gko::size_type krylov_dim = 4;
     const gko::size_type iter = 2;
-    // d_hessenberg_iter is rewritten from scratch -> Fill it with NaN
-    // hessenberg_iter = dim<2>{iter + 2, num_rhs}
     auto hessenberg_iter =
         Mtx::create(this->exec, gko::dim<2>{iter + 2, num_rhs});
     hessenberg_iter->fill(nan);
@@ -306,16 +304,19 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
             exp_hessenberg_iter->at(i, r) = 42.;
         }
     }
-    // The Axpy uses this matrix:
-    // TODO fill with NaN
     auto d_hessenberg_iter =
         Mtx::create(this->exec, gko::dim<2>{krylov_dim + 1, num_rhs});
-    // auto sketched_krylov_bases = Mtx::create(
-    //     this->exec, gko::dim<2>{k_rows * (krylov_dim + 1), num_rhs});
+    auto exp_d_hessenberg_iter = gko::clone(d_hessenberg_iter);
     auto sketched_next_krylov2 =
         Mtx::create(this->exec, gko::dim<2>{k_rows, num_rhs});
+    auto exp_sketched_next_krylov2 = gko::clone(sketched_next_krylov2);
     sketched_next_krylov2->fill(nan);
     d_hessenberg_iter->fill(nan);
+    for (gko::size_type i = k_rows; i < krylov_dim + 1; ++i) {
+        // These entries should not be touched by kernel
+        d_hessenberg_iter->at(i, 0) = 13;
+        exp_d_hessenberg_iter->at(i, 0) = 13;
+    }
     // size of sketched_krylov_bases: gko::dim<2>{k_rows * (krylov_dim + 1),
     // num_rhs}
     auto sketched_krylov_bases = gko::initialize<Mtx>(
@@ -326,35 +327,33 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
             }, this->exec);
     // clang-format on
     // Normalize vectors
-    // TODO fix actual normalization!!!
     for (gko::size_type i = 0; i < krylov_dim + 1; ++i) {
-        // normalize
         gko::remove_complex<T> norm{0};
         for (gko::size_type k = 0; k < k_rows; ++k) {
-            norm += gko::squared_norm(
-                sketched_krylov_bases->at(k * (krylov_dim + 1) + i, 0));
+            norm +=
+                gko::squared_norm(sketched_krylov_bases->at(k + i * k_rows, 0));
         }
         norm = std::sqrt(norm);
         for (gko::size_type k = 0; k < k_rows; ++k) {
-            sketched_krylov_bases->at(i * k_rows + k, 0) /= norm;
+            sketched_krylov_bases->at(k + i * k_rows, 0) /= norm;
         }
     }
-    auto exp_d_hessenberg_iter =
-        Mtx::create(this->exec, gko::dim<2>{krylov_dim + 1, num_rhs});
-    auto exp_sketched_next_krylov2 =
-        Mtx::create(this->exec, gko::dim<2>{k_rows, num_rhs});
 
     gko::kernels::reference::gmres::richardson_lsq(
         this->exec, sketched_krylov_bases.get(), hessenberg_iter.get(),
         d_hessenberg_iter.get(), sketched_next_krylov2.get(), iter, k_rows);
 
     // Adjust the dimensions for the GEMV and AXPY operations
-    auto shrunk_sketched_krylov_bases = Mtx::create_const(
-        this->exec, gko::dim<2>{k_rows, iter + 1},
+    // Note: since this matrix is stored column-major in our code, it appears as
+    // transposed in its normal state
+    auto shrunk_sketched_krylov_bases_trans = Mtx::create_const(
+        this->exec, gko::dim<2>{iter + 1, k_rows},
         gko::make_const_array_view<T>(
             this->exec, sketched_krylov_bases->get_num_stored_elements(),
             sketched_krylov_bases->get_const_values()),
-        krylov_dim + 1);
+        k_rows);
+    auto shrunk_sketched_krylov_bases =
+        gko::as<Mtx>(shrunk_sketched_krylov_bases_trans->transpose());
 
     auto exp_shrunk_hessenberg = exp_hessenberg_iter->create_submatrix(
         gko::span{0, iter + 1}, gko::span{0, num_rhs});
@@ -371,7 +370,7 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
     for (int i = 0; i < 3; ++i) {
         // d_hessenberg_iter = Transpose(sketched_krylov_bases) *
         // sketched_krylov2;
-        shrunk_sketched_krylov_bases->transpose()->apply(
+        shrunk_sketched_krylov_bases_trans->apply(
             exp_sketched_next_krylov2.get(), exp_shrunk_d_hessenberg.get());
 
         // sketched_krylov2 = sketched_krylov2 - sketched_krylov_bases *
@@ -384,16 +383,10 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
         exp_shrunk_hessenberg->add_scaled(one_mtx, exp_shrunk_d_hessenberg);
     }
 
-    // TODO Asserts
     GKO_EXPECT_MTX_NEAR(hessenberg_iter, exp_hessenberg_iter, r<T>::value);
     GKO_EXPECT_MTX_NEAR(d_hessenberg_iter, exp_d_hessenberg_iter, r<T>::value);
     GKO_EXPECT_MTX_NEAR(sketched_next_krylov2, exp_sketched_next_krylov2,
                         r<T>::value);
-    auto print_1 =
-        Mtx::create(this->exec, gko::dim<2>{k_rows * (krylov_dim + 1), 1});
-    auto print_2 = Mtx::create(this->exec, gko::dim<2>{k_rows, iter + 1});
-    GKO_EXPECT_MTX_NEAR(sketched_krylov_bases, print_1, r<T>::value);
-    GKO_EXPECT_MTX_NEAR(shrunk_sketched_krylov_bases, print_2, r<T>::value);
 }
 
 TYPED_TEST(Gmres, KernelHessenbergQrIter0)

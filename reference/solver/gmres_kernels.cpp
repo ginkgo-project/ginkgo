@@ -1,16 +1,13 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/gmres_kernels.hpp"
 
-#include <iostream>
-
-#include <ginkgo/core/base/mtx_io.hpp>
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
@@ -53,17 +50,17 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::Dense<ValueType>* residual_norm_collection,
                  matrix::Dense<ValueType>* krylov_bases,
                  matrix::Dense<ValueType>* sketched_krylov_bases,
-                 size_type* final_iter_nums, size_type k_rows) 
+                 size_type* final_iter_nums, size_type k_rows)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         residual_norm_collection->at(0, j) = residual_norm->at(0, j);
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             krylov_bases->at(i, j) =
                 residual->at(i, j) / residual_norm->at(0, j);
-        }        
+        }
         for (size_type i = 0; i < k_rows; ++i) {
             sketched_krylov_bases->at(i, j) =
-            sketched_krylov_bases->at(i, j) / residual_norm->at(0, j);
+                sketched_krylov_bases->at(i, j) / residual_norm->at(0, j);
         }
         final_iter_nums[j] = 0;
     }
@@ -72,19 +69,19 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
-void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,            
-                    const matrix::Dense<ValueType>* sketched_krylov_bases,  
-                    matrix::Dense<ValueType>* hessenberg_iter,              
-                    matrix::Dense<ValueType>* d_hessenberg_iter,            
-                    matrix::Dense<ValueType>* sketched_next_krylov2,          
-                    size_type iter,                                         
-                    size_type k_rows)
+void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Dense<ValueType>* sketched_krylov_bases,
+                    matrix::Dense<ValueType>* hessenberg_iter,
+                    matrix::Dense<ValueType>* d_hessenberg_iter,
+                    matrix::Dense<ValueType>* sketched_next_krylov2,
+                    size_type iter, size_type k_rows)
 {
     auto num_rhs = sketched_krylov_bases->get_size()[1];
     // iter = hessenberg_iter.get_size()[0] - 1;
     for (size_type k = 0; k < num_rhs; k++) {
-        for (size_type j = 0; j < k_rows ; j++) 
-            sketched_next_krylov2->at(j, k) = sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
+        for (size_type j = 0; j < k_rows; j++)
+            sketched_next_krylov2->at(j, k) =
+                sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
     }
     for (size_type i = 0; i <= iter; i++) {
         for (size_type k = 0; k < num_rhs; k++) {
@@ -96,18 +93,19 @@ void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i <= iter; i++) {
             for (size_type k = 0; k < num_rhs; k++) {
                 d_hessenberg_iter->at(i, k) = zero<ValueType>();
-                for (size_type j = 0; j < k_rows; j++){
-                    d_hessenberg_iter->at(i, k) += sketched_krylov_bases->at(j + i * k_rows, k) 
-                        * sketched_next_krylov2->at(j, k);
+                for (size_type j = 0; j < k_rows; j++) {
+                    d_hessenberg_iter->at(i, k) +=
+                        sketched_krylov_bases->at(j + i * k_rows, k) *
+                        sketched_next_krylov2->at(j, k);
                 }
             }
         }
         for (size_type i = 0; i <= iter; i++) {
             for (size_type k = 0; k < num_rhs; k++) {
-                //hessenberg_iter->at(i, k) = zero<ValueType>();
-                for (size_type j = 0; j < k_rows; j++){
-                    sketched_next_krylov2->at(j, k) -= sketched_krylov_bases->at(j + i * k_rows, k) 
-                        * d_hessenberg_iter->at(i, k);
+                for (size_type j = 0; j < k_rows; j++) {
+                    sketched_next_krylov2->at(j, k) -=
+                        sketched_krylov_bases->at(j + i * k_rows, k) *
+                        d_hessenberg_iter->at(i, k);
                 }
                 hessenberg_iter->at(i, k) += d_hessenberg_iter->at(i, k);
             }

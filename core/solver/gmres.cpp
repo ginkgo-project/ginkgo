@@ -4,24 +4,22 @@
 
 #include "ginkgo/core/solver/gmres.hpp"
 
-#include <random>
 #include <cmath>
-#include <iostream>
 #include <fstream>
-
-#include <ginkgo/core/base/mtx_io.hpp>
+#include <random>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -311,15 +309,18 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
 // TODO modify this function!
 template <typename ValueType, typename VectorType>
 void orthogonalize_rgs(matrix::Dense<ValueType>* hessenberg_iter,
-                       VectorType* krylov_bases, VectorType* next_krylov, 
-                       VectorType* sketched_krylov_bases, VectorType* d_hessenberg_iter, 
-                       VectorType* sketched_next_krylov2, size_type restart_iter,
-                       size_type num_rows, size_type num_rhs,
-                       size_type local_num_rows, size_type k_rows)
-{   
+                       VectorType* krylov_bases, VectorType* next_krylov,
+                       VectorType* sketched_krylov_bases,
+                       VectorType* d_hessenberg_iter,
+                       VectorType* sketched_next_krylov2,
+                       size_type restart_iter, size_type num_rows,
+                       size_type num_rhs, size_type local_num_rows,
+                       size_type k_rows)
+{
     auto exec = hessenberg_iter->get_executor();
-    exec->run(gmres::make_richardson_lsq (sketched_krylov_bases, hessenberg_iter, 
-        d_hessenberg_iter, sketched_next_krylov2, restart_iter, k_rows));
+    exec->run(gmres::make_richardson_lsq(
+        sketched_krylov_bases, hessenberg_iter, d_hessenberg_iter,
+        sketched_next_krylov2, restart_iter, k_rows));
 
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
@@ -365,7 +366,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
-    const bool is_rgs = this->parameters_.ortho_method == gmres::ortho_method::rgs;
+    const bool is_rgs =
+        this->parameters_.ortho_method == gmres::ortho_method::rgs;
     const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
@@ -400,7 +402,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Because the auxiliary Hessenberg workspace only ever stores one
     // iteration of data at a time, we store it in the "logical" layout
     // from the start.
-    
+
     using Mtx = matrix::Csr<ValueType, int>;
     auto theta = Mtx::create(exec);
     auto sketched_krylov_bases = VectorType::create(exec);
@@ -423,22 +425,25 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // Random number generator setup
         std::mt19937 gen(123);
 
-        for (int i=0; i<num_rows; i++) {
+        for (int i = 0; i < num_rows; i++) {
             remove_complex<ValueType> v = 1.;
             if (std::uniform_real_distribution<>(0.0, 1.0)(gen) < .5) v = -1.;
             data.nonzeros.emplace_back(
-                std::uniform_int_distribution<>(0, k_rows-1)(gen), i, v);
+                std::uniform_int_distribution<>(0, k_rows - 1)(gen), i, v);
         }
         theta->read(data);
 
+        // each vector is stored contiguously in memory:
+        // For the ith vector (i <= krylov_dim), the kth element is at:
+        //  k + i * (k_rows)
         sketched_krylov_bases = VectorType::create(
             exec, dim<2>{k_rows * (krylov_dim + 1), num_rhs});
 
-        d_hessenberg_iter = VectorType::create(
-            exec, dim<2>{krylov_dim + 1, num_rhs});
+        d_hessenberg_iter =
+            VectorType::create(exec, dim<2>{krylov_dim + 1, num_rhs});
 
-        sketched_next_krylov2 = VectorType::create(
-            exec, dim<2>{k_rows, num_rhs});
+        sketched_next_krylov2 =
+            VectorType::create(exec, dim<2>{k_rows, num_rhs});
     }
     auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
@@ -477,23 +482,19 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     if (is_rgs) {
-
         auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-             sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
-             span{0, k_rows},
-             span{0, num_rhs});
+            sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
+            span{0, k_rows}, span{0, num_rhs});
 
         theta->apply(residual, sketched_next_krylov);
 
         sketched_next_krylov->compute_norm2(residual_norm, reduction_tmp);
 
-        exec->run(gmres::make_restart_rgs(gko::detail::get_local(residual),
-                                  residual_norm, residual_norm_collection,
-                                  gko::detail::get_local(krylov_bases),
-                                  sketched_krylov_bases.get(),
-                                  final_iter_nums.get_data(), k_rows));
-    }
-    else {    
+        exec->run(gmres::make_restart_rgs(
+            gko::detail::get_local(residual), residual_norm,
+            residual_norm_collection, gko::detail::get_local(krylov_bases),
+            sketched_krylov_bases.get(), final_iter_nums.get_data(), k_rows));
+    } else {
         // residual_norm = norm(residual)
         residual->compute_norm2(residual_norm, reduction_tmp);
         // residual_norm_collection = {residual_norm, unchanged}
@@ -531,9 +532,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      *       1x norm2               n
      *       1x scal               2n
      */
-
-
-
 
 
     while (true) {
@@ -584,16 +582,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             if (is_rgs) {
                 // Apply SpMV with theta to form sketched_krylov_bases
                 exec->run(gmres::make_restart_rgs(
-                gko::detail::get_local(residual), residual_norm,
-                residual_norm_collection, gko::detail::get_local(krylov_bases),
-                sketched_krylov_bases.get(),
-                final_iter_nums.get_data(), k_rows));
-            }
-            else {
-                exec->run(gmres::make_restart(
-                gko::detail::get_local(residual), residual_norm,
-                residual_norm_collection, gko::detail::get_local(krylov_bases),
-                final_iter_nums.get_data()));
+                    gko::detail::get_local(residual), residual_norm,
+                    residual_norm_collection,
+                    gko::detail::get_local(krylov_bases),
+                    sketched_krylov_bases.get(), final_iter_nums.get_data(),
+                    k_rows));
+            } else {
+                exec->run(
+                    gmres::make_restart(gko::detail::get_local(residual),
+                                        residual_norm, residual_norm_collection,
+                                        gko::detail::get_local(krylov_bases),
+                                        final_iter_nums.get_data()));
             }
             restart_iter = 0;
         }
@@ -651,50 +650,50 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
-        } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {         
+        } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
             auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
                 sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
-                span{k_rows * (restart_iter + 1),
-                    k_rows * (restart_iter + 2)},
-                span{0, num_rhs});            
+                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
+                span{0, num_rhs});
             theta->apply(next_krylov, sketched_next_krylov);
-            orthogonalize_rgs(hessenberg_iter.get(), krylov_bases, 
-                              next_krylov.get(), sketched_krylov_bases.get(),                              
-                              d_hessenberg_iter.get(), sketched_next_krylov2.get(), 
-                              restart_iter, num_rows, num_rhs, local_num_rows, k_rows);
-        }        
+            orthogonalize_rgs(hessenberg_iter.get(), krylov_bases,
+                              next_krylov.get(), sketched_krylov_bases.get(),
+                              d_hessenberg_iter.get(),
+                              sketched_next_krylov2.get(), restart_iter,
+                              num_rows, num_rhs, local_num_rows, k_rows);
+        }
         if (is_rgs) {
             auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
                 sketched_krylov_bases.get(), dim<2>{k_rows, num_rhs},
-                span{k_rows * (restart_iter + 1),
-                  k_rows * (restart_iter + 2)},
+                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
                 span{0, num_rhs});
-            
+
             theta->apply(next_krylov, sketched_next_krylov);
-            
+
             auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
                 span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
-            
-            help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-                sketched_next_krylov.get(), hessenberg_norm_entry.get(),
-                next_krylov_norm_tmp, reduction_tmp);
-            
+
+            help_compute_norm<ValueType>::
+                compute_next_krylov_norm_into_hessenberg(
+                    sketched_next_krylov.get(), hessenberg_norm_entry.get(),
+                    next_krylov_norm_tmp, reduction_tmp);
+
             next_krylov->inv_scale(hessenberg_norm_entry);
 
-            sketched_next_krylov->inv_scale(hessenberg_norm_entry);         
-        }
-        else {
+            sketched_next_krylov->inv_scale(hessenberg_norm_entry);
+        } else {
             // normalize next_krylov:
             // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
-            // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
-            // next_krylov /= hessenberg(restart_iter+1, restart_iter)
+            // (stored in hessenberg(restart_iter, (restart_iter + 1) *
+            // num_rhs)) next_krylov /= hessenberg(restart_iter+1, restart_iter)
             auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
-            span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+                span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
 
-            help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-                next_krylov.get(), hessenberg_norm_entry.get(),
-                next_krylov_norm_tmp, reduction_tmp);
-            
+            help_compute_norm<ValueType>::
+                compute_next_krylov_norm_into_hessenberg(
+                    next_krylov.get(), hessenberg_norm_entry.get(),
+                    next_krylov_norm_tmp, reduction_tmp);
+
             next_krylov->inv_scale(hessenberg_norm_entry);
         }
         // End of Arnoldi
