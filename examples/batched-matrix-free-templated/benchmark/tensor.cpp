@@ -8,7 +8,7 @@
 #include <benchmark/utils/runner.hpp>
 #include <core/test/utils/array_generator.hpp>
 #include <core/test/utils/batch_helpers.hpp>
-#include <examples/batched-matrix-free-templated/tensor.hpp>
+#include <examples/batched-matrix-free-templated/tensor_left.hpp>
 
 DEFINE_string(
     apply, "matrix-free",

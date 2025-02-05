@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "../tensor.hpp"
-
 #include <memory>
 
 #include <gtest/gtest.h>
 
 #include <test/utils/common_fixture.hpp>
 
+#include "../tensor_left.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "core/test/utils.hpp"
 
