@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/extensions/kokkos.hpp>
 
 #include "batched/batch_user_linop.hpp"
 #include "batched/kernel_tags.hpp"
@@ -19,32 +18,6 @@ namespace tensor {
 
 using ValueType = double;
 
-
-void convert_tensor(gko::ptr_param<const gko::matrix::Dense<ValueType>> A,
-                    gko::ptr_param<const gko::matrix::Dense<ValueType>> B,
-                    gko::ptr_param<gko::matrix::Dense<ValueType>> result)
-{
-    auto expected_dims = gko::dim<2>{A->get_size()[0] * B->get_size()[0],
-                                     A->get_size()[1] * B->get_size()[1]};
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, expected_dims);
-    auto exec = result->get_executor();
-    auto host_result = gko::make_temporary_clone(exec->get_master(), result);
-    auto host_a = gko::make_temporary_clone(exec->get_master(), A);
-    auto host_b = gko::make_temporary_clone(exec->get_master(), B);
-
-    for (gko::size_type ai = 0; ai < A->get_size()[0]; ++ai) {
-        for (gko::size_type aj = 0; aj < A->get_size()[1]; ++aj) {
-            for (gko::size_type bi = 0; bi < B->get_size()[0]; ++bi) {
-                for (gko::size_type bj = 0; bj < B->get_size()[1]; ++bj) {
-                    auto i = ai * A->get_size()[0] + bi;
-                    auto j = aj * A->get_size()[1] + bj;
-                    host_result->at(i, j) =
-                        host_a->at(ai, aj) * host_b->at(bi, bj);
-                }
-            }
-        }
-    }
-}
 
 void convert_tensor(gko::ptr_param<const gko::matrix::Dense<ValueType>> A,
                     gko::ptr_param<const gko::matrix::Identity<ValueType>> B,
@@ -197,7 +170,7 @@ constexpr void simple_apply(
     advanced_apply(1.0, a, b, 0.0, x, tag);
 }
 
-#if defined(GINKGO_BUILD_CUDA) || defined(GINKGO_BUILD_HIP)
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
 
 
 __device__ void advanced_apply(

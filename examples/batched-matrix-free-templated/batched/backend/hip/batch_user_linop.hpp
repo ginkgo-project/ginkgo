@@ -6,7 +6,7 @@
 
 #include <ginkgo/config.hpp>
 
-#if GINKGO_BUILD_HIP
+#if GINKGO_BUILD_HIP && GKO_COMPILING_HIP
 #include "../cuda_hip/batch_user_linop.hpp"
 #endif
 
@@ -23,7 +23,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, const UserOpView mat,
            batch::multi_vector::uniform_batch<const ValueType> b,
            batch::multi_vector::uniform_batch<ValueType> x)
 {
-#if GINKGO_BUILD_HIP
+#if GINKGO_BUILD_HIP && GKO_COMPILING_HIP
     auto num_rows = mat.num_rows;
 
     apply_kernel<<<mat.num_batch_items, get_num_threads_per_block(num_rows), 0,
