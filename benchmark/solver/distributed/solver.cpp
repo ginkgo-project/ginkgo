@@ -59,6 +59,24 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
 };
 
 
+std::string solver_distributed_example_config = R"(
+  [
+    {
+      "stencil": {
+        "name": "7pt",
+        "local_size": 100,
+        "process_grid": [2, 3, 4],
+      }
+      "optimal": {"spmv": "csr-coo"}
+    },
+    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
+     "rhs": "my_file_rhs.mtx"},
+    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo-coo"},
+     "rhs": "my_file_rhs.mtx"}
+  ]
+)";
+
+
 int main(int argc, char* argv[])
 {
     gko::experimental::mpi::environment mpi_env{argc, argv};
@@ -73,7 +91,7 @@ int main(int argc, char* argv[])
 
     std::string header =
         "A benchmark for measuring Ginkgo's distributed solvers\n";
-    std::string format = solver_example_config + R"(
+    std::string format = solver_distributed_example_config + R"(
   The matrix will either be read from an input file if the filename parameter
   is given, or generated as a stencil matrix.
   If the filename parameter is given, all processes will read the file and
@@ -124,7 +142,7 @@ int main(int argc, char* argv[])
                        : broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    run_test_cases(SolverBenchmark<Generator>{Generator{comm}}, exec,
+    run_test_cases(SolverBenchmark<Generator>{Generator{comm}, do_print}, exec,
                    get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
     if (do_print) {

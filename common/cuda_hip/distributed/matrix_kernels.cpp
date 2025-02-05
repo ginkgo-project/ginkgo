@@ -20,6 +20,7 @@
 
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/atomic.hpp"
+#include "common/cuda_hip/components/searching.hpp"
 
 
 namespace gko {
@@ -33,18 +34,10 @@ struct input_type {
     GlobalIndexType row;
     GlobalIndexType col;
     ValueType val;
-    size_type row_range;
-    size_type col_range;
 
     __forceinline__ __device__ __host__
-    input_type(thrust::tuple<GlobalIndexType, GlobalIndexType, ValueType,
-                             size_type, size_type>
-                   t)
-        : row(thrust::get<0>(t)),
-          col(thrust::get<1>(t)),
-          val(thrust::get<2>(t)),
-          row_range(thrust::get<3>(t)),
-          col_range(thrust::get<4>(t))
+    input_type(thrust::tuple<GlobalIndexType, GlobalIndexType, ValueType> t)
+        : row(thrust::get<0>(t)), col(thrust::get<1>(t)), val(thrust::get<2>(t))
     {}
 };
 
@@ -80,38 +73,46 @@ void separate_local_nonlocal(
     auto policy = thrust_policy(exec);
 
     // precompute the row and column range id of each input element
-    auto input_row_idxs = input.get_const_row_idxs();
-    auto input_col_idxs = input.get_const_col_idxs();
-    array<size_type> row_range_ids{exec, num_input_elements};
-    thrust::upper_bound(policy, row_range_bounds + 1,
-                        row_range_bounds + num_row_ranges + 1, input_row_idxs,
-                        input_row_idxs + num_input_elements,
-                        row_range_ids.get_data());
-    array<size_type> col_range_ids{exec, input.get_num_stored_elements()};
-    thrust::upper_bound(policy, col_range_bounds + 1,
-                        col_range_bounds + num_col_ranges + 1, input_col_idxs,
-                        input_col_idxs + num_input_elements,
-                        col_range_ids.get_data());
+    auto map_to_row_range_id =
+        [row_range_bounds, num_row_ranges] __host__ __device__(
+            GlobalIndexType row) {
+            return binary_search(size_type(0), num_row_ranges, [=](auto mid) {
+                return row < row_range_bounds[mid + 1];
+            });
+        };
+    auto map_to_col_range_id =
+        [col_range_bounds, num_col_ranges] __host__ __device__(
+            GlobalIndexType col) {
+            return binary_search(size_type(0), num_col_ranges, [=](auto mid) {
+                return col < col_range_bounds[mid + 1];
+            });
+        };
 
     // count number of local<0> and non-local<1> elements. Since the input
     // may contain non-local rows, we don't have
     // num_local + num_non_local = num_elements and can't just count one of them
-    auto range_ids_it = thrust::make_zip_iterator(thrust::make_tuple(
-        row_range_ids.get_const_data(), col_range_ids.get_const_data()));
+    auto input_row_idxs = input.get_const_row_idxs();
+    auto input_col_idxs = input.get_const_col_idxs();
+    auto input_idxs_it = thrust::make_zip_iterator(
+        thrust::make_tuple(input_row_idxs, input_col_idxs));
     auto num_elements_pair = thrust::transform_reduce(
-        policy, range_ids_it, range_ids_it + num_input_elements,
-        [local_part, row_part_ids, col_part_ids] __host__ __device__(
-            const thrust::tuple<size_type, size_type>& tuple) {
-            auto row_part = row_part_ids[thrust::get<0>(tuple)];
-            auto col_part = col_part_ids[thrust::get<1>(tuple)];
-            bool is_inner_entry =
-                row_part == local_part && col_part == local_part;
-            bool is_ghost_entry =
-                row_part == local_part && col_part != local_part;
-            return thrust::make_tuple(
-                is_inner_entry ? size_type{1} : size_type{0},
-                is_ghost_entry ? size_type{1} : size_type{0});
-        },
+        policy, input_idxs_it, input_idxs_it + num_input_elements,
+        [local_part, row_part_ids, col_part_ids, map_to_row_range_id,
+         map_to_col_range_id] __host__
+            __device__(
+                const thrust::tuple<GlobalIndexType, GlobalIndexType>& tuple) {
+                auto row = thrust::get<0>(tuple);
+                auto col = thrust::get<1>(tuple);
+                auto row_part = row_part_ids[map_to_row_range_id(row)];
+                auto col_part = col_part_ids[map_to_col_range_id(col)];
+                bool is_inner_entry =
+                    row_part == local_part && col_part == local_part;
+                bool is_ghost_entry =
+                    row_part == local_part && col_part != local_part;
+                return thrust::make_tuple(
+                    is_inner_entry ? size_type{1} : size_type{0},
+                    is_ghost_entry ? size_type{1} : size_type{0});
+            },
         thrust::make_tuple(size_type{}, size_type{}),
         [] __host__ __device__(const thrust::tuple<size_type, size_type>& a,
                                const thrust::tuple<size_type, size_type>& b) {
@@ -122,26 +123,27 @@ void separate_local_nonlocal(
     auto num_non_local_elements = thrust::get<1>(num_elements_pair);
 
     // define global-to-local maps for row and column indices
-    auto map_to_local_row =
-        [row_range_bounds, row_range_starting_indices] __host__ __device__(
-            const GlobalIndexType row, const size_type range_id) {
-            return static_cast<LocalIndexType>(row -
-                                               row_range_bounds[range_id]) +
-                   row_range_starting_indices[range_id];
-        };
-    auto map_to_local_col =
-        [col_range_bounds, col_range_starting_indices] __host__ __device__(
-            const GlobalIndexType col, const size_type range_id) {
-            return static_cast<LocalIndexType>(col -
-                                               col_range_bounds[range_id]) +
-                   col_range_starting_indices[range_id];
-        };
+    auto map_to_local_row = [row_range_bounds, row_range_starting_indices,
+                             map_to_row_range_id] __host__
+                            __device__(const GlobalIndexType row) {
+                                auto range_id = map_to_row_range_id(row);
+                                return static_cast<LocalIndexType>(
+                                           row - row_range_bounds[range_id]) +
+                                       row_range_starting_indices[range_id];
+                            };
+    auto map_to_local_col = [col_range_bounds, col_range_starting_indices,
+                             map_to_col_range_id] __host__
+                            __device__(const GlobalIndexType col) {
+                                auto range_id = map_to_col_range_id(col);
+                                return static_cast<LocalIndexType>(
+                                           col - col_range_bounds[range_id]) +
+                                       col_range_starting_indices[range_id];
+                            };
 
     using input_type = input_type<device_type<ValueType>, GlobalIndexType>;
     auto input_it = thrust::make_zip_iterator(thrust::make_tuple(
         input.get_const_row_idxs(), input.get_const_col_idxs(),
-        as_device_type(input.get_const_values()),
-        row_range_ids.get_const_data(), col_range_ids.get_const_data()));
+        as_device_type(input.get_const_values())));
 
     // copy and transform local entries into arrays
     local_row_idxs.resize_and_reset(num_local_elements);
@@ -150,23 +152,26 @@ void separate_local_nonlocal(
     auto local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col] __host__ __device__(
                       const input_type input) {
-            auto local_row = map_to_local_row(input.row, input.row_range);
-            auto local_col = map_to_local_col(input.col, input.col_range);
+            auto local_row = map_to_local_row(input.row);
+            auto local_col = map_to_local_col(input.col);
             return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
         policy, local_it, local_it + input.get_num_stored_elements(),
-        range_ids_it,
+        input_idxs_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             local_row_idxs.get_data(), local_col_idxs.get_data(),
             as_device_type(local_values.get_data()))),
-        [local_part, row_part_ids, col_part_ids] __host__ __device__(
-            const thrust::tuple<size_type, size_type>& tuple) {
-            auto row_part = row_part_ids[thrust::get<0>(tuple)];
-            auto col_part = col_part_ids[thrust::get<1>(tuple)];
-            return row_part == local_part && col_part == local_part;
-        });
-
+        [local_part, row_part_ids, col_part_ids, map_to_row_range_id,
+         map_to_col_range_id] __host__
+            __device__(
+                const thrust::tuple<GlobalIndexType, GlobalIndexType>& tuple) {
+                auto row = thrust::get<0>(tuple);
+                auto col = thrust::get<1>(tuple);
+                auto row_part = row_part_ids[map_to_row_range_id(row)];
+                auto col_part = col_part_ids[map_to_col_range_id(col)];
+                return row_part == local_part && col_part == local_part;
+            });
 
     // copy and transform non-local entries into arrays. this keeps global
     // column indices, and also stores the column part id for each non-local
@@ -177,21 +182,25 @@ void separate_local_nonlocal(
     auto non_local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row,
                    col_part_ids] __host__ __device__(const input_type input) {
-            auto local_row = map_to_local_row(input.row, input.row_range);
+            auto local_row = map_to_local_row(input.row);
             return thrust::make_tuple(local_row, input.col, input.val);
         });
     thrust::copy_if(
         policy, non_local_it, non_local_it + input.get_num_stored_elements(),
-        range_ids_it,
+        input_idxs_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_col_idxs.get_data(),
             as_device_type(non_local_values.get_data()))),
-        [local_part, row_part_ids, col_part_ids] __host__ __device__(
-            const thrust::tuple<size_type, size_type>& tuple) {
-            auto row_part = row_part_ids[thrust::get<0>(tuple)];
-            auto col_part = col_part_ids[thrust::get<1>(tuple)];
-            return row_part == local_part && col_part != local_part;
-        });
+        [local_part, row_part_ids, col_part_ids, map_to_row_range_id,
+         map_to_col_range_id] __host__
+            __device__(
+                const thrust::tuple<GlobalIndexType, GlobalIndexType>& tuple) {
+                auto row = thrust::get<0>(tuple);
+                auto col = thrust::get<1>(tuple);
+                auto row_part = row_part_ids[map_to_row_range_id(row)];
+                auto col_part = col_part_ids[map_to_col_range_id(col)];
+                return row_part == local_part && col_part != local_part;
+            });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(

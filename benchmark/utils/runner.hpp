@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -157,8 +157,10 @@ void run_test_cases(const Benchmark<State>& benchmark,
             }
             benchmark.postprocess(test_case);
         } catch (const std::exception& e) {
-            std::cerr << "Error setting up benchmark, what(): " << e.what()
-                      << std::endl;
+            if (benchmark.should_print()) {
+                std::cerr << "Error setting up benchmark, what(): " << e.what()
+                          << std::endl;
+            }
             test_case["error_type"] = gko::name_demangling::get_dynamic_type(e);
             test_case["error"] = e.what();
         }

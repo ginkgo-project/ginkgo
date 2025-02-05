@@ -123,7 +123,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     if (do_print) {
         std::ostringstream doc;
         doc << header << "Usage: " << (*argv)[0] << " [options]\n"
-            << format
+            << format << "\n"
             << "  The results are written on standard output, in the same "
                "format,\n"
             << "  but with test cases extended to include an additional member "
@@ -144,7 +144,10 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
         gflags::SetUsageMessage("");
         gflags::SetVersionString("");
     }
-    gflags::ParseCommandLineFlags(argc, argv, true);
+    gflags::ParseCommandLineNonHelpFlags(argc, argv, true);
+    if (do_print) {
+        gflags::HandleCommandLineHelpFlags();
+    }
     if (FLAGS_profile) {
         FLAGS_repetitions = "1";
         FLAGS_warmup = 0;

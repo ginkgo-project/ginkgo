@@ -88,12 +88,11 @@ DEFINE_bool(overhead, false,
 
 std::string solver_example_config = R"(
   [
-    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
+    {"filename": "my_file.mtx", "optimal": {"spmv": "ell"},
      "rhs": "my_file_rhs.mtx"},
-    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo-coo"},
+    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo"},
      "rhs": "my_file_rhs.mtx"},
-    {"size": 100, "stencil": "7pt", "comm_pattern": "stencil",
-     "optimal": {"spmv": "csr-coo"}}
+    {"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}
   ]
 )";
 
@@ -381,8 +380,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
     std::vector<std::string> precond_solvers;
     std::map<std::string, std::pair<std::string, std::string>> decoder;
     Generator generator;
+    bool do_print;
 
-    SolverBenchmark(Generator generator) : name{"solver"}, generator{generator}
+    SolverBenchmark(Generator generator, bool do_print = true)
+        : name{"solver"}, generator{generator}, do_print(do_print)
     {
         auto solvers = split(FLAGS_solvers, ',');
         auto preconds = split(FLAGS_preconditioners, ',');
@@ -401,7 +402,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         return precond_solvers;
     }
 
-    bool should_print() const override { return true; }
+    bool should_print() const override { return do_print; }
 
     std::string get_example_config() const override
     {
@@ -447,9 +448,11 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 exec, state.system_matrix.get(), state.b.get());
         }
 
-        std::clog << "Matrix is of size (" << state.system_matrix->get_size()[0]
-                  << ", " << state.system_matrix->get_size()[1] << ")"
-                  << std::endl;
+        if (do_print) {
+            std::clog << "Matrix is of size ("
+                      << state.system_matrix->get_size()[0] << ", "
+                      << state.system_matrix->get_size()[1] << ")" << std::endl;
+        }
         test_case["rows"] = state.system_matrix->get_size()[0];
         test_case["cols"] = state.system_matrix->get_size()[1];
         return state;
