@@ -499,23 +499,32 @@ std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
 generate_2d_stencil(gko::experimental::mpi::communicator comm,
-                    const gko::size_type target_local_size, bool restricted,
-                    bool optimal_comm)
+    const gko::size_type target_local_size, bool restricted,
+    const std::vector<gko::int64>& process_grid)
 {
-    if (optimal_comm) {
-        return generate_2d_stencil_subdomain<ValueType, IndexType>(
-            {comm.size(), 1}, {comm.rank(), 0}, target_local_size, restricted);
-    } else {
-        std::array<int, 2> dims{};
+    std::array<int, 2> dims{};
+
+    if (process_grid.empty()) {
         MPI_Dims_create(comm.size(), dims.size(), dims.data());
-
-        std::array<int, 2> coords{};
-        coords[0] = comm.rank() % dims[0];
-        coords[1] = comm.rank() / dims[0];
-
-        return generate_2d_stencil_subdomain<ValueType, IndexType>(
-            dims, coords, target_local_size, restricted);
+    } else if (process_grid.size() == dims.size()) {
+        std::copy(process_grid.begin(), process_grid.end(), dims.begin());
+    } else {
+        throw std::runtime_error(
+            "If process_grid is defined, it needs exactly 2 entries.");
     }
+
+    if (comm.size() !=
+        std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>())) {
+        throw std::runtime_error(
+            "The process grid doesn't match the MPI world size.");
+    }
+
+    std::array<int, 2> coords{};
+    coords[0] = comm.rank() % dims[0];
+    coords[1] = comm.rank() / dims[0];
+
+    return generate_2d_stencil_subdomain<ValueType, IndexType>(
+        dims, coords, target_local_size, restricted);
 }
 
 
@@ -528,26 +537,33 @@ generate_2d_stencil(gko::experimental::mpi::communicator comm,
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
 generate_3d_stencil(gko::experimental::mpi::communicator comm,
-                    const gko::size_type target_local_size, bool restricted,
-                    bool optimal_comm)
+    const gko::size_type target_local_size, bool restricted,
+    const std::vector<gko::int64>& process_grid)
 {
-    if (optimal_comm) {
-        return generate_3d_stencil_subdomain<ValueType, IndexType>(
-            {comm.size(), 1, 1}, {comm.rank(), 0, 0}, target_local_size,
-            restricted);
-    } else {
-        std::array<int, 3> dims{};
+    std::array<int, 3> dims{};
 
+    if (process_grid.empty()) {
         MPI_Dims_create(comm.size(), dims.size(), dims.data());
-
-        std::array<int, 3> coords{};
-        coords[0] = comm.rank() % dims[0];
-        coords[1] = (comm.rank() / dims[0]) % dims[1];
-        coords[2] = comm.rank() / (dims[0] * dims[1]);
-
-        return generate_3d_stencil_subdomain<ValueType, IndexType>(
-            dims, coords, target_local_size, restricted);
+    } else if (process_grid.size() == dims.size()) {
+        std::copy(process_grid.begin(), process_grid.end(), dims.begin());
+    } else {
+        throw std::runtime_error(
+            "If process_grid is defined, it needs exactly 3 entries.");
     }
+
+    if (comm.size() !=
+        std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>())) {
+        throw std::runtime_error(
+            "The process grid doesn't match the MPI world size.");
+    }
+
+    std::array<int, 3> coords{};
+    coords[0] = comm.rank() % dims[0];
+    coords[1] = (comm.rank() / dims[0]) % dims[1];
+    coords[2] = comm.rank() / (dims[0] * dims[1]);
+
+    return generate_3d_stencil_subdomain<ValueType, IndexType>(
+        dims, coords, target_local_size, restricted);
 }
 
 
@@ -566,20 +582,21 @@ generate_3d_stencil(gko::experimental::mpi::communicator comm,
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
     std::string stencil_name, gko::experimental::mpi::communicator comm,
-    const gko::size_type target_local_size, bool optimal_comm)
+    const gko::size_type target_local_size,
+    const std::vector<gko::int64>& process_grid)
 {
     if (stencil_name == "5pt") {
         return generate_2d_stencil<ValueType, IndexType>(
-            std::move(comm), target_local_size, true, optimal_comm);
+            std::move(comm), target_local_size, true, process_grid);
     } else if (stencil_name == "9pt") {
         return generate_2d_stencil<ValueType, IndexType>(
-            std::move(comm), target_local_size, false, optimal_comm);
+            std::move(comm), target_local_size, false, process_grid);
     } else if (stencil_name == "7pt") {
         return generate_3d_stencil<ValueType, IndexType>(
-            std::move(comm), target_local_size, true, optimal_comm);
+            std::move(comm), target_local_size, true, process_grid);
     } else if (stencil_name == "27pt") {
         return generate_3d_stencil<ValueType, IndexType>(
-            std::move(comm), target_local_size, false, optimal_comm);
+            std::move(comm), target_local_size, false, process_grid);
     } else {
         throw std::runtime_error("Stencil " + stencil_name +
                                  " not implemented");
