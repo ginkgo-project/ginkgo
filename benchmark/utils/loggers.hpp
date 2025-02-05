@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -92,12 +92,15 @@ struct StorageLogger : gko::log::Logger {
     {
         const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = num_bytes;
+        cur_storage += num_bytes;
+        max_storage = std::max(max_storage, cur_storage);
     }
 
     void on_free_completed(const gko::Executor*,
                            const gko::uintptr& location) const override
     {
         const std::lock_guard<std::mutex> lock(mutex);
+        cur_storage -= storage[location];
         storage[location] = 0;
     }
 
@@ -109,6 +112,7 @@ struct StorageLogger : gko::log::Logger {
             total += e.second;
         }
         output["storage"] = total;
+        output["max_storage"] = max_storage;
     }
 
 #if GINKGO_BUILD_MPI
@@ -125,12 +129,21 @@ struct StorageLogger : gko::log::Logger {
                         : &total,
                     &total, 1, MPI_SUM, 0);
         output["storage"] = total;
+        gko::size_type global_max_storage = max_storage;
+        comm.reduce(gko::ReferenceExecutor::create(),
+                    comm.rank() == 0
+                        ? static_cast<gko::size_type*>(MPI_IN_PLACE)
+                        : &global_max_storage,
+                    &global_max_storage, 1, MPI_MAX, 0);
+        output["max_storage"] = global_max_storage;
     }
 #endif
 
 private:
     mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
+    mutable gko::size_type cur_storage = 0;
+    mutable gko::size_type max_storage = 0;
 };
 
 

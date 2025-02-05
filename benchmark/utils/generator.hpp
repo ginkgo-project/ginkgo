@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,8 +32,8 @@ struct DefaultSystemGenerator {
             data = gko::read_generic_raw<ValueType, IndexType>(in);
         } else if (config.contains("stencil")) {
             data = generate_stencil<ValueType, IndexType>(
-                config["stencil"].get<std::string>(),
-                config["size"].get<gko::int64>());
+                config["stencil"]["name"].get<std::string>(),
+                config["stencil"]["local_size"].get<gko::int64>());
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
@@ -45,17 +45,19 @@ struct DefaultSystemGenerator {
     static std::string get_example_config()
     {
         return json::
-            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"size": 100, "stencil": "7pt"}])")
+            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"stencil": {"name": "7pt", "local_size": 100}}])")
                 .dump(4);
     }
 
     static bool validate_config(const json& test_case)
     {
-        return ((test_case.contains("size") && test_case.contains("stencil") &&
-                 test_case["size"].is_number_integer() &&
-                 test_case["stencil"].is_string()) ||
-                (test_case.contains("filename") &&
-                 test_case["filename"].is_string()));
+        return (test_case.contains("stencil") &&
+                test_case["stencil"].is_object() &&
+                test_case["stencil"].contains("name") &&
+                test_case["stencil"]["name"].is_string() &&
+                test_case["stencil"].contains("local_size")) ||
+               (test_case.contains("filename") &&
+                test_case["filename"].is_string());
     }
 
     static std::string describe_config(const json& config)
@@ -64,8 +66,9 @@ struct DefaultSystemGenerator {
             return config["filename"].get<std::string>();
         } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
-               << config["stencil"].get<std::string>() << ")";
+            ss << "stencil("
+               << config["stencil"]["local_size"].get<gko::int64>() << ", "
+               << config["stencil"]["name"].get<std::string>() << ")";
             return ss.str();
         } else {
             throw std::runtime_error("No known way to describe config.");
@@ -170,12 +173,11 @@ struct DistributedDefaultSystemGenerator {
             std::ifstream in(config["filename"].get<std::string>());
             data = gko::read_generic_raw<value_type, index_type>(in);
         } else if (config.contains("stencil")) {
-            auto local_size = static_cast<global_itype>(
-                config["size"].get<gko::int64>() / comm.size());
+            auto& stencil = config["stencil"];
             data = generate_stencil<value_type, index_type>(
-                config["stencil"].get<std::string>(), comm, local_size,
-                config["comm_pattern"].get<std::string>() ==
-                    std::string("optimal"));
+                stencil["name"].get<std::string>(), comm,
+                stencil["local_size"].get<gko::int64>(),
+                stencil.value("process_grid", std::vector<gko::int64>()));
         } else {
             throw std::runtime_error(
                 "No known way to generate matrix data found.");
@@ -187,19 +189,22 @@ struct DistributedDefaultSystemGenerator {
     static std::string get_example_config()
     {
         return json::
-            parse(R"([{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}, {"filename": "my_file.mtx"}])")
+            parse(R"([{"stencil": {"name": "5pt", "local_size": 100, "process_grid": [2, 3]}}, {"filename": "my_file.mtx"}])")
                 .dump(4);
     }
 
     static bool validate_config(const json& test_case)
     {
-        return ((test_case.contains("size") && test_case.contains("stencil") &&
-                 test_case.contains("comm_pattern") &&
-                 test_case["size"].is_number_integer() &&
-                 test_case["stencil"].is_string() &&
-                 test_case["comm_pattern"].is_string()) ||
-                (test_case.contains("filename") &&
-                 test_case["filename"].is_string()));
+        return (test_case.contains("stencil") &&
+                test_case["stencil"].is_object() &&
+                test_case["stencil"].contains("name") &&
+                test_case["stencil"]["name"].is_string() &&
+                test_case["stencil"].contains("local_size") &&
+                test_case["stencil"]["local_size"].is_number_integer() &&
+                (!test_case["stencil"].contains("process_grid") ||
+                 test_case["stencil"]["process_grid"].is_array())) ||
+               (test_case.contains("filename") &&
+                test_case["filename"].is_string());
     }
 
     static std::string describe_config(const json& config)
@@ -208,9 +213,14 @@ struct DistributedDefaultSystemGenerator {
             return config["filename"].get<std::string>();
         } else if (config.contains("stencil")) {
             std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
-               << config["stencil"].get<std::string>() << ", "
-               << config["comm_pattern"].get<std::string>() << ")";
+            ss << "stencil(" << config["stencil"]["local_size"] << ", "
+               << config["stencil"]["name"] << ", ";
+            if (config["stencil"].contains("process_grid")) {
+                ss << config["stencil"]["process_grid"];
+            } else {
+                ss << "[tbd]";
+            }
+            ss << ")";
             return ss.str();
         } else {
             throw std::runtime_error("No known way to describe config.");
