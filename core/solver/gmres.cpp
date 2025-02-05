@@ -435,6 +435,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         theta->read(data);
 
+        // each vector is stored contiguously in memory:
+        // For the ith vector (i <= krylov_dim), the kth element is at:
+        //  k + i * (k_rows)
         sketched_krylov_bases = VectorType::create(
             exec, dim<2>{k_rows * (krylov_dim + 1), num_rhs});
 
