@@ -240,22 +240,26 @@ __device__ void simple_apply(
 #endif
 
 
-std::unique_ptr<gko::batch::matrix::Dense<ValueType>> convert(
-    gko::ptr_param<const TensorLeft> tensor)
+template <typename MatrixType, typename... ExtraArgs>
+std::unique_ptr<MatrixType> convert(gko::ptr_param<const TensorLeft> tensor,
+                                    ExtraArgs&&... args)
 {
-    auto result = gko::batch::matrix::Dense<ValueType>::create(
-        tensor->get_executor(), tensor->get_size());
+    auto result = MatrixType::create(tensor->get_executor(), tensor->get_size(),
+                                     std::forward<ExtraArgs>(args)...);
 
     auto size_1d = tensor->get_data()->get_common_size()[0];
     auto id = gko::matrix::Identity<ValueType>::create(tensor->get_executor(),
                                                        size_1d);
     auto intermediate = gko::matrix::Dense<ValueType>::create(
         tensor->get_executor(), gko::dim<2>{size_1d * size_1d});
+    auto intermediate2 = gko::matrix::Dense<ValueType>::create(
+        tensor->get_executor(), gko::dim<2>{size_1d * size_1d * size_1d});
     for (gko::size_type batch = 0; batch < tensor->get_num_batch_items();
          ++batch) {
         convert_tensor(tensor->get_data()->create_const_view_for_item(batch),
                        id, intermediate);
-        convert_tensor(id, intermediate, result->create_view_for_item(batch));
+        convert_tensor(id, intermediate, intermediate2);
+        intermediate2->convert_to(result->create_view_for_item(batch));
     }
 
     return result;

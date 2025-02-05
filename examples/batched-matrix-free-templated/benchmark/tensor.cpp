@@ -10,9 +10,10 @@
 #include <core/test/utils/batch_helpers.hpp>
 #include <examples/batched-matrix-free-templated/tensor.hpp>
 
-DEFINE_string(apply, "matrix-free",
-              "The apply implementation: either >matrix-free<, or "
-              ">matrix-based<, or a >,< separated list.");
+DEFINE_string(
+    apply, "matrix-free",
+    "The apply implementation: either >matrix-free<, >matrix-dense<, or "
+    ">matrix-sparse<, or a >,< separated list.");
 
 using vtype = tensor::ValueType;
 
@@ -110,12 +111,19 @@ struct TensorBenchmark : public Benchmark<TensorState> {
             operation_case["repetitions"] = ic.get_num_repetitions();
         };
 
+        using Dense = gko::batch::matrix::Dense<vtype>;
+        using Csr = gko::batch::matrix::Csr<vtype>;
+
         auto tensor =
             std::make_shared<tensor::TensorLeft>(gko::clone(state.data_1d));
         if (operation == "matrix-free") {
             run_impl(tensor);
-        } else if (operation == "matrix-based") {
-            run_impl(tensor::convert(tensor));
+        } else if (operation == "matrix-dense") {
+            run_impl(tensor::convert<Dense>(tensor));
+        } else if (operation == "matrix-sparse") {
+            auto size_1d = state.data_1d->get_common_size()[0];
+            auto nnz = size_1d * size_1d * size_1d * size_1d;
+            run_impl(tensor::convert<Csr>(tensor, nnz));
         } else {
             throw std::runtime_error("Unsupported operation: " + operation);
         }

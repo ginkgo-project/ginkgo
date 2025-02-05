@@ -149,19 +149,34 @@ public:
         }
     }
 
+    using Vector = gko::batch::MultiVector<tensor::ValueType>;
+    using Dense = gko::batch::matrix::Dense<tensor::ValueType>;
+    using Csr = gko::batch::matrix::Csr<tensor::ValueType>;
+
     std::default_random_engine engine{42};
 
     std::unique_ptr<tensor::TensorLeft> tensor;
-    std::unique_ptr<gko::batch::MultiVector<tensor::ValueType>> x;
+    std::unique_ptr<Vector> x;
     std::unique_ptr<gko::batch::MultiVector<tensor::ValueType>> b;
 };
 
-TEST_F(TensorApply, CanConvert)
+TEST_F(TensorApply, CanConvertDense)
 {
-    auto mat = convert(tensor);
+    auto mat = convert<Dense>(tensor);
 
     ASSERT_EQ(mat->get_size(), tensor->get_size());
     gko::write(std::ofstream("batch.mtx"), mat->create_view_for_item(1));
+}
+
+TEST_F(TensorApply, CanConvertCsr)
+{
+    auto size_1d = tensor->get_data()->get_common_size()[0];
+    auto nnz = size_1d * size_1d * size_1d * size_1d;
+
+    auto csr = convert<Csr>(tensor, nnz);
+
+    auto dense = convert<Dense>(tensor);
+    GKO_ASSERT_BATCH_MTX_NEAR(csr, dense, 0.0);
 }
 
 #if defined(GKO_COMPILING_HIP) || defined(GKO_COMPILING_CUDA)
@@ -207,7 +222,7 @@ TEST_F(TensorApply, CanApplySingleBatch)
                       gko::batch::extract_batch_item(b_view, batch_id));
     exec->synchronize();
 
-    auto dense = convert(tensor);
+    auto dense = convert<Dense>(tensor);
     auto expected_b = gko::clone(b);
     dense->apply(x, expected_b);
     GKO_ASSERT_MTX_NEAR(b->create_view_for_item(batch_id).get(),
@@ -219,7 +234,7 @@ TEST_F(TensorApply, CanApply)
 {
     tensor->apply(x, b);
 
-    auto dense = convert(tensor);
+    auto dense = convert<Dense>(tensor);
     auto expected_b = gko::clone(b);
     dense->apply(x, expected_b);
     GKO_ASSERT_BATCH_MTX_NEAR(b, expected_b, r<tensor::ValueType>::value);
