@@ -562,9 +562,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 typename std::decay_t<decltype(*dense_x)>::value_type;
             using b_value_type =
                 typename std::decay_t<decltype(*dense_b)>::value_type;
-            auto local_alpha = gko::make_temporary_conversion<ValueType>(alpha);
-            auto local_beta =
-                gko::make_temporary_conversion<x_value_type>(beta);
+            // auto local_alpha =
+            // gko::make_temporary_conversion<ValueType>(alpha); auto local_beta
+            // =
+            //     gko::make_temporary_conversion<x_value_type>(beta);
             auto local_x = gko::matrix::Dense<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
@@ -578,8 +579,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             if (!local_only_) {
                 req = this->communicate(dense_b->get_local_vector());
             }
-            local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
-                              local_beta.get(), local_x);
+            local_mtx_->apply(alpha, dense_b->get_local_vector(), beta,
+                              local_x);
             if (local_only_) {
                 return;
             }
@@ -598,8 +599,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                         exec->get_master(), recv_dim);
                 recv_buffer->copy_from(host_recv_buffer);
             }
-            non_local_mtx_->apply(local_alpha.get(), recv_buffer,
-                                  one_scalar_.get(), local_x);
+            non_local_mtx_->apply(alpha, recv_buffer, one_scalar_.get(),
+                                  local_x);
         },
         b, x);
 }
