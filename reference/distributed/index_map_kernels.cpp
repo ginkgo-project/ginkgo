@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -220,7 +220,7 @@ void map_to_global(
     auto map_local = [&](auto lid) {
         if (0 <= lid && lid < local_size) {
             local_range_id =
-                find_local_range(lid, rank, partition, local_range_id);
+                find_local_range(lid, rank, partition, 0);  // local_range_id);
             return map_to_global(lid, partition,
                                  local_ranges.begin[local_range_id]);
         } else {
@@ -262,6 +262,7 @@ void map_to_global(
         for (size_type i = 0; i < local_ids.get_size(); ++i) {
             auto lid = local_ids.get_const_data()[i];
             global_ids.get_data()[i] = map_combined(lid);
+            // std::cout << lid << " ==> " << map_combined(lid) << std::endl;
         }
     }
 }

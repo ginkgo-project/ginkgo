@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 #include "core/base/extended_float.hpp"
 #include "core/test/utils.hpp"
@@ -43,6 +44,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using RealVec = gko::matrix::Dense<gko::remove_complex<value_type>>;
+    using perm_type = gko::matrix::Permutation<local_index_type>;
 
     Bddc() : ref(gko::ReferenceExecutor::create()) {}
 
@@ -109,14 +111,22 @@ protected:
         gko::array<local_index_type> ref_interface_sizes{ref, {2, 2, 1}};
         gko::array<real_type> owning_labels{ref};
         gko::array<real_type> ref_owning_labels{ref, {face_val}};
+        gko::array<real_type> unique_labels{ref};
+        gko::array<real_type> ref_unique_labels{
+            ref, {face_val, edge_val, vertex_val}};
         gko::size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
             n_faces, n_edges, n_constraints;
         int n_owning_interfaces;
 
         gko::kernels::reference::bddc::classify_dofs(
             ref, input.get(), 1, result, permutation_array, interface_sizes,
-            owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
-            n_faces, n_edges, n_constraints, n_owning_interfaces);
+            unique_labels, owning_labels, n_inner_idxs, n_face_idxs,
+            n_edge_idxs, n_vertices, n_faces, n_edges, n_constraints,
+            n_owning_interfaces);
+
+        gko::array<local_index_type> permutation_array_2{permutation_array};
+        auto perm = perm_type::create(ref, permutation_array_2);
+        auto perm_mtx = input->permute(perm, gko::matrix::permute_mode::rows);
 
         GKO_ASSERT_ARRAY_EQ(result, ref_result);
         GKO_ASSERT_ARRAY_EQ(permutation_array, ref_permutation_array);
@@ -130,6 +140,7 @@ protected:
         GKO_ASSERT_EQ(n_constraints, 3);
         GKO_ASSERT_EQ(n_owning_interfaces, 1);
         GKO_ASSERT_ARRAY_EQ(owning_labels, ref_owning_labels);
+        GKO_ASSERT_ARRAY_EQ(unique_labels, ref_unique_labels);
 
         auto perm_input =
             gko::as<RealVec>(input->row_permute(&permutation_array));
@@ -151,13 +162,10 @@ protected:
         GKO_ASSERT_ARRAY_EQ(ref_values, gko::make_const_array_view(
                                             ref, 4, C_data.get_const_values()));
 
-        auto local_labels =
-            gko::matrix::Dense<real_type>::create(ref, gko::dim<2>{3, 1});
-        local_labels->at(0, 0) = face_val;
-        local_labels->at(1, 0) = edge_val;
-        local_labels->at(2, 0) = vertex_val;
         auto global_labels = gko::array<real_type>{
             ref, {diff_face_val, face_val, edge_val, vertex_val}};
+        auto local_labels =
+            gko::array<real_type>{ref, {face_val, edge_val, vertex_val}};
         auto lambda =
             gko::matrix::Dense<value_type>::create(ref, gko::dim<2>{3, 3});
         lambda->at(0, 0) = 1.;
@@ -177,7 +185,7 @@ protected:
             ref, {-1., 2., -3., 4., -5., 6., -7., 8., -9.}};
 
         gko::kernels::reference::bddc::build_coarse_contribution(
-            ref, local_labels.get(), global_labels, lambda.get(),
+            ref, local_labels, global_labels, lambda.get(),
             coarse_contribution);
 
         GKO_ASSERT_ARRAY_EQ(

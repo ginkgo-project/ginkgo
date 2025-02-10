@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -102,6 +102,11 @@ public:
          * Use of Face constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(faces, true);
+
+        /**
+         * Use of AMD reordering to reduce fill-in for local direct solvers.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(amd, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -192,17 +197,35 @@ private:
     std::shared_ptr<vec> coarse_buf_1_;
     std::shared_ptr<vec> coarse_buf_2_;
     std::shared_ptr<local_vec> local_buf_1_;
+    std::shared_ptr<local_vec> interior_1_;
+    std::shared_ptr<local_vec> bndry_1_;
+    std::shared_ptr<local_vec> dual_1_;
+    std::shared_ptr<local_vec> primal_1_;
     std::shared_ptr<local_vec> local_buf_2_;
+    std::shared_ptr<local_vec> interior_2_;
+    std::shared_ptr<local_vec> bndry_2_;
+    std::shared_ptr<local_vec> dual_2_;
+    std::shared_ptr<local_vec> primal_2_;
+    std::shared_ptr<local_vec> local_buf_3_;
+    std::shared_ptr<local_vec> interior_3_;
+    std::shared_ptr<local_vec> bndry_3_;
+    std::shared_ptr<local_vec> dual_3_;
+    std::shared_ptr<local_vec> primal_3_;
+    std::shared_ptr<local_vec> schur_buf_1_;
+    std::shared_ptr<local_vec> schur_buf_2_;
     std::shared_ptr<vec> broken_coarse_buf_1_;
     std::shared_ptr<vec> broken_coarse_buf_2_;
     std::shared_ptr<local_vec> local_coarse_buf_1_;
     std::shared_ptr<local_vec> local_coarse_buf_2_;
-    std::shared_ptr<const LinOp> A_LL;
-    std::shared_ptr<const LinOp> A_LP;
-    std::shared_ptr<const LinOp> A_PL;
-    std::shared_ptr<const LinOp> A_PP;
-    std::shared_ptr<const LinOp> A_IB;
-    std::shared_ptr<const LinOp> A_BI;
+    std::shared_ptr<local_mtx> A_LL;
+    std::shared_ptr<const local_mtx> A_LP;
+    std::shared_ptr<const local_mtx> A_PL;
+    std::shared_ptr<const local_mtx> A_PP;
+    std::shared_ptr<const local_mtx> A_IB;
+    std::shared_ptr<const local_mtx> A_BI;
+    std::shared_ptr<const LinOp> one_;
+    std::shared_ptr<const LinOp> neg_one_;
+    std::shared_ptr<const LinOp> zero_;
 };
 
 

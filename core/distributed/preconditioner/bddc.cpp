@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -20,12 +21,14 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/reorder/amd.hpp>
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/distributed/dd_matrix_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/distributed/preconditioner/bddc_kernels.hpp"
 
@@ -45,6 +48,8 @@ GKO_REGISTER_OPERATION(build_coarse_contribution,
                        bddc::build_coarse_contribution);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION(filter_non_owning_idxs,
+                       distributed_dd_matrix::filter_non_owning_idxs);
 
 
 }  // namespace
@@ -56,6 +61,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         system_matrix,
     array<dof_type>& dof_types, array<LocalIndexType>& permutation_array,
     array<LocalIndexType>& interface_sizes,
+    array<remove_complex<ValueType>>& unique_labels,
     array<remove_complex<ValueType>>& owning_labels, size_type& n_inner_idxs,
     size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
     size_type& n_faces, size_type& n_edges, size_type& n_constraints,
@@ -69,18 +75,18 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     comm_index_type local_part = comm.rank();
 
     comm_index_type n_significand_bits =
-        std::numeric_limits<remove_complex<ValueType>>::digits - 1;
+        std::numeric_limits<remove_complex<ValueType>>::digits;
     size_type width = ceildiv(num_parts, n_significand_bits);
     size_type n_local_rows = system_matrix->get_local_matrix()->get_size()[0];
     dof_types.resize_and_reset(n_local_rows);
     permutation_array.resize_and_reset(n_local_rows);
 
     auto local_buffer = gko::matrix::Dense<remove_complex<ValueType>>::create(
-        exec, dim<2>{system_matrix->get_local_matrix()->get_size()[0], width});
+        exec, dim<2>{n_local_rows, width});
     local_buffer->fill(zero<remove_complex<ValueType>>());
     size_type column = local_part / n_significand_bits;
     size_type bit_idx = local_part % n_significand_bits;
-    uint_type int_val = 1 << bit_idx;
+    uint_type int_val = (uint_type)1 << bit_idx;
     remove_complex<ValueType> val;
     std::memcpy(&val, &int_val, sizeof(uint_type));
     auto buffer_column = local_buffer->create_submatrix(
@@ -104,9 +110,9 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs(
         buffer_1->get_local_vector(), local_part, dof_types, permutation_array,
-        interface_sizes, owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs,
-        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces));
-
+        interface_sizes, unique_labels, owning_labels, n_inner_idxs,
+        n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges, n_constraints,
+        n_owning_interfaces));
     return buffer_1;
 }
 
@@ -153,9 +159,72 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     auto exec = this->get_executor();
     auto comm = buf_1_->get_communicator();
 
-    restriction_->apply(dense_b, buf_1_);
-    buf_1_->get_local_vector()->permute(permutation_, local_buf_1_,
-                                        matrix::permute_mode::rows);
+    restriction_->apply(dense_b, buf_2_);
+    local_buf_2_->permute(permutation_, local_buf_1_,
+                          matrix::permute_mode::rows);
+    auto interm = gko::share(clone(local_buf_1_));
+
+    // Static condensation 1
+    if (inner_solver_->apply_uses_initial_guess()) {
+        interior_2_->fill(zero<ValueType>());
+    }
+    inner_solver_->apply(interior_1_, interior_2_);
+
+    A_BI->apply(interior_2_, bndry_3_);
+    interior_3_->fill(zero<ValueType>());
+    local_buf_3_->permute(permutation_, local_buf_2_,
+                          matrix::permute_mode::inverse_rows);
+    prolongation_->apply(buf_2_, dense_x);
+    restriction_->apply(dense_x, buf_2_);
+    local_buf_2_->permute(permutation_, local_buf_3_,
+                          matrix::permute_mode::rows);
+    bndry_1_->add_scaled(neg_one_, bndry_3_);
+    interior_1_->fill(zero<ValueType>());
+    weights_->apply(local_buf_1_, local_buf_2_);
+
+    // Coarse grid correction
+    phi_t_->apply(bndry_2_, local_coarse_buf_1_);
+    coarse_prolongation_->apply(broken_coarse_buf_1_, coarse_buf_1_);
+    if (coarse_solver_->apply_uses_initial_guess()) {
+        coarse_buf_2_->fill(zero<ValueType>());
+    }
+    coarse_solver_->apply(coarse_buf_1_, coarse_buf_2_);
+    coarse_restriction_->apply(coarse_buf_2_, broken_coarse_buf_1_);
+    phi_->apply(local_coarse_buf_1_, bndry_1_);
+
+    // Substructure correction
+    if (local_solver_->apply_uses_initial_guess()) {
+        dual_3_->fill(zero<ValueType>());
+    }
+    local_solver_->apply(dual_2_, dual_3_);
+    constraints_->apply(dual_3_, schur_buf_1_);
+    if (schur_solver_->apply_uses_initial_guess()) {
+        schur_buf_2_->fill(zero<ValueType>());
+    }
+    schur_solver_->apply(schur_buf_1_, schur_buf_2_);
+    constraints_t_->apply(neg_one_, schur_buf_2_, one_, dual_2_);
+    // local_buf_1_->fill(zero<ValueType>());
+    local_solver_->apply(one_, dual_2_, one_, dual_1_);
+    interior_1_->fill(zero<ValueType>());
+    weights_->apply(local_buf_1_, local_buf_2_);
+    local_buf_2_->permute(permutation_, local_buf_1_,
+                          matrix::permute_mode::inverse_rows);
+    prolongation_->apply(buf_1_, dense_x);
+    restriction_->apply(dense_x, buf_1_);
+    local_buf_1_->permute(permutation_, local_buf_2_,
+                          matrix::permute_mode::rows);
+
+    // Static condensation 2
+    local_buf_1_->copy_from(interm);
+    A_IB->apply(neg_one_, bndry_2_, one_, interior_1_);
+    if (inner_solver_->apply_uses_initial_guess()) {
+        interior_2_->fill(zero<ValueType>());
+    }
+    inner_solver_->apply(interior_1_, interior_2_);
+    bndry_2_->fill(zero<ValueType>());
+    local_buf_2_->permute(permutation_, local_buf_1_,
+                          matrix::permute_mode::inverse_rows);
+    prolongation_->apply(one_, buf_1_, one_, dense_x);
 }
 
 
@@ -202,32 +271,26 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         GKO_INVALID_STATE("Requires a solver factory");
     }
 
-    if (parameters_.local_solver) {
-        this->set_solver(gko::share(parameters_.local_solver->generate(
-            as<experimental::distributed::Matrix<
-                ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
-                ->get_local_matrix())));
-    }
-
     auto exec = this->get_executor();
     auto comm = dd_system_matrix->get_communicator();
     array<dof_type> dof_types{exec};
     array<LocalIndexType> permutation_array{exec};
     array<LocalIndexType> interface_sizes{exec};
+    array<real_type> unique_labels{exec};
     array<real_type> owning_labels{exec};
     size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces,
         n_edges, n_constraints;
     int n_owning_interfaces;
     auto labels = bddc::classify_dofs(
         dd_system_matrix, dof_types, permutation_array, interface_sizes,
-        owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices,
-        n_faces, n_edges, n_constraints, n_owning_interfaces);
+        unique_labels, owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs,
+        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces);
 
     permutation_ = perm_type::create(exec, std::move(permutation_array));
 
     auto reordered_system_matrix =
         as<local_mtx>(dd_system_matrix->get_local_matrix())
-            ->permute(permutation_);
+            ->permute(permutation_, matrix::permute_mode::symmetric);
     auto local_labels = as<local_real_vec>(labels->get_local_vector())
                             ->permute(permutation_, matrix::permute_mode::rows);
 
@@ -251,16 +314,32 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs}));
     A_LP = share(reordered_system_matrix->create_submatrix(
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs},
-        span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
+        span{n_inner_idxs + n_face_idxs + n_edge_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices}));
     A_PL = share(reordered_system_matrix->create_submatrix(
-        span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows},
+        span{n_inner_idxs + n_face_idxs + n_edge_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
         span{0, n_inner_idxs + n_face_idxs + n_edge_idxs}));
     A_PP = share(reordered_system_matrix->create_submatrix(
-        span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows},
-        span{n_inner_idxs + n_face_idxs + n_edge_idxs, n_rows}));
+        span{n_inner_idxs + n_face_idxs + n_edge_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{n_inner_idxs + n_face_idxs + n_edge_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices}));
+    if (parameters_.amd) {
+        auto AMD_LL = share(experimental::reorder::Amd<LocalIndexType>::build()
+                                .on(exec)
+                                ->generate(A_LL));
+        auto A_LL_AMD = share(A_LL->permute(AMD_LL));
+        std::swap(A_LL, A_LL_AMD);
+        auto AMD_II = share(experimental::reorder::Amd<LocalIndexType>::build()
+                                .on(exec)
+                                ->generate(A_II));
+        auto A_II_AMD = share(A_II->permute(AMD_II));
+        std::swap(A_II, A_II_AMD);
+    }
     local_solver_ = parameters_.local_solver->generate(A_LL);
     inner_solver_ = parameters_.local_solver->generate(A_II);
-
+    comm.synchronize();
     // Set up constraints for faces and edges.
     // One row per constraint, one column per degree of freedom that is not a
     // vertex.
@@ -276,7 +355,9 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     constraints_t_ = as<local_real_mtx>(constraints_->transpose());
 
     // Set up the local Schur complement solver for the Schur complement of the
-    // saddle point problem | A_LL C^T | | C    0   |.
+    // saddle point problem
+    // | A_LL C^T |
+    // | C    0   |.
     auto schur_rhs = local_real_vec::create(exec);
     schur_rhs->copy_from(constraints_t_);
     auto schur_interm = local_vec::create(
@@ -289,20 +370,21 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     schur_solver_ = parameters_.local_solver->generate(schur_complement);
 
     // Compute the harmonic extension coefficients Phi and the contribution to
-    // the coarse system Lambda Phi = | Phi_D |,
+    // the coarse system Lambda
+    // Phi = | Phi_D |,
     //       | Phi_P |
     // where Phi_P = | 0 I | as the vertex constraints are solved exactly in the
     // coarse space.
-    phi_ = local_vec::create(
+    auto phi = local_vec::create(
         exec, dim<2>{reordered_system_matrix->get_size()[0], n_constraints});
-    phi_->fill(zero<ValueType>());
-    auto phi_D = phi_->create_submatrix(
-        span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
-        span{0, n_constraints});
+    phi->fill(zero<ValueType>());
+    auto phi_D =
+        phi->create_submatrix(span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
+                              span{0, n_constraints});
     auto phi_P =
-        phi_->create_submatrix(span{n_inner_idxs + n_edge_idxs + n_face_idxs,
-                                    reordered_system_matrix->get_size()[0]},
-                               span{0, n_constraints});
+        phi->create_submatrix(span{n_inner_idxs + n_edge_idxs + n_face_idxs,
+                                   reordered_system_matrix->get_size()[0]},
+                              span{0, n_constraints});
     auto phi_rhs = local_vec::create_with_config_of(phi_D);
     phi_rhs->fill(zero<ValueType>());
     auto lambda = local_vec::create(exec, dim<2>{n_constraints, n_constraints});
@@ -315,21 +397,20 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                              span{0, n_constraints});
     auto lambda_P = lambda->create_submatrix(
         span{n_edges + n_faces, n_constraints}, span{0, n_constraints});
-    auto one = gko::initialize<local_vec>({1.0}, exec);
-    auto neg_one = gko::initialize<local_vec>({-1.0}, exec);
+    one_ = gko::initialize<local_vec>({1.0}, exec);
+    neg_one_ = gko::initialize<local_vec>({-1.0}, exec);
+    zero_ = gko::initialize<local_vec>({zero<ValueType>()}, exec);
     auto buffer_1 = local_vec::create(
         exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_constraints});
     auto buffer_2 = local_vec::create_with_config_of(buffer_1);
     A_LP->apply(phi_P, buffer_1);
     local_solver_->apply(buffer_1, buffer_2);
-    constraints_->apply(neg_one, buffer_2, neg_one, lambda_rhs);
+    constraints_->apply(neg_one_, buffer_2, neg_one_, lambda_rhs);
     schur_solver_->apply(lambda_rhs, lambda_D);
-    constraints_t_->apply(lambda_D, buffer_1);
-    A_LP->apply(neg_one, phi_P, neg_one, buffer_1);
+    constraints_t_->apply(neg_one_, lambda_D, neg_one_, buffer_1);
     local_solver_->apply(buffer_1, phi_D);
     A_PP->apply(phi_P, lambda_P);
-    A_PL->apply(neg_one, phi_D, neg_one, lambda_P);
-    phi_t_ = as<local_vec>(phi_->transpose());
+    A_PL->apply(neg_one_, phi_D, neg_one_, lambda_P);
 
     // Set up global numbering for coarse problem, read coarse matrix and
     // generate coarse solver.
@@ -343,7 +424,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                                 num_parts + 1));
     size_type n_global_interfaces =
         exec->copy_val_to_host(owning_interfaces.get_data() + num_parts);
-    array<real_type> global_labels{exec, num_cols * n_global_interfaces};
+    array<real_type> global_labels{exec, n_global_interfaces};
     comm.all_gather_v(exec, owning_labels.get_data(), n_owning_interfaces,
                       global_labels.get_data(), owning_sizes.get_data(),
                       owning_interfaces.get_data());
@@ -353,8 +434,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         exec, dim<2>{n_global_interfaces, n_global_interfaces},
         n_constraints * n_constraints};
 
+    array<int> coarse_global_idxs{exec, n_constraints};
     exec->run(bddc::make_build_coarse_contribution(
-        local_labels.get(), global_labels, lambda.get(), coarse_contribution));
+        unique_labels, global_labels, lambda.get(), coarse_contribution,
+        coarse_global_idxs));
+
     coarse_contribution.remove_zeros();
     coarse_contribution.sort_row_major();
     auto coarse_matrix =
@@ -364,6 +448,28 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     coarse_restriction_ = coarse_matrix->get_restriction();
     coarse_prolongation_ = coarse_matrix->get_prolongation();
 
+    array<int> coarse_non_owning_row_idxs{exec};
+    array<int> coarse_non_owning_col_idxs{exec};
+    exec->run(bddc::make_filter_non_owning_idxs(
+        coarse_contribution, make_temporary_clone(exec, coarse_partition).get(),
+        make_temporary_clone(exec, coarse_partition).get(), comm.rank(),
+        coarse_non_owning_row_idxs, coarse_non_owning_col_idxs));
+    auto coarse_map = gko::experimental::distributed::index_map<int, int>(
+        exec, coarse_partition, comm.rank(), coarse_non_owning_row_idxs);
+    auto coarse_local_idxs = coarse_map.map_to_local(
+        coarse_global_idxs,
+        gko::experimental::distributed::index_space::combined);
+    auto coarse_permutation =
+        matrix::Permutation<int>::create(exec, std::move(coarse_local_idxs));
+
+    phi_ = phi->create_submatrix(
+                  gko::span{n_inner_idxs, n_inner_idxs + n_face_idxs +
+                                              n_edge_idxs + n_vertices},
+                  gko::span{0, n_constraints})
+               ->permute(coarse_permutation,
+                         matrix::permute_mode::inverse_columns);
+    phi_t_ = as<local_vec>(phi_->transpose());
+
     // Create Work space buffers
     size_type broken_size = dd_system_matrix->get_restriction()->get_size()[0];
     size_type local_size = reordered_system_matrix->get_size()[0];
@@ -371,14 +477,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         vec::create(exec, comm, dim<2>{broken_size, 1}, dim<2>{local_size, 1});
     buf_2_ = vec::create_with_config_of(buf_1_);
     coarse_buf_1_ = vec::create(exec, comm, dim<2>{n_global_interfaces, 1},
-                                dim<2>{n_constraints, 1});
+                                dim<2>{n_owning_interfaces, 1});
     coarse_buf_2_ = vec::create_with_config_of(coarse_buf_1_);
-    local_buf_1_ = local_vec::create(exec, dim<2>{local_size, 1});
-    local_buf_2_ = local_vec::create_with_config_of(local_buf_1_);
+    local_buf_1_ = local_vec::create(
+        exec, dim<2>{local_size, 1},
+        make_array_view(exec, local_size, buf_1_->get_local_values()), 1);
+    local_buf_2_ = local_vec::create(
+        exec, dim<2>{local_size, 1},
+        make_array_view(exec, local_size, buf_2_->get_local_values()), 1);
     broken_coarse_buf_1_ =
         vec::create(exec, comm, dim<2>{coarse_restriction_->get_size()[0], 1},
                     dim<2>{n_constraints, 1});
     broken_coarse_buf_2_ = vec::create_with_config_of(broken_coarse_buf_1_);
+
     local_coarse_buf_1_ = local_vec::create(
         exec, broken_coarse_buf_1_->get_local_vector()->get_size(),
         make_array_view(exec,
@@ -401,8 +512,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         make_const_array_view(exec, local_size, local_diag->get_const_values()),
         1);
     auto global_diag_vec = vec::create(exec, comm, clone(local_diag_local_vec));
-    dd_system_matrix->get_prolongation()->apply(global_diag_vec, buf_1_);
-    dd_system_matrix->get_restriction()->apply(buf_1_, global_diag_vec);
+    auto diag_buf =
+        share(vec::create(exec, comm, dim<2>{prolongation_->get_size()[0], 1},
+                          dim<2>{dd_system_matrix->get_prolongation()
+                                     ->get_local_matrix()
+                                     ->get_size()[0],
+                                 1}));
+    prolongation_->apply(global_diag_vec, diag_buf);
+    restriction_->apply(diag_buf, global_diag_vec);
     auto global_diag = diag::create_const(
         exec, local_size,
         make_const_array_view(exec, local_size,
@@ -410,9 +527,50 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     global_diag->inverse_apply(local_diag_local_vec, local_buf_1_);
     local_buf_1_->permute(permutation_, local_buf_2_,
                           matrix::permute_mode::rows);
-    weights_ = diag::create(
+
+    weights_ = clone(diag::create(
         exec, local_size,
-        make_array_view(exec, local_size, local_buf_2_->get_values()));
+        make_array_view(exec, local_size, local_buf_2_->get_values())));
+
+    interior_1_ =
+        local_buf_1_->create_submatrix(span{0, n_inner_idxs}, span{0, 1});
+    bndry_1_ = local_buf_1_->create_submatrix(
+        span{n_inner_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    dual_1_ = local_buf_1_->create_submatrix(
+        span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
+    primal_1_ = local_buf_1_->create_submatrix(
+        span{n_inner_idxs + n_edge_idxs + n_face_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    interior_2_ =
+        local_buf_2_->create_submatrix(span{0, n_inner_idxs}, span{0, 1});
+    bndry_2_ = local_buf_2_->create_submatrix(
+        span{n_inner_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    dual_2_ = local_buf_2_->create_submatrix(
+        span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
+    primal_2_ = local_buf_2_->create_submatrix(
+        span{n_inner_idxs + n_edge_idxs + n_face_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    local_buf_3_ = local_vec::create_with_config_of(local_buf_1_);
+    interior_3_ =
+        local_buf_3_->create_submatrix(span{0, n_inner_idxs}, span{0, 1});
+    bndry_3_ = local_buf_3_->create_submatrix(
+        span{n_inner_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    dual_3_ = local_buf_3_->create_submatrix(
+        span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
+    primal_3_ = local_buf_3_->create_submatrix(
+        span{n_inner_idxs + n_edge_idxs + n_face_idxs,
+             n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
+        span{0, 1});
+    schur_buf_1_ = local_vec::create(exec, dim<2>{n_faces + n_edges, 1});
+    schur_buf_2_ = local_vec::create_with_config_of(schur_buf_1_);
 }
 
 
