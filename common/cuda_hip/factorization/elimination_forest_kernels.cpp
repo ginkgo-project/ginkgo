@@ -20,6 +20,7 @@
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/disjoint_sets.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
@@ -64,30 +65,6 @@ __global__ __launch_bounds__(default_block_size) void mst_initialize_worklist(
 
 
 template <typename IndexType>
-__device__ IndexType mst_find(const IndexType* parents, IndexType node)
-{
-    auto parent = parents[node];
-    while (parent != node) {
-        node = parent;
-        parent = parents[node];
-    };
-    return parent;
-}
-
-
-template <typename IndexType>
-__device__ IndexType mst_find_relaxed(const IndexType* parents, IndexType node)
-{
-    auto parent = load_relaxed_local(parents + node);
-    while (parent != node) {
-        node = parent;
-        parent = load_relaxed_local(parents + node);
-    };
-    return parent;
-}
-
-
-template <typename IndexType>
 __device__ void guarded_atomic_min(IndexType* ptr, IndexType value)
 {
     // only execute the atomic if we know that it might have an effect
@@ -112,11 +89,12 @@ __global__ __launch_bounds__(default_block_size) void mst_find_minimum(
     if (i >= size) {
         return;
     }
+    disjoint_sets<const IndexType> sets{parents, size};
     const auto source = in_sources[i];
     const auto target = in_targets[i];
     const auto edge_id = in_edge_ids[i];
-    const auto source_rep = mst_find(parents, source);
-    const auto target_rep = mst_find(parents, target);
+    const auto source_rep = sets.find_weak(source);
+    const auto target_rep = sets.find_weak(target);
     if (source_rep != target_rep) {
         const auto out_i = atomic_add_relaxed(worklist_counter, 1);
         worklist_sources[out_i] = source_rep;
@@ -143,28 +121,16 @@ __global__ __launch_bounds__(default_block_size) void mst_join_edges(
     if (i >= size) {
         return;
     }
+    disjoint_sets<IndexType> sets{parents, size};
     const auto source = in_sources[i];
     const auto target = in_targets[i];
     const auto edge_id = in_edge_ids[i];
     if (min_edge[source] == edge_id || min_edge[target] == edge_id) {
         // join source and sink
-        const auto source_rep = mst_find_relaxed(parents, source);
-        const auto target_rep = mst_find_relaxed(parents, target);
+        const auto source_rep = sets.find_relaxed(source);
+        const auto target_rep = sets.find_relaxed(target);
         assert(source_rep != target_rep);
-        const auto new_rep = min(source_rep, target_rep);
-        auto old_rep = max(source_rep, target_rep);
-        bool repeat = false;
-        do {
-            repeat = false;
-            auto old_parent =
-                atomic_cas_relaxed(parents + old_rep, old_rep, new_rep);
-            // if this fails, the parent of old_rep changed recently, so we need
-            // to try again by updating the parent's parent (hopefully its rep)
-            if (old_parent != old_rep) {
-                old_rep = old_parent;
-                repeat = true;
-            }
-        } while (repeat);
+        sets.join(source_rep, target_rep);
         const auto out_i = atomic_add_relaxed(out_counter, 1);
         out_sources[out_i] = edge_sources[edge_id];
         out_targets[out_i] = edge_targets[edge_id];
