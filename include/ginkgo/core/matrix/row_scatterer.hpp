@@ -7,22 +7,17 @@
 #include <ginkgo/core/base/lin_op.hpp>
 
 namespace gko {
-
 namespace matrix {
 
 
 template <typename IndexType = int32>
 class RowScatterer : public EnableLinOp<RowScatterer<IndexType>> {
-    friend class EnablePolymorphicObject<RowScatterer>;
+    friend class EnablePolymorphicObject<RowScatterer<IndexType>, LinOp>;
 
 public:
     static std::unique_ptr<RowScatterer> create(
         std::shared_ptr<const Executor> exec, array<IndexType> idxs,
-        size_type to_size)
-    {
-        return std::unique_ptr<RowScatterer>(
-            new RowScatterer(std::move(exec), std::move(idxs), to_size));
-    }
+        size_type to_size);
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -41,5 +36,4 @@ private:
 
 
 }  // namespace matrix
-
 }  // namespace gko

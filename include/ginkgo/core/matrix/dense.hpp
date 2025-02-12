@@ -72,6 +72,8 @@ class Sellp;
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
 
+template <typename IndexType>
+class RowScatterer;
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -731,9 +733,19 @@ public:
      *          scatter_indices[j]` the rows `i, j` of this matrix are
      *          identical.
      */
-    template <typename IndexType>
-    void row_scatter(const array<IndexType>* scatter_indices,
-                     ptr_param<LinOp> target) const;
+    void row_scatter(ptr_param<const RowScatterer<int32>> scatterer,
+                     ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const LinOp> alpha,
+                     ptr_param<const RowScatterer<int32>> scatterer,
+                     ptr_param<const LinOp> beta, ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const RowScatterer<int64>> scatterer,
+                     ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const LinOp> alpha,
+                     ptr_param<const RowScatterer<int64>> scatterer,
+                     ptr_param<const LinOp> beta, ptr_param<LinOp> target);
 
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
