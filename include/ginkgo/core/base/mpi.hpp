@@ -22,6 +22,9 @@
 #if GINKGO_BUILD_MPI
 
 
+#include <mpi.h>
+
+
 namespace gko {
 namespace experimental {
 /**

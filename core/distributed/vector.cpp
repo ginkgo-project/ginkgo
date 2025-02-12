@@ -469,11 +469,11 @@ void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), *sum_op.get());
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), *sum_op.get());
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
     }
 }
 
@@ -506,11 +506,11 @@ void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), *sum_op.get());
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), *sum_op.get());
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
     }
 }
 
@@ -561,12 +561,12 @@ void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]),
-                        *norm_sum_op.get());
+                        norm_sum_op.get_op());
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]),
-                        *norm_sum_op.get());
+                        norm_sum_op.get_op());
     }
 }
 
@@ -597,12 +597,12 @@ void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]),
-                        *norm_sum_op.get());
+                        norm_sum_op.get_op());
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]),
-                        *norm_sum_op.get());
+                        norm_sum_op.get_op());
     }
 }
 
@@ -642,10 +642,11 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(), num_vecs,
-                        *sum_op.get());
+                        sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
-        comm.all_reduce(exec, dense_res->get_values(), num_vecs, *sum_op.get());
+        comm.all_reduce(exec, dense_res->get_values(), num_vecs,
+                        sum_op.get_op());
     }
 }
 
