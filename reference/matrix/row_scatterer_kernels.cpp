@@ -25,7 +25,13 @@ void row_scatter(std::shared_ptr<const ReferenceExecutor> exec,
             return;
         }
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            target->at(rows[i], j) = orig->at(i, j);
+            target->at(rows[i], j) = zero<OutputType>();
+        }
+    }
+
+    for (size_type i = 0; i < row_idxs->get_size(); ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            target->at(rows[i], j) += static_cast<OutputType>(orig->at(i, j));
         }
     }
 }

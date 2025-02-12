@@ -78,7 +78,22 @@ void RowScatterer<IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 template <typename IndexType>
 void RowScatterer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                          const LinOp* beta, LinOp* x) const
-{}
+{
+    auto x_copy = gko::clone(x);
+    run<Dense,
+#if GINKGO_ENABLE_HALF
+        gko::half, std::complex<gko::half>,
+#endif
+        float, double, std::complex<float>, std::complex<double>>(
+        x, [&](auto* target) {
+            using dense_type = std::decay_t<decltype(*target)>;
+            as<dense_type>(x_copy)->fill(
+                gko::zero<typename dense_type::value_type>());
+            this->apply_impl(b, x_copy);
+            target->scale(beta);
+            target->add_scaled(alpha, x_copy);
+        });
+}
 
 
 #define GKO_DECLARE_ROW_SCATTER(_type) class RowScatterer<_type>
