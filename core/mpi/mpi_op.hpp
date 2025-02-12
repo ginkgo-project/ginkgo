@@ -57,65 +57,75 @@ struct is_mpi_native {
 
 using op_manager = std::shared_ptr<MPI_Op>;
 
+template <typename ValueType, typename = void>
+class sum {};
+// ginkgo custom mpi sum operation impelementation
+template <typename ValueType>
+class sum<ValueType,
+          std::enable_if_t<detail::is_mpi_native<ValueType>::value>> {
+public:
+    MPI_Op get_op() { return MPI_SUM; }
+};
 
-template <typename ValueType,
-          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager sum()
-{
-    return op_manager(
-        []() {
-            MPI_Op* operation = new MPI_Op;
-            *operation = MPI_SUM;
-            return operation;
-        }(),
-        [](MPI_Op* op) { delete op; });
-}
+template <typename ValueType>
+class sum<ValueType,
+          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>> {
+public:
+    sum()
+    {
+        op_ = op_manager(
+            []() {
+                MPI_Op* operation = new MPI_Op;
+                MPI_Op_create(&detail::sum<ValueType>, 1, operation);
+                return operation;
+            }(),
+            [](MPI_Op* op) {
+                MPI_Op_free(op);
+                delete op;
+            });
+    }
 
-template <typename ValueType,
-          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager sum()
-{
-    return op_manager(
-        []() {
-            MPI_Op* operation = new MPI_Op;
-            MPI_Op_create(&detail::sum<ValueType>, 1, operation);
-            return operation;
-        }(),
-        [](MPI_Op* op) {
-            MPI_Op_free(op);
-            delete op;
-        });
-}
+    MPI_Op get_op() { return *op_.get(); }
 
+private:
+    op_manager op_;
+};
 
-template <typename ValueType,
-          std::enable_if_t<detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager max()
-{
-    return op_manager(
-        []() {
-            MPI_Op* operation = new MPI_Op;
-            *operation = MPI_MAX;
-            return operation;
-        }(),
-        [](MPI_Op* op) { delete op; });
-}
+template <typename ValueType, typename = void>
+class max {};
 
-template <typename ValueType,
-          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>* = nullptr>
-inline op_manager max()
-{
-    return op_manager(
-        []() {
-            MPI_Op* operation = new MPI_Op;
-            MPI_Op_create(&detail::max<ValueType>, 1, operation);
-            return operation;
-        }(),
-        [](MPI_Op* op) {
-            MPI_Op_free(op);
-            delete op;
-        });
-}
+// ginkgo custom mpi max operation impelementation
+template <typename ValueType>
+class max<ValueType,
+          std::enable_if_t<detail::is_mpi_native<ValueType>::value>> {
+public:
+    MPI_Op get_op() { return MPI_MAX; }
+};
+
+template <typename ValueType>
+class max<ValueType,
+          std::enable_if_t<!detail::is_mpi_native<ValueType>::value>> {
+public:
+    max()
+    {
+        op_ = op_manager(
+            []() {
+                MPI_Op* operation = new MPI_Op;
+                MPI_Op_create(&detail::max<ValueType>, 1, operation);
+                return operation;
+            }(),
+            [](MPI_Op* op) {
+                MPI_Op_free(op);
+                delete op;
+            });
+    }
+
+    MPI_Op get_op() { return *op_.get(); }
+
+private:
+    op_manager op_;
+};
+
 
 }  // namespace mpi
 }  // namespace experimental
