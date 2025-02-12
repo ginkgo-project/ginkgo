@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,6 +31,8 @@
 #include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+
+#include "parmetis.h"
 
 
 namespace gko {
@@ -611,7 +613,7 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
     auto rank = comm.rank();
     R->apply(rhs, intermediate_1);
     R->apply(sol, intermediate_2);
-    comm.synchronize();
+    // comm.synchronize();
     auto local_rhs = vec_type::create(
         exec, intermediate_1->get_local_vector()->get_size(),
         make_array_view(exec, intermediate_1->get_local_vector()->get_size()[0],
@@ -628,7 +630,7 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
         local_sol->create_submatrix(span{0, inner_idxs_.size()}, span{0, 1});
     auto bound_sol = local_sol->create_submatrix(
         span{inner_idxs_.size(), local_sol->get_size()[0]}, span{0, 1});
-    comm.synchronize();
+    // comm.synchronize();
     A_ig->apply(neg_one_op, bound_sol, one_op, inner_rhs);
     /* if (inner_solver->apply_uses_initial_guess()) { */
     if (parameters_.use_amd) {
@@ -646,7 +648,7 @@ void Bddc<ValueType, IndexType>::post_solve(const LinOp* b, LinOp* x) const
         inner_solver->apply(inner_rhs, inner_sol);
     }
     bound_sol->fill(zero<ValueType>());
-    comm.synchronize();
+    // comm.synchronize();
     RT->apply(one_op, intermediate_2, one_op, sol);
     if (parameters_.constant_nullspace) {
         sol->compute_dot(nullspace, scale_op);
@@ -700,25 +702,15 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         1);
     weights->apply(restricted_residual->get_local_vector(), coarse_1);
     phi_t->apply(coarse_1, coarse_rhs);
-    comm.synchronize();
+    // comm.synchronize();
     RCT->apply(coarse_residual, coarse_b);
-    /* if (coarse_solver->apply_uses_initial_guess()) { */
-    coarse_x->fill(zero<ValueType>());
-    /* } */
-    auto start = std::chrono::high_resolution_clock::now();
-    coarse_solver->apply(coarse_b, coarse_x);
-    auto end = std::chrono::high_resolution_clock::now();
-    if (comm.rank() == 0) {
-        /* std::cout << "COARSE SOLVE: " <<
-         * std::chrono::duration_cast<std::chrono::microseconds>(end -
-         * start).count() << ", ITERATIONS: " <<
-         * coarse_logger->get_num_iterations() << std::endl; */
+    if (coarse_solver->apply_uses_initial_guess()) {
+        coarse_x->fill(zero<ValueType>());
     }
-    comm.synchronize();
+    coarse_solver->apply(coarse_b, coarse_x);
     RC->apply(coarse_x, coarse_solution);
     phi->apply(coarse_sol, coarse_2);
 
-    start = std::chrono::high_resolution_clock::now();
     // Subdomain correction
     if (fallback) {
         /* auto local_size = constrained_buf1->get_size()[0] -
@@ -755,9 +747,9 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
         auto im =
             local_1->create_submatrix(span{0, edge_idxs.size()}, span{0, 1});
         if (c->get_size()[0] > 0) {
-            /* if (edge_solver->apply_uses_initial_guess()) { */
-            edge_buf2->fill(zero<ValueType>());
-            /* } */
+            if (edge_solver->apply_uses_initial_guess()) {
+                edge_buf2->fill(zero<ValueType>());
+            }
             e_perm->apply(ge, edge_buf1);
             edge_solver->apply(edge_buf1, edge_buf2);
             e_perm_t->apply(edge_buf2, im);
@@ -766,32 +758,23 @@ void Bddc<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
             auto mue = local_3->create_submatrix(span{0, c->get_size()[0]},
                                                  span{0, 1});
             c->apply(im, schur_rhs);
-            /* if (local_schur_solver->apply_uses_initial_guess()) { */
-            mue->fill(zero<ValueType>());
-            /* } */
+            if (local_schur_solver->apply_uses_initial_guess()) {
+                mue->fill(zero<ValueType>());
+            }
             local_schur_solver->apply(schur_rhs, mue);
             cT->apply(neg_one_op, mue, one_op, ge);
         }
-        /* if (edge_solver->apply_uses_initial_guess()) { */
-        edge_buf2->fill(zero<ValueType>());
-        /* } */
+        if (edge_solver->apply_uses_initial_guess()) {
+            edge_buf2->fill(zero<ValueType>());
+        }
         e_perm->apply(ge, edge_buf1);
         edge_solver->apply(edge_buf1, edge_buf2);
         e_perm_t->apply(edge_buf2, qe);
     }
-    end = std::chrono::high_resolution_clock::now();
-    if (comm.rank() == 0) {
-        /* std::cout << "LOCAL SOLVE: " <<
-         * std::chrono::duration_cast<std::chrono::microseconds>(end -
-         * start).count() << std::endl; */
-    }
     coarse_2->add_scaled(one_op, coarse_3);
 
     weights->apply(coarse_2, local_sol);
-    comm.synchronize();
     RGT->apply(restricted_solution, sol);
-
-    comm.synchronize();
 
     post_solve(dense_b, dense_x);
 }
@@ -925,6 +908,7 @@ void Bddc<ValueType, IndexType>::generate()
         std::cout << "No corners found on rank " << rank << std::endl;
         fallback = true;
     }
+    fallback = true;
 
     // Set up Restriction Operator
     IndexType local_size = n_inner + n_e_idxs + n_corners;
@@ -1135,7 +1119,6 @@ void Bddc<ValueType, IndexType>::generate()
 
     matrix_data<ValueType, IndexType> coarse_data(
         dim<2>{n_interfaces, n_interfaces});
-    // fallback = true;
     if (!fallback) {
         /* std::cout << "RANK " << comm.rank() << " STARTING DEFAULT SETUP" <<
          * std::endl; */
@@ -1525,134 +1508,139 @@ void Bddc<ValueType, IndexType>::generate()
         host, n_interfaces};
     /* std::cout << "RANK " << comm.rank() << " STARTING COARSE SETUP" <<
      * std::endl; */
-    // if (parameters_.multilevel) {
-    //     // Set up coarse mesh for ParMETIS
-    //     std::vector<int> elmdist(comm.size() + 1);
-    //     std::iota(elmdist.begin(), elmdist.end(), 0);
-    //     std::vector<int> eptr{0, n_edges + n_corners};
-    //     std::vector<int> eind(n_edges + n_corners);
-    //     for (size_type i = 0; i < n_edges; i++) {
-    //         eind[i] = edges[i];
-    //     }
-    //     for (size_type i = 0; i < n_corners; i++) {
-    //         eind[n_edges + i] = corners[i];
-    //     }
-    //     int elmwgt = 0;
-    //     int numflag = 0;
-    //     int ncon = 1;
-    //     int ncommonnodes = 2;
-    //     int nparts = comm.size() / parameters_.coarsening_ratio;
-    //     std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
-    //     std::vector<float> ubvec(ncon, 1.05);
-    //     int options = 0;
-    //     int edgecut;
-    //     int new_part = comm.rank();
-    //     MPI_Comm commptr = comm.get();
+    if (parameters_.multilevel || true) {
+        // Set up coarse mesh for ParMETIS
+        std::vector<int> elmdist(comm.size() + 1);
+        std::iota(elmdist.begin(), elmdist.end(), 0);
+        std::vector<int> eptr{0, n_edges + n_corners};
+        std::vector<int> eind(n_edges + n_corners);
+        for (size_type i = 0; i < n_edges; i++) {
+            eind[i] = edges[i];
+        }
+        for (size_type i = 0; i < n_corners; i++) {
+            eind[n_edges + i] = corners[i];
+        }
+        int elmwgt = 0;
+        int numflag = 0;
+        int ncon = 1;
+        int ncommonnodes = 2;
+        int nparts = std::pow(
+            2,
+            std::floor(
+                std::log(comm.size() / 2) /
+                std::log(2)));  // comm.size() / parameters_.coarsening_ratio;
+        std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
+        std::vector<float> ubvec(ncon, 1.05);
+        int options = 0;
+        int edgecut;
+        int new_part = comm.rank();
+        MPI_Comm commptr = comm.get();
 
-    //     int ret = ParMETIS_V3_PartMeshKway(
-    //         elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt,
-    //         &numflag, &ncon, &ncommonnodes, &nparts, tpwgts.data(),
-    //         ubvec.data(), &options, &edgecut, &new_part, &commptr);
+        int ret = ParMETIS_V3_PartMeshKway(
+            elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
+            &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
+            &options, &edgecut, &new_part, &commptr);
 
-    //     /* std::cout << "METIS RETURNED WITH " << ret << " ON RANK " <<
-    //      * comm.rank() << ", IS GOING TO PART " << new_part << std::endl; */
+        std::cout << "METIS RETURNED WITH " << ret << " ON RANK " << comm.rank()
+                  << ", IS GOING TO PART " << new_part << " OF " << nparts
+                  << std::endl;
 
-    //     std::vector<int> new_parts(comm.size());
-    //     comm.all_gather(exec, &new_part, 1, new_parts.data(), 1);
-    //     comm.synchronize();
+        std::vector<int> new_parts(comm.size());
+        comm.all_gather(exec, &new_part, 1, new_parts.data(), 1);
+        comm.synchronize();
 
-    //     int elem_size = coarse_data.nonzeros.size();
-    //     int elem_cnt = 0;
-    //     for (auto p : new_parts) {
-    //         if (p == comm.rank()) {
-    //             elem_cnt++;
-    //         }
-    //     }
-    //     std::vector<int> elem_sizes(elem_cnt);
-    //     comm.i_send(exec, &elem_size, 1, new_part, 0);
-    //     size_type i = 0;
-    //     for (size_type j = 0; j < comm.size(); j++) {
-    //         auto p = new_parts[j];
-    //         if (p == comm.rank()) {
-    //             comm.recv(exec, elem_sizes.data() + i, 1, j, 0);
-    //             i++;
-    //         }
-    //     }
-    //     comm.synchronize();
+        int elem_size = coarse_data.nonzeros.size();
+        int elem_cnt = 0;
+        for (auto p : new_parts) {
+            if (p == comm.rank()) {
+                elem_cnt++;
+            }
+        }
+        std::vector<int> elem_sizes(elem_cnt);
+        comm.i_send(exec, &elem_size, 1, new_part, 0);
+        size_type i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, elem_sizes.data() + i, 1, j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
 
-    //     std::vector<int> elem_offsets(elem_cnt + 1, 0);
-    //     std::partial_sum(elem_sizes.begin(), elem_sizes.end(),
-    //                      elem_offsets.begin() + 1);
+        std::vector<int> elem_offsets(elem_cnt + 1, 0);
+        std::partial_sum(elem_sizes.begin(), elem_sizes.end(),
+                         elem_offsets.begin() + 1);
 
-    //     std::vector<IndexType> send_row_idxs(elem_size);
-    //     std::vector<IndexType> send_col_idxs(elem_size);
-    //     std::vector<ValueType> send_values(elem_size);
-    //     for (size_type i = 0; i < elem_size; i++) {
-    //         send_row_idxs[i] = coarse_data.nonzeros[i].row;
-    //         send_col_idxs[i] = coarse_data.nonzeros[i].column;
-    //         send_values[i] = coarse_data.nonzeros[i].value;
-    //     }
-    //     std::vector<IndexType> recv_row_idxs(elem_offsets.back());
-    //     std::vector<IndexType> recv_col_idxs(elem_offsets.back());
-    //     std::vector<ValueType> recv_values(elem_offsets.back());
+        std::vector<IndexType> send_row_idxs(elem_size);
+        std::vector<IndexType> send_col_idxs(elem_size);
+        std::vector<ValueType> send_values(elem_size);
+        for (size_type i = 0; i < elem_size; i++) {
+            send_row_idxs[i] = coarse_data.nonzeros[i].row;
+            send_col_idxs[i] = coarse_data.nonzeros[i].column;
+            send_values[i] = coarse_data.nonzeros[i].value;
+        }
+        std::vector<IndexType> recv_row_idxs(elem_offsets.back());
+        std::vector<IndexType> recv_col_idxs(elem_offsets.back());
+        std::vector<ValueType> recv_values(elem_offsets.back());
 
-    //     comm.i_send(exec, send_row_idxs.data(), elem_size, new_part, 0);
-    //     i = 0;
-    //     for (size_type j = 0; j < comm.size(); j++) {
-    //         auto p = new_parts[j];
-    //         if (p == comm.rank()) {
-    //             comm.recv(exec, recv_row_idxs.data() + elem_offsets[i],
-    //                       elem_sizes[i], j, 0);
-    //             i++;
-    //         }
-    //     }
-    //     comm.synchronize();
-    //     comm.i_send(exec, send_col_idxs.data(), elem_size, new_part, 0);
-    //     i = 0;
-    //     for (size_type j = 0; j < comm.size(); j++) {
-    //         auto p = new_parts[j];
-    //         if (p == comm.rank()) {
-    //             comm.recv(exec, recv_col_idxs.data() + elem_offsets[i],
-    //                       elem_sizes[i], j, 0);
-    //             i++;
-    //         }
-    //     }
-    //     comm.synchronize();
-    //     comm.i_send(exec, send_values.data(), elem_size, new_part, 0);
-    //     i = 0;
-    //     for (size_type j = 0; j < comm.size(); j++) {
-    //         auto p = new_parts[j];
-    //         if (p == comm.rank()) {
-    //             comm.recv(exec, recv_values.data() + elem_offsets[i],
-    //                       elem_sizes[i], j, 0);
-    //             i++;
-    //         }
-    //     }
-    //     comm.synchronize();
+        comm.i_send(exec, send_row_idxs.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_row_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_col_idxs.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_col_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_values.data(), elem_size, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_values.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
 
-    //     matrix_data<ValueType, IndexType> complete_coarse_data(
-    //         coarse_data.size);
-    //     for (size_type i = 0; i < elem_offsets.back(); i++) {
-    //         complete_coarse_data.nonzeros.emplace_back(
-    //             recv_row_idxs[i], recv_col_idxs[i], recv_values[i]);
-    //     }
-    //     complete_coarse_data.sum_duplicates();
+        matrix_data<ValueType, IndexType> complete_coarse_data(
+            coarse_data.size);
+        for (size_type i = 0; i < elem_offsets.back(); i++) {
+            complete_coarse_data.nonzeros.emplace_back(
+                recv_row_idxs[i], recv_col_idxs[i], recv_values[i]);
+        }
+        complete_coarse_data.sum_duplicates();
 
-    //     for (size_type i = 0; i < n_interfaces; i++) {
-    //         auto ranks = interface_dof_ranks_[interfaces_[i]];
-    //         auto owner = new_parts[ranks[0]];
-    //         /* std::cout << owner << std::endl; */
-    //         mapping.get_data()[i] = owner;
-    //     }
-    //     coarse_data = complete_coarse_data;
-    // } else {
-    for (size_type i = 0; i < n_interfaces; i++) {
-        auto ranks = interface_dof_ranks_[interfaces_[i]];
-        auto owner = 0;  // ranks[0];
-        /* std::cout << owner << std::endl; */
-        mapping.get_data()[i] = owner;
+        for (size_type i = 0; i < n_interfaces; i++) {
+            auto ranks = interface_dof_ranks_[interfaces_[i]];
+            auto owner = new_parts[ranks[0]];
+            /* std::cout << owner << std::endl; */
+            mapping.get_data()[i] = owner;
+        }
+        coarse_data = complete_coarse_data;
+    } else {
+        for (size_type i = 0; i < n_interfaces; i++) {
+            auto ranks = interface_dof_ranks_[interfaces_[i]];
+            auto owner = ranks[0];
+            /* std::cout << owner << std::endl; */
+            mapping.get_data()[i] = owner;
+        }
     }
-    //}
     /* std::cout << "RANK " << comm.rank() << " DONE WITH COARSE SETUP" <<
      * std::endl; */
     // Set up coarse partition
@@ -1728,9 +1716,9 @@ void Bddc<ValueType, IndexType>::generate()
             exec, dim<2>{diag->get_size()[0], 1}, std::move(diag_array), 1);
         auto global_diag_vec =
             global_vec_type::create_const(exec, comm, std::move(dense_diag));
-        restricted_residual =
-            global_vec_type::create(exec, comm, dim<2>{RG->get_size()[0], 1},
-                                    dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        restricted_residual = global_vec_type::create(
+            exec, comm, dim<2>{RG->get_size()[0], 1},
+            dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         RG->apply(global_diag_vec, restricted_residual);
         auto global_diag_array = make_const_array_view(
             exec, n_interface_idxs,
@@ -1741,9 +1729,11 @@ void Bddc<ValueType, IndexType>::generate()
         auto local_diag_array = make_const_array_view(
             exec, n_interface_idxs, local_diag->get_const_values() + n_inner);
         auto local_diag_vec = vec_type::create_const(
-            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1}, std::move(local_diag_array), 1);
+            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1},
+            std::move(local_diag_array), 1);
 
-        auto weights_vec = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        auto weights_vec = vec_type::create(
+            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         global_diag->inverse_apply(local_diag_vec, weights_vec);
         auto weights_array = make_const_array_view(
             exec, n_interface_idxs, weights_vec->get_const_values());
@@ -1755,19 +1745,20 @@ void Bddc<ValueType, IndexType>::generate()
             dim<2>{global_system_matrix_->get_local_matrix()->get_size()[0],
                    1});
         global_diag_vec->fill(parameters_.rho);
-        restricted_residual =
-            global_vec_type::create(exec, comm, dim<2>{RG->get_size()[0], 1},
-                                    dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        restricted_residual = global_vec_type::create(
+            exec, comm, dim<2>{RG->get_size()[0], 1},
+            dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         RG->apply(global_diag_vec, restricted_residual);
         auto global_diag_array = make_const_array_view(
             exec, n_interface_idxs,
             restricted_residual->get_const_local_values());
         auto global_diag = diag_type::create_const(
             exec, n_interface_idxs, std::move(global_diag_array));
-        auto local_diag_vec =
-            vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        auto local_diag_vec = vec_type::create(
+            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         local_diag_vec->fill(parameters_.rho);
-        auto weights_vec = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        auto weights_vec = vec_type::create(
+            exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
         global_diag->inverse_apply(local_diag_vec, weights_vec);
         auto weights_array = make_const_array_view(
             exec, n_interface_idxs, weights_vec->get_const_values());
@@ -1780,11 +1771,14 @@ void Bddc<ValueType, IndexType>::generate()
 
     comm.synchronize();
     restricted_solution = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1},
+        dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     schur_residual = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1},
+        dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     schur_solution = global_vec_type::create(
-        exec, comm, dim<2>{RG->get_size()[0], 1}, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+        exec, comm, dim<2>{RG->get_size()[0], 1},
+        dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     coarse_residual = global_vec_type::create(
         exec, comm, dim<2>{RC->get_size()[0], 1},
         dim<2>{static_cast<size_type>(coarse_local_size), 1});
@@ -1798,10 +1792,14 @@ void Bddc<ValueType, IndexType>::generate()
         exec, comm, dim<2>{global_coarse_matrix_->get_size()[0], 1},
         dim<2>{global_coarse_matrix_->get_local_matrix()->get_size()[0], 1});
     inner_intermediate = vec_type::create(exec, dim<2>{inner_idxs_.size(), 1});
-    coarse_1 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
-    coarse_2 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
-    coarse_3 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
-    local_1 = vec_type::create(exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    coarse_1 = vec_type::create(
+        exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    coarse_2 = vec_type::create(
+        exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    coarse_3 = vec_type::create(
+        exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
+    local_1 = vec_type::create(
+        exec, dim<2>{static_cast<size_type>(n_interface_idxs), 1});
     local_2 =
         vec_type::create(exec, dim<2>{static_cast<size_type>(local_size), 1});
     local_3 =
