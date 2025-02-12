@@ -23,6 +23,7 @@
 
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
+#include "common/cuda_hip/components/disjoint_sets.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/array_access.hpp"
@@ -91,7 +92,7 @@ struct components_data {
 };
 
 
-// Attach each node to a smaller neighbor
+// Attach each node to a larger neighbor
 template <typename IndexType>
 __global__
 __launch_bounds__(default_block_size) void connected_components_attach(
@@ -106,50 +107,14 @@ __launch_bounds__(default_block_size) void connected_components_attach(
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
     auto parent = row;
-    for (auto nz = begin; nz < end; nz++) {
+    for (auto nz = end - 1; nz >= begin; nz--) {
         const auto col = col_idxs[nz];
-        if (col < parent) {
+        if (col > parent) {
             parent = col;
             break;
         }
     }
     components[row] = parent;
-}
-
-
-// Returns the representative of a (partial) component with path compression
-// For details, see J. Jaiganesh and M. Burtscher.
-// "A High-Performance Connected Components Implementation for GPUs."
-// Proceedings of the 2018 ACM International Symposium on High-Performance
-// Parallel and Distributed Computing. June 2018
-template <typename IndexType>
-__device__ __forceinline__ IndexType disjoint_set_find(IndexType node,
-                                                       IndexType* parents)
-{
-    auto parent = parents[node];
-    if (node != parent) {
-        // here we use atomics with threadblock-local coherence
-        // to avoid the L2 performance penalty at the cost of a few additional
-        // iterations
-        // TODO we can probably replace < by !=
-        for (auto grandparent = load_relaxed_local(parents + parent);
-             grandparent < parent;
-             grandparent = load_relaxed_local(parents + parent)) {
-            // pointer doubling
-            // node --> parent --> grandparent
-            // turns into
-            // node -------------> grandparent
-            //                       |
-            //          parent ------/
-            // This operation is safe, because only the representative of each
-            // set will be changed in subsequent operations, and this only
-            // shortens paths along intermediate nodes
-            store_relaxed_local(parents + node, grandparent);
-            node = parent;
-            parent = grandparent;
-        }
-    }
-    return parent;
 }
 
 
@@ -166,28 +131,14 @@ __launch_bounds__(default_block_size) void connected_components_combine(
     }
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
-    auto parent = disjoint_set_find(row, parents);
+    disjoint_sets<IndexType> sets{parents, num_rows};
+    auto parent = sets.find_relaxed_compressing(row);
     for (auto nz = begin; nz < end; nz++) {
         const auto col = col_idxs[nz];
         // handle every edge only in one direction
         if (col < row) {
-            auto col_parent = disjoint_set_find(col, parents);
-            bool repeat = false;
-            do {
-                repeat = false;
-                auto& min_parent = col_parent < parent ? col_parent : parent;
-                auto& max_parent = col_parent < parent ? parent : col_parent;
-                // attempt to attach the (assumed unattached) larger node to the
-                // smaller node
-                const auto old_parent = atomic_cas_relaxed(
-                    parents + max_parent, max_parent, min_parent);
-                // if unsuccessful, proceed with the parent of the (now known
-                // attached) node
-                if (old_parent != max_parent) {
-                    max_parent = old_parent;
-                    repeat = true;
-                }
-            } while (repeat);
+            auto col_parent = sets.find_relaxed_compressing(col);
+            parent = sets.join(parent, col_parent);
         }
     }
 }
@@ -203,13 +154,8 @@ __launch_bounds__(default_block_size) void connected_components_path_compress(
     if (row >= num_rows) {
         return;
     }
-    auto current = row;
-    // TODO we can probably replace < by !=
-    for (auto parent = load_relaxed_local(parents + current); parent < current;
-         parent = load_relaxed_local(parents + current)) {
-        current = parent;
-    }
-    parents[row] = current;
+    disjoint_sets<IndexType> sets{parents, num_rows};
+    sets.path_compress_relaxed(row);
 }
 
 
