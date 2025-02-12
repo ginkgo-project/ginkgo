@@ -21,6 +21,7 @@ protected:
     using index_type = std::tuple_element_t<2, InValueOutValueIndexType>;
     using DenseIn = gko::matrix::Dense<in_value_type>;
     using DenseOut = gko::matrix::Dense<out_value_type>;
+    using Scatterer = gko::matrix::RowScatterer<index_type>;
 
 
     std::shared_ptr<gko::ReferenceExecutor> exec =
@@ -32,6 +33,9 @@ protected:
         I<I<out_value_type>>{{11, 22}, {33, 44}, {55, 66}, {77, 88}}, exec);
 
     gko::array<index_type> idxs = {exec, {3, 1}};
+
+    std::unique_ptr<Scatterer> scatterer =
+        Scatterer::create(exec, idxs, out->get_size()[0]);
 };
 
 #ifdef GINKGO_MIXED_PRECISION
@@ -43,7 +47,7 @@ TYPED_TEST_SUITE(RowScatter, gko::test::MixedPresisionValueIndexTypes,
 #endif
 
 
-TYPED_TEST(RowScatter, CanScatter)
+TYPED_TEST(RowScatter, CanRowScatter)
 {
     bool invalid_access = false;
 
@@ -69,4 +73,32 @@ TYPED_TEST(RowScatter, CanDetectInvalidAccess)
         this->exec, &idxs, this->in.get(), this->out.get(), invalid_access);
 
     ASSERT_TRUE(invalid_access);
+}
+
+
+TYPED_TEST(RowScatter, CanRowScatterSimpleApply)
+{
+    this->scatterer->apply(this->in.get(), this->out.get());
+
+    auto expected = gko::initialize<typename TestFixture::DenseOut>(
+        I<I<typename TestFixture::out_value_type>>{
+            {11, 22}, {3, 4}, {55, 66}, {1, 2}},
+        this->exec);
+    GKO_ASSERT_MTX_NEAR(this->out, expected, 0.0);
+}
+
+
+TYPED_TEST(RowScatter, CanRowScatterAdvancedApply)
+{
+    auto alpha = gko::initialize<typename TestFixture::DenseIn>(
+        {-gko::one<typename TestFixture::in_value_type>()}, this->exec);
+    auto beta = gko::initialize<typename TestFixture::DenseOut>(
+        {-2 * gko::one<typename TestFixture::out_value_type>()}, this->exec);
+    this->scatterer->apply(this->in.get(), this->out.get());
+
+    auto expected = gko::initialize<typename TestFixture::DenseOut>(
+        I<I<typename TestFixture::out_value_type>>{
+            {-11, -22}, {3, 4}, {-55, -66}, {1, 2}},
+        this->exec);
+    GKO_ASSERT_MTX_NEAR(this->out, expected, 0.0);
 }
