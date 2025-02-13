@@ -14,11 +14,12 @@ repos:
         third_party/identify_stream_usage/.*|
         include/ginkgo/ginkgo.hpp
       )
-- repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: 'v0.6.13' # The current latest release
+- repo: https://github.com/BlankSpruce/gersemi
+  rev: 0.19.0
   hooks:
-  - id: cmake-format
+  - id: gersemi
     name: cmake-format
+    files: ^cmake|CMakeLists.txt
 - repo: local
   hooks:
   # The official reuse hook only supports calling lint, so we need our own hook

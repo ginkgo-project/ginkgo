@@ -50,6 +50,7 @@ function(ginkgo_benchmark_onemkl_linops type def)
 endfunction()
 
 
+# gersemi: off
 # Generates an executable for one precision. Each executable will be linked to
 # `ginkgo`, `gflags` and `nlohmann-json`.
 # Note: This should only be used by `ginkgo_add_typed_benchmark_executables`
@@ -60,6 +61,7 @@ endfunction()
 # \param macro_def       preprocessor macro name that will be defined during
 #                        building (to compile for a specific type)
 # All remaining arguments will be treated as source files
+# gersemi: on
 function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def type)
     add_executable("${name}" ${ARGN})
     target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
@@ -99,6 +101,7 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
 endfunction(ginkgo_add_single_benchmark_executable)
 
 
+# gersemi: off
 # Generates an executable for each supported precision. Each executable will be
 # linked to `ginkgo`, `gflags` and `nlohmann-json`.
 #
@@ -106,6 +109,7 @@ endfunction(ginkgo_add_single_benchmark_executable)
 # \param use_lib_linops  Boolean indicating if linking against hipsparse/cusparse
 #                        is necessary
 # All remaining arguments will be treated as source files
+# gersemi: on
 function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
     ginkgo_add_single_benchmark_executable(
         "${name}" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" "d" ${ARGN})

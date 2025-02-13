@@ -76,7 +76,7 @@ function(ginkgo_add_resource_requirement test_name)
                  RESOURCE_GROUPS "${add_rr_MPI_SIZE},${single_resource}")
 endfunction()
 
-
+# gersemi: off
 ## Adds a test to the list executed by ctest and sets its output binary name
 ## Possible additional arguments:
 ## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
@@ -86,6 +86,7 @@ endfunction()
 ## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
+# gersemi: on
 function(ginkgo_add_test test_name test_target_name)
     cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_args}" "${gko_test_multi_args}")
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
