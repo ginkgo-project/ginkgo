@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,7 @@ namespace config {
 
 
 /**
- * parse_yaml takes the yaml-cpp node object to generate the property tree
+ * parse_yaml takes a yaml-cpp node object to generate the property tree
  * object
  */
 inline gko::config::pnode parse_yaml(const YAML::Node& input)
@@ -56,7 +56,6 @@ inline gko::config::pnode parse_yaml(const YAML::Node& input)
                                        YAML::Dump(it->second));
                 }
             } else {
-                std::string content = it->first.as<std::string>();
                 nodes[key] = parse_yaml(it->second);
             }
         }
@@ -97,8 +96,25 @@ inline gko::config::pnode parse_yaml(const YAML::Node& input)
  * parse_yaml_file takes the yaml file to generate the property tree object
  *
  * @note Because YAML always needs a entry for reusing, there will be more than
- * one entry when putting the anchors in the top level. This function can not
- * know which entry is the actual solver, so please use the parse_yaml function.
+ * one entry when putting the anchors in the top level. It is unclear which
+ * entry is the actual solver to parse, so please use the parse_yaml function
+ * and specify the actual entry.
+ *
+ * for example,
+ * ```
+ * reuse: &reuse_config
+ *   ...
+ * actual:
+ *   << *reuse
+ *   ...
+ * ```
+ * when passing the file to this function, `reuse` and `actual` are valid
+ * entries such that we can not randomly pick one as solver.
+ * ```
+ *   // yaml is the object from the file
+ *   auto solver_factory = parse_yaml(yaml["actual"]);
+ * ```
+ * By doing so, we know the `actual` entry is the solver to parse.
  */
 inline gko::config::pnode parse_yaml_file(std::string filename)
 {

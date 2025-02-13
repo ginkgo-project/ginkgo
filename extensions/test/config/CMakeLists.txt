@@ -20,16 +20,20 @@ configure_file(
 configure_file(
     test.json
     "${Ginkgo_BINARY_DIR}/extensions/test/config/test.json"
+    COPYONLY
 )
 configure_file(
     test.yaml
     "${Ginkgo_BINARY_DIR}/extensions/test/config/test.yaml"
+    COPYONLY
 )
 configure_file(
     alias.yaml
     "${Ginkgo_BINARY_DIR}/extensions/test/config/alias.yaml"
+    COPYONLY
 )
 configure_file(
     nested_alias.yaml
     "${Ginkgo_BINARY_DIR}/extensions/test/config/nested_alias.yaml"
+    COPYONLY
 )
