@@ -142,8 +142,8 @@ parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
                                                    const type_descriptor& td);
 
 /**
- * parse or get an std::vector of criteria.
- * A stored single criterion will be converted to an std::vector.
+ * parse or get a std::vector of criteria.
+ * A stored single criterion will be converted to a std::vector.
  */
 std::vector<deferred_factory_parameter<const stop::CriterionFactory>>
 parse_or_get_criteria(const pnode& config, const registry& context,
