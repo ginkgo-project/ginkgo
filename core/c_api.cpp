@@ -649,6 +649,14 @@ gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
             static_cast<gko::uint32>(blocksize))};
 }
 
+gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f32_i32_create(
+    int blocksize)
+{
+    return new gko_deferred_factory_parameter_st{
+        gko::preconditioner::Jacobi<float, int>::build().with_max_block_size(
+            static_cast<gko::uint32>(blocksize))};
+}
+
 gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
     gko_deferred_factory_parameter dfp_st_ptr)
 {
