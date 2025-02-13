@@ -1,5 +1,5 @@
 <h1>Results</h1>
-This is the expected output for `mpirun -n 4 ./distributed-multigrid-preconditioned-solver-customized`:
+This is the expected output for `mpirun -n 4 ./distributed-multigrid-preconditioned-solver`:
 
 @code{.cpp}
 

@@ -50,9 +50,16 @@ int main(int argc, char* argv[])
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
     using solver = gko::solver::Cg<ValueType>;
+    // We use the Schwarz preconditioner to extend non-distributed
+    // preconditioners, like our Jacobi,
+    // to the distributed case. The Schwarz preconditioner wraps another
+    // preconditioner, and applies it only to the local part of a distributed
+    // matrix. This will be used as our distributed multigrid smoother.
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
+    // Multigrid and Pgm can accept the distributed matrix, so we still use the
+    // same type as the non-distributed case.
     using mg = gko::solver::Multigrid;
     using pgm = gko::multigrid::Pgm<ValueType, LocalIndexType>;
 
@@ -200,7 +207,8 @@ int main(int argc, char* argv[])
         solver::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
-    // It uses Schwarz Jacobi as smoother and GMRES as coarse solver
+    // The multigrid preconditioner uses the Schwarz Jacobi as smoother and Cg
+    // as coarse solver
     auto mg_factory = gko::share(
         mg::build()
             .with_mg_level(pgm::build().with_deterministic(true))
