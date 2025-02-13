@@ -12,6 +12,7 @@
 
 #include "core/config/registry_accessor.hpp"
 #include "core/config/stop_config.hpp"
+#include "type_descriptor_helper.hpp"
 
 namespace gko {
 namespace config {
@@ -110,9 +111,15 @@ parse_minimal_criteria(const pnode& config, const registry& context,
              create_residual_mapping("absolute_implicit_residual_norm",
                                      "absolute", configure_implicit_residual)}};
 
+    type_descriptor updated_td = update_type(config, td);
+
     std::vector<deferred_factory_parameter<const stop::CriterionFactory>> res;
     for (const auto& it : config.get_map()) {
-        res.emplace_back(criterion_map.at(it.first)(config, context, td));
+        if (it.first == "value_type") {
+            continue;
+        }
+        res.emplace_back(
+            criterion_map.at(it.first)(config, context, updated_td));
     }
     return res;
 }
