@@ -29,6 +29,8 @@ struct DefaultSystemGenerator {
         auto [data, size] = [&] {
             if (config.contains("filename")) {
                 std::ifstream in(config["filename"].get<std::string>());
+                // Returning an empty dim means that there is no specified local
+                // size, which is relevant in the distributed case
                 return std::make_pair(
                     gko::read_generic_raw<ValueType, IndexType>(in),
                     gko::dim<2>());
@@ -179,6 +181,8 @@ struct DistributedDefaultSystemGenerator {
         auto [data, local_size] = [&] {
             if (config.contains("filename")) {
                 std::ifstream in(config["filename"].get<std::string>());
+                // Returning an empty dim means that no local size is specified,
+                // and thus the partition has to be deduced from the global size
                 return std::make_pair(
                     gko::read_generic_raw<value_type, index_type>(in),
                     gko::dim<2>());
@@ -262,8 +266,6 @@ struct DistributedDefaultSystemGenerator {
 
         auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
             exec, comm, local_mat, non_local_mat);
-        gko::matrix_data<value_type, index_type> global_data(
-            {part->get_size(), part->get_size()});
         dist_mat->read_distributed(data, part);
 
         if (spmv_case) {
