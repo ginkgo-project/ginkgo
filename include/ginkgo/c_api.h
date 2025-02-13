@@ -812,6 +812,29 @@ typedef struct gko_linop_st* gko_linop;
 void ginkgo_linop_delete(gko_linop linop_st_ptr);
 
 /**
+ * @brief Struct containing the shared pointer to a ginkgo logger object
+ *
+ */
+struct gko_log_convergence_f32_st;
+struct gko_log_convergence_f64_st;
+
+/**
+ * @brief Type of the pointer to the wrapped `gko_log_convergence_st` struct
+ *
+ */
+typedef struct gko_log_convergence_f32_st* gko_log_convergence_f32;
+typedef struct gko_log_convergence_f64_st* gko_log_convergence_f64;
+
+/**
+ * @brief Deallocates memory for a ginkgo LinOp object.
+ *
+ * @param log_conv_ptr Raw pointer to the shared pointer of the log object to
+ * be deleted
+ */
+void ginkgo_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_ptr);
+void ginkgo_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_ptr);
+
+/**
  * @brief Applies a linear operator to a vector (or a sequence of vectors).
  *
  * @param A_st_ptr Raw pointer to the shared pointer of the LinOp object
@@ -862,6 +885,23 @@ gko_linop ginkgo_linop_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
 
 gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
                                                 gko_linop A_st_ptr);
+
+//-------------------- Loggers -----------------------------
+gko_log_convergence_f32 ginkgo_logger_convergence_f32_create();
+
+void ginkgo_logger_convergence_f32_solver_add(gko_linop solver,
+                                              gko_log_convergence_f32 logger);
+
+gko_log_convergence_f64 ginkgo_logger_convergence_f64_create();
+
+void ginkgo_logger_convergence_f64_solver_add(gko_linop solver,
+                                              gko_log_convergence_f64 logger);
+
+int ginkgo_logger_convergence_f64_get_num_iterations(
+    gko_log_convergence_f64 logger);
+
+int ginkgo_logger_convergence_f32_get_num_iterations(
+    gko_log_convergence_f32 logger);
 
 #ifdef __cplusplus
 }
