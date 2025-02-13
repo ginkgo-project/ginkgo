@@ -59,7 +59,7 @@ using op_manager = std::shared_ptr<MPI_Op>;
 
 template <typename ValueType, typename = void>
 class sum {};
-// ginkgo custom mpi sum operation impelementation
+// ginkgo custom mpi sum operation implementation
 template <typename ValueType>
 class sum<ValueType,
           std::enable_if_t<detail::is_mpi_native<ValueType>::value>> {
@@ -94,7 +94,7 @@ private:
 template <typename ValueType, typename = void>
 class max {};
 
-// ginkgo custom mpi max operation impelementation
+// ginkgo custom mpi max operation implementation
 template <typename ValueType>
 class max<ValueType,
           std::enable_if_t<detail::is_mpi_native<ValueType>::value>> {

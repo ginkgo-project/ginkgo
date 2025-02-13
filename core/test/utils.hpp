@@ -359,9 +359,6 @@ using PODTypesBase = merge_type_list_t<RealValueTypesBase, IntegerTypes>;
 
 using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
-using ComplexAndPODTypesBase =
-    merge_type_list_t<ComplexValueTypesBase, PODTypesBase>;
-
 using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypesBase>;
 
 using ValueIndexTypesBase =
@@ -369,23 +366,11 @@ using ValueIndexTypesBase =
 
 using ValueIndexTypes = cartesian_type_product_t<ValueTypes, IndexTypes>;
 
-using RealValueIndexTypesBase =
-    cartesian_type_product_t<RealValueTypesBase, IndexTypes>;
-
 using RealValueIndexTypes =
     cartesian_type_product_t<RealValueTypes, IndexTypes>;
 
-using ComplexValueIndexTypesBase =
-    cartesian_type_product_t<ComplexValueTypesBase, IndexTypes>;
-
 using ComplexValueIndexTypes =
     cartesian_type_product_t<ComplexValueTypes, IndexTypes>;
-
-using TwoValueIndexTypesBase = add_to_cartesian_type_product_t<
-    merge_type_list_t<
-        cartesian_type_product_t<RealValueTypesBase, RealValueTypesBase>,
-        cartesian_type_product_t<ComplexValueTypesBase, ComplexValueTypesBase>>,
-    IndexTypes>;
 
 using TwoValueIndexTypes = add_to_cartesian_type_product_t<
     merge_type_list_t<
@@ -393,8 +378,6 @@ using TwoValueIndexTypes = add_to_cartesian_type_product_t<
         cartesian_type_product_t<ComplexValueTypes, ComplexValueTypes>>,
     IndexTypes>;
 
-using ValueLocalGlobalIndexTypesBase =
-    add_to_cartesian_type_product_left_t<ValueTypesBase, LocalGlobalIndexTypes>;
 
 using ValueLocalGlobalIndexTypes =
     add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
