@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(GinkgoSubdirTest LANGUAGES CXX)
-file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/../.." "${CMAKE_CURRENT_BINARY_DIR}/ginkgo" SYMBOLIC)
+file(
+    CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/../.."
+        "${CMAKE_CURRENT_BINARY_DIR}/ginkgo"
+    SYMBOLIC
+)
 
 add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/ginkgo")
 
