@@ -779,6 +779,8 @@ gko_deferred_factory_parameter ginkgo_preconditioner_none_create();
 
 gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
     int blocksize);
+gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f32_i32_create(
+    int blocksize);
 gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
     gko_deferred_factory_parameter dfp_st_ptr);
 
