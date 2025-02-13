@@ -301,9 +301,9 @@ struct SolverGenerator : DefaultSystemGenerator<> {
                 return create_multi_vector_random(exec, vec_size,
                                                   local_vec_size);
             } else if (FLAGS_rhs_generation == "sinus") {
-                return create_manufactured_rhs(
+                return create_normalized_manufactured_rhs(
                     exec, system_matrix,
-                    create_matrix_sin<etype>(exec, vec_size).get(), true);
+                    create_matrix_sin<etype>(exec, vec_size).get());
             }
             throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
                                         FLAGS_rhs_generation +

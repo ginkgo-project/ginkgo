@@ -33,12 +33,11 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
             gko::dim<2> local_vec_size{
                 gko::detail::get_local(system_matrix)->get_size()[1],
                 FLAGS_nrhs};
-            return create_manufactured_rhs(
+            return create_normalized_manufactured_rhs(
                 exec, system_matrix,
                 Vec::create(exec, comm, vec_size,
                             create_matrix_sin<etype>(exec, local_vec_size))
-                    .get(),
-                true);
+                    .get());
         }
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},

@@ -34,7 +34,7 @@ double closest_nth_root(T v, int n)
  * @return True if i in [0, bound).
  */
 template <typename IndexType>
-bool is_in_box(const IndexType i, const IndexType bound)
+bool is_in_range(const IndexType i, const IndexType bound)
 {
     return 0 <= i && i < bound;
 }
@@ -57,10 +57,11 @@ bool is_in_box(const IndexType i, const IndexType bound)
  *                   dimension.
  * @param target_local_size  The desired size of the subdomains. The actual size
  *                           can deviate from this to accommodate the square
- *                           size of the subdomains.
+ *                           size of the global domain.
  * @param restricted  If true, a 5-pt stencil is used, else a 9-pt stencil.
  *
- * @return  matrix data of a subdomain using either 5-pt or 9-pt stencil.
+ * @return  pair of (matrix data, local size) of a subdomain using either 5-pt
+ *          or 9-pt stencil.
  */
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
@@ -101,8 +102,8 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
     /**
      * The offset of a subdomain in a single dimension. Since the first R
      * processes have a subdomain size of discretization_points_min[dim]+1, the
-     * offset adds min(subdomain-id, R) to
-     * discretization_points_min[dim]*subdomain-id
+     * offset adds min(subdomain_id, R) to
+     * discretization_points_min[dim]*subdomain_id
      */
     auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
         assert(0 <= i && i < dims[dim]);
@@ -142,7 +143,7 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
      */
     auto target_position = [&](const IndexType dim, const IndexType i,
                                const int position) {
-        return is_in_box(i, discretization_points[dim])
+        return is_in_range(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
@@ -156,7 +157,7 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
      */
     auto target_local_idx = [&](const IndexType dim, const IndexType pos,
                                 const IndexType i) {
-        return is_in_box(i, subdomain_size_1d(dim, pos))
+        return is_in_range(i, subdomain_size_1d(dim, pos))
                    ? i
                    : (i < 0 ? i + subdomain_size_1d(dim, pos)
                             : i - subdomain_size_1d(dim, positions[dim]));
@@ -171,7 +172,7 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
     auto flat_idx = [&](const IndexType iy, const IndexType ix) {
         auto tpx = target_position(0, ix, positions[0]);
         auto tpy = target_position(1, iy, positions[1]);
-        if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1])) {
+        if (is_in_range(tpx, dims[0]) && is_in_range(tpy, dims[1])) {
             return subdomain_offset(tpy, tpx) + target_local_idx(0, tpx, ix) +
                    target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx);
         } else {
@@ -213,8 +214,8 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
                 for (IndexType dx : {-1, 0, 1}) {
                     if (is_valid_neighbor(dy, dx)) {
                         auto col = flat_idx(iy + dy, ix + dx);
-                        if (is_in_box(col,
-                                      static_cast<IndexType>(global_size))) {
+                        if (is_in_range(col,
+                                        static_cast<IndexType>(global_size))) {
                             if (col != row) {
                                 A_data.nonzeros.emplace_back(
                                     row, col, -gko::one<ValueType>());
@@ -237,15 +238,6 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
  * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
  * creates a 7-pt stencil, if it is false creates a 27-pt stencil.
  *
- *
- * If `dim != [1 1]` then the matrix data is a subset of a larger matrix.
- * The total matrix is a discretization of `[0, 1]^2`, and each subdomain has
- * (roughly) the shape `[global_size_1d / dims[0]; global_size_1d / dims[1]]`.
- * The position of the subdomain defines the subset of the matrix.
- * The degrees of freedom are ordered subdomain-wise and the subdomains
- * themselves are ordered lexicographical. This means that the indices are with
- * respect to the larger matrix, i.e. they might not start with 0.
- *
  * If `dim != [1 1 1]` then the matrix data is a subset of a larger matrix.
  * The total matrix is a discretization of `[0, 1]^3`, and each subdomain has
  * (roughly) the shape
@@ -261,10 +253,11 @@ generate_2d_stencil_subdomain(std::array<int, 2> dims,
  *                   dimension.
  * @param target_local_size  The desired size of the subdomains. The actual size
  *                           can deviate from this to accommodate the uniform
- *                           size of the subdomains.
+ *                           size of the global domain.
  * @param restricted  If true, a 7-pt stencil is used, else a 27-pt stencil.
  *
- * @return  matrix data of a subdomain using either 7-pt or 27-pt stencil.
+ * @return  pair of (matrix data, local size) of a subdomain using either 7-pt
+ *          or 27-pt stencil.
  */
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>>
@@ -307,8 +300,8 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
     /**
      * The offset of a subdomain in a single dimension. Since the first R
      * processes have a subdomain size of discretization_points_min[dim]+1, the
-     * offset adds min(subdomain-id, R) to
-     * discretization_points_min[dim]*subdomain-id
+     * offset adds min(subdomain_id, R) to
+     * discretization_points_min[dim]*subdomain_id
      */
     auto subdomain_offset_1d = [&](const IndexType dim, const IndexType i) {
         assert(0 <= i && i < dims[dim]);
@@ -356,7 +349,7 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
      */
     auto target_position = [&](const IndexType dim, const IndexType i,
                                const int position) {
-        return is_in_box(i, discretization_points[dim])
+        return is_in_range(i, discretization_points[dim])
                    ? position
                    : (i < 0 ? position - 1 : position + 1);
     };
@@ -370,7 +363,7 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
      */
     auto target_local_idx = [&](const IndexType dim, const IndexType pos,
                                 const IndexType i) {
-        return is_in_box(i, subdomain_size_1d(dim, pos))
+        return is_in_range(i, subdomain_size_1d(dim, pos))
                    ? i
                    : (i < 0 ? i + subdomain_size_1d(dim, pos)
                             : i - subdomain_size_1d(dim, positions[dim]));
@@ -387,8 +380,8 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
         auto tpx = target_position(0, ix, positions[0]);
         auto tpy = target_position(1, iy, positions[1]);
         auto tpz = target_position(2, iz, positions[2]);
-        if (is_in_box(tpx, dims[0]) && is_in_box(tpy, dims[1]) &&
-            is_in_box(tpz, dims[2])) {
+        if (is_in_range(tpx, dims[0]) && is_in_range(tpy, dims[1]) &&
+            is_in_range(tpz, dims[2])) {
             return subdomain_offset(tpz, tpy, tpx) +
                    target_local_idx(0, tpx, ix) +
                    target_local_idx(1, tpy, iy) * subdomain_size_1d(0, tpx) +
@@ -438,8 +431,8 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
                         for (IndexType dx : {-1, 0, 1}) {
                             if (is_valid_neighbor(dz, dy, dx)) {
                                 auto col = flat_idx(iz + dz, iy + dy, ix + dx);
-                                if (is_in_box(col, static_cast<IndexType>(
-                                                       global_size))) {
+                                if (is_in_range(col, static_cast<IndexType>(
+                                                         global_size))) {
                                     if (col != row) {
                                         A_data.nonzeros.emplace_back(
                                             row, col, -gko::one<ValueType>());
@@ -469,7 +462,7 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
  * @param target_local_size  The desired size of the matrix. The actual size can
  *                           deviate from this to accommodate the uniform size
  *                           of the discretization.
- * @return  matrix data using the requested stencil.
+ * @return  pair of (matrix data, local size) using the requested stencil.
  */
 template <typename ValueType, typename IndexType>
 std::pair<gko::matrix_data<ValueType, IndexType>, gko::dim<2>> generate_stencil(
