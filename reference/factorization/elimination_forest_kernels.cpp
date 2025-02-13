@@ -75,6 +75,45 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE);
 
 
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type size,
+             gko::factorization::elimination_forest<IndexType>& forest)
+{
+    const auto parent = forest.parents.get_data();
+    const auto ssize = static_cast<IndexType>(size);
+    disjoint_sets<IndexType> subtrees{exec, ssize};
+    array<IndexType> subtree_root_array{exec, size};
+    // pseudo-root one past the last row to deal with disconnected matrices
+    const auto unattached = size;
+    auto subtree_root = subtree_root_array.get_data();
+    for (const auto row : irange{ssize}) {
+        // so far the row is an unattached singleton subtree
+        subtree_root[row] = row;
+        parent[row] = unattached;
+        auto row_rep = row;
+        for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
+            const auto col = cols[nz];
+            // for each lower triangular entry
+            if (col < row) {
+                // find the subtree it is contained in
+                const auto col_rep = subtrees.find(col);
+                const auto col_root = subtree_root[col_rep];
+                // if it is not yet attached, put it below row
+                // and make row its new root
+                if (parent[col_root] == unattached && col_root != row) {
+                    parent[col_root] = row;
+                    row_rep = subtrees.join(row_rep, col_rep);
+                    subtree_root[row_rep] = row;
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
+
+
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* factors,
