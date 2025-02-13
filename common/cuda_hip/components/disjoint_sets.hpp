@@ -50,6 +50,8 @@ public:
      */
     __device__ __forceinline__ IndexType join(IndexType x, IndexType y)
     {
+        check_index(x);
+        check_index(y);
         auto new_rep = max(x, y);
         auto old_rep = min(x, y);
         // try to attach old_rep directly to new_rep
@@ -76,6 +78,7 @@ public:
      */
     __device__ __forceinline__ IndexType find_weak(IndexType x) const
     {
+        check_index(x);
         auto cur = x;
         auto parent = parents_[cur];
         while (parent != cur) {
@@ -96,6 +99,7 @@ public:
      */
     __device__ __forceinline__ IndexType find_relaxed(IndexType x) const
     {
+        check_index(x);
         auto cur = x;
         // here we use L1 atomics because it is cheaper, and we don't need an
         // exact global representative
@@ -116,10 +120,12 @@ public:
      * set's representative can be modified while this loop is running, or an
      * old value can still be cached in L1 cache. It can be used to retrieve
      * better representatives for the join function.
+     * TODO fix use when no joins are happening
      */
     __device__ __forceinline__ IndexType
     find_relaxed_compressing(IndexType x) const
     {
+        check_index(x);
         auto cur = x;
         // here we use L1 atomics because it is cheaper, and we don't need an
         // exact global representative.
@@ -156,6 +162,7 @@ public:
      */
     __device__ __forceinline__ void path_compress_relaxed(IndexType x)
     {
+        check_index(x);
         parents_[x] = find_relaxed(x);
     }
 
@@ -165,12 +172,19 @@ public:
      */
     __device__ __forceinline__ bool is_representative_weak(IndexType x) const
     {
-        return parent(x) == x;
+        check_index(x);
+        return parents_[x] == x;
     }
 
     __device__ __forceinline__ IndexType size() const { return size_; }
 
 private:
+    __device__ __forceinline__ void check_index(IndexType i) const
+    {
+        assert(i >= 0);
+        assert(i < size());
+    }
+
     IndexType* parents_;
     IndexType size_;
 };
