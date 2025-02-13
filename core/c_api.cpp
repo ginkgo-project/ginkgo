@@ -20,6 +20,7 @@
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/factorization/par_ilut.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
@@ -689,6 +690,25 @@ struct gko_linop_st {
 
 void ginkgo_linop_delete(gko_linop linop_st_ptr) { delete linop_st_ptr; }
 
+
+struct gko_log_convergence_f32_st {
+    std::shared_ptr<gko::log::Convergence<float>> shared_ptr;
+};
+
+void ginkgo_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_st_ptr)
+{
+    delete log_conv_st_ptr;
+}
+
+struct gko_log_convergence_f64_st {
+    std::shared_ptr<gko::log::Convergence<double>> shared_ptr;
+};
+
+void ginkgo_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_st_ptr)
+{
+    delete log_conv_st_ptr;
+}
+
 void ginkgo_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
                         gko_linop x_st_ptr)
 {
@@ -772,4 +792,40 @@ gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
                 gko::experimental::factorization::Lu<float, int>::build())
             .on(exec_st_ptr->shared_ptr)
             ->generate(A_st_ptr->shared_ptr)};
+}
+
+gko_log_convergence_f32 ginkgo_logger_convergence_f32_create()
+{
+    return new gko_log_convergence_f32_st{
+        gko::log::Convergence<float>::create()};
+}
+
+gko_log_convergence_f64 ginkgo_logger_convergence_f64_create()
+{
+    return new gko_log_convergence_f64_st{
+        gko::log::Convergence<double>::create()};
+}
+
+void ginkgo_logger_convergence_f32_solver_add(
+    gko_linop solver_st_ptr, gko_log_convergence_f32 logger_st_ptr)
+{
+    solver_st_ptr->shared_ptr->add_logger(logger_st_ptr->shared_ptr);
+}
+
+void ginkgo_logger_convergence_f64_solver_add(
+    gko_linop solver_st_ptr, gko_log_convergence_f64 logger_st_ptr)
+{
+    solver_st_ptr->shared_ptr->add_logger(logger_st_ptr->shared_ptr);
+}
+
+int ginkgo_logger_convergence_f64_get_num_iterations(
+    gko_log_convergence_f64 logger_st_ptr)
+{
+    return logger_st_ptr->shared_ptr->get_num_iterations();
+}
+
+int ginkgo_logger_convergence_f32_get_num_iterations(
+    gko_log_convergence_f32 logger_st_ptr)
+{
+    return logger_st_ptr->shared_ptr->get_num_iterations();
 }
