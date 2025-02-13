@@ -201,6 +201,34 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
 }
 
 
+TYPED_TEST(CholeskySymbolic, KernelComputeEliminationForest)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        // check for correctness: is mtx symmetric?
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx, gko::as<matrix_type>(mtx->transpose()));
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        const auto ssize = static_cast<index_type>(size);
+        elimination_forest forest{this->ref, ssize};
+        elimination_forest dforest{this->exec, ssize};
+
+        gko::kernels::reference::elimination_forest::compute(
+            this->ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            size, forest);
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::compute(
+            this->exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+            size, dforest);
+
+        GKO_ASSERT_ARRAY_EQ(forest.parents, dforest.parents);
+    }
+}
+
+
 TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;

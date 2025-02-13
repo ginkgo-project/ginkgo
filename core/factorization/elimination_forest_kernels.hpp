@@ -28,6 +28,13 @@ namespace kernels {
                                IndexType* out_row_ptrs, IndexType* out_cols)
 
 
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE(IndexType)          \
+    void compute(std::shared_ptr<const DefaultExecutor> exec,      \
+                 const IndexType* row_ptrs, const IndexType* cols, \
+                 size_type size,                                   \
+                 gko::factorization::elimination_forest<IndexType>& forest)
+
+
 #define GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType) \
     void from_factor(                                                    \
         std::shared_ptr<const DefaultExecutor> exec,                     \
@@ -38,6 +45,8 @@ namespace kernels {
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename IndexType>                                    \
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType); \
+    template <typename IndexType>                                    \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE(IndexType);               \
     template <typename ValueType, typename IndexType>                \
     GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType)
 

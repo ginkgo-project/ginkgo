@@ -11,6 +11,7 @@
 
 #include "core/base/allocator.hpp"
 #include "core/base/index_range.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -73,6 +74,124 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE);
+
+
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type size,
+             gko::factorization::elimination_forest<IndexType>& forest)
+{
+    if (size == 0) {
+        return;
+    }
+    using unsigned_type = std::make_unsigned_t<IndexType>;
+    const auto ssize = static_cast<IndexType>(size);
+    std::vector<std::pair<IndexType, IndexType>> edges;
+    for (const auto row : irange{ssize}) {
+        for (const auto nz : irange{row_ptrs[row], row_ptrs[row + 1]}) {
+            const auto col = cols[nz];
+            if (col < row) {
+                edges.emplace_back(col, row);
+            }
+        }
+    }
+    // round up size to the next power of two
+    const auto rounded_up_size =
+        IndexType{1}
+        << (detail::find_highest_bit(static_cast<unsigned_type>(size - 1)) + 1);
+    // insert fill-in edges top-down
+    for (auto block_size = rounded_up_size; block_size > 1; block_size /= 2) {
+        const auto half_block_size = block_size / 2;
+        const auto is_inner_edge = [&](auto e) {
+            assert(e.first < e.second);
+            return e.first / half_block_size == e.second / half_block_size;
+        };
+        const auto is_cut_edge = [&](auto e) {
+            assert(e.first < e.second);
+            return e.first / block_size == e.second / block_size &&
+                   e.first / half_block_size < e.second / half_block_size;
+        };
+        disjoint_sets<IndexType> cc{exec, ssize};
+        for (auto edge : edges) {
+            // join edges inside blocks of size half_block_size
+            if (is_inner_edge(edge)) {
+                cc.join(edge.first, edge.second);
+            }
+        }
+        // now find the smallest upper node adjacent to a cc in a lower block
+        std::vector<IndexType> mins(size, ssize);
+        for (auto edge : edges) {
+            if (is_cut_edge(edge)) {
+                const auto first_rep = cc.find(edge.first);
+                mins[first_rep] = std::min(mins[first_rep], edge.second);
+            }
+        }
+        std::vector<std::pair<IndexType, IndexType>> new_edges;
+        // now add new edges for every one of those cut edges
+        for (auto edge : edges) {
+            if (is_cut_edge(edge)) {
+                const auto first_rep = cc.find(edge.first);
+                const auto min_neighbor = mins[first_rep];
+                if (min_neighbor != edge.second) {
+                    new_edges.emplace_back(min_neighbor, edge.second);
+                }
+            }
+        }
+        edges.insert(edges.end(), new_edges.begin(), new_edges.end());
+    }
+    // compute elimination forest bottom-up
+    disjoint_sets<IndexType> cc{exec, ssize};
+    std::vector<IndexType> subtree_roots(size);
+    std::vector<std::pair<IndexType, IndexType>> tree_edges;
+    std::iota(subtree_roots.begin(), subtree_roots.end(), IndexType{});
+    for (IndexType block_size = 2; block_size <= rounded_up_size;
+         block_size *= 2) {
+        std::vector<IndexType> mins(size, ssize);
+        const auto half_block_size = block_size / 2;
+        const auto is_inner_edge = [&](auto e) {
+            assert(e.first < e.second);
+            return e.first / half_block_size == e.second / half_block_size;
+        };
+        const auto is_cut_edge = [&](auto e) {
+            assert(e.first < e.second);
+            return e.first / block_size == e.second / block_size &&
+                   e.first / half_block_size < e.second / half_block_size;
+        };
+        // reproduce CC again, this time with subtree roots
+        for (auto edge : edges) {
+            if (is_inner_edge(edge)) {
+                const auto first_rep = cc.find(edge.first);
+                const auto second_rep = cc.find(edge.second);
+                const auto combined_rep = cc.join(first_rep, second_rep);
+                subtree_roots[combined_rep] = std::max(
+                    subtree_roots[first_rep], subtree_roots[second_rep]);
+            }
+        }
+        for (auto edge : edges) {
+            if (is_cut_edge(edge)) {
+                const auto first_rep = cc.find(edge.first);
+                mins[first_rep] = std::min(mins[first_rep], edge.second);
+            }
+        }
+        for (auto node : irange{ssize}) {
+            // for every connected component: insert an edge from its root to
+            // the minimal adjacent node
+            if ((node / half_block_size) % 2 == 0 &&
+                cc.is_representative(node)) {
+                tree_edges.emplace_back(subtree_roots[node], mins[node]);
+            }
+        }
+    }
+    // translate to parents
+    const auto parents = forest.parents.get_data();
+    std::fill_n(parents, ssize, ssize);
+    for (auto tree_edge : tree_edges) {
+        assert(parents[tree_edge.first] == ssize);
+        parents[tree_edge.first] = tree_edge.second;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 
 
 template <typename ValueType, typename IndexType>

@@ -8,8 +8,12 @@
 #include <limits>
 #include <memory>
 
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/detail/for_each.inl>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
+#include <thrust/iterator/detail/zip_iterator.inl>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
@@ -24,6 +28,7 @@
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
@@ -44,13 +49,13 @@ namespace kernel {
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void mst_initialize_worklist(
     const IndexType* __restrict__ rows, const IndexType* __restrict__ cols,
-    IndexType size, IndexType* __restrict__ worklist_sources,
+    IndexType num_edges, IndexType* __restrict__ worklist_sources,
     IndexType* __restrict__ worklist_targets,
     IndexType* __restrict__ worklist_edge_ids,
     IndexType* __restrict__ worklist_counter)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= size) {
+    if (i >= num_edges) {
         return;
     }
     const auto row = rows[i];
@@ -78,15 +83,15 @@ template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void mst_find_minimum(
     const IndexType* __restrict__ in_sources,
     const IndexType* __restrict__ in_targets,
-    const IndexType* __restrict__ in_edge_ids, IndexType size,
-    const IndexType* __restrict__ parents, IndexType* __restrict__ min_edge,
-    IndexType* __restrict__ worklist_sources,
+    const IndexType* __restrict__ in_edge_ids, IndexType num_edges,
+    IndexType size, const IndexType* __restrict__ parents,
+    IndexType* __restrict__ min_edge, IndexType* __restrict__ worklist_sources,
     IndexType* __restrict__ worklist_targets,
     IndexType* __restrict__ worklist_edge_ids,
     IndexType* __restrict__ worklist_counter)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= size) {
+    if (i >= num_edges) {
         return;
     }
     disjoint_sets<const IndexType> sets{parents, size};
@@ -110,15 +115,16 @@ template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void mst_join_edges(
     const IndexType* __restrict__ in_sources,
     const IndexType* __restrict__ in_targets,
-    const IndexType* __restrict__ in_edge_ids, IndexType size,
-    IndexType* __restrict__ parents, const IndexType* __restrict__ min_edge,
+    const IndexType* __restrict__ in_edge_ids, IndexType num_edges,
+    IndexType size, IndexType* __restrict__ parents,
+    const IndexType* __restrict__ min_edge,
     const IndexType* __restrict__ edge_sources,
     const IndexType* __restrict__ edge_targets,
     IndexType* __restrict__ out_sources, IndexType* __restrict__ out_targets,
     IndexType* __restrict__ out_counter)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= size) {
+    if (i >= num_edges) {
         return;
     }
     disjoint_sets<IndexType> sets{parents, size};
@@ -141,12 +147,12 @@ __global__ __launch_bounds__(default_block_size) void mst_join_edges(
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void mst_reset_min_edges(
     const IndexType* __restrict__ in_sources,
-    const IndexType* __restrict__ in_targets, IndexType size,
+    const IndexType* __restrict__ in_targets, IndexType num_edges,
     IndexType* __restrict__ min_edge)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= size) {
+    if (i >= num_edges) {
         return;
     }
     const auto source = in_sources[i];
@@ -176,6 +182,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // already sorts by row index.
     const auto policy = thrust_policy(exec);
     const auto nnz = exec->copy_val_to_host(row_ptrs + size);
+    const auto ssize = static_cast<IndexType>(size);
     // convert edges to COO representation
     // the edge list is sorted, since we only consider edges where row > col,
     // and the row array (= weights) is sorted coming from row_ptrs
@@ -244,7 +251,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         {
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
             kernel::mst_find_minimum<<<num_blocks, default_block_size>>>(
-                wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
+                wl1_source, wl1_target, wl1_edge_id, wl1_size, ssize, parents,
                 min_edges, wl2_source, wl2_target, wl2_edge_id, wl2_counter);
         }
         clear_wl1();
@@ -254,7 +261,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
             // join minimal edges
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
             kernel::mst_join_edges<<<num_blocks, default_block_size>>>(
-                wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
+                wl1_source, wl1_target, wl1_edge_id, wl1_size, ssize, parents,
                 min_edges, rows, cols, out_rows, out_cols, output_counter);
             kernel::mst_reset_min_edges<<<num_blocks, default_block_size>>>(
                 wl1_source, wl1_target, wl1_size, min_edges);
@@ -296,6 +303,222 @@ void build_children_from_parents(
                                      num_rows + 1,  // rows plus sentinel
                                      child_ptrs);
 }
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void build_conn_components(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    IndexType size, IndexType block_size, IndexType* __restrict__ parents)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
+    }
+    disjoint_sets<IndexType> sets{parents, size};
+    const auto start = edge_starts[i];
+    const auto end = edge_ends[i];
+    const auto half_block_size = block_size / 2;
+    // interior edge: join
+    if (start / half_block_size ==
+        end / half_block_size /* && (start / half_block_size) % 2 == 0*/) {
+        const auto start_rep = sets.find_relaxed_compressing(start);
+        const auto end_rep = sets.find_relaxed_compressing(end);
+        sets.join(start_rep, end_rep);
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void find_min_cut_neighbors(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    IndexType size, IndexType block_size, IndexType* __restrict__ parents,
+    IndexType* __restrict__ mins, IndexType* __restrict__ cut_edge_counter)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
+    }
+    disjoint_sets<IndexType> sets{parents, size};
+    const auto start = edge_starts[i];
+    const auto end = edge_ends[i];
+    const auto half_block_size = block_size / 2;
+    if (start / block_size == end / block_size &&
+        start / half_block_size < end / half_block_size) {
+        // cut edge: count for minimum
+        const auto start_rep = sets.find_relaxed_compressing(start);
+        kernel::guarded_atomic_min(mins + start_rep, end);
+        atomic_add_relaxed(cut_edge_counter, 1);
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void add_fill_edges(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    IndexType size, IndexType block_size, const IndexType* __restrict__ parents,
+    const IndexType* __restrict__ mins, IndexType* __restrict__ new_edge_starts,
+    IndexType* __restrict__ new_edge_ends,
+    IndexType* __restrict__ cut_edge_counter)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
+    }
+    disjoint_sets<const IndexType> sets{parents, size};
+    const auto start = edge_starts[i];
+    const auto end = edge_ends[i];
+    const auto half_block_size = block_size / 2;
+    if (start / block_size == end / block_size &&
+        start / half_block_size < end / half_block_size) {
+        // cut edge: potentially add fill-in
+        const auto start_rep = sets.find_weak(start);
+        const auto min_node = mins[start_rep];
+        if (min_node != end) {
+            const auto out_i = atomic_add_relaxed(cut_edge_counter, 1);
+            new_edge_starts[out_i] = min_node;
+            new_edge_ends[out_i] = end;
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void add_tree_edges(
+    const IndexType* __restrict__ parents, const IndexType* __restrict__ mins,
+    IndexType size, IndexType* __restrict__ forest_parents)
+{
+    const auto i = thread::get_thread_id_flat<IndexType>();
+    if (i >= size) {
+        return;
+    }
+    disjoint_sets<const IndexType> sets{parents, size};
+    if (sets.is_representative_weak(i)) {
+        forest_parents[i] = mins[i];
+    }
+}
+
+
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type usize,
+             gko::factorization::elimination_forest<IndexType>& forest)
+{
+    using unsigned_type = std::make_unsigned_t<IndexType>;
+    const auto size = static_cast<IndexType>(usize);
+    if (size == 0) {
+        return;
+    }
+    const auto forest_parents = forest.parents.get_data();
+    components::fill_array(exec, forest_parents, usize, size);
+    const auto nnz =
+        static_cast<size_type>(exec->copy_val_to_host(row_ptrs + size));
+    if (nnz == 0) {
+        return;
+    }
+    const auto policy = thrust_policy(exec);
+    array<IndexType> row_idx_array{exec, nnz};
+    const auto row_idxs = row_idx_array.get_data();
+    components::convert_ptrs_to_idxs(exec, row_ptrs, size, row_idxs);
+    const auto nz_it = thrust::make_zip_iterator(cols, row_idxs);
+    const auto edge_predicate =
+        [] __device__(thrust::tuple<IndexType, IndexType> tuple) {
+            return thrust::get<0>(tuple) < thrust::get<1>(tuple);
+        };
+    auto num_edges = static_cast<size_type>(
+        thrust::count_if(policy, nz_it, nz_it + nnz, edge_predicate));
+    array<IndexType> edge_start_array{exec, num_edges};
+    array<IndexType> edge_end_array{exec, num_edges};
+    auto edge_starts = edge_start_array.get_data();
+    auto edge_ends = edge_end_array.get_data();
+    auto edge_it = thrust::make_zip_iterator(edge_starts, edge_ends);
+    thrust::copy_if(policy, nz_it, nz_it + nnz, edge_it, edge_predicate);
+    // round up size to the next power of two
+    const auto rounded_up_size = IndexType{1}
+                                 << (gko::detail::find_highest_bit(
+                                         static_cast<unsigned_type>(size - 1)) +
+                                     1);
+    // insert fill-in edges top-down
+    for (auto block_size = rounded_up_size; block_size > 1; block_size /= 2) {
+        // initialize parent array
+        array<IndexType> parent_array{exec, usize};
+        const auto parents = parent_array.get_data();
+        components::fill_seq_array(exec, parents, usize);
+        // build connected components
+        const auto num_blocks = ceildiv(num_edges, default_block_size);
+        build_conn_components<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+            edge_starts, edge_ends, num_edges, size, block_size, parents);
+        // now find the smallest upper node adjacent to a cc in a lower block
+        array<IndexType> min_array{exec, usize};
+        const auto mins = min_array.get_data();
+        components::fill_array(exec, mins, usize, size);
+        array<IndexType> counter_array{exec, 1};
+        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
+        find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
+            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
+            counter_array.get_data());
+        const auto new_edge_space = static_cast<size_type>(
+            exec->copy_val_to_host(counter_array.get_const_data()));
+        array<IndexType> new_edge_start_array{exec, new_edge_space};
+        array<IndexType> new_edge_end_array{exec, new_edge_space};
+        // now add new edges for every one of those cut edges
+        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
+        add_fill_edges<<<num_blocks, default_block_size, 0,
+                         exec->get_stream()>>>(
+            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
+            new_edge_start_array.get_data(), new_edge_end_array.get_data(),
+            counter_array.get_data());
+        const auto new_edges =
+            exec->copy_val_to_host(counter_array.get_const_data());
+        array<IndexType> new_full_edge_start_array{exec, num_edges + new_edges};
+        array<IndexType> new_full_edge_end_array{exec, num_edges + new_edges};
+        exec->copy(num_edges, edge_starts,
+                   new_full_edge_start_array.get_data());
+        exec->copy(num_edges, edge_ends, new_full_edge_end_array.get_data());
+        exec->copy(new_edges, new_edge_start_array.get_data(),
+                   new_full_edge_start_array.get_data() + num_edges);
+        exec->copy(new_edges, new_edge_end_array.get_data(),
+                   new_full_edge_end_array.get_data() + num_edges);
+        num_edges = new_full_edge_start_array.get_size();
+        edge_start_array = std::move(new_full_edge_start_array);
+        edge_end_array = std::move(new_full_edge_end_array);
+        edge_starts = edge_start_array.get_data();
+        edge_ends = edge_end_array.get_data();
+    }
+    // initialize parent array
+    array<IndexType> parent_array{exec, usize};
+    const auto parents = parent_array.get_data();
+    components::fill_seq_array(exec, parents, usize);
+    for (IndexType block_size = 2; block_size <= rounded_up_size;
+         block_size *= 2) {
+        // build connected components
+        const auto num_blocks = ceildiv(num_edges, default_block_size);
+        build_conn_components<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+            edge_starts, edge_ends, num_edges, size, block_size, parents);
+        // now find the smallest upper node adjacent to a cc in a lower block
+        array<IndexType> min_array{exec, usize};
+        const auto mins = min_array.get_data();
+        components::fill_array(exec, mins, usize, size);
+        array<IndexType> counter_array{exec, 1};
+        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
+        find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
+            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
+            counter_array.get_data());
+        // add edges
+        const auto num_node_blocks = ceildiv(size, default_block_size);
+        add_tree_edges<<<num_node_blocks, default_block_size, 0,
+                         exec->get_stream()>>>(parents, mins, size,
+                                               forest_parents);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 
 
 template <typename ValueType, typename IndexType>
