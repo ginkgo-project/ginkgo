@@ -1,6 +1,6 @@
 ginkgo_create_common_test(amd)
 ginkgo_create_common_test(mc64)
-if (GINKGO_HAVE_METIS)
+if(GINKGO_HAVE_METIS)
     ginkgo_create_common_test(nested_dissection)
 endif()
 ginkgo_create_common_and_reference_test(rcm)
