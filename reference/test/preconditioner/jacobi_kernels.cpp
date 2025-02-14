@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -138,7 +138,7 @@ TYPED_TEST(Jacobi, FindsNaturalBlocks)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
-    auto mtx = Mtx::create(this->exec, gko::dim<2>{4}, 8);
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{4, 4}, 8);
     this->template init_array<index_type>(mtx->get_row_ptrs(), {0, 2, 4, 6, 8});
     this->template init_array<index_type>(mtx->get_col_idxs(),
                                           {0, 1, 0, 1, 0, 2, 0, 2});
@@ -1119,15 +1119,15 @@ TYPED_TEST(Jacobi, ConvertsEmptyToDense)
 TYPED_TEST(Jacobi, ScalarL1Diag)
 {
     /* example matrix:
-        1   1
-        2   2
-       -5       1
-        1      -1
+        1   1   0   0
+        2   2   0   0
+       -5   0   1   0
+        1   0  -1   0
      */
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
-    auto mtx = Mtx::create(this->exec, gko::dim<2>{4}, 8);
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{4, 4}, 8);
     this->template init_array<index_type>(mtx->get_row_ptrs(), {0, 2, 4, 6, 8});
     this->template init_array<index_type>(mtx->get_col_idxs(),
                                           {0, 1, 0, 1, 0, 2, 0, 2});
@@ -1149,15 +1149,17 @@ TYPED_TEST(Jacobi, ScalarL1Diag)
 TYPED_TEST(Jacobi, BlockL1)
 {
     /* example matrix:
-        1   1
-        2   2
-       -5       1
-        1      -1   1
+        1 | 1
+       ---+---+
+        2 | 2 |
+          +---+--------
+       -5     |  1
+        1     | -1   1
      */
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
-    auto mtx = Mtx::create(this->exec, gko::dim<2>{4}, 9);
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{4, 4}, 9);
     this->template init_array<index_type>(mtx->get_row_ptrs(), {0, 2, 4, 6, 9});
     this->template init_array<index_type>(mtx->get_col_idxs(),
                                           {0, 1, 0, 1, 0, 2, 0, 2, 3});
