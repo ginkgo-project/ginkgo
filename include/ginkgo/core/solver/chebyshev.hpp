@@ -23,7 +23,15 @@
 
 namespace gko {
 namespace solver {
+namespace detail {
 
+
+template <typename T>
+using coeff_type =
+    std::conditional_t<is_complex<T>, std::complex<double>, double>;
+
+
+}
 
 /**
  * Chebyshev iteration is an iterative method for solving nonsymmetric problems
@@ -121,8 +129,11 @@ public:
          * preconditioned system. It is usually be {lower bound of eigval, upper
          * bound of eigval} of preconditioned real matrices.
          */
-        std::pair<value_type, value_type> GKO_FACTORY_PARAMETER_VECTOR(
-            foci, value_type{0}, value_type{1});
+        std::pair<detail::coeff_type<value_type>,
+                  detail::coeff_type<value_type>>
+            GKO_FACTORY_PARAMETER_VECTOR(foci,
+                                         detail::coeff_type<value_type>{0},
+                                         detail::coeff_type<value_type>{1});
 
         /**
          * Default initial guess mode. The available options are under
@@ -170,9 +181,6 @@ protected:
                                        const LinOp* beta, LinOp* x,
                                        initial_guess_mode guess) const override;
 
-    void set_relaxation_factor(
-        std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
-
     explicit Chebyshev(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Chebyshev>(std::move(exec))
     {}
@@ -182,8 +190,8 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> solver_{};
-    ValueType center_;
-    ValueType foci_direction_;
+    detail::coeff_type<value_type> center_;
+    detail::coeff_type<value_type> foci_direction_;
 };
 
 
