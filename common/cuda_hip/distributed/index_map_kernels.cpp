@@ -302,20 +302,20 @@ void map_to_global(
     device_partition<const LocalIndexType, const GlobalIndexType> partition,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
-    const array<LocalIndexType>& local_ids,
+    const array<LocalIndexType>& local_idxs,
     experimental::distributed::index_space is,
-    array<GlobalIndexType>& global_ids)
+    array<GlobalIndexType>& global_idxs)
 {
     auto range_bounds = partition.offsets_begin;
     auto starting_indices = partition.starting_indices_begin;
     const auto& ranges_by_part = partition.ranges_by_part;
-    auto local_ids_it = local_ids.get_const_data();
-    auto input_size = local_ids.get_size();
+    auto local_idxs_it = local_idxs.get_const_data();
+    auto input_size = local_idxs.get_size();
 
     auto policy = thrust_policy(exec);
 
-    global_ids.resize_and_reset(local_ids.get_size());
-    auto global_ids_it = global_ids.get_data();
+    global_idxs.resize_and_reset(local_idxs.get_size());
+    auto global_idxs_it = global_idxs.get_data();
 
     auto map_local = [rank, ranges_by_part, range_bounds, starting_indices,
                       partition] __device__(auto lid) {
@@ -330,11 +330,16 @@ void map_to_global(
         auto local_ranges_size =
             static_cast<int64>(local_ranges.end - local_ranges.begin);
 
-        auto it = binary_search(int64(0), local_ranges_size, [=](const auto i) {
-            return starting_indices[local_ranges.begin[i]] >= lid;
-        });
+        // the binary search finds the first local range, such that the starting
+        // index is larger than lid, thus lid is contained in the local range
+        // before that one
         auto local_range_id =
-            it != local_ranges_size ? it : max(int64(0), it - 1);
+            binary_search(int64(0), local_ranges_size,
+                          [=](const auto i) {
+                              return starting_indices[local_ranges.begin[i]] >
+                                     lid;
+                          }) -
+            1;
         auto range_id = local_ranges.begin[local_range_id];
 
         return static_cast<GlobalIndexType>(lid - starting_indices[range_id]) +
@@ -363,16 +368,16 @@ void map_to_global(
     };
 
     if (is == experimental::distributed::index_space::local) {
-        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
-                          global_ids_it, map_local);
+        thrust::transform(policy, local_idxs_it, local_idxs_it + input_size,
+                          global_idxs_it, map_local);
     }
     if (is == experimental::distributed::index_space::non_local) {
-        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
-                          global_ids_it, map_non_local);
+        thrust::transform(policy, local_idxs_it, local_idxs_it + input_size,
+                          global_idxs_it, map_non_local);
     }
     if (is == experimental::distributed::index_space::combined) {
-        thrust::transform(policy, local_ids_it, local_ids_it + input_size,
-                          global_ids_it, map_combined);
+        thrust::transform(policy, local_idxs_it, local_idxs_it + input_size,
+                          global_idxs_it, map_combined);
     }
 }
 

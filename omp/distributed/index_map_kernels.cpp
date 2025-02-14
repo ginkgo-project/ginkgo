@@ -245,62 +245,50 @@ void map_to_global(
     device_partition<const LocalIndexType, const GlobalIndexType> partition,
     device_segmented_array<const GlobalIndexType> remote_global_idxs,
     experimental::distributed::comm_index_type rank,
-    const array<LocalIndexType>& local_ids,
+    const array<LocalIndexType>& local_idxs,
     experimental::distributed::index_space is,
-    array<GlobalIndexType>& global_ids)
+    array<GlobalIndexType>& global_idxs)
 {
     const auto& ranges_by_part = partition.ranges_by_part;
     auto local_ranges = ranges_by_part.get_segment(rank);
 
-    global_ids.resize_and_reset(local_ids.get_size());
+    global_idxs.resize_and_reset(local_idxs.get_size());
 
     auto local_size =
         static_cast<LocalIndexType>(partition.part_sizes_begin[rank]);
     auto remote_size = static_cast<LocalIndexType>(
         remote_global_idxs.flat_end - remote_global_idxs.flat_begin);
     size_type local_range_id = 0;
-    if (is == experimental::distributed::index_space::local) {
 #pragma omp parallel for firstprivate(local_range_id)
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
+    for (size_type i = 0; i < local_idxs.get_size(); ++i) {
+        auto lid = local_idxs.get_const_data()[i];
 
+        if (is == experimental::distributed::index_space::local) {
             if (0 <= lid && lid < local_size) {
                 local_range_id =
                     find_local_range(lid, rank, partition, local_range_id);
-                global_ids.get_data()[i] = map_to_global(
+                global_idxs.get_data()[i] = map_to_global(
                     lid, partition, local_ranges.begin[local_range_id]);
             } else {
-                global_ids.get_data()[i] = invalid_index<GlobalIndexType>();
+                global_idxs.get_data()[i] = invalid_index<GlobalIndexType>();
             }
-        }
-    }
-    if (is == experimental::distributed::index_space::non_local) {
-#pragma omp parallel for
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
-
+        } else if (is == experimental::distributed::index_space::non_local) {
             if (0 <= lid && lid < remote_size) {
-                global_ids.get_data()[i] = remote_global_idxs.flat_begin[lid];
+                global_idxs.get_data()[i] = remote_global_idxs.flat_begin[lid];
             } else {
-                global_ids.get_data()[i] = invalid_index<GlobalIndexType>();
+                global_idxs.get_data()[i] = invalid_index<GlobalIndexType>();
             }
-        }
-    }
-    if (is == experimental::distributed::index_space::combined) {
-#pragma omp parallel for firstprivate(local_range_id)
-        for (size_type i = 0; i < local_ids.get_size(); ++i) {
-            auto lid = local_ids.get_const_data()[i];
-
+        } else if (is == experimental::distributed::index_space::combined) {
             if (0 <= lid && lid < local_size) {
                 local_range_id =
                     find_local_range(lid, rank, partition, local_range_id);
-                global_ids.get_data()[i] = map_to_global(
+                global_idxs.get_data()[i] = map_to_global(
                     lid, partition, local_ranges.begin[local_range_id]);
             } else if (local_size <= lid && lid < local_size + remote_size) {
-                global_ids.get_data()[i] =
+                global_idxs.get_data()[i] =
                     remote_global_idxs.flat_begin[lid - local_size];
             } else {
-                global_ids.get_data()[i] = invalid_index<GlobalIndexType>();
+                global_idxs.get_data()[i] = invalid_index<GlobalIndexType>();
             }
         }
     }
@@ -308,8 +296,6 @@ void map_to_global(
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL);
-
-
 }  // namespace index_map
 }  // namespace omp
 }  // namespace kernels

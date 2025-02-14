@@ -117,9 +117,6 @@ protected:
 
     IndexMap()
     {
-        std::random_device rd;
-        std::uniform_int_distribution<> engine_dist(
-            0, std::numeric_limits<int>::max());
         engine.seed(490729788);
 
         auto connections =
@@ -408,26 +405,6 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceWithInvalidIndexSameAsRef)
 
 TEST_F(IndexMap, GetGlobalWithLocalIndexSpaceSameAsRef)
 {
-    auto query = generate_to_global_query(ref, local_size, 33);
-    auto dquery = gko::array<local_index_type>(exec, query);
-    auto result = gko::array<global_index_type>(ref);
-    auto dresult = gko::array<global_index_type>(exec);
-
-    gko::kernels::reference::index_map::map_to_global(
-        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query, gko::experimental::distributed::index_space::local,
-        result);
-    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(dpart.get()),
-        to_device_const(dremote_global_idxs), this_rank, dquery,
-        gko::experimental::distributed::index_space::local, dresult);
-
-    GKO_ASSERT_ARRAY_EQ(result, dresult);
-}
-
-
-TEST_F(IndexMap, GetGlobalWithLocalIndexSpaceWithInvalidIndexSameAsRef)
-{
     auto query = generate_to_global_query(ref, local_size * 2, 33);
     auto dquery = gko::array<local_index_type>(exec, query);
     auto result = gko::array<global_index_type>(ref);
@@ -449,27 +426,6 @@ TEST_F(IndexMap, GetGlobalWithLocalIndexSpaceWithInvalidIndexSameAsRef)
 TEST_F(IndexMap, GetGlobalWithNonLocalIndexSpaceSameAsRef)
 {
     auto query =
-        generate_to_global_query(ref, remote_global_idxs.get_size(), 33);
-    auto dquery = gko::array<local_index_type>(exec, query);
-    auto result = gko::array<global_index_type>(ref);
-    auto dresult = gko::array<global_index_type>(exec);
-
-    gko::kernels::reference::index_map::map_to_global(
-        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query,
-        gko::experimental::distributed::index_space::non_local, result);
-    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(dpart.get()),
-        to_device_const(dremote_global_idxs), this_rank, dquery,
-        gko::experimental::distributed::index_space::non_local, dresult);
-
-    GKO_ASSERT_ARRAY_EQ(result, dresult);
-}
-
-
-TEST_F(IndexMap, GetGlobalWithNonLocalIndexSpaceWithInvalidIndexSameAsRef)
-{
-    auto query =
         generate_to_global_query(ref, remote_global_idxs.get_size() * 2, 33);
     auto dquery = gko::array<local_index_type>(exec, query);
     auto result = gko::array<global_index_type>(ref);
@@ -489,27 +445,6 @@ TEST_F(IndexMap, GetGlobalWithNonLocalIndexSpaceWithInvalidIndexSameAsRef)
 
 
 TEST_F(IndexMap, GetGlobalWithCombinedIndexSpaceSameAsRef)
-{
-    auto query = generate_to_global_query(
-        ref, local_size + remote_global_idxs.get_size(), 33);
-    auto dquery = gko::array<local_index_type>(exec, query);
-    auto result = gko::array<global_index_type>(ref);
-    auto dresult = gko::array<global_index_type>(exec);
-
-    gko::kernels::reference::index_map::map_to_global(
-        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
-        this_rank, query, gko::experimental::distributed::index_space::combined,
-        result);
-    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
-        exec, to_device_const(dpart.get()),
-        to_device_const(dremote_global_idxs), this_rank, dquery,
-        gko::experimental::distributed::index_space::combined, dresult);
-
-    GKO_ASSERT_ARRAY_EQ(result, dresult);
-}
-
-
-TEST_F(IndexMap, GetGlobalWithCombinedIndexSpaceWithInvalidIndexSameAsRef)
 {
     auto query = generate_to_global_query(
         ref, (local_size + remote_global_idxs.get_size()) * 2, 33);

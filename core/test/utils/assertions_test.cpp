@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -215,6 +216,51 @@ TEST_F(ArraysNear, CanUseShortNotation)
 {
     GKO_EXPECT_ARRAY_NEAR(arr1, arr2, 0.0);
     GKO_ASSERT_ARRAY_NEAR(arr1, arr3, 0.001);
+}
+
+
+class SegmentedArraysEqual : public ::testing::Test {
+protected:
+    using array = gko::array<double>;
+    using iarray = gko::array<gko::int64>;
+    using segmented_array = gko::segmented_array<double>;
+
+    std::shared_ptr<gko::Executor> exec = gko::ReferenceExecutor::create();
+
+    segmented_array arr1 = segmented_array::create_from_sizes(
+        array{exec, {1, 2, 3, 4, 5}}, iarray{exec, {2, 1, 2}});
+    segmented_array arr2 = segmented_array::create_from_sizes(
+        array{exec, {1, 2, 3, 4, 5}}, iarray{exec, {2, 1, 2}});
+    segmented_array arr3 = segmented_array::create_from_sizes(
+        array{exec, {1, 2, 3, 5, 6}}, iarray{exec, {2, 1, 2}});
+    segmented_array arr4 = segmented_array::create_from_sizes(
+        array{exec, {1, 2, 3, 4, 5}}, iarray{exec, {3, 2}});
+    segmented_array arr5 = segmented_array::create_from_sizes(
+        array{exec, {1, 2, 3, 4, 5}}, iarray{exec, {1, 2, 2}});
+};
+
+
+TEST_F(SegmentedArraysEqual, SucceedsIfEqual)
+{
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(arr1, arr2);
+}
+
+
+TEST_F(SegmentedArraysEqual, FailsIfValuesDifferent)
+{
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(arr1, arr3);
+}
+
+
+TEST_F(SegmentedArraysEqual, FailsIfOffsetsDifferent1)
+{
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(arr1, arr4);
+}
+
+
+TEST_F(SegmentedArraysEqual, FailsIfOffsetsDifferent2)
+{
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(arr1, arr5);
 }
 
 
