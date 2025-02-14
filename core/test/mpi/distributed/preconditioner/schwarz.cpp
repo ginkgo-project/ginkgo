@@ -42,7 +42,7 @@ protected:
     {
         schwarz = Schwarz::build()
                       .with_local_solver(jacobi_factory)
-                      .with_galerkin_ops(pgm_factory)
+                      .with_coarse_level(pgm_factory)
                       .with_coarse_solver(cg_factory)
                       .on(exec)
                       ->generate(mtx);
@@ -61,8 +61,8 @@ protected:
         ASSERT_EQ(a->get_size(), b->get_size());
         ASSERT_EQ(a->get_parameters().local_solver,
                   b->get_parameters().local_solver);
-        ASSERT_EQ(a->get_parameters().galerkin_ops,
-                  b->get_parameters().galerkin_ops);
+        ASSERT_EQ(a->get_parameters().coarse_level,
+                  b->get_parameters().coarse_level);
         ASSERT_EQ(a->get_parameters().coarse_solver,
                   b->get_parameters().coarse_solver);
     }
@@ -94,7 +94,7 @@ TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 
 TYPED_TEST(SchwarzFactory, CanSetGalerkinOpsFactory)
 {
-    ASSERT_EQ(this->schwarz->get_parameters().galerkin_ops, this->pgm_factory);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_level, this->pgm_factory);
 }
 
 
@@ -124,7 +124,7 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
     auto cg = gko::share(Cg::build().on(this->exec));
     auto copy = Schwarz::build()
                     .with_local_solver(bj)
-                    .with_galerkin_ops(pgm)
+                    .with_coarse_level(pgm)
                     .with_coarse_solver(cg)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
@@ -148,7 +148,7 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
     auto cg = gko::share(Cg::build().on(this->exec));
     auto copy = Schwarz::build()
                     .with_local_solver(bj)
-                    .with_galerkin_ops(pgm)
+                    .with_coarse_level(pgm)
                     .with_coarse_solver(cg)
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
@@ -165,7 +165,7 @@ TYPED_TEST(SchwarzFactory, CanBeCleared)
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
-    ASSERT_EQ(this->schwarz->get_parameters().galerkin_ops, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_level, nullptr);
     ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, nullptr);
 }
 
