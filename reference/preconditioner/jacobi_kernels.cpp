@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -738,6 +738,9 @@ void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
             }
             off_diag += abs(csr->get_const_values()[i]);
         }
+        // TODO: It is unclear effect when this applies to negative diagonal
+        // value. The reference paper only discusses the positive diagonal
+        // value.
         diag->get_values()[row] += off_diag;
     }
 }
@@ -768,6 +771,9 @@ void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
                 }
                 off_diag += abs(csr->get_const_values()[i]);
             }
+            // TODO: It is unclear effect when this applies to negative diagonal
+            // value. The reference paper only discusses the positive diagonal
+            // value.
             csr->get_values()[diag_idx] += off_diag;
         }
     }
