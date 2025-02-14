@@ -236,7 +236,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     array<comm_index_type> part_ids(exec->get_master(), comm.size());
     std::iota(part_ids.get_data(), part_ids.get_data() + part_ids.get_size(),
               0);
-    auto uniform_partition =
+    auto contiguous_partition =
         share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
             exec, comm, local_linop->get_size()[0]));
     array<global_index_type> global_recv_gather_idxs(
@@ -244,7 +244,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     for (int rank = 0; rank < comm.size(); ++rank) {
         if (recv_sizes[rank] > 0) {
             auto map = index_map<LocalIndexType, GlobalIndexType>(
-                exec, uniform_partition, rank, array<GlobalIndexType>{exec});
+                exec, contiguous_partition, rank, array<GlobalIndexType>{exec});
             auto local_view = make_array_view(
                 exec, recv_sizes[rank],
                 recv_gather_idxs.get_data() + recv_offsets[rank]);
@@ -258,7 +258,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     return Matrix::create(
         exec, comm,
         index_map<LocalIndexType, GlobalIndexType>(
-            exec, uniform_partition, comm.rank(), global_recv_gather_idxs),
+            exec, contiguous_partition, comm.rank(), global_recv_gather_idxs),
         std::move(local_linop), std::move(non_local_linop));
 }
 
