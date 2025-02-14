@@ -95,8 +95,8 @@ namespace kernels {
         device_partition<const _ltype, const _gtype> partition,  \
         device_segmented_array<const _gtype> remote_global_idxs, \
         experimental::distributed::comm_index_type rank,         \
-        const array<_ltype>& local_ids,                          \
-        experimental::distributed::index_space is, array<_gtype>& global_ids)
+        const array<_ltype>& local_idxs,                         \
+        experimental::distributed::index_space is, array<_gtype>& global_idxs)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \

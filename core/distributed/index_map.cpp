@@ -93,15 +93,15 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::map_to_local(
 template <typename LocalIndexType, typename GlobalIndexType>
 array<GlobalIndexType>
 index_map<LocalIndexType, GlobalIndexType>::map_to_global(
-    const array<LocalIndexType>& local_ids, index_space index_space_v) const
+    const array<LocalIndexType>& local_idxs, index_space index_space_v) const
 {
-    array<GlobalIndexType> global_ids(exec_);
+    array<GlobalIndexType> global_idxs(exec_);
 
     exec_->run(index_map_kernels::make_map_to_global(
         to_device_const(partition_.get()), to_device(remote_global_idxs_),
-        rank_, local_ids, index_space_v, global_ids));
+        rank_, local_idxs, index_space_v, global_idxs));
 
-    return global_ids;
+    return global_idxs;
 }
 
 
