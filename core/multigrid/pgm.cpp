@@ -272,7 +272,7 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
     array<IndexType> send_agg(exec, total_send_size);
     exec->run(pgm::make_gather_index(
         send_agg.get_size(), local_agg.get_const_data(),
-        row_gatherer->get_const_row_idxs(), send_agg.get_data()));
+        row_gatherer->get_const_send_idxs(), send_agg.get_data()));
 
     // temporary index map that contains no remote connections to map
     // local indices to global

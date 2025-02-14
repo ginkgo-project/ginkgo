@@ -356,13 +356,7 @@ int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
 
-    int provided_thread_support;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE,
-                    &provided_thread_support);
-    if (provided_thread_support != MPI_THREAD_MULTIPLE) {
-        throw std::runtime_error(
-            "This test requires an thread compliant MPI implementation.");
-    }
+    MPI_Init(&argc, &argv);
     MPI_Comm comm(MPI_COMM_WORLD);
     int rank;
     int size;
