@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,6 +26,7 @@
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -48,6 +49,7 @@ GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
+GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
@@ -83,6 +85,7 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(convert_precision, components::convert_precision);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -618,6 +621,83 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
 }
 
 
+template <typename ValueType, typename IndexType, typename TransformClosure>
+std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
+          typename Csr<ValueType, IndexType>::permuting_reuse_info>
+transform_reusable(const Csr<ValueType, IndexType>* input, gko::dim<2> out_size,
+                   size_type nnz, TransformClosure closure)
+{
+    using FloatIndexType =
+        std::conditional_t<std::is_same_v<IndexType, int32>, float, double>;
+    static_assert(sizeof(FloatIndexType) == sizeof(IndexType));
+    static_assert(alignof(FloatIndexType) == alignof(IndexType));
+    auto exec = input->get_executor();
+    auto in_size = input->get_size();
+    auto transformed = Csr<ValueType, IndexType>::create(exec, out_size, nnz);
+    // transform matrix with integer values from 0 to nnz - 1 reinterpret_cast
+    // as float
+    array<IndexType> iota_values{exec, nnz};
+    exec->run(csr::make_fill_seq_array(iota_values.get_data(), nnz));
+    auto iota_float_view = make_array_view(
+        exec, nnz, reinterpret_cast<FloatIndexType*>(iota_values.get_data()));
+    auto iota_mtx = Csr<FloatIndexType, IndexType>::create_const(
+        exec, input->get_size(), iota_float_view.as_const_view(),
+        make_const_array_view(exec, nnz, input->get_const_col_idxs()),
+        make_const_array_view(exec, in_size[0] + 1,
+                              input->get_const_row_ptrs()),
+        std::make_shared<typename Csr<FloatIndexType, IndexType>::sparselib>());
+    auto transformed_iota = closure(iota_mtx.get());
+    exec->copy(out_size[0] + 1, transformed_iota->get_const_row_ptrs(),
+               transformed->get_row_ptrs());
+    exec->copy(nnz, transformed_iota->get_const_col_idxs(),
+               transformed->get_col_idxs());
+    exec->copy(nnz,
+               reinterpret_cast<const IndexType*>(
+                   transformed_iota->get_const_values()),
+               iota_values.get_data());
+    auto transform_permutation =
+        Permutation<IndexType>::create(exec, std::move(iota_values));
+    transformed->set_strategy(input->get_strategy());
+    // permute values into output matrix
+    input->create_const_value_view()->permute(transform_permutation,
+                                              transformed->create_value_view(),
+                                              permute_mode::rows);
+
+    return std::make_pair(
+        std::move(transformed),
+        typename Csr<ValueType, IndexType>::permuting_reuse_info{
+            std::move(transform_permutation)});
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::permuting_reuse_info::permuting_reuse_info(
+    std::unique_ptr<Permutation<index_type>> value_permutation)
+    : value_permutation{std::move(value_permutation)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::permuting_reuse_info::update_values(
+    ptr_param<const Csr> input, ptr_param<Csr> output) const
+{
+    input->create_const_value_view()->permute(
+        value_permutation, output->create_value_view(), permute_mode::rows);
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::transpose_reuse() const
+    -> std::pair<std::unique_ptr<Csr>, Csr::permuting_reuse_info>
+{
+    return transform_reusable(
+        this, gko::transpose(this->get_size()), this->get_num_stored_elements(),
+        [](auto mtx) {
+            return as<gko::detail::pointee<decltype(mtx)>>(mtx->transpose());
+        });
+}
+
+
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
 {
@@ -730,6 +810,31 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     result->make_srow();
     result->sort_by_column_index();
     return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::permute_reuse(
+    ptr_param<const Permutation<index_type>> permutation,
+    permute_mode mode) const
+    -> std::pair<std::unique_ptr<Csr>, permuting_reuse_info>
+{
+    return transform_reusable(
+        this, this->get_size(), this->get_num_stored_elements(),
+        [&](auto mtx) { return mtx->permute(permutation, mode); });
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::permute_reuse(
+    ptr_param<const Permutation<index_type>> row_permutation,
+    ptr_param<const Permutation<index_type>> column_permutation,
+    bool invert) const -> std::pair<std::unique_ptr<Csr>, permuting_reuse_info>
+{
+    return transform_reusable(
+        this, this->get_size(), this->get_num_stored_elements(), [&](auto mtx) {
+            return mtx->permute(row_permutation, column_permutation, invert);
+        });
 }
 
 
@@ -983,6 +1088,29 @@ Csr<ValueType, IndexType>::create_submatrix(
         sub_mat->make_srow();
         return sub_mat;
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Dense<ValueType>> Csr<ValueType, IndexType>::create_value_view()
+{
+    const auto nnz = this->get_num_stored_elements();
+    const auto exec = this->get_executor();
+    return Dense<ValueType>::create(
+        exec, gko::dim<2>{nnz, 1},
+        make_array_view(exec, nnz, this->get_values()), 1);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Dense<ValueType>>
+Csr<ValueType, IndexType>::create_const_value_view() const
+{
+    const auto nnz = this->get_num_stored_elements();
+    const auto exec = this->get_executor();
+    return Dense<ValueType>::create_const(
+        exec, gko::dim<2>{nnz, 1},
+        make_const_array_view(exec, nnz, this->get_const_values()), 1);
 }
 
 
