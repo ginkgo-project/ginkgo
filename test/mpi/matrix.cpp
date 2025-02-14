@@ -386,6 +386,7 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
 
+
 #endif
 
 
