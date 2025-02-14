@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -72,6 +72,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_IC_PARSE);
         const config::pnode&, const config::registry&,                       \
         const config::type_descriptor&)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERISAI_IC_PARSE);
+
+#define GKO_DECLARE_LINOP_IC_PARSE(ValueType, IndexType)    \
+    typename Ic<LinOp, IndexType>::parameters_type          \
+    ic_parse<Ic<LinOp, IndexType>>(const config::pnode&,    \
+                                   const config::registry&, \
+                                   const config::type_descriptor&)
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LINOP_IC_PARSE);
 
 }  // namespace detail
 }  // namespace preconditioner

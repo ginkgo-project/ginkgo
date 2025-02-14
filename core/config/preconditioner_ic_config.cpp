@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -96,6 +96,10 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ic>(
                         IcHelper1<solver::Gmres>::Configurator>(
             config, context, updated,
             make_type_selector(updated.get_value_typestr(), value_type_list()),
+            make_type_selector(updated.get_index_typestr(), index_type_list()));
+    } else if (str == "LinOp") {
+        return dispatch<gko::LinOpFactory, IcSolverHelper<LinOp>::Configurator>(
+            config, context, updated,
             make_type_selector(updated.get_index_typestr(), index_type_list()));
     } else {
         GKO_INVALID_CONFIG_VALUE("l_solver_type", str);
