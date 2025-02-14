@@ -205,7 +205,7 @@ protected:
      * @param local_agg  the local aggregate indices
      *
      * @return  the aggregates for non-local columns. The aggregated indices are
-     *          in the new global indexing
+     *          in the new global indexing for the coarse matrix
      */
     template <typename GlobalIndexType>
     array<GlobalIndexType> communicate_non_local_agg(
