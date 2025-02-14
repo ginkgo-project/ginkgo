@@ -32,19 +32,6 @@ GKO_REGISTER_OPERATION(separate_local_nonlocal,
 }  // namespace matrix
 
 
-template <typename LocalIndexType, typename GlobalIndexType>
-void initialize_communication_pattern(
-    const index_map<LocalIndexType, GlobalIndexType>& imap,
-    std::shared_ptr<RowGatherer<LocalIndexType>>& row_gatherer)
-{
-    row_gatherer = RowGatherer<LocalIndexType>::create(
-        row_gatherer->get_executor(),
-        row_gatherer->get_collective_communicator()->create_with_same_type(
-            row_gatherer->get_communicator(), imap),
-        imap);
-}
-
-
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
@@ -112,7 +99,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
 
-    initialize_communication_pattern(imap_, row_gatherer_);
+    row_gatherer_ = RowGatherer<LocalIndexType>::create(
+        row_gatherer_->get_executor(),
+        row_gatherer_->get_collective_communicator()->create_with_same_type(
+            row_gatherer_->get_communicator(), imap_),
+        imap_);
 }
 
 
@@ -390,7 +381,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
         ->read(std::move(non_local_data));
 
-    initialize_communication_pattern(imap_, row_gatherer_);
+    row_gatherer_ = RowGatherer<LocalIndexType>::create(
+        row_gatherer_->get_executor(),
+        row_gatherer_->get_collective_communicator()->create_with_same_type(
+            row_gatherer_->get_communicator(), imap_),
+        imap_);
 }
 
 
@@ -457,15 +452,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                            row_gatherer_->get_collective_communicator()
                                ->get_recv_size()),
                        dense_b->get_size()[1]};
-            auto recv_exec = mpi::requires_host_buffer(exec, comm)
-                                 ? exec->get_master()
-                                 : exec;
-            recv_buffer_.init(recv_exec, recv_dim);
-            auto req =
-                this->row_gatherer_->apply_async(dense_b, recv_buffer_.get());
+            recv_buffer_.init(exec, recv_dim);
+            host_recv_buffer_.init(exec->get_master(), recv_dim);
+            auto recv_ptr = mpi::requires_host_buffer(exec, comm)
+                                ? host_recv_buffer_.get()
+                                : recv_buffer_.get();
+            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
             local_mtx_->apply(dense_b->get_local_vector(), local_x);
             req.wait();
 
+            if (recv_ptr != recv_buffer_.get()) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
+            }
             non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
                                   one_scalar_.get(), local_x);
         },
@@ -496,16 +494,20 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                            row_gatherer_->get_collective_communicator()
                                ->get_recv_size()),
                        dense_b->get_size()[1]};
-            auto recv_exec = mpi::requires_host_buffer(exec, comm)
-                                 ? exec->get_master()
-                                 : exec;
-            recv_buffer_.init(recv_exec, recv_dim);
-            auto req =
-                this->row_gatherer_->apply_async(dense_b, recv_buffer_.get());
+            ;
+            recv_buffer_.init(exec, recv_dim);
+            host_recv_buffer_.init(exec->get_master(), recv_dim);
+            auto recv_ptr = mpi::requires_host_buffer(exec, comm)
+                                ? host_recv_buffer_.get()
+                                : recv_buffer_.get();
+            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
             local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                               local_beta, local_x);
             req.wait();
 
+            if (recv_ptr != recv_buffer_.get()) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
+            }
             non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
                                   one_scalar_.get(), local_x);
         },
