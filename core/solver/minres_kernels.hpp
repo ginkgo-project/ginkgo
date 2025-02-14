@@ -19,7 +19,7 @@
 
 namespace gko {
 namespace kernels {
-namespace cg {
+namespace minres {
 
 
 #define GKO_DECLARE_MINRES_INITIALIZE_KERNEL(_type)                            \
@@ -67,7 +67,7 @@ namespace cg {
     GKO_DECLARE_MINRES_STEP_2_KERNEL(ValueType)
 
 
-}  // namespace cg
+}  // namespace minres
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(minres, GKO_DECLARE_ALL_AS_TEMPLATES);

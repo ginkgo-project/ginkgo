@@ -32,7 +32,12 @@ namespace solver {
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of Minres are
  * merged into 2 separate steps.
-
+ *
+ * For more details see Anne Grennbaum's 'Iterative Methods
+ * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937), and Sou-Cheng
+ * (Terrya) Choi's 'ITERATIVE METHODS FOR SINGULAR LINEAR EQUATIONS AND
+ * LEAST-SQUARES PROBLEMS'.
+ *
  * @note: The Minres solver only reports an approximation of the residual norm
  *        directly to the stopping criteria. Neither the actual residual, nor
  *        the actual residual norm are reported. Thus, to get the minimal

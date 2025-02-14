@@ -23,30 +23,10 @@
 
 namespace {
 
-class Minres : public ::testing::Test {
+class Minres : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Minres<value_type>;
-
-    Minres() : rand_engine(42) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride,
@@ -127,11 +107,7 @@ protected:
             exec, *stop_status);
     }
 
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    std::default_random_engine rand_engine;
+    std::default_random_engine rand_engine{42};
 
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
