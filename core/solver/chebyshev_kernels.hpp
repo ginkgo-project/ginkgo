@@ -20,25 +20,31 @@ namespace kernels {
 namespace chebyshev {
 
 
-#define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType, ScalarType) \
-    void init_update(std::shared_ptr<const DefaultExecutor> exec,       \
-                     const ScalarType alpha,                            \
-                     const matrix::Dense<ValueType>* inner_sol,         \
-                     matrix::Dense<ValueType>* update_sol,              \
+template <typename T>
+using coeff_type =
+    std::conditional_t<is_complex<T>, std::complex<double>, double>;
+
+
+#define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType)       \
+    void init_update(std::shared_ptr<const DefaultExecutor> exec, \
+                     const coeff_type<ValueType> alpha,           \
+                     const matrix::Dense<ValueType>* inner_sol,   \
+                     matrix::Dense<ValueType>* update_sol,        \
                      matrix::Dense<ValueType>* output)
 
-#define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType, ScalarType) \
-    void update(std::shared_ptr<const DefaultExecutor> exec,       \
-                const ScalarType alpha, const ScalarType beta,     \
-                matrix::Dense<ValueType>* inner_sol,               \
-                matrix::Dense<ValueType>* update_sol,              \
+#define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)       \
+    void update(std::shared_ptr<const DefaultExecutor> exec, \
+                const coeff_type<ValueType> alpha,           \
+                const coeff_type<ValueType> beta,            \
+                matrix::Dense<ValueType>* inner_sol,         \
+                matrix::Dense<ValueType>* update_sol,        \
                 matrix::Dense<ValueType>* output)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename ScalarType>               \
-    GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType, ScalarType); \
-    template <typename ValueType, typename ScalarType>               \
-    GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType, ScalarType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                     \
+    template <typename ValueType>                        \
+    GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType); \
+    template <typename ValueType>                        \
+    GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)
 
 
 }  // namespace chebyshev

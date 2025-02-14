@@ -173,6 +173,7 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Chebyshev>;
+    using coeff_type = detail::coeff_type<ValueType>;
 
     auto exec = this->get_executor();
     this->setup_workspace();
@@ -183,8 +184,8 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    auto alpha_ref = ValueType{1} / center_;
-    auto beta_ref = ValueType{0.5} * (foci_direction_ * alpha_ref) *
+    auto alpha_ref = coeff_type{1} / center_;
+    auto beta_ref = coeff_type{0.5} * (foci_direction_ * alpha_ref) *
                     (foci_direction_ * alpha_ref);
 
     auto& stop_status = this->template create_workspace_array<stopping_status>(
@@ -239,10 +240,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         // beta_ref for iter == 1 is initialized in the beginning
         if (iter > 1) {
-            beta_ref = (foci_direction_ * alpha_ref / ValueType{2.0}) *
-                       (foci_direction_ * alpha_ref / ValueType{2.0});
+            beta_ref = (foci_direction_ * alpha_ref / coeff_type{2.0}) *
+                       (foci_direction_ * alpha_ref / coeff_type{2.0});
         }
-        alpha_ref = ValueType{1.0} / (center_ - beta_ref / alpha_ref);
+        alpha_ref = coeff_type{1.0} / (center_ - beta_ref / alpha_ref);
         // z = z + beta * p
         // p = z
         // x += alpha * p
