@@ -62,7 +62,7 @@ protected:
         gko::preconditioner::Jacobi<value_type, local_index_type>;
     using coarse_solver_type =
         gko::preconditioner::Jacobi<value_type, local_index_type>;
-    using galerkin_ops_type = gko::multigrid::Pgm<value_type, local_index_type>;
+    using coarse_level_type = gko::multigrid::Pgm<value_type, local_index_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using non_dist_matrix_type =
         gko::matrix::Csr<value_type, global_index_type>;
@@ -285,7 +285,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyMultilevelPreconditioner)
     auto precond_factory = prec::build()
                                .with_local_solver(this->local_solver_factory)
                                .with_coarse_solver(this->coarse_solver_factory)
-                               .with_galerkin_ops(this->pgm_factory)
+                               .with_coarse_level(this->pgm_factory)
                                .on(this->exec);
     auto local_precond =
         this->local_solver_factory->generate(this->non_dist_mat);

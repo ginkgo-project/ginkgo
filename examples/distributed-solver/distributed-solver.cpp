@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
             solver::build()
                 .with_preconditioner(schwarz::build()
                                          .with_local_solver(local_solver)
-                                         .with_galerkin_ops(pgm_fac)
+                                         .with_coarse_level(pgm_fac)
                                          .with_coarse_solver(coarse_solver)
                                          .on(exec))
                 .with_criteria(

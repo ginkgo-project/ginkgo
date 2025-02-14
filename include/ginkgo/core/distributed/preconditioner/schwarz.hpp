@@ -93,14 +93,25 @@ public:
             generated_local_solver, nullptr);
 
         /**
-         * Operator factory to generate the triplet (prolong_op, coarse_op,
-         * restrict_op).
+         * Operator factory list to generate the triplet (prolong_op, coarse_op,
+         * restrict_op), `A_c = R * A * P`
+         *
+         * Note: The linop factory must generate the triplet (R, A_c, P). For
+         * example, any coarse level generator from multigrid::MultigridLevel
+         * can be used.
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
-            galerkin_ops);
+            coarse_level);
+
+        /**
+         * Weighting for the coarse solution
+         */
+        ValueType GKO_FACTORY_PARAMETER(coarse_weight, value_type{0.5});
 
         /**
          * Coarse solver factory.
+         *
+         * TODO: Set default
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             coarse_solver);
@@ -181,9 +192,10 @@ private:
     detail::VectorCache<ValueType> cache_;
     detail::VectorCache<ValueType> csol_cache_;
 
-    std::shared_ptr<const LinOp> galerkin_ops_;
+    std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
-    std::shared_ptr<const LinOp> half_;
+    std::shared_ptr<const matrix::Dense<ValueType>> coarse_weight_;
+    std::shared_ptr<const matrix::Dense<ValueType>> local_weight_;
 };
 
 
