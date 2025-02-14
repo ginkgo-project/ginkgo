@@ -45,8 +45,8 @@ namespace distributed {
  * ```
  * Using apply instead of apply_async will lead to a blocking communication.
  *
- * @note Objects of this class are only available as shared_ptr, since the class
- *       is derived from std::enable_shared_from_this.
+ * @note The apply and apply_async function will *not* ensure that the in/output
+ *       vectors use the same executor as the this object.
  *
  * @tparam LocalIndexType  the index type for the stored indices
  */
@@ -64,6 +64,7 @@ public:
      *
      * @param b  the input distributed::Vector
      * @param x  the output matrix::Dense with the rows gathered from b
+     *
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
@@ -82,6 +83,7 @@ public:
      * @param workspace  a workspace to store temporary data for the operation.
      *                   This might not be modified before the request is
      *                   waited on.
+     *
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
@@ -90,18 +92,19 @@ public:
 
     /**
      * Get the used collective communicator.
-     *
-     * @return  the used collective communicator
      */
     std::shared_ptr<const mpi::CollectiveCommunicator>
     get_collective_communicator() const;
 
     /**
      * Read access to the (local) rows indices
-     *
-     * @return  the (local) row indices that are gathered
      */
-    const LocalIndexType* get_const_row_idxs() const;
+    const LocalIndexType* get_const_send_idxs() const;
+
+    /**
+     * Returns the number of (local) row indices.
+     */
+    size_type get_num_send_idxs() const;
 
     /**
      * Creates a distributed::RowGatherer from a given collective communicator
@@ -124,22 +127,22 @@ public:
     template <typename GlobalIndexType = int64,
               typename = std::enable_if_t<sizeof(GlobalIndexType) >=
                                           sizeof(LocalIndexType)>>
-    static std::shared_ptr<RowGatherer> create(
+    static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
         const index_map<LocalIndexType, GlobalIndexType>& imap)
     {
-        return std::shared_ptr<RowGatherer>(
+        return std::unique_ptr<RowGatherer>(
             new RowGatherer(std::move(exec), std::move(coll_comm), imap));
     }
 
     /*
      * Create method for an empty RowGatherer.
      */
-    static std::shared_ptr<RowGatherer> create(
+    static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm)
     {
-        return std::shared_ptr<RowGatherer>(
+        return std::unique_ptr<RowGatherer>(
             new RowGatherer(std::move(exec), std::move(comm)));
     }
 
@@ -175,15 +178,13 @@ private:
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
-
     array<LocalIndexType> send_idxs_;
-
     mutable array<char> send_workspace_;
-
+    // This object might not hold an actual MPI request, so we can't use the
+    // always owning mpi::request. It's destructor would otherwise make the
+    // program crash.
     mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
 };
-
-
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko
