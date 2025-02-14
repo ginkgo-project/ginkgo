@@ -4,6 +4,8 @@
 
 #include "core/solver/minres_kernels.hpp"
 
+#include <utility>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <utility>
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -24,6 +26,7 @@ namespace {
 GKO_REGISTER_OPERATION(initialize, minres::initialize);
 GKO_REGISTER_OPERATION(step_1, minres::step_1);
 GKO_REGISTER_OPERATION(step_2, minres::step_2);
+
 
 }  // anonymous namespace
 }  // namespace minres

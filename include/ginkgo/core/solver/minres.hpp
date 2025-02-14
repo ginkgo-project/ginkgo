@@ -35,6 +35,11 @@ namespace solver {
  * use of data locality. The inner operations in one iteration of Minres are
  * merged into 2 separate steps.
  *
+ * For more details see Anne Grennbaum's 'Iterative Methods
+ * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937), and Sou-Cheng
+ * (Terrya) Choi's 'ITERATIVE METHODS FOR SINGULAR LINEAR EQUATIONS AND
+ * LEAST-SQUARES PROBLEMS'.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers

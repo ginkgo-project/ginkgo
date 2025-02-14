@@ -21,10 +21,10 @@ namespace minres {
 namespace detail {
 
 
-template <typename T, typename U>
-GKO_INLINE GKO_ATTRIBUTES void swap(T& a, U& b)
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES void swap(T& a, T& b)
 {
-    U tmp{b};
+    T tmp{b};
     b = a;
     a = tmp;
 }
