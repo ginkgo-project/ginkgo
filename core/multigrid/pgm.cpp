@@ -281,11 +281,11 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
 
     // There is no index map on the coarse level yet, so map the local indices
     // to global manually
-    array<GlobalIndexType> seng_global_agg(exec, send_agg.get_size());
+    array<GlobalIndexType> send_global_agg(exec, send_agg.get_size());
     exec->run(pgm::make_map_to_global(
         to_device_const(coarse_partition.get()),
         device_segmented_array<const GlobalIndexType>{}, comm.rank(), send_agg,
-        experimental::distributed::index_space::local, seng_global_agg));
+        experimental::distributed::index_space::local, send_global_agg));
 
     array<GlobalIndexType> non_local_agg(exec, total_recv_size);
 
@@ -296,13 +296,13 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
         host_recv_buffer.resize_and_reset(total_recv_size);
         host_send_buffer.resize_and_reset(total_send_size);
         exec->get_master()->copy_from(exec, total_send_size,
-                                      seng_global_agg.get_data(),
+                                      send_global_agg.get_data(),
                                       host_send_buffer.get_data());
     }
     auto type = experimental::mpi::type_impl<GlobalIndexType>::get_type();
 
     const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
-                                          : seng_global_agg.get_const_data();
+                                          : send_global_agg.get_const_data();
     auto recv_ptr = use_host_buffer ? host_recv_buffer.get_data()
                                     : non_local_agg.get_data();
     exec->synchronize();
@@ -394,7 +394,7 @@ void Pgm<ValueType, IndexType>::generate()
             // the coarse partition will have only one range per part
             // and only one part per rank.
             // The global indices are ordered block-wise by rank, i.e. rank
-            // 1 owns [0, ..., N_1), rank 2 [N_1, ..., N_2), ...
+            // 0 owns [0, ..., N_1), rank 1 [N_1, ..., N_2), ...
             auto coarse_local_size =
                 static_cast<int64>(std::get<1>(result)->get_size()[0]);
             auto coarse_partition = gko::share(
