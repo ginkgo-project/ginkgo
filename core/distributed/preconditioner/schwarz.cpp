@@ -59,8 +59,8 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     if (auto& obj = config.get("l1_smoother")) {
         params.with_l1_smoother(obj.get_boolean());
     }
-    if (auto& obj = config.get("galerkin_ops")) {
-        params.with_galerkin_ops(
+    if (auto& obj = config.get("coarse_level")) {
+        params.with_coarse_level(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
@@ -107,17 +107,16 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
                                    gko::detail::get_local(dense_x));
     }
 
-    if (this->coarse_solver_ != nullptr && this->galerkin_ops_ != nullptr) {
-        auto restrict = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
+        auto restrict = as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                             ->get_restrict_op();
-        auto prolong = as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+        auto prolong = as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                            ->get_prolong_op();
         auto coarse =
             as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                  GlobalIndexType>>(
-                as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                     ->get_coarse_op());
-        GKO_ASSERT(this->half_ != nullptr);
 
         // Coarse solve vector cache init
         // Should allocare only in the first apply call.
@@ -131,7 +130,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 
         restrict->apply(dense_b, csol_cache_.get());
         this->coarse_solver_->apply(csol_cache_.get(), csol_cache_.get());
-        prolong->apply(this->half_, csol_cache_.get(), this->half_, dense_x);
+        prolong->apply(this->coarse_weight_, csol_cache_.get(),
+                       this->local_weight_, dense_x);
     }
 }
 
@@ -230,6 +230,10 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto dist_mat =
         as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                              GlobalIndexType>>(system_matrix);
+    this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        {ValueType{1} - parameters_.coarse_weight}, this->get_executor());
+    this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        {parameters_.coarse_weight}, this->get_executor());
 
     if (parameters_.local_solver) {
         this->set_solver(gko::share(
@@ -239,21 +243,22 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
 
-    if (parameters_.galerkin_ops && parameters_.coarse_solver) {
-        this->galerkin_ops_ =
-            share(parameters_.galerkin_ops->generate(system_matrix));
-        if (as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+    if (parameters_.coarse_level && parameters_.coarse_solver) {
+        this->coarse_level_ =
+            share(parameters_.coarse_level->generate(system_matrix));
+        if (as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                 ->get_coarse_op()) {
             auto coarse =
                 as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                      GlobalIndexType>>(
-                    as<gko::multigrid::MultigridLevel>(this->galerkin_ops_)
+                    as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                         ->get_coarse_op());
             auto exec = coarse->get_executor();
             auto comm = coarse->get_communicator();
             this->coarse_solver_ =
                 share(parameters_.coarse_solver->generate(coarse));
-            this->half_ = gko::share(gko::initialize<Vector>({0.5}, exec));
+        } else {
+            GKO_NOT_SUPPORTED(this->coarse_level_);
         }
     }
 }
