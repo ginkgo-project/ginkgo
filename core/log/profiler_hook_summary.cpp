@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 #include <numeric>
 #include <unordered_map>
 #include <vector>
+
+#include <ginkgo/core/base/work_estimate.hpp>
 
 #include "core/log/profiler_hook.hpp"
 
@@ -95,8 +97,36 @@ void pop_all(Summary& s)
                       << "\"\n";
 #endif
         }
-        s.pop(s.get_top_name().c_str(), true);
+        s.pop(s.get_top_name().c_str(), {}, true);
     }
+}
+
+
+std::optional<kernel_work_estimate> accumulate_work_estimate(
+    const char* name, std::optional<kernel_work_estimate> existing,
+    std::optional<kernel_work_estimate> work, bool first)
+{
+    if (first) {
+        GKO_ASSERT(!existing.has_value());
+        return work;
+    }
+    if (work.has_value() != existing.has_value()) {
+#if GKO_VERBOSE_LEVEL >= 1
+        // this can happen if some parts use GKO_REGISTER_OPERATION
+        // and some use GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE
+        std::cerr << "WARNING: Operation " << name
+                  << " has inconsistent work estimate - some kernel calls "
+                     "provide an estimate, but others don't.\n";
+#endif
+    }
+    if (work.has_value() && existing.has_value()) {
+        // if they have different types, this throws an exception
+        return *existing + *work;
+    }
+    if (existing.has_value()) {
+        return existing;
+    }
+    return {};
 }
 
 
@@ -167,7 +197,8 @@ struct summary : summary_base {
         overhead += cpu_clock::now() - cpu_now;
     }
 
-    void pop(const char* name, bool allow_pop_root = false)
+    void pop(const char* name, std::optional<kernel_work_estimate> work,
+             bool allow_pop_root = false)
     {
         const auto cpu_now = cpu_clock::now();
         std::lock_guard<std::mutex> guard{mutex};
@@ -187,6 +218,8 @@ struct summary : summary_base {
         const auto elapsed = timer->difference_async(partial_entry.second, now);
         release_time_point(std::move(partial_entry.second));
         release_time_point(std::move(now));
+        entry.work_estimate = accumulate_work_estimate(
+            name, entry.work_estimate, work, entry.count == 0);
         entry.count++;
         entry.inclusive += elapsed;
         entry.exclusive += elapsed;
@@ -211,6 +244,7 @@ struct nested_summary : summary_base {
         int64 parent_id;
         std::chrono::nanoseconds elapsed{};
         int64 count{};
+        std::optional<kernel_work_estimate> work_estimate{};
 
         entry(int64 name_id, int64 node_id, int64 parent_id)
             : name_id{name_id}, node_id{node_id}, parent_id{parent_id}
@@ -291,7 +325,8 @@ struct nested_summary : summary_base {
         overhead += cpu_clock::now() - cpu_now;
     }
 
-    void pop(const char* name, bool allow_pop_root = false)
+    void pop(const char* name, std::optional<kernel_work_estimate> work,
+             bool allow_pop_root = false)
     {
         const auto cpu_now = cpu_clock::now();
         std::lock_guard<std::mutex> guard{mutex};
@@ -311,6 +346,8 @@ struct nested_summary : summary_base {
         const auto elapsed = timer->difference_async(partial_entry.start, now);
         release_time_point(std::move(partial_entry.start));
         release_time_point(std::move(now));
+        node.work_estimate = accumulate_work_estimate(name, node.work_estimate,
+                                                      work, node.count == 0);
         node.count++;
         node.elapsed += elapsed;
         const auto cpu_now4 = cpu_clock::now();
@@ -387,7 +424,10 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_summary(
     data->check_nesting = debug_check_nesting;
     return std::shared_ptr<ProfilerHook>{new ProfilerHook{
         [data](const char* name, profile_event_category) { data->push(name); },
-        [data](const char* name, profile_event_category) { data->pop(name); }}};
+        [data](const char* name, profile_event_category,
+               std::optional<kernel_work_estimate> work) {
+            data->pop(name, work);
+        }}};
 }
 
 
@@ -409,7 +449,10 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_nested_summary(
     data->check_nesting = debug_check_nesting;
     return std::shared_ptr<ProfilerHook>{new ProfilerHook{
         [data](const char* name, profile_event_category) { data->push(name); },
-        [data](const char* name, profile_event_category) { data->pop(name); }}};
+        [data](const char* name, profile_event_category,
+               std::optional<kernel_work_estimate> work) {
+            data->pop(name, work);
+        }}};
 }
 
 
