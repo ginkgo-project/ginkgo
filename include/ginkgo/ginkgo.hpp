@@ -51,6 +51,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/base/version.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/registry.hpp>
