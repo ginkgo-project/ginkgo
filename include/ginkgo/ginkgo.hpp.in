@@ -7,7 +7,6 @@
 
 
 #include <ginkgo/config.hpp>
-#PUBLIC_HEADER_PLACE_HOLDER
-
+@GKO_PUBLIC_HEADER_CONTENTS@
 
 #endif  // GKO_GINKGO_HPP_
