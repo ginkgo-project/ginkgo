@@ -111,12 +111,6 @@ while IFS='' read -r line; do
             fi
 
             CURRENT_FOLDER="$(dirname "${file}")"
-            # add newline between different include folder
-            if [ "${READING_FIRST_LINE}" != true ] && \
-               [ "${CURRENT_FOLDER}" != "${PREVIOUS_FOLDER}" ]
-            then
-                echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
-            fi
             PREVIOUS_FOLDER="${CURRENT_FOLDER}"
             echo -n "#include <${file}>" >> "${GINKGO_HEADER_TMP}"
             echo -e "${END}" >> "${GINKGO_HEADER_TMP}"

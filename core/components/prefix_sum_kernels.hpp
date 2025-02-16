@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -53,6 +54,19 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace work_estimate::components {
+
+
+template <typename IndexType>
+kernel_work_estimate prefix_sum_nonnegative(IndexType* counts,
+                                            size_type num_entries)
+{
+    return memory_bound_work_estimate{num_entries * sizeof(IndexType),
+                                      num_entries * sizeof(IndexType)};
+}
+
+
+}  // namespace work_estimate::components
 }  // namespace kernels
 }  // namespace gko
 

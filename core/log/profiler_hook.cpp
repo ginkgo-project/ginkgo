@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -33,7 +34,7 @@ void ProfilerHook::on_allocation_completed(const gko::Executor* exec,
                                            const gko::uintptr&) const
 {
     this->maybe_synchronize(exec);
-    this->end_hook_("allocate", profile_event_category::memory);
+    this->end_hook_("allocate", profile_event_category::memory, {});
 }
 
 
@@ -49,7 +50,7 @@ void ProfilerHook::on_free_completed(const gko::Executor* exec,
                                      const gko::uintptr&) const
 {
     this->maybe_synchronize(exec);
-    this->end_hook_("free", profile_event_category::memory);
+    this->end_hook_("free", profile_event_category::memory, {});
 }
 
 
@@ -67,11 +68,12 @@ void ProfilerHook::on_copy_started(const gko::Executor* from,
 void ProfilerHook::on_copy_completed(const gko::Executor* from,
                                      const gko::Executor* to,
                                      const gko::uintptr&, const gko::uintptr&,
-                                     const gko::size_type&) const
+                                     const gko::size_type& size) const
 {
     this->maybe_synchronize(from);
     this->maybe_synchronize(to);
-    this->end_hook_("copy", profile_event_category::operation);
+    this->end_hook_("copy", profile_event_category::operation,
+                    memory_bound_work_estimate{size, size});
 }
 
 
@@ -87,7 +89,8 @@ void ProfilerHook::on_operation_completed(const Executor* exec,
                                           const Operation* operation) const
 {
     this->maybe_synchronize(exec);
-    this->end_hook_(operation->get_name(), profile_event_category::operation);
+    this->end_hook_(operation->get_name(), profile_event_category::operation,
+                    operation->get_work_estimate());
 }
 
 
@@ -109,7 +112,7 @@ void ProfilerHook::on_polymorphic_object_copy_completed(
     std::stringstream ss;
     ss << "copy(" << stringify_object(from) << "," << stringify_object(to)
        << ")";
-    this->end_hook_(ss.str().c_str(), profile_event_category::object);
+    this->end_hook_(ss.str().c_str(), profile_event_category::object, {});
 }
 
 
@@ -131,7 +134,7 @@ void ProfilerHook::on_polymorphic_object_move_completed(
     std::stringstream ss;
     ss << "move(" << stringify_object(from) << "," << stringify_object(to)
        << ")";
-    this->end_hook_(ss.str().c_str(), profile_event_category::object);
+    this->end_hook_(ss.str().c_str(), profile_event_category::object, {});
 }
 
 
@@ -153,9 +156,9 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
     std::stringstream ss;
     ss << "apply(" << stringify_object(A) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
-        this->end_hook_("iteration", profile_event_category::solver);
+        this->end_hook_("iteration", profile_event_category::solver, {});
     }
-    this->end_hook_(ss.str().c_str(), profile_event_category::linop);
+    this->end_hook_(ss.str().c_str(), profile_event_category::linop, {});
 }
 
 
@@ -183,9 +186,9 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
     std::stringstream ss;
     ss << "advanced_apply(" << stringify_object(A) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
-        this->end_hook_("iteration", profile_event_category::solver);
+        this->end_hook_("iteration", profile_event_category::solver, {});
     }
-    this->end_hook_(ss.str().c_str(), profile_event_category::linop);
+    this->end_hook_(ss.str().c_str(), profile_event_category::linop, {});
 }
 
 
@@ -203,7 +206,7 @@ void ProfilerHook::on_linop_factory_generate_completed(
 {
     std::stringstream ss;
     ss << "generate(" << stringify_object(factory) << ")";
-    this->end_hook_(ss.str().c_str(), profile_event_category::factory);
+    this->end_hook_(ss.str().c_str(), profile_event_category::factory, {});
 }
 
 
@@ -240,7 +243,7 @@ void ProfilerHook::on_criterion_check_completed(
 {
     std::stringstream ss;
     ss << "check(" << stringify_object(criterion) << ")";
-    this->end_hook_(ss.str().c_str(), profile_event_category::criterion);
+    this->end_hook_(ss.str().c_str(), profile_event_category::criterion, {});
 }
 
 
@@ -252,7 +255,7 @@ void ProfilerHook::on_iteration_complete(
 {
     if (num_iterations > 0 &&
         dynamic_cast<const solver::IterativeBase*>(solver) && !stopped) {
-        this->end_hook_("iteration", profile_event_category::solver);
+        this->end_hook_("iteration", profile_event_category::solver, {});
         this->begin_hook_("iteration", profile_event_category::solver);
     }
 }
@@ -292,8 +295,12 @@ void ProfilerHook::set_object_name(ptr_param<const PolymorphicObject> obj,
 
 profiling_scope_guard ProfilerHook::user_range(const char* name) const
 {
-    return profiling_scope_guard{name, profile_event_category::user,
-                                 begin_hook_, end_hook_};
+    return profiling_scope_guard{
+        name, profile_event_category::user, begin_hook_,
+        [end_hook = end_hook_](const char* name,
+                               profile_event_category category) {
+            end_hook(name, category, {});
+        }};
 }
 
 
@@ -303,12 +310,31 @@ void ProfilerHook::set_synchronization(bool synchronize)
 }
 
 
+static ProfilerHook::hook_function wrap_work_estimate_hook_function(
+    ProfilerHook::work_estimate_hook_function end_hook)
+{
+    return [end_hook](const char* name, profile_event_category category) {
+        end_hook(name, category, {});
+    };
+}
+
+
+static ProfilerHook::work_estimate_hook_function wrap_hook_function(
+    ProfilerHook::hook_function end_hook)
+{
+    return [end_hook](const char* name, profile_event_category category,
+                      std::optional<kernel_work_estimate>) {
+        end_hook(name, category);
+    };
+}
+
+
 void ProfilerHook::maybe_synchronize(const Executor* exec) const
 {
     if (synchronize_) {
-        profiling_scope_guard sync_guard{"synchronize",
-                                         profile_event_category::internal,
-                                         begin_hook_, end_hook_};
+        profiling_scope_guard sync_guard{
+            "synchronize", profile_event_category::internal, begin_hook_,
+            wrap_work_estimate_hook_function(end_hook_)};
         exec->synchronize();
     }
 }
@@ -327,7 +353,7 @@ std::string ProfilerHook::stringify_object(const PolymorphicObject* obj) const
 }
 
 
-ProfilerHook::ProfilerHook(hook_function begin, hook_function end)
+ProfilerHook::ProfilerHook(hook_function begin, work_estimate_hook_function end)
     : synchronize_{false}, begin_hook_{begin}, end_hook_{end}
 {}
 
@@ -355,30 +381,27 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_tau(bool initialize)
                     new int, tau_finalize_deleter{}};
         }
     }
-    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin_tau, end_tau}};
+    return create_custom(begin_tau, end_tau);
 }
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_vtune()
 {
     auto fns = create_vtune_fns();
-    return std::shared_ptr<ProfilerHook>{
-        new ProfilerHook{std::move(fns.first), std::move(fns.second)}};
+    return create_custom(std::move(fns.first), std::move(fns.second));
 }
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_nvtx(uint32 color_rgb)
 {
     init_nvtx();
-    return std::shared_ptr<ProfilerHook>{
-        new ProfilerHook{begin_nvtx_fn(color_rgb), end_nvtx}};
+    return create_custom(begin_nvtx_fn(color_rgb), end_nvtx);
 }
 
 
 std::shared_ptr<ProfilerHook> ProfilerHook::create_roctx()
 {
-    return std::shared_ptr<ProfilerHook>{
-        new ProfilerHook{begin_roctx, end_roctx}};
+    return create_custom(begin_roctx, end_roctx);
 }
 
 
@@ -400,10 +423,18 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
 }
 
 
+std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(
+    hook_function begin, work_estimate_hook_function end)
+{
+    return std::shared_ptr<ProfilerHook>{
+        new ProfilerHook{begin, std::move(end)}};
+}
+
+
 std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
                                                           hook_function end)
 {
-    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
+    return create_custom(begin, wrap_hook_function(std::move(end)));
 }
 
 
