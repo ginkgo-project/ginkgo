@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,8 +31,8 @@ namespace {
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
-                       components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(prefix_sum_nonnegative,
+                                          components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, sellp::fill_in_dense);
