@@ -276,6 +276,11 @@ void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
         }
     }
     auto range6 = logger->user_range("bazzzz");
+    // an operation that requires accumulation of work estimates
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 35);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 35);
 }
 
 struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
@@ -291,11 +296,14 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
          *       bazz()
          *       bazzz()
          *     )
-         *     bazzzz()
+         *     bazzzz(
+         *       copy()
+         *       copy()
+         *     )
          *   )
          * )
          */
-        ASSERT_EQ(e.size(), 7);
+        ASSERT_EQ(e.size(), 8);
         ASSERT_EQ(e[0].name, "total");
         ASSERT_EQ(e[0].count, 1);
         ASSERT_EQ(e[1].name, "foo");
@@ -310,6 +318,8 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
         ASSERT_EQ(e[5].count, 1);
         ASSERT_EQ(e[6].name, "bazzzz");
         ASSERT_EQ(e[6].count, 1);
+        ASSERT_EQ(e[7].name, "copy");
+        ASSERT_EQ(e[7].count, 2);
         ASSERT_EQ(e[0].inclusive, e[0].exclusive + e[1].inclusive);
         ASSERT_EQ(e[1].inclusive, e[1].exclusive + e[2].inclusive +
                                       e[3].inclusive + e[6].inclusive);
@@ -318,7 +328,12 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
                   e[3].exclusive + e[4].inclusive + e[5].inclusive);
         ASSERT_EQ(e[4].inclusive, e[4].exclusive);
         ASSERT_EQ(e[5].inclusive, e[5].exclusive);
-        ASSERT_EQ(e[6].inclusive, e[6].exclusive);
+        ASSERT_EQ(e[6].inclusive, e[6].exclusive + e[7].inclusive);
+        ASSERT_EQ(e[7].inclusive, e[7].exclusive);
+        const auto work_estimate = std::get<gko::memory_bound_work_estimate>(
+            e[7].work_estimate.value());
+        ASSERT_EQ(work_estimate.bytes_read, 45);
+        ASSERT_EQ(work_estimate.bytes_written, 45);
     }
 };
 
@@ -353,6 +368,11 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
         }
     }
     auto range6 = logger->user_range("baz");
+    // an operation that requires accumulation of work estimates
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 35);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 35);
 }
 
 
@@ -369,7 +389,10 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
          *       baz()
          *       bazz()
          *     )
-         *     baz()
+         *     baz(
+         *       copy()
+         *       copy()
+         *     )
          *   )
          * )
          */
@@ -388,12 +411,19 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
         ASSERT_EQ(f.children[1].children.size(), 2);
         ASSERT_EQ(f.children[2].name, "baz");
         ASSERT_EQ(f.children[2].count, 1);
-        ASSERT_EQ(f.children[2].children.size(), 0);
+        ASSERT_EQ(f.children[2].children.size(), 1);
         auto& b = f.children[1];
         ASSERT_EQ(b.children[0].name, "baz");
         ASSERT_EQ(b.children[0].count, 1);
         ASSERT_EQ(b.children[1].name, "bazz");
         ASSERT_EQ(b.children[1].count, 1);
+        auto& bb = f.children[2];
+        ASSERT_EQ(bb.children[0].name, "copy");
+        ASSERT_EQ(bb.children[0].count, 2);
+        const auto work_estimate = std::get<gko::memory_bound_work_estimate>(
+            bb.children[0].work_estimate.value());
+        ASSERT_EQ(work_estimate.bytes_read, 45);
+        ASSERT_EQ(work_estimate.bytes_written, 45);
     }
 };
 

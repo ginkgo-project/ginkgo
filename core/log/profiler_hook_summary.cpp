@@ -393,6 +393,7 @@ ProfilerHook::nested_summary_entry build_tree(const nested_summary& summary)
         entry.name = summary.names[summary_node.name_id];
         entry.elapsed = summary_node.elapsed;
         entry.count = summary_node.count;
+        entry.work_estimate = summary_node.work_estimate;
         const auto child_range = child_ranges[summary_node.node_id];
         for (auto i = child_range.first; i < child_range.second; i++) {
             entry.children.emplace_back();
