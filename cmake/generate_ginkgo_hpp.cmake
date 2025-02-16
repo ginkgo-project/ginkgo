@@ -1,8 +1,8 @@
 function(ginkgo_generate_ginkgo_hpp)
-    file(GLOB_RECURSE headers CONFIGURE_DEPENDS ${Ginkgo_SOURCE_DIR}/include/ginkgo/*.hpp)
+    file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${Ginkgo_SOURCE_DIR}/include/ginkgo/*.hpp")
     set(GKO_PUBLIC_HEADER_CONTENTS)
     foreach(file IN LISTS headers)
-        file(RELATIVE_PATH file ${Ginkgo_SOURCE_DIR}/include "${file}")
+        file(RELATIVE_PATH file "${Ginkgo_SOURCE_DIR}/include" "${file}")
         # just making sure it uses / path separators
         file(TO_CMAKE_PATH file "${file}")
         if((file MATCHES "^ginkgo/extensions/.*$") OR
@@ -12,6 +12,6 @@ function(ginkgo_generate_ginkgo_hpp)
         endif()
         set(GKO_PUBLIC_HEADER_CONTENTS "${GKO_PUBLIC_HEADER_CONTENTS}#include <${file}>\n")
     endforeach()
-    configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/ginkgo.hpp.in
-        ${Ginkgo_BINARY_DIR}/include/ginkgo/ginkgo.hpp @ONLY)
+    configure_file("${Ginkgo_SOURCE_DIR}/include/ginkgo/ginkgo.hpp.in"
+        "${Ginkgo_BINARY_DIR}/include/ginkgo/ginkgo.hpp" @ONLY)
 endfunction()
