@@ -530,6 +530,16 @@ memory_bound_work_estimate compute_conj_dot_dispatch(
 }
 
 
+template <typename ValueType>
+memory_bound_work_estimate compute_norm2_dispatch(
+    const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result, array<char>& tmp)
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return memory_bound_work_estimate{num_elements * sizeof(ValueType), 0};
+}
+
+
 }  // namespace dense
 }  // namespace work_estimate
 }  // namespace kernels
