@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -87,6 +87,70 @@ struct DenseCache {
      * @return  Pointer to the stored vector.
      */
     matrix::Dense<ValueType>* get() const { return vec.get(); }
+};
+
+
+/**
+ * Manages a Dense vector that is buffered and reused internally to avoid
+ * repeated allocations. Copying an instance will only yield an empty object
+ * since copying the cached vector would not make sense. The stored object is
+ * always mutable, so the cache can be used in a const-context.
+ *
+ * @internal  The struct is present to wrap cache-like buffer storage that will
+ *            not be copied when the outer object gets copied.
+ */
+template <typename ValueType>
+struct DenseDualCache {
+    DenseDualCache() = default;
+    ~DenseDualCache() = default;
+    DenseDualCache(const DenseDualCache&) {}
+    DenseDualCache(DenseDualCache&&) noexcept {}
+    DenseDualCache& operator=(const DenseDualCache&) { return *this; }
+    DenseDualCache& operator=(DenseDualCache&&) noexcept { return *this; }
+
+    /**
+     * Initializes the buffered vector with the same configuration as the
+     * template vector, if
+     * - the current vector is null,
+     * - the sizes of the buffered and template vector differ,
+     * - the executor of the buffered and template vector differ.
+     *
+     * @note This does not copy any data from the template vector.
+     *
+     * @param template_vec  Defines the configuration (executor, size, stride)
+     *                      of the buffered vector.
+     */
+    void init_from(const matrix::Dense<ValueType>* template_vec) const;
+
+    /**
+     * Initializes the buffered vector, if
+     * - the current vector is null,
+     * - the sizes differ,
+     * - the executor differs.
+     *
+     * @param exec  Executor of the buffered vector.
+     * @param size  Size of the buffered vector.
+     */
+    void init(std::shared_ptr<const Executor> exec, dim<2> size) const;
+
+    /**
+     * Pointer access to the underlying vector.
+     * @return  Pointer to the stored vector.
+     */
+    matrix::Dense<ValueType>* get(std::shared_ptr<const Executor> exec) const;
+
+    const matrix::Dense<ValueType>* get_const(
+        std::shared_ptr<const Executor> exec) const;
+
+private:
+    DenseCache<ValueType> vec_host{};
+    mutable std::unique_ptr<matrix::Dense<ValueType>> vec_device{};
+    mutable bool host_is_active{false};
+    mutable bool device_is_active{false};
+
+    void synchronize_host() const;
+
+    void synchronize_device() const;
 };
 
 

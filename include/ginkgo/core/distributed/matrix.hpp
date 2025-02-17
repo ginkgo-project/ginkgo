@@ -674,10 +674,8 @@ private:
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
     gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> host_send_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
-    gko::detail::DenseCache<value_type> send_buffer_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
+    gko::detail::DenseDualCache<value_type> send_buffer_;
+    gko::detail::DenseDualCache<value_type> recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };

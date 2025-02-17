@@ -1,4 +1,5 @@
 ginkgo_create_common_test(batch_multi_vector_kernels)
+ginkgo_create_common_and_reference_test(dense_dual_cache)
 ginkgo_create_common_and_reference_test(device_matrix_data_kernels)
 ginkgo_create_common_device_test(index_range)
 ginkgo_create_common_device_test(intrinsics)
