@@ -16,13 +16,11 @@ if(GINKGO_BUILD_CUDA)
     )
     set_target_properties(
         identify_stream_usage_cuda
-        PROPERTIES # set target compile options
-            CXX_STANDARD
-            17
-            CXX_STANDARD_REQUIRED
-            ON
-            POSITION_INDEPENDENT_CODE
-            ON
+        # set target compile options
+        PROPERTIES
+            CXX_STANDARD 17
+            CXX_STANDARD_REQUIRED ON
+            POSITION_INDEPENDENT_CODE ON
     )
 
     add_executable(
@@ -52,13 +50,11 @@ if(GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM_AMD)
     target_link_libraries(identify_stream_usage_hip ${CMAKE_DL_LIBS})
     set_target_properties(
         identify_stream_usage_hip
-        PROPERTIES # set target compile options
-            CXX_STANDARD
-            17
-            CXX_STANDARD_REQUIRED
-            ON
-            POSITION_INDEPENDENT_CODE
-            ON
+        # set target compile options
+        PROPERTIES
+            CXX_STANDARD 17
+            CXX_STANDARD_REQUIRED ON
+            POSITION_INDEPENDENT_CODE ON
     )
 
     add_executable(
