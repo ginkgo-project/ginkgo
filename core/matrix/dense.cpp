@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,6 +22,7 @@
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/row_scatterer.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -1310,6 +1311,19 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
 }
 
 
+template <typename IndexType>
+size_type get_size(const array<IndexType>* arr)
+{
+    return arr->get_size();
+}
+
+template <typename IndexType>
+size_type get_size(const index_set<IndexType>* is)
+{
+    return is->get_num_elems();
+}
+
+
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int32>* permutation_indices) const
@@ -1610,6 +1624,42 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   dense_beta.get(), dense);
         },
         out.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(
+    ptr_param<const RowScatterer<int32>> scatterer, ptr_param<LinOp> target)
+{
+    scatterer->apply(this, target);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(
+    ptr_param<const LinOp> alpha,
+    ptr_param<const RowScatterer<int32>> scatterer, ptr_param<const LinOp> beta,
+    ptr_param<LinOp> target)
+{
+    scatterer->apply(alpha, this, beta, target);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(
+    ptr_param<const RowScatterer<int64>> scatterer, ptr_param<LinOp> target)
+{
+    scatterer->apply(this, target);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_scatter(
+    ptr_param<const LinOp> alpha,
+    ptr_param<const RowScatterer<int64>> scatterer, ptr_param<const LinOp> beta,
+    ptr_param<LinOp> target)
+{
+    scatterer->apply(alpha, this, beta, target);
 }
 
 
