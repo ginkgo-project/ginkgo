@@ -46,7 +46,7 @@ jobs:
         run: old/.github/abidiff.sh
       - name: Upload ABI diff
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: abi
           path: abi.diff
