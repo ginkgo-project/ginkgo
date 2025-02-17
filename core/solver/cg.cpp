@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,9 +24,9 @@ namespace cg {
 namespace {
 
 
-GKO_REGISTER_OPERATION(initialize, cg::initialize);
-GKO_REGISTER_OPERATION(step_1, cg::step_1);
-GKO_REGISTER_OPERATION(step_2, cg::step_2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(initialize, cg::initialize);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(step_1, cg::step_1);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(step_2, cg::step_2);
 
 
 }  // anonymous namespace
