@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -172,54 +172,59 @@ Pgm<ValueType, IndexType>::generate_local(
     using csr_type = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
     using weight_csr_type = remove_complex<csr_type>;
-    agg_.resize_and_reset(local_matrix->get_size()[0]);
-    auto exec = this->get_executor();
-    const auto num_rows = local_matrix->get_size()[0];
-    array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
-    array<IndexType> intermediate_agg(this->get_executor(),
-                                      parameters_.deterministic * num_rows);
+    if (this->get_parameters().custom_agg.get_size()) {
+        agg_ = this->get_parameters().constom_agg;
+        agg_.set_executor(this->get_executor());
+    } else {
+        agg_.resize_and_reset(local_matrix->get_size()[0]);
+        auto exec = this->get_executor();
+        const auto num_rows = local_matrix->get_size()[0];
+        array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
+        array<IndexType> intermediate_agg(this->get_executor(),
+                                          parameters_.deterministic * num_rows);
 
-    // Initial agg = -1
-    exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_size(),
-                                   -one<IndexType>()));
-    IndexType num_unagg = num_rows;
-    IndexType num_unagg_prev = num_rows;
-    // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
-    // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
-    auto abs_mtx = local_matrix->compute_absolute();
-    // abs_mtx is already real valuetype, so transpose is enough
-    auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
-    auto identity = matrix::Identity<real_type>::create(exec, num_rows);
-    // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
-    // Extract the diagonal value of matrix
-    auto diag = weight_mtx->extract_diagonal();
-    for (int i = 0; i < parameters_.max_iterations; i++) {
-        // Find the strongest neighbor of each row
-        exec->run(pgm::make_find_strongest_neighbor(
-            weight_mtx.get(), diag.get(), agg_, strongest_neighbor));
-        // Match edges
-        exec->run(pgm::make_match_edge(strongest_neighbor, agg_));
-        // Get the num_unagg
-        exec->run(pgm::make_count_unagg(agg_, &num_unagg));
-        // no new match, all match, or the ratio of num_unagg/num is lower
-        // than parameter.max_unassigned_ratio
-        if (num_unagg == 0 || num_unagg == num_unagg_prev ||
-            num_unagg < parameters_.max_unassigned_ratio * num_rows) {
-            break;
+        // Initial agg = -1
+        exec->run(pgm::make_fill_array(agg_.get_data(), agg_.get_size(),
+                                       -one<IndexType>()));
+        IndexType num_unagg = num_rows;
+        IndexType num_unagg_prev = num_rows;
+        // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
+        // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
+        auto abs_mtx = local_matrix->compute_absolute();
+        // abs_mtx is already real valuetype, so transpose is enough
+        auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
+        auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+        auto identity = matrix::Identity<real_type>::create(exec, num_rows);
+        // W = (abs_mtx + transpose(abs_mtx))/2
+        abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+        // Extract the diagonal value of matrix
+        auto diag = weight_mtx->extract_diagonal();
+        for (int i = 0; i < parameters_.max_iterations; i++) {
+            // Find the strongest neighbor of each row
+            exec->run(pgm::make_find_strongest_neighbor(
+                weight_mtx.get(), diag.get(), agg_, strongest_neighbor));
+            // Match edges
+            exec->run(pgm::make_match_edge(strongest_neighbor, agg_));
+            // Get the num_unagg
+            exec->run(pgm::make_count_unagg(agg_, &num_unagg));
+            // no new match, all match, or the ratio of num_unagg/num is lower
+            // than parameter.max_unassigned_ratio
+            if (num_unagg == 0 || num_unagg == num_unagg_prev ||
+                num_unagg < parameters_.max_unassigned_ratio * num_rows) {
+                break;
+            }
+            num_unagg_prev = num_unagg;
         }
-        num_unagg_prev = num_unagg;
-    }
-    // Handle the left unassign points
-    if (num_unagg != 0 && parameters_.deterministic) {
-        // copy the agg to intermediate_agg
-        intermediate_agg = agg_;
-    }
-    if (num_unagg != 0) {
-        // Assign all left points
-        exec->run(pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
-                                                agg_, intermediate_agg));
+        // Handle the left unassign points
+        if (num_unagg != 0 && parameters_.deterministic) {
+            // copy the agg to intermediate_agg
+            intermediate_agg = agg_;
+        }
+        if (num_unagg != 0) {
+            // Assign all left points
+            exec->run(pgm::make_assign_to_exist_agg(
+                weight_mtx.get(), diag.get(), agg_, intermediate_agg));
+        }
     }
     IndexType num_agg = 0;
     // Renumber the index

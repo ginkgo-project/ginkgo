@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -127,6 +127,8 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(custom_agg, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
