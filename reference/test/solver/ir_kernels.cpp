@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -203,17 +203,18 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
 
 TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
+    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_type>;
     auto solver = this->ir_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<MixedMtx>({2.0}, this->exec);
+    auto beta = gko::initialize<MixedMtx>({-1.0}, this->exec);
+    auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<MixedMtx>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha, b, beta, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
+                        (r_mixed<mixed_type, TypeParam>()) * 1e1);
 }
 
 
@@ -243,26 +244,29 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
-        gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
+    using mixed_complex_type = gko::to_complex<mixed_type>;
+    using Scalar = gko::matrix::Dense<mixed_type>;
+    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
     auto solver = this->ir_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
-        {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
+    auto b = gko::initialize<MixedMtx>(
+        {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
+         mixed_complex_type{2.2, -4.4}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+    auto x = gko::initialize<MixedMtx>(
+        {mixed_complex_type{0.5, -1.0}, mixed_complex_type{1.0, -2.0},
+         mixed_complex_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha, b, beta, x);
+    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
+    GKO_ASSERT_MTX_NEAR(
+        x,
+        l({mixed_complex_type{1.5, -3.0}, mixed_complex_type{5.0, -10.0},
+           mixed_complex_type{2.0, -4.0}}),
+        (r_mixed<mixed_complex_type, TypeParam>()) * 1e1);
 }
 
 

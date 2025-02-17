@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -460,6 +460,16 @@ int main()
     {
         using Solver = gko::solver::Cgs<>;
         check_solver<Solver>(exec, A_raw, b, x);
+    }
+
+    // core/solver/chebyshev.hpp
+    {
+        using Solver = gko::solver::Chebyshev<>;
+        auto test =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
     }
 
     // core/solver/fcg.hpp

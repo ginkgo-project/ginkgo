@@ -139,6 +139,7 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
