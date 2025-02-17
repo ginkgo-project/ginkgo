@@ -52,8 +52,10 @@ GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_dot,
                                           dense::compute_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_conj_dot,
+                                          dense::compute_conj_dot_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm2,
+                                          dense::compute_norm2_dispatch);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(compute_mean, dense::compute_mean);
 GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
