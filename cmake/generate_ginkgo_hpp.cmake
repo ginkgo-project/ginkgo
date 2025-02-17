@@ -14,4 +14,7 @@ function(ginkgo_generate_ginkgo_hpp)
     endforeach()
     configure_file("${Ginkgo_SOURCE_DIR}/include/ginkgo/ginkgo.hpp.in"
         "${Ginkgo_BINARY_DIR}/include/ginkgo/ginkgo.hpp" @ONLY)
+    if(EXISTS "${Ginkgo_SOURCE_DIR}/include/ginkgo/ginkgo.hpp")
+        message(FATAL_ERROR "ginkgo.hpp is auto-generated and should not be in include/ginkgo")
+    endif()
 endfunction()
