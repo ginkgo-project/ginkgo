@@ -41,8 +41,8 @@ namespace csr {
 namespace {
 
 
-GKO_REGISTER_OPERATION(spmv, csr::spmv);
-GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(spmv, csr::spmv);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);

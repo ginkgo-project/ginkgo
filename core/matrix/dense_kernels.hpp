@@ -482,9 +482,9 @@ namespace dense {
 
 
 template <typename ValueType>
-kernel_work_estimate simple_apply(const matrix::Dense<ValueType>* a,
-                                  const matrix::Dense<ValueType>* b,
-                                  matrix::Dense<ValueType>* c)
+compute_bound_work_estimate simple_apply(const matrix::Dense<ValueType>* a,
+                                         const matrix::Dense<ValueType>* b,
+                                         matrix::Dense<ValueType>* c)
 {
     const auto a_rows = a->get_size()[0];
     const auto a_cols = a->get_size()[1];
@@ -494,8 +494,8 @@ kernel_work_estimate simple_apply(const matrix::Dense<ValueType>* a,
 
 
 template <typename InValueType, typename OutValueType>
-kernel_work_estimate copy(const matrix::Dense<InValueType>* input,
-                          matrix::Dense<OutValueType>* output)
+memory_bound_work_estimate copy(const matrix::Dense<InValueType>* input,
+                                matrix::Dense<OutValueType>* output)
 {
     const auto memsize = input->get_size()[0] * input->get_size()[1];
     return memory_bound_work_estimate{memsize * sizeof(InValueType),
@@ -504,7 +504,7 @@ kernel_work_estimate copy(const matrix::Dense<InValueType>* input,
 
 
 template <typename ValueType>
-kernel_work_estimate fill(matrix::Dense<ValueType>* mat, ValueType value)
+memory_bound_work_estimate fill(matrix::Dense<ValueType>* mat, ValueType value)
 {
     return memory_bound_work_estimate{
         0, mat->get_size()[0] * mat->get_size()[1] * sizeof(ValueType)};
@@ -512,13 +512,21 @@ kernel_work_estimate fill(matrix::Dense<ValueType>* mat, ValueType value)
 
 
 template <typename ValueType>
-kernel_work_estimate compute_dot_dispatch(const matrix::Dense<ValueType>* x,
-                                          const matrix::Dense<ValueType>* y,
-                                          matrix::Dense<ValueType>* result,
-                                          array<char>& tmp)
+memory_bound_work_estimate compute_dot_dispatch(
+    const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+    matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     const auto num_elements = x->get_size()[0] * x->get_size()[1];
     return memory_bound_work_estimate{2 * num_elements * sizeof(ValueType), 0};
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate compute_conj_dot_dispatch(
+    const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+    matrix::Dense<ValueType>* result, array<char>& tmp)
+{
+    return compute_dot_dispatch(x, y, result, tmp);
 }
 
 
