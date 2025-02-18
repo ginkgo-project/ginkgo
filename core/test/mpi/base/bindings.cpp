@@ -33,10 +33,24 @@ inline void min(void* input, void* output, int* len, MPI_Datatype* datatype)
 }
 
 
+template <typename ValueType>
+inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
+{
+    ValueType* input_ptr = static_cast<ValueType*>(input);
+    ValueType* output_ptr = static_cast<ValueType*>(output);
+    for (int i = 0; i < *len; i++) {
+        if (input_ptr[i] > output_ptr[i]) {
+            output_ptr[i] = input_ptr[i];
+        }
+    }
+}
+
+
 }  // namespace detail
 
 
 using gko::experimental::mpi::op_manager;
+
 
 template <typename ValueType, typename = void>
 class min {};
@@ -72,6 +86,43 @@ private:
     op_manager op_;
 };
 
+
+// ginkgo custom mpi max operation implementation
+template <typename ValueType, typename = void>
+class max {};
+
+template <typename ValueType>
+class max<ValueType, std::enable_if_t<gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    MPI_Op get_op() { return MPI_MAX; }
+};
+
+template <typename ValueType>
+class max<ValueType, std::enable_if_t<!gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    max()
+    {
+        op_ = op_manager(
+            []() {
+                MPI_Op* operation = new MPI_Op;
+                MPI_Op_create(&detail::max<ValueType>, 1, operation);
+                return operation;
+            }(),
+            [](MPI_Op* op) {
+                MPI_Op_free(op);
+                delete op;
+            });
+    }
+
+    MPI_Op get_op() { return *op_.get(); }
+
+private:
+    op_manager op_;
+};
+
+
 template <typename T>
 class MpiBindings : public ::testing::Test {
 protected:
@@ -79,13 +130,13 @@ protected:
     MpiBindings()
         : ref(gko::ReferenceExecutor::create()),
           sum_op(gko::experimental::mpi::sum<value_type>()),
-          max_op(gko::experimental::mpi::max<value_type>()),
+          max_op(max<value_type>()),
           min_op(min<value_type>())
     {}
 
     std::shared_ptr<gko::Executor> ref;
     gko::experimental::mpi::sum<value_type> sum_op;
-    gko::experimental::mpi::max<value_type> max_op;
+    max<value_type> max_op;
     min<value_type> min_op;
 };
 
