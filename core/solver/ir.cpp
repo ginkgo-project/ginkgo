@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/ir.hpp"
+
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -34,6 +37,10 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Ir<ValueType>::build();
+    std::set<std::string> allowed_keys{"criteria", "solver", "generated_solver",
+                                       "relaxation_factor",
+                                       "default_initial_guess"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     if (auto& obj = config.get("criteria")) {
         params.with_criteria(
             gko::config::parse_or_get_factory_vector<
