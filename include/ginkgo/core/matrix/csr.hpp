@@ -762,6 +762,9 @@ public:
      * values of the matrix into the transformed matrix.
      */
     struct permuting_reuse_info {
+        /** Creates an empty reuse info. */
+        explicit permuting_reuse_info();
+
         /** Creates a reuse info structure from its value permutation. */
         permuting_reuse_info(
             std::unique_ptr<Permutation<index_type>> value_permutation);
@@ -805,9 +808,7 @@ public:
      *              If permute_mode::rows is set, the rows will be permuted.
      *              If permute_mode::columns is set, the columns will be
      *              permuted.
-     * @return an std::pair consisting of the transposed matrix and the reuse
-     *         info struct that can be used to update values in the transposed
-     *         matrix.
+     * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
         ptr_param<const Permutation<index_type>> permutation,
