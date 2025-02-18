@@ -34,6 +34,26 @@ namespace distributed {
  */
 namespace preconditioner {
 
+/**
+ * The mode for the multi-level coarse correction
+ *
+ * - additive:       Additively incorporate the coarse level correction.
+ * - multiplicative: Multiplicatively incorporate the coarse level correction.
+ *
+ * See Domain Decomposition, Smith, Bjorstad, Gropp, Cambridge University Press,
+ * 1996.
+ */
+enum class coarse_correction_mode { additive, multiplicative };
+
+struct coarse_correction_type {
+    explicit coarse_correction_type(coarse_correction_mode m, double w)
+        : mode(m), weight(w)
+    {}
+
+    coarse_correction_mode mode;
+    double weight;
+};
+
 
 /**
  * A Schwarz preconditioner is a simple domain decomposition preconditioner that
@@ -104,17 +124,20 @@ public:
             coarse_level);
 
         /**
-         * Weighting for the coarse solution
-         */
-        ValueType GKO_FACTORY_PARAMETER(coarse_weight, value_type{0.5});
-
-        /**
          * Coarse solver factory.
          *
          * TODO: Set default
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             coarse_solver);
+
+        /**
+         * Coarse correction type: Additive or multiplicative and their
+         * respective weights.
+         */
+        coarse_correction_type GKO_FACTORY_PARAMETER_SCALAR(
+            coarse_correction,
+            coarse_correction_type(coarse_correction_mode::additive, 1.0));
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
