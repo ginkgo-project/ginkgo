@@ -5,7 +5,10 @@ unset(CMAKE_CXX_COMPILER_LAUNCHER)
 function(_ginkgo_check_build_config _build)
     string(TOUPPER ${_build} _build)
     if(NOT GINKGO_BUILD_${_build})
-            message(FATAL_ERROR "Building test with ${_build} enabled for Kokkos, but not for Ginkgo.")
+        message(
+            FATAL_ERROR
+            "Building test with ${_build} enabled for Kokkos, but not for Ginkgo."
+        )
     endif()
     unset(_build)
 endfunction()
@@ -31,8 +34,16 @@ else()
 endif()
 
 function(create_gtest_main_kokkos)
-    add_library(ginkgo_gtest_main_kokkos STATIC kokkos_main.cpp ${PROJECT_SOURCE_DIR}/core/test/gtest/resources.cpp)
-    target_link_libraries(ginkgo_gtest_main_kokkos PUBLIC Ginkgo::ginkgo GTest::GTest Kokkos::kokkos)
+    add_library(
+        ginkgo_gtest_main_kokkos
+        STATIC
+        kokkos_main.cpp
+        ${PROJECT_SOURCE_DIR}/core/test/gtest/resources.cpp
+    )
+    target_link_libraries(
+        ginkgo_gtest_main_kokkos
+        PUBLIC Ginkgo::ginkgo GTest::GTest Kokkos::kokkos
+    )
     target_compile_definitions(ginkgo_gtest_main_kokkos PRIVATE ${definitions})
     ginkgo_compile_features(ginkgo_gtest_main_kokkos)
 endfunction()
