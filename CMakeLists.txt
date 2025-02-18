@@ -459,11 +459,15 @@ else()
 endif()
 
 ginkgo_generate_ginkgo_hpp()
-configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
-    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
-configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos/config.hpp.in
-        ${Ginkgo_BINARY_DIR}/include/ginkgo/extensions/kokkos/config.hpp
-        @ONLY
+configure_file(
+    ${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp
+    @ONLY
+)
+configure_file(
+    ${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos/config.hpp.in
+    ${Ginkgo_BINARY_DIR}/include/ginkgo/extensions/kokkos/config.hpp
+    @ONLY
 )
 
 # Ginkgo core libraries
