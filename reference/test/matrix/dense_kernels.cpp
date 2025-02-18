@@ -230,6 +230,25 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
 }
 
 
+TYPED_TEST(Dense, AppliesLinearCombinationToDenseWithZeroBetaNan)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({0.0}, this->exec);
+    this->mtx3->fill(gko::nan<T>());
+
+    this->mtx2->apply(alpha, this->mtx1, beta, this->mtx3);
+
+    EXPECT_EQ(this->mtx3->at(0, 0), T{0.5});
+    EXPECT_EQ(this->mtx3->at(0, 1), T{0.5});
+    EXPECT_EQ(this->mtx3->at(0, 2), T{0.5});
+    EXPECT_EQ(this->mtx3->at(1, 0), T{-1.0});
+    EXPECT_EQ(this->mtx3->at(1, 1), T{-1.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{-1.0});
+}
+
+
 TYPED_TEST(Dense, AppliesLinearCombinationToMixedDense)
 {
     using MixedMtx = typename TestFixture::MixedMtx;

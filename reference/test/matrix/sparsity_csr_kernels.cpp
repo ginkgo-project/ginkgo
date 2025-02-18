@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -187,6 +187,22 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
 
     EXPECT_EQ(y->at(0), T{-5.0});
     EXPECT_EQ(y->at(1), T{3.0});
+}
+
+
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVectorWithZeroBetaNaN)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({0.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({gko::nan<T>(), gko::nan<T>()}, this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    EXPECT_EQ(y->at(0), T{-7.0});
+    EXPECT_EQ(y->at(1), T{-1.0});
 }
 
 
