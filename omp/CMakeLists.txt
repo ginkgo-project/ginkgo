@@ -10,6 +10,7 @@ target_sources(ginkgo_omp
     base/scoped_device_id.cpp
     base/version.cpp
     components/prefix_sum_kernels.cpp
+    distributed/assembly_kernels.cpp
     distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_helpers_kernels.cpp
@@ -40,6 +41,7 @@ target_sources(ginkgo_omp
     preconditioner/batch_jacobi_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    preconditioner/sor_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/batch_bicgstab_kernels.cpp
     solver/batch_cg_kernels.cpp
@@ -54,7 +56,7 @@ target_sources(ginkgo_omp
     )
 
 ginkgo_compile_features(ginkgo_omp)
-target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
+target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP GKO_DEVICE_NAMESPACE=omp)
 
 # TODO FIXME: Currently nvhpc 22.7+ optimizations break the omp jacobi's custom
 # precision implementation (mantissa segmentation)
@@ -94,7 +96,7 @@ ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_omp GKO_COMPILING_OMP)
+    ginkgo_check_headers(ginkgo_omp "GKO_COMPILING_OMP;GKO_DEVICE_NAMESPACE=omp")
 endif()
 
 if(GINKGO_BUILD_TESTS)

@@ -8,9 +8,8 @@
 
 #include <type_traits>
 
-
-#include "hip/base/config.hip.hpp"
-#include "hip/base/types.hip.hpp"
+#include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -102,7 +101,7 @@ struct is_synchronizable_group_impl : std::false_type {};
 
 
 template <typename T>
-struct is_communicator_group_impl : std::true_type {};
+struct is_communicator_group_impl : std::false_type {};
 
 }  // namespace detail
 
@@ -320,6 +319,27 @@ public:
 
 #undef GKO_ENABLE_SHUFFLE_OPERATION
 
+// hip does not support 16bit shuffle directly
+#define GKO_ENABLE_SHUFFLE_OPERATION_HALF(_name, SelectorType)           \
+    __device__ __forceinline__ __half _name(const __half& var,           \
+                                            SelectorType selector) const \
+    {                                                                    \
+        uint32 u;                                                        \
+        memcpy(&u, &var, sizeof(__half));                                \
+        u = static_cast<const Group*>(this)->_name(u, selector);         \
+        __half result;                                                   \
+        memcpy(&result, &u, sizeof(__half));                             \
+        return result;                                                   \
+    }
+
+    GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl, int32)
+    GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl_up, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl_down, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl_xor, int32)
+
+#undef GKO_ENABLE_SHUFFLE_OPERATION_HALF
+
+
 private:
     template <typename ShuffleOperator, typename ValueType,
               typename SelectorType>
@@ -371,12 +391,13 @@ namespace detail {
 
 
 template <unsigned Size>
-struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
+struct is_group_impl<group::thread_block_tile<Size>> : std::true_type {};
 template <unsigned Size>
-struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
-};
+struct is_synchronizable_group_impl<group::thread_block_tile<Size>>
+    : std::true_type {};
 template <unsigned Size>
-struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
+struct is_communicator_group_impl<group::thread_block_tile<Size>>
+    : std::true_type {};
 
 
 }  // namespace detail

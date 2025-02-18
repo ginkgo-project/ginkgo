@@ -9,12 +9,10 @@
 #include <algorithm>
 #include <random>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
 
 #include "core/base/iterator_factory.hpp"
 

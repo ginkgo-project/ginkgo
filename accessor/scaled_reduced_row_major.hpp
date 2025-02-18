@@ -11,7 +11,6 @@
 #include <type_traits>
 #include <utility>
 
-
 #include "accessor_helper.hpp"
 #include "index_span.hpp"
 #include "range.hpp"
@@ -157,7 +156,7 @@ public:
                   "Only Dimensionality <= 32 is currently supported");
 
     // Allow access to both `scalar_` and `compute_mask_scalar_index()`
-    friend class detail::enable_write_scalar<
+    friend struct detail::enable_write_scalar<
         dimensionality, scaled_reduced_row_major, scalar_type>;
     friend class range<scaled_reduced_row_major>;
 

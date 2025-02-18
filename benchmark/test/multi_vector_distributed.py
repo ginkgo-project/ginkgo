@@ -34,3 +34,12 @@ test_framework.compare_output_distributed(
     expected_stderr="multi_vector_distributed.profile.stderr",
     num_procs=3,
 )
+
+# complex
+test_framework.compare_output_distributed(
+    ["-input", '[{"n": 100}]'],
+    expected_stdout="multi_vector_distributed_dcomplex.simple.stdout",
+    expected_stderr="multi_vector_distributed_dcomplex.simple.stderr",
+    num_procs=3,
+    use_complex=True
+)

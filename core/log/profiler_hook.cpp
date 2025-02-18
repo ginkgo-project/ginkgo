@@ -2,19 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/profiler_hook.hpp>
-
+#include "ginkgo/core/log/profiler_hook.hpp"
 
 #include <memory>
 #include <mutex>
 #include <sstream>
 
-
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
 
 #include "core/log/profiler_hook.hpp"
 
@@ -433,13 +430,6 @@ profiling_scope_guard::~profiling_scope_guard()
         end_(name_, category_);
     }
 }
-
-profiling_scope_guard::profiling_scope_guard(profiling_scope_guard&& other)
-    : empty_{std::exchange(other.empty_, true)},
-      name_{std::exchange(other.name_, nullptr)},
-      category_{other.category_},
-      end_{std::move(other.end_)}
-{}
 
 
 }  // namespace log

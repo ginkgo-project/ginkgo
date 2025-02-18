@@ -8,7 +8,6 @@
 
 #include <typeinfo>
 
-
 #include <ginkgo/core/base/batch_dim.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>

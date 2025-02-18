@@ -1,13 +1,23 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Ginkgo LANGUAGES CXX VERSION 1.8.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES CXX VERSION 1.9.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
+if(Ginkgo_VERSION_TAG STREQUAL "master")
+    set(GINKGO_VERSION_TAG_DEPRECATED ON)
+else()
+    set(GINKGO_VERSION_TAG_DEPRECATED OFF)
+endif()
+if(GINKGO_VERSION_TAG_DEPRECATED)
+    message(
+            WARNING
+            "The branch ${Ginkgo_VERSION_TAG} is deprecated and will stop receiving updates after 2025. "
+            "Please use the main branch for the latest release, or the develop branch for the latest development updates.")
+endif()
 # Cuda and Hip also look for Threads. Set it before any find_package to ensure the Threads setting is not changed.
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Determine which modules can be compiled
-include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
@@ -33,6 +43,12 @@ option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be time-intensive" OFF)
 option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP tests" OFF)
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
+option(GINKGO_ENABLE_HALF "Enable the use of half precision" ON)
+# We do not support half precision in MSVC.
+if(MSVC)
+    message(STATUS "We do not support half precision in MSVC.")
+    set(GINKGO_ENABLE_HALF OFF CACHE BOOL "Enable the use of half precision" FORCE)
+endif()
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
@@ -73,9 +89,25 @@ gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
     include(cmake/cuda.cmake)
+    if(CUDAToolkit_VERSION VERSION_LESS 11.6)
+        message(STATUS "Disable custom thrust namespace for cuda before 11.6 because it has no effect in the thrust shipped by cuda before 11.6")
+        set(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE OFF)
+    else()
+        message(STATUS "Enable custom thrust namespace for cuda")
+        set(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE ON)
+    endif()
 endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
+    if(GINKGO_HIP_PLATFORM_AMD AND GINKGO_HIP_VERSION VERSION_LESS 5.7)
+        # Hip allow custom namespace but does not fully make everything in the custom namespace before rocm-5.7
+        # more specific pr: https://github.com/ROCm/rocThrust/pull/286
+        message(STATUS "Disable custom thrust namespace for hip before 5.7 because hip does not fully support it before 5.7")
+        set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
+    else()
+        message(STATUS "Enable custom thrust namespace for hip")
+        set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE ON)
+    endif()
 endif()
 if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
@@ -95,7 +127,13 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
 if(MINGW OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        # Otherwise, dynamic_cast to the class marked by final will be failed.
+        # https://reviews.llvm.org/D154658 should be relevant
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-assume-unique-vtables")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+    endif()
 endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
@@ -241,7 +279,7 @@ endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
 endif()
-if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS)
+if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS OR GINKGO_BUILD_EXAMPLES)
     find_package(nlohmann_json 3.9.1 QUIET)
 endif()
 
@@ -277,9 +315,11 @@ endif()
 
 if(GINKGO_BUILD_SYCL)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
+    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MINOR_VERSION __LIBSYCL_MINOR_VERSION)
     ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
+    set(GINKGO_DPCPP_MINOR_VERSION "0")
 endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
@@ -367,26 +407,6 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-    find_program(GIT git)
-    if(NOT "${GIT}" STREQUAL "GIT-NOTFOUND")
-        add_custom_target(format_header
-            COMMAND echo "format header on the modified code files except build, examples, third_party, accessor/, dev_tools, ginkgo.hpp"
-            COMMAND bash -c "git diff --name-only origin/master...HEAD | \
-                grep -Ev 'build|examples|third_party|accessor/|dev_tools|ginkgo.hpp' | \
-                grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
-                xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
-            WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
-            VERBATIM)
-    endif()
-    unset(GIT CACHE)
-    add_custom_target(format_header_all
-        COMMAND echo "format header on all code files except build, examples, third_party, accessor/, dev_tools, ginkgo.hpp"
-        COMMAND bash -c "find * -type f | \
-                grep -Ev 'build|examples|third_party|accessor/|dev_tools|ginkgo.hpp' | \
-                grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
-                xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
-        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
-        VERBATIM)
 endif()
 unset(BASH CACHE)
 

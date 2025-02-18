@@ -2,20 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/csr.hpp>
-
+#include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -26,8 +24,6 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
@@ -792,15 +788,16 @@ TYPED_TEST(Csr, ConvertsToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
     auto res = Csr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->convert_to(tmp);
@@ -817,15 +814,16 @@ TYPED_TEST(Csr, MovesToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto tmp = OtherCsr::create(this->exec);
     auto res = Csr::create(this->exec);
     // If OtherType is more precise: 0, otherwise r
-    auto residual = r<OtherType>::value < r<ValueType>::value
-                        ? gko::remove_complex<ValueType>{0}
-                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+    auto residual =
+        r<OtherType>::value < r<ValueType>::value
+            ? gko::remove_complex<ValueType>{0}
+            : static_cast<gko::remove_complex<ValueType>>(r<OtherType>::value);
 
     // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->move_to(tmp);
@@ -994,7 +992,7 @@ TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);
@@ -1013,7 +1011,7 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
-    using OtherType = typename gko::next_precision<ValueType>;
+    using OtherType = gko::next_precision<ValueType>;
     using Csr = typename TestFixture::Mtx;
     using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
     auto empty = OtherCsr::create(this->exec);

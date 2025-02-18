@@ -9,14 +9,12 @@
 #include <complex>
 #include <string>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/type_descriptor_helper.hpp"
@@ -104,8 +102,16 @@ deferred_factory_parameter<ReturnType> dispatch(
     }
 }
 
-using value_type_list =
+using value_type_list_base =
     syn::type_list<double, float, std::complex<double>, std::complex<float>>;
+
+#if GINKGO_ENABLE_HALF
+using value_type_list =
+    syn::type_list<double, float, half, std::complex<double>,
+                   std::complex<float>, std::complex<half>>;
+#else
+using value_type_list = value_type_list_base;
+#endif  // GINKGO_ENABLE_HALF
 
 using index_type_list = syn::type_list<int32, int64>;
 

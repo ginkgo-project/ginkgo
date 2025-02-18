@@ -7,9 +7,7 @@
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
@@ -23,9 +21,8 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 #if GINKGO_COMMON_SINGLE_MODE
@@ -560,7 +557,7 @@ protected:
     using Mtx = typename T::matrix_type;
     using index_type = typename Mtx::index_type;
     using value_type = typename Mtx::value_type;
-    using mixed_value_type = gko::next_precision<value_type>;
+    using mixed_value_type = gko::next_precision_base<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
@@ -589,10 +586,7 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {
-            size,
-            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
-            rand_engine};
+        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
     }
 
     template <typename VecType = Vec>
@@ -612,10 +606,7 @@ protected:
         return {gko::initialize<VecType>(
                     {gko::test::detail::get_rand_value<
                         typename VecType::value_type>(
-                        std::normal_distribution<
-                            gko::remove_complex<typename VecType::value_type>>(
-                            0.0, 1.0),
-                        rand_engine)},
+                        std::normal_distribution<>(0.0, 1.0), rand_engine)},
                     ref),
                 exec};
     }

@@ -13,12 +13,10 @@
 #include <type_traits>
 #include <vector>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/test/utils/value_generator.hpp"
 
@@ -661,10 +659,20 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
                 auto off_diag = i < j ? upper : lower;
                 auto min_idx = std::min(i, j);
                 auto max_idx = std::max(i, j);
-                auto val = sign *
-                           static_cast<ValueType>(
-                               std::pow(off_diag, max_idx - min_idx)) *
-                           alpha[min_idx] * beta[max_idx + 1] / alpha.back();
+                // NVHPC 23.3 with O3 gives wrong result with std::pow on
+                // complex<half>. We use the float variant to help it, also for
+                // half.
+                using pow_type = std::conditional_t<
+                    std::is_same<gko::remove_complex<ValueType>,
+                                 gko::half>::value,
+                    std::conditional_t<gko::is_complex<ValueType>(),
+                                       std::complex<float>, float>,
+                    ValueType>;
+                auto val =
+                    sign *
+                    static_cast<ValueType>(std::pow(
+                        static_cast<pow_type>(off_diag), max_idx - min_idx)) *
+                    alpha[min_idx] * beta[max_idx + 1] / alpha.back();
                 md.nonzeros.emplace_back(i, j, val);
             }
         }

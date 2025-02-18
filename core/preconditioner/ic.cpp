@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/ic.hpp>
-
+#include "ginkgo/core/preconditioner/ic.hpp"
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -12,7 +11,6 @@
 #include <ginkgo/core/preconditioner/utils.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"

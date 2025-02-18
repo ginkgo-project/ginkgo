@@ -10,16 +10,14 @@
 #include <regex>
 #include <sstream>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 
-
 #include "core/test/gtest/resources.hpp"
+#include "test/utils/executor.hpp"
 
 
 #ifdef GKO_COMPILING_OMP
@@ -46,60 +44,27 @@ class DeviceEnvironment : public ::testing::Environment {
 public:
     explicit DeviceEnvironment(int rank) : rank_(rank) { print_environment(); }
 
-#ifdef GKO_COMPILING_OMP
     void print_environment() const
     {
+        auto ref = gko::ReferenceExecutor::create();
+#ifdef GKO_COMPILING_OMP
         if (ResourceEnvironment::omp_threads > 0) {
             omp_set_num_threads(ResourceEnvironment::omp_threads);
         }
-        std::stringstream ss;
-        ss << "Rank " << rank_ << ": OMP threads " << omp_get_max_threads()
-           << std::endl;
-        std::cerr << ss.str();
-    }
+        std::shared_ptr<gko::OmpExecutor> exec;
 #elif defined(GKO_COMPILING_CUDA)
-    void print_environment() const
-    {
-        auto device_id = ResourceEnvironment::cuda_device_id;
-        std::stringstream ss;
-        ss << "Rank " << rank_ << ": CUDA device "
-           << gko::kernels::cuda::get_device_name(device_id) << " ID "
-           << device_id << std::endl;
-        std::cerr << ss.str();
-    }
-
-    void TearDown() override
-    {
-        gko::kernels::cuda::reset_device(ResourceEnvironment::cuda_device_id);
-    }
+        std::shared_ptr<gko::CudaExecutor> exec;
 #elif defined(GKO_COMPILING_HIP)
-    void print_environment() const
-    {
-        auto device_id = ResourceEnvironment::hip_device_id;
-        std::stringstream ss;
-        ss << "Rank " << rank_ << ": HIP device "
-           << gko::kernels::hip::get_device_name(device_id) << " ID "
-           << device_id << std::endl;
-        std::cerr << ss.str();
-    }
-
-    void TearDown() override
-    {
-        gko::kernels::hip::reset_device(ResourceEnvironment::hip_device_id);
-    }
+        std::shared_ptr<gko::HipExecutor> exec;
 #elif defined(GKO_COMPILING_DPCPP)
-    void print_environment() const
-    {
-        auto device_id = ResourceEnvironment::sycl_device_id;
-        std::stringstream ss;
-        ss << "Rank " << rank_ << ": SYCL device "
-           << gko::kernels::dpcpp::get_device_name(device_id) << " ID "
-           << device_id << std::endl;
-        std::cerr << ss.str();
-    }
+        std::shared_ptr<gko::DpcppExecutor> exec;
 #else
-    void print_environment() const {}
+        std::shared_ptr<gko::ReferenceExecutor> exec;
 #endif
+        init_executor(ref, exec);
+        std::cerr << "Rank " << rank_ << ": " << exec->get_description()
+                  << std::endl;
+    }
 
 private:
     int rank_;

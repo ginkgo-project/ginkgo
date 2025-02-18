@@ -2,15 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/permutation.hpp>
-
+#include "ginkgo/core/matrix/permutation.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/matrix/permutation_kernels.hpp"
@@ -269,8 +267,11 @@ void dispatch_dense(const LinOp* op, Functor fn)
 {
     using matrix::Dense;
     using std::complex;
-    run<Dense, double, float, std::complex<double>, std::complex<float>>(op,
-                                                                         fn);
+    run<Dense,
+#if GINKGO_ENABLE_HALF
+        gko::half, std::complex<gko::half>,
+#endif
+        double, float, std::complex<double>, std::complex<float>>(op, fn);
 }
 
 

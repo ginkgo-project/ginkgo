@@ -2,19 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "accessor/reduced_row_major.hpp"
+
 #include <array>
 #include <cmath>
 #include <limits>
 #include <tuple>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
-
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
-#include "accessor/reduced_row_major.hpp"
 #include "accessor/utils.hpp"
 
 

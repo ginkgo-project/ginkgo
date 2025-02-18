@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/fft.hpp>
-
-
 #include <hip/hip_runtime.h>
+
+#include <ginkgo/core/matrix/fft.hpp>
 #if HIP_VERSION >= 50200000
 #include <hipfft/hipfft.h>
 #else
@@ -14,7 +13,6 @@
 
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>

@@ -4,7 +4,6 @@
 
 #include "core/distributed/vector_kernels.hpp"
 
-
 #include "core/components/prefix_sum_kernels.hpp"
 #include "reference/distributed/partition_helpers.hpp"
 
@@ -41,7 +40,7 @@ void build_local(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL);
 
 

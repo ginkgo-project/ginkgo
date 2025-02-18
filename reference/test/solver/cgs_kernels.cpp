@@ -2,22 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/cgs.hpp>
-
+#include "core/solver/cgs_kernels.hpp"
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
-#include "core/solver/cgs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -416,13 +413,13 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
     auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        {value_type{-2.0, 4.0}, value_type{-0.5, 1.0}, value_type{2.0, -4.0}},
         this->exec);
 
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
+                        l({value_type{-6.0, 12.0}, value_type{-1.5, 3.0},
                            value_type{6.0, -12.0}}),
                         r<value_type>::value * 1e3);
 }
@@ -441,13 +438,14 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
     auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
+        {value_type{-2.0, 4.0}, value_type{-0.5, 1.0}, value_type{2.0, -4.0}},
         this->exec);
+
 
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 17.0}, value_type{-3.0, 6.0},
+                        l({value_type{-6.0, 12.0}, value_type{-1.5, 3.0},
                            value_type{6.0, -12.0}}),
                         (r_mixed<value_type, TypeParam>()) * 1e3);
 }
@@ -478,6 +476,8 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -494,6 +494,8 @@ TYPED_TEST(Cgs, SolvesBigDenseSystemWithImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {17356.0, 5466.0, 748.0, -456.0, 3434.0, -7020.0}, this->exec);
@@ -510,6 +512,8 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {17356.0, 5466.0, 748.0, -456.0, 3434.0, -7020.0}, this->exec);
@@ -526,6 +530,8 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -592,6 +598,8 @@ TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver = this->cgs_factory_big->generate(this->mtx_big->transpose());
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
@@ -608,6 +616,8 @@ TYPED_TEST(Cgs, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // squared_norm of residual(=b) exceeds the range of half precision.
+    SKIP_IF_HALF(value_type);
     auto solver =
         this->cgs_factory_big->generate(this->mtx_big->conj_transpose());
     auto b = gko::initialize<Mtx>(

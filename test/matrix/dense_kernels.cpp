@@ -4,15 +4,12 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <algorithm>
 #include <numeric>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -27,10 +24,9 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class Dense : public CommonTestFixture {
@@ -603,7 +599,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 
     gko::kernels::reference::dense::count_nonzeros_per_row(
         ref, x.get(), nnz_per_row.get_data());
-    gko::kernels::EXEC_NAMESPACE::dense::count_nonzeros_per_row(
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::count_nonzeros_per_row(
         exec, dx.get(), dnnz_per_row.get_data());
 
     auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
@@ -621,8 +617,8 @@ TEST_F(Dense, ComputeMaxNNZPerRowIsEquivalentToRef)
 
     gko::kernels::reference::dense::compute_max_nnz_per_row(ref, x.get(),
                                                             max_nnz);
-    gko::kernels::EXEC_NAMESPACE::dense::compute_max_nnz_per_row(exec, dx.get(),
-                                                                 dmax_nnz);
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_max_nnz_per_row(
+        exec, dx.get(), dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
 }
@@ -2017,7 +2013,7 @@ TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
 
     gko::kernels::reference::dense::compute_squared_norm2(
         ref, x.get(), norm_expected.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::dense::compute_squared_norm2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_squared_norm2(
         exec, dx.get(), dnorm.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(dnorm, norm_expected, r<value_type>::value);
@@ -2033,7 +2029,7 @@ TEST_F(Dense, ComputesSqrt)
     auto dmtx = gko::clone(exec, mtx);
 
     gko::kernels::reference::dense::compute_sqrt(ref, mtx.get());
-    gko::kernels::EXEC_NAMESPACE::dense::compute_sqrt(exec, dmtx.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(exec, dmtx.get());
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }

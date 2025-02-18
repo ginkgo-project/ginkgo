@@ -4,20 +4,22 @@
 
 #include <typeinfo>
 
-
 #include <gtest/gtest.h>
 
-
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
-
 
 #include "core/config/config_helper.hpp"
 #include "core/config/registry_accessor.hpp"
@@ -300,6 +302,163 @@ struct Jacobi
 };
 
 
+struct Sor
+    : PreconditionerConfigTest<::gko::preconditioner::Sor<float, gko::int32>,
+                               ::gko::preconditioner::Sor<double, gko::int32>> {
+    using Ir = gko::solver::Ir<float>;
+
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Sor"}}};
+    }
+
+    static void change_template(pnode::map_type& config_map)
+    {
+        config_map["value_type"] = pnode{"float32"};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        config_map["symmetric"] = pnode{true};
+        param.with_symmetric(true);
+        config_map["relaxation_factor"] = pnode{0.8};
+        // float can be cast to double without issues
+        param.with_relaxation_factor(0.8f);
+        config_map["l_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_l_solver(Ir::build());
+        config_map["u_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_u_solver(Ir::build());
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.symmetric, ans_param.symmetric);
+        ASSERT_EQ(res_param.relaxation_factor, ans_param.relaxation_factor);
+        ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
+        ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+    }
+};
+
+
+struct GaussSeidel
+    : PreconditionerConfigTest<
+          ::gko::preconditioner::GaussSeidel<float, gko::int32>,
+          ::gko::preconditioner::GaussSeidel<double, gko::int32>> {
+    using Ir = gko::solver::Ir<float>;
+
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::GaussSeidel"}}};
+    }
+
+    static void change_template(pnode::map_type& config_map)
+    {
+        config_map["value_type"] = pnode{"float32"};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        config_map["symmetric"] = pnode{true};
+        param.with_symmetric(true);
+        config_map["l_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_l_solver(Ir::build());
+        config_map["u_solver"] = pnode{
+            {{"type", pnode{"solver::Ir"}}, {"value_type", pnode{"float32"}}}};
+        param.with_u_solver(Ir::build());
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.symmetric, ans_param.symmetric);
+        ASSERT_EQ(typeid(res_param.l_solver), typeid(ans_param.l_solver));
+        ASSERT_EQ(typeid(res_param.u_solver), typeid(ans_param.u_solver));
+    }
+};
+
+
+#if GINKGO_BUILD_MPI
+
+
+struct Schwarz
+    : PreconditionerConfigTest<
+          ::gko::experimental::distributed::preconditioner::Schwarz<float, int,
+                                                                    gko::int64>,
+          ::gko::experimental::distributed::preconditioner::Schwarz<
+              double, int, gko::int64>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::Schwarz"}}};
+    }
+
+    static void change_template(pnode::map_type& config_map)
+    {
+        config_map["value_type"] = pnode{"float32"};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        if (from_reg) {
+            config_map["local_solver"] = pnode{"solver"};
+            param.with_local_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "solver"));
+        } else {
+            config_map["local_solver"] =
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
+            param.with_local_solver(DummyIr::build().on(exec));
+        }
+        config_map["generated_local_solver"] = pnode{"linop"};
+        param.with_generated_local_solver(
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        if (from_reg) {
+            ASSERT_EQ(res_param.local_solver, ans_param.local_solver);
+        } else {
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.local_solver),
+                nullptr);
+        }
+        ASSERT_EQ(res_param.generated_local_solver,
+                  ans_param.generated_local_solver);
+    }
+};
+
+
+#endif  // GINKGO_BUILD_MPI
+
+
 template <typename T>
 class Preconditioner : public ::testing::Test {
 protected:
@@ -312,12 +471,14 @@ protected:
           l_solver(DummyIr::build().on(exec)),
           u_solver(DummyIr::build().on(exec)),
           factorization(DummyIr::build().on(exec)),
+          linop(gko::matrix::Dense<>::create(exec)),
           reg()
     {
         reg.emplace("solver", solver_factory);
         reg.emplace("l_solver", l_solver);
         reg.emplace("u_solver", u_solver);
         reg.emplace("factorization", factorization);
+        reg.emplace("linop", linop);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -326,11 +487,16 @@ protected:
     std::shared_ptr<typename DummyIr::Factory> l_solver;
     std::shared_ptr<typename DummyIr::Factory> u_solver;
     std::shared_ptr<typename DummyIr::Factory> factorization;
+    std::shared_ptr<gko::LinOp> linop;
     registry reg;
 };
 
 
-using PreconditionerTypes = ::testing::Types<::Ic, ::Ilu, ::Isai, ::Jacobi>;
+using PreconditionerTypes = ::testing::Types<
+#if GINKGO_BUILD_MPI
+    ::Schwarz,
+#endif  // GINKGO_BUILD_MPI
+    ::GaussSeidel, ::Ic, ::Ilu, ::Isai, ::Jacobi, ::Sor>;
 
 
 TYPED_TEST_SUITE(Preconditioner, PreconditionerTypes, TypenameNameGenerator);

@@ -2,22 +2,19 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/fcg.hpp>
-
+#include "core/solver/fcg_kernels.hpp"
 
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
-#include "core/solver/fcg_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -425,6 +422,8 @@ TYPED_TEST(Fcg, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -442,6 +441,8 @@ TYPED_TEST(Fcg, SolvesBigDenseSystemWithImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
@@ -459,6 +460,8 @@ TYPED_TEST(Fcg, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
@@ -476,6 +479,8 @@ TYPED_TEST(Fcg, SolvesMultipleBigDenseSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -544,6 +549,8 @@ TYPED_TEST(Fcg, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -561,6 +568,8 @@ TYPED_TEST(Fcg, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},

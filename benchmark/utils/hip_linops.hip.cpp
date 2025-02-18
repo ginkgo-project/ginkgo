@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/ginkgo.hpp>
-
-
 #include <memory>
 
+#include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
@@ -126,7 +124,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -143,7 +141,7 @@ protected:
         : gko::EnableLinOp<HipsparseCsr, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -201,7 +199,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmm(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
             csr_->get_num_stored_elements(), &scalars.get_const_data()[0],
             this->get_descr(), csr_->get_const_values(),
@@ -219,7 +217,7 @@ protected:
         : gko::EnableLinOp<HipsparseCsrmm, HipsparseBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
 private:
@@ -269,7 +267,7 @@ public:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::csr2hyb(
-            this->get_gpu_exec()->get_hipsparse_handle(), this->get_size()[0],
+            this->get_gpu_exec()->get_sparselib_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
             t_csr->get_const_row_ptrs(), t_csr->get_const_col_idxs(), hyb_,
             Threshold, Partition);
@@ -300,7 +298,7 @@ protected:
 
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
-            this->get_gpu_exec()->get_hipsparse_handle(), trans_,
+            this->get_gpu_exec()->get_sparselib_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
             &scalars.get_const_data()[1], dx);
     }
@@ -312,7 +310,7 @@ protected:
     HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
                     const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<HipsparseHybrid, HipsparseBase>(exec, size),
-          trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
+          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateHybMat(&hyb_));

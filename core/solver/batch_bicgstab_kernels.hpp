@@ -12,8 +12,11 @@
 #include <ginkgo/core/matrix/batch_ell.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
-
 #include "core/base/kernel_declaration.hpp"
+
+
+// TODO: update when splitting kernels
+constexpr bool bicgstab_no_shared_vecs = true;
 
 
 namespace gko {
@@ -139,7 +142,7 @@ storage_config compute_shared_storage(const int available_shared_mem,
     // {prec_shared, n_shared, n_global, gmem_stride_bytes, padded_vec_len}
     storage_config sconf{false, 0, num_main_vecs, 0, num_rows};
     // If available shared mem is zero, set all vecs to global.
-    if (rem_shared <= 0) {
+    if (rem_shared <= 0 || bicgstab_no_shared_vecs) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
@@ -171,19 +174,25 @@ storage_config compute_shared_storage(const int available_shared_mem,
 }  // namespace batch_bicgstab
 
 
-#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type)                       \
+#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_type, _matrix, _prec)       \
     void apply(                                                              \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const gko::kernels::batch_bicgstab::settings<remove_complex<_type>>& \
             options,                                                         \
-        const batch::BatchLinOp* a, const batch::BatchLinOp* preconditioner, \
+        const _matrix* a, const _prec* preconditioner,                       \
         const batch::MultiVector<_type>* b, batch::MultiVector<_type>* x,    \
         gko::batch::log::detail::log_data<remove_complex<_type>>& logdata)
 
+#define GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER(_vtype, _matrix, \
+                                                        _precond)        \
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(_vtype, _matrix<_vtype>,     \
+                                            _precond<_vtype>)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(ValueType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType, typename BatchMatrixType, typename PrecType> \
+    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL(ValueType, BatchMatrixType,        \
+                                            PrecType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_bicgstab,

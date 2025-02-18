@@ -4,20 +4,16 @@
 
 #include "core/components/absolute_array_kernels.hpp"
 
-
 #include <memory>
 #include <random>
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 class AbsoluteArray : public CommonTestFixture {
@@ -46,7 +42,7 @@ protected:
 
 TEST_F(AbsoluteArray, InplaceEqualsReference)
 {
-    gko::kernels::EXEC_NAMESPACE::components::inplace_absolute_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::inplace_absolute_array(
         exec, dvals.get_data(), total_size);
     gko::kernels::reference::components::inplace_absolute_array(
         ref, vals.get_data(), total_size);
@@ -57,7 +53,7 @@ TEST_F(AbsoluteArray, InplaceEqualsReference)
 
 TEST_F(AbsoluteArray, InplaceComplexEqualsReference)
 {
-    gko::kernels::EXEC_NAMESPACE::components::inplace_absolute_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::inplace_absolute_array(
         exec, dcomplex_vals.get_data(), total_size);
     gko::kernels::reference::components::inplace_absolute_array(
         ref, complex_vals.get_data(), total_size);
@@ -71,7 +67,7 @@ TEST_F(AbsoluteArray, OutplaceEqualsReference)
     gko::array<value_type> abs_vals(ref, total_size);
     gko::array<value_type> dabs_vals(exec, total_size);
 
-    gko::kernels::EXEC_NAMESPACE::components::outplace_absolute_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::outplace_absolute_array(
         exec, dvals.get_const_data(), total_size, dabs_vals.get_data());
     gko::kernels::reference::components::outplace_absolute_array(
         ref, vals.get_const_data(), total_size, abs_vals.get_data());
@@ -85,7 +81,7 @@ TEST_F(AbsoluteArray, OutplaceComplexEqualsReference)
     gko::array<value_type> abs_vals(ref, total_size);
     gko::array<value_type> dabs_vals(exec, total_size);
 
-    gko::kernels::EXEC_NAMESPACE::components::outplace_absolute_array(
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::outplace_absolute_array(
         exec, dcomplex_vals.get_const_data(), total_size, dabs_vals.get_data());
     gko::kernels::reference::components::outplace_absolute_array(
         ref, complex_vals.get_const_data(), total_size, abs_vals.get_data());

@@ -10,7 +10,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
-
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 

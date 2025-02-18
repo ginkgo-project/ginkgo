@@ -2,18 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/residual_norm.hpp>
-
-
 #include <type_traits>
-
 
 #include <gtest/gtest-typed-test.h>
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/math.hpp>
-
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -90,7 +85,8 @@ TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)
@@ -404,7 +400,9 @@ TYPED_TEST(ResidualNorm, SelfCalculatesAndWaitsTillResidualGoal)
         ASSERT_FALSE(abs_criterion->update().solution(solution).check(
             RelativeStoppingId, true, &stop_status, &one_changed));
 
-        solution->at(0) = rhs_val - r<T>::value * T{1.2};
+        // TODO FIXME: NVHPC calculates different result of rhs - r*1.2 from
+        // rhs - tmp = rhs - (r * 1.2). https://godbolt.org/z/GrGE9PE67
+        solution->at(0) = rhs_val - r<T>::value * T{1.4};
         ASSERT_FALSE(abs_criterion->update().solution(solution).check(
             RelativeStoppingId, true, &stop_status, &one_changed));
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
@@ -841,7 +839,8 @@ TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ImplicitResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)

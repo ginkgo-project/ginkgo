@@ -2,25 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/direct.hpp>
-
-
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
@@ -54,7 +49,7 @@ protected:
                                 symmetric))
                 .on(exec);
         solver = factory->generate(mtx);
-        std::normal_distribution<gko::remove_complex<value_type>> dist(0, 1);
+        std::normal_distribution<> dist(0, 1);
         x = gko::test::generate_random_dense_matrix<value_type>(
             mtx->get_size()[0], nrhs, dist, rng, this->exec);
         x_ref = x->clone();

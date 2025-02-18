@@ -4,16 +4,15 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
+#include "dpcpp/base/types.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 
 
@@ -44,7 +43,7 @@ void ic_init(const IndexType* __restrict__ l_row_ptrs,
         return;
     }
     auto l_nz = l_row_ptrs[row + 1] - 1;
-    auto diag = std::sqrt(l_vals[l_nz]);
+    auto diag = gko::sqrt(l_vals[l_nz]);
     if (is_finite(diag)) {
         l_vals[l_nz] = diag;
     } else {
@@ -96,7 +95,7 @@ void ic_sweep(const IndexType* __restrict__ a_row_idxs,
         lh_col_begin += l_col >= lh_row;
     }
     auto to_write = row == col
-                        ? std::sqrt(a_val - sum)
+                        ? gko::sqrt(a_val - sum)
                         : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
     if (is_finite(to_write)) {
         l_vals[l_nz] = to_write;
@@ -128,7 +127,7 @@ void init_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto num_rows = l->get_size()[0];
     auto num_blocks = ceildiv(num_rows, default_block_size);
     auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_vals = l->get_values();
+    auto l_vals = as_device_type(l->get_values());
     kernel::ic_init(num_blocks, default_block_size, 0, exec->get_queue(),
                     l_row_ptrs, l_vals, num_rows);
 }
@@ -149,8 +148,9 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
         kernel::ic_sweep(num_blocks, default_block_size, 0, exec->get_queue(),
                          a_lower->get_const_row_idxs(),
                          a_lower->get_const_col_idxs(),
-                         a_lower->get_const_values(), l->get_const_row_ptrs(),
-                         l->get_const_col_idxs(), l->get_values(),
+                         as_device_type(a_lower->get_const_values()),
+                         l->get_const_row_ptrs(), l->get_const_col_idxs(),
+                         as_device_type(l->get_values()),
                          static_cast<IndexType>(l->get_num_stored_elements()));
     }
 }

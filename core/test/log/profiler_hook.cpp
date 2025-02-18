@@ -2,22 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/log/profiler_hook.hpp>
-
+#include "core/log/profiler_hook.hpp"
 
 #include <chrono>
 #include <string>
 
-
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
-
-#include "core/log/profiler_hook.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -391,8 +387,9 @@ TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
     entries.push_back({"medium", 1ms, 500us, 4});  // check division by count
     entries.push_back({"long", 120s, 60s, 1});
     entries.push_back({"eternal", 24h, 24h, 1});
+    // clang-format off
     const auto expected = R"(Test header
-Overhead estimate 1.0 s 
+Overhead estimate 1.0 ns
 |   name   | total  | total (self) | count |   avg    | avg (self) |
 |----------|-------:|-------------:|------:|---------:|-----------:|
 | eternal  | 1.0 d  |       1.0 d  |     1 |   1.0 d  |     1.0 d  |
@@ -402,8 +399,9 @@ Overhead estimate 1.0 s
 | short    | 1.0 ns |       0.0 ns |     1 |   1.0 ns |     0.0 ns |
 | empty    | 0.0 ns |       0.0 ns |     0 |   0.0 ns |     0.0 ns |
 )";
+    // clang-format on
 
-    writer.write(entries, 1s);
+    writer.write(entries, 1ns);
 
     ASSERT_EQ(ss.str(), expected);
 }
@@ -426,6 +424,7 @@ TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorks)
              2,
              {ProfilerHook::nested_summary_entry{"child", 100ns, 2, {}}}},
          ProfilerHook::nested_summary_entry{"baz", 1ns, 2, {}}}};
+    // clang-format off
     const auto expected = R"(Test header
 Overhead estimate 1.0 ns
 |    name    |  total   | fraction | count |   avg    |
@@ -438,6 +437,7 @@ Overhead estimate 1.0 ns
 |   foo      | 100.0 ns |    5.0 % |     5 |  20.0 ns |
 |   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |
 )";
+    // clang-format on
 
     writer.write_nested(entry, 1ns);
 

@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <CL/sycl.hpp>
-
-
 #include "dpcpp/base/helper.hpp"
+
+#include <sycl/sycl.hpp>
 
 
 namespace gko {

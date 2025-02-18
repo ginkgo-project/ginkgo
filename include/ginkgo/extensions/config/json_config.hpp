@@ -10,9 +10,7 @@
 #include <stdexcept>
 #include <string>
 
-
 #include <nlohmann/json.hpp>
-
 
 #include <ginkgo/core/config/property_tree.hpp>
 
@@ -82,6 +80,13 @@ inline gko::config::pnode parse_json_file(std::string filename)
     return parse_json(nlohmann::json::parse(fstream));
 }
 
+/**
+ * parse_json_string takes a json string to generate the property tree object
+ */
+inline gko::config::pnode parse_json_string(std::string json)
+{
+    return parse_json(nlohmann::json::parse(json));
+}
 
 }  // namespace config
 }  // namespace ext

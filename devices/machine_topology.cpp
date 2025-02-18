@@ -6,7 +6,6 @@
 #include <memory>
 #include <mutex>
 
-
 #include <ginkgo/core/base/machine_topology.hpp>
 
 

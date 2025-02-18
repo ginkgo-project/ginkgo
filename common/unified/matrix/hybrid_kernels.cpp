@@ -4,7 +4,6 @@
 
 #include "core/matrix/hybrid_kernels.hpp"
 
-
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 

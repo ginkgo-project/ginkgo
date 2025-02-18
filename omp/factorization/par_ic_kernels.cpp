@@ -4,13 +4,12 @@
 
 #include "core/factorization/par_ic_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
-
 #include "core/base/utils.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -78,7 +77,8 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     auto l_col = l_col_idxs[l_begin];
                     auto lh_row = l_col_idxs[lh_begin];
                     if (l_col == lh_row && l_col < col) {
-                        sum += l_vals[l_begin] * conj(l_vals[lh_begin]);
+                        sum += load(l_vals + l_begin) *
+                               conj(load(l_vals + lh_begin));
                     }
                     l_begin += (l_col <= lh_row);
                     lh_begin += (lh_row <= l_col);
@@ -87,11 +87,11 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                 if (row == col) {
                     new_val = sqrt(new_val);
                 } else {
-                    auto diag = l_vals[l_row_ptrs[col + 1] - 1];
+                    auto diag = load(l_vals + l_row_ptrs[col + 1] - 1);
                     new_val = new_val / diag;
                 }
                 if (is_finite(new_val)) {
-                    l_vals[l_nz] = new_val;
+                    store(l_vals + l_nz, new_val);
                 }
             }
         }

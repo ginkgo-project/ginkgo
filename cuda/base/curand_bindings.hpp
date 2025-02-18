@@ -8,12 +8,10 @@
 
 #include <curand.h>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -25,6 +23,17 @@ namespace cuda {
  * @ingroup curand
  */
 namespace curand {
+namespace detail {
+
+
+template <typename... Args>
+inline int64 not_implemented(Args...)
+{
+    return static_cast<int64>(CURAND_STATUS_TYPE_ERROR);
+}
+
+
+}  // namespace detail
 
 
 template <typename ValueType>
@@ -79,12 +88,26 @@ GKO_BIND_CURAND_RANDOM_VECTOR(float, curandGenerateNormal);
 GKO_BIND_CURAND_RANDOM_VECTOR(double, curandGenerateNormalDouble);
 GKO_BIND_CURAND_RANDOM_VECTOR(std::complex<float>, curandGenerateNormal);
 GKO_BIND_CURAND_RANDOM_VECTOR(std::complex<double>, curandGenerateNormalDouble);
+template <typename ValueType>
+GKO_BIND_CURAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_CURAND_RANDOM_VECTOR
 
 
 }  // namespace curand
+
+
+namespace randlib {
+
+
+using namespace curand;
+
+
+#define RANDLIB_RNG_PSEUDO_DEFAULT CURAND_RNG_PSEUDO_DEFAULT
+
+
+}  // namespace randlib
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

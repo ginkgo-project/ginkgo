@@ -2,16 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
-
-
 #include <memory>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 

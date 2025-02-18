@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
-
 #include "core/base/extended_float.hpp"
 
 
@@ -109,8 +108,8 @@ GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions(
     using gko::detail::float_traits;
     using type = remove_complex<ValueType>;
     using prd = precision_reduction_descriptor;
-    auto accurate = [&cond, &accuracy](type eps) {
-        return cond * eps < accuracy;
+    auto accurate = [&cond, &accuracy](auto eps) {
+        return cond * static_cast<type>(eps) < accuracy;
     };
     uint8 is_verified1 = 2;
     auto supported = static_cast<uint32>(prd::p0n0);

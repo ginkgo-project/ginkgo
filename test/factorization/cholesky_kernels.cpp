@@ -4,19 +4,15 @@
 
 #include "core/factorization/cholesky_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -28,7 +24,7 @@
 #include "core/test/utils/assertions.hpp"
 #include "core/utils/matrix_utils.hpp"
 #include "matrices/config.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace {
@@ -115,18 +111,16 @@ protected:
 };
 
 #ifdef GKO_COMPILING_OMP
-using Types = gko::test::ValueIndexTypes;
+using Types = gko::test::ValueIndexTypesBase;
 #elif defined(GKO_COMPILING_CUDA)
 // CUDA doesn't support long indices for sorting, and the triangular solvers
 // seem broken
-using Types = ::testing::Types<std::tuple<float, gko::int32>,
-                               std::tuple<double, gko::int32>,
-                               std::tuple<std::complex<float>, gko::int32>,
-                               std::tuple<std::complex<double>, gko::int32>>;
+using Types = gko::test::cartesian_type_product_t<gko::test::ValueTypes,
+                                                  ::testing::Types<gko::int32>>;
 #else
 // HIP only supports real types and int32
-using Types = ::testing::Types<std::tuple<float, gko::int32>,
-                               std::tuple<double, gko::int32>>;
+using Types = gko::test::cartesian_type_product_t<gko::test::RealValueTypesBase,
+                                                  ::testing::Types<gko::int32>>;
 #endif
 
 TYPED_TEST_SUITE(CholeskySymbolic, Types, PairTypenameNameGenerator);
@@ -150,7 +144,7 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
 
         gko::kernels::reference::cholesky::symbolic_count(
             this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
-        gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_count(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_count(
             this->exec, dmtx.get(), *dforest, drow_nnz.get_data(), this->dtmp);
 
         GKO_ASSERT_ARRAY_EQ(drow_nnz, row_nnz);
@@ -189,12 +183,12 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         std::unique_ptr<elimination_forest> dforest;
         gko::factorization::compute_elim_forest(dmtx.get(), dforest);
         gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
-        gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_count(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_count(
             this->exec, dmtx.get(), *dforest, dtmp_ptrs.get_data(), this->dtmp);
 
         gko::kernels::reference::cholesky::symbolic_factorize(
             this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
-        gko::kernels::EXEC_NAMESPACE::cholesky::symbolic_factorize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_factorize(
             this->exec, dmtx.get(), *dforest, dl_factor.get(), this->dtmp);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dl_factor, l_factor);
@@ -239,7 +233,7 @@ TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
         elimination_forest dforest{this->exec,
                                    static_cast<index_type>(mtx->get_size()[0])};
 
-        gko::kernels::EXEC_NAMESPACE::cholesky::forest_from_factor(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::forest_from_factor(
             this->exec, dfactors.get(), dforest);
 
         this->assert_equal_forests(*forest, dforest);
@@ -367,7 +361,7 @@ TYPED_TEST(Cholesky, KernelInitializeIsEquivalentToRef)
     this->forall_matrices([this] {
         const auto nnz = this->mtx_chol->get_num_stored_elements();
         std::fill_n(this->mtx_chol->get_values(), nnz, gko::zero<value_type>());
-        gko::kernels::EXEC_NAMESPACE::components::fill_array(
+        gko::kernels::GKO_DEVICE_NAMESPACE::components::fill_array(
             this->exec, this->dmtx_chol->get_values(), nnz,
             gko::zero<value_type>());
         gko::array<index_type> diag_idxs{this->ref, this->num_rows};
@@ -380,7 +374,7 @@ TYPED_TEST(Cholesky, KernelInitializeIsEquivalentToRef)
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), transpose_idxs.get_data(),
             this->mtx_chol.get());
-        gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -410,7 +404,7 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_data(), transpose_idxs.get_data(),
             this->mtx_chol.get());
-        gko::kernels::EXEC_NAMESPACE::cholesky::initialize(
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
             this->exec, this->dmtx.get(),
             this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
@@ -421,12 +415,12 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
             this->ref, this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
             diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-            *this->forest, this->mtx_chol.get(), tmp);
-        gko::kernels::EXEC_NAMESPACE::cholesky::factorize(
+            *this->forest, this->mtx_chol.get(), true, tmp);
+        gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::factorize(
             this->exec, this->dstorage_offsets.get_const_data(),
             this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
             ddiag_idxs.get_const_data(), dtranspose_idxs.get_const_data(),
-            *this->dforest, this->dmtx_chol.get(), dtmp);
+            *this->dforest, this->dmtx_chol.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
                             r<value_type>::value);

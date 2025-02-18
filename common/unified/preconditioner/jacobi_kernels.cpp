@@ -4,9 +4,7 @@
 
 #include "core/preconditioner/jacobi_kernels.hpp"
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 
@@ -44,7 +42,9 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto elem, auto diag, auto inv_diag) {
-            inv_diag[elem] = safe_divide(one(diag[elem]), diag[elem]);
+            // if the diagonal is zero, we use 1 for in the inverted result.
+            inv_diag[elem] = is_zero(diag[elem]) ? one(diag[elem])
+                                                 : one(diag[elem]) / diag[elem];
         },
         diag.get_size(), diag, inv_diag);
 }

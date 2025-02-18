@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/multigrid/pgm.hpp>
-
-
 #include "core/config/parse_macro.hpp"
+#include "ginkgo/core/multigrid/pgm.hpp"
 
 
 namespace gko {

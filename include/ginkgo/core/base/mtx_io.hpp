@@ -8,7 +8,6 @@
 
 #include <istream>
 
-
 #include <ginkgo/core/base/matrix_data.hpp>
 
 

@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/stop/residual_norm.hpp>
-
+#include "ginkgo/core/stop/residual_norm.hpp"
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
-
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -94,13 +92,14 @@ ResidualNormBase<ValueType>::ResidualNormBase(
     std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
     remove_complex<ValueType> reduction_factor, mode baseline)
     : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-      device_storage_{exec, 2},
       reduction_factor_{reduction_factor},
+      device_storage_{exec, 2},
       baseline_{baseline},
       system_matrix_{args.system_matrix},
       b_{args.b},
       one_{gko::initialize<Vector>({1}, exec)},
-      neg_one_{gko::initialize<Vector>({-1}, exec)}
+      neg_one_{gko::initialize<Vector>({-1}, exec)},
+      reduction_tmp_{exec}
 {
     switch (baseline_) {
     case mode::initial_resnorm: {
@@ -115,7 +114,8 @@ ResidualNormBase<ValueType>::ResidualNormBase(
                 args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {
-                        dense_r->compute_norm2(this->starting_tau_);
+                        dense_r->compute_norm2(this->starting_tau_,
+                                               reduction_tmp_);
                     },
                     b_clone.get());
             }
@@ -124,7 +124,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
                 exec, dim<2>{1, args.initial_residual->get_size()[1]});
             norm_dispatch<ValueType>(
                 [&](auto dense_r) {
-                    dense_r->compute_norm2(this->starting_tau_);
+                    dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
                 },
                 args.initial_residual);
         }
@@ -137,7 +137,9 @@ ResidualNormBase<ValueType>::ResidualNormBase(
         this->starting_tau_ =
             NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
         norm_dispatch<ValueType>(
-            [&](auto dense_r) { dense_r->compute_norm2(this->starting_tau_); },
+            [&](auto dense_r) {
+                dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
+            },
             args.b.get());
         break;
     }
@@ -171,7 +173,9 @@ bool ResidualNormBase<ValueType>::check_impl(
         return false;
     } else if (updater.residual_ != nullptr) {
         norm_dispatch<ValueType>(
-            [&](auto dense_r) { dense_r->compute_norm2(u_dense_tau_); },
+            [&](auto dense_r) {
+                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
+            },
             updater.residual_);
         dense_tau = u_dense_tau_.get();
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
@@ -181,7 +185,7 @@ bool ResidualNormBase<ValueType>::check_impl(
             [&](auto dense_b, auto dense_x) {
                 auto dense_r = dense_b->clone();
                 system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
-                dense_r->compute_norm2(u_dense_tau_);
+                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
             },
             b_.get(), updater.solution_);
         dense_tau = u_dense_tau_.get();

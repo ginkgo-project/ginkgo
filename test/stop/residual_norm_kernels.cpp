@@ -4,13 +4,12 @@
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 template <typename Mtx>
@@ -83,13 +82,16 @@ TYPED_TEST(ResidualNorm, CanIgorneResidualNorm)
                  gko::NotSupported);
 }
 
+
 TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     using T = typename TestFixture::ValueType;
+    // use csr to use half apply
+    using Csr = gko::matrix::Csr<T>;
     using mode = gko::stop::mode;
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec);
+    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Csr>({1.0}, this->exec);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec);
     std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec);
     std::shared_ptr<gko::LinOp> res_norm =
@@ -98,7 +100,8 @@ TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)
@@ -117,6 +120,7 @@ TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
         EXPECT_TRUE(one_changed);
     }
 }
+
 
 TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
 {
@@ -548,10 +552,12 @@ TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes,
 
 TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
 {
-    using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::ValueType;
+    using Mtx = typename TestFixture::Mtx;
+    // use csr to use half apply
+    using Csr = gko::matrix::Csr<T>;
     using gko::stop::mode;
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec);
+    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Csr>({1.0}, this->exec);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec);
     std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec);
     std::shared_ptr<gko::LinOp> implicit_sq_res_norm =
@@ -560,7 +566,8 @@ TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
     for (auto baseline :
          {mode::rhs_norm, mode::initial_resnorm, mode::absolute}) {
         gko::remove_complex<T> factor =
-            (baseline == mode::absolute) ? 0.0 : r<T>::value;
+            (baseline == mode::absolute) ? gko::zero<gko::remove_complex<T>>()
+                                         : r<T>::value;
         auto criterion = gko::stop::ImplicitResidualNorm<T>::build()
                              .with_reduction_factor(factor)
                              .with_baseline(baseline)

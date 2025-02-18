@@ -4,12 +4,9 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <ginkgo/core/base/math.hpp>
-
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/prefix_sum_kernels.hpp"

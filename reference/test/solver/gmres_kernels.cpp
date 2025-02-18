@@ -2,29 +2,25 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/gmres.hpp>
-
+#include "core/solver/gmres_kernels.hpp"
 
 #include <algorithm>
 #include <limits>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
-
 #include "core/solver/common_gmres_kernels.hpp"
-#include "core/solver/gmres_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -106,7 +102,7 @@ protected:
         small_y = Mtx::create(exec, gko::dim<2>{small_restart, small_size[1]});
         small_hessenberg = Mtx::create(
             exec,
-            gko::dim<2>{small_restart + 1, small_restart * small_size[1]});
+            gko::dim<2>{small_restart, (small_restart + 1) * small_size[1]});
         small_hessenberg->fill(gko::zero<value_type>());
 
         stopped.converge(1, true);
@@ -226,17 +222,24 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter0)
     this->small_residual_norm->fill(nan);
     this->small_residual_norm_collection = gko::initialize<Mtx>(
         {I<T>{1.25, 1.5}, I<T>{nan, nan}, I<T>{95., 94.}}, this->exec);
-    this->small_hessenberg = gko::initialize<Mtx>(
-        {I<T>{0.5, -0.75}, I<T>{-0.5, 1}, I<T>{97., 96.}}, this->exec);
+    this->small_hessenberg =
+        gko::initialize<Mtx>({I<T>{0.5, -0.75, -0.5, 1, 97., 96.}}, this->exec);
     this->small_final_iter_nums.get_data()[0] = 0;
     this->small_final_iter_nums.get_data()[1] = 0;
 
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter_rows = this->small_givens_sin->get_size()[0] + 1;
+    auto hessenberg_iter_cols = this->small_givens_sin->get_size()[1];
+    auto hessenberg_reshape = Mtx::create(
+        this->exec, gko::dim<2>{hessenberg_iter_rows, hessenberg_iter_cols},
+        make_array_view(this->exec, hessenberg_iter_rows * hessenberg_iter_cols,
+                        this->small_hessenberg->get_values()),
+        hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
         this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
         this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), iteration,
-        this->small_final_iter_nums.get_data(),
+        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
+        iteration, this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 1);
@@ -246,7 +249,7 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter0)
     GKO_EXPECT_MTX_NEAR(this->small_givens_sin,
                         l({{-0.5 * sqrt(2.), 0.8}, {-72., 73.}}), r<T>::value);
     GKO_EXPECT_MTX_NEAR(this->small_hessenberg,
-                        l({{0.5 * sqrt(2.), 1.25}, {0., 0.}, {97., 96.}}),
+                        l({{0.5 * sqrt(2.), 1.25, 0., 0., 97., 96.}}),
                         r<T>::value);
     GKO_EXPECT_MTX_NEAR(
         this->small_residual_norm_collection,
@@ -271,17 +274,24 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter1)
     this->small_residual_norm->fill(nan);
     this->small_residual_norm_collection = gko::initialize<Mtx>(
         {I<T>{95., 94.}, I<T>{1.25, 1.5}, I<T>{nan, nan}}, this->exec);
-    this->small_hessenberg = gko::initialize<Mtx>(
-        {I<T>{-0.5, 4}, I<T>{0.25, 0.5}, I<T>{-0.5, 1}}, this->exec);
+    this->small_hessenberg =
+        gko::initialize<Mtx>({I<T>{-0.5, 4, 0.25, 0.5, -0.5, 1}}, this->exec);
     this->small_final_iter_nums.get_data()[0] = 1;
     this->small_final_iter_nums.get_data()[1] = 1;
 
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter_rows = this->small_givens_sin->get_size()[0] + 1;
+    auto hessenberg_iter_cols = this->small_givens_sin->get_size()[1];
+    auto hessenberg_reshape = Mtx::create(
+        this->exec, gko::dim<2>{hessenberg_iter_rows, hessenberg_iter_cols},
+        make_array_view(this->exec, hessenberg_iter_rows * hessenberg_iter_cols,
+                        this->small_hessenberg->get_values()),
+        hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
         this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
         this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), iteration,
-        this->small_final_iter_nums.get_data(),
+        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
+        iteration, this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
@@ -291,7 +301,7 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter1)
     GKO_EXPECT_MTX_NEAR(this->small_givens_sin,
                         l({{0.5, 0.25}, {-0.5 * sqrt(2.), 0.8}}), r<T>::value);
     GKO_EXPECT_MTX_NEAR(this->small_hessenberg,
-                        l({{-0.375, 2.125}, {0.5 * sqrt(2.), 1.25}, {0., 0.}}),
+                        l({{-0.375, 2.125, 0.5 * sqrt(2.), 1.25, 0., 0.}}),
                         r<T>::value);
     GKO_EXPECT_MTX_NEAR(
         this->small_residual_norm_collection,
@@ -313,9 +323,8 @@ TYPED_TEST(Gmres, KernelSolveKrylov)
     this->small_final_iter_nums.get_data()[1] = restart;
     this->small_hessenberg = gko::initialize<Mtx>(
         // clang-format off
-        {{-1, 3, 2, -4},
-         {0, 0, 1, 5},
-         {nan, nan, nan, nan}},
+        {{-1, 3, 0, 0, nan, nan},
+         {2, -4, 1, 5, nan, nan}},
         // clang-format on
         this->exec);
     this->small_residual_norm_collection =
@@ -370,6 +379,44 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
                         r<T>::value);
 }
 
+TYPED_TEST(Gmres, KernelMultiDot)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    const T nan = std::numeric_limits<gko::remove_complex<T>>::quiet_NaN();
+    const auto restart = this->small_givens_sin->get_size()[0];
+    this->small_hessenberg->fill(gko::zero<T>());
+    // Reshape into "hessenberg_iter" columns as done in Gmres
+    auto hessenberg_iter = Mtx::create(
+        this->exec, gko::dim<2>{restart + 1, this->small_x->get_size()[1]},
+        make_array_view(this->exec,
+                        (restart + 1) * this->small_x->get_size()[1],
+                        this->small_hessenberg->get_values()),
+        this->small_x->get_size()[1]);
+    this->small_x = gko::initialize<Mtx>(  // next_krylov
+        {I<T>{-1.0, 2.3}, I<T>{-14.0, -22.0}, I<T>{8.4, 14.2}}, this->exec);
+
+    this->small_krylov_bases = gko::initialize<Mtx>(  // restart+1 x rows x #rhs
+        {
+            I<T>{1, 10},  // 0, 0, x
+            I<T>{2, 11},  // 0, 1, x
+            I<T>{3, 12},  // 0, 2, x
+            I<T>{4, 13},  // 1, 0, x
+            I<T>{5, 14},  // 1, 1, x
+            I<T>{6, 15},  // 1, 2, x
+            I<T>{7, 16},  // 2, 0, x
+            I<T>{8, 17},  // 2, 1, x
+            I<T>{9, 18},  // 2, 2, x
+        },
+        this->exec);
+    gko::kernels::reference::gmres::multi_dot(
+        this->exec, this->small_krylov_bases.get(), this->small_x.get(),
+        hessenberg_iter.get());
+
+    GKO_ASSERT_MTX_NEAR(hessenberg_iter,
+                        l({{-3.8, -48.6}, {-23.6, -65.1}, {0.0, 0.0}}),
+                        r<T>::value);
+}
 
 TYPED_TEST(Gmres, SolvesStencilSystem)
 {
@@ -571,6 +618,8 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
@@ -588,6 +637,8 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
@@ -605,6 +656,8 @@ TYPED_TEST(Gmres, SolveWithImplicitResNormCritIsDisabled)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big2->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
         {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
@@ -619,6 +672,8 @@ TYPED_TEST(Gmres, SolvesMultipleDenseSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
@@ -685,6 +740,8 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     auto gmres_factory_restart =
         Solver::build()
@@ -707,28 +764,39 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
 
 TYPED_TEST(Gmres, SolvesWithPreconditioner)
 {
+    using gko::solver::gmres::ortho_method;
+
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
-    auto gmres_factory_preconditioner =
-        Solver::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
-                           gko::stop::ResidualNorm<value_type>::build()
-                               .with_reduction_factor(r<value_type>::value))
-            .with_preconditioner(
-                gko::preconditioner::Jacobi<value_type>::build()
-                    .with_max_block_size(3u))
-            .on(this->exec);
-    auto solver = gmres_factory_preconditioner->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
-        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
-        this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    for (auto ortho :
+         {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
+        SCOPED_TRACE(ortho);
+        auto gmres_factory_preconditioner =
+            Solver::build()
+                .with_ortho_method(ortho)
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(100u),
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_reduction_factor(r<value_type>::value))
+                .with_preconditioner(
+                    gko::preconditioner::Jacobi<value_type>::build()
+                        .with_max_block_size(3u))
+                .on(this->exec);
+        auto solver = gmres_factory_preconditioner->generate(this->mtx_big);
+        auto b = gko::initialize<Mtx>(
+            {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+            this->exec);
+        auto x =
+            gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b, x);
+        solver->apply(b, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-                        r<value_type>::value * 1e3);
+        GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                            r<value_type>::value * 1e3);
+    }
 }
 
 
@@ -736,6 +804,8 @@ TYPED_TEST(Gmres, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver = this->gmres_factory_big->generate(this->mtx_big->transpose());
     auto b = gko::initialize<Mtx>(
         {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
@@ -753,6 +823,8 @@ TYPED_TEST(Gmres, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
     auto solver =
         this->gmres_factory_big->generate(this->mtx_big->conj_transpose());
     auto b = gko::initialize<Mtx>(

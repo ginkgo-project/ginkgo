@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/vector.hpp>
-
+#include "ginkgo/core/distributed/vector.hpp"
 
 #include <ginkgo/core/distributed/partition.hpp>
-
 
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -285,7 +283,7 @@ void Vector<ValueType>::fill(const ValueType value)
 
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
-    Vector<next_precision<ValueType>>* result) const
+    Vector<next_precision_base<ValueType>>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -295,7 +293,7 @@ void Vector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
+void Vector<ValueType>::move_to(Vector<next_precision_base<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -726,7 +724,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
 
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
 
 }  // namespace distributed

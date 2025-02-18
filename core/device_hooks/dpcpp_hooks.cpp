@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/memory.hpp>
@@ -90,6 +89,9 @@ void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
 
 scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(dpcpp);
+
+
+std::string DpcppExecutor::get_description() const GKO_NOT_COMPILED(dpcpp);
 
 
 int DpcppExecutor::get_num_devices(std::string) { return 0; }

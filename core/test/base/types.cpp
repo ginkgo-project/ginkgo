@@ -2,19 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/types.hpp>
-
+#include "core/base/types.hpp"
 
 #include <array>
 #include <cstdint>
 #include <stdexcept>
 #include <type_traits>
 
-
 #include <gtest/gtest.h>
 
-
-#include "core/base/types.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace {

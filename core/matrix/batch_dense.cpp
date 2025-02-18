@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/batch_dense.hpp>
-
+#include "ginkgo/core/matrix/batch_dense.hpp"
 
 #include <algorithm>
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/matrix/batch_dense_kernels.hpp"
 
@@ -260,6 +257,25 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<next_precision<ValueType>>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(
+    Dense<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 #define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class Dense<_type>

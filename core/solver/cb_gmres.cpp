@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/cb_gmres.hpp>
-
+#include "ginkgo/core/solver/cb_gmres.hpp"
 
 #include <type_traits>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -17,7 +15,6 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/base/extended_float.hpp"
 #include "core/config/solver_config.hpp"
@@ -521,8 +518,8 @@ void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 #define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>
 #define GKO_DECLARE_CB_GMRES_TRAITS(_type1) \
     struct workspace_traits<CbGmres<_type1>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_CB_GMRES);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_CB_GMRES_TRAITS);
 
 
 }  // namespace solver

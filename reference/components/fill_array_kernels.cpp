@@ -4,7 +4,6 @@
 
 #include "core/components/fill_array_kernels.hpp"
 
-
 #include <numeric>
 
 

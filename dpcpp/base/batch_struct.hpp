@@ -9,9 +9,9 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-
 #include "core/base/batch_struct.hpp"
 #include "dpcpp/base/config.hpp"
+#include "dpcpp/base/types.hpp"
 
 
 namespace gko {
@@ -33,10 +33,10 @@ namespace dpcpp {
  * Generates an immutable uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
-inline batch::multi_vector::uniform_batch<const ValueType> get_batch_struct(
-    const batch::MultiVector<ValueType>* const op)
+inline batch::multi_vector::uniform_batch<const device_type<ValueType>>
+get_batch_struct(const batch::MultiVector<ValueType>* const op)
 {
-    return {op->get_const_values(), op->get_num_batch_items(),
+    return {as_device_type(op->get_const_values()), op->get_num_batch_items(),
             static_cast<int32>(op->get_common_size()[1]),
             static_cast<int32>(op->get_common_size()[0]),
             static_cast<int32>(op->get_common_size()[1])};
@@ -47,10 +47,10 @@ inline batch::multi_vector::uniform_batch<const ValueType> get_batch_struct(
  * Generates a uniform batch struct from a batch of multi-vectors.
  */
 template <typename ValueType>
-inline batch::multi_vector::uniform_batch<ValueType> get_batch_struct(
-    batch::MultiVector<ValueType>* const op)
+inline batch::multi_vector::uniform_batch<device_type<ValueType>>
+get_batch_struct(batch::MultiVector<ValueType>* const op)
 {
-    return {op->get_values(), op->get_num_batch_items(),
+    return {as_device_type(op->get_values()), op->get_num_batch_items(),
             static_cast<int32>(op->get_common_size()[1]),
             static_cast<int32>(op->get_common_size()[0]),
             static_cast<int32>(op->get_common_size()[1])};

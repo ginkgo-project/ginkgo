@@ -2,23 +2,18 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/multigrid.hpp>
-
-
 #include <vector>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
-
 
 #include "core/test/utils.hpp"
 
@@ -80,9 +75,7 @@ public:
             std::make_shared<DummyLinOp>(this->get_executor(),
                                          gko::dim<2>{n_, n_ - 1}),
             gko::share(gko::test::generate_random_dense_matrix<ValueType>(
-                n_ - 1, n_ - 1,
-                std::uniform_real_distribution<gko::remove_complex<ValueType>>(
-                    0, 1),
+                n_ - 1, n_ - 1, std::uniform_real_distribution<>(0, 1),
                 std::default_random_engine{}, factory->get_executor())),
             std::make_shared<DummyLinOp>(this->get_executor(),
                                          gko::dim<2>{n_ - 1, n_}));

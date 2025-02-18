@@ -2,14 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/diagonal.hpp>
-
+#include "ginkgo/core/matrix/diagonal.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
@@ -163,6 +161,25 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
+
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<next_precision<ValueType>>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(
+    Diagonal<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType>

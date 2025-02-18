@@ -4,7 +4,6 @@
 
 #include <cuda_runtime.h>
 
-
 #include <ginkgo/config.hpp>
 
 

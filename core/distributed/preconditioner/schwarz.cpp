@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
-
+#include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 #include <memory>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -14,12 +12,15 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-
 #include "core/base/utils.hpp"
+#include "core/config/config_helper.hpp"
+#include "core/config/dispatch.hpp"
 #include "core/distributed/helpers.hpp"
 
 
@@ -27,6 +28,35 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 namespace preconditioner {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+typename Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parameters_type
+Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = Schwarz<ValueType, LocalIndexType, GlobalIndexType>::build();
+
+    if (auto& obj = config.get("generated_local_solver")) {
+        params.with_generated_local_solver(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config.get("local_solver")) {
+        params.with_local_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+
+    return params;
+}
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+bool Schwarz<ValueType, LocalIndexType,
+             GlobalIndexType>::apply_uses_initial_guess() const
+{
+    return this->local_solver_->apply_uses_initial_guess();
+}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -59,12 +89,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
+    // only dispatch distributed case
+    experimental::distributed::precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            cache_.init_from(dense_x);
+            cache_->copy_from(dense_x);
+            this->apply_impl(dense_b, cache_.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone.get());
+            dense_x->add_scaled(dense_alpha, cache_.get());
         },
         alpha, b, beta, x);
 }
@@ -112,7 +144,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
 #define GKO_DECLARE_SCHWARZ(ValueType, LocalIndexType, GlobalIndexType) \
     class Schwarz<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_SCHWARZ);
 
 
 }  // namespace preconditioner

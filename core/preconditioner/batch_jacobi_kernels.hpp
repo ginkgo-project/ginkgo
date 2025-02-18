@@ -6,14 +6,11 @@
 #define GKO_CORE_PRECONDITIONER_BATCH_JACOBI_KERNELS_HPP_
 
 
-#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
-
-
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 #include "core/preconditioner/batch_jacobi_helpers.hpp"

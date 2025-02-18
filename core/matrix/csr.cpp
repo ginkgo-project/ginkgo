@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/csr.hpp>
-
+#include "ginkgo/core/matrix/csr.hpp"
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -21,7 +20,6 @@
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
@@ -322,6 +320,27 @@ void Csr<ValueType, IndexType>::move_to(
 {
     this->convert_to(result);
 }
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+    convert_strategy_helper(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(
+    Csr<next_precision<next_precision<ValueType>>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 
 template <typename ValueType, typename IndexType>
@@ -1031,8 +1050,8 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
-                                                         const LinOp* const b)
+void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
+                                                         const LinOp* b)
 {
     bool has_diags{false};
     this->get_executor()->run(

@@ -4,15 +4,12 @@
 
 #include "core/matrix/csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <limits>
 #include <numeric>
 #include <utility>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -21,7 +18,6 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
-
 
 #include "core/base/allocator.hpp"
 #include "core/base/index_set_kernels.hpp"
@@ -99,8 +95,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    arithmetic_type valpha = alpha->at(0, 0);
-    arithmetic_type vbeta = beta->at(0, 0);
+    auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
+    auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
 
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
@@ -1159,9 +1155,8 @@ void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
         auto it = detail::make_zip_iterator(col_idxs + start_row_idx,
                                             values + start_row_idx);
-        std::sort(it, it + row_nnz, [](auto t1, auto t2) {
-            return std::get<0>(t1) < std::get<0>(t2);
-        });
+        std::sort(it, it + row_nnz,
+                  [](auto t1, auto t2) { return get<0>(t1) < get<0>(t2); });
     }
 }
 
@@ -1223,9 +1218,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
-void check_diagonal_entries_exist(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
+void check_diagonal_entries_exist(std::shared_ptr<const OmpExecutor> exec,
+                                  const matrix::Csr<ValueType, IndexType>* mtx,
+                                  bool& has_all_diags)
 {
     bool l_has_all_diags = true;
     const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
@@ -1252,9 +1247,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
-                         const matrix::Dense<ValueType>* const alpha,
-                         const matrix::Dense<ValueType>* const beta,
-                         matrix::Csr<ValueType, IndexType>* const mtx)
+                         const matrix::Dense<ValueType>* alpha,
+                         const matrix::Dense<ValueType>* beta,
+                         matrix::Csr<ValueType, IndexType>* mtx)
 {
     const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
     const auto row_ptrs = mtx->get_const_row_ptrs();

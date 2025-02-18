@@ -69,7 +69,6 @@
 // not unlike the <code>Function</code> class, but with the difference that
 // the return value is tensor-valued rather than scalar of vector-valued.
 #include <deal.II/base/tensor_function.h>
-
 #include <deal.II/numerics/error_estimator.h>
 
 // Ginkgo's header file

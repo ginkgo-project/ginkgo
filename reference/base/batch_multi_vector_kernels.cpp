@@ -4,31 +4,21 @@
 
 #include "core/base/batch_multi_vector_kernels.hpp"
 
-
 #include <algorithm>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 
-
 #include "core/base/batch_struct.hpp"
+#include "reference/base/batch_multi_vector_kernels.hpp"
 #include "reference/base/batch_struct.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace reference {
-/**
- * @brief The batch::MultiVector matrix format namespace.
- * @ref batch::MultiVector
- * @ingroup batch_multi_vector
- */
+namespace GKO_DEVICE_NAMESPACE {
 namespace batch_multi_vector {
-
-
-#include "reference/base/batch_multi_vector_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -41,7 +31,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
         const auto alpha_b = batch::extract_batch_item(alpha_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        scale_kernel(alpha_b, x_b);
+        batch_single_kernels::scale_kernel(alpha_b, x_b);
     }
 }
 
@@ -62,7 +52,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
         const auto alpha_b = batch::extract_batch_item(alpha_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        add_scaled_kernel(alpha_b, x_b, y_b);
+        batch_single_kernels::add_scaled_kernel(alpha_b, x_b, y_b);
     }
 }
 
@@ -83,7 +73,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        compute_dot_product_kernel(x_b, y_b, res_b);
+        batch_single_kernels::compute_dot_product_kernel(x_b, y_b, res_b);
     }
 }
 
@@ -104,7 +94,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
         const auto y_b = batch::extract_batch_item(y_ub, batch);
-        compute_conj_dot_product_kernel(x_b, y_b, res_b);
+        batch_single_kernels::compute_conj_dot_product_kernel(x_b, y_b, res_b);
     }
 }
 
@@ -122,7 +112,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < result->get_num_batch_items(); ++batch) {
         const auto res_b = batch::extract_batch_item(res_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        compute_norm2_kernel(x_b, res_b);
+        batch_single_kernels::compute_norm2_kernel(x_b, res_b);
     }
 }
 
@@ -140,7 +130,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type batch = 0; batch < x->get_num_batch_items(); ++batch) {
         const auto result_b = batch::extract_batch_item(result_ub, batch);
         const auto x_b = batch::extract_batch_item(x_ub, batch);
-        copy_kernel(x_b, result_b);
+        batch_single_kernels::copy_kernel(x_b, result_b);
     }
 }
 
@@ -148,6 +138,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR_COPY_KERNEL);
 
 
 }  // namespace batch_multi_vector
-}  // namespace reference
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

@@ -4,19 +4,16 @@
 
 #include "core/multigrid/pgm_kernels.hpp"
 
-
 #include <algorithm>
 #include <memory>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
-
 #include "core/base/iterator_factory.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -28,6 +25,30 @@ namespace omp {
  * @ingroup pgm
  */
 namespace pgm {
+
+
+template <typename IndexType>
+void match_edge(std::shared_ptr<const DefaultExecutor> exec,
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
+{
+    auto agg_vals = agg.get_data();
+    auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
+#pragma omp parallel for
+    for (int64 i = 0; i < static_cast<int64>(agg.get_size()); i++) {
+        if (load(agg_vals + i) != -1) {
+            continue;
+        }
+        auto neighbor = strongest_neighbor_vals[i];
+        if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
+            i <= neighbor) {
+            store(agg_vals + i, i);
+            store(agg_vals + neighbor, i);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_MATCH_EDGE_KERNEL);
 
 
 template <typename IndexType>
@@ -47,8 +68,7 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
 {
     auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
     std::stable_sort(it, it + nnz, [](auto a, auto b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
+        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
     });
 }
 

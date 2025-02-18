@@ -1,11 +1,13 @@
 find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}" "$ENV{MKL_ROOT}")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}" "$ENV{DPLROOT}")
-# use the parameter from cmake 
+# use the parameter from cmake
 set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
+add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.dp.cpp BATCH_BICGSTAB_INSTANTIATE)
+add_instantiation_files(. solver/batch_cg_launch.instantiate.dp.cpp BATCH_CG_INSTANTIATE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -18,6 +20,7 @@ target_sources(ginkgo_dpcpp
     base/timer.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
+    distributed/assembly_kernels.dp.cpp
     distributed/index_map_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp
     distributed/partition_helpers_kernels.dp.cpp
@@ -56,9 +59,12 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_generate_kernel.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
+    preconditioner/sor_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
+    ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.dp.cpp
+    ${BATCH_CG_INSTANTIATE}
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
     solver/lower_trs_kernels.dp.cpp
@@ -93,7 +99,7 @@ string(REPLACE ";" "," GKO_DPCPP_JACOBI_BLOCK_SIZES_CODE "${GKO_DPCPP_JACOBI_BLO
 configure_file(preconditioner/jacobi_common.hpp.in preconditioner/jacobi_common.hpp)
 
 ginkgo_compile_features(ginkgo_dpcpp)
-target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
+target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP GKO_DEVICE_NAMESPACE=dpcpp _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
@@ -104,7 +110,6 @@ gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
-target_compile_features(ginkgo_dpcpp PUBLIC cxx_std_17)
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
 # When building ginkgo as a static library, we need to use dpcpp and per_kernel
 # link option when the program uses a dpcpp related function.
@@ -117,7 +122,13 @@ endif()
 target_include_directories(ginkgo_dpcpp
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..)
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
+target_link_libraries(ginkgo_dpcpp PRIVATE oneDPL)
+# MKL 2024.0+ provides the MKL::MKL_SYCL target, while older versions provide *_DPCPP
+if(MKL_VERSION_MAJOR VERSION_GREATER_EQUAL 2024)
+    target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_SYCL)
+else ()
+    target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP)
+endif ()
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
@@ -126,7 +137,7 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp GKO_COMPILING_DPCPP)
+    ginkgo_check_headers(ginkgo_dpcpp "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp")
 endif()
 
 if(GINKGO_BUILD_TESTS)

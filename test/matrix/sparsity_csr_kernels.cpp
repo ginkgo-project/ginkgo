@@ -4,13 +4,10 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
-
 #include <algorithm>
 #include <random>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -18,12 +15,11 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/common_fixture.hpp"
 
 
 namespace {
@@ -64,8 +60,8 @@ TEST_F(SparsityCsr, KernelDiagonalElementPrefixSumIsEquivalentToRef)
 
     gko::kernels::reference::sparsity_csr::diagonal_element_prefix_sum(
         ref, mtx.get(), prefix_sum.get_data());
-    gko::kernels::EXEC_NAMESPACE::sparsity_csr::diagonal_element_prefix_sum(
-        exec, dmtx.get(), dprefix_sum.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::sparsity_csr::
+        diagonal_element_prefix_sum(exec, dmtx.get(), dprefix_sum.get_data());
 
     GKO_ASSERT_ARRAY_EQ(prefix_sum, dprefix_sum);
 }
@@ -88,7 +84,7 @@ TEST_F(SparsityCsr, KernelRemoveDiagonalElementsIsEquivalentToRef)
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
         prefix_sum.get_const_data(), out_mtx.get());
-    gko::kernels::EXEC_NAMESPACE::sparsity_csr::remove_diagonal_elements(
+    gko::kernels::GKO_DEVICE_NAMESPACE::sparsity_csr::remove_diagonal_elements(
         exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
         dprefix_sum.get_const_data(), dout_mtx.get());
 

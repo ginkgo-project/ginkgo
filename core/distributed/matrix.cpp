@@ -2,15 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/distributed/matrix.hpp>
+#include "ginkgo/core/distributed/matrix.hpp"
 
-
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
-
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 
 
@@ -201,8 +203,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result) const
+    Matrix<next_precision_base<value_type>, local_index_type,
+           global_index_type>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -220,8 +222,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
-        result)
+    Matrix<next_precision_base<value_type>, local_index_type,
+           global_index_type>* result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -244,7 +246,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    assembly_mode assembly_type)
 {
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
@@ -253,9 +256,21 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
+    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    auto tmp_row_partition = make_temporary_clone(exec, row_partition);
+    auto tmp_col_partition = make_temporary_clone(exec, col_partition);
+
+    const device_matrix_data<value_type, global_index_type>* all_data_ptr =
+        &data;
+    device_matrix_data<value_type, global_index_type> assembled_data(exec);
+    if (assembly_type == assembly_mode::communicate) {
+        assembled_data = assemble_rows_from_neighbors<ValueType, LocalIndexType,
+                                                      GlobalIndexType>(
+            this->get_communicator(), data, row_partition);
+        all_data_ptr = &assembled_data;
+    }
 
     // set up LinOp sizes
-    auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
     auto global_num_rows = row_partition->get_size();
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
@@ -274,10 +289,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     // as well as the rows of the non-local block. The columns of the non-local
     // block are still in global indices.
     exec->run(matrix::make_separate_local_nonlocal(
-        data, make_temporary_clone(exec, row_partition).get(),
-        make_temporary_clone(exec, col_partition).get(), local_part,
-        local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
-        global_non_local_col_idxs, non_local_values));
+        *all_data_ptr, tmp_row_partition.get(), tmp_col_partition.get(),
+        local_part, local_row_idxs, local_col_idxs, local_values,
+        non_local_row_idxs, global_non_local_col_idxs, non_local_values));
 
     auto imap = index_map<local_index_type, global_index_type>(
         exec, col_partition, comm.rank(), global_non_local_col_idxs);
@@ -336,7 +350,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
             imap.get_executor(), imap.get_non_local_size(),
             imap.get_remote_local_idxs().get_const_flat_data())
             .copy_to_array();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
@@ -359,12 +372,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
         row_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    assembly_mode assembly_type)
 {
     return this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        row_partition, col_partition);
+        row_partition, col_partition, assembly_type);
 }
 
 
@@ -372,22 +386,24 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        partition)
+        partition,
+    assembly_mode assembly_type)
 {
     return this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        partition, partition);
+        partition, partition, assembly_type);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
+    const device_matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        partition)
+        partition,
+    assembly_mode assembly_type)
 {
-    return this->read_distributed(data, partition, partition);
+    return this->read_distributed(data, partition, partition, assembly_type);
 }
 
 
@@ -507,6 +523,76 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
+    ptr_param<const global_vector_type> scaling_factors)
+{
+    GKO_ASSERT_CONFORMANT(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    size_type n_local_cols = local_mtx_->get_size()[1];
+    size_type n_non_local_cols = non_local_mtx_->get_size()[1];
+    std::unique_ptr<global_vector_type> scaling_factors_single_stride;
+    auto stride = scaling_factors->get_stride();
+    if (stride != 1) {
+        scaling_factors_single_stride = global_vector_type::create(exec, comm);
+        scaling_factors_single_stride->copy_from(scaling_factors.get());
+    }
+    const auto scale_values =
+        stride == 1 ? scaling_factors->get_const_local_values()
+                    : scaling_factors_single_stride->get_const_local_values();
+    const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
+        exec, n_local_cols,
+        make_const_array_view(exec, n_local_cols, scale_values));
+
+    auto req = this->communicate(
+        stride == 1 ? scaling_factors->get_local_vector()
+                    : scaling_factors_single_stride->get_local_vector());
+    scale_diag->rapply(local_mtx_, local_mtx_);
+    req.wait();
+    if (n_non_local_cols > 0) {
+        auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+        if (use_host_buffer) {
+            recv_buffer_->copy_from(host_recv_buffer_.get());
+        }
+        const auto non_local_scale_diag =
+            gko::matrix::Diagonal<ValueType>::create_const(
+                exec, n_non_local_cols,
+                make_const_array_view(exec, n_non_local_cols,
+                                      recv_buffer_->get_const_values()));
+        non_local_scale_diag->rapply(non_local_mtx_, non_local_mtx_);
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
+    ptr_param<const global_vector_type> scaling_factors)
+{
+    GKO_ASSERT_EQUAL_ROWS(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    size_type n_local_rows = local_mtx_->get_size()[0];
+    std::unique_ptr<global_vector_type> scaling_factors_single_stride;
+    auto stride = scaling_factors->get_stride();
+    if (stride != 1) {
+        scaling_factors_single_stride = global_vector_type::create(exec, comm);
+        scaling_factors_single_stride->copy_from(scaling_factors.get());
+    }
+    const auto scale_values =
+        stride == 1 ? scaling_factors->get_const_local_values()
+                    : scaling_factors_single_stride->get_const_local_values();
+    const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
+        exec, n_local_rows,
+        make_const_array_view(exec, n_local_rows, scale_values));
+
+    scale_diag->apply(local_mtx_, local_mtx_);
+    scale_diag->apply(non_local_mtx_, non_local_mtx_);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
@@ -578,7 +664,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
     class Matrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_DISTRIBUTED_MATRIX);
 
 

@@ -14,9 +14,7 @@ git config user.name "ginkgo-bot"
 
 # save scripts from develop
 cp .clang-format .pre-commit-config.yaml /tmp
-pushd dev_tools/scripts || exit 1
-cp format_header.sh update_ginkgo_header.sh /tmp
-popd || exit 1
+cp dev_tools/scripts/update_ginkgo_header.sh /tmp
 
 # checkout current PR head
 LOCAL_BRANCH=format-tmp-$HEAD_BRANCH
@@ -25,7 +23,6 @@ git checkout -b $LOCAL_BRANCH fork/$HEAD_BRANCH
 # restore files from develop
 cp /tmp/.clang-format .
 cp /tmp/.pre-commit-config.yaml .
-cp /tmp/format_header.sh dev_tools/scripts/
 cp /tmp/update_ginkgo_header.sh dev_tools/scripts/
 
 # make base pre-commit config available

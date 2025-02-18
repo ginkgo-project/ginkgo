@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/executor.hpp>
-
+#include "ginkgo/core/base/executor.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -11,9 +10,7 @@
 #include <map>
 #include <string>
 
-
-#include <CL/sycl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -53,7 +50,7 @@ bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         dest_exec->get_device_type())[dest_exec->get_device_id()];
-    return device.is_host() || device.is_cpu();
+    return device.is_cpu();
 }
 
 
@@ -91,7 +88,7 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 #endif  // GKO_VERBOSE_LEVEL >= 1
         // OpenCL error code use 0 for CL_SUCCESS and negative number for others
         // error. if the error is not from OpenCL, it will return CL_SUCCESS.
-        int err_code = err.get_cl_code();
+        int err_code = err.code().value();
         // if return CL_SUCCESS, exit 1 as DPCPP error.
         if (err_code == 0) {
             err_code = 1;
@@ -145,8 +142,7 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
         auto dest_queue = dest->get_queue();
         auto device = queue->get_device();
         auto dest_device = dest_queue->get_device();
-        if (((device.is_host() || device.is_cpu()) &&
-             (dest_device.is_host() || dest_device.is_cpu())) ||
+        if ((device.is_cpu() && dest_device.is_cpu()) ||
             (queue == dest_queue)) {
             dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
         } else {
@@ -165,6 +161,17 @@ scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
 }
 
 
+std::string DpcppExecutor::get_description() const
+{
+    return "DpcppExecutor on device " + std::to_string(this->get_device_id()) +
+           " (" +
+           this->get_queue()
+               ->get_device()
+               .get_info<sycl::info::device::name>() +
+           ") with host " + this->get_master()->get_description();
+}
+
+
 int DpcppExecutor::get_num_devices(std::string device_type)
 {
     return detail::get_devices(device_type).size();
@@ -175,7 +182,7 @@ bool DpcppExecutor::verify_memory_to(const OmpExecutor* dest_exec) const
 {
     auto device = detail::get_devices(
         get_exec_info().device_type)[get_exec_info().device_id];
-    return device.is_host() || device.is_cpu();
+    return device.is_cpu();
 }
 
 bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
@@ -187,9 +194,7 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
     auto dest_queue = dest_exec->get_queue();
     auto device = queue->get_device();
     auto dest_device = dest_queue->get_device();
-    return ((device.is_host() || device.is_cpu()) &&
-            (dest_device.is_host() || dest_device.is_cpu())) ||
-           (queue == dest_queue);
+    return (device.is_cpu() && dest_device.is_cpu()) || (queue == dest_queue);
 }
 
 
@@ -226,16 +231,14 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
            DpcppExecutor::get_num_devices(this->get_exec_info().device_type));
     auto device = detail::get_devices(
         this->get_exec_info().device_type)[this->get_exec_info().device_id];
-    if (!device.is_host()) {
-        try {
-            auto subgroup_sizes =
-                device.get_info<sycl::info::device::sub_group_sizes>();
-            for (auto& i : subgroup_sizes) {
-                this->get_exec_info().subgroup_sizes.push_back(i);
-            }
-        } catch (sycl::exception& err) {
-            GKO_NOT_SUPPORTED(device);
+    try {
+        auto subgroup_sizes =
+            device.get_info<sycl::info::device::sub_group_sizes>();
+        for (auto& i : subgroup_sizes) {
+            this->get_exec_info().subgroup_sizes.push_back(i);
         }
+    } catch (sycl::exception& err) {
+        GKO_NOT_SUPPORTED(device);
     }
     this->get_exec_info().num_computing_units = static_cast<int>(
         device.get_info<sycl::info::device::max_compute_units>());
@@ -246,15 +249,8 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     }
     this->get_exec_info().max_workgroup_size = static_cast<int>(
         device.get_info<sycl::info::device::max_work_group_size>());
-// They change the max_work_item_size with template parameter Dimension after
-// major version 6 and adding the default = 3 is not in the same release.
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
     auto max_workitem_sizes =
         device.get_info<sycl::info::device::max_work_item_sizes<3>>();
-#else
-    auto max_workitem_sizes =
-        device.get_info<sycl::info::device::max_work_item_sizes>();
-#endif
     // Get the max dimension of a sycl::id object
     auto max_work_item_dimensions =
         device.get_info<sycl::info::device::max_work_item_dimensions>();
@@ -265,13 +261,8 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
 
     // Get the hardware threads per eu
     if (device.has(sycl::aspect::ext_intel_gpu_hw_threads_per_eu)) {
-#if GINKGO_DPCPP_MAJOR_VERSION >= 6
         this->get_exec_info().num_pu_per_cu = device.get_info<
             sycl::ext::intel::info::device::gpu_hw_threads_per_eu>();
-#else
-        this->get_exec_info().num_pu_per_cu = device.get_info<
-            sycl::info::device::ext_intel_gpu_hw_threads_per_eu>();
-#endif
     } else {
         // To make the usage still valid.
         // TODO: check the value for other vendor gpu or cpu.
@@ -283,7 +274,11 @@ void DpcppExecutor::set_device_property(dpcpp_queue_property property)
     // `wait()` would be needed after every call to a DPC++ function or kernel.
     // For example, without `in_order`, doing a copy, a kernel, and a copy, will
     // not necessarily happen in that order by default, which we need to avoid.
-    auto* queue = new sycl::queue{device, detail::get_property_list(property)};
+    // We need to create the context for each device. Otherwise, we get -999
+    // Unknown PI error after second device.
+    // Ref: https://github.com/intel/llvm/issues/10982
+    auto* queue = new sycl::queue{sycl::context(device), device,
+                                  detail::get_property_list(property)};
     queue_ = std::move(queue_manager<sycl::queue>{queue, detail::delete_queue});
 }
 

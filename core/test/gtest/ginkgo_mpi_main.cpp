@@ -16,15 +16,11 @@
 #include <string>
 #include <vector>
 
-
 #include <mpi.h>
-
 
 #include <gtest/gtest.h>
 
-
 #include <ginkgo/core/base/mpi.hpp>
-
 
 #include "core/test/gtest/environments.hpp"
 

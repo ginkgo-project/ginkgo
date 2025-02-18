@@ -4,12 +4,9 @@
 
 #include "core/matrix/dense_kernels.hpp"
 
-
 #include <algorithm>
 
-
 #include <omp.h>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -22,7 +19,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
