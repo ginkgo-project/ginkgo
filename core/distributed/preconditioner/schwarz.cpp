@@ -107,31 +107,41 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
                                    gko::detail::get_local(dense_x));
     }
 
-    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
-        auto restrict = as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                            ->get_restrict_op();
-        auto prolong = as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                           ->get_prolong_op();
-        auto coarse =
-            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                 GlobalIndexType>>(
+    if (parameters_.coarse_correction.mode ==
+        coarse_correction_mode::additive) {
+        if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
+            auto restrict =
                 as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                    ->get_coarse_op());
+                    ->get_restrict_op();
+            auto prolong =
+                as<gko::multigrid::MultigridLevel>(this->coarse_level_)
+                    ->get_prolong_op();
+            auto coarse =
+                as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                     GlobalIndexType>>(
+                    as<gko::multigrid::MultigridLevel>(this->coarse_level_)
+                        ->get_coarse_op());
 
-        // Coarse solve vector cache init
-        // Should allocare only in the first apply call.
-        auto cs_ncols = dense_x->get_size()[1];
-        auto cs_local_nrows = coarse->get_local_matrix()->get_size()[0];
-        auto cs_global_nrows = coarse->get_size()[0];
-        auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
-        auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
-        auto comm = coarse->get_communicator();
-        csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
+            // Coarse solve vector cache init
+            // Should allocare only in the first apply call.
+            auto cs_ncols = dense_x->get_size()[1];
+            auto cs_local_nrows = coarse->get_local_matrix()->get_size()[0];
+            auto cs_global_nrows = coarse->get_size()[0];
+            auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
+            auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
+            auto comm = coarse->get_communicator();
+            csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
 
-        restrict->apply(dense_b, csol_cache_.get());
-        this->coarse_solver_->apply(csol_cache_.get(), csol_cache_.get());
-        prolong->apply(this->coarse_weight_, csol_cache_.get(),
-                       this->local_weight_, dense_x);
+            restrict->apply(dense_b, csol_cache_.get());
+            this->coarse_solver_->apply(csol_cache_.get(), csol_cache_.get());
+            prolong->apply(this->coarse_weight_, csol_cache_.get(),
+                           this->local_weight_, dense_x);
+        }
+    } else if (parameters_.coarse_correction.mode ==
+               coarse_correction_mode::multiplicative) {
+        GKO_NOT_IMPLEMENTED;
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -227,13 +237,22 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             gko::share(parameters_.local_solver->generate(local_matrix)));
     }
 
+    if ((parameters_.coarse_level && !parameters_.coarse_solver) ||
+        (!parameters_.coarse_level && parameters_.coarse_solver)) {
+        GKO_INVALID_STATE(
+            "Requires both coarse solver and coarse level to be set.");
+    }
     auto dist_mat =
         as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                              GlobalIndexType>>(system_matrix);
+    // this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+    //     {ValueType{1} - parameters_.coarse_weight}, this->get_executor());
+    // this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+    //     {parameters_.coarse_weight}, this->get_executor());
     this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-        {ValueType{1} - parameters_.coarse_weight}, this->get_executor());
+        {ValueType{1}}, this->get_executor());
     this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-        {parameters_.coarse_weight}, this->get_executor());
+        {ValueType{1}}, this->get_executor());
 
     if (parameters_.local_solver) {
         this->set_solver(gko::share(
@@ -246,17 +265,17 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
             share(parameters_.coarse_level->generate(system_matrix));
-        if (as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                ->get_coarse_op()) {
-            auto coarse =
-                as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                     GlobalIndexType>>(
-                    as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                        ->get_coarse_op());
-            auto exec = coarse->get_executor();
-            auto comm = coarse->get_communicator();
-            this->coarse_solver_ =
-                share(parameters_.coarse_solver->generate(coarse));
+        if (as<multigrid::MultigridLevel>(this->coarse_level_)) {
+            auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
+                              ->get_coarse_op();
+            // Cannot guarantee that coarse op is not nullptr
+            if (coarse != nullptr) {
+                this->coarse_solver_ =
+                    share(parameters_.coarse_solver->generate(
+                        as<experimental::distributed::Matrix<
+                            ValueType, LocalIndexType, GlobalIndexType>>(
+                            coarse)));
+            }
         } else {
             GKO_NOT_SUPPORTED(this->coarse_level_);
         }

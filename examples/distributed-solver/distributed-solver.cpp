@@ -64,10 +64,12 @@ int main(int argc, char* argv[])
     // - The executor, defaults to reference.
     // - The number of grid points, defaults to 100.
     // - The number of iterations, defaults to 1000.
+    // - One-level or two-level preconditioner, defaults to one-level.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
                       << " [executor] [num_grid_points] [num_iterations] "
+                         "[schwarz_prec_type] "
                       << std::endl;
         }
         std::exit(-1);
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
-    std::string schw_type = argc >= 5 ? argv[4] : "multi-level";
+    std::string schw_type = argc >= 5 ? argv[4] : "one-level";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -190,12 +192,18 @@ int main(int argc, char* argv[])
 
     // Setup the local block diagonal solver factory.
     auto local_solver = gko::share(bj::build().on(exec));
+    // Setup the coarse solver. If it is more accurate, then the outer
+    // iterations will reduce, but the cost of the coarse solve increases.
+    // The coarse solver can in turn have another Schwarz preconditioner if
+    // needed.
     auto coarse_solver = gko::share(
         solver::build()
+            .with_preconditioner(
+                schwarz::build().with_local_solver(local_solver).on(exec))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100).on(exec),
+                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(1e-3)
+                    .with_reduction_factor(1e-7)
                     .on(exec))
             .on(exec));
 
@@ -206,14 +214,18 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     std::shared_ptr<gko::LinOp> Ainv{};
-    if (schw_type == "multi-level") {
+    if (schw_type == "two-level") {
         Ainv =
             solver::build()
-                .with_preconditioner(schwarz::build()
-                                         .with_local_solver(local_solver)
-                                         .with_coarse_level(pgm_fac)
-                                         .with_coarse_solver(coarse_solver)
-                                         .on(exec))
+                .with_preconditioner(
+                    schwarz::build()
+                        .with_local_solver(local_solver)
+                        .with_coarse_level(pgm_fac)
+                        .with_coarse_correction(
+                            gko::experimental::distributed::preconditioner::
+                                coarse_correction_mode::multiplicative)
+                        .with_coarse_solver(coarse_solver)
+                        .on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
                         exec),
