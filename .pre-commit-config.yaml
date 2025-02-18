@@ -30,10 +30,3 @@ repos:
         examples/external-lib-interfacing/external-lib-interfacing.cpp|
         core/base/workspace_aliases.hpp
       )$
-  - id: update-ginkgo-header
-    name: update ginkgo header
-    entry: dev_tools/scripts/update_ginkgo_header.sh
-    language: script
-    types: [header]
-    pass_filenames: false
-    files: ^include/ginkgo/core

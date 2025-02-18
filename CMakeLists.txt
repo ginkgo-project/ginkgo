@@ -123,6 +123,7 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 include(cmake/compiler_features.cmake)
+include(cmake/generate_ginkgo_hpp.cmake)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
@@ -322,6 +323,7 @@ else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
     set(GINKGO_DPCPP_MINOR_VERSION "0")
 endif()
+ginkgo_generate_ginkgo_hpp()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/extensions/kokkos/config.hpp.in
@@ -400,16 +402,6 @@ if(GINKGO_DEVEL_TOOLS)
                       WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
                       VERBATIM)
 endif()
-
-# MacOS needs to install bash, gnu-sed, findutils and coreutils
-# format_header needs clang-format 6.0.0+
-find_program(BASH bash)
-if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
-    add_custom_target(generate_ginkgo_header ALL
-        COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
-        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-endif()
-unset(BASH CACHE)
 
 
 # Installation
