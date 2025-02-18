@@ -65,6 +65,10 @@ protected:
                   b->get_parameters().coarse_level);
         ASSERT_EQ(a->get_parameters().coarse_solver,
                   b->get_parameters().coarse_solver);
+        ASSERT_EQ(a->get_parameters().coarse_correction.mode,
+                  b->get_parameters().coarse_correction.mode);
+        ASSERT_EQ(a->get_parameters().coarse_correction.weight,
+                  b->get_parameters().coarse_correction.weight);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -92,7 +96,7 @@ TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 }
 
 
-TYPED_TEST(SchwarzFactory, CanSetGalerkinOpsFactory)
+TYPED_TEST(SchwarzFactory, CanSetCoarseLevelFactory)
 {
     ASSERT_EQ(this->schwarz->get_parameters().coarse_level, this->pgm_factory);
 }
@@ -101,6 +105,42 @@ TYPED_TEST(SchwarzFactory, CanSetGalerkinOpsFactory)
 TYPED_TEST(SchwarzFactory, CanSetCoarseSolverFactory)
 {
     ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, this->cg_factory);
+}
+
+
+TYPED_TEST(SchwarzFactory, CanSetAdditiveCorrectionType)
+{
+    using vtype = typename TestFixture::value_type;
+
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_correction.mode,
+              gko::experimental::distributed::preconditioner::
+                  coarse_correction_mode::additive);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_correction.weight, 1.0);
+}
+
+
+TYPED_TEST(SchwarzFactory, CanSetMultiplicativeCorrectionType)
+{
+    using Schwarz = typename TestFixture::Schwarz;
+    using vtype = typename TestFixture::value_type;
+    auto schwarz =
+        Schwarz::build()
+            .with_local_solver(this->jacobi_factory)
+            .with_coarse_correction(
+                gko::experimental::distributed::preconditioner::
+                    coarse_correction_type(
+                        gko::experimental::distributed::preconditioner::
+                            coarse_correction_mode::multiplicative,
+                        0.4))
+            .with_coarse_level(this->pgm_factory)
+            .with_coarse_solver(this->cg_factory)
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(schwarz->get_parameters().coarse_correction.mode,
+              gko::experimental::distributed::preconditioner::
+                  coarse_correction_mode::multiplicative);
+    ASSERT_EQ(schwarz->get_parameters().coarse_correction.weight, 0.4);
 }
 
 
