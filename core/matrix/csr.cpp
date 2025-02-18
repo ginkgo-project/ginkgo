@@ -671,6 +671,12 @@ transform_reusable(const Csr<ValueType, IndexType>* input, gko::dim<2> out_size,
 
 
 template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::permuting_reuse_info::permuting_reuse_info()
+    : permuting_reuse_info{nullptr}
+{}
+
+
+template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::permuting_reuse_info::permuting_reuse_info(
     std::unique_ptr<Permutation<index_type>> value_permutation)
     : value_permutation{std::move(value_permutation)}
@@ -681,6 +687,9 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::permuting_reuse_info::update_values(
     ptr_param<const Csr> input, ptr_param<Csr> output) const
 {
+    if (!value_permutation) {
+        GKO_NOT_SUPPORTED(value_permutation);
+    }
     input->create_const_value_view()->permute(
         value_permutation, output->create_value_view(), permute_mode::rows);
 }

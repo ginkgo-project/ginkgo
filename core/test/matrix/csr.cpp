@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/exception.hpp"
 
 
 namespace {
@@ -416,6 +417,15 @@ TYPED_TEST(Csr, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+}
+
+
+TYPED_TEST(Csr, PermutingReuseInfoDefaultUpdateException)
+{
+    using Mtx = typename TestFixture::Mtx;
+    typename Mtx::permuting_reuse_info reuse;
+
+    ASSERT_THROW(reuse.update_values(this->mtx, this->mtx), gko::NotSupported);
 }
 
 
