@@ -35,14 +35,20 @@ inline gko::config::pnode parse_yaml(const YAML::Node& input)
     auto parse_map = [](const auto& map) {
         gko::config::pnode::map_type nodes;
         // use [] to get override behavior
-        for (YAML::const_iterator it = map.begin(); it != map.end(); ++it) {
-            std::string key = it->first.as<std::string>();
+        for (const auto& yaml_item : map) {
+            std::string key = yaml_item.first.template as<std::string>();
             // yaml-cpp keeps the alias without resolving it when parsing.
             // We resolve them here.
             if (key == "<<") {
-                auto node = parse_yaml(it->second);
+                auto node = parse_yaml(yaml_item.second);
                 if (node.get_tag() == gko::config::pnode::tag_t::array) {
                     for (const auto& arr : node.get_array()) {
+                        if (arr.get_tag() != gko::config::pnode::tag_t::map) {
+                            throw std::runtime_error(
+                                "YAML only accepts merge key << to merge item "
+                                "from map not " +
+                                YAML::Dump(yaml_item.second));
+                        }
                         for (const auto& item : arr.get_map()) {
                             nodes[item.first] = item.second;
                         }
@@ -52,11 +58,11 @@ inline gko::config::pnode parse_yaml(const YAML::Node& input)
                         nodes[item.first] = item.second;
                     }
                 } else {
-                    std::runtime_error("can not handle this alias: " +
-                                       YAML::Dump(it->second));
+                    throw std::runtime_error("can not handle this alias: " +
+                                             YAML::Dump(yaml_item.second));
                 }
             } else {
-                nodes[key] = parse_yaml(it->second);
+                nodes[key] = parse_yaml(yaml_item.second);
             }
         }
         return gko::config::pnode{nodes};
