@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,22 +153,6 @@ TEST_F(Ilu, SetsCorrectStrategy)
 }
 
 
-#ifdef GKO_COMPILING_OMP
-
-
-TEST_F(Ilu, OmpComputeILUBySparselibShouldThrow)
-{
-    ASSERT_THROW(gko::factorization::Ilu<>::build()
-                     .with_skip_sorting(true)
-                     .on(exec)
-                     ->generate(dmtx),
-                 gko::InvalidStateError);
-}
-
-
-#else
-
-
 TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 {
     auto fact = gko::factorization::Ilu<>::build()
@@ -200,6 +184,3 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
 }
-
-
-#endif
