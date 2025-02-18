@@ -108,6 +108,10 @@ class pnode;
  *    The simplified definition also allows for setting the `ValueType` template
  *    parameter as discussed in 4. and 5.
  *
+ * @note The formatting for the example snippets is oriented on the JSON format.
+ *       For all supported configuration formats check the headers in
+ *       extension/config
+ *
  * All configurations (except the simplified stopping criteria) need to specify
  * the resulting type by the field:
  * ```
@@ -155,20 +159,20 @@ class pnode;
  * will lead to a GMRES solver that uses `float` as its value type.
  * Additionally, the config can be used to set these types through the fields:
  * ```
- * value_type: "some_value_type"
+ * "value_type": "some_value_type"
  * ```
  * These types take precedence over the type descriptor and they are used for
  * every created object beginning from the config level they are defined on and
  * every deeper nested level, until a new type is defined. So, considering the
  * following example
  * ```
- * type: "solver::Ir",
- * value_type: "float32"
- * solver: {
- *   type: "solver::Gmres",
- *   preconditioner: {
- *     type: "preconditioner::Jacobi"
- *     value_type: "float64"
+ * "type": "solver::Ir",
+ * "value_type": "float32"
+ * "solver": {
+ *   "type": "solver::Gmres",
+ *   "preconditioner": {
+ *     "type": "preconditioner::Jacobi"
+ *     "value_type": "float64"
  *   }
  * }
  * ```
