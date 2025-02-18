@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/idr.hpp"
+
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -11,6 +14,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
@@ -40,7 +44,12 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Idr<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_solver_parse(params, config, context, td_for_child);
+    std::set<std::string> other_keys{"subspace_dim", "kappa", "deterministic",
+                                     "complex_subspace"};
+    allowed_keys.merge(other_keys);
+    gko::config::check_allowed_keys(config, allowed_keys);
     if (auto& obj = config.get("subspace_dim")) {
         params.with_subspace_dim(gko::config::get_value<size_type>(obj));
     }

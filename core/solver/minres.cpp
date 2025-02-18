@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/minres.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/minres_kernels.hpp"
@@ -86,7 +87,9 @@ typename Minres<ValueType>::parameters_type Minres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Minres::build();
-    common_solver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_solver_parse(params, config, context, td_for_child);
+    gko::config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 
