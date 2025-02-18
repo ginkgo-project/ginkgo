@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -39,7 +40,9 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Cg<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_solver_parse(params, config, context, td_for_child);
+    gko::config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

@@ -1,9 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/cb_gmres.hpp"
 
+#include <set>
+#include <string>
 #include <type_traits>
 
 #include <ginkgo/core/base/array.hpp>
@@ -17,6 +19,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/extended_float.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -162,7 +165,11 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::CbGmres<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_solver_parse(params, config, context, td_for_child);
+    std::set<std::string> other_keys{"krylov_dim", "storage_precision"};
+    allowed_keys.merge(other_keys);
+    gko::config::check_allowed_keys(config, allowed_keys);
     if (auto& obj = config.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }

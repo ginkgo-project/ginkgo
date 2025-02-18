@@ -5,6 +5,8 @@
 #include "ginkgo/core/solver/multigrid.hpp"
 
 #include <complex>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -612,6 +614,16 @@ typename Multigrid::parameters_type Multigrid::parse(
 {
     auto params = Multigrid::build();
 
+    std::set<std::string> allowed_keys{
+        "criteria",        "mg_level",
+        "pre_smoother",    "post_smoother",
+        "mid_smoother",    "post_uses_pre",
+        "mid_case",        "max_levels",
+        "min_coarse_rows", "coarsest_solver",
+        "cycle",           "kcycle_base",
+        "kcycle_rel_tol",  "smoother_relax",
+        "smoother_iters",  "default_initial_guess"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     if (auto& obj = config.get("criteria")) {
         params.with_criteria(
             config::parse_or_get_factory_vector<const stop::CriterionFactory>(

@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_CORE_CONFIG_TRISOLVER_CONFIG_HPP_
 #define GKO_CORE_CONFIG_TRISOLVER_CONFIG_HPP_
 
+#include <set>
+#include <string>
 
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -18,9 +20,9 @@ namespace config {
 
 
 template <typename SolverParam>
-inline void common_trisolver_parse(SolverParam& params, const pnode& config,
-                                   const registry& context,
-                                   type_descriptor td_for_child)
+inline std::set<std::string> common_trisolver_parse(
+    SolverParam& params, const pnode& config, const registry& context,
+    type_descriptor td_for_child)
 {
     if (auto& obj = config.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
@@ -39,6 +41,7 @@ inline void common_trisolver_parse(SolverParam& params, const pnode& config,
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
     }
+    return {"num_rhs", "unit_diagonal", "algorithm"};
 }
 
 
