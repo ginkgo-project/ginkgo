@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,16 +101,11 @@ void handle_list(
         auto exec = matrix->get_executor();
 #if GINKGO_BUILD_MPI
         if (gko::detail::is_distributed(matrix.get())) {
-            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-                GKO_NOT_SUPPORTED(matrix);
-            } else {
-                using experimental::distributed::Matrix;
-                return run<Matrix<ValueType, int32, int32>,
-                           Matrix<ValueType, int32, int64>,
-                           Matrix<ValueType, int64,
-                                  int64>>(matrix, [exec, iteration,
-                                                   relaxation_factor](
-                                                      auto matrix) {
+            using experimental::distributed::Matrix;
+            return run<Matrix<ValueType, int32, int32>,
+                       Matrix<ValueType, int32, int64>,
+                       Matrix<ValueType, int64, int64>>(
+                matrix, [exec, iteration, relaxation_factor](auto matrix) {
                     using Mtx = typename decltype(matrix)::element_type;
                     return share(
                         build_smoother(
@@ -124,7 +119,6 @@ void handle_list(
                             iteration, casting<ValueType>(relaxation_factor))
                             ->generate(matrix));
                 });
-            }
         }
 #endif
         return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
@@ -336,37 +330,31 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                 if (gko::detail::is_distributed(system_matrix_in)) {
                     using value_type =
                         typename std::decay_t<decltype(*mg_level)>::value_type;
-                    if constexpr (std::is_same_v<remove_complex<value_type>,
-                                                 half>) {
-                        GKO_NOT_SUPPORTED(system_matrix_in);
-                    } else {
-                        using VectorType =
-                            experimental::distributed::Vector<value_type>;
-                        auto fine = mg_level->get_fine_op().get();
-                        auto coarse = mg_level->get_coarse_op().get();
-                        auto distributed_fine = dynamic_cast<
-                            const experimental::distributed::DistributedBase*>(
-                            fine);
-                        auto distributed_coarse = dynamic_cast<
-                            const experimental::distributed::DistributedBase*>(
-                            coarse);
-                        auto current_comm =
-                            distributed_fine->get_communicator();
-                        auto next_comm = distributed_coarse->get_communicator();
-                        auto current_local_nrows =
-                            ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
-                                return fine_mat->get_local_matrix()
-                                    ->get_size()[0];
-                            });
-                        auto next_local_nrows = ::gko::detail::run_matrix(
-                            coarse, [](auto* coarse_mat) {
-                                return coarse_mat->get_non_local_matrix()
-                                    ->get_size()[0];
-                            });
-                        this->allocate_memory<VectorType>(
-                            i, cycle, current_comm, next_comm, current_nrows,
-                            next_nrows, current_local_nrows, next_local_nrows);
-                    }
+                    using VectorType =
+                        experimental::distributed::Vector<value_type>;
+                    auto fine = mg_level->get_fine_op().get();
+                    auto coarse = mg_level->get_coarse_op().get();
+                    auto distributed_fine = dynamic_cast<
+                        const experimental::distributed::DistributedBase*>(
+                        fine);
+                    auto distributed_coarse = dynamic_cast<
+                        const experimental::distributed::DistributedBase*>(
+                        coarse);
+                    auto current_comm = distributed_fine->get_communicator();
+                    auto next_comm = distributed_coarse->get_communicator();
+                    auto current_local_nrows =
+                        ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
+                            return fine_mat->get_local_matrix()->get_size()[0];
+                        });
+                    auto next_local_nrows =
+                        ::gko::detail::run_matrix(coarse, [](auto* coarse_mat) {
+                            return coarse_mat->get_non_local_matrix()
+                                ->get_size()[0];
+                        });
+                    this->allocate_memory<VectorType>(
+                        i, cycle, current_comm, next_comm, current_nrows,
+                        next_nrows, current_local_nrows, next_local_nrows);
+
                 } else
 #endif
                 {
@@ -458,32 +446,6 @@ void MultigridState::allocate_memory(
     neg_one_list.emplace_back(
         initialize<dense_vec>({-one<value_type>()}, exec));
 }
-
-#if GINKGO_ENABLE_HALF
-template <>
-void MultigridState::allocate_memory<
-    gko::experimental::distributed::Vector<gko::half>>(
-    int level, multigrid::cycle cycle,
-    const experimental::mpi::communicator& current_comm,
-    const experimental::mpi::communicator& next_comm, size_type current_nrows,
-    size_type next_nrows, size_type current_local_nrows,
-    size_type next_local_nrows)
-{
-    GKO_NOT_SUPPORTED(nullptr);
-}
-
-template <>
-void MultigridState::allocate_memory<
-    gko::experimental::distributed::Vector<std::complex<gko::half>>>(
-    int level, multigrid::cycle cycle,
-    const experimental::mpi::communicator& current_comm,
-    const experimental::mpi::communicator& next_comm, size_type current_nrows,
-    size_type next_nrows, size_type current_local_nrows,
-    size_type next_local_nrows)
-{
-    GKO_NOT_SUPPORTED(nullptr);
-}
-#endif
 
 
 #endif
@@ -631,26 +593,6 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     if (use_mid && mid_smoother) {
         mid_smoother->apply(b, x);
     }
-}
-
-template <>
-void MultigridState::run_cycle<
-    gko::experimental::distributed::Vector<gko::half>>(
-    multigrid::cycle cycle, size_type level,
-    const std::shared_ptr<const LinOp>& matrix, const LinOp* b, LinOp* x,
-    cycle_mode mode)
-{
-    GKO_NOT_SUPPORTED(nullptr);
-}
-
-template <>
-void MultigridState::run_cycle<
-    gko::experimental::distributed::Vector<std::complex<gko::half>>>(
-    multigrid::cycle cycle, size_type level,
-    const std::shared_ptr<const LinOp>& matrix, const LinOp* b, LinOp* x,
-    cycle_mode mode)
-{
-    GKO_NOT_SUPPORTED(nullptr);
 }
 
 
@@ -825,48 +767,42 @@ void Multigrid::generate()
             // default coarse grid solver, direct LU
             // TODO: maybe remove fixed index type
             auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
-        // TODO: unify when dpcpp supports direct solver
 #if GINKGO_BUILD_MPI
                 if (gko::detail::is_distributed(matrix.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     using experimental::distributed::Matrix;
-                    if constexpr (std::is_same_v<absolute_value_type,
-                                                 gko::half>) {
-                        GKO_NOT_SUPPORTED(matrix);
-                    } else {
-                        return run<Matrix<value_type, int32, int32>,
-                                   Matrix<value_type, int32, int64>,
-                                   Matrix<value_type, int64,
-                                          int64>>(matrix, [exec](auto matrix) {
-                            using Mtx = typename decltype(matrix)::element_type;
-                            return solver::Gmres<value_type>::build()
-                                .with_criteria(
-                                    stop::Iteration::build().with_max_iters(
-                                        matrix->get_size()[0]),
-                                    stop::ResidualNorm<value_type>::build()
-                                        .with_reduction_factor(
-                                            std::numeric_limits<
-                                                absolute_value_type>::
-                                                epsilon() *
-                                            absolute_value_type{10}))
-                                .with_krylov_dim(std::min(
-                                    size_type(100), matrix->get_size()[0]))
-                                .with_preconditioner(
-                                    experimental::distributed::preconditioner::
-                                        Schwarz<value_type,
-                                                typename Mtx::local_index_type,
-                                                typename Mtx::
-                                                    global_index_type>::build()
+                    return run<Matrix<value_type, int32, int32>,
+                               Matrix<value_type, int32, int64>,
+                               Matrix<value_type, int64,
+                                      int64>>(matrix, [exec](auto matrix) {
+                        using Mtx = typename decltype(matrix)::element_type;
+                        return solver::Gmres<value_type>::build()
+                            .with_criteria(
+                                stop::Iteration::build().with_max_iters(
+                                    matrix->get_size()[0]),
+                                stop::ResidualNorm<value_type>::build()
+                                    .with_reduction_factor(
+                                        std::numeric_limits<
+                                            absolute_value_type>::epsilon() *
+                                        absolute_value_type{10}))
+                            .with_krylov_dim(
+                                std::min(size_type(100), matrix->get_size()[0]))
+                            .with_preconditioner(
+                                experimental::distributed::preconditioner::
+                                    Schwarz<value_type,
+                                            typename Mtx::local_index_type,
+                                            typename Mtx::global_index_type>::
+                                        build()
                                             .with_local_solver(
                                                 preconditioner::Jacobi<
                                                     value_type>::build()
                                                     .with_max_block_size(1u)))
-                                .on(exec)
-                                ->generate(matrix);
-                        });
-                    }
+                            .on(exec)
+                            ->generate(matrix);
+                    });
                 }
 #endif
+                // TODO: unify when dpcpp supports direct solver
                 if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     return solver::Gmres<value_type>::build()
