@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/config/stop_config.hpp"
+
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -27,6 +30,8 @@ namespace config {
 deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
+    std::set<std::string> allowed_keys{"time_limit"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = stop::Time::build();
     if (auto& obj = config.get("time_limit")) {
         params.with_time_limit(gko::config::get_value<long long int>(obj));
@@ -38,6 +43,8 @@ deferred_factory_parameter<stop::CriterionFactory> configure_time(
 deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
+    std::set<std::string> allowed_keys{"max_iters"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = stop::Iteration::build();
     if (auto& obj = config.get("max_iters")) {
         params.with_max_iters(gko::config::get_value<size_type>(obj));
@@ -68,6 +75,8 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
+        std::set<std::string> allowed_keys{"reduction_factor", "baseline"};
+        gko::config::check_allowed_keys(config, allowed_keys);
         auto params = stop::ResidualNorm<ValueType>::build();
         if (auto& obj = config.get("reduction_factor")) {
             params.with_reduction_factor(
@@ -100,6 +109,8 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
+        std::set<std::string> allowed_keys{"reduction_factor", "baseline"};
+        gko::config::check_allowed_keys(config, allowed_keys);
         auto params = stop::ImplicitResidualNorm<ValueType>::build();
         if (auto& obj = config.get("reduction_factor")) {
             params.with_reduction_factor(

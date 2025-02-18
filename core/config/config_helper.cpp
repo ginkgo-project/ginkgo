@@ -113,6 +113,18 @@ parse_minimal_criteria(const pnode& config, const registry& context,
 
     type_descriptor updated_td = update_type(config, td);
 
+    // Although it can still be caught in the following map, it gives consistent
+    // error exception when some keys are not allowed.
+    std::set<std::string> allowed_keys{"time",
+                                       "iteration",
+                                       "relative_residual_norm",
+                                       "initial_residual_norm",
+                                       "absolute_residual_norm",
+                                       "relative_implicit_residual_norm",
+                                       "initial_implicit_residual_norm",
+                                       "absolute_implicit_residual_norm"};
+    check_allowed_keys(config, allowed_keys);
+
     std::vector<deferred_factory_parameter<const stop::CriterionFactory>> res;
     for (const auto& it : config.get_map()) {
         if (it.first == "value_type") {
