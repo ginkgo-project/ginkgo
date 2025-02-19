@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/minres.hpp>
 
+#include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -59,6 +60,13 @@ std::unique_ptr<LinOp> Minres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
+bool Minres<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
 void Minres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (!this->get_system_matrix()) {
@@ -69,6 +77,17 @@ void Minres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
             this->apply_dense_impl(dense_b, dense_x);
         },
         b, x);
+}
+
+
+template <typename ValueType>
+typename Minres<ValueType>::parameters_type Minres<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = Minres::build();
+    common_solver_parse(params, config, context, td_for_child);
+    return params;
 }
 
 
@@ -280,6 +299,23 @@ void Minres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
         },
         alpha, b, beta, x);
 }
+
+
+template <typename ValueType>
+Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Minres>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Minres<ValueType>::Minres(const Factory* factory,
+                          std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Minres>(factory->get_executor(),
+                          gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Minres>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
 
 
 template <typename ValueType>

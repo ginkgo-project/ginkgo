@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,6 +20,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -340,6 +341,15 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
 };
 
 
+struct Minres : SolverConfigTest<gko::solver::Minres<float>,
+                                 gko::solver::Minres<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"solver::Minres"}}};
+    }
+};
+
+
 struct Direct
     : SolverConfigTest<gko::experimental::solver::Direct<float, int>,
                        gko::experimental::solver::Direct<double, int>> {
@@ -468,7 +478,8 @@ protected:
 
 using SolverTypes =
     ::testing::Types<::Cg, ::Fcg, ::Cgs, ::Bicg, ::Bicgstab, ::Ir, ::Idr, ::Gcr,
-                     ::Gmres, ::CbGmres, ::Direct, ::LowerTrs, ::UpperTrs>;
+                     ::Gmres, ::CbGmres, ::Minres, ::Direct, ::LowerTrs,
+                     ::UpperTrs>;
 
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
