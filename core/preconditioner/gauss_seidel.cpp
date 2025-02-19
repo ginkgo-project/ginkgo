@@ -1,8 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
+#include "ginkgo/core/preconditioner/gauss_seidel.hpp"
+
+#include <set>
+#include <string>
+
 #include <ginkgo/core/preconditioner/sor.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -18,6 +22,10 @@ GaussSeidel<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"skip_sorting", "symmetric", "l_solver",
+                                       "u_solver"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = GaussSeidel::build();
 
     if (auto& obj = config.get("skip_sorting")) {

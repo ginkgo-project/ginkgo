@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/preconditioner/ic.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -23,6 +26,12 @@ typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    // additional l_solver_type because we allow user select one of
+    // instantiation.
+    std::set<std::string> allowed_keys{"l_solver", "factorization",
+                                       "l_solver_type"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = Ic::build();
     using l_solver_type = typename Ic::l_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,

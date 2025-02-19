@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/preconditioner/ilu.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -24,6 +27,12 @@ typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    // additional l_solver_type and reverse_apply because we allow user select
+    // one of instantiation.
+    std::set<std::string> allowed_keys{"l_solver", "u_solver", "factorization",
+                                       "l_solver_type", "reverse_apply"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = Ilu::build();
     using l_solver_type = typename Ilu::l_solver_type;
     using u_solver_type = typename Ilu::u_solver_type;
