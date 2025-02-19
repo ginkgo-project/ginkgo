@@ -187,7 +187,7 @@
               typename GlobalIndexType>                         \
     _macro(ValueType, LocalIndexType, GlobalIndexType)          \
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                      \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(_macro)
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)
 
 #define GKO_STUB_TEMPLATE_TYPE_BASE(_macro)              \
     template <typename IndexType>                        \

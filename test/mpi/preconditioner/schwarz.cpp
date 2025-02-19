@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -143,8 +143,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(SchwarzPreconditioner,
-                 gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(SchwarzPreconditioner, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)

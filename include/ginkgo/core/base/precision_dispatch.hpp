@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -340,7 +340,8 @@ gko::detail::temporary_conversion<Vector<ValueType>> make_temporary_conversion(
 {
     auto result =
         gko::detail::temporary_conversion<Vector<ValueType>>::template create<
-            Vector<next_precision_base<ValueType>>>(matrix);
+            Vector<next_precision<ValueType>>,
+            Vector<next_precision<next_precision<ValueType>>>>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -356,7 +357,9 @@ gko::detail::temporary_conversion<const Vector<ValueType>>
 make_temporary_conversion(const LinOp* matrix)
 {
     auto result = gko::detail::temporary_conversion<const Vector<ValueType>>::
-        template create<Vector<next_precision_base<ValueType>>>(matrix);
+        template create<Vector<next_precision<ValueType>>,
+                        Vector<next_precision<next_precision<ValueType>>>>(
+            matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -381,11 +384,7 @@ make_temporary_conversion(const LinOp* matrix)
 template <typename ValueType, typename Function, typename... Args>
 void precision_dispatch(Function fn, Args*... linops)
 {
-    if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-        GKO_NOT_SUPPORTED(nullptr);
-    } else {
-        fn(distributed::make_temporary_conversion<ValueType>(linops).get()...);
-    }
+    fn(distributed::make_temporary_conversion<ValueType>(linops).get()...);
 }
 
 
@@ -401,29 +400,23 @@ void precision_dispatch(Function fn, Args*... linops)
 template <typename ValueType, typename Function>
 void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
 {
-    if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-        GKO_NOT_SUPPORTED(nullptr);
+    auto complex_to_real = !(
+        is_complex<ValueType>() ||
+        dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        using Vector = experimental::distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
     } else {
-        auto complex_to_real = !(
-            is_complex<ValueType>() ||
-            dynamic_cast<
-                const ConvertibleTo<experimental::distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    out);
-            using Vector = experimental::distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            distributed::precision_dispatch<ValueType>(fn, in, out);
-        }
+        distributed::precision_dispatch<ValueType>(fn, in, out);
     }
 }
 
@@ -435,33 +428,27 @@ template <typename ValueType, typename Function>
 void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
                                      const LinOp* in, LinOp* out)
 {
-    if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-        GKO_NOT_SUPPORTED(nullptr);
+    auto complex_to_real = !(
+        is_complex<ValueType>() ||
+        dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+        using Vector = experimental::distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dense_alpha.get(),
+           dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
     } else {
-        auto complex_to_real = !(
-            is_complex<ValueType>() ||
-            dynamic_cast<
-                const ConvertibleTo<experimental::distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    out);
-            auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
-            using Vector = experimental::distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dense_alpha.get(),
-               dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
-               distributed::make_temporary_conversion<ValueType>(in).get(),
-               distributed::make_temporary_conversion<ValueType>(out).get());
-        }
+        fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
+           distributed::make_temporary_conversion<ValueType>(in).get(),
+           distributed::make_temporary_conversion<ValueType>(out).get());
     }
 }
 
@@ -474,36 +461,30 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
                                      const LinOp* in, const LinOp* beta,
                                      LinOp* out)
 {
-    if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-        GKO_NOT_SUPPORTED(nullptr);
+    auto complex_to_real = !(
+        is_complex<ValueType>() ||
+        dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+        auto dense_beta = gko::make_temporary_conversion<ValueType>(beta);
+        using Vector = experimental::distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dense_alpha.get(),
+           dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dense_beta.get(),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
     } else {
-        auto complex_to_real = !(
-            is_complex<ValueType>() ||
-            dynamic_cast<
-                const ConvertibleTo<experimental::distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                distributed::make_temporary_conversion<to_complex<ValueType>>(
-                    out);
-            auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
-            auto dense_beta = gko::make_temporary_conversion<ValueType>(beta);
-            using Vector = experimental::distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dense_alpha.get(),
-               dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dense_beta.get(),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
-               distributed::make_temporary_conversion<ValueType>(in).get(),
-               gko::make_temporary_conversion<ValueType>(beta).get(),
-               distributed::make_temporary_conversion<ValueType>(out).get());
-        }
+        fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
+           distributed::make_temporary_conversion<ValueType>(in).get(),
+           gko::make_temporary_conversion<ValueType>(beta).get(),
+           distributed::make_temporary_conversion<ValueType>(out).get());
     }
 }
 

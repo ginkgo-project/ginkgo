@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
@@ -367,12 +367,10 @@ public:
 
         alpha = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            std::normal_distribution<>(), this->engine, this->exec);
         beta = gko::test::generate_random_matrix<dense_vec_type>(
             1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            this->engine, this->exec);
+            std::normal_distribution<>(), this->engine, this->exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -412,14 +410,12 @@ public:
             num_rows, num_cols,
             std::uniform_int_distribution<int>(static_cast<int>(num_cols),
                                                static_cast<int>(num_cols)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
         auto mat_md = gko::test::generate_random_matrix_data<value_type,
                                                              global_index_type>(
             num_rows, num_rows,
             std::uniform_int_distribution<int>(0, static_cast<int>(num_rows)),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
 
         auto row_mapping = gko::test::generate_random_array<
             gko::experimental::distributed::comm_index_type>(
@@ -467,7 +463,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueTypesBase, TypenameNameGenerator);
+TYPED_TEST_SUITE(Matrix, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, CanApplyToSingleVector)
@@ -733,7 +729,7 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT = typename gko::next_precision_base<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
@@ -759,7 +755,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using OtherT = typename gko::next_precision_base<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherDist = typename gko::experimental::distributed::Matrix<
         OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);

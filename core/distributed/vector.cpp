@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/mpi/mpi_op.hpp"
 
 
 namespace gko {
@@ -279,7 +280,7 @@ void Vector<ValueType>::fill(const ValueType value)
 
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
-    Vector<next_precision_base<ValueType>>* result) const
+    Vector<next_precision<ValueType>>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -289,11 +290,31 @@ void Vector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Vector<ValueType>::move_to(Vector<next_precision_base<ValueType>>* result)
+void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
 
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType>
+void Vector<ValueType>::convert_to(
+    Vector<next_precision<next_precision<ValueType>>>* result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->set_size(this->get_size());
+    this->get_local_vector()->convert_to(&result->local_);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::move_to(
+    Vector<next_precision<next_precision<ValueType>>>* result)
+{
+    this->convert_to(result);
+}
+#endif
 
 template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::absolute_type>
@@ -442,16 +463,17 @@ void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
     this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
                                           dense_res.get(), tmp);
     exec->synchronize();
+    auto sum_op = gko::experimental::mpi::sum<ValueType>();
     if (mpi::requires_host_buffer(exec, comm)) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
     }
 }
 
@@ -478,16 +500,17 @@ void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
     this->get_local_vector()->compute_conj_dot(
         as<Vector>(b)->get_local_vector(), dense_res.get(), tmp);
     exec->synchronize();
+    auto sum_op = gko::experimental::mpi::sum<ValueType>();
     if (mpi::requires_host_buffer(exec, comm)) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]), sum_op.get_op());
     }
 }
 
@@ -532,15 +555,18 @@ void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
     this->get_local_vector()->compute_norm1(dense_res.get());
     exec->synchronize();
+    auto norm_sum_op = gko::experimental::mpi::sum<remove_complex<ValueType>>();
     if (mpi::requires_host_buffer(exec, comm)) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]),
+                        norm_sum_op.get_op());
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]),
+                        norm_sum_op.get_op());
     }
 }
 
@@ -565,15 +591,18 @@ void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
     exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
                                                  dense_res.get(), tmp));
     exec->synchronize();
+    auto norm_sum_op = gko::experimental::mpi::sum<remove_complex<ValueType>>();
     if (mpi::requires_host_buffer(exec, comm)) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]),
+                        norm_sum_op.get_op());
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(exec, dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+                        static_cast<int>(this->get_size()[1]),
+                        norm_sum_op.get_op());
     }
 }
 
@@ -607,15 +636,17 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
     dense_res->scale(weight.get());
 
     exec->synchronize();
+    auto sum_op = gko::experimental::mpi::sum<ValueType>();
     if (mpi::requires_host_buffer(exec, comm)) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(exec->get_master(),
                         host_reduction_buffer_->get_values(), num_vecs,
-                        MPI_SUM);
+                        sum_op.get_op());
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
-        comm.all_reduce(exec, dense_res->get_values(), num_vecs, MPI_SUM);
+        comm.all_reduce(exec, dense_res->get_values(), num_vecs,
+                        sum_op.get_op());
     }
 }
 
@@ -720,7 +751,7 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
 
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_DISTRIBUTED_VECTOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
 
 }  // namespace distributed

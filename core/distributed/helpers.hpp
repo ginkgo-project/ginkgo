@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -122,15 +122,11 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 {
 #if GINKGO_BUILD_MPI
     if (is_distributed(linop)) {
-        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-            GKO_NOT_SUPPORTED(linop);
-        } else {
-            using type = std::conditional_t<
-                std::is_const<T>::value,
-                const experimental::distributed::Vector<ValueType>,
-                experimental::distributed::Vector<ValueType>>;
-            f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
-        }
+        using type = std::conditional_t<
+            std::is_const<T>::value,
+            const experimental::distributed::Vector<ValueType>,
+            experimental::distributed::Vector<ValueType>>;
+        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
     } else
 #endif
     {
@@ -159,6 +155,13 @@ auto run_matrix(T* linop, F&& f, Args&&... args)
     return run<Matrix<double, int32, int32>, Matrix<double, int32, int64>,
                Matrix<double, int64, int64>, Matrix<float, int32, int32>,
                Matrix<float, int32, int64>, Matrix<float, int64, int64>,
+#if GINKGO_ENABLE_HALF
+               Matrix<half, int32, int32>, Matrix<half, int32, int64>,
+               Matrix<half, int64, int64>,
+               Matrix<std::complex<half>, int32, int32>,
+               Matrix<std::complex<half>, int32, int64>,
+               Matrix<std::complex<half>, int64, int64>,
+#endif
                Matrix<std::complex<double>, int32, int32>,
                Matrix<std::complex<double>, int32, int64>,
                Matrix<std::complex<double>, int64, int64>,

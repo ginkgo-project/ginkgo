@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -200,8 +200,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision_base<value_type>, local_index_type,
-           global_index_type>* result) const
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -219,8 +219,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision_base<value_type>, local_index_type,
-           global_index_type>* result)
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -236,6 +236,46 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     this->set_size({});
 }
 
+
+#if GINKGO_ENABLE_HALF
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
+    Matrix<next_precision<next_precision<value_type>>, local_index_type,
+           global_index_type>* result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->local_mtx_->copy_from(this->local_mtx_.get());
+    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
+    result->gather_idxs_ = this->gather_idxs_;
+    result->send_offsets_ = this->send_offsets_;
+    result->recv_offsets_ = this->recv_offsets_;
+    result->recv_sizes_ = this->recv_sizes_;
+    result->send_sizes_ = this->send_sizes_;
+    result->non_local_to_global_ = this->non_local_to_global_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
+    Matrix<next_precision<next_precision<value_type>>, local_index_type,
+           global_index_type>* result)
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->local_mtx_->move_from(this->local_mtx_.get());
+    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
+    result->gather_idxs_ = std::move(this->gather_idxs_);
+    result->send_offsets_ = std::move(this->send_offsets_);
+    result->recv_offsets_ = std::move(this->recv_offsets_);
+    result->recv_sizes_ = std::move(this->recv_sizes_);
+    result->send_sizes_ = std::move(this->send_sizes_);
+    result->non_local_to_global_ = std::move(this->non_local_to_global_);
+    result->set_size(this->get_size());
+    this->set_size({});
+}
+#endif
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
@@ -661,7 +701,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
     class Matrix<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_DISTRIBUTED_MATRIX);
 
 

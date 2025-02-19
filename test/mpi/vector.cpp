@@ -95,7 +95,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
@@ -361,7 +361,7 @@ public:
     std::unique_ptr<vec_type> dst;
 };
 
-TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypesBase,
+TYPED_TEST_SUITE(VectorCreationHelpers, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -462,8 +462,7 @@ public:
                                                            global_index_type>(
             size[0], size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
         dense_x->read(md_x);
         auto tmp_x = dist_vec_type::create(ref, comm);
         tmp_x->read_distributed(md_x, part);
@@ -473,8 +472,7 @@ public:
                                                            global_index_type>(
             size[0], size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(),
-            engine);
+            std::normal_distribution<>(), engine);
         dense_y->read(md_y);
         auto tmp_y = dist_vec_type::create(ref, comm);
         tmp_y->read_distributed(md_y, part);
@@ -513,7 +511,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypesBase,
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
@@ -762,8 +760,7 @@ public:
             local_size[0], local_size[1],
             std::uniform_int_distribution<gko::size_type>(local_size[1],
                                                           local_size[1]),
-            std::normal_distribution<gko::remove_complex<vtype>>(), engine,
-            exec);
+            std::normal_distribution<>(), engine, exec);
         dist = DistVectorType::create(exec, comm, size, gko::clone(local));
     }
 
@@ -775,8 +772,7 @@ public:
         alpha = gko::test::generate_random_matrix<dense_type>(
             1, size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<gko::remove_complex<value_type>>(), engine,
-            exec);
+            std::normal_distribution<>(), engine, exec);
     }
 
     void init_complex_vectors()
@@ -801,8 +797,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypesBase,
-                 TypenameNameGenerator);
+TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(VectorLocalOps, ApplyNotSupported)
@@ -840,7 +835,7 @@ TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_base<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -856,7 +851,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
     using T = typename TestFixture::value_type;
-    using OtherT = typename gko::next_precision_base<T>;
+    using OtherT = typename gko::next_precision<T>;
     using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
@@ -971,8 +966,7 @@ TYPED_TEST(VectorLocalOps, FillSameAsLocal)
 {
     using value_type = typename TestFixture::value_type;
     auto value = gko::test::detail::get_rand_value<value_type>(
-        std::normal_distribution<gko::remove_complex<value_type>>(),
-        this->engine);
+        std::normal_distribution<>(), this->engine);
     this->init_vectors();
 
     this->x->fill(value);
