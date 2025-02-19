@@ -49,6 +49,7 @@ enum class LinOpFactoryType : int {
     Gcr,
     Gmres,
     CbGmres,
+    Minres,
     Direct,
     LowerTrs,
     UpperTrs,

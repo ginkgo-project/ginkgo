@@ -13,6 +13,9 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -25,7 +28,7 @@ namespace solver {
 
 /**
  * Minres is an iterative type Krylov subspace method, which is suitable for
- * indefinite and full-rank symmetric/hermitian operators. It is an
+ * indefinite and full-rank symmetric/hermitian operators. It is a
  * specialization of the Gmres method for symmetric/hermitian operators, and can
  * be computed using short recurrences, similar to the CG method.
  *
@@ -68,10 +71,8 @@ public:
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
-     *
-     * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override;
 
     class Factory;
 
@@ -82,6 +83,24 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Minres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children configs.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children configs. The
+     *                      default uses the value type of this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<ValueType>());
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -91,18 +110,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Minres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Minres>(std::move(exec))
-    {}
+    explicit Minres(std::shared_ptr<const Executor> exec);
 
     explicit Minres(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Minres>(factory->get_executor(),
-                              gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Minres>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {}
+                    std::shared_ptr<const LinOp> system_matrix);
 };
 
 
