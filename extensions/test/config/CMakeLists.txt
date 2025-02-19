@@ -7,6 +7,10 @@ if(NOT yaml-cpp_FOUND)
         GIT_TAG 0.8.0
     )
 
+    # Turn off additional tool in yaml-cpp
+    # We change the standard of yaml-cpp. Without this, we will need to change the standard of tool targets additionally.
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE INTERNAL "")
+
     FetchContent_MakeAvailable(yaml-cpp)
     # make sure the tests DLLs are placed in the working path for CTest
     set_target_properties(
@@ -16,6 +20,10 @@ if(NOT yaml-cpp_FOUND)
             ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
             LIBRARY_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
     )
+
+    # The default standard c++11, which introduces an issue on dpcpp compiler.
+    # We set the default to c++17 as Ginkgo
+    set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 17)
 endif()
 ginkgo_create_test(json_config ADDITIONAL_LIBRARIES nlohmann_json::nlohmann_json)
 ginkgo_create_test(yaml_config ADDITIONAL_LIBRARIES yaml-cpp::yaml-cpp)
