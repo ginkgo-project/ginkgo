@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,8 @@
 
 #include <functional>
 #include <memory>
+#include <set>
+#include <string>
 #include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -98,6 +100,12 @@ Isai<IsaiType, ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    // isai_type is allowed to select the instantiation.
+    std::set<std::string> allowed_keys{
+        "skip_sorting",          "sparsity_power",          "excess_limit",
+        "excess_solver_factory", "excess_solver_reduction", "isai_type"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
 
     if (auto& obj = config.get("skip_sorting")) {
