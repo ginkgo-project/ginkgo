@@ -679,6 +679,7 @@ TEST_F(Csr, TransposeReuseIsEquivalentToRef)
 
 TEST_F(Csr, TransposeReuse64IsEquivalentToRef)
 {
+    SKIP_IF_SINGLE_MODE;
     using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
     set_up_apply_data<Mtx::classical>();
     auto mtx = gen_mtx<Mtx64>(123, 234, 0);
