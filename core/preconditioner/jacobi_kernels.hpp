@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -122,6 +122,17 @@ namespace kernels {
                                const array<precision_reduction>& source,    \
                                array<precision_reduction>& precisions)
 
+#define GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType) \
+    void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,   \
+                   const matrix::Csr<ValueType, IndexType>* csr,  \
+                   matrix::Diagonal<ValueType>* diag)
+
+#define GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL(ValueType, IndexType) \
+    void block_l1(std::shared_ptr<const DefaultExecutor> exec,   \
+                  size_type num_blocks,                          \
+                  const array<IndexType>& block_pointers,        \
+                  matrix::Csr<ValueType, IndexType>* csr)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
@@ -147,7 +158,11 @@ namespace kernels {
     GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType);     \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL
+    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL;                  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(jacobi, GKO_DECLARE_ALL_AS_TEMPLATES);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -113,6 +113,17 @@ TYPED_TEST(JacobiFactory, CanMoveBlockPrecisions)
     auto prec = bj_factory->get_parameters().storage_optimization.block_wise;
     EXPECT_EQ(prec.get_data()[0], gko::precision_reduction(0, 1));
     EXPECT_EQ(prec.get_data()[1], gko::precision_reduction(0, 0));
+}
+
+
+TYPED_TEST(JacobiFactory, CanSetL1)
+{
+    using Bj = typename TestFixture::Bj;
+    auto bj_factory =
+        Bj::build().with_max_block_size(3u).with_aggregate_l1(true).on(
+            this->exec);
+
+    EXPECT_TRUE(bj_factory->get_parameters().aggregate_l1);
 }
 
 

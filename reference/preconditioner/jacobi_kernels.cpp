@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -722,6 +722,65 @@ void convert_to_dense(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Csr<ValueType, IndexType>* csr,
+               matrix::Diagonal<ValueType>* diag)
+{
+    for (IndexType row = 0; row < csr->get_size()[0]; row++) {
+        auto off_diag = zero<ValueType>();
+        for (auto i = csr->get_const_row_ptrs()[row];
+             i < csr->get_const_row_ptrs()[row + 1]; i++) {
+            if (csr->get_const_col_idxs()[i] == row) {
+                continue;
+            }
+            off_diag += abs(csr->get_const_values()[i]);
+        }
+        // TODO: It is unclear effect when this applies to negative diagonal
+        // value. The reference paper only discusses the positive diagonal
+        // value.
+        diag->get_values()[row] += off_diag;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+              const array<IndexType>& block_ptrs,
+              matrix::Csr<ValueType, IndexType>* csr)
+{
+    for (IndexType block_id = 0; block_id < num_blocks; block_id++) {
+        auto start = block_ptrs.get_const_data()[block_id];
+        auto end = block_ptrs.get_const_data()[block_id + 1];
+        for (auto row = start; row < end; row++) {
+            auto off_diag = zero<ValueType>();
+            IndexType diag_idx = -1;
+            for (auto i = csr->get_const_row_ptrs()[row];
+                 i < csr->get_const_row_ptrs()[row + 1]; i++) {
+                auto col = csr->get_const_col_idxs()[i];
+                if (col >= start && col < end) {
+                    if (col == row) {
+                        diag_idx = i;
+                    }
+                    continue;
+                }
+                off_diag += abs(csr->get_const_values()[i]);
+            }
+            // TODO: It is unclear effect when this applies to negative diagonal
+            // value. The reference paper only discusses the positive diagonal
+            // value.
+            csr->get_values()[diag_idx] += off_diag;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL);
 
 
 }  // namespace jacobi
