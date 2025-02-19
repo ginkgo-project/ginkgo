@@ -21,6 +21,12 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN(IndexType)     \
+    void compute_children(std::shared_ptr<const DefaultExecutor> exec, \
+                          const IndexType* parents, IndexType size,    \
+                          IndexType* child_ptrs, IndexType* children)
+
+
 #define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType)     \
     void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec, \
                                const IndexType* row_ptrs,                   \
@@ -29,17 +35,86 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType) \
-    void from_factor(                                                    \
+    void from_factor(std::shared_ptr<const DefaultExecutor> exec,        \
+                     const matrix::Csr<ValueType, IndexType>* factors,   \
+                     IndexType* parents)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType)     \
+    void compute_subtree_sizes(std::shared_ptr<const DefaultExecutor> exec, \
+                               const IndexType* child_ptrs,                 \
+                               const IndexType* children, IndexType size,   \
+                               IndexType* subtree_sizes)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES( \
+    IndexType)                                                           \
+    void compute_subtree_euler_path_sizes(                               \
         std::shared_ptr<const DefaultExecutor> exec,                     \
-        const matrix::Csr<ValueType, IndexType>* factors,                \
-        gko::factorization::elimination_forest<IndexType>& forest)
+        const IndexType* child_ptrs, const IndexType* children,          \
+        IndexType size, IndexType* subtree_euler_path_sizes)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType)
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType)     \
+    void compute_levels(std::shared_ptr<const DefaultExecutor> exec, \
+                        const IndexType* parents, IndexType size,    \
+                        IndexType* levels)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType)     \
+    void compute_postorder(std::shared_ptr<const DefaultExecutor> exec, \
+                           const IndexType* child_ptrs,                 \
+                           const IndexType* children, IndexType size,   \
+                           const IndexType* subtree_size,               \
+                           IndexType* postorder, IndexType* inv_postorder)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_MAP_POSTORDER(IndexType)                \
+    void map_postorder(                                                        \
+        std::shared_ptr<const DefaultExecutor> exec, const IndexType* parents, \
+        const IndexType* child_ptrs, const IndexType* children,                \
+        IndexType size, const IndexType* inv_postorder,                        \
+        IndexType* postorder_parents, IndexType* postorder_child_ptrs,         \
+        IndexType* postorder_children)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType)        \
+    void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,    \
+                            const IndexType* child_ptrs,                    \
+                            const IndexType* children, IndexType size,      \
+                            const IndexType* subtree_euler_tree_size,       \
+                            const IndexType* levels, IndexType* euler_path, \
+                            IndexType* first_visit, IndexType* euler_levels)
+
+
+#define GKO_DECLARE_ELIMINATION_FOREST_POINTER_DOUBLE(IndexType)     \
+    void pointer_double(std::shared_ptr<const DefaultExecutor> exec, \
+                        const IndexType* input, IndexType size,      \
+                        IndexType* output)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN(IndexType);       \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType);  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType); \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES(IndexType);  \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES(  \
+        IndexType);                                                   \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS(IndexType);         \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER(IndexType);      \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_MAP_POSTORDER(IndexType);          \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH(IndexType);     \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_ELIMINATION_FOREST_POINTER_DOUBLE(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(elimination_forest,

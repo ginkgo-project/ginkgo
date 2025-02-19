@@ -15,7 +15,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
-#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -28,7 +27,6 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(from_factor, elimination_forest::from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
@@ -84,8 +82,9 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     const auto mtx = copy_and_convert_to<matrix_type>(exec, system_matrix);
     const auto num_rows = mtx->get_size()[0];
     std::unique_ptr<matrix_type> factors;
-    std::unique_ptr<gko::factorization::elimination_forest<IndexType>> forest;
     if (!parameters_.symbolic_factorization) {
+        std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
+            forest;
         gko::factorization::symbolic_cholesky(mtx.get(), true, factors, forest);
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;
@@ -100,10 +99,6 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
                         factors->get_row_ptrs());
         // update srow to be safe
         factors->set_strategy(factors->get_strategy());
-        forest =
-            std::make_unique<gko::factorization::elimination_forest<IndexType>>(
-                exec, num_rows);
-        exec->run(make_from_factor(factors.get(), *forest));
     }
     // setup lookup structure on factors
     const auto lookup = matrix::csr::build_lookup(factors.get());
@@ -122,7 +117,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
     exec->run(make_factorize(
         lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        diag_idxs.get_const_data(), transpose_idxs.get_const_data(), *forest,
+        diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
         factors.get(), true, tmp));
     return factorization_type::create_from_combined_cholesky(
         std::move(factors));

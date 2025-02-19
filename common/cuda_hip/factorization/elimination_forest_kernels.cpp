@@ -23,6 +23,7 @@
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "core/base/index_range.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
@@ -192,6 +193,212 @@ __global__ __launch_bounds__(default_block_size) void mst_reset_min_edges(
 }
 
 
+template <int node_count, int edge_count, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_subtree_sizes(
+    const IndexType* __restrict__ child_ptrs,
+    const IndexType* __restrict__ children, IndexType size,
+    IndexType* __restrict__ subtree_sizes)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto i = thread::get_thread_id_flat<IndexType>();
+    if (i >= size) {
+        return;
+    }
+    const auto child_begin = child_ptrs[i];
+    const auto child_end = child_ptrs[i + 1];
+    IndexType local_size{node_count};
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    for (const auto child_idx : irange{child_begin, child_end}) {
+        const auto child = children[child_idx];
+        auto child_size = load_relaxed_local(subtree_sizes + child);
+        while (child_size == invalid_index<IndexType>()) {
+            child_size = load_relaxed(subtree_sizes + child);
+        }
+        local_size += child_size + edge_count;
+    }
+    store_relaxed(subtree_sizes + i, local_size);
+#else
+    if (child_begin == child_end) {
+        store_relaxed(subtree_sizes + i, local_size);
+    }
+    auto child_idx = child_begin;
+    auto child = child_idx < child_end ? children[child_idx] : IndexType{};
+    while (child_idx < child_end) {
+        const auto child_size = load_relaxed(subtree_sizes + child);
+        if (child_size != invalid_index<IndexType>()) {
+            local_size += child_size + edge_count;
+            child_idx++;
+            child = child_idx < child_end ? children[child_idx] : IndexType{};
+            if (child_idx == child_end) {
+                store_relaxed(subtree_sizes + i, local_size);
+            }
+        }
+    }
+#endif
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_postorder(
+    const IndexType* __restrict__ child_ptrs,
+    const IndexType* __restrict__ children,
+    const IndexType* __restrict__ subtree_sizes, IndexType size,
+    IndexType* __restrict__ postorder, IndexType* __restrict__ inv_postorder)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto rev_i = thread::get_thread_id_flat<IndexType>();
+    // we include the pseudo-root here
+    if (rev_i >= size + 1) {
+        return;
+    }
+    const auto i = size - rev_i;
+    const auto child_begin = child_ptrs[i];
+    const auto child_end = child_ptrs[i + 1];
+    const auto subtree_size = i == size ? size + 1 : subtree_sizes[i];
+    IndexType postorder_idx =
+        i == size ? size : load_relaxed_local(inv_postorder + i);
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    while (postorder_idx == invalid_index<IndexType>()) {
+        postorder_idx = load_relaxed(inv_postorder + i);
+    }
+    // don't output the pseudo-root
+    if (i < size) {
+        postorder[postorder_idx] = i;
+    }
+    // index of the leftmost descendant of i
+    auto postorder_base = postorder_idx - subtree_size + 1;
+    for (auto child_idx : irange{child_begin, child_end}) {
+        const auto child = children[child_idx];
+        const auto child_subtree_size = subtree_sizes[child];
+        const auto child_postorder_idx =
+            postorder_base + child_subtree_size - 1;
+        store_relaxed(inv_postorder + child, child_postorder_idx);
+        postorder_base += child_subtree_size;
+    }
+#else
+    auto child_idx = child_begin - 1;
+    auto postorder_base = invalid_index<IndexType>();
+    while (child_idx < child_end) {
+        if (postorder_idx != invalid_index<IndexType>()) {
+            if (child_idx == child_begin - 1) {
+                // don't output the pseudo-root
+                if (i < size) {
+                    postorder[postorder_idx] = i;
+                }
+                // index of the leftmost descendant of i
+                postorder_base = postorder_idx - subtree_size + 1;
+            } else {
+                const auto child = children[child_idx];
+                const auto child_subtree_size = subtree_sizes[child];
+                const auto child_postorder_idx =
+                    postorder_base + child_subtree_size - 1;
+                store_relaxed(inv_postorder + child, child_postorder_idx);
+                postorder_base += child_subtree_size;
+            }
+            child_idx++;
+        } else {
+            postorder_idx = load_relaxed(inv_postorder + i);
+        }
+    }
+#endif
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_euler_path(
+    const IndexType* __restrict__ child_ptrs,
+    const IndexType* __restrict__ children,
+    const IndexType* __restrict__ euler_path_sizes,
+    const IndexType* __restrict__ levels, IndexType size,
+    IndexType* __restrict__ euler_path, IndexType* __restrict__ euler_level,
+    IndexType* __restrict__ euler_first)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto rev_i = thread::get_thread_id_flat<IndexType>();
+    // we include the pseudo-root here
+    if (rev_i >= size + 1) {
+        return;
+    }
+    const auto i = size - rev_i;
+    const auto child_begin = child_ptrs[i];
+    const auto child_end = child_ptrs[i + 1];
+    const auto level = i == size ? IndexType{-1} : levels[i];
+    const auto euler_path_size = i == size ? 2 * size + 1 : euler_path_sizes[i];
+    IndexType euler_idx =
+        i == size ? IndexType{} : load_relaxed_local(euler_first + i);
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    while (euler_idx == invalid_index<IndexType>()) {
+        euler_idx = load_relaxed(euler_first + i);
+    }
+    euler_path[euler_idx] = i;
+    euler_level[euler_idx] = level;
+    for (auto child_idx : irange{child_begin, child_end}) {
+        euler_idx++;
+        const auto child = children[child_idx];
+        const auto child_subtree_size = euler_path_sizes[child];
+        store_relaxed(euler_first + child, euler_idx);
+        euler_idx += child_subtree_size + 1;
+        euler_path[euler_idx] = i;
+        euler_level[euler_idx] = level;
+    }
+#else
+    auto child_idx = child_begin - 1;
+    while (child_idx < child_end) {
+        if (euler_idx != invalid_index<IndexType>()) {
+            if (child_idx == child_begin - 1) {
+                euler_path[euler_idx] = i;
+                euler_level[euler_idx] = level;
+            } else {
+                euler_idx++;
+                const auto child = children[child_idx];
+                const auto child_subtree_size = euler_path_sizes[child];
+                store_relaxed(euler_first + child, euler_idx);
+                euler_idx += child_subtree_size + 1;
+                euler_path[euler_idx] = i;
+                euler_level[euler_idx] = level;
+            }
+            child_idx++;
+        } else {
+            euler_idx = load_relaxed(euler_first + i);
+        }
+    }
+#endif
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_levels(
+    const IndexType* __restrict__ parents, IndexType size,
+    IndexType* __restrict__ levels)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::lowest();
+    const auto rev_i = thread::get_thread_id_flat<IndexType>();
+    if (rev_i >= size) {
+        return;
+    }
+    // iterate through nodes in reverse order
+    const auto i = size - rev_i - 1;
+    auto current = i;
+    // how many steps up did we have to go?
+    IndexType delta{0};
+    auto level = sentinel;
+    while (level == sentinel) {
+        if (current == size) {
+            // the pseudo-root is at level -1
+            level = -1;
+        } else {
+            level = load_relaxed(levels + current);
+        }
+        if (level != sentinel) {
+            store_relaxed(levels + i, level + delta);
+            return;
+        }
+        current = parents[current];
+        delta++;
+    }
+}
+
+
 }  // namespace kernel
 
 
@@ -268,7 +475,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // initialize worklist1 with forward edges
     {
         const auto num_blocks = ceildiv(nnz, default_block_size);
-        kernel::mst_initialize_worklist<<<num_blocks, default_block_size>>>(
+        kernel::mst_initialize_worklist<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
             rows, cols, nnz, wl1_source, wl1_target, wl1_edge_id, wl1_counter);
     }
     auto wl1_size = get_wl1_size();
@@ -277,7 +485,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         // attach each node to its smallest adjacent non-cycle edge
         {
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_find_minimum<<<num_blocks, default_block_size>>>(
+            kernel::mst_find_minimum<<<num_blocks, default_block_size, 0,
+                                       exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, wl2_source, wl2_target, wl2_edge_id, wl2_counter);
         }
@@ -287,10 +496,12 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         if (wl1_size > 0) {
             // join minimal edges
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_join_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_join_edges<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, rows, cols, out_rows, out_cols, output_counter);
-            kernel::mst_reset_min_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_reset_min_edges<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_size, min_edges);
         }
     }
@@ -308,61 +519,154 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void build_children_from_parents(
-    std::shared_ptr<const DefaultExecutor> exec,
-    gko::factorization::elimination_forest<IndexType>& forest)
+void compute_children(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* parents, IndexType size,
+                      IndexType* child_ptrs, IndexType* children)
 {
-    const auto num_rows = forest.parents.get_size();
+    const auto usize = static_cast<size_type>(size);
     // build COO representation of the tree
-    array<IndexType> col_idx_array{exec, num_rows};
+    array<IndexType> col_idx_array{exec, usize};
     const auto col_idxs = col_idx_array.get_data();
-    const auto parents = forest.parents.get_const_data();
-    const auto children = forest.children.get_data();
-    const auto child_ptrs = forest.child_ptrs.get_data();
-    exec->copy(num_rows, parents, col_idxs);
-    thrust::sequence(thrust_policy(exec), children, children + num_rows,
-                     IndexType{});
+    exec->copy(usize, parents, col_idxs);
+    components::fill_seq_array(exec, children, usize);
     // group by parent
-    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
-                               col_idxs + num_rows, children);
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs, col_idxs + size,
+                               children);
     // create child pointers for groups of children
-    components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
-                                     num_rows + 1,  // rows plus sentinel
+    components::convert_idxs_to_ptrs(exec, col_idxs, usize,
+                                     usize + 1,  // rows plus sentinel
                                      child_ptrs);
 }
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN);
 
 
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* factors,
-                 gko::factorization::elimination_forest<IndexType>& forest)
+                 IndexType* parents)
 {
     const auto num_rows = factors->get_size()[0];
     const auto it = thrust::make_counting_iterator(IndexType{});
-    thrust::transform(
-        thrust_policy(exec), it, it + num_rows, forest.parents.get_data(),
-        [row_ptrs = factors->get_const_row_ptrs(),
-         col_idxs = factors->get_const_col_idxs(),
-         num_rows] __device__(IndexType l_col) {
-            const auto llt_row_begin = row_ptrs[l_col];
-            const auto llt_row_end = row_ptrs[l_col + 1];
-            for (auto nz = llt_row_begin; nz < llt_row_end; nz++) {
-                const auto l_row = col_idxs[nz];
-                // parent[j] = min(i | i > j and l_ij =/= 0)
-                // we read from L^T stored above the diagonal in factors
-                // assuming a sorted order of the columns
-                if (l_row > l_col) {
-                    return l_row;
-                }
-            }
-            // sentinel pseudo-root
-            return static_cast<IndexType>(num_rows);
-        });
-    build_children_from_parents(exec, forest);
+    thrust::transform(thrust_policy(exec), it, it + num_rows, parents,
+                      [row_ptrs = factors->get_const_row_ptrs(),
+                       col_idxs = factors->get_const_col_idxs(),
+                       num_rows] __device__(IndexType l_col) {
+                          const auto llt_row_begin = row_ptrs[l_col];
+                          const auto llt_row_end = row_ptrs[l_col + 1];
+                          for (auto nz = llt_row_begin; nz < llt_row_end;
+                               nz++) {
+                              const auto l_row = col_idxs[nz];
+                              // parent[j] = min(i | i > j and l_ij =/= 0)
+                              // we read from L^T stored above the diagonal in
+                              // factors assuming a sorted order of the columns
+                              if (l_row > l_col) {
+                                  return l_row;
+                              }
+                          }
+                          // sentinel pseudo-root
+                          return static_cast<IndexType>(num_rows);
+                      });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR);
+
+
+template <typename IndexType>
+void compute_subtree_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                           const IndexType* child_ptrs,
+                           const IndexType* children, IndexType size,
+                           IndexType* subtree_sizes)
+{
+    components::fill_array(exec, subtree_sizes, size,
+                           invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_subtree_sizes<1, 0>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                child_ptrs, children, size, subtree_sizes);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_SIZES);
+
+
+template <typename IndexType>
+void compute_subtree_euler_path_sizes(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* child_ptrs,
+    const IndexType* children, IndexType size,
+    IndexType* subtree_euler_path_sizes)
+{
+    components::fill_array(exec, subtree_euler_path_sizes, size,
+                           invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_subtree_sizes<0, 2>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                child_ptrs, children, size, subtree_euler_path_sizes);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SUBTREE_EULER_PATH_SIZES);
+
+
+template <typename IndexType>
+void compute_postorder(std::shared_ptr<const DefaultExecutor> exec,
+                       const IndexType* child_ptrs, const IndexType* children,
+                       IndexType size, const IndexType* subtree_size,
+                       IndexType* postorder, IndexType* inv_postorder)
+{
+    components::fill_array(exec, inv_postorder, size,
+                           invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size + 1, default_block_size);
+    kernel::compute_postorder<<<num_blocks, default_block_size, 0,
+                                exec->get_stream()>>>(
+        child_ptrs, children, subtree_size, size, postorder, inv_postorder);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_POSTORDER);
+
+
+template <typename IndexType>
+void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,
+                        const IndexType* child_ptrs, const IndexType* children,
+                        IndexType size,
+                        const IndexType* subtree_euler_tree_size,
+                        const IndexType* levels, IndexType* euler_path,
+                        IndexType* first_visit, IndexType* euler_levels)
+{
+    components::fill_array(exec, first_visit, size, invalid_index<IndexType>());
+    const auto num_blocks = ceildiv(size + 1, default_block_size);
+    kernel::compute_euler_path<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
+        child_ptrs, children, subtree_euler_tree_size, levels, size, euler_path,
+        euler_levels, first_visit);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_EULER_PATH);
+
+
+template <typename IndexType>
+void compute_levels(std::shared_ptr<const DefaultExecutor> exec,
+                    const IndexType* parents, IndexType size, IndexType* levels)
+{
+    components::fill_array(exec, levels, size,
+                           std::numeric_limits<IndexType>::lowest());
+    const auto num_blocks = ceildiv(size, default_block_size);
+    if (num_blocks > 0) {
+        kernel::compute_levels<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(parents, size, levels);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_LEVELS);
 
 
 }  // namespace elimination_forest
