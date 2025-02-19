@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -191,6 +192,16 @@ public:
     local_index_type get_part_size(comm_index_type part) const;
 
     /**
+     * Returns the range IDs segmented by their part ID.
+     *
+     * @return  range IDs segmented by part IDs
+     */
+    const segmented_array<size_type>& get_ranges_by_part() const
+    {
+        return ranges_by_part_;
+    }
+
+    /**
      * Checks if each part has no more than one contiguous range.
      *
      * @return  true if each part has no more than one contiguous range.
@@ -274,6 +285,7 @@ private:
     array<local_index_type> starting_indices_;
     array<local_index_type> part_sizes_;
     array<comm_index_type> part_ids_;
+    segmented_array<size_type> ranges_by_part_;
 };
 
 
