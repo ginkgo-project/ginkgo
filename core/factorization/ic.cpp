@@ -103,7 +103,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
 
     std::shared_ptr<const matrix_type> ic;
     // Compute LC factorization
-    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
+    if (parameters_.algorithm == incomplete_algorithm::syncfree ||
+        exec == exec->get_master()) {
         std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
             forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
@@ -143,11 +144,6 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
             *forest, factors.get(), false, tmp));
         ic = factors;
-    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
-               !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
-        GKO_INVALID_STATE(
-            "OmpExecutor does not support sparselib algorithm. Please use "
-            "syncfree algorithm.");
     } else {
         exec->run(
             ic_factorization::make_sparselib_ic(local_system_matrix.get()));
