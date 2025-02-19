@@ -6,7 +6,16 @@ if(NOT yaml-cpp_FOUND)
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
         GIT_TAG 0.8.0
     )
+
     FetchContent_MakeAvailable(yaml-cpp)
+    # make sure the tests DLLs are placed in the working path for CTest
+    set_target_properties(
+        yaml-cpp
+        PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
+            ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
+            LIBRARY_OUTPUT_DIRECTORY "${GINKGO_LIBRARY_PATH}"
+    )
 endif()
 ginkgo_create_test(json_config ADDITIONAL_LIBRARIES nlohmann_json::nlohmann_json)
 ginkgo_create_test(yaml_config ADDITIONAL_LIBRARIES yaml-cpp::yaml-cpp)
