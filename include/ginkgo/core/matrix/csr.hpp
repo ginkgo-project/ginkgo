@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,6 +47,9 @@ class Fbcsr;
 
 template <typename ValueType, typename IndexType>
 class CsrBuilder;
+
+template <typename IndexType>
+class Permutation;
 
 
 namespace detail {
@@ -755,6 +758,45 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
+     * A struct describing a transformation of the matrix that reorders the
+     * values of the matrix into the transformed matrix.
+     */
+    struct permuting_reuse_info {
+        /** Creates an empty reuse info. */
+        explicit permuting_reuse_info();
+
+        /** Creates a reuse info structure from its value permutation. */
+        permuting_reuse_info(
+            std::unique_ptr<Permutation<index_type>> value_permutation);
+
+        /**
+         * Propagates the values from an input matrix to the transformed matrix.
+         * The output matrix needs to have been computed using the
+         * transformation that was also used to generate this reuse data.
+         * Internally, this permutes the input value vector into the output
+         * value vector.
+         */
+        void update_values(ptr_param<const Csr> input,
+                           ptr_param<Csr> output) const;
+
+        std::unique_ptr<Permutation<IndexType>> value_permutation;
+    };
+
+    /**
+     * Computes the necessary data to update a transposed matrix from its
+     * original matrix.
+     * ```
+     * auto [transposed, reuse] = matrix->transpose_reuse();
+     * change_values(matrix);
+     * reuse->update_values(matrix, transposed);
+     * ```
+     * @return the reuse info struct that can be used to update values in the
+     *         transposed matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> transpose_reuse()
+        const;
+
+    /**
      * Creates a permuted copy $A'$ of this matrix $A$ with the given
      * permutation $P$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
@@ -786,6 +828,53 @@ public:
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
+        ptr_param<const Permutation<index_type>> row_permutation,
+        ptr_param<const Permutation<index_type>> column_permutation,
+        bool invert = false) const;
+
+    /**
+     * Computes the operations necessary to propagate changed values from a
+     * matrix A to a permuted matrix.
+     * The semantics of this function match those of
+     * permute(ptr_param<const Permutation<index_type>>, permute_mode).
+     * Updating values works as follows:
+     * ```
+     * auto [permuted, reuse] = matrix->permute_reuse(permutation, mode);
+     * change_values(matrix);
+     * reuse->update_values(matrix, permuted);
+     * ```
+     * @param permutation  The input permutation.
+     * @param mode  The permutation mode. If permute_mode::inverse is set, we
+     *              use the inverse permutation $P^{-1}$ instead of $P$.
+     *              If permute_mode::rows is set, the rows will be permuted.
+     *              If permute_mode::columns is set, the columns will be
+     *              permuted.
+     * @return an std::pair consisting of the permuted matrix and the reuse info
+     *         that can be used to update values in the permuted matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> permute_reuse(
+        ptr_param<const Permutation<index_type>> permutation,
+        permute_mode mode = permute_mode::symmetric) const;
+
+    /**
+     * Computes the operations necessary to propagate changed values from a
+     * matrix A to a permuted matrix.
+     * The semantics of this function match those of
+     * permute(ptr_param<const Permutation<index_type>>, ptr_param<const
+     * Permutation<index_type>>, bool). Updating values works as follows:
+     * ```
+     * auto [permuted, reuse] = matrix->permute_reuse(row_perm, col_perm, inv);
+     * change_values(matrix);
+     * reuse->update_values(matrix, permuted);
+     * ```
+     * @param row_permutation  The permutation $P$ to apply to the rows
+     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param invert  If set to `false`, uses the input permutations, otherwise
+     *                uses their inverses $P^{-1}, Q^{-1}$
+     * @return an std::pair consisting of the permuted matrix and the reuse info
+     *         that can be used to update values in the permuted matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> permute_reuse(
         ptr_param<const Permutation<index_type>> row_permutation,
         ptr_param<const Permutation<index_type>> column_permutation,
         bool invert = false) const;
@@ -877,6 +966,18 @@ public:
     {
         return values_.get_const_data();
     }
+
+    /**
+     * Creates a Dense view of the value array of this matrix as a column
+     * vector of dimensions nnz x 1.
+     */
+    std::unique_ptr<Dense<ValueType>> create_value_view();
+
+    /**
+     * Creates a const Dense view of the value array of this matrix as a column
+     * vector of dimensions nnz x 1.
+     */
+    std::unique_ptr<const Dense<ValueType>> create_const_value_view() const;
 
     /**
      * Returns the column indexes of the matrix.
