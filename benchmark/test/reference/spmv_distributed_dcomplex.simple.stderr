@@ -4,5 +4,5 @@ The random seed for right hand sides is 42
 The formats are [csr]x[csr]
 The number of right hand sides is 1
 Running test case stencil(100, 7pt, stencil)
-Matrix is of size (81, 81), 144
+Matrix is of size (125, 125), 285
 	Running spmv: csr-csr

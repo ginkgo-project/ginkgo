@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,7 +154,7 @@ struct MatrixStatistics : Benchmark<empty_state> {
     empty_state setup(std::shared_ptr<gko::Executor> exec,
                       json& test_case) const override
     {
-        auto data = Generator::generate_matrix_data(test_case);
+        auto [data, local_size] = Generator::generate_matrix_data(test_case);
         // no reordering here, as it doesn't change statistics
         std::clog << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
