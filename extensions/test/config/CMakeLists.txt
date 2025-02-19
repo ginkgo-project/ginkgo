@@ -1,6 +1,7 @@
 find_package(yaml-cpp 0.8.0 QUIET)
 if(NOT yaml-cpp_FOUND)
     message(STATUS "Fetching external yaml-cpp")
+    include(FetchContent)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
