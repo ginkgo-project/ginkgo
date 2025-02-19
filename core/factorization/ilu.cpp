@@ -99,7 +99,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
 
     std::shared_ptr<const matrix_type> ilu;
     // Compute LU factorization
-    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
+    if (parameters_.algorithm == incomplete_algorithm::syncfree ||
+        exec == exec->get_master()) {
         const auto nnz = local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
         auto factors = share(
@@ -126,11 +127,6 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
             diag_idxs.get_const_data(), factors.get(), false, tmp));
         ilu = factors;
-    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
-               !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
-        GKO_INVALID_STATE(
-            "OmpExecutor does not support sparselib algorithm. Please use "
-            "syncfree algorithm.");
     } else {
         exec->run(
             ilu_factorization::make_sparselib_ilu(local_system_matrix.get()));
