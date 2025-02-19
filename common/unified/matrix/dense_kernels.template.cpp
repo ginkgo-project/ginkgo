@@ -76,11 +76,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
-                if (is_zero(zero(alpha[col]))) {
-                    x(row, col) = zero(alpha[col]);
-                } else {
-                    x(row, col) *= alpha[col];
-                }
+                x(row, col) *= alpha[col];
             },
             x->get_size(), alpha->get_const_values(), x);
     } else {
