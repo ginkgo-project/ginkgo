@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/preconditioner/jacobi.hpp"
 
 #include <memory>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -57,6 +59,11 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{
+        "max_block_size", "max_block_stride",     "skip_sorting",
+        "block_pointers", "storage_optimization", "accuracy"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
 
     if (auto& obj = config.get("max_block_size")) {

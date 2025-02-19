@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/preconditioner/ilu.hpp"
+
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -29,6 +32,9 @@ typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"l_solver", "u_solver", "factorization"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = Ilu::build();
 
     if (auto& obj = config.get("l_solver")) {

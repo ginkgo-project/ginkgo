@@ -1,13 +1,17 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include "ginkgo/core/preconditioner/sor.hpp"
+
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/base/array_access.hpp"
@@ -39,6 +43,11 @@ Sor<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"skip_sorting", "symmetric",
+                                       "relaxation_factor", "l_solver",
+                                       "u_solver"};
+    gko::config::check_allowed_keys(config, allowed_keys);
+
     auto params = Sor::build();
 
     if (auto& obj = config.get("skip_sorting")) {
