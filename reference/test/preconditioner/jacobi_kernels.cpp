@@ -1204,8 +1204,8 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
     auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
     this->template init_array<index_type>(mtx->get_row_ptrs(),
                                           {0, 3, 5, 7, 10, 12});
-    this->template init_array<index_type>(
-        mtx->get_col_idxs(), {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    this->template init_array<index_type>(mtx->get_col_idxs(),
+                                          {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3});
     this->template init_array<value_type>(
         mtx->get_values(),
         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
@@ -1251,8 +1251,8 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
     auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
     this->template init_array<index_type>(mtx->get_row_ptrs(),
                                           {0, 3, 5, 7, 10, 12});
-    this->template init_array<index_type>(
-        mtx->get_col_idxs(), {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+    this->template init_array<index_type>(mtx->get_col_idxs(),
+                                          {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3});
     this->template init_array<value_type>(
         mtx->get_values(),
         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
