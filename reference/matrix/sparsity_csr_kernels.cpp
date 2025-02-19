@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -86,7 +86,9 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                     val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
             c->at(row, j) = static_cast<OutputValueType>(
-                vbeta * static_cast<arithmetic_type>(c->at(row, j)) +
+                (is_zero(vbeta)
+                     ? zero(vbeta)
+                     : vbeta * static_cast<arithmetic_type>(c->at(row, j))) +
                 valpha * temp_val);
         }
     }

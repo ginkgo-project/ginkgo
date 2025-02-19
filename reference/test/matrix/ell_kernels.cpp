@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -241,6 +241,21 @@ TYPED_TEST(Ell, AppliesLinearCombinationToDenseVector)
     this->mtx1->apply(alpha, x, beta, y);
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
+}
+
+
+TYPED_TEST(Ell, AppliesLinearCombinationToDenseVectorWithZeroBetaNaN)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({0.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({gko::nan<T>(), gko::nan<T>()}, this->exec);
+
+    this->mtx1->apply(alpha, x, beta, y);
+
+    GKO_ASSERT_MTX_NEAR(y, l({-13.0, -5.0}), 0.0);
 }
 
 
