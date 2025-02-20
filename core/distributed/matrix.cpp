@@ -494,7 +494,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                            row_gatherer_->get_collective_communicator()
                                ->get_recv_size()),
                        dense_b->get_size()[1]};
-            ;
             recv_buffer_.init(exec, recv_dim);
             host_recv_buffer_.init(exec->get_master(), recv_dim);
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
@@ -544,19 +543,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
         static_cast<size_type>(
             row_gatherer_->get_collective_communicator()->get_recv_size()),
         scaling_factors->get_size()[1]};
-    auto recv_exec =
-        mpi::requires_host_buffer(exec, comm) ? exec->get_master() : exec;
-    recv_buffer_.init(recv_exec, recv_dim);
+    recv_buffer_.init(exec, recv_dim);
+    host_recv_buffer_.init(exec->get_master(), recv_dim);
+    auto recv_ptr = mpi::requires_host_buffer(exec, comm)
+                        ? host_recv_buffer_.get()
+                        : recv_buffer_.get();
 
-    auto req =
-        row_gatherer_->apply_async(scaling_factors_ptr, recv_buffer_.get());
+    auto req = row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
     scale_diag->rapply(local_mtx_, local_mtx_);
     req.wait();
     if (n_non_local_cols > 0) {
+        if (recv_ptr != recv_buffer_.get()) {
+            recv_buffer_->copy_from(host_recv_buffer_.get());
+        }
         const auto non_local_scale_diag =
             gko::matrix::Diagonal<ValueType>::create_const(
                 exec, n_non_local_cols,
-                make_const_array_view(recv_exec, n_non_local_cols,
+                make_const_array_view(exec, n_non_local_cols,
                                       recv_buffer_->get_const_values()));
         non_local_scale_diag->rapply(non_local_mtx_, non_local_mtx_);
     }
