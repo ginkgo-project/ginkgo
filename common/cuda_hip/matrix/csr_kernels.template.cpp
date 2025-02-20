@@ -2534,8 +2534,7 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
         // If estimated buffer size is too large and CUDA > 12.0,  fall back to
         // ALG2
 #if CUDA_VERSION >= 12000
-        const char* error_code = "CUSPARSE_STATUS_INSUFFICIENT_RESOURCES";
-        if (strstr(cse.what(), error_code)) {
+        if (cse.get_error_code() == CUSPARSE_STATUS_INSUFFICIENT_RESOURCES) {
             spgemm_alg = CUSPARSE_SPGEMM_ALG2;
             // Memory estimate for Alg2/Alg3
             sparselib::spgemm_work_estimation(
@@ -2745,8 +2744,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         // If estimated buffer size is too large and CUDA > 12.0,  fall back to
         // ALG2
 #if CUDA_VERSION >= 12000
-        const char* error_code = "CUSPARSE_STATUS_INSUFFICIENT_RESOURCES";
-        if (strstr(cse.what(), error_code)) {
+        if (cse.get_error_code() == CUSPARSE_STATUS_INSUFFICIENT_RESOURCES) {
             spgemm_alg = CUSPARSE_SPGEMM_ALG2;
             // Memory estimate for Alg2/Alg3
             sparselib::spgemm_work_estimation(
