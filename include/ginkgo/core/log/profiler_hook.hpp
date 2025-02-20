@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/timer.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -58,6 +59,9 @@ class ProfilerHook : public Logger {
 public:
     using hook_function =
         std::function<void(const char*, profile_event_category)>;
+    using work_estimate_hook_function =
+        std::function<void(const char*, profile_event_category,
+                           std::optional<kernel_work_estimate>)>;
 
     void on_allocation_started(const gko::Executor* exec,
                                const gko::size_type&) const override;
@@ -257,6 +261,8 @@ public:
         std::chrono::nanoseconds exclusive{0};
         /** The total number of invocations of the range. */
         int64 count{};
+        /** Analytical estimate for how much work the operation did. */
+        std::optional<kernel_work_estimate> work_estimate{};
     };
 
     struct nested_summary_entry {
@@ -266,6 +272,8 @@ public:
         std::chrono::nanoseconds elapsed{0};
         /** The total number of invocations of the range. */
         int64 count{};
+        /** Analytical estimate for how much work the operation did. */
+        std::optional<kernel_work_estimate> work_estimate{};
         /** The nested ranges inside this range. */
         std::vector<nested_summary_entry> children{};
     };
@@ -313,9 +321,12 @@ public:
          *
          * @param output  the output stream to write the table to.
          * @param header  the header to write above the table.
+         * @param use_work_estimates  set to true to compute achieved
+         *                            bandwidth/FLOP estimates.
          */
         TableSummaryWriter(std::ostream& output = std::cerr,
-                           std::string header = "Runtime summary");
+                           std::string header = "Runtime summary",
+                           bool use_work_estimates = false);
 
         void write(const std::vector<summary_entry>& entries,
                    std::chrono::nanoseconds overhead) override;
@@ -324,6 +335,7 @@ public:
                           std::chrono::nanoseconds overhead) override;
 
     private:
+        bool use_work_estimates_;
         std::ostream* output_;
         std::string header_;
     };
@@ -380,8 +392,15 @@ public:
     static std::shared_ptr<ProfilerHook> create_custom(hook_function begin,
                                                        hook_function end);
 
+    /**
+     * Creates a logger annotating Ginkgo events with a custom set of functions
+     * for range begin and end with support for kernel work estimates.
+     */
+    static std::shared_ptr<ProfilerHook> create_custom(
+        hook_function begin, work_estimate_hook_function end);
+
 private:
-    ProfilerHook(hook_function begin, hook_function end);
+    ProfilerHook(hook_function begin, work_estimate_hook_function end);
 
     void maybe_synchronize(const Executor* exec) const;
 
@@ -390,7 +409,7 @@ private:
     std::unordered_map<const PolymorphicObject*, std::string> name_map_;
     bool synchronize_;
     hook_function begin_hook_;
-    hook_function end_hook_;
+    work_estimate_hook_function end_hook_;
 };
 
 

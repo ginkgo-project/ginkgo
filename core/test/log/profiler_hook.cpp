@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -17,16 +18,44 @@
 #include "core/test/utils.hpp"
 
 
+std::string to_string(gko::memory_bound_work_estimate work)
+{
+    return "MB(" + std::to_string(work.bytes_read) + "," +
+           std::to_string(work.bytes_written) + ")";
+}
+
+std::string to_string(gko::compute_bound_work_estimate work)
+{
+    return "MB(" + std::to_string(work.flops) + ")";
+}
+
+std::string to_string(gko::custom_work_estimate work)
+{
+    return work.operation_count_name + "(" + std::to_string(work.operations) +
+           ")";
+}
+
+
 std::pair<gko::log::ProfilerHook::hook_function,
-          gko::log::ProfilerHook::hook_function>
+          gko::log::ProfilerHook::work_estimate_hook_function>
 make_hooks(std::vector<std::string>& output)
 {
     return std::make_pair(
         [&output](const char* msg, gko::log::profile_event_category) {
             output.push_back(std::string{"begin:"} + msg);
         },
-        [&output](const char* msg, gko::log::profile_event_category) {
-            output.push_back(std::string{"end:"} + msg);
+        [&output](const char* msg, gko::log::profile_event_category,
+                  std::optional<gko::kernel_work_estimate> work) {
+            if (work.has_value()) {
+                output.push_back(
+                    std::string{"end:"} + msg + "(" +
+                    std::visit([](auto work) { return to_string(work); },
+                               *work) +
+                    ")");
+
+            } else {
+                output.push_back(std::string{"end:"} + msg);
+            }
         });
 }
 
@@ -43,15 +72,21 @@ public:
 
     void run(std::shared_ptr<const gko::CudaExecutor>) const override {}
 
+    std::optional<gko::kernel_work_estimate> get_work_estimate() const override
+    {
+        return gko::memory_bound_work_estimate{100, 1};
+    }
+
     const char* get_name() const noexcept override { return "op"; }
 };
 
 
 TEST(ProfilerHook, LogsAllocateCopyOperation)
 {
-    std::vector<std::string> expected{
-        "begin:allocate", "end:allocate", "begin:copy", "end:copy",
-        "begin:op",       "end:op",       "begin:free", "end:free"};
+    std::vector<std::string> expected{"begin:allocate", "end:allocate",
+                                      "begin:copy",     "end:copy(MB(4,4))",
+                                      "begin:op",       "end:op(MB(100,1))",
+                                      "begin:free",     "end:free"};
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
@@ -110,15 +145,15 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                       "end:move(obj_copy,obj)",
                                       "begin:apply(obj)",
                                       "begin:op",
-                                      "end:op",
+                                      "end:op(MB(100,1))",
                                       "end:apply(obj)",
                                       "begin:advanced_apply(obj)",
                                       "begin:op",
-                                      "end:op",
+                                      "end:op(MB(100,1))",
                                       "end:advanced_apply(obj)",
                                       "begin:generate(obj_factory)",
                                       "begin:op",
-                                      "end:op",
+                                      "end:op(MB(100,1))",
                                       "end:generate(obj_factory)",
                                       "begin:check(nullptr)",
                                       "end:check(nullptr)"};
@@ -241,6 +276,11 @@ void call_ranges_unique(std::shared_ptr<gko::log::ProfilerHook> logger)
         }
     }
     auto range6 = logger->user_range("bazzzz");
+    // an operation that requires accumulation of work estimates
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 35);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 35);
 }
 
 struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
@@ -256,11 +296,14 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
          *       bazz()
          *       bazzz()
          *     )
-         *     bazzzz()
+         *     bazzzz(
+         *       copy()
+         *       copy()
+         *     )
          *   )
          * )
          */
-        ASSERT_EQ(e.size(), 7);
+        ASSERT_EQ(e.size(), 8);
         ASSERT_EQ(e[0].name, "total");
         ASSERT_EQ(e[0].count, 1);
         ASSERT_EQ(e[1].name, "foo");
@@ -275,6 +318,8 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
         ASSERT_EQ(e[5].count, 1);
         ASSERT_EQ(e[6].name, "bazzzz");
         ASSERT_EQ(e[6].count, 1);
+        ASSERT_EQ(e[7].name, "copy");
+        ASSERT_EQ(e[7].count, 2);
         ASSERT_EQ(e[0].inclusive, e[0].exclusive + e[1].inclusive);
         ASSERT_EQ(e[1].inclusive, e[1].exclusive + e[2].inclusive +
                                       e[3].inclusive + e[6].inclusive);
@@ -283,7 +328,12 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
                   e[3].exclusive + e[4].inclusive + e[5].inclusive);
         ASSERT_EQ(e[4].inclusive, e[4].exclusive);
         ASSERT_EQ(e[5].inclusive, e[5].exclusive);
-        ASSERT_EQ(e[6].inclusive, e[6].exclusive);
+        ASSERT_EQ(e[6].inclusive, e[6].exclusive + e[7].inclusive);
+        ASSERT_EQ(e[7].inclusive, e[7].exclusive);
+        const auto work_estimate = std::get<gko::memory_bound_work_estimate>(
+            e[7].work_estimate.value());
+        ASSERT_EQ(work_estimate.bytes_read, 45);
+        ASSERT_EQ(work_estimate.bytes_written, 45);
     }
 };
 
@@ -318,6 +368,11 @@ void call_ranges(std::shared_ptr<gko::log::ProfilerHook> logger)
         }
     }
     auto range6 = logger->user_range("baz");
+    // an operation that requires accumulation of work estimates
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 10);
+    logger->on_copy_started(nullptr, nullptr, 0, 0, 35);
+    logger->on_copy_completed(nullptr, nullptr, 0, 0, 35);
 }
 
 
@@ -334,7 +389,10 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
          *       baz()
          *       bazz()
          *     )
-         *     baz()
+         *     baz(
+         *       copy()
+         *       copy()
+         *     )
          *   )
          * )
          */
@@ -353,12 +411,19 @@ struct TestNestedSummaryWriter : gko::log::ProfilerHook::NestedSummaryWriter {
         ASSERT_EQ(f.children[1].children.size(), 2);
         ASSERT_EQ(f.children[2].name, "baz");
         ASSERT_EQ(f.children[2].count, 1);
-        ASSERT_EQ(f.children[2].children.size(), 0);
+        ASSERT_EQ(f.children[2].children.size(), 1);
         auto& b = f.children[1];
         ASSERT_EQ(b.children[0].name, "baz");
         ASSERT_EQ(b.children[0].count, 1);
         ASSERT_EQ(b.children[1].name, "bazz");
         ASSERT_EQ(b.children[1].count, 1);
+        auto& bb = f.children[2];
+        ASSERT_EQ(bb.children[0].name, "copy");
+        ASSERT_EQ(bb.children[0].count, 2);
+        const auto work_estimate = std::get<gko::memory_bound_work_estimate>(
+            bb.children[0].work_estimate.value());
+        ASSERT_EQ(work_estimate.bytes_read, 45);
+        ASSERT_EQ(work_estimate.bytes_written, 45);
     }
 };
 
@@ -387,9 +452,7 @@ TEST(ProfilerHookTableSummaryWriter, SummaryWorks)
     entries.push_back({"medium", 1ms, 500us, 4});  // check division by count
     entries.push_back({"long", 120s, 60s, 1});
     entries.push_back({"eternal", 24h, 24h, 1});
-    // clang-format off
     const auto expected = R"(Test header
-Overhead estimate 1.0 ns
 |   name   | total  | total (self) | count |   avg    | avg (self) |
 |----------|-------:|-------------:|------:|---------:|-----------:|
 | eternal  | 1.0 d  |       1.0 d  |     1 |   1.0 d  |     1.0 d  |
@@ -398,8 +461,49 @@ Overhead estimate 1.0 ns
 | shortish | 1.2 us |       1.0 us |     1 |   1.2 us |     1.0 us |
 | short    | 1.0 ns |       0.0 ns |     1 |   1.0 ns |     0.0 ns |
 | empty    | 0.0 ns |       0.0 ns |     0 |   0.0 ns |     0.0 ns |
+Overhead estimate 1.0 ns
 )";
-    // clang-format on
+
+    writer.write(entries, 1ns);
+
+    ASSERT_EQ(ss.str(), expected);
+}
+
+
+TEST(ProfilerHookTableSummaryWriter, SummaryWorksWithWorkEstimate)
+{
+    using gko::log::ProfilerHook;
+    using mb_estimate = gko::memory_bound_work_estimate;
+    using cb_estimate = gko::compute_bound_work_estimate;
+    using cust_estimate = gko::custom_work_estimate;
+    using namespace std::chrono_literals;
+    std::stringstream ss;
+    ProfilerHook::TableSummaryWriter writer(ss, "Test header", true);
+    std::vector<ProfilerHook::summary_entry> entries;
+    entries.push_back({"total", 2s, 0ns, 1});
+    entries.push_back({"a", 1s, 1s, 1, mb_estimate{1, 0}});
+    entries.push_back({"b", 1ms, 1ms, 1, mb_estimate{1, 0}});
+    entries.push_back({"c", 1us, 1us, 1, mb_estimate{1, 0}});
+    entries.push_back({"d", 1ns, 1ns, 1, mb_estimate{1, 2}});
+    entries.push_back({"h", 1ns, 1ns, 1, mb_estimate{1000, 0}});
+    entries.push_back({"e", 1ns, 1ns, 1, mb_estimate{999'900, 0}});
+    entries.push_back({"f", 1ns, 1ns, 1, mb_estimate{999'990, 0}});
+    entries.push_back({"g", 1ns, 1ns, 1, cust_estimate{"NOPs", 1000'000}});
+    const auto expected = R"(Test header
+| name  | total  | total (self) | count |  avg   | avg (self) |  performance   |
+|-------|-------:|-------------:|------:|-------:|-----------:|---------------:|
+| total | 2.0 s  |       0.0 ns |     1 | 2.0 s  |     0.0 ns |                |
+| a     | 1.0 s  |       1.0 s  |     1 | 1.0 s  |     1.0 s  |       1.0  B/s |
+| b     | 1.0 ms |       1.0 ms |     1 | 1.0 ms |     1.0 ms |       1.0 kB/s |
+| c     | 1.0 us |       1.0 us |     1 | 1.0 us |     1.0 us |       1.0 MB/s |
+| d     | 1.0 ns |       1.0 ns |     1 | 1.0 ns |     1.0 ns |       3.0 GB/s |
+| h     | 1.0 ns |       1.0 ns |     1 | 1.0 ns |     1.0 ns |       1.0 TB/s |
+| e     | 1.0 ns |       1.0 ns |     1 | 1.0 ns |     1.0 ns |     999.9 TB/s |
+| f     | 1.0 ns |       1.0 ns |     1 | 1.0 ns |     1.0 ns |    1000.0 TB/s |
+| g     | 1.0 ns |       1.0 ns |     1 | 1.0 ns |     1.0 ns | 1000.0 TNOPs/s |
+Overhead estimate 1.0 ns
+Work estimates available for 50.1 % of runtime
+)";
 
     writer.write(entries, 1ns);
 
@@ -417,16 +521,16 @@ TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorks)
         "root",
         2us,
         1,
-        {ProfilerHook::nested_summary_entry{"foo", 100ns, 5, {}},
+        {},
+        {ProfilerHook::nested_summary_entry{"foo", 100ns, 5},
          ProfilerHook::nested_summary_entry{
              "bar",
              1000ns,
              2,
-             {ProfilerHook::nested_summary_entry{"child", 100ns, 2, {}}}},
-         ProfilerHook::nested_summary_entry{"baz", 1ns, 2, {}}}};
-    // clang-format off
+             {},
+             {ProfilerHook::nested_summary_entry{"child", 100ns, 2}}},
+         ProfilerHook::nested_summary_entry{"baz", 1ns, 2}}};
     const auto expected = R"(Test header
-Overhead estimate 1.0 ns
 |    name    |  total   | fraction | count |   avg    |
 |------------|---------:|---------:|------:|---------:|
 | root       |   2.0 us |  100.0 % |     1 |   2.0 us |
@@ -436,8 +540,49 @@ Overhead estimate 1.0 ns
 |   (self)   | 899.0 ns |   45.0 % |     1 | 899.0 ns |
 |   foo      | 100.0 ns |    5.0 % |     5 |  20.0 ns |
 |   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |
+Overhead estimate 1.0 ns
 )";
-    // clang-format on
+
+    writer.write_nested(entry, 1ns);
+
+    ASSERT_EQ(ss.str(), expected);
+}
+
+
+TEST(ProfilerHookTableSummaryWriter, NestedSummaryWorksWithWorkEstimate)
+{
+    using gko::log::ProfilerHook;
+    using namespace std::chrono_literals;
+    std::stringstream ss;
+    ProfilerHook::TableSummaryWriter writer(ss, "Test header", true);
+    ProfilerHook::nested_summary_entry entry{
+        "root",
+        2us,
+        1,
+        {},
+        {ProfilerHook::nested_summary_entry{
+             "foo", 100ns, 5, gko::custom_work_estimate{"Foos", 100}},
+         ProfilerHook::nested_summary_entry{
+             "bar",
+             1000ns,
+             2,
+             gko::compute_bound_work_estimate{900},
+             {ProfilerHook::nested_summary_entry{
+                 "child", 100ns, 2, gko::memory_bound_work_estimate{100, 0}}}},
+         ProfilerHook::nested_summary_entry{"baz", 1ns, 2}}};
+    const auto expected = R"(Test header
+|    name    |  total   | fraction | count |   avg    | performance  |
+|------------|---------:|---------:|------:|---------:|-------------:|
+| root       |   2.0 us |  100.0 % |     1 |   2.0 us |              |
+|   bar      |   1.0 us |   50.0 % |     2 | 500.0 ns | 1.0 GFLOPS/s |
+|     (self) | 900.0 ns |   90.0 % |     2 | 450.0 ns |              |
+|     child  | 100.0 ns |   10.0 % |     2 |  50.0 ns |     1.0 GB/s |
+|   (self)   | 899.0 ns |   45.0 % |     1 | 899.0 ns |              |
+|   foo      | 100.0 ns |    5.0 % |     5 |  20.0 ns |  1.0 GFoos/s |
+|   baz      |   1.0 ns |    0.1 % |     2 |   0.0 ns |              |
+Overhead estimate 1.0 ns
+Work estimates available for 55.0 % of runtime
+)";
 
     writer.write_nested(entry, 1ns);
 
