@@ -51,9 +51,11 @@ namespace distributed {
  * @tparam LocalIndexType  the index type for the stored indices
  */
 template <typename LocalIndexType = int32>
-class RowGatherer final : public EnableLinOp<RowGatherer<LocalIndexType>>,
-                          public DistributedBase {
-    friend class EnablePolymorphicObject<RowGatherer, LinOp>;
+class RowGatherer final
+    : public EnablePolymorphicObject<RowGatherer<LocalIndexType>>,
+      public EnablePolymorphicAssignment<RowGatherer<LocalIndexType>>,
+      public DistributedBase {
+    friend class EnablePolymorphicObject<RowGatherer, PolymorphicObject>;
 
 public:
     /**
@@ -89,6 +91,11 @@ public:
      */
     mpi::request apply_async(ptr_param<const LinOp> b, ptr_param<LinOp> x,
                              array<char>& workspace) const;
+
+    /**
+     * Returns the size of the row gatherer.
+     */
+    dim<2> get_size() const;
 
     /**
      * Get the used collective communicator.
@@ -154,12 +161,6 @@ public:
 
     RowGatherer& operator=(RowGatherer&& o);
 
-protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
-
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
-
 private:
     /**
      * @copydoc RowGatherer::create(std::shared_ptr<const
@@ -177,6 +178,7 @@ private:
      */
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
+    dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
     mutable array<char> send_workspace_;

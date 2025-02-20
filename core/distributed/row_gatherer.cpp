@@ -23,17 +23,6 @@ using DefaultCollComm = mpi::NeighborhoodCommunicator;
 
 
 template <typename LocalIndexType>
-void RowGatherer<LocalIndexType>::apply_impl(const LinOp* b, LinOp* x) const
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename LocalIndexType>
-void RowGatherer<LocalIndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                             const LinOp* beta, LinOp* x) const
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {
@@ -62,29 +51,27 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 {
     mpi::request req;
 
+    auto exec = this->get_executor();
+    auto use_host_buffer =
+        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
+    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+
+    GKO_THROW_IF_INVALID(
+        !use_host_buffer || mpi_exec->memory_accessible(x->get_executor()),
+        "The receive buffer uses device memory, but MPI support of device "
+        "memory is not available or host buffer were explicitly requested. "
+        "Please provide a host buffer or enable MPI support for device "
+        "memory.");
+
     // dispatch global vector
     run<Vector, double, float, std::complex<double>, std::complex<float>>(
-        b.get(), [&](const auto* b_global) {
+        make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
             // dispatch local vector with the same precision as the global
             // vector
             ::gko::precision_dispatch<ValueType>(
                 [&](auto* x_local) {
-                    auto exec = this->get_executor();
-
-                    auto use_host_buffer = mpi::requires_host_buffer(
-                        exec, coll_comm_->get_base_communicator());
-                    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
-
-                    GKO_THROW_IF_INVALID(
-                        !use_host_buffer || mpi_exec->memory_accessible(
-                                                x_local->get_executor()),
-                        "The receive buffer uses device memory, but MPI "
-                        "support of device memory is not available or host "
-                        "buffer were explicitly requested. Please provide a "
-                        "host buffer or enable MPI support for device memory.");
-
                     auto b_local = b_global->get_local_vector();
 
                     dim<2> send_size(coll_comm_->get_send_size(),
@@ -124,6 +111,13 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
 
 template <typename LocalIndexType>
+dim<2> RowGatherer<LocalIndexType>::get_size() const
+{
+    return size_;
+}
+
+
+template <typename LocalIndexType>
 std::shared_ptr<const mpi::CollectiveCommunicator>
 RowGatherer<LocalIndexType>::get_collective_communicator() const
 {
@@ -137,9 +131,9 @@ RowGatherer<LocalIndexType>::RowGatherer(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
     const index_map<LocalIndexType, GlobalIndexType>& imap)
-    : EnableLinOp<RowGatherer>(
-          exec, dim<2>{imap.get_non_local_size(), imap.get_global_size()}),
+    : EnablePolymorphicObject<RowGatherer>(exec),
       DistributedBase(coll_comm->get_base_communicator()),
+      size_(dim<2>{imap.get_non_local_size(), imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_workspace_(exec),
@@ -181,7 +175,7 @@ size_type RowGatherer<LocalIndexType>::get_num_send_idxs() const
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                          mpi::communicator comm)
-    : EnableLinOp<RowGatherer>(exec),
+    : EnablePolymorphicObject<RowGatherer>(exec),
       DistributedBase(comm),
       coll_comm_(std::make_shared<DefaultCollComm>(comm)),
       send_idxs_(exec),
@@ -192,7 +186,7 @@ RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
-    : EnableLinOp<RowGatherer>(o.get_executor()),
+    : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor()),
       send_workspace_(o.get_executor()),
@@ -207,7 +201,7 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
     const RowGatherer& o)
 {
     if (this != &o) {
-        this->set_size(o.get_size());
+        size_ = o.get_size();
         coll_comm_ = o.coll_comm_;
         send_idxs_ = o.send_idxs_;
     }
@@ -220,8 +214,7 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
     RowGatherer&& o)
 {
     if (this != &o) {
-        this->set_size(o.get_size());
-        o.set_size({});
+        size_ = std::exchange(o.size_, dim<2>{});
         coll_comm_ = std::exchange(
             o.coll_comm_,
             std::make_shared<DefaultCollComm>(o.get_communicator()));
@@ -235,7 +228,7 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(const RowGatherer& o)
-    : EnableLinOp<RowGatherer>(o.get_executor()),
+    : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor())
 {

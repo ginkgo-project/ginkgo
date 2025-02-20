@@ -205,34 +205,6 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithMultipleColumns)
 }
 
 
-TYPED_TEST(RowGatherer, ThrowsOnApply)
-{
-    using RowGatherer = typename TestFixture::row_gatherer_type;
-    using Dense = gko::matrix::Dense<double>;
-    using Vector = gko::experimental::distributed::Vector<double>;
-    auto rg = RowGatherer::create(this->exec, this->comm);
-    auto b = Vector::create(this->exec, this->comm);
-    auto x = Dense::create(this->exec);
-
-    ASSERT_THROW(rg->apply(b, x), gko::NotImplemented);
-}
-
-
-TYPED_TEST(RowGatherer, ThrowsOnAdvancedApply)
-{
-    using RowGatherer = typename TestFixture::row_gatherer_type;
-    using Dense = gko::matrix::Dense<double>;
-    using Vector = gko::experimental::distributed::Vector<double>;
-    auto rg = RowGatherer::create(this->exec, this->comm);
-    auto b = Vector::create(this->exec, this->comm);
-    auto x = Dense::create(this->exec);
-    auto alpha = Dense::create(this->exec, gko::dim<2>{1, 1});
-    auto beta = Dense::create(this->exec, gko::dim<2>{1, 1});
-
-    ASSERT_THROW(rg->apply(alpha, b, beta, x), gko::NotImplemented);
-}
-
-
 TYPED_TEST(RowGatherer, ThrowsOnNonMatchingExecutor)
 {
     if (this->mpi_exec == this->exec) {
