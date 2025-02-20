@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -89,6 +89,11 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_local_solver, nullptr);
+
+        /**
+         * enable l1
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(l1, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

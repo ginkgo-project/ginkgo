@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1265,6 +1265,48 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void l1_norm(std::shared_ptr<const DefaultExecutor> exec,
+             const matrix::Csr<ValueType, IndexType>* mtx,
+             array<ValueType>* values)
+{
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto vals = mtx->get_const_values();
+    for (IndexType row = 0; row < nrows; row++) {
+        auto tmp = zero<ValueType>();
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            tmp += abs(vals[iz]);
+        }
+        values->get_data()[row] = tmp;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_L1_NORM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void add_to_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                     const array<ValueType>& values,
+                     matrix::Csr<ValueType, IndexType>* mtx)
+{
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto vals = mtx->get_values();
+    for (IndexType row = 0; row < nrows; row++) {
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            if (col_idxs[iz] == row) {
+                vals[iz] += values.get_const_data()[row];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_TO_DIAGONAL_KERNEL);
 
 
 template <typename IndexType>

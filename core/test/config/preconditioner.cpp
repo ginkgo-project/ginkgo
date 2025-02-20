@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -434,6 +434,8 @@ struct Schwarz
         config_map["generated_local_solver"] = pnode{"linop"};
         param.with_generated_local_solver(
             detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["l1"] = pnode{true};
+        param.with_l1(true);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -452,6 +454,7 @@ struct Schwarz
         }
         ASSERT_EQ(res_param.generated_local_solver,
                   ans_param.generated_local_solver);
+        ASSERT_EQ(res_param.l1, ans_param.l1);
     }
 };
 

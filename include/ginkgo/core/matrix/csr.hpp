@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -841,6 +841,10 @@ public:
         const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    array<ValueType> get_l1_norm() const;
+
+    void add_to_diagonal(const array<ValueType>& diagonal);
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 

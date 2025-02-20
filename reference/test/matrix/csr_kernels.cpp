@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -2232,6 +2232,40 @@ TYPED_TEST(Csr, ScaleCsrAddIdentityThrowsOnZeroDiagonal)
 
     ASSERT_THROW(b->add_scaled_identity(alpha.get(), beta.get()),
                  gko::UnsupportedMatrixProperty);
+}
+
+
+TYPED_TEST(Csr, GetL1Norm)
+{
+    using Csr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto csr = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 0.0}, I<T>{0.0, -4.0}}, this->exec);
+
+    auto result = csr->get_l1_norm();
+
+    ASSERT_EQ(result.get_const_data()[0], T{2.0});
+    ASSERT_EQ(result.get_const_data()[1], T{1.0});
+    ASSERT_EQ(result.get_const_data()[2], T{4.0});
+}
+
+
+TYPED_TEST(Csr, AddToDiagonal)
+{
+    using Csr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto csr = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0, 3.0}, I<T>{1.0, 1.0, 0.0}, I<T>{0.0, -4.0, -1.0}},
+        this->exec);
+    auto values =
+        gko::array<typename Csr::value_type>(this->exec, I<T>{1.0, 2.0, 3.0});
+
+    csr->add_to_diagonal(values);
+
+    GKO_ASSERT_MTX_NEAR(
+        csr,
+        l({I<T>{3.0, 0.0, 3.0}, I<T>{1.0, 3.0, 0.0}, I<T>{0.0, -4.0, 2.0}}),
+        0.0);
 }
 
 

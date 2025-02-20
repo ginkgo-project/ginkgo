@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -235,6 +235,16 @@ namespace kernels {
                              const matrix::Dense<ValueType>* beta,        \
                              matrix::Csr<ValueType, IndexType>* mtx)
 
+#define GKO_DECLARE_CSR_L1_NORM_KERNEL(ValueType, IndexType)   \
+    void l1_norm(std::shared_ptr<const DefaultExecutor> exec,  \
+                 const matrix::Csr<ValueType, IndexType>* mtx, \
+                 array<ValueType>* values)
+
+#define GKO_DECLARE_CSR_ADD_TO_DIAGONAL_KERNEL(ValueType, IndexType)  \
+    void add_to_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
+                         const array<ValueType>& values,              \
+                         matrix::Csr<ValueType, IndexType>* mtx)
+
 #define GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType)               \
     void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,   \
                               const IndexType* row_ptrs,                     \
@@ -331,6 +341,10 @@ namespace kernels {
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_CSR_L1_NORM_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_CSR_ADD_TO_DIAGONAL_KERNEL(ValueType, IndexType);           \
     template <typename IndexType>                                           \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                 \
     template <typename IndexType>                                           \

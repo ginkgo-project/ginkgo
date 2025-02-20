@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,6 +73,30 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
 
     x->inv_scale(alpha);
     dx->inv_scale(dalpha);
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
+}
+
+
+TEST_F(Csr, GetL1IsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto result = x->get_l1_norm();
+    auto dresult = dx->get_l1_norm();
+
+    GKO_ASSERT_ARRAY_NEAR(dresult, result, r<value_type>::value);
+}
+
+
+TEST_F(Csr, AddToDiagonalIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto result = x->get_l1_norm();
+    auto dresult = dx->get_l1_norm();
+
+    x->add_to_diagonal(result);
+    dx->add_to_diagonal(dresult);
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
 }

@@ -47,6 +47,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
+    if (auto& obj = config.get("l1")) {
+        params.with_l1(gko::config::get_value<bool>(obj));
+    }
 
     return params;
 }
@@ -129,7 +132,23 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         GKO_INVALID_STATE(
             "Requires either a generated solver or an solver factory");
     }
-
+    auto matrix = system_matrix;
+    if (parameters_.l1) {
+        auto cloned_matrix =
+            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                 GlobalIndexType>>(
+                gko::share(system_matrix->clone()));
+        auto local_csr = std::const_pointer_cast<
+            gko::matrix::Csr<ValueType, LocalIndexType>>(
+            as<gko::matrix::Csr<ValueType, LocalIndexType>>(
+                cloned_matrix->get_local_matrix()));
+        // TODO: get_local_matrix is return const LinOp
+        auto non_local_csr = as<gko::matrix::Csr<ValueType, LocalIndexType>>(
+            cloned_matrix->get_non_local_matrix());
+        auto l1_norm = non_local_csr->get_l1_norm();
+        local_csr->add_to_diagonal(l1_norm);
+        matrix = cloned_matrix;
+    }
     if (parameters_.local_solver) {
         this->set_solver(gko::share(parameters_.local_solver->generate(
             as<experimental::distributed::Matrix<

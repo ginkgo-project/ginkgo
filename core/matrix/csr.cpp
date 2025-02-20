@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,6 +95,8 @@ GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
 GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
+GKO_REGISTER_OPERATION(l1_norm, csr::l1_norm);
+GKO_REGISTER_OPERATION(add_to_diagonal, csr::add_to_diagonal);
 
 
 }  // anonymous namespace
@@ -1063,6 +1065,29 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
     this->get_executor()->run(csr::make_add_scaled_identity(
         make_temporary_conversion<ValueType>(a).get(),
         make_temporary_conversion<ValueType>(b).get(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
+array<ValueType> Csr<ValueType, IndexType>::get_l1_norm() const
+{
+    array<ValueType> l1_values(this->get_executor(), this->get_size()[0]);
+    this->get_executor()->run(csr::make_l1_norm(this, &l1_values));
+    return l1_values;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::add_to_diagonal(const array<ValueType>& values)
+{
+    bool has_diags{false};
+    this->get_executor()->run(
+        csr::make_check_diagonal_entries(this, has_diags));
+    if (!has_diags) {
+        GKO_UNSUPPORTED_MATRIX_PROPERTY(
+            "The matrix has one or more structurally zero diagonal entries!");
+    }
+    this->get_executor()->run(csr::make_add_to_diagonal(values, this));
 }
 
 
