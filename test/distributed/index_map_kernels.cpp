@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -117,6 +117,8 @@ protected:
 
     IndexMap()
     {
+        engine.seed(490729788);
+
         auto connections =
             generate_connection_idxs(ref, this_rank, part, engine, 11);
         auto dconnections = gko::array<global_index_type>(exec, connections);
@@ -163,6 +165,17 @@ protected:
         std::generate_n(query.get_data(), query.get_size(), [&] {
             return host_connection_idxs->get_const_data()[dist(engine)];
         });
+        return {std::move(exec), std::move(query)};
+    }
+
+    gko::array<local_index_type> generate_to_global_query(
+        std::shared_ptr<const gko::Executor> exec, gko::size_type size,
+        gko::size_type num_queries)
+    {
+        std::uniform_int_distribution<local_index_type> dist(0, size - 1);
+        gko::array<local_index_type> query{ref, num_queries};
+        std::generate_n(query.get_data(), query.get_size(),
+                        [&] { return dist(engine); });
         return {std::move(exec), std::move(query)};
     }
 
@@ -387,4 +400,195 @@ TEST_F(IndexMap, GetLocalWithCombinedIndexSpaceWithInvalidIndexSameAsRef)
         gko::experimental::distributed::index_space::non_local, dresult);
 
     GKO_ASSERT_ARRAY_EQ(result, dresult);
+}
+
+
+TEST_F(IndexMap, GetGlobalWithLocalIndexSpaceSameAsRef)
+{
+    auto query = generate_to_global_query(ref, local_size * 2, 33);
+    auto dquery = gko::array<local_index_type>(exec, query);
+    auto result = gko::array<global_index_type>(ref);
+    auto dresult = gko::array<global_index_type>(exec);
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
+        this_rank, query, gko::experimental::distributed::index_space::local,
+        result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, dquery,
+        gko::experimental::distributed::index_space::local, dresult);
+
+    GKO_ASSERT_ARRAY_EQ(result, dresult);
+}
+
+
+TEST_F(IndexMap, GetGlobalWithNonLocalIndexSpaceSameAsRef)
+{
+    auto query =
+        generate_to_global_query(ref, remote_global_idxs.get_size() * 2, 33);
+    auto dquery = gko::array<local_index_type>(exec, query);
+    auto result = gko::array<global_index_type>(ref);
+    auto dresult = gko::array<global_index_type>(exec);
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
+        this_rank, query,
+        gko::experimental::distributed::index_space::non_local, result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, dquery,
+        gko::experimental::distributed::index_space::non_local, dresult);
+
+    GKO_ASSERT_ARRAY_EQ(result, dresult);
+}
+
+
+TEST_F(IndexMap, GetGlobalWithCombinedIndexSpaceSameAsRef)
+{
+    auto query = generate_to_global_query(
+        ref, (local_size + remote_global_idxs.get_size()) * 2, 33);
+    auto dquery = gko::array<local_index_type>(exec, query);
+    auto result = gko::array<global_index_type>(ref);
+    auto dresult = gko::array<global_index_type>(exec);
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part.get()), to_device_const(remote_global_idxs),
+        this_rank, query, gko::experimental::distributed::index_space::combined,
+        result);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, dquery,
+        gko::experimental::distributed::index_space::combined, dresult);
+
+    GKO_ASSERT_ARRAY_EQ(result, dresult);
+}
+
+
+TEST_F(IndexMap, RoundTripGlobalWithLocalIndexSpace)
+{
+    auto local_space = gko::array<global_index_type>(ref, local_size);
+    std::iota(local_space.get_data(), local_space.get_data() + local_size,
+              this_rank * local_size);
+    auto query = generate_query(exec, local_space, 33);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, query, gko::experimental::distributed::index_space::combined,
+        local);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, local,
+        gko::experimental::distributed::index_space::combined, global);
+
+    GKO_ASSERT_ARRAY_EQ(global, query);
+}
+
+
+TEST_F(IndexMap, RoundTripLocalWithLocalIndexSpace)
+{
+    auto query = generate_to_global_query(exec, local_size, 333);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, global,
+        gko::experimental::distributed::index_space::combined, local);
+
+    GKO_ASSERT_ARRAY_EQ(local, query);
+}
+
+
+TEST_F(IndexMap, RoundTripGlobalWithNonLocalIndexSpace)
+{
+    auto query = generate_query(exec, get_flat_array(remote_global_idxs), 333);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, query, gko::experimental::distributed::index_space::combined,
+        local);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, local,
+        gko::experimental::distributed::index_space::combined, global);
+
+    GKO_ASSERT_ARRAY_EQ(global, query);
+}
+
+
+TEST_F(IndexMap, RoundTripLocalWithNonLocalIndexSpace)
+{
+    auto query =
+        generate_to_global_query(exec, remote_global_idxs.get_size(), 33);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, global,
+        gko::experimental::distributed::index_space::combined, local);
+
+    GKO_ASSERT_ARRAY_EQ(local, query);
+}
+
+
+TEST_F(IndexMap, RoundTripGlobalWithCombinedIndexSpace)
+{
+    auto local_space = gko::array<global_index_type>(ref, local_size);
+    std::iota(local_space.get_data(), local_space.get_data() + local_size,
+              this_rank * local_size);
+    auto combined_space =
+        combine_arrays(ref, local_space, get_flat_array(remote_global_idxs));
+    auto query = generate_query(exec, combined_space, 333);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, query, gko::experimental::distributed::index_space::combined,
+        local);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, local,
+        gko::experimental::distributed::index_space::combined, global);
+
+    GKO_ASSERT_ARRAY_EQ(global, query);
+}
+
+
+TEST_F(IndexMap, RoundTripLocalWithCombinedIndexSpace)
+{
+    auto local_space = gko::array<global_index_type>(ref, local_size);
+    std::iota(local_space.get_data(), local_space.get_data() + local_size,
+              this_rank * local_size);
+    auto combined_space =
+        combine_arrays(ref, local_space, get_flat_array(remote_global_idxs));
+    auto query = generate_to_global_query(
+        exec, local_size + remote_global_idxs.get_size(), 333);
+    auto local = gko::array<local_index_type>(exec);
+    auto global = gko::array<global_index_type>(exec);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_global(
+        exec, to_device_const(dpart.get()),
+        to_device_const(dremote_global_idxs), this_rank, query,
+        gko::experimental::distributed::index_space::combined, global);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::map_to_local(
+        exec, dpart.get(), dtarget_ids, to_device_const(dremote_global_idxs),
+        this_rank, global,
+        gko::experimental::distributed::index_space::combined, local);
+
+    GKO_ASSERT_ARRAY_EQ(local, query);
 }
