@@ -860,6 +860,8 @@ bool needs_transfers(std::shared_ptr<const gko::Executor> exec)
 
 class HostToDeviceLogger : public gko::log::Logger {
 public:
+    mutable int transfer_count = 0;
+
     void on_copy_started(const gko::Executor* exec_from,
                          const gko::Executor* exec_to,
                          const gko::uintptr& loc_from,
@@ -867,28 +869,29 @@ public:
                          const gko::size_type& num_bytes) const override
     {
         if (exec_from != exec_to) {
-            transfer_count_++;
+            transfer_count++;
         }
     }
-
-    int get_transfer_count() const { return transfer_count_; }
-
-    static std::unique_ptr<HostToDeviceLogger> create()
-    {
-        return std::unique_ptr<HostToDeviceLogger>(new HostToDeviceLogger());
-    }
-
-protected:
-    explicit HostToDeviceLogger()
-        : gko::log::Logger(gko::log::Logger::copy_started_mask)
-    {}
-
-private:
-    mutable int transfer_count_ = 0;
 };
 
 
-class MatrixGpuAwareCheck : public CommonMpiTestFixture {
+class AllocationLogger : public gko::log::Logger {
+public:
+    mutable int count = 0;
+    mutable std::set<const gko::Executor*> execs;
+
+protected:
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
+    {
+        ++count;
+        execs.insert(exec);
+    }
+};
+
+
+class MatrixInternalBuffers : public CommonMpiTestFixture {
 public:
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
@@ -898,14 +901,16 @@ public:
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using dense_vec_type = gko::matrix::Dense<value_type>;
 
-    MatrixGpuAwareCheck()
-        : logger(gko::share(HostToDeviceLogger::create())), engine(42)
+    MatrixInternalBuffers()
     {
-        exec->add_logger(logger);
+        exec->add_logger(copy_logger);
+        exec->add_logger(alloc_logger);
 
         mat = dist_mtx_type::create(exec, comm);
         x = dist_vec_type::create(exec, comm);
         y = dist_vec_type::create(exec, comm);
+        factor = dist_vec_type::create(exec, comm, gko::dim<2>{0, 1},
+                                       gko::dim<2>{0, 1});
 
         alpha = dense_vec_type::create(exec, gko::dim<2>{1, 1});
         beta = dense_vec_type::create(exec, gko::dim<2>{1, 1});
@@ -916,33 +921,70 @@ public:
 
     std::unique_ptr<dist_vec_type> x;
     std::unique_ptr<dist_vec_type> y;
+    std::unique_ptr<dist_vec_type> factor;
 
     std::unique_ptr<dense_vec_type> alpha;
     std::unique_ptr<dense_vec_type> beta;
 
-    std::shared_ptr<HostToDeviceLogger> logger;
+    std::shared_ptr<HostToDeviceLogger> copy_logger =
+        std::make_shared<HostToDeviceLogger>();
+    std::shared_ptr<AllocationLogger> alloc_logger =
+        std::make_shared<AllocationLogger>();
 
-    std::default_random_engine engine;
+    std::default_random_engine engine{42};
 };
 
 
-TEST_F(MatrixGpuAwareCheck, ApplyCopiesToHostOnlyIfNecessary)
+TEST_F(MatrixInternalBuffers, ApplyCopiesToHostOnlyIfNecessary)
 {
-    auto transfer_count_before = logger->get_transfer_count();
+    auto transfer_count_before = copy_logger->transfer_count;
 
     mat->apply(x, y);
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
+    ASSERT_EQ(copy_logger->transfer_count > transfer_count_before,
               needs_transfers(exec));
 }
 
 
-TEST_F(MatrixGpuAwareCheck, AdvancedApplyCopiesToHostOnlyIfNecessary)
+TEST_F(MatrixInternalBuffers, AdvancedApplyCopiesToHostOnlyIfNecessary)
 {
-    auto transfer_count_before = logger->get_transfer_count();
+    auto transfer_count_before = copy_logger->transfer_count;
 
     mat->apply(alpha, x, beta, y);
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
+    ASSERT_EQ(copy_logger->transfer_count > transfer_count_before,
               needs_transfers(exec));
+}
+
+
+TEST_F(MatrixInternalBuffers, ApplyAllocatesBuffersOnlyOnce)
+{
+    mat->apply(x, y);
+
+    auto alloc_count_before = alloc_logger->count;
+    mat->apply(x, y);
+
+    ASSERT_EQ(alloc_logger->count, alloc_count_before);
+}
+
+
+TEST_F(MatrixInternalBuffers, AdvancedApplyAllocatesBuffersOnlyOnce)
+{
+    mat->apply(alpha, x, beta, y);
+
+    auto alloc_count_before = alloc_logger->count;
+    mat->apply(alpha, x, beta, y);
+
+    ASSERT_EQ(alloc_logger->count, alloc_count_before);
+}
+
+
+TEST_F(MatrixInternalBuffers, ColScaleAllocatesBuffersOnlyOnce)
+{
+    mat->col_scale(factor);
+
+    auto alloc_count_before = alloc_logger->count;
+    mat->col_scale(factor);
+
+    ASSERT_EQ(alloc_logger->count, alloc_count_before);
 }
