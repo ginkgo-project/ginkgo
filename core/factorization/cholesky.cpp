@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/factorization/cholesky.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -42,6 +45,9 @@ Cholesky<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"symbolic_factorization",
+                                       "skip_sorting"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = Cholesky<ValueType, IndexType>::build();
     if (auto& obj = config.get("symbolic_factorization")) {
         params.with_symbolic_factorization(
