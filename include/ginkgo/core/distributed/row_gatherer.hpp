@@ -45,8 +45,10 @@ namespace distributed {
  * ```
  * Using apply instead of apply_async will lead to a blocking communication.
  *
- * @note The apply and apply_async function will *not* ensure that the in/output
- *       vectors use the same executor as the this object.
+ * @note The output vector for the apply_async functions *must* use an executor
+ *       that is compatible with the MPI implementation. In particular, if the
+ *       MPI implementation is not GPU aware, then the output vector *must* use
+ *       a CPU executor. Otherwise, an exception will be thrown.
  *
  * @tparam LocalIndexType  the index type for the stored indices
  */
@@ -64,8 +66,10 @@ public:
      * @warning Only one mpi::request can be active at any given time. This
      *          function will throw if another request is already active.
      *
-     * @param b  the input distributed::Vector
-     * @param x  the output matrix::Dense with the rows gathered from b
+     * @param b  the input distributed::Vector.
+     * @param x  the output matrix::Dense with the rows gathered from b. Its
+     *           executor has to be compatible with the MPI implementation, see
+     *           the class documentation.
      *
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
@@ -80,8 +84,10 @@ public:
      *          waiting on each previous request will lead to incorrect
      *          data transfers.
      *
-     * @param b  the input distributed::Vector
-     * @param x  the output matrix::Dense with the rows gathered from b
+     * @param b  the input distributed::Vector.
+     * @param x  the output matrix::Dense with the rows gathered from b. Its
+     *           executor has to be compatible with the MPI implementation, see
+     *           the class documentation.
      * @param workspace  a workspace to store temporary data for the operation.
      *                   This might not be modified before the request is
      *                   waited on.
