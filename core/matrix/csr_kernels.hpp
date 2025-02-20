@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,6 +20,7 @@
 
 #include "core/base/kernel_declaration.hpp"
 #include "core/matrix/csr_lookup.hpp"
+#include "ginkgo/core/base/work_estimate.hpp"
 
 
 namespace gko {
@@ -344,7 +345,48 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
+namespace work_estimate::csr {
 
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+memory_bound_work_estimate spmv(
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    const matrix::Dense<InputValueType>* b, matrix::Dense<OutputValueType>* c)
+{
+    const auto matrix_storage =
+        sizeof(IndexType) * (a->get_size()[0] + a->get_num_stored_elements() +
+                             a->get_num_srow_elements()) +
+        sizeof(MatrixValueType) * a->get_num_stored_elements();
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage + vector_size * sizeof(InputValueType),
+        vector_size * sizeof(OutputValueType)};
+}
+
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+memory_bound_work_estimate advanced_spmv(
+    const matrix::Dense<MatrixValueType>* alpha,
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    const matrix::Dense<InputValueType>* b,
+    const matrix::Dense<OutputValueType>* beta,
+    matrix::Dense<OutputValueType>* c)
+{
+    const auto matrix_storage =
+        sizeof(IndexType) * (a->get_size()[0] + a->get_num_stored_elements() +
+                             a->get_num_srow_elements()) +
+        sizeof(MatrixValueType) * a->get_num_stored_elements();
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage +
+            vector_size * (sizeof(InputValueType) + sizeof(OutputValueType)),
+        vector_size * sizeof(OutputValueType)};
+}
+
+
+}  // namespace work_estimate::csr
 }  // namespace kernels
 }  // namespace gko
 
