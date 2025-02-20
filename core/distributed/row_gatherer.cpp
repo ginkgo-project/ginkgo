@@ -91,7 +91,8 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                                      b_local->get_size()[1]);
                     auto send_size_in_bytes =
                         sizeof(ValueType) * send_size[0] * send_size[1];
-                    if (!mpi_exec->memory_accessible(
+                    if (!workspace.get_executor() ||
+                        !mpi_exec->memory_accessible(
                             workspace.get_executor()) ||
                         send_size_in_bytes > workspace.get_size()) {
                         workspace = array<char>(
