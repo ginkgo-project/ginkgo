@@ -87,7 +87,7 @@ void precision_dispatch(Function fn, Args*... linops)
  * Calls the given function with the given LinOps temporarily converted to
  * matrix::Dense<ValueType>* as parameters.
  * If ValueType is real and both input vectors are complex, uses
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::Dense::create_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see precision_dispatch()
@@ -121,7 +121,7 @@ void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
  * Calls the given function with the given LinOps temporarily converted to
  * matrix::Dense<ValueType>* as parameters.
  * If ValueType is real and both `in` and `out` are complex, uses
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::Dense::create_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see precision_dispatch()
