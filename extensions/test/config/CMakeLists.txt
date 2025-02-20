@@ -11,6 +11,8 @@ if(NOT yaml-cpp_FOUND)
     # Turn off additional tool in yaml-cpp
     # We change the standard of yaml-cpp. Without this, we will need to change the standard of tool targets additionally.
     set(YAML_CPP_BUILD_TOOLS OFF CACHE INTERNAL "")
+    # Turn off YAML formatting, since this clashes with our formatting target
+    set(YAML_CPP_FORMAT_SOURCE OFF CACHE INTERNAL "")
 
     FetchContent_MakeAvailable(yaml-cpp)
     # make sure the tests DLLs are placed in the working path for CTest
