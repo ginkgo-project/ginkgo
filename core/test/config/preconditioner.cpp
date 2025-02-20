@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -279,6 +279,8 @@ struct Jacobi
         config_map["accuracy"] = pnode{1e-2};
         param.with_accuracy(
             gko::remove_complex<typename changed_type::value_type>{1e-2});
+        config_map["aggregate_l1"] = pnode{true};
+        param.with_aggregate_l1(true);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -293,6 +295,7 @@ struct Jacobi
         ASSERT_EQ(res_param.max_block_stride, ans_param.max_block_stride);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         GKO_ASSERT_ARRAY_EQ(res_param.block_pointers, ans_param.block_pointers);
+        ASSERT_EQ(res_param.aggregate_l1, ans_param.aggregate_l1);
 
         ASSERT_EQ(res_so.is_block_wise, ans_so.is_block_wise);
         ASSERT_EQ(res_so.of_all_blocks, ans_so.of_all_blocks);
