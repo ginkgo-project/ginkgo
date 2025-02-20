@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -357,7 +357,7 @@ Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Diagonal>(exec, dim<2>(size)),
       values_{exec, std::move(values)}
 {
-    GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
+    GKO_ENSURE_COMPATIBLE_BOUNDS(size, values_.get_size());
 }
 
 
