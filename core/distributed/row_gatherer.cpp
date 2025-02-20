@@ -24,9 +24,7 @@ using DefaultCollComm = mpi::NeighborhoodCommunicator;
 
 template <typename LocalIndexType>
 void RowGatherer<LocalIndexType>::apply_impl(const LinOp* b, LinOp* x) const
-{
-    apply_async(b, x).wait();
-}
+    GKO_NOT_IMPLEMENTED;
 
 
 template <typename LocalIndexType>
