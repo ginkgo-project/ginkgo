@@ -2534,28 +2534,35 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
         // If estimated buffer size is too large and CUDA > 12.0,  fall back to
         // ALG2
 #if CUDA_VERSION >= 12000
-        spgemm_alg = CUSPARSE_SPGEMM_ALG2;
-        // Memory estimate for Alg2/Alg3
-        sparselib::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
-                                          &beta, c_descr, spgemm_descr,
-                                          spgemm_alg, buffer1_size, nullptr);
-        buffer1.resize_and_reset(buffer1_size);
-        sparselib::spgemm_work_estimation(
-            handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
-            spgemm_alg, buffer1_size, buffer1.get_data());
-        size_type buffer3_size{};
-        sparselib::spgemm_estimate_memory(
-            handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
-            spgemm_alg, 1.0f, buffer3_size, nullptr, nullptr);
-        array<char> buffer3{exec, buffer3_size};
-        sparselib::spgemm_estimate_memory(
-            handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
-            spgemm_alg, 1.0f, buffer3_size, buffer3.get_data(), &buffer2_size);
-        buffer2.resize_and_reset(buffer2_size);
-        // compute spgemm
-        sparselib::spgemm_compute(
-            handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
-            spgemm_alg, buffer1.get_data(), buffer2_size, buffer2.get_data());
+        const char* error_code = "CUSPARSE_STATUS_INSUFFICIENT_RESOURCES";
+        if (strstr(cse.what(), error_code)) {
+            spgemm_alg = CUSPARSE_SPGEMM_ALG2;
+            // Memory estimate for Alg2/Alg3
+            sparselib::spgemm_work_estimation(
+                handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
+                spgemm_alg, buffer1_size, nullptr);
+            buffer1.resize_and_reset(buffer1_size);
+            sparselib::spgemm_work_estimation(
+                handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
+                spgemm_alg, buffer1_size, buffer1.get_data());
+            size_type buffer3_size{};
+            sparselib::spgemm_estimate_memory(
+                handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
+                spgemm_alg, 1.0f, buffer3_size, nullptr, nullptr);
+            array<char> buffer3{exec, buffer3_size};
+            sparselib::spgemm_estimate_memory(
+                handle, &alpha, a_descr, b_descr, &beta, c_descr, spgemm_descr,
+                spgemm_alg, 1.0f, buffer3_size, buffer3.get_data(),
+                &buffer2_size);
+            buffer2.resize_and_reset(buffer2_size);
+            // compute spgemm
+            sparselib::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+                                      c_descr, spgemm_descr, spgemm_alg,
+                                      buffer1.get_data(), buffer2_size,
+                                      buffer2.get_data());
+        } else {
+            throw(cse);
+        }
 #else  // CUDA_VERSION < 12000
         throw(cse);
 #endif
@@ -2738,30 +2745,35 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         // If estimated buffer size is too large and CUDA > 12.0,  fall back to
         // ALG2
 #if CUDA_VERSION >= 12000
-        spgemm_alg = CUSPARSE_SPGEMM_ALG2;
-        // Memory estimate for Alg2/Alg3
-        sparselib::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
-                                          &zero_val, c_descr, spgemm_descr,
-                                          spgemm_alg, buffer1_size, nullptr);
-        buffer1.resize_and_reset(buffer1_size);
-        sparselib::spgemm_work_estimation(
-            handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
-            spgemm_descr, spgemm_alg, buffer1_size, buffer1.get_data());
-        size_type buffer3_size{};
-        sparselib::spgemm_estimate_memory(
-            handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
-            spgemm_descr, spgemm_alg, 1.0f, buffer3_size, nullptr, nullptr);
-        array<char> buffer3{exec, buffer3_size};
-        sparselib::spgemm_estimate_memory(handle, &one_val, a_descr, b_descr,
-                                          &zero_val, c_descr, spgemm_descr,
-                                          spgemm_alg, 1.0f, buffer3_size,
-                                          buffer3.get_data(), &buffer2_size);
-        buffer2.resize_and_reset(buffer2_size);
-        // compute spgemm
-        sparselib::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
-                                  c_descr, spgemm_descr, spgemm_alg,
-                                  buffer1.get_data(), buffer2_size,
-                                  buffer2.get_data());
+        const char* error_code = "CUSPARSE_STATUS_INSUFFICIENT_RESOURCES";
+        if (strstr(cse.what(), error_code)) {
+            spgemm_alg = CUSPARSE_SPGEMM_ALG2;
+            // Memory estimate for Alg2/Alg3
+            sparselib::spgemm_work_estimation(
+                handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
+                spgemm_descr, spgemm_alg, buffer1_size, nullptr);
+            buffer1.resize_and_reset(buffer1_size);
+            sparselib::spgemm_work_estimation(
+                handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
+                spgemm_descr, spgemm_alg, buffer1_size, buffer1.get_data());
+            size_type buffer3_size{};
+            sparselib::spgemm_estimate_memory(
+                handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
+                spgemm_descr, spgemm_alg, 1.0f, buffer3_size, nullptr, nullptr);
+            array<char> buffer3{exec, buffer3_size};
+            sparselib::spgemm_estimate_memory(
+                handle, &one_val, a_descr, b_descr, &zero_val, c_descr,
+                spgemm_descr, spgemm_alg, 1.0f, buffer3_size,
+                buffer3.get_data(), &buffer2_size);
+            buffer2.resize_and_reset(buffer2_size);
+            // compute spgemm
+            sparselib::spgemm_compute(handle, &one_val, a_descr, b_descr,
+                                      &zero_val, c_descr, spgemm_descr,
+                                      spgemm_alg, buffer1.get_data(),
+                                      buffer2_size, buffer2.get_data());
+        } else {
+            throw(cse);
+        }
 #else  // CUDA_VERSION < 12000
         throw(cse);
 #endif
