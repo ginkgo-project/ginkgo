@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -162,6 +165,9 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"max_iterations", "max_unassigned_ratio",
+                                       "deterministic", "skip_sorting"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = Pgm<ValueType, IndexType>::build();
     if (auto& obj = config.get("max_iterations")) {
         params.with_max_iterations(gko::config::get_value<unsigned>(obj));
