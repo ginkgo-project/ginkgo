@@ -368,7 +368,6 @@ public:
         return status;
     }
 
-
 private:
     MPI_Request req_;
 };
