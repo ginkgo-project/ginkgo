@@ -5,6 +5,8 @@
 #include "ginkgo/core/factorization/ilu.hpp"
 
 #include <memory>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -50,6 +52,9 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"l_strategy", "u_strategy",
+                                       "skip_sorting", "algorithm"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = factorization::Ilu<ValueType, IndexType>::build();
     if (auto& obj = config.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));

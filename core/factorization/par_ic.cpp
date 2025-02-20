@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/factorization/par_ic.hpp"
 
 #include <memory>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
@@ -51,6 +53,9 @@ ParIc<ValueType, IndexType>::parse(const config::pnode& config,
                                    const config::registry& context,
                                    const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"iterations", "skip_sorting",
+                                       "l_strategy", "both_factors"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = factorization::ParIc<ValueType, IndexType>::build();
 
     if (auto& obj = config.get("iterations")) {

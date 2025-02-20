@@ -5,6 +5,8 @@
 #include "ginkgo/core/factorization/ic.hpp"
 
 #include <memory>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
@@ -53,6 +55,9 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::registry& context,
                                 const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"l_strategy", "skip_sorting",
+                                       "both_factors", "algorithm"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = factorization::Ic<ValueType, IndexType>::build();
     if (auto& obj = config.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
