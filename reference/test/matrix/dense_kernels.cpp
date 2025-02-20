@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -230,6 +230,25 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
 }
 
 
+TYPED_TEST(Dense, AppliesLinearCombinationToDenseWithZeroBetaNan)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({0.0}, this->exec);
+    this->mtx3->fill(gko::nan<T>());
+
+    this->mtx2->apply(alpha, this->mtx1, beta, this->mtx3);
+
+    EXPECT_EQ(this->mtx3->at(0, 0), T{0.5});
+    EXPECT_EQ(this->mtx3->at(0, 1), T{0.5});
+    EXPECT_EQ(this->mtx3->at(0, 2), T{0.5});
+    EXPECT_EQ(this->mtx3->at(1, 0), T{-1.0});
+    EXPECT_EQ(this->mtx3->at(1, 1), T{-1.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{-1.0});
+}
+
+
 TYPED_TEST(Dense, AppliesLinearCombinationToMixedDense)
 {
     using MixedMtx = typename TestFixture::MixedMtx;
@@ -337,6 +356,22 @@ TYPED_TEST(Dense, ScalesDataWithScalar)
     EXPECT_EQ(this->mtx2->at(0, 1), T{-2.0});
     EXPECT_EQ(this->mtx2->at(1, 0), T{-4.0});
     EXPECT_EQ(this->mtx2->at(1, 1), T{4.0});
+}
+
+
+TYPED_TEST(Dense, ScalesDataWithZeroScalarNaN)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({I<T>{0.0}}, this->exec);
+    this->mtx2->fill(gko::nan<T>());
+
+    this->mtx2->scale(alpha);
+
+    EXPECT_EQ(this->mtx2->at(0, 0), T{0.0});
+    EXPECT_EQ(this->mtx2->at(0, 1), T{0.0});
+    EXPECT_EQ(this->mtx2->at(1, 0), T{0.0});
+    EXPECT_EQ(this->mtx2->at(1, 1), T{0.0});
 }
 
 
@@ -454,6 +489,34 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     EXPECT_EQ(this->mtx1->at(1, 1), T{5.5});
     EXPECT_EQ(this->mtx1->at(1, 2), T{8.5});
     ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
+}
+
+
+TYPED_TEST(Dense, AddsScaledWithZeroScalar)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({0.0}, this->exec);
+    this->mtx3->fill(gko::nan<T>());
+    const auto expected = this->mtx1->clone();
+
+    this->mtx1->add_scaled(alpha, this->mtx3);
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, expected, 0.0);
+}
+
+
+TYPED_TEST(Dense, SubtractsScaledWithZeroScalar)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({0.0}, this->exec);
+    this->mtx3->fill(gko::nan<T>());
+    const auto expected = this->mtx1->clone();
+
+    this->mtx1->sub_scaled(alpha, this->mtx3);
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, expected, 0.0);
 }
 
 
