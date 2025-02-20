@@ -149,12 +149,20 @@ RowGatherer<LocalIndexType>::RowGatherer(
     auto comm = coll_comm_->get_base_communicator();
     auto inverse_comm = coll_comm_->create_inverse();
 
+    auto mpi_exec =
+        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator())
+            ? exec->get_master()
+            : exec;
+    auto temp_remote_local_idxs =
+        make_temporary_clone(mpi_exec, &imap.get_remote_local_idxs());
+
+    send_idxs_.set_executor(mpi_exec);
     send_idxs_.resize_and_reset(coll_comm_->get_send_size());
     inverse_comm
-        ->i_all_to_all_v(exec,
-                         imap.get_remote_local_idxs().get_const_flat_data(),
+        ->i_all_to_all_v(exec, temp_remote_local_idxs->get_const_flat_data(),
                          send_idxs_.get_data())
         .wait();
+    send_idxs_.set_executor(exec);
 }
 
 
