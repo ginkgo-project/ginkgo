@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,7 +13,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/allocator.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"

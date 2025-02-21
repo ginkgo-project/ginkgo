@@ -26,7 +26,7 @@
 #include "common/cuda_hip/components/disjoint_sets.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 
 
 namespace gko {

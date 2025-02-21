@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,7 @@
 #include "accessor/range.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"

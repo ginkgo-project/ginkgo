@@ -42,7 +42,7 @@
 #include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"

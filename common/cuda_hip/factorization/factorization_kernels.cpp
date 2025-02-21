@@ -18,7 +18,7 @@
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/factorization/factorization_helpers.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"

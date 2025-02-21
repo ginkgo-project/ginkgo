@@ -9,7 +9,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 

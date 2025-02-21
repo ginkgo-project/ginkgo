@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,7 +37,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/unified/base/kernel_launch.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/block_sizes.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"

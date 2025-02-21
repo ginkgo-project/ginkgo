@@ -4,7 +4,7 @@
 
 #include "core/matrix/csr_lookup.hpp"
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 namespace gko {

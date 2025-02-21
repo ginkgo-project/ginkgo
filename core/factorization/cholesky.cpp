@@ -10,7 +10,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"

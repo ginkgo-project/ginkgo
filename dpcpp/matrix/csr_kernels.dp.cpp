@@ -20,7 +20,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 
 #include "accessor/sycl_helper.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"

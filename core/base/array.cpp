@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/math.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"

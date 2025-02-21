@@ -11,7 +11,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"

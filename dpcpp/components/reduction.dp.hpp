@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,7 +14,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"

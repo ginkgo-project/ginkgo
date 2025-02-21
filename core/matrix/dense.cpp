@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"

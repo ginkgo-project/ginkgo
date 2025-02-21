@@ -11,7 +11,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/base/allocator.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"

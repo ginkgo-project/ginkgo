@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -435,7 +435,7 @@ TYPED_TEST(Array, ViewCannotBeResized)
 TYPED_TEST(Array, ExtendCannotShrink)
 {
     this->x.resize_and_reset(4);
-    EXPECT_THROW(this->x.extend(3), gko::NotSupported);
+    EXPECT_THROW(gko::extend_array(this->x, 3), gko::NotSupported);
 }
 
 
@@ -444,7 +444,7 @@ TYPED_TEST(Array, ViewCannotBeExtended)
     TypeParam data[] = {1, 2, 3};
     auto view = gko::make_array_view(this->exec, 3, data);
 
-    EXPECT_THROW(view.extend(4), gko::NotSupported);
+    EXPECT_THROW(gko::extend_array(view, 4), gko::NotSupported);
     EXPECT_EQ(view.get_size(), 3);
     ASSERT_EQ(view.get_data()[0], TypeParam{1});
 }
@@ -453,7 +453,7 @@ TYPED_TEST(Array, ViewCannotBeExtended)
 TYPED_TEST(Array, ExecutorlessCannotBeExtended)
 {
     gko::array<TypeParam> arr;
-    EXPECT_THROW(arr.extend(4), gko::NotSupported);
+    EXPECT_THROW(gko::extend_array(arr, 4), gko::NotSupported);
 }
 
 
@@ -464,7 +464,7 @@ TYPED_TEST(Array, CanBeExtended)
     old_ptr[0] = 1;
     old_ptr[1] = 8;
     old_ptr[2] = 7;
-    this->x.extend(4);
+    gko::extend_array(this->x, 4);
     const auto new_ptr = this->x.get_data();
     new_ptr[3] = 4;
 
@@ -483,7 +483,7 @@ TYPED_TEST(Array, CanBeExtendedPartially)
     old_ptr[0] = 1;
     old_ptr[1] = 8;
     old_ptr[2] = 7;
-    this->x.extend(4, 2);
+    gko::extend_array(this->x, 4, 2);
     const auto new_ptr = this->x.get_data();
     new_ptr[2] = 3;
     new_ptr[3] = 4;

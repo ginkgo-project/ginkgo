@@ -637,65 +637,9 @@ public:
             size_ = size;
             data_.reset(exec_->alloc<value_type>(size));
         } else {
+            // TODO2.0 check for negative size
             this->clear();
         }
-    }
-
-    /**
-     * Resizes the array so that it is able to hold the specified number of
-     * elements, copying over existing elements into the new allocation.
-     * For a view or other non-owning array types, this throws an exception
-     * since these types cannot be resized.
-     * The first `copy_size` elements stored in the array will be copied to the
-     * beginning of the new allocation.
-     *
-     * If the array is not assigned an executor, an exception will be thrown.
-     *
-     * @param new_size  the number of elements in the new allocation
-     * @param copy_size  the number of elements to copy over from the old
-     *                   allocation.
-     */
-    void extend(size_type new_size, size_type copy_size)
-    {
-        if (new_size == size_) {
-            return;
-        }
-        if (exec_ == nullptr) {
-            throw gko::NotSupported(__FILE__, __LINE__, __func__,
-                                    "gko::Executor (nullptr)");
-        }
-        if (!this->is_owning()) {
-            throw gko::NotSupported(
-                __FILE__, __LINE__, __func__,
-                "Non owning gko::array cannot be extended.");
-        }
-        if (new_size < size_) {
-            throw gko::NotSupported(__FILE__, __LINE__, __func__,
-                                    "array::extend cannot shrink an array.");
-        }
-        if (copy_size > size_) {
-            throw gko::NotSupported(
-                __FILE__, __LINE__, __func__,
-                "Attempting to copy more elements than available.");
-        }
-        array new_array{get_executor(), new_size};
-        get_executor()->copy(copy_size, get_const_data(), new_array.get_data());
-        *this = std::move(new_array);
-    }
-
-    /**
-     * Resizes the array so that it is able to hold the specified number of
-     * elements, copying over all existing elements into the new allocation.
-     * For a view or other non-owning array types, this throws an exception
-     * since these types cannot be resized.
-     *
-     * If the array is not assigned an executor, an exception will be thrown.
-     *
-     * @param new_size  the number of elements in the new allocation.
-     */
-    void extend(size_type new_size)
-    {
-        this->extend(new_size, this->get_size());
     }
 
     /**

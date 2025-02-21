@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/math.hpp"
 #include "dpcpp/base/types.hpp"

@@ -13,7 +13,7 @@
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"

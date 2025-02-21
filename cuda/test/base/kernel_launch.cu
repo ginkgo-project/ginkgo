@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,7 @@
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "cuda/test/utils.hpp"
 
 

@@ -15,7 +15,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"

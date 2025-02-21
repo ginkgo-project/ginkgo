@@ -21,7 +21,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-#include "core/base/array_access.hpp"
+#include "core/base/array_utils.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
