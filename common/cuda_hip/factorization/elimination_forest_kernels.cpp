@@ -280,29 +280,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE);
 
 
-template <typename IndexType>
-void build_children_from_parents(
-    std::shared_ptr<const DefaultExecutor> exec,
-    gko::factorization::elimination_forest<IndexType>& forest)
-{
-    const auto num_rows = forest.parents.get_size();
-    // build COO representation of the tree
-    array<IndexType> col_idx_array{exec, num_rows};
-    const auto col_idxs = col_idx_array.get_data();
-    const auto parents = forest.parents.get_const_data();
-    const auto children = forest.children.get_data();
-    const auto child_ptrs = forest.child_ptrs.get_data();
-    exec->copy(num_rows, parents, col_idxs);
-    thrust::sequence(thrust_policy(exec), children, children + num_rows,
-                     IndexType{});
-    // group by parent
-    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
-                               col_idxs + num_rows, children);
-    // create child pointers for groups of children
-    components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
-                                     num_rows + 1,  // rows plus sentinel
-                                     child_ptrs);
-}
+namespace kernel {
 
 
 template <typename IndexType>
@@ -320,8 +298,7 @@ __global__ __launch_bounds__(default_block_size) void build_conn_components(
     const auto end = edge_ends[i];
     const auto half_block_size = block_size / 2;
     // interior edge: join
-    if (start / half_block_size ==
-        end / half_block_size /* && (start / half_block_size) % 2 == 0*/) {
+    if (start / half_block_size == end / half_block_size) {
         const auto start_rep = sets.find_relaxed_compressing(start);
         const auto end_rep = sets.find_relaxed_compressing(end);
         sets.join(start_rep, end_rep);
@@ -401,6 +378,9 @@ __global__ __launch_bounds__(default_block_size) void add_tree_edges(
 }
 
 
+}  // namespace kernel
+
+
 template <typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
              const IndexType* row_ptrs, const IndexType* cols, size_type usize,
@@ -448,8 +428,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         components::fill_seq_array(exec, parents, usize);
         // build connected components
         const auto num_blocks = ceildiv(num_edges, default_block_size);
-        build_conn_components<<<num_blocks, default_block_size, 0,
-                                exec->get_stream()>>>(
+        kernel::build_conn_components<<<num_blocks, default_block_size, 0,
+                                        exec->get_stream()>>>(
             edge_starts, edge_ends, num_edges, size, block_size, parents);
         // now find the smallest upper node adjacent to a cc in a lower block
         array<IndexType> min_array{exec, usize};
@@ -457,8 +437,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         components::fill_array(exec, mins, usize, size);
         array<IndexType> counter_array{exec, 1};
         components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(
+        kernel::find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(
             edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
             counter_array.get_data());
         const auto new_edge_space = static_cast<size_type>(
@@ -467,8 +447,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         array<IndexType> new_edge_end_array{exec, new_edge_space};
         // now add new edges for every one of those cut edges
         components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        add_fill_edges<<<num_blocks, default_block_size, 0,
-                         exec->get_stream()>>>(
+        kernel::add_fill_edges<<<num_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
             edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
             new_edge_start_array.get_data(), new_edge_end_array.get_data(),
             counter_array.get_data());
@@ -497,8 +477,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
          block_size *= 2) {
         // build connected components
         const auto num_blocks = ceildiv(num_edges, default_block_size);
-        build_conn_components<<<num_blocks, default_block_size, 0,
-                                exec->get_stream()>>>(
+        kernel::build_conn_components<<<num_blocks, default_block_size, 0,
+                                        exec->get_stream()>>>(
             edge_starts, edge_ends, num_edges, size, block_size, parents);
         // now find the smallest upper node adjacent to a cc in a lower block
         array<IndexType> min_array{exec, usize};
@@ -506,19 +486,44 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         components::fill_array(exec, mins, usize, size);
         array<IndexType> counter_array{exec, 1};
         components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(
+        kernel::find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(
             edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
             counter_array.get_data());
         // add edges
         const auto num_node_blocks = ceildiv(size, default_block_size);
-        add_tree_edges<<<num_node_blocks, default_block_size, 0,
-                         exec->get_stream()>>>(parents, mins, size,
-                                               forest_parents);
+        kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(parents, mins, size,
+                                                       forest_parents);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
+
+
+template <typename IndexType>
+void build_children_from_parents(
+    std::shared_ptr<const DefaultExecutor> exec,
+    gko::factorization::elimination_forest<IndexType>& forest)
+{
+    const auto num_rows = forest.parents.get_size();
+    // build COO representation of the tree
+    array<IndexType> col_idx_array{exec, num_rows};
+    const auto col_idxs = col_idx_array.get_data();
+    const auto parents = forest.parents.get_const_data();
+    const auto children = forest.children.get_data();
+    const auto child_ptrs = forest.child_ptrs.get_data();
+    exec->copy(num_rows, parents, col_idxs);
+    thrust::sequence(thrust_policy(exec), children, children + num_rows,
+                     IndexType{});
+    // group by parent
+    thrust::stable_sort_by_key(thrust_policy(exec), col_idxs,
+                               col_idxs + num_rows, children);
+    // create child pointers for groups of children
+    components::convert_idxs_to_ptrs(exec, col_idxs, num_rows,
+                                     num_rows + 1,  // rows plus sentinel
+                                     child_ptrs);
+}
 
 
 template <typename ValueType, typename IndexType>
