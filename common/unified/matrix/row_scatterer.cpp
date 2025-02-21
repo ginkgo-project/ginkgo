@@ -40,6 +40,20 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_ROW_SCATTER_SIMPLE_APPLY);
 
 
+template <typename ValueType, typename OutputType, typename IndexType>
+void advanced_row_scatter(std::shared_ptr<const DefaultExecutor> exec,
+                          const array<IndexType>* row_idxs,
+                          const matrix::Dense<ValueType>* alpha,
+                          const matrix::Dense<ValueType>* orig,
+                          const matrix::Dense<OutputType>* beta,
+                          matrix::Dense<OutputType>* target,
+                          bit_packed_span<bool, IndexType, uint32> mask,
+                          bool& invalid_access) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_ROW_SCATTER_ADVANCED_APPLY);
+
+
 }  // namespace row_scatter
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

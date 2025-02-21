@@ -1122,9 +1122,10 @@ namespace row_scatter {
 
 
 GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2(GKO_DECLARE_ROW_SCATTER_SIMPLE_APPLY);
+GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2(GKO_DECLARE_ROW_SCATTER_ADVANCED_APPLY);
 
 
-}
+}  // namespace row_scatter
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

@@ -7,9 +7,18 @@
 #include <ginkgo/core/base/lin_op.hpp>
 
 namespace gko {
+
+template <typename ValueType, typename IndexType, typename StorageType>
+class bit_packed_span;
+
+
 namespace matrix {
 
 
+/**
+ *
+ * @tparam IndexType type for defining the scatter-to indices
+ */
 template <typename IndexType = int32>
 class RowScatterer : public EnableLinOp<RowScatterer<IndexType>> {
     friend class EnablePolymorphicObject<RowScatterer<IndexType>, LinOp>;
@@ -32,6 +41,7 @@ private:
                           array<IndexType> idxs, size_type to_size);
 
     array<IndexType> idxs_;
+    mutable array<uint32> mask_;
 };
 
 
