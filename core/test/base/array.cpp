@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -429,6 +429,70 @@ TYPED_TEST(Array, ViewCannotBeResized)
     EXPECT_THROW(view.resize_and_reset(1), gko::NotSupported);
     EXPECT_EQ(view.get_size(), 3);
     ASSERT_EQ(view.get_data()[0], TypeParam{1});
+}
+
+
+TYPED_TEST(Array, ExtendCannotShrink)
+{
+    this->x.resize_and_reset(4);
+    EXPECT_THROW(this->x.extend(3), gko::NotSupported);
+}
+
+
+TYPED_TEST(Array, ViewCannotBeExtended)
+{
+    TypeParam data[] = {1, 2, 3};
+    auto view = gko::make_array_view(this->exec, 3, data);
+
+    EXPECT_THROW(view.extend(4), gko::NotSupported);
+    EXPECT_EQ(view.get_size(), 3);
+    ASSERT_EQ(view.get_data()[0], TypeParam{1});
+}
+
+
+TYPED_TEST(Array, ExecutorlessCannotBeExtended)
+{
+    gko::array<TypeParam> arr;
+    EXPECT_THROW(arr.extend(4), gko::NotSupported);
+}
+
+
+TYPED_TEST(Array, CanBeExtended)
+{
+    this->x.resize_and_reset(3);
+    const auto old_ptr = this->x.get_data();
+    old_ptr[0] = 1;
+    old_ptr[1] = 8;
+    old_ptr[2] = 7;
+    this->x.extend(4);
+    const auto new_ptr = this->x.get_data();
+    new_ptr[3] = 4;
+
+    EXPECT_NE(old_ptr, new_ptr);
+    EXPECT_EQ(new_ptr[0], TypeParam{1});
+    EXPECT_EQ(new_ptr[1], TypeParam{8});
+    EXPECT_EQ(new_ptr[2], TypeParam{7});
+    EXPECT_EQ(new_ptr[3], TypeParam{4});
+}
+
+
+TYPED_TEST(Array, CanBeExtendedPartially)
+{
+    this->x.resize_and_reset(3);
+    const auto old_ptr = this->x.get_data();
+    old_ptr[0] = 1;
+    old_ptr[1] = 8;
+    old_ptr[2] = 7;
+    this->x.extend(4, 2);
+    const auto new_ptr = this->x.get_data();
+    new_ptr[2] = 3;
+    new_ptr[3] = 4;
+
+    EXPECT_NE(old_ptr, new_ptr);
+    EXPECT_EQ(new_ptr[0], TypeParam{1});
+    EXPECT_EQ(new_ptr[1], TypeParam{8});
+    EXPECT_EQ(new_ptr[2], TypeParam{3});
+    EXPECT_EQ(new_ptr[3], TypeParam{4});
 }
 
 
