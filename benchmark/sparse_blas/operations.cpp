@@ -9,8 +9,11 @@
 
 #include <gflags/gflags.h>
 
+#include <ginkgo/core/base/executor.hpp>
+
 #include "core/base/array_access.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -22,6 +25,9 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(symbolic_validate, factorization::symbolic_validate);
+GKO_REGISTER_OPERATION(compute_skeleton_tree,
+                       elimination_forest::compute_skeleton_tree);
+GKO_REGISTER_OPERATION(compute_elimination_forest, elimination_forest::compute);
 GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
 GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(benchmark_lookup, csr::benchmark_lookup);
@@ -667,6 +673,74 @@ private:
 };
 
 
+class EliminationForestOperation : public BenchmarkOperation {
+public:
+    explicit EliminationForestOperation(const Mtx* mtx, bool skeleton)
+        : mtx_{mtx},
+          skeleton_{skeleton},
+          skel_row_ptrs_{mtx->get_executor()},
+          skel_cols_{mtx->get_executor()},
+          forest_{mtx->get_executor(), static_cast<itype>(mtx->get_size()[0])}
+    {
+        GKO_ASSERT_IS_SQUARE_MATRIX(mtx_);
+        const auto size = mtx_->get_size()[0];
+        if (skeleton_) {
+            skel_row_ptrs_.resize_and_reset(size + 1);
+            skel_cols_.resize_and_reset(size);
+        }
+    }
+
+    std::pair<bool, double> validate() const override
+    {
+        const auto ref = gko::ReferenceExecutor::create();
+        const auto host_mtx = mtx_->clone(ref);
+        const auto size = mtx_->get_size()[0];
+        gko::factorization::elimination_forest<itype> ref_forest{
+            ref, static_cast<itype>(size)};
+        ref->run(make_compute_elimination_forest(host_mtx->get_const_row_ptrs(),
+                                                 host_mtx->get_const_col_idxs(),
+                                                 size, ref_forest));
+        gko::array<itype> host_parents{ref, forest_.parents};
+        return std::make_pair(std::equal(host_parents.get_const_data(),
+                                         host_parents.get_const_data() + size,
+                                         ref_forest.parents.get_const_data()),
+                              0.0);
+    }
+
+    gko::size_type get_flops() const override { return 0; }
+
+    gko::size_type get_memory() const override { return 0; }
+
+    void run() override
+    {
+        const auto exec = mtx_->get_executor();
+        const auto size = mtx_->get_size()[0];
+        if (skeleton_) {
+            exec->run(make_compute_skeleton_tree(
+                mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(),
+                mtx_->get_size()[0], skel_row_ptrs_.get_data(),
+                skel_cols_.get_data()));
+            exec->run(make_compute_elimination_forest(
+                skel_row_ptrs_.get_const_data(), skel_cols_.get_const_data(),
+                mtx_->get_size()[0], forest_));
+        } else {
+            exec->run(make_compute_elimination_forest(
+                mtx_->get_const_row_ptrs(), mtx_->get_const_col_idxs(),
+                mtx_->get_size()[0], forest_));
+        }
+    }
+
+    void write_stats(json& object) override {}
+
+private:
+    const Mtx* mtx_;
+    bool skeleton_;
+    gko::array<itype> skel_row_ptrs_;
+    gko::array<itype> skel_cols_;
+    gko::factorization::elimination_forest<itype> forest_;
+};
+
+
 class ReorderRcmOperation : public BenchmarkOperation {
     using reorder_type = gko::experimental::reorder::Rcm<itype>;
     using permute_type = gko::matrix::Permutation<itype>;
@@ -817,6 +891,14 @@ const std::map<std::string,
          [](const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false,
                                                                 true);
+         }},
+        {"elimination_forest",
+         [](const Mtx* mtx) {
+             return std::make_unique<EliminationForestOperation>(mtx, false);
+         }},
+        {"elimination_forest_skeleton",
+         [](const Mtx* mtx) {
+             return std::make_unique<EliminationForestOperation>(mtx, true);
          }},
         {"reorder_rcm",
          [](const Mtx* mtx) {

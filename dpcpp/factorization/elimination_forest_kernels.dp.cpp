@@ -30,6 +30,15 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE);
 
 
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type size,
+             gko::factorization::elimination_forest<IndexType>& forest)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
+
+
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* factors,
