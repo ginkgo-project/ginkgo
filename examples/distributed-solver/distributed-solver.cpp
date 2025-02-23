@@ -217,15 +217,24 @@ int main(int argc, char* argv[])
     if (schw_type == "two-level") {
         Ainv =
             solver::build()
-                .with_preconditioner(
-                    schwarz::build()
-                        .with_local_solver(local_solver)
-                        .with_coarse_level(pgm_fac)
-                        .with_coarse_correction(
-                            gko::experimental::distributed::preconditioner::
-                                coarse_correction_mode::multiplicative)
-                        .with_coarse_solver(coarse_solver)
+                .with_preconditioner(schwarz::build()
+                                         .with_local_solver(local_solver)
+                                         .with_coarse_level(pgm_fac)
+                                         .with_coarse_solver(coarse_solver)
+                                         .on(exec))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
                         .on(exec))
+                .on(exec)
+                ->generate(A);
+    } else if (schw_type == "one-level") {
+        Ainv =
+            solver::build()
+                .with_preconditioner(
+                    schwarz::build().with_local_solver(local_solver).on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
                         exec),
@@ -235,11 +244,9 @@ int main(int argc, char* argv[])
                 .on(exec)
                 ->generate(A);
     } else {
-        schw_type = "one-level";
+        schw_type = "no-precond";
         Ainv =
             solver::build()
-                .with_preconditioner(
-                    schwarz::build().with_local_solver(local_solver).on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
                         exec),
