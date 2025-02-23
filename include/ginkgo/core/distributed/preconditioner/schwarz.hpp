@@ -34,26 +34,6 @@ namespace distributed {
  */
 namespace preconditioner {
 
-/**
- * The mode for the multi-level coarse correction
- *
- * - additive:       Additively incorporate the coarse level correction.
- * - multiplicative: Multiplicatively incorporate the coarse level correction.
- *
- * See Domain Decomposition, Smith, Bjorstad, Gropp, Cambridge University Press,
- * 1996.
- */
-enum class coarse_correction_mode { additive, multiplicative };
-
-struct coarse_correction_type {
-    explicit coarse_correction_type(coarse_correction_mode m, double w)
-        : mode(m), weight(w)
-    {}
-
-    coarse_correction_mode mode;
-    double weight;
-};
-
 
 /**
  * A Schwarz preconditioner is a simple domain decomposition preconditioner that
@@ -63,7 +43,14 @@ struct coarse_correction_type {
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
  *
- * @note Currently overlap and coarse grid correction are not supported (TODO).
+ * A Two-level variant is also available. To enable two-level preconditioning,
+ * you need to specify a LinOpFactory that can generate a
+ * multigrid::MultigridLevel. Currently, only multiplicative coarse correction
+ * is supported.
+ * - See Smith, Bjorstad, Gropp, Domain Decomposition, 1996, Cambridge
+ * University Press.
+ *
+ * @note Currently overlap is not supported (TODO).
  *
  * @tparam ValueType  precision of matrix element
  * @tparam LocalIndexType  local integer type of the matrix
@@ -123,6 +110,15 @@ public:
         bool GKO_FACTORY_PARAMETER_SCALAR(l1_smoother, false);
 
         /**
+         * Coarse weighting.
+         *
+         * By default the coarse and the local solutions are added together. A
+         * weighting can instead be provided if the coarse solution tends to
+         * over-correct.
+         */
+        double GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, double{-1.0});
+
+        /**
          * Operator factory list to generate the triplet (prolong_op, coarse_op,
          * restrict_op), `A_c = R * A * P`
          *
@@ -135,19 +131,9 @@ public:
 
         /**
          * Coarse solver factory.
-         *
-         * TODO: Set default
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             coarse_solver);
-
-        /**
-         * Coarse correction type: Additive or multiplicative and their
-         * respective weights.
-         */
-        coarse_correction_type GKO_FACTORY_PARAMETER_SCALAR(
-            coarse_correction,
-            coarse_correction_type(coarse_correction_mode::additive, 1.0));
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -194,7 +180,8 @@ protected:
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Schwarz>(factory->get_executor(),
                                gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          system_matrix_{system_matrix}
     {
         this->generate(system_matrix);
     }
@@ -221,8 +208,11 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+    std::shared_ptr<const LinOp> system_matrix_;
 
+    // Used for advanced apply
     detail::VectorCache<ValueType> cache_;
+    // Used in apply for two-level method
     detail::VectorCache<ValueType> csol_cache_;
 
     std::shared_ptr<const LinOp> coarse_level_;
