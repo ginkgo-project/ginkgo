@@ -5,6 +5,8 @@
 #ifndef GKO_CORE_CONFIG_SOLVER_CONFIG_HPP_
 #define GKO_CORE_CONFIG_SOLVER_CONFIG_HPP_
 
+#include <set>
+#include <string>
 
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -17,9 +19,10 @@ namespace config {
 
 
 template <typename SolverParam>
-inline void common_solver_parse(SolverParam& params, const pnode& config,
-                                const registry& context,
-                                type_descriptor td_for_child)
+inline std::set<std::string> common_solver_parse(SolverParam& params,
+                                                 const pnode& config,
+                                                 const registry& context,
+                                                 type_descriptor td_for_child)
 {
     if (auto& obj = config.get("generated_preconditioner")) {
         params.with_generated_preconditioner(
@@ -34,6 +37,8 @@ inline void common_solver_parse(SolverParam& params, const pnode& config,
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
+    return std::set<std::string>{"generated_preconditioner", "criteria",
+                                 "preconditioner"};
 }
 
 

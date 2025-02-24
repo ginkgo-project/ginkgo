@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,9 @@ LowerTrs<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = LowerTrs<ValueType, IndexType>::build();
-    common_trisolver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_trisolver_parse(params, config, context, td_for_child);
+    gko::config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

@@ -5,6 +5,8 @@
 #include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 #include <memory>
+#include <set>
+#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -36,6 +38,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
+    std::set<std::string> allowed_keys{"generated_local_solver",
+                                       "local_solver"};
+    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = Schwarz<ValueType, LocalIndexType, GlobalIndexType>::build();
 
     if (auto& obj = config.get("generated_local_solver")) {

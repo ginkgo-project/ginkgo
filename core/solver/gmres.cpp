@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/solver/gmres.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -15,6 +18,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/mpi/mpi_op.hpp"
@@ -63,7 +67,11 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gmres<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
+    auto allowed_keys =
+        common_solver_parse(params, config, context, td_for_child);
+    std::set<std::string> other_keys{"krylov_dim", "flexible", "ortho_method"};
+    allowed_keys.merge(other_keys);
+    gko::config::check_allowed_keys(config, allowed_keys);
     if (auto& obj = config.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
