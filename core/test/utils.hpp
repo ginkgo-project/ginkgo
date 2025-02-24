@@ -174,6 +174,24 @@ struct add_inner_wrapper<NewInnerWrapper, OuterWrapper<Args...>> {
 };
 
 
+/**
+ * @see duplicate_t for details
+ */
+template <typename ListType, typename... Result>
+struct duplicate {};
+
+template <template <typename...> class OuterWrapper, typename FirstArg,
+          typename... Args, typename... Result>
+struct duplicate<OuterWrapper<FirstArg, Args...>, Result...>
+    : duplicate<OuterWrapper<Args...>, Result...,
+                std::tuple<FirstArg, FirstArg>> {};
+
+template <template <typename...> class OuterWrapper, typename... Result>
+struct duplicate<OuterWrapper<>, Result...> {
+    using type = OuterWrapper<Result...>;
+};
+
+
 }  // namespace detail
 
 
@@ -320,6 +338,23 @@ template <template <typename...> class NewInnerWrapper, typename ListType>
 using add_inner_wrapper_t =
     typename detail::add_inner_wrapper<NewInnerWrapper, ListType>::type;
 
+/**
+ * Creates a list where each original type element is duplicated via std::tuple.
+ * Example:
+ * ```
+ * template<typename... Args>
+ * using t = std::tuple<Args>;  // use this alias to increase readability
+ * using new_list_t = duplicate_t<t<a, b, c>;
+ * // new_list_t = t<t<a, a>, t<b, b>, t<c, c>>;
+ * ```
+ *
+ * @note The elements of the input list should *not* be lists themselves.
+ *
+ * @tparam ListType  A list, where each item will be duplicated.
+ */
+template <typename ListType>
+using duplicate_t = typename detail::duplicate<ListType>::type;
+
 
 using RealValueTypesBase =
 #if GINKGO_DPCPP_SINGLE_MODE
@@ -381,6 +416,13 @@ using TwoValueIndexTypes = add_to_cartesian_type_product_t<
 
 using ValueLocalGlobalIndexTypes =
     add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
+
+#ifdef GINKGO_MIXED_PRECISION
+using MixedPresisionValueIndexTypes = TwoValueIndexTypes;
+#else
+using MixedPresisionValueIndexTypes =
+    add_to_cartesian_type_product_t<duplicate_t<ValueTypes>, IndexTypes>;
+#endif
 
 
 template <typename Precision, typename OutputType>
