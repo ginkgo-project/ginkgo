@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -86,8 +86,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
     gko::device_matrix_data<etype, itype> setup(
         std::shared_ptr<gko::Executor> exec, json& test_case) const override
     {
-        gko::matrix_data<etype, itype> data;
-        data = Generator::generate_matrix_data(test_case);
+        auto [data, local_size] = Generator::generate_matrix_data(test_case);
         // no reordering here, as it doesn't impact conversions beyond
         // dense-sparse conversions
         std::clog << "Matrix is of size (" << data.size[0] << ", "
