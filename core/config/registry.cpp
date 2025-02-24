@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,6 +29,7 @@ configuration_map generate_config_map()
             {"solver::Gcr", parse<LinOpFactoryType::Gcr>},
             {"solver::Gmres", parse<LinOpFactoryType::Gmres>},
             {"solver::CbGmres", parse<LinOpFactoryType::CbGmres>},
+            {"solver::Minres", parse<LinOpFactoryType::Minres>},
             {"solver::Direct", parse<LinOpFactoryType::Direct>},
             {"solver::LowerTrs", parse<LinOpFactoryType::LowerTrs>},
             {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>},
