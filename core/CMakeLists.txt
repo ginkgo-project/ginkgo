@@ -43,6 +43,7 @@ target_sources(
         base/segmented_array.cpp
         base/timer.cpp
         base/version.cpp
+        base/work_estimate.cpp
         components/range_minimum_query.cpp
         config/config.cpp
         config/config_helper.cpp
