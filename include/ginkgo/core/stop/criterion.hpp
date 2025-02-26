@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,6 +103,8 @@ public:
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
                                            implicit_sq_residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
+                                           preconditioned_residual);
         GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, solution);
 
 #undef GKO_UPDATER_REGISTER_PTR_PARAMETER

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -76,6 +76,8 @@ protected:
     std::unique_ptr<NormVector> u_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
     array<bool> device_storage_;
+    // workspace for reduction
+    mutable gko::array<char> reduction_tmp_;
 
 private:
     mode baseline_{mode::rhs_norm};
@@ -84,8 +86,6 @@ private:
     /* one/neg_one for residual computation */
     std::shared_ptr<const Vector> one_{};
     std::shared_ptr<const Vector> neg_one_{};
-    // workspace for reduction
-    mutable gko::array<char> reduction_tmp_;
 };
 
 
@@ -205,6 +205,72 @@ protected:
 
     explicit ImplicitResidualNorm(const Factory* factory,
                                   const CriterionArgs& args)
+        : ResidualNormBase<ValueType>(
+              factory->get_executor(), args,
+              factory->get_parameters().reduction_factor,
+              factory->get_parameters().baseline),
+          parameters_{factory->get_parameters()}
+    {}
+};
+
+
+/**
+ * The PreconditionedResidualNorm class is a stopping criterion which
+ * stops the iteration process when the actual norm of the preconditioned
+ * residual is below a certain threshold relative to
+ * 1. the norm of the right-hand side, norm(preconditioned residual) $\leq$ <
+ * threshold * norm(right_hand_side)
+ * 2. the initial residual, norm(preconditioned residual) $\leq$ threshold *
+ * norm(initial_residual) .
+ * 3. one,  norm(preconditioned residual) $\leq$ threshold.
+ *
+ * @note To use this stopping criterion there are some dependencies. The
+ * constructor depends on either `b` or the `initial_residual` in order to
+ * compute their norms. If this is not correctly provided, an exception
+ * ::gko::NotSupported() is thrown.
+ *
+ * @ingroup stop
+ */
+template <typename ValueType = default_precision>
+class PreconditionedResidualNorm : public ResidualNormBase<ValueType> {
+public:
+    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using Vector = matrix::Dense<ValueType>;
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Preconditioned Residual norm goal
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
+            reduction_factor,
+            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+
+        /**
+         * The quantity the reduction is relative to. Choices include
+         * "mode::rhs_norm", "mode::initial_resnorm" and "mode::absolute"
+         */
+        mode GKO_FACTORY_PARAMETER_SCALAR(baseline, mode::rhs_norm);
+    };
+    GKO_ENABLE_CRITERION_FACTORY(PreconditionedResidualNorm<ValueType>,
+                                 parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+protected:
+    // check_impl needs to be overwritten again since we focus on the norm of
+    // the preconditioned residual here
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Criterion::Updater& updater) override;
+
+    explicit PreconditionedResidualNorm(
+        std::shared_ptr<const gko::Executor> exec)
+        : ResidualNormBase<ValueType>(exec)
+    {}
+
+    explicit PreconditionedResidualNorm(const Factory* factory,
+                                        const CriterionArgs& args)
         : ResidualNormBase<ValueType>(
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,

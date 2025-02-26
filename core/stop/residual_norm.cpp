@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -226,6 +226,35 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
+template <typename ValueType>
+bool PreconditionedResidualNorm<ValueType>::check_impl(
+    uint8 stopping_id, bool set_finalized, array<stopping_status>* stop_status,
+    bool* one_changed, const Criterion::Updater& updater)
+{
+    const NormVector* dense_tau;
+    if (updater.preconditioned_residual_ != nullptr) {
+        norm_dispatch<ValueType>(
+            [&](auto dense_r) {
+                dense_r->compute_norm2(this->u_dense_tau_,
+                                       this->reduction_tmp_);
+            },
+            updater.preconditioned_residual_);
+        dense_tau = this->u_dense_tau_.get();
+    } else {
+        GKO_NOT_SUPPORTED(nullptr);
+    }
+    bool all_converged = true;
+
+    this->get_executor()->run(
+        implicit_residual_norm::make_implicit_residual_norm(
+            dense_tau, this->starting_tau_.get(), this->reduction_factor_,
+            stopping_id, set_finalized, stop_status, &this->device_storage_,
+            &all_converged, one_changed));
+
+    return all_converged;
+}
+
+
 #define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNormBase<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
@@ -233,6 +262,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
     class ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
+
+
+#define GKO_DECLARE_PRECONDITIONED_RESIDUAL_NORM(_type) \
+    class PreconditionedResidualNorm<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PRECONDITIONED_RESIDUAL_NORM);
 
 
 }  // namespace stop

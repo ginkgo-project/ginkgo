@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -147,6 +147,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 .num_iterations(iter)
                 .residual(r)
                 .implicit_sq_residual_norm(rho)
+                .preconditioned_residual(z)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed);
         this->template log<log::Logger::iteration_complete>(
