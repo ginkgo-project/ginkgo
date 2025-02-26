@@ -128,7 +128,7 @@
 
 /* Do we need to use blocking communication in our SpMV? */
 // clang-format off
-#cmakedefine GINKGO_FORCE_SPMV_BLOCKING_COMM
+#cmakedefine01 GINKGO_HAVE_OPENMPI_PRE_4_1_X
 // clang-format on
 
 
