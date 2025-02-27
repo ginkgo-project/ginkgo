@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -143,44 +143,6 @@ protected:
         }
     }
 
-    // template <typename A1, typename A2, typename A3, typename Data2>
-    // void assert_device_matrix_data_equal(A1& row_idxs, A2& col_idxs, A3&
-    // values,
-    //                                      Data2& second)
-    // {
-    //     auto array_second = second.empty_out();
-
-    //     GKO_ASSERT_ARRAY_EQ(row_idxs, array_second.row_idxs);
-    //     GKO_ASSERT_ARRAY_EQ(col_idxs, array_second.col_idxs);
-    //     GKO_ASSERT_ARRAY_EQ(values, array_second.values);
-    // }
-
-    // gko::device_matrix_data<value_type, global_index_type>
-    // create_input_not_full_rank()
-    // {
-    //     return gko::device_matrix_data<value_type, global_index_type>{
-    //         this->ref, gko::dim<2>{7, 7},
-    //         gko::array<global_index_type>{ref, {0, 0, 2, 3, 3, 4, 4, 5, 5,
-    //         6}}, gko::array<global_index_type>{ref, {0, 3, 2, 0, 3, 4, 6, 4,
-    //         5, 5}}, gko::array<value_type>{ref, {1, 2, 5, 6, 7, 8, 9, 10, 11,
-    //         12}}};
-    // }
-
-    // gko::device_matrix_data<value_type, global_index_type>
-    // create_input_full_rank()
-    // {
-    //     return gko::device_matrix_data<value_type, global_index_type>{
-    //         this->ref, gko::dim<2>{7, 7},
-    //         gko::array<global_index_type>{ref,
-    //                                       {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5,
-    //                                       6}},
-    //         gko::array<global_index_type>{ref,
-    //                                       {0, 3, 1, 2, 2, 0, 3, 4, 6, 4, 5,
-    //                                       5}},
-    //         gko::array<value_type>{ref,
-    //                                {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}}};
-    // }
-
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<comm_index_type> mapping;
     gko::array<global_index_type> non_owning_row_idxs;
@@ -189,7 +151,7 @@ protected:
         local_contributions;
 };
 
-TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypes,
+TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypesBase,
                  TupleTypenameNameGenerator);
 
 
