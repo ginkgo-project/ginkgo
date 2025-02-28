@@ -567,7 +567,7 @@ public:
      */
     bool is_identical(const communicator& rhs) const
     {
-        if (get() == nullptr || rhs.get() == nullptr) {
+        if (!get() || !rhs.get()) {
             return get() == rhs.get();
         }
         if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
