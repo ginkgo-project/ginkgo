@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,7 +29,7 @@ struct device_segmented_array {
         T* end;
     };
 
-    constexpr segment get_segment(size_type segment_id)
+    constexpr segment get_segment(size_type segment_id) const
     {
         GKO_ASSERT(segment_id < (offsets_end - offsets_begin));
         return {flat_begin + offsets_begin[segment_id],
