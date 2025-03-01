@@ -92,7 +92,7 @@ trigger_pipeline:
 
 
 # cuda 11.4 and friends
-build/cuda110/nompi/gcc/cuda/release/shared:
+build/cuda110/mvapich2/gcc/cuda/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
@@ -101,6 +101,7 @@ build/cuda110/nompi/gcc/cuda/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
