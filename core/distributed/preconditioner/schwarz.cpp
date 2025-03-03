@@ -151,10 +151,11 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     if (parameters_.l1_smoother) {
         auto local_matrix_copy = share(clone(local_matrix));
 
-        auto non_local_matrix = as<matrix::Csr<ValueType, LocalIndexType>>(
-            as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
-                system_matrix)
-                ->get_non_local_matrix());
+        auto non_local_matrix =
+            copy_and_convert_to<matrix::Csr<ValueType, LocalIndexType>>(
+                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
+                    system_matrix)
+                    ->get_non_local_matrix());
 
         auto exec = this->get_executor();
         array<ValueType> l1_diag_arr{exec, local_matrix->get_size()[0]};
