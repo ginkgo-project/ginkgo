@@ -34,13 +34,14 @@ DEFINE_bool(
     rel_residual, false,
     "Use relative residual instead of residual reduction stopping criterion");
 
-DEFINE_string(solvers, "cg",
-              "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, bicg, cb_gmres_keep, "
-              "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
-              "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
-              "lower_trs, upper_trs, spd_direct, symm_direct, "
-              "near_symm_direct, direct, overhead");
+DEFINE_string(
+    solvers, "cg",
+    "A comma-separated list of solvers to run. "
+    "Supported values are: bicgstab, bicg, cb_gmres_keep, "
+    "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
+    "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, direct, fcg, gmres, idr, "
+    "lower_trs, minres, near_symm_direct, upper_trs, spd_direct, symm_direct, "
+    "overhead");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -199,6 +200,9 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
         return add_criteria_precond_finalize(
             gko::solver::Gmres<etype>::build().with_krylov_dim(
                 FLAGS_gmres_restart),
+            exec, precond, max_iters);
+    } else if (description == "minres") {
+        return add_criteria_precond_finalize<gko::solver::Minres<etype>>(
             exec, precond, max_iters);
     } else if (description == "lower_trs") {
         return gko::solver::LowerTrs<etype>::build()

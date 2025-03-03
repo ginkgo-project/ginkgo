@@ -70,6 +70,7 @@
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
+#include "core/solver/minres_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
@@ -694,6 +695,17 @@ GKO_STUB_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL);
 
 
 }  // namespace multigrid
+
+
+namespace minres {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_MINRES_INITIALIZE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_1_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_2_KERNEL);
+
+
+}  // namespace minres
 
 
 namespace sparsity_csr {
