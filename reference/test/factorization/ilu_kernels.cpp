@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -470,6 +470,47 @@ TYPED_TEST(Ilu, GenerateForCsrSmall2ZeroDiagonal)
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_factor, this->small2_u_expected,
                         r<value_type>::value);
+}
+
+
+TYPED_TEST(Ilu, GenerateForCsrSmall2ZeroDiagonalPower2)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using ilu_type = typename TestFixture::ilu_type;
+    using Csr = typename TestFixture::Csr;
+    // generate matrix from matrix data to ensure the sparsity
+    gko::matrix_data<value_type, index_type> result_l_data(gko::dim<2>(3, 3),
+                                                           {{0, 0, 1},
+                                                            {1, 0, 0.25},
+                                                            {1, 1, 1},
+                                                            {2, 0, 0.125},
+                                                            {2, 1, 0},
+                                                            {2, 2, 1}});
+    auto result_l = Csr::create(this->ref);
+    result_l->read(result_l_data);
+    gko::matrix_data<value_type, index_type> result_u_data(
+        gko::dim<2>(3, 3),
+        {{0, 0, 8}, {0, 1, 8}, {0, 2, 0}, {1, 1, -2}, {1, 2, 5}, {2, 2, 1}});
+    auto result_u = Csr::create(this->ref);
+    result_u->read(result_u_data);
+    // power 2 gives full sparsity
+    auto factory =
+        ilu_type::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_sparsity_power(2)
+            .on(this->ref);
+
+    auto factors = factory->generate(this->mtx_csr_small2);
+
+
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_factor, result_l);
+    GKO_ASSERT_MTX_NEAR(l_factor, result_l, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_factor, result_u);
+    GKO_ASSERT_MTX_NEAR(u_factor, result_u, r<value_type>::value);
 }
 
 

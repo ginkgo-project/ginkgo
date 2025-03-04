@@ -78,6 +78,59 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
 }
 
 
+/**
+ * @internal
+ *
+ * Helper function that extends the sparsity pattern of the matrix M to M^n
+ * without changing its values.
+ *
+ * The input matrix must be sorted and on the correct executor for this to work.
+ * If `power` is 1, the matrix will be returned unchanged.
+ */
+template <typename Csr>
+std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> exec,
+                                     std::shared_ptr<Csr> mtx, int power)
+{
+    GKO_ASSERT_EQ(power >= 1, true);
+    if (power == 1) {
+        // copy the matrix sparsity
+        auto factors = share(
+            Csr::create(exec, mtx->get_size(), mtx->get_num_stored_elements()));
+        exec->copy_from(exec, mtx->get_num_stored_elements(),
+                        mtx->get_const_col_idxs(), factors->get_col_idxs());
+        exec->copy_from(exec, mtx->get_size()[0] + 1, mtx->get_const_row_ptrs(),
+                        factors->get_row_ptrs());
+        // update srow to be safe
+        factors->set_strategy(factors->get_strategy());
+        return factors;
+    }
+    auto id_power = mtx->clone();
+    auto tmp = Csr::create(exec, mtx->get_size());
+    // accumulates mtx * the remainder from odd powers
+    auto acc = mtx->clone();
+    // compute id^(n-1) using square-and-multiply
+    int i = power - 1;
+    while (i > 1) {
+        if (i % 2 != 0) {
+            // store one power in acc:
+            // i^(2n+1) -> i*i^2n
+            id_power->apply(acc, tmp);
+            std::swap(acc, tmp);
+            i--;
+        }
+        // square id_power: i^2n -> (i^2)^n
+        id_power->apply(id_power, tmp);
+        std::swap(id_power, tmp);
+        i /= 2;
+    }
+    // combine acc and id_power again
+    id_power->apply(acc, tmp);
+    // update srow to be safe
+    tmp->set_strategy(tmp->get_strategy());
+    return {std::move(tmp)};
+}
+
+
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting) const
@@ -106,15 +159,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         exec == exec->get_master()) {
         const auto nnz = local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
-        auto factors = share(
-            matrix_type::create(exec, local_system_matrix->get_size(), nnz));
-        exec->copy_from(exec, nnz, local_system_matrix->get_const_col_idxs(),
-                        factors->get_col_idxs());
-        exec->copy_from(exec, num_rows + 1,
-                        local_system_matrix->get_const_row_ptrs(),
-                        factors->get_row_ptrs());
-        // update srow to be safe
-        factors->set_strategy(factors->get_strategy());
+        auto factors = extend_sparsity(exec, local_system_matrix,
+                                       this->get_parameters().sparsity_power);
 
         // setup lookup structure on factors
         const auto lookup = matrix::csr::build_lookup(factors.get());
@@ -131,6 +177,9 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
             diag_idxs.get_const_data(), factors.get(), false, tmp));
         ilu = factors;
     } else {
+        GKO_THROW_IF_INVALID(
+            this->get_parameters().sparsity_power == 1,
+            "sparselib algorithm only supports 1 for sparsity_power.");
         exec->run(
             ilu_factorization::make_sparselib_ilu(local_system_matrix.get()));
         ilu = local_system_matrix;

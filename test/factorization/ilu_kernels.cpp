@@ -184,3 +184,27 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
 }
+
+
+TEST_F(Ilu, ComputeILUIsEquivalentToRefSortedWithPower)
+{
+    auto fact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_sparsity_power(2)
+            .on(ref)
+            ->generate(mtx);
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_sparsity_power(2)
+            .on(exec)
+            ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
+}
