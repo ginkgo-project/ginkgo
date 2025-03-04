@@ -567,9 +567,6 @@ public:
      */
     bool is_identical(const communicator& rhs) const
     {
-        if (!get() || !rhs.get()) {
-            return get() == rhs.get();
-        }
         if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
@@ -592,9 +589,6 @@ public:
      */
     bool is_congruent(const communicator& rhs) const
     {
-        if (!get() || !rhs.get()) {
-            return get() == rhs.get();
-        }
         if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
