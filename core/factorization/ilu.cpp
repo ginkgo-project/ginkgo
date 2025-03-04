@@ -71,6 +71,9 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
     }
+    if (auto& obj = config.get("sparsity_power")) {
+        params.with_sparsity_power(config::get_value<int>(obj));
+    }
     return params;
 }
 

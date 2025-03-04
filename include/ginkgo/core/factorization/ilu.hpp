@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,6 +105,17 @@ public:
          */
         incomplete_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, incomplete_algorithm::sparselib);
+
+        /**
+         * @brief Which power of the input matrix should be used for the
+         *        sparsity pattern.
+         *
+         * The algorithm symbolically computes M^n and uses this sparsity
+         * pattern for the sparse inverse.
+         * Must be at least 1, default value 1. Only syncfree algorithm supports
+         * this parameter larger than 1.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(sparsity_power, 1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

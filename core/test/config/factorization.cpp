@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,6 +118,8 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
         config_map["algorithm"] = pnode{"syncfree"};
         param.with_algorithm(
             gko::factorization::incomplete_algorithm::syncfree);
+        config_map["sparsity_power"] = pnode{2};
+        param.with_sparsity_power(2);
     }
 
     template <typename AnswerType>
