@@ -719,7 +719,7 @@ public:
      * Broadcast data from calling process to all ranks in the communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *
@@ -742,7 +742,7 @@ public:
      * communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *
