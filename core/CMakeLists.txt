@@ -116,6 +116,7 @@ target_sources(
         solver/chebyshev.cpp
         solver/direct.cpp
         solver/fcg.cpp
+        solver/pipe_cg.cpp
         solver/gcr.cpp
         solver/gmres.cpp
         solver/idr.cpp
