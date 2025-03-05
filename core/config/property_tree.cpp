@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,6 +36,12 @@ pnode::pnode(const map_type& map) : tag_(tag_t::map), map_(map) {}
 
 
 pnode::operator bool() const noexcept { return tag_ != tag_t::empty; }
+
+bool pnode::operator==(const pnode& rhs) const
+{
+    return tag_ == rhs.tag_ && array_ == rhs.array_ && map_ == rhs.map_ &&
+           str_ == rhs.str_;
+}
 
 
 pnode::tag_t pnode::get_tag() const { return tag_; }
