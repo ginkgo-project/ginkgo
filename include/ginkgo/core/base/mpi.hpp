@@ -567,9 +567,6 @@ public:
      */
     bool is_identical(const communicator& rhs) const
     {
-        if (get() == nullptr || rhs.get() == nullptr) {
-            return get() == rhs.get();
-        }
         if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
@@ -592,9 +589,6 @@ public:
      */
     bool is_congruent(const communicator& rhs) const
     {
-        if (!get() || !rhs.get()) {
-            return get() == rhs.get();
-        }
         if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
             return get() == rhs.get();
         }
@@ -725,7 +719,7 @@ public:
      * Broadcast data from calling process to all ranks in the communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *
@@ -748,7 +742,7 @@ public:
      * communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *

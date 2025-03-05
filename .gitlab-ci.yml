@@ -101,6 +101,7 @@ build/cuda110/nompi/gcc/cuda/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
     BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
