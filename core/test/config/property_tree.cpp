@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -180,4 +180,135 @@ TEST(PropertyTree, UseInCondition)
 
     ASSERT_EQ(first, 2);
     ASSERT_EQ(second, 1);
+}
+
+
+class PropertyTreeEquality : public ::testing::Test {
+protected:
+    PropertyTreeEquality()
+    {
+        auto generator = [](auto&& vector) {
+            // empty node
+            vector.emplace_back(pnode());
+            // boolean
+            vector.emplace_back(pnode(true));
+            // real
+            vector.emplace_back(pnode(1.2));
+            // integer
+            vector.emplace_back(pnode(4));
+            // string
+            vector.emplace_back(pnode("123"));
+            // array
+            vector.emplace_back(
+                pnode(pnode::array_type{pnode{"1"}, pnode{4}, pnode{true}}));
+            // array2
+            vector.emplace_back(
+                pnode(pnode::array_type{pnode{"2"}, pnode{4}, pnode{true}}));
+            // array3
+            vector.emplace_back(
+                pnode(pnode::array_type{pnode{"3"}, pnode{4}, pnode{true}}));
+            // map
+            vector.emplace_back(pnode(pnode::map_type{{"first", pnode{"1"}},
+                                                      {"second", pnode{1.2}}}));
+            // map2
+            vector.emplace_back(pnode(pnode::map_type{{"first", pnode{"2"}},
+                                                      {"second", pnode{1.2}}}));
+            // map3
+            vector.emplace_back(pnode(pnode::map_type{{"first", pnode{"3"}},
+                                                      {"second", pnode{1.2}}}));
+        };
+        // first and second have the same content
+        generator(first);
+        generator(second);
+        // diff_content have different content but type still the same
+        // still keep the empty node here for easy index mapping.
+        // empty node
+        diff_content.emplace_back(pnode());
+        // boolean
+        diff_content.emplace_back(pnode(false));
+        // real
+        diff_content.emplace_back(pnode(2.4));
+        // integer
+        diff_content.emplace_back(pnode(3));
+        // string
+        diff_content.emplace_back(pnode("456"));
+        // array (different content)
+        diff_content.emplace_back(
+            pnode(pnode::array_type{pnode{"456"}, pnode{3}, pnode{false}}));
+        // array (different number of item)
+        diff_content.emplace_back(
+            pnode(pnode::array_type{pnode{"2"}, pnode{4}}));
+        // array (different order)
+        diff_content.emplace_back(
+            pnode(pnode::array_type{pnode{4}, pnode{"3"}, pnode{true}}));
+        // map (different key)
+        diff_content.emplace_back(pnode(
+            pnode::map_type{{"second", pnode{"1"}}, {"first", pnode{1.2}}}));
+        // map (different number of item)
+        diff_content.emplace_back(
+            pnode(pnode::map_type{{"first", pnode{"2"}}}));
+        // map (different content)
+        diff_content.emplace_back(pnode(
+            pnode::map_type{{"first", pnode{"456"}}, {"second", pnode{2.4}}}));
+    }
+    std::vector<pnode> first;
+    std::vector<pnode> second;
+    std::vector<pnode> diff_content;
+};
+
+
+TEST_F(PropertyTreeEquality, CheckEquality)
+{
+    ASSERT_EQ(first.size(), second.size());
+    for (size_t i = 0; i < first.size(); i++) {
+        for (size_t j = 0; j < second.size(); j++) {
+            if (i == j) {
+                ASSERT_EQ(first.at(i), second.at(j));
+            } else {
+                ASSERT_NE(first.at(i), second.at(j));
+            }
+        }
+    }
+}
+
+
+TEST_F(PropertyTreeEquality, CheckEqualityOnlyContentDiff)
+{
+    ASSERT_EQ(first.size(), diff_content.size());
+    for (size_t i = 1; i < diff_content.size(); i++) {
+        ASSERT_EQ(first.at(i).get_tag(), diff_content.at(i).get_tag());
+        ASSERT_NE(first.at(i), diff_content.at(i));
+    }
+}
+
+
+TEST_F(PropertyTreeEquality, CheckEqualityUnderlyingNodeDiff)
+{
+    pnode map_1{pnode::map_type{{"first", first.at(5)},
+                                {"second", first.at(7)},
+                                {"third", first.at(8)},
+                                {"forth", first.at(9)}}};
+    pnode map_2{pnode::map_type{{"first", first.at(5)},
+                                {"second", first.at(7)},
+                                {"third", diff_content.at(8)},
+                                {"forth", first.at(9)}}};
+
+    ASSERT_NE(map_1, map_2);
+}
+
+
+TEST_F(PropertyTreeEquality, CheckEqualityOfDiffOrderMap)
+{
+    pnode map_1{pnode::map_type{{"first", first.at(5)},
+                                {"second", first.at(7)},
+                                {"third", first.at(8)},
+                                {"forth", first.at(9)}}};
+    pnode map_2{pnode::map_type{{"first", first.at(5)},
+                                {"forth", first.at(9)},
+                                {"third", first.at(8)},
+                                {"second", first.at(7)}}};
+
+    // We use std::map is ordered map, so the input order does not affect the
+    // equality
+    ASSERT_EQ(map_1, map_2);
 }

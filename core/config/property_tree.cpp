@@ -39,8 +39,32 @@ pnode::operator bool() const noexcept { return tag_ != tag_t::empty; }
 
 bool pnode::operator==(const pnode& rhs) const
 {
-    return tag_ == rhs.tag_ && array_ == rhs.array_ && map_ == rhs.map_ &&
-           str_ == rhs.str_;
+    if (tag_ == rhs.tag_) {
+        switch (tag_) {
+        case pnode::tag_t::empty:
+            return true;
+        case pnode::tag_t::array:
+            return array_ == rhs.array_;
+        case pnode::tag_t::map:
+            return map_ == rhs.map_;
+        case pnode::tag_t::string:
+            return str_ == rhs.str_;
+        case pnode::tag_t::boolean:
+            return union_data_.boolean_ == rhs.union_data_.boolean_;
+        case pnode::tag_t::real:
+            return union_data_.real_ == rhs.union_data_.real_;
+        case pnode::tag_t::integer:
+            return union_data_.integer_ == rhs.union_data_.integer_;
+        default:
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+    return false;
+}
+
+bool pnode::operator!=(const pnode& rhs) const
+{
+    return !(this->operator==(rhs));
 }
 
 
