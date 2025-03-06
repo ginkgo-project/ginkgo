@@ -44,6 +44,7 @@ set(CUDA_HIP_SOURCES
     reorder/rcm_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
+    solver/lobpcg_kernels.cpp
     solver/multigrid_kernels.cpp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp

@@ -69,6 +69,7 @@
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/lobpcg_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
@@ -706,6 +707,17 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_2_KERNEL);
 
 
 }  // namespace minres
+
+
+#if GKO_HAVE_LAPACK
+namespace lobpcg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL);
+
+
+}  // namespace lobpcg
+#endif
 
 
 namespace sparsity_csr {

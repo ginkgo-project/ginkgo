@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,8 @@
 struct cublasContext;
 
 struct cusparseContext;
+
+struct cusolverDnContext;
 
 struct CUstream_st;
 
