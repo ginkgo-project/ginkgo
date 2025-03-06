@@ -397,7 +397,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _enable_macro(OmpExecutor, omp);                \
     _enable_macro(HipExecutor, hip);                \
     _enable_macro(DpcppExecutor, dpcpp);            \
-    _enable_macro(CudaExecutor, cuda)
+    _enable_macro(CudaExecutor, cuda);              \
+    _enable_macro(PoplarExecutor, poplar)
 
 
 // cuda half operation is supported from arch 5.3
