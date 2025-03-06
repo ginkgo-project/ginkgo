@@ -63,7 +63,7 @@ if(NOT DEFINED GINKGO_BUILD_POPLAR)
     try_compile(
         GKO_CAN_COMPILE_POPLAR
         ${PROJECT_BINARY_DIR}/poplar
-        SOURCES ${PROJECT_SOURCE_DIR}/poplar/test_dpcpp.dp.cpp
+        SOURCES ${PROJECT_SOURCE_DIR}/poplar/test_poplar.cpp
     )
     if(GKO_CAN_COMPILE_POPLAR)
         message(STATUS "Enabling Poplar executor for Graphcore IPUs")
