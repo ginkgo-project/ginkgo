@@ -70,6 +70,7 @@ target_sources(
         solver/gmres_kernels.cpp
         solver/idr_kernels.cpp
         solver/ir_kernels.cpp
+        solver/lobpcg_kernels.cpp
         solver/lower_trs_kernels.cpp
         solver/minres_kernels.cpp
         solver/multigrid_kernels.cpp
@@ -80,6 +81,9 @@ target_sources(
         stop/residual_norm_kernels.cpp
 )
 
+if(GINKGO_BUILD_LAPACK)
+    target_link_libraries(ginkgo_reference PUBLIC LAPACK::LAPACK)
+endif()
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
 target_compile_definitions(
     ginkgo_reference

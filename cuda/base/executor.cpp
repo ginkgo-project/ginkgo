@@ -20,6 +20,9 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/executor.hpp.inc"
 #include "cuda/base/cublas_handle.hpp"
+#if GKO_HAVE_LAPACK
+#include "cuda/base/cusolver_handle.hpp"
+#endif
 #include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device.hpp"
 #include "cuda/base/scoped_device_id.hpp"
@@ -248,6 +251,14 @@ void CudaExecutor::init_handles()
                 detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
             });
+#if GKO_HAVE_LAPACK
+        this->cusolver_handle_ = handle_manager<cusolverDnContext>(
+            kernels::cuda::cusolver::init(this->get_stream()),
+            [id](cusolverDnHandle_t handle) {
+                detail::cuda_scoped_device_id_guard g(id);
+                kernels::cuda::cusolver::destroy(handle);
+            });
+#endif
     }
 }
 

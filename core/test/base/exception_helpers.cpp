@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,6 +103,16 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+#if GKO_HAVE_LAPACK
+void throws_cusolver_error() { throw GKO_CUSOLVER_ERROR(0); }
+
+TEST(CudaError, ReturnsCusolverError)
+{
+    ASSERT_THROW(throws_cusolver_error(), gko::CusolverError);
+}
+#endif
+
+
 void throws_cufft_error() { throw GKO_CUFFT_ERROR(0); }
 
 TEST(CudaError, ReturnsCufftError)
@@ -149,6 +159,15 @@ TEST(HipError, ReturnsHipfftError)
 {
     ASSERT_THROW(throws_hipfft_error(), gko::HipfftError);
 }
+
+#if GKO_HAVE_LAPACK
+void throws_lapack_error() { throw GKO_LAPACK_ERROR(0); }
+
+TEST(LapackError, ReturnsLapackError)
+{
+    ASSERT_THROW(throws_lapack_error(), gko::LapackError);
+}
+#endif
 
 
 TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)

@@ -1680,6 +1680,20 @@ public:
     }
 
     /**
+     * Get the cusolver handle for this executor
+     *
+     * @return  the cusolver handle (cusolverDnContext*) for this executor
+     */
+    cusolverDnContext* get_dev_lapack_handle() const
+    {
+#if GKO_HAVE_LAPACK
+        return cusolver_handle_.get();
+#else
+        return NULL;
+#endif
+    }
+
+    /**
      * Returns the CUDA stream used by this executor. Can be nullptr for the
      * default stream.
      *
@@ -1729,6 +1743,7 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cublasContext> cublas_handle_;
     handle_manager<cusparseContext> cusparse_handle_;
+    handle_manager<cusolverDnContext> cusolver_handle_;
     std::shared_ptr<CudaAllocatorBase> alloc_;
     CUstream_st* stream_;
 };

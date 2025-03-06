@@ -119,6 +119,11 @@
 #cmakedefine01 GINKGO_HAVE_GPU_AWARE_MPI
 // clang-format on
 
+/* Is LAPACK available? */
+// clang-format off
+#define GKO_HAVE_LAPACK @GINKGO_HAVE_LAPACK@
+// clang-format on
+
 /* Is half operation available ? */
 // clang-format off
 #cmakedefine01 GINKGO_ENABLE_HALF

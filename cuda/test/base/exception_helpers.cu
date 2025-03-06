@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,10 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+#if GKO_HAVE_LAPACK  // Must be after Ginkgo include for GKO_HAVE_LAPACK def
+#include <cusolverDn.h>
+#endif
 
 
 namespace {
@@ -62,6 +66,20 @@ TEST(AssertNoCusparseErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_CUSPARSE_ERRORS(CUSPARSE_STATUS_SUCCESS));
 }
+
+
+#if GKO_HAVE_LAPACK
+TEST(AssertNoCusolverErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_CUSOLVER_ERRORS(1), gko::CusolverError);
+}
+
+
+TEST(AssertNoCusolverErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_CUSOLVER_ERRORS(CUSOLVER_STATUS_SUCCESS));
+}
+#endif
 
 
 TEST(AssertNoCufftErrors, ThrowsOnError)
