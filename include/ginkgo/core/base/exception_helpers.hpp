@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -495,12 +495,30 @@ inline size_type get_num_batch_items(const T& obj)
 
 
 /**
+ * Instantiates a CusolverError.
+ *
+ * @param errcode  The error code returned from the cuSOLVER routine.
+ */
+#define GKO_CUSOLVER_ERROR(_errcode) \
+    ::gko::CusolverError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CufftError.
  *
  * @param errcode  The error code returned from the cuFFT routine.
  */
 #define GKO_CUFFT_ERROR(_errcode) \
     ::gko::CufftError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates an LapackError.
+ *
+ * @param errcode  The error code returned from the LAPACK routine.
+ */
+#define GKO_LAPACK_ERROR(_errcode) \
+    ::gko::LapackError(__FILE__, __LINE__, __func__, _errcode)
 
 
 /**
@@ -555,6 +573,20 @@ inline size_type get_num_batch_items(const T& obj)
         auto _errcode = _cusparse_call;               \
         if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
             throw GKO_CUSPARSE_ERROR(_errcode);       \
+        }                                             \
+    } while (false)
+
+
+/**
+ * Asserts that a cuSOLVER library call completed without errors.
+ *
+ * @param _cublas_call  a library call expression
+ */
+#define GKO_ASSERT_NO_CUSOLVER_ERRORS(_cusolver_call) \
+    do {                                              \
+        auto _errcode = _cusolver_call;               \
+        if (_errcode != CUSOLVER_STATUS_SUCCESS) {    \
+            throw GKO_CUSOLVER_ERROR(_errcode);       \
         }                                             \
     } while (false)
 
@@ -699,6 +731,22 @@ inline size_type get_num_batch_items(const T& obj)
         if (_errcode != MPI_SUCCESS) {      \
             throw GKO_MPI_ERROR(_errcode);  \
         }                                   \
+    } while (false)
+
+
+/**
+ * Asserts that an LAPACK library call completed without errors.
+ *
+ * @param _lapack_call  a library call expression
+ * @param _info_var  the name of the variable passed as LAPACK's
+ *                   INFO argument in _lapack_call
+ */
+#define GKO_ASSERT_NO_LAPACK_ERRORS(_lapack_call, _info_var) \
+    do {                                                     \
+        _lapack_call;                                        \
+        if (_info_var != 0) {                                \
+            throw GKO_LAPACK_ERROR(_info_var);               \
+        }                                                    \
     } while (false)
 
 

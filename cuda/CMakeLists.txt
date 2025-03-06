@@ -131,6 +131,9 @@ target_link_libraries(
         CUDA::cufft
         nvtx::nvtx
 )
+if(GINKGO_BUILD_LAPACK)
+    target_link_libraries(ginkgo_cuda PRIVATE CUDA::cusolver)
+endif()
 # NVTX3 is header-only and requires dlopen/dlclose in static builds
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device ${CMAKE_DL_LIBS})
 
