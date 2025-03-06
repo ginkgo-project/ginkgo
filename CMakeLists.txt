@@ -53,6 +53,11 @@ option(
     "Compile kernels for AMD or NVIDIA GPUs"
     ${GINKGO_HAS_HIP}
 )
+option(
+    GINKGO_BUILD_POPLAR
+    "Compile Poplar kernels for Graphcore IPUs"
+    ${GINKGO_HAS_POPLAR}
+)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(
     GINKGO_FAST_TESTS
