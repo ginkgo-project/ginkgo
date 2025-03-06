@@ -99,7 +99,15 @@ public:
      */
     explicit operator bool() const noexcept;
 
+    /**
+     * Check whether the representing data of two pnodes are the same
+     */
     bool operator==(const pnode& rhs) const;
+
+    /**
+     * Check whether the representing data of two pnodes are different.
+     */
+    bool operator!=(const pnode& rhs) const;
 
     /**
      * Get the current node tag.
