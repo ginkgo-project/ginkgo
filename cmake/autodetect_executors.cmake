@@ -3,6 +3,7 @@ set(GINKGO_HAS_MPI OFF)
 set(GINKGO_HAS_CUDA OFF)
 set(GINKGO_HAS_SYCL OFF)
 set(GINKGO_HAS_HIP OFF)
+set(GINKGO_HAS_POPLAR OFF)
 
 include(CheckLanguage)
 
@@ -55,5 +56,17 @@ if(NOT DEFINED GINKGO_BUILD_DPCPP AND NOT DEFINED GINKGO_BUILD_SYCL)
     if(GKO_CAN_COMPILE_DPCPP)
         message(STATUS "Enabling DPCPP executor")
         set(GINKGO_HAS_SYCL ON)
+    endif()
+endif()
+
+if(NOT DEFINED GINKGO_BUILD_POPLAR)
+    try_compile(
+        GKO_CAN_COMPILE_POPLAR
+        ${PROJECT_BINARY_DIR}/poplar
+        SOURCES ${PROJECT_SOURCE_DIR}/poplar/test_dpcpp.dp.cpp
+    )
+    if(GKO_CAN_COMPILE_POPLAR)
+        message(STATUS "Enabling Poplar executor for Graphcore IPUs")
+        set(GINKGO_HAS_POPLAR ON)
     endif()
 endif()
