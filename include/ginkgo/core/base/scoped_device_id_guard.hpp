@@ -17,6 +17,7 @@ class ReferenceExecutor;
 class CudaExecutor;
 class HipExecutor;
 class DpcppExecutor;
+class PoplarExecutor;
 
 
 namespace detail {
@@ -124,6 +125,16 @@ public:
      * @param device_id  Not used.
      */
     scoped_device_id_guard(const DpcppExecutor* exec, int device_id);
+
+    /**
+     * Create a scoped device id from an PoplarExecutor.
+     *
+     * The resulting object will be a noop.
+     *
+     * @param exec  Not used.
+     * @param device_id  Not used.
+     */
+    scoped_device_id_guard(const PoplarExecutor* exec, int device_id);
 
     scoped_device_id_guard() = default;
 

@@ -229,6 +229,23 @@ private:
 };
 
 
+/** A timer using kernels for timing on a PoplarExecutor in profiling mode. */
+class PoplarTimer : public Timer {
+public:
+    void record(time_point& time) override;
+
+    void wait(time_point& time) override;
+
+    std::chrono::nanoseconds difference_async(const time_point& start,
+                                              const time_point& stop) override;
+
+    PoplarTimer(std::shared_ptr<const PoplarExecutor> exec);
+
+protected:
+    void init_time_point(time_point& time) override;
+};
+
+
 }  // namespace gko
 
 

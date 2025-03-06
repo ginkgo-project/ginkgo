@@ -14,6 +14,7 @@
 #include "cuda/base/device.hpp"
 #include "dpcpp/base/device.hpp"
 #include "hip/base/device.hpp"
+#include "poplar/base/device.hpp"
 
 
 namespace gko {
@@ -36,6 +37,9 @@ time_point::~time_point()
         break;
     case type::dpcpp:
         kernels::dpcpp::destroy_event(data_.dpcpp_event);
+        break;
+    case type::poplar:
+        kernels::poplar::destroy_event(data_.poplar_event);
         break;
     case type::cpu:
     default:
@@ -109,6 +113,9 @@ std::unique_ptr<Timer> Timer::create_for_executor(
     } else if (auto dpcpp_exec =
                    std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
         return std::make_unique<DpcppTimer>(dpcpp_exec);
+    } else if (auto poplar_exec =
+                   std::dynamic_pointer_cast<const PoplarExecutor>(exec)) {
+        return std::make_unique<PoplarTimer>(poplar_exec);
     } else {
         return std::make_unique<CpuTimer>();
     }
