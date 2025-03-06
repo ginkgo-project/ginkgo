@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,8 @@ namespace detail {
  *            not be copied when the outer object gets copied.
  */
 template <typename ValueType>
-struct VectorCache {
+class VectorCache {
+public:
     VectorCache() = default;
     ~VectorCache() = default;
     VectorCache(const VectorCache&) {}
