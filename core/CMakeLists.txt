@@ -51,6 +51,7 @@ target_sources(
         config/type_descriptor.cpp
         distributed/index_map.cpp
         distributed/partition.cpp
+        eigensolver/jacobi.cpp
         factorization/cholesky.cpp
         factorization/elimination_forest.cpp
         factorization/factorization.cpp

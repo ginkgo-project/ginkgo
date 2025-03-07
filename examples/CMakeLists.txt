@@ -38,6 +38,7 @@ set(EXAMPLES_LIST
     preconditioner-export
     reordered-preconditioned-solver
     simple-solver-logging
+    jacobi-eigensolver
 )
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
