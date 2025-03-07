@@ -11,7 +11,7 @@
 namespace gko {
 
 
-scoped_device_id_guard::scoped_device_id_guard(const PoplarExecutor* exec,
+scoped_device_id_guard::scoped_device_id_guard(const CslExecutor* exec,
                                                int device_id)
     : scope_(std::make_unique<detail::noop_scoped_device_id_guard>())
 {}

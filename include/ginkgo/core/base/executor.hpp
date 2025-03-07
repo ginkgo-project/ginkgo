@@ -328,7 +328,7 @@ public:
         op_(exec);
     }
 
-    void run(std::shared_ptr<const PoplarExecutor> exec) const override
+    void run(std::shared_ptr<const CslExecutor> exec) const override
     {
         op_(exec);
     }
@@ -359,7 +359,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *
  * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
  * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda`, `hip`, `dpcpp`,
- * `poplar` and `reference`.
+ * `csl` and `reference`.
  *
  * @param _name  operation name
  * @param _kernel  kernel which will be bound to the operation
@@ -390,9 +390,9 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  * void my_kernel(int x) {
  *      // dpcpp code
  * }
- * namespace poplar {
+ * namespace csl {
  * void my_kernel(int x) {
- *      // poplar code
+ *      // csl code
  * }
  * }
  * namespace reference {
@@ -410,7 +410,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *     auto cuda = CudaExecutor::create(0, omp);
  *     auto hip = HipExecutor::create(0, omp);
  *     auto dpcpp = DpcppExecutor::create(0, omp);
- *     auto poplar = PoplarExecutor::create();
+ *     auto csl = CslExecutor::create();
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
@@ -420,7 +420,7 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
  *     cuda->run(op);  // run cuda kernel
  *     hip->run(op);  // run hip kernel
  *     dpcpp->run(op);  // run DPC++ kernel
- *     poplar->run(op);  // run Poplar kernel
+ *     csl->run(op);  // run Csl kernel
  *     ref->run(op);  // run reference kernel
  * }
  * ```
@@ -476,11 +476,11 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                         std::forward<Args>(args)...);                          \
                 } else if (std::is_same<                                       \
                                exec_type,                                      \
-                               std::shared_ptr<const ::gko::PoplarExecutor>>:: \
+                               std::shared_ptr<const ::gko::CslExecutor>>::    \
                                value) {                                        \
-                    ::gko::kernels::poplar::_kernel(                           \
-                        std::dynamic_pointer_cast<                             \
-                            const ::gko::PoplarExecutor>(exec),                \
+                    ::gko::kernels::csl::_kernel(                              \
+                        std::dynamic_pointer_cast<const ::gko::CslExecutor>(   \
+                            exec),                                             \
                         std::forward<Args>(args)...);                          \
                 } else {                                                       \
                     GKO_NOT_IMPLEMENTED;                                       \
@@ -661,26 +661,26 @@ public:
      * @tparam ClosureCuda  type of op_cuda
      * @tparam ClosureHip  type of op_hip
      * @tparam ClosureDpcpp  type of op_dpcpp
-     * @tparam ClosurePoplar type of op_poplar
+     * @tparam ClosureCsl type of op_csl
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
      * @param op_cuda  functor to run in case of a CudaExecutor
      * @param op_hip  functor to run in case of a HipExecutor
      * @param op_dpcpp  functor to run in case of a DpcppExecutor
-     * @param op_poplar functor to run in case of a PoplarExecutor
+     * @param op_csl functor to run in case of a CslExecutor
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
-              typename ClosureDpcpp, typename ClosurePoplar>
+              typename ClosureDpcpp, typename ClosureCsl>
     GKO_DEPRECATED(
         "Please use the overload with std::string as first parameter.")
     void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
              const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp,
-             ClosurePoplar& op_poplar) const
+             ClosureCsl& op_csl) const
     {
         LambdaOperation<ClosureOmp, ClosureOmp, ClosureCuda, ClosureHip,
-                        ClosureDpcpp, ClosurePoplar>
-            op(op_omp, op_cuda, op_hip, op_dpcpp, op_poplar);
+                        ClosureDpcpp, ClosureCsl>
+            op(op_omp, op_cuda, op_hip, op_dpcpp, op_csl);
         this->run(op);
     }
 
@@ -692,7 +692,7 @@ public:
      * @tparam ClosureCuda  type of op_cuda
      * @tparam ClosureHip  type of op_hip
      * @tparam ClosureDpcpp  type of op_dpcpp
-     * @tparam ClosurePoplar type of op_poplar
+     * @tparam ClosureCsl type of op_csl
      *
      *  @param name  the name of the operation
      * @param op_ref  functor to run in case of a ReferenceExecutor
@@ -700,20 +700,20 @@ public:
      * @param op_cuda  functor to run in case of a CudaExecutor
      * @param op_hip  functor to run in case of a HipExecutor
      * @param op_dpcpp  functor to run in case of a DpcppExecutor
-     * @param op_poplar functor to run in case of a PoplarExecutor
+     * @param op_csl functor to run in case of a CslExecutor
      */
     template <typename ClosureReference, typename ClosureOmp,
               typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp,
-              typename ClosurePoplar>
+              typename ClosureCsl>
     void run(std::string name, const ClosureReference& op_ref,
              const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
              const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp,
-             const ClosurePoplar& op_poplar) const
+             const ClosureCsl& op_csl) const
     {
         LambdaOperation<ClosureReference, ClosureOmp, ClosureCuda, ClosureHip,
-                        ClosureDpcpp, ClosurePoplar>
+                        ClosureDpcpp, ClosureCsl>
             op(std::move(name), op_ref, op_omp, op_cuda, op_hip, op_dpcpp,
-               op_poplar);
+               op_csl);
         this->run(op);
     }
 
@@ -1162,24 +1162,24 @@ private:
      * @tparam ClosureCuda  the type of the second functor
      * @tparam ClosureHip  the type of the third functor
      * @tparam ClosureDpcpp  the type of the fourth functor
-     * @tparam ClosurePoplar the type of the fifth functor
+     * @tparam ClosureCsl the type of the fifth functor
      */
     template <typename ClosureReference, typename ClosureOmp,
               typename ClosureCuda, typename ClosureHip, typename ClosureDpcpp,
-              typename ClosurePoplar>
+              typename ClosureCsl>
     class LambdaOperation : public Operation {
     public:
         LambdaOperation(std::string name, const ClosureReference& op_ref,
                         const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
                         const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp,
-                        const ClosurePoplar& op_poplar)
+                        const ClosureCsl& op_csl)
             : name_(std::move(name)),
               op_ref_(op_ref),
               op_omp_(op_omp),
               op_cuda_(op_cuda),
               op_hip_(op_hip),
               op_dpcpp_(op_dpcpp),
-              op_poplar_(op_poplar)
+              op_csl_(op_csl)
         {}
 
         /**
@@ -1191,14 +1191,14 @@ private:
          * @param op_hip  a functor object which will be called by HipExecutor
          * @param op_dpcpp  a functor object which will be called by
          *                  DpcppExecutor
-         * @param op_poplar  a functor object which will be called by
-         *                  PoplarExecutor
+         * @param op_csl  a functor object which will be called by
+         *                  CslExecutor
          */
         LambdaOperation(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
                         const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp,
-                        const ClosurePoplar& op_poplar)
+                        const ClosureCsl& op_csl)
             : LambdaOperation("unnamed", op_omp, op_omp, op_cuda, op_hip,
-                              op_dpcpp, op_poplar)
+                              op_dpcpp, op_csl)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -1226,9 +1226,9 @@ private:
             op_dpcpp_();
         }
 
-        void run(std::shared_ptr<const PoplarExecutor>) const override
+        void run(std::shared_ptr<const CslExecutor>) const override
         {
-            op_poplar_();
+            op_csl_();
         }
 
         const char* get_name() const noexcept override { return name_.c_str(); }
@@ -1240,7 +1240,7 @@ private:
         ClosureCuda op_cuda_;
         ClosureHip op_hip_;
         ClosureDpcpp op_dpcpp_;
-        ClosurePoplar op_poplar_;
+        ClosureCsl op_csl_;
     };
 };
 
@@ -1315,7 +1315,7 @@ class ExecutorBase : public Executor {
     friend class ::gko::OmpExecutor;
     friend class ::gko::HipExecutor;
     friend class ::gko::DpcppExecutor;
-    friend class ::gko::PoplarExecutor;
+    friend class ::gko::CslExecutor;
     friend class ::gko::CudaExecutor;
     friend class ::gko::ReferenceExecutor;
 
@@ -1486,7 +1486,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(PoplarExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CslExecutor, false);
 
     bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
 
@@ -1565,7 +1565,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(PoplarExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CslExecutor, false);
 };
 
 
@@ -1788,7 +1788,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(PoplarExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CslExecutor, false);
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
@@ -2008,7 +2008,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(DpcppExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(PoplarExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CslExecutor, false);
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
@@ -2193,7 +2193,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(PoplarExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CslExecutor, false);
 
     bool verify_memory_to(const OmpExecutor* dest_exec) const override;
 
@@ -2216,29 +2216,29 @@ using DefaultExecutor = DpcppExecutor;
 
 
 /**
- * This is the Executor subclass which represents a Poplar enhanced device (For
+ * This is the Executor subclass which represents a Csl enhanced device (For
  * Graphcore IPUs).
  *
- * @ingroup exec_poplar
+ * @ingroup exec_csl
  * @ingroup Executor
  */
-class PoplarExecutor : public detail::ExecutorBase<PoplarExecutor>,
-                       public std::enable_shared_from_this<PoplarExecutor> {
-    friend class detail::ExecutorBase<PoplarExecutor>;
+class CslExecutor : public detail::ExecutorBase<CslExecutor>,
+                    public std::enable_shared_from_this<CslExecutor> {
+    friend class detail::ExecutorBase<CslExecutor>;
 
 public:
     using Executor::run;
 
     /**
-     * Creates a new PoplarExecutor.
+     * Creates a new CslExecutor.
      *
-     * @param device_id  the POPLAR device id of this device
+     * @param device_id  the CSL device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
      */
-    static std::shared_ptr<PoplarExecutor> create(
+    static std::shared_ptr<CslExecutor> create(
         int device_id, std::shared_ptr<Executor> master);
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -2252,9 +2252,9 @@ public:
     std::string get_description() const override;
 
     /**
-     * Get the POPLAR device id of the device associated to this executor.
+     * Get the CSL device id of the device associated to this executor.
      *
-     * @return the POPLAR device id of the device associated to this executor
+     * @return the CSL device id of the device associated to this executor
      */
     int get_device_id() const noexcept
     {
@@ -2330,7 +2330,7 @@ public:
     }
 
 protected:
-    PoplarExecutor(int device_id, std::shared_ptr<Executor> master)
+    CslExecutor(int device_id, std::shared_ptr<Executor> master)
         : master_(master)
     {}
 
@@ -2352,7 +2352,7 @@ protected:
 
     bool verify_memory_to(const OmpExecutor* dest_exec) const override;
 
-    bool verify_memory_to(const PoplarExecutor* dest_exec) const override;
+    bool verify_memory_to(const CslExecutor* dest_exec) const override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -2360,9 +2360,9 @@ private:
 
 
 namespace kernels {
-namespace poplar {
-using DefaultExecutor = PoplarExecutor;
-}  // namespace poplar
+namespace csl {
+using DefaultExecutor = CslExecutor;
+}  // namespace csl
 }  // namespace kernels
 
 
