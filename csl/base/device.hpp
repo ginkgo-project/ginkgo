@@ -9,16 +9,16 @@
 
 namespace gko {
 namespace kernels {
-namespace poplar {
+namespace csl {
 
 
 /** calls delete on the given event. */
-void destroy_event(poplar::event* event);
+void destroy_event(csl::event* event);
 
 
 std::string get_device_name(int device_id);
 
 
-}  // namespace poplar
+}  // namespace csl
 }  // namespace kernels
 }  // namespace gko

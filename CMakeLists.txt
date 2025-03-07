@@ -54,9 +54,9 @@ option(
     ${GINKGO_HAS_HIP}
 )
 option(
-    GINKGO_BUILD_POPLAR
-    "Compile Poplar kernels for Graphcore IPUs"
-    ${GINKGO_HAS_POPLAR}
+    GINKGO_BUILD_CSL
+    "Compile Csl kernels for Graphcore IPUs"
+    ${GINKGO_HAS_CSL}
 )
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(
@@ -232,8 +232,8 @@ endif()
 if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
-if(GINKGO_BUILD_POPLAR)
-    find_package(poplar REQUIRED)
+if(GINKGO_BUILD_CSL)
+    find_package(csl REQUIRED)
 endif()
 if(GINKGO_BUILD_OMP)
     find_package(OpenMP 3.0 REQUIRED)
@@ -508,8 +508,8 @@ endif()
 if(GINKGO_BUILD_SYCL)
     add_subdirectory(dpcpp) # High-performance DPC++ kernels
 endif()
-if(GINKGO_BUILD_POPLAR)
-    add_subdirectory(poplar) # High-performance Poplar kernels
+if(GINKGO_BUILD_CSL)
+    add_subdirectory(csl) # High-performance Csl kernels
 endif()
 if(GINKGO_BUILD_OMP)
     add_subdirectory(omp) # High-performance omp kernels

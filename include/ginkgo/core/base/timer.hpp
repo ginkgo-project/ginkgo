@@ -229,8 +229,8 @@ private:
 };
 
 
-/** A timer using kernels for timing on a PoplarExecutor in profiling mode. */
-class PoplarTimer : public Timer {
+/** A timer using kernels for timing on a CslExecutor in profiling mode. */
+class CslTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -239,7 +239,7 @@ public:
     std::chrono::nanoseconds difference_async(const time_point& start,
                                               const time_point& stop) override;
 
-    PoplarTimer(std::shared_ptr<const PoplarExecutor> exec);
+    CslTimer(std::shared_ptr<const CslExecutor> exec);
 
 protected:
     void init_time_point(time_point& time) override;

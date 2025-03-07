@@ -3,7 +3,7 @@ set(GINKGO_HAS_MPI OFF)
 set(GINKGO_HAS_CUDA OFF)
 set(GINKGO_HAS_SYCL OFF)
 set(GINKGO_HAS_HIP OFF)
-set(GINKGO_HAS_POPLAR OFF)
+set(GINKGO_HAS_CSL OFF)
 
 include(CheckLanguage)
 
@@ -59,14 +59,14 @@ if(NOT DEFINED GINKGO_BUILD_DPCPP AND NOT DEFINED GINKGO_BUILD_SYCL)
     endif()
 endif()
 
-if(NOT DEFINED GINKGO_BUILD_POPLAR)
+if(NOT DEFINED GINKGO_BUILD_CSL)
     try_compile(
-        GKO_CAN_COMPILE_POPLAR
-        ${PROJECT_BINARY_DIR}/poplar
-        SOURCES ${PROJECT_SOURCE_DIR}/poplar/test_poplar.cpp
+        GKO_CAN_COMPILE_CSL
+        ${PROJECT_BINARY_DIR}/csl
+        SOURCES ${PROJECT_SOURCE_DIR}/csl/test_csl.cpp
     )
-    if(GKO_CAN_COMPILE_POPLAR)
-        message(STATUS "Enabling Poplar executor for Graphcore IPUs")
-        set(GINKGO_HAS_POPLAR ON)
+    if(GKO_CAN_COMPILE_CSL)
+        message(STATUS "Enabling Csl executor for Graphcore IPUs")
+        set(GINKGO_HAS_CSL ON)
     endif()
 endif()

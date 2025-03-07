@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <poplar/Engine.hpp>
-#include <poplar/IPUModel.hpp>
+#include <csl/Engine.hpp>
+#include <csl/IPUModel.hpp>
 
-using namespace poplar;
-using namespace poplar::program;
+using namespace csl;
+using namespace csl::program;
 
 int main()
 {
