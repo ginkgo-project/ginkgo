@@ -65,7 +65,8 @@ enum class index_space {
  * \tparam GlobalIndexType  type for global indices
  */
 template <typename LocalIndexType, typename GlobalIndexType = int64>
-struct index_map {
+class index_map {
+public:
     using partition_type = Partition<LocalIndexType, GlobalIndexType>;
 
     /**
