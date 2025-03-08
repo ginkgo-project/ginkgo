@@ -239,11 +239,13 @@ private:
  * @tparam num_bits  The number of bits necessary to store a single value in the
  *                   array. Values need to be in the range [0, 2^num_bits).
  * @tparam size  The number of values to store in the array.
+ * @tparam StorageType  the underlying storage type to use for each individual
+ word
  */
-template <int num_bits, int size>
+template <int num_bits, int size, typename StorageType = uint32>
 class bit_packed_array {
 public:
-    using storage_type = uint32;
+    using storage_type = StorageType;
     constexpr static int bits_per_word = sizeof(storage_type) * CHAR_BIT;
     constexpr static int bits_per_value = round_up_pow2_constexpr(num_bits);
     constexpr static int values_per_word = bits_per_word / bits_per_value;
