@@ -68,10 +68,10 @@ range_minimum_query<IndexType>::get() const
 }
 
 
-#define GKO_DEFINE_DEVICE_RANGE_MINIMUM_QUERY(IndexType) \
+#define GKO_DEFINE_RANGE_MINIMUM_QUERY(IndexType) \
     class range_minimum_query<IndexType>
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DEFINE_DEVICE_RANGE_MINIMUM_QUERY);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DEFINE_RANGE_MINIMUM_QUERY);
 
 
 }  // namespace gko
