@@ -163,7 +163,7 @@ public:
     __device__ __forceinline__ void path_compress_relaxed(IndexType x)
     {
         check_index(x);
-        parents_[x] = find_relaxed(x);
+        store_relaxed(parents_ + x, find_relaxed(x));
     }
 
     /**
