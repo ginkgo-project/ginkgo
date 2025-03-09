@@ -16,6 +16,8 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
+#include "omp/components/atomic.hpp"
+#include "omp/components/disjoint_sets.hpp"
 
 
 namespace gko {
@@ -30,45 +32,122 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
                            size_type size, IndexType* out_row_ptrs,
                            IndexType* out_cols)
 {
-    disjoint_sets<IndexType> sets(exec, size);
-    const auto nnz = static_cast<size_type>(row_ptrs[size]);
-    vector<std::pair<IndexType, IndexType>> edges(exec);
-    edges.reserve(nnz / 2);
-    // collect edge list
-    for (auto row : irange(static_cast<IndexType>(size))) {
-        for (auto nz : irange(row_ptrs[row], row_ptrs[row + 1])) {
-            const auto col = cols[nz];
-            if (col >= row) {
-                continue;
+    // This is a minimum spanning tree algorithm implementation based on
+    // A. Fallin, A. Gonzalez, J. Seo, and M. Burtscher,
+    // "A High-Performance MST Implementation for GPUs,”
+    // doi: 10.1145/3581784.3607093
+    // we don't filter heavy edges since the heaviest edges are necessary to
+    // reach the last node and we don't need to sort since the COO format
+    // already sorts by row index.
+    const auto nnz = row_ptrs[size];
+    const auto ssize = static_cast<IndexType>(size);
+    // convert edges to COO representation
+    // the edge list is sorted, since we only consider edges where row > col,
+    // and the row array (= weights) is sorted coming from row_ptrs
+    array<IndexType> row_array{exec, static_cast<size_type>(nnz)};
+    const auto rows = row_array.get_data();
+    components::convert_ptrs_to_idxs(exec, row_ptrs, size, rows);
+    // we assume the matrix is symmetric, so we can remove every second edge
+    const auto worklist_size = ceildiv(nnz, 2);
+    // create 2 worklists consisting of (start, end, edge_id)
+    array<IndexType> worklist{exec, static_cast<size_type>(worklist_size * 6)};
+    auto wl1_source = worklist.get_data();
+    auto wl1_target = wl1_source + worklist_size;
+    auto wl1_edge_id = wl1_target + worklist_size;
+    auto wl2_source = wl1_source + 3 * worklist_size;
+    auto wl2_target = wl1_target + 3 * worklist_size;
+    auto wl2_edge_id = wl1_edge_id + 3 * worklist_size;
+    // atomic counters for worklists and output edge list
+    IndexType wl1_counter{};
+    IndexType wl2_counter{};
+    IndexType output_counter{};
+    // helpers for interacting with worklists
+    const auto swap_wl1_wl2 = [&] {
+        std::swap(wl1_source, wl2_source);
+        std::swap(wl1_target, wl2_target);
+        std::swap(wl1_edge_id, wl2_edge_id);
+        std::swap(wl1_counter, wl2_counter);
+    };
+    // initialize every node to a singleton set
+    array<IndexType> parent_array{exec, size};
+    const auto parents = parent_array.get_data();
+    components::fill_seq_array(exec, parents, size);
+    // array storing the minimal edge adjacent to each node
+    array<IndexType> min_edge_array{exec, size};
+    const auto min_edges = min_edge_array.get_data();
+    constexpr auto min_edge_sentinel = std::numeric_limits<IndexType>::max();
+    components::fill_array(exec, min_edges, size, min_edge_sentinel);
+    // output row array, to be used in conjunction with out_cols in COO storage
+    array<IndexType> out_row_array{exec, size};
+    const auto out_rows = out_row_array.get_data();
+#pragma omp parallel for shared(wl1_counter)
+    for (IndexType i = 0; i < nnz; i++) {
+        // initialize worklist1 with forward edges
+        const auto row = rows[i];
+        const auto col = cols[i];
+        if (col < row) {
+            const auto output_idx = atomic_inc(wl1_counter);
+            wl1_source[output_idx] = row;
+            wl1_target[output_idx] = col;
+            wl1_edge_id[output_idx] = i;
+        }
+    }
+    while (wl1_counter > 0) {
+        wl2_counter = 0;
+        device_disjoint_sets<IndexType> sets{parents, ssize};
+#pragma omp parallel for shared(wl2_counter)
+        for (IndexType i = 0; i < wl1_counter; i++) {
+            // attach each node to its smallest adjacent non-cycle edge
+            const auto source = wl1_source[i];
+            const auto target = wl1_target[i];
+            const auto edge_id = wl1_edge_id[i];
+            const auto source_rep = sets.find_weak(source);
+            const auto target_rep = sets.find_weak(target);
+            if (source_rep != target_rep) {
+                const auto output_idx = atomic_inc(wl2_counter);
+                wl2_source[output_idx] = source_rep;
+                wl2_target[output_idx] = target_rep;
+                wl2_edge_id[output_idx] = edge_id;
+                atomic_min(min_edges + source_rep, edge_id);
+                atomic_min(min_edges + target_rep, edge_id);
             }
-            // edge contains (max, min) pair
-            edges.emplace_back(row, col);
+        }
+        wl1_counter = 0;
+        swap_wl1_wl2();
+        if (wl1_counter > 0) {
+#pragma omp parallel for shared(output_counter)
+            for (IndexType i = 0; i < wl1_counter; i++) {
+                // join minimal edges
+                const auto source = wl1_source[i];
+                const auto target = wl1_target[i];
+                const auto edge_id = wl1_edge_id[i];
+                if (min_edges[source] == edge_id ||
+                    min_edges[target] == edge_id) {
+                    // join source and sink
+                    const auto source_rep = sets.find_relaxed(source);
+                    const auto target_rep = sets.find_relaxed(target);
+                    assert(source_rep != target_rep);
+                    sets.join(source_rep, target_rep);
+                    const auto out_i = atomic_inc(output_counter);
+                    out_rows[out_i] = rows[edge_id];
+                    out_cols[out_i] = cols[edge_id];
+                }
+            }
+#pragma omp parallel for
+            for (IndexType i = 0; i < wl1_counter; i++) {
+                // join minimal edges
+                const auto source = wl1_source[i];
+                const auto target = wl1_target[i];
+#pragma omp atomic write
+                min_edges[source] = min_edge_sentinel;
+#pragma omp atomic write
+                min_edges[target] = min_edge_sentinel;
+            }
         }
     }
-    // the edge list is now sorted by row, which also matches the edge weight
-    // we don't need to do any additional sorting operations
-    assert(std::is_sorted(edges.begin(), edges.end(),
-                          [](auto a, auto b) { return a.first < b.first; }));
-    // output helper array: Store row indices for output rows
-    // since the input is sorted by edge.first == row, this will be sorted
-    vector<IndexType> out_rows(size, exec);
-    IndexType output_count{};
-    // Kruskal algorithm: Connect unconnected components using edges with
-    // ascending weight
-    for (const auto edge : edges) {
-        const auto first_rep = sets.find(edge.first);
-        const auto second_rep = sets.find(edge.second);
-        if (first_rep != second_rep) {
-            // we are only interested in the lower triangle, so we add an edge
-            // max -> min
-            out_rows[output_count] = edge.first;
-            out_cols[output_count] = edge.second;
-            output_count++;
-            sets.join(first_rep, second_rep);
-        }
-    }
-    assert(std::is_sorted(out_rows.begin(), out_rows.begin() + output_count));
-    components::convert_idxs_to_ptrs(exec, out_rows.data(), output_count, size,
+    const auto it = detail::make_zip_iterator(out_rows, out_cols);
+    std::sort(it, it + output_counter);
+    components::convert_idxs_to_ptrs(exec, out_rows, output_counter, size,
                                      out_row_ptrs);
 }
 

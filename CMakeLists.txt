@@ -217,7 +217,7 @@ if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
 if(GINKGO_BUILD_OMP)
-    find_package(OpenMP 3.0 REQUIRED)
+    find_package(OpenMP 4.0 REQUIRED)
 endif()
 
 find_package(Threads REQUIRED)
