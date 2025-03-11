@@ -28,7 +28,9 @@
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
+#include "core/components/bit_packed_storage.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -45,6 +47,79 @@ constexpr int default_block_size = 512;
 
 
 namespace kernel {
+
+
+template <int size>
+struct small_disjoint_sets {
+    bit_packed_array<ceil_log2_constexpr(size), size, uint64> reps{};
+
+    constexpr small_disjoint_sets()
+    {
+        for (int i = 0; i < size; i++) {
+            reps.set_from_zero(i, i);
+        }
+    }
+
+    // path-compressing find
+    constexpr int find(int node)
+    {
+        int cur = node;
+        int rep = reps.get(cur);
+        // first find root
+        while (cur != rep) {
+            cur = rep;
+            rep = reps.get(cur);
+        }
+        // then path-compress
+        cur = node;
+        while (cur != rep) {
+            int new_rep = reps.get(cur);
+            reps.set(cur, rep);
+            rep = new_rep;
+        }
+        return rep;
+    }
+
+    constexpr int join_reps(int a_rep, int b_rep)
+    {
+        assert(reps.get(a_rep) == a_rep);
+        assert(reps.get(b_rep) == b_rep);
+        // always make the largest value the root
+        auto new_root = max(a_rep, b_rep);
+        auto new_child = min(a_rep, b_rep);
+        reps.set(new_child, new_root);
+        return new_root;
+    }
+};
+
+
+template <int size, typename EdgeAccessor>
+__device__ bit_packed_array<ceil_log2_constexpr(size), size>
+base_case_elimination_forest(int num_edges, EdgeAccessor edges)
+{
+    bit_packed_array<ceil_log2_constexpr(size), size, uint64> forest_parents{};
+    small_disjoint_sets<size> disjoint_sets{};
+    for (int i = 0; i < size; i++) {
+        forest_parents.set_from_zero(i, i);
+    }
+    // assuming edges are sorted by row indices
+    int current_row = 0;
+    for (int i = 0; i < num_edges; i++) {
+        const auto [col, row] = edges(i);
+        assert(row >= current_row);
+        assert(col < row);
+        if (row > current_row) {
+            current_row = row;
+        }
+        auto col_rep = disjoint_sets.find(col);
+        if (forest_parents.get(col_rep) == col_rep && col_rep != row) {
+            assert(disjoint_sets.find(row) == row);
+            disjoint_sets.join_reps(col_rep, row);
+            forest_parents.set(col_rep, row);
+        }
+    }
+    return forest_parents;
+}
 
 
 template <typename IndexType>
@@ -435,6 +510,107 @@ namespace kernel {
 
 
 template <typename IndexType>
+__device__ __forceinline__ int get_edge_level(IndexType start, IndexType end)
+{
+    using unsigned_type = std::make_unsigned_t<IndexType>;
+    assert(start != end);
+    return gko::detail::find_lowest_bit(static_cast<unsigned_type>(start) ^
+                                        static_cast<unsigned_type>(end));
+}
+
+
+template <typename IndexType>
+struct elimination_forest_kernel_config {
+    constexpr static int work_per_thread = 16;
+    constexpr static int blocksize = 512;
+    constexpr static int work_per_threadblock = work_per_thread * blocksize;
+    constexpr static int max_levels = sizeof(IndexType) * CHAR_BIT;
+    constexpr static int prefixsum_blocksize = max_levels;
+};
+
+
+template <typename Config, typename IndexType>
+__global__ __launch_bounds__(Config::blocksize) void count_edge_buckets(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    IndexType* __restrict__ block_counts)
+{
+    const auto threadblock = group::this_thread_block();
+    __shared__ int local_count[Config::max_levels];
+    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
+        local_count[i] = 0;
+    }
+    __syncthreads();
+    const auto base_i = Config::work_per_threadblock * blockIdx.x;
+    for (int local_i = threadIdx.x; local_i < Config::work_per_threadblock;
+         local_i += Config::blocksize) {
+        const auto i = local_i + base_i;
+        const auto start = edge_starts[i];
+        const auto end = edge_ends[i];
+        if (start < end) {
+            const auto level = get_edge_level(start, end);
+            atomicAdd(local_count + level, 1);
+        }
+    }
+    __syncthreads();
+    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
+        block_counts[i + Config::max_levels * blockIdx.x] = local_count[i];
+    }
+}
+
+
+template <typename Config, typename IndexType>
+__global__
+__launch_bounds__(Config::prefixsum_blocksize) void bucket_count_prefixsum(
+    IndexType* __restrict__ block_counts, IndexType num_blocks)
+{
+    if (threadIdx.x > Config::max_levels) {
+        return;
+    }
+    const auto bucket = static_cast<IndexType>(threadIdx.x);
+    IndexType sum{};
+    for (const auto block : irange{num_blocks}) {
+        const auto idx = bucket + Config::max_levels * block;
+        const auto count = block_counts[idx];
+        block_counts[idx] = sum;
+        sum += count;
+    }
+    block_counts[bucket + Config::max_levels * num_blocks] = sum;
+}
+
+
+template <typename Config, typename IndexType>
+0 __global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    const IndexType* __restrict__ block_count_prefixsum,
+    IndexType* __restrict__ out_edge_starts,
+    IndexType* __restrict__ out_edge_ends)
+{
+    const auto threadblock = group::this_thread_block();
+    __shared__ int local_count[Config::max_levels];
+    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
+        local_count[i] =
+            block_count_prefixsum[i + Config::max_levels * blockIdx.x];
+    }
+    __syncthreads();
+    const auto base_i = Config::work_per_threadblock * blockIdx.x;
+    for (int local_i = threadIdx.x; local_i < Config::work_per_threadblock;
+         local_i += Config::blocksize) {
+        const auto i = local_i + base_i;
+        const auto start = edge_starts[i];
+        const auto end = edge_ends[i];
+        if (start < end) {
+            const auto level = get_edge_level(start, end);
+            const auto out_i = atomicAdd(local_count + level, 1);
+            out_edge_starts[out_i] = start;
+            out_edge_ends[out_i] = end;
+        }
+    }
+}
+
+
+template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_conn_components(
     const IndexType* __restrict__ edge_starts,
     const IndexType* __restrict__ edge_ends, size_type num_edges,
@@ -530,6 +706,132 @@ __global__ __launch_bounds__(default_block_size) void add_tree_edges(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType>
+static void ensure_storage(array<ValueType>& arr, size_type new_size)
+{
+    if (arr.get_size() >= new_size) {
+        return;
+    }
+    arr.resize(2 * new_size);
+}
+
+
+template <typename IndexType>
+void bucket_sort_levels(std::shared_ptr<const DefaultExecutor> exec,
+                        const IndexType* in_edge_starts,
+                        const IndexType* in_edge_ends, size_type num_edges,
+                        array<IndexType>& out_edge_starts,
+                        array<IndexType>& out_edge_ends,
+                        array<IndexType>& local_block_offsets,
+                        array<IndexType>& level_block_offsets)
+{
+    using Config = kernel::elimination_forest_kernel_config<IndexType>;
+    const auto num_bucketsort_blocks =
+        ceildiv(num_edges, Config::work_per_threadblock);
+    ensure_storage(local_block_offsets,
+                   (num_bucketsort_blocks + 1) * Config::max_levels);
+    kernel::count_edge_buckets<Config>
+        <<<num_bucketsort_blocks, Config::blocksize, 0, exec->get_stream()>>>(
+            in_edge_starts, in_edge_ends, num_edges,
+            local_block_offsets.get_data());
+    kernel::bucket_count_prefixsum<Config>
+        <<<1, Config::prefixsum_blocksize, 0, exec->get_stream()>>>(
+            local_block_offsets.get_data(), num_bucketsort_blocks);
+    std::array<IndexType, Config::max_levels> edge_counts{};
+    exec->get_master()->copy_from(
+        exec, Config::max_levels,
+        local_block_offsets.get_const_data() +
+            num_bucketsort_blocks * Config::max_levels,
+        edge_counts.data());
+    const auto total_edge_count =
+        std::accumulate(edge_counts.begin(), edge_counts.end(), IndexType{});
+    // ensure_storage();
+}
+
+
+template <typename IndexType>
+struct disjoint_set_levels {
+    disjoint_set_levels(IndexType num_nodes)
+        : num_nodes{num_nodes},
+          num_levels{get_num_levels(num_nodes)},
+          parent_levels{exec, static_cast<size_type>(num_nodes) *
+                                  static_cast<size_type>(num_levels)}
+    {
+        components::fill_seq_array(exec, parent_levels.get_data(),
+                                   static_cast<size_type>(num_nodes));
+    }
+
+    void init_from_previous(IndexType level)
+    {
+        assert(level > 0);
+        assert(level < num_levels);
+        const auto data =
+            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
+        parent_levels->get_executor()->copy(static_cast<size_type>(num_nodes),
+                                            data, data + num_nodes);
+    }
+
+    disjoint_sets<IndexType> get_level(IndexType level)
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto data =
+            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
+        return disjoint_sets<IndexType>{data, num_nodes};
+    }
+
+    IndexType num_nodes;
+    IndexType num_levels;
+    array<IndexType> parent_levels;
+};
+
+
+template <typename IndexType>
+struct elimination_forest_state {
+    elimination_forest_state(std::shared_ptr<const DefaultExecutor> exec,
+                             IndexType num_nodes)
+        : num_nodes{num_nodes},
+          num_levels{get_num_levels(num_nodes)},
+          parent_levels{exec, static_cast<size_type>(num_nodes) *
+                                  static_cast<size_type>(num_levels)}
+    {
+        components::fill_seq_array(exec, parent_levels.get_data(),
+                                   static_cast<size_type>(num_nodes));
+    }
+
+    static int get_num_levels(IndexType num_nodes)
+    {
+        return gko::detail::find_highest_bit(
+                   static_cast<std::make_unsigned_t<IndexType>>(num_nodes -
+                                                                1)) +
+               1;
+    }
+
+    void init_cc_from_previous(IndexType level)
+    {
+        assert(level > 0);
+        assert(level < num_levels);
+        const auto data =
+            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
+        parent_levels->get_executor()->copy(static_cast<size_type>(num_nodes),
+                                            data, data + num_nodes);
+    }
+
+    disjoint_sets<IndexType> get_cc_level(IndexType level)
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto data =
+            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
+        return disjoint_sets<IndexType>{data, num_nodes};
+    }
+
+    IndexType num_nodes;
+    IndexType num_levels;
+    array<IndexType> parent_levels;
+};
 
 
 template <typename IndexType>
