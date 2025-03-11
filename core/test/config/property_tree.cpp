@@ -207,6 +207,12 @@ protected:
             // array3
             vector.emplace_back(
                 pnode(pnode::array_type{pnode{"3"}, pnode{4}, pnode{true}}));
+            // array4 with map
+            vector.emplace_back(pnode(pnode::array_type{
+                pnode(pnode::map_type{{"first", pnode{"1"}}})}));
+            // array5 with array
+            vector.emplace_back(
+                pnode(pnode::array_type{pnode(pnode::array_type{pnode{"1"}})}));
             // map
             vector.emplace_back(pnode(pnode::map_type{{"first", pnode{"1"}},
                                                       {"second", pnode{1.2}}}));
@@ -216,6 +222,12 @@ protected:
             // map3
             vector.emplace_back(pnode(pnode::map_type{{"first", pnode{"3"}},
                                                       {"second", pnode{1.2}}}));
+            // map4 with array
+            vector.emplace_back(pnode(pnode::map_type{
+                {"first", pnode(pnode::array_type{pnode{"1"}})}}));
+            // map5 with map
+            vector.emplace_back(pnode(pnode::map_type{
+                {"first", pnode(pnode::map_type{{"first", pnode{"1"}}})}}));
         };
         // first and second have the same content
         generator(first);
@@ -232,24 +244,36 @@ protected:
         diff_content.emplace_back(pnode(3));
         // string
         diff_content.emplace_back(pnode("456"));
-        // array (different content)
+        // array1 with different content
         diff_content.emplace_back(
             pnode(pnode::array_type{pnode{"456"}, pnode{3}, pnode{false}}));
-        // array (different number of item)
+        // array2 with different number of item
         diff_content.emplace_back(
             pnode(pnode::array_type{pnode{"2"}, pnode{4}}));
-        // array (different order)
+        // array3 with different order
         diff_content.emplace_back(
             pnode(pnode::array_type{pnode{4}, pnode{"3"}, pnode{true}}));
-        // map (different key)
+        // array4 with different map
+        diff_content.emplace_back(pnode(
+            pnode::array_type{pnode(pnode::map_type{{"first", pnode{"2"}}})}));
+        // array5 with different array
+        diff_content.emplace_back(
+            pnode(pnode::array_type{pnode(pnode::array_type{pnode{"2"}})}));
+        // map1 with different key
         diff_content.emplace_back(pnode(
             pnode::map_type{{"second", pnode{"1"}}, {"first", pnode{1.2}}}));
-        // map (different number of item)
+        // map2 with different number of item
         diff_content.emplace_back(
             pnode(pnode::map_type{{"first", pnode{"2"}}}));
-        // map (different content)
+        // map3 with different content
         diff_content.emplace_back(pnode(
             pnode::map_type{{"first", pnode{"456"}}, {"second", pnode{2.4}}}));
+        // map4 with different array
+        diff_content.emplace_back(pnode(
+            pnode::map_type{{"first", pnode(pnode::array_type{pnode{"2"}})}}));
+        // map5 with different map
+        diff_content.emplace_back(pnode(pnode::map_type{
+            {"first", pnode(pnode::map_type{{"first", pnode{"2"}}})}}));
     }
     std::vector<pnode> first;
     std::vector<pnode> second;
@@ -282,21 +306,6 @@ TEST_F(PropertyTreeEquality, CheckEqualityOnlyContentDiff)
 }
 
 
-TEST_F(PropertyTreeEquality, CheckEqualityUnderlyingNodeDiff)
-{
-    pnode map_1{pnode::map_type{{"first", first.at(5)},
-                                {"second", first.at(7)},
-                                {"third", first.at(8)},
-                                {"forth", first.at(9)}}};
-    pnode map_2{pnode::map_type{{"first", first.at(5)},
-                                {"second", first.at(7)},
-                                {"third", diff_content.at(8)},
-                                {"forth", first.at(9)}}};
-
-    ASSERT_NE(map_1, map_2);
-}
-
-
 TEST_F(PropertyTreeEquality, CheckEqualityOfDiffOrderMap)
 {
     pnode map_1{pnode::map_type{{"first", first.at(5)},
@@ -311,4 +320,13 @@ TEST_F(PropertyTreeEquality, CheckEqualityOfDiffOrderMap)
     // We use std::map is ordered map, so the input order does not affect the
     // equality
     ASSERT_EQ(map_1, map_2);
+}
+
+
+TEST_F(PropertyTreeEquality, CheckInequalityOfDiffOrderArray)
+{
+    pnode array_1{pnode::array_type{first.at(5), first.at(6)}};
+    pnode array_2{pnode::array_type{first.at(6), first.at(5)}};
+
+    ASSERT_NE(array_1, array_2);
 }
