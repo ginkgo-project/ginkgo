@@ -529,6 +529,7 @@ struct elimination_forest_kernel_config {
 };
 
 
+/*
 template <typename Config, typename IndexType>
 __global__ __launch_bounds__(Config::blocksize) void count_edge_buckets(
     const IndexType* __restrict__ edge_starts,
@@ -580,7 +581,7 @@ __launch_bounds__(Config::prefixsum_blocksize) void bucket_count_prefixsum(
 
 
 template <typename Config, typename IndexType>
-0 __global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
+__global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
     const IndexType* __restrict__ edge_starts,
     const IndexType* __restrict__ edge_ends, size_type num_edges,
     const IndexType* __restrict__ block_count_prefixsum,
@@ -607,6 +608,44 @@ template <typename Config, typename IndexType>
             out_edge_ends[out_i] = end;
         }
     }
+}*/
+template <typename Config, typename IndexType>
+__global__ __launch_bounds__(Config::blocksize) void count_edge_buckets(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    IndexType* __restrict__ global_counts)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
+    }
+    const auto start = edge_starts[i];
+    const auto end = edge_ends[i];
+    assert(start < end);
+    const auto level = get_edge_level(start, end);
+    atomic_add(global_counts + level, 1);
+}
+
+
+template <typename Config, typename IndexType>
+__global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
+    const IndexType* __restrict__ edge_starts,
+    const IndexType* __restrict__ edge_ends, size_type num_edges,
+    const IndexType* __restrict__ global_offsets,
+    IndexType* __restrict__ out_edge_starts,
+    IndexType* __restrict__ out_edge_ends)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
+    }
+    const auto start = edge_starts[i];
+    const auto end = edge_ends[i];
+    assert(start < end);
+    const auto level = get_edge_level(start, end);
+    auto output_pos = atomic_add(global_offsets + level, 1);
+    out_edge_starts[i] = start;
+    out_edge_ends[i] = end;
 }
 
 
