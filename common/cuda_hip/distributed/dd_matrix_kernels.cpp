@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/dd_matrix_kernels.hpp"
+
+#include <iostream>
+#include <iterator>
 
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
@@ -89,8 +92,8 @@ void filter_non_owning_idxs(
             return thrust::make_tuple(thrust::get<0>(a) + thrust::get<0>(b),
                                       thrust::get<1>(a) + thrust::get<1>(b));
         });
-    auto n_non_local_col_idxs = thrust::get<0>(num_elements_pair);
-    auto n_non_local_row_idxs = thrust::get<1>(num_elements_pair);
+    auto n_non_local_row_idxs = thrust::get<0>(num_elements_pair);
+    auto n_non_local_col_idxs = thrust::get<1>(num_elements_pair);
 
     // define global-to-local maps for row and column indices
     auto map_to_local_row =

@@ -38,3 +38,4 @@ ginkgo_create_common_and_reference_test(
     LABELS
     distributed
 )
+ginkgo_create_common_test(dd_matrix_kernels DISABLE_EXECUTORS dpcpp)
