@@ -1,4 +1,5 @@
 ginkgo_create_common_test(assembly_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(dd_matrix_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(index_map_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(matrix_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(partition_kernels DISABLE_EXECUTORS dpcpp)

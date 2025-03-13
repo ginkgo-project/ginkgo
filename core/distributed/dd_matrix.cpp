@@ -257,14 +257,6 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     prolongation_->read_distributed(prolongate_data, row_partition,
                                     large_partition,
                                     assembly_mode::communicate);
-
-    // Create buffers for SpMV
-    dim<2> global_buffer_size{large_partition->get_size(), 1u};
-    dim<2> local_buffer_size{static_cast<size_type>(local_num_rows), 1u};
-    lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
-                                            local_buffer_size);
-    rhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
-                                            local_buffer_size);
 }
 
 
@@ -311,12 +303,16 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
+    auto comm = this->get_communicator();
     const auto nrhs = x->get_size()[1];
-    check_and_adjust_buffer_size(nrhs);
+    dim<2> global_buffer_size{restriction_->get_size()[0], nrhs};
+    dim<2> local_buffer_size{local_mtx_->get_size()[0], nrhs};
+    lhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
+    rhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
             auto exec = this->get_executor();
-            restriction_->apply(dense_b, lhs_buffer_);
+            restriction_->apply(dense_b, lhs_buffer_.get());
 
             auto local_b = gko::matrix::Dense<ValueType>::create(
                 exec, lhs_buffer_->get_local_vector()->get_size(),
@@ -335,7 +331,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
             local_mtx_->apply(local_b, local_x);
 
-            prolongation_->apply(rhs_buffer_, dense_x);
+            prolongation_->apply(rhs_buffer_.get(), dense_x);
         },
         b, x);
 }
@@ -346,13 +342,17 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
     auto exec = this->get_executor();
+    auto comm = this->get_communicator();
     const auto nrhs = x->get_size()[1];
-    check_and_adjust_buffer_size(nrhs);
+    dim<2> global_buffer_size{restriction_->get_size()[0], nrhs};
+    dim<2> local_buffer_size{local_mtx_->get_size()[0], nrhs};
+    lhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
+    rhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto local_alpha, const auto dense_b,
                const auto local_beta, auto dense_x) {
             auto exec = this->get_executor();
-            restriction_->apply(dense_b, lhs_buffer_);
+            restriction_->apply(dense_b, lhs_buffer_.get());
 
             auto local_b = gko::matrix::Dense<ValueType>::create(
                 exec, lhs_buffer_->get_local_vector()->get_size(),
@@ -371,7 +371,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
             local_mtx_->apply(local_b, local_x);
 
-            prolongation_->apply(local_alpha, rhs_buffer_, local_beta, dense_x);
+            prolongation_->apply(local_alpha, rhs_buffer_.get(), local_beta,
+                                 dense_x);
         },
         alpha, b, beta, x);
 }
@@ -383,15 +384,6 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::
 {
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    if (nrhs != rhs_buffer_->get_size()[1]) {
-        dim<2> local_buffer_size{rhs_buffer_->get_local_vector()->get_size()[0],
-                                 nrhs};
-        dim<2> global_buffer_size{rhs_buffer_->get_size()[0], nrhs};
-        lhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
-                                                local_buffer_size);
-        rhs_buffer_ = Vector<ValueType>::create(exec, comm, global_buffer_size,
-                                                local_buffer_size);
-    }
 }
 
 
@@ -400,9 +392,12 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
     auto exec = this->get_executor();
-    check_and_adjust_buffer_size(1u);
+    auto comm = this->get_communicator();
+    dim<2> global_buffer_size{restriction_->get_size()[0], 1u};
+    dim<2> local_buffer_size{local_mtx_->get_size()[0], 1u};
+    lhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
     size_type n_local_cols = local_mtx_->get_size()[1];
-    restriction_->apply(scaling_factors, lhs_buffer_);
+    restriction_->apply(scaling_factors, lhs_buffer_.get());
     const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
         exec, n_local_cols,
         make_const_array_view(exec, n_local_cols,
@@ -416,9 +411,12 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
     auto exec = this->get_executor();
-    check_and_adjust_buffer_size(1u);
+    auto comm = this->get_communicator();
+    dim<2> global_buffer_size{restriction_->get_size()[0], 1u};
+    dim<2> local_buffer_size{local_mtx_->get_size()[0], 1u};
+    lhs_buffer_.init(exec, comm, global_buffer_size, local_buffer_size);
     size_type n_local_cols = local_mtx_->get_size()[1];
-    restriction_->apply(scaling_factors, lhs_buffer_);
+    restriction_->apply(scaling_factors, lhs_buffer_.get());
     const auto scale_diag = gko::matrix::Diagonal<ValueType>::create_const(
         exec, n_local_cols,
         make_const_array_view(exec, n_local_cols,

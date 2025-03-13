@@ -19,6 +19,7 @@
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -370,7 +371,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      */
     template <typename MatrixType,
-              typename = std::enable_if_t<detail::is_matrix_type_builder<
+              typename = std::enable_if_t<gko::detail::is_matrix_type_builder<
                   MatrixType, ValueType, LocalIndexType, void>::value>>
     static std::unique_ptr<DdMatrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -448,11 +449,11 @@ private:
     gko::detail::DenseCache<value_type> host_recv_buffer_;
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
+    gko::experimental::distributed::detail::VectorCache<value_type> lhs_buffer_;
+    gko::experimental::distributed::detail::VectorCache<value_type> rhs_buffer_;
     std::shared_ptr<global_matrix_type> restriction_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<global_matrix_type> prolongation_;
-    mutable std::shared_ptr<global_vector_type> lhs_buffer_;
-    mutable std::shared_ptr<global_vector_type> rhs_buffer_;
 };
 
 
