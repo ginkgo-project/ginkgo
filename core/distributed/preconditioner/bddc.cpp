@@ -1508,7 +1508,7 @@ void Bddc<ValueType, IndexType>::generate()
         host, n_interfaces};
     /* std::cout << "RANK " << comm.rank() << " STARTING COARSE SETUP" <<
      * std::endl; */
-    if (parameters_.multilevel || true) {
+    if (parameters_.multilevel) {
         // Set up coarse mesh for ParMETIS
         std::vector<int> elmdist(comm.size() + 1);
         std::iota(elmdist.begin(), elmdist.end(), 0);
