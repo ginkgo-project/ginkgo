@@ -45,7 +45,7 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto params = Schwarz<ValueType, LocalIndexType, GlobalIndexType>::build();
+    auto params = Schwarz::build();
 
     if (auto& obj = config.get("generated_local_solver")) {
         params.with_generated_local_solver(
@@ -56,7 +56,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-
+    if (auto& obj = config.get("l1_smoother")) {
+        params.with_l1_smoother(obj.get_boolean());
+    }
     return params;
 }
 
@@ -85,7 +87,6 @@ template <typename VectorType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     const VectorType* dense_b, VectorType* dense_x) const
 {
-    using Vector = matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     if (this->local_solver_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
@@ -149,7 +150,9 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             ->get_local_matrix();
 
     if (parameters_.l1_smoother) {
-        auto local_matrix_copy = share(clone(local_matrix));
+        auto local_matrix_copy =
+            share(copy_and_convert_to<matrix::Csr<ValueType, LocalIndexType>>(
+                local_matrix));
 
         auto non_local_matrix =
             copy_and_convert_to<matrix::Csr<ValueType, LocalIndexType>>(
