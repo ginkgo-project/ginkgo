@@ -209,8 +209,7 @@ void Bddc<ValueType, IndexType>::generate_interfaces()
     std::vector<std::vector<IndexType>> corner_ranks;
     for (auto const& pair : ranks_to_dofs) {
         if (pair.first[0] == rank) {
-            if (pair.first.size() >
-                4) {  // pair.second.size() <= pair.first.size()) {
+            if (pair.second.size() <= pair.first.size()) {
                 for (size_type i = 0; i < pair.second.size(); i++) {
                     corner_dofs.emplace_back(
                         std::vector<IndexType>{pair.second[i]});
@@ -1636,7 +1635,7 @@ void Bddc<ValueType, IndexType>::generate()
     } else {
         for (size_type i = 0; i < n_interfaces; i++) {
             auto ranks = interface_dof_ranks_[interfaces_[i]];
-            auto owner = ranks[0];
+            auto owner = 0;  // ranks[0];
             /* std::cout << owner << std::endl; */
             mapping.get_data()[i] = owner;
         }
