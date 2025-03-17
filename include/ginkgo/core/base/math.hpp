@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1098,11 +1098,11 @@ GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
  * @return `true` if the value is NaN.
  */
 template <typename T>
-GKO_DEPRECATED(
-    "is_nan can't be used safely on the device (MSVC+CUDA), and will thus be "
-    "removed in a future release, without replacement")
-GKO_INLINE GKO_ATTRIBUTES
-    std::enable_if_t<!is_complex_s<T>::value, bool> is_nan(const T& value)
+// GKO_DEPRECATED(
+//     "is_nan can't be used safely on the device (MSVC+CUDA), and will thus be
+//     " "removed in a future release, without replacement")
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
+is_nan(const T& value)
 {
     using std::isnan;
     return isnan(value);
@@ -1119,9 +1119,9 @@ GKO_INLINE GKO_ATTRIBUTES
  * @return `true` if any component of the given value is NaN.
  */
 template <typename T>
-GKO_DEPRECATED(
-    "is_nan can't be used safely on the device (MSVC+CUDA), and will thus be "
-    "removed in a future release, without replacement")
+// GKO_DEPRECATED(
+//     "is_nan can't be used safely on the device (MSVC+CUDA), and will thus be
+//     " "removed in a future release, without replacement")
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool> is_nan(
     const T& value)
 {

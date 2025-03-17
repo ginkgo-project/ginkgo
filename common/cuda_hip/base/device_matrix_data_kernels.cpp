@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@ namespace components {
 // Although gko::is_nonzero is constexpr, it still shows calling __device__ in
 // __host__
 template <typename T>
-GKO_INLINE __device__ constexpr bool is_nonzero(T value)
+GKO_INLINE __device__ constexpr bool is_nonzero_(T value)
 {
     return value != zero<T>();
 }
@@ -43,7 +43,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
     // count nonzeros
     auto nnz = thrust::count_if(
         thrust_policy(exec), value_ptr, value_ptr + size,
-        [] __device__(device_value_type value) { return is_nonzero(value); });
+        [] __device__(device_value_type value) { return is_nonzero_(value); });
     if (nnz < size) {
         using tuple_type =
             thrust::tuple<IndexType, IndexType, device_value_type>;
@@ -59,7 +59,7 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                                as_device_type(new_values.get_data())));
         thrust::copy_if(thrust_policy(exec), it, it + size, out_it,
                         [] __device__(tuple_type entry) {
-                            return is_nonzero(thrust::get<2>(entry));
+                            return is_nonzero_(thrust::get<2>(entry));
                         });
         // swap out storage
         values = std::move(new_values);

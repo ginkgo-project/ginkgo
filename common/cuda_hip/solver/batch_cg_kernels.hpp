@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,8 +57,8 @@ __device__ __forceinline__ void initialize(
     __syncthreads();
 
     // r = b - A*x
-    advanced_apply(static_cast<ValueType>(-1.0), mat_entry, x_shared_entry,
-                   static_cast<ValueType>(1.0), r_shared_entry);
+    advanced_apply(static_cast<ValueType>(-1.0f), mat_entry, x_shared_entry,
+                   static_cast<ValueType>(1.0f), r_shared_entry);
     __syncthreads();
 
     // z = precond * r

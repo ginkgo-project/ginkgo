@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,8 @@
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+#include "core/base/custom_double.hpp"
 
 
 namespace gko {
@@ -126,6 +128,9 @@ struct culibs_type_impl<half> {
     using type = __half;
 };
 
+// TODO: we do not need custom_double for compiler because the vendor also can
+// not support native operation.
+
 template <>
 struct culibs_type_impl<std::complex<half>> {
     using type = __half2;
@@ -166,6 +171,11 @@ struct cuda_type_impl<half> {
     using type = __half;
 };
 
+template <>
+struct cuda_type_impl<double> {
+    using type = gko::custom_double;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
     using type = thrust::complex<typename cuda_type_impl<T>::type>;
@@ -173,7 +183,7 @@ struct cuda_type_impl<std::complex<T>> {
 
 template <>
 struct cuda_type_impl<cuDoubleComplex> {
-    using type = thrust::complex<double>;
+    using type = thrust::complex<gko::custom_double>;
 };
 
 template <>
@@ -201,6 +211,11 @@ struct cuda_struct_member_type_impl<gko::half> {
     using type = __half;
 };
 
+template <>
+struct cuda_struct_member_type_impl<double> {
+    using type = gko::custom_double;
+};
+
 template <typename ValueType, typename IndexType>
 struct cuda_type_impl<matrix_data_entry<ValueType, IndexType>> {
     using type = matrix_data_entry<
@@ -220,6 +235,8 @@ struct cuda_data_type_impl {};
 GKO_CUDA_DATA_TYPE(float16, CUDA_R_16F);
 GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
+// TODO:
+GKO_CUDA_DATA_TYPE(gko::custom_double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);

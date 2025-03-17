@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -76,7 +76,8 @@ public:
     operator=(arithmetic_type val) &&
     {
         storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = val / scalar_;
+        *r_ptr =
+            detail::implicit_explicit_conversion<storage_type>(val / scalar_);
         return val;
     }
 

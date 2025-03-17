@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -233,6 +233,18 @@ __forceinline__ __device__ thrust::complex<double> atomic_add(
     thrust::complex<double>* __restrict__ address, thrust::complex<double> val)
 {
     auto addr = reinterpret_cast<double*>(address);
+    // Separate to real part and imag part
+    auto real = atomic_add(addr, val.real());
+    auto imag = atomic_add(addr + 1, val.imag());
+    return {real, imag};
+}
+
+
+__forceinline__ __device__ thrust::complex<gko::custom_double> atomic_add(
+    thrust::complex<gko::custom_double>* __restrict__ address,
+    thrust::complex<gko::custom_double> val)
+{
+    auto addr = reinterpret_cast<gko::custom_double*>(address);
     // Separate to real part and imag part
     auto real = atomic_add(addr, val.real());
     auto imag = atomic_add(addr + 1, val.imag());

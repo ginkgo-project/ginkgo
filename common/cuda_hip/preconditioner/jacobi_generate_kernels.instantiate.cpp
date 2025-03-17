@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "core/base/custom_double.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"

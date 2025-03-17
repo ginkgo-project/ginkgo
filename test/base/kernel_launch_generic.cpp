@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,12 +154,20 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), value_type&>::value,
-                          "type");
-            static_assert(is_same<decltype(d2(0, 0)), const value_type&>::value,
-                          "type");
-            static_assert(is_same<decltype(d_ptr), const value_type*>::value,
-                          "type");
+            static_assert(
+                is_same<decltype(d(0, 0)), gko::kernels::GKO_DEVICE_NAMESPACE::
+                                               device_type<value_type>&>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d2(0, 0)),
+                        const gko::kernels::GKO_DEVICE_NAMESPACE::device_type<
+                            value_type>&>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d_ptr),
+                        const gko::kernels::GKO_DEVICE_NAMESPACE::device_type<
+                            value_type>*>::value,
+                "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
@@ -242,19 +250,37 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), value_type&>::value,
-                          "type");
-            static_assert(is_same<decltype(d2(0, 0)), const value_type&>::value,
-                          "type");
-            static_assert(is_same<decltype(d_ptr), const value_type*>::value,
-                          "type");
-            static_assert(is_same<decltype(d3(0, 0)), value_type&>::value,
-                          "type");
-            static_assert(is_same<decltype(d4), value_type*>::value, "type");
-            static_assert(is_same<decltype(d2_ptr), value_type*>::value,
-                          "type");
-            static_assert(is_same<decltype(d3_ptr), value_type*>::value,
-                          "type");
+            static_assert(
+                is_same<decltype(d(0, 0)), gko::kernels::GKO_DEVICE_NAMESPACE::
+                                               device_type<value_type>&>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d2(0, 0)),
+                        const gko::kernels::GKO_DEVICE_NAMESPACE::device_type<
+                            value_type>&>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d_ptr),
+                        const gko::kernels::GKO_DEVICE_NAMESPACE::device_type<
+                            value_type>*>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d3(0, 0)),
+                        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<
+                            value_type>&>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d4), gko::kernels::GKO_DEVICE_NAMESPACE::
+                                          device_type<value_type>*>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d2_ptr), gko::kernels::GKO_DEVICE_NAMESPACE::
+                                              device_type<value_type>*>::value,
+                "type");
+            static_assert(
+                is_same<decltype(d3_ptr), gko::kernels::GKO_DEVICE_NAMESPACE::
+                                              device_type<value_type>*>::value,
+                "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;

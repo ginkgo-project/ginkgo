@@ -381,6 +381,61 @@ __device__ __forceinline__ double atomic_add_relaxed_shared(double* ptr,
 }
 
 
+__device__ __forceinline__ gko::custom_double load_relaxed_shared(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.shared.f64 %0, [%1];"
+#else
+        "ld.relaxed.cta.shared.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "r"(convert_generic_ptr_to_smem_ptr(
+            const_cast<gko::custom_double*>(ptr)))
+        : "memory");
+
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_relaxed_shared(gko::custom_double* ptr,
+                                                     gko::custom_double result)
+{
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.shared.f64 [%0], %1;"
+#else
+        "st.relaxed.cta.shared.f64 [%0], %1;"
+#endif
+        ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "d"(res)
+        : "memory");
+}
+
+
+__device__ __forceinline__ gko::custom_double atomic_add_relaxed_shared(
+    gko::custom_double* ptr, gko::custom_double value)
+{
+    double result;
+    auto val = gko::custom_double::custom_to_native(value);
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom.shared.add.f64 %0, [%1], %2;"
+#elif __CUDA_ARCH__ < 700
+        "atom.shared.cta.add.f64 %0, [%1], %2;"
+#else
+        "atom.relaxed.cta.shared.add.f64 %0, [%1], %2;"
+#endif
+        : "=d"(result)
+        : "r"(convert_generic_ptr_to_smem_ptr(ptr)), "d"(val)
+        : "memory");
+    return gko::custom_double::to_custom(result);
+}
+
+
 __device__ __forceinline__ uint32 load_relaxed_shared(const uint32* ptr)
 {
     uint32 result;
@@ -801,6 +856,42 @@ __device__ __forceinline__ void store_release_shared(double* ptr, double result)
 }
 
 
+__device__ __forceinline__ gko::custom_double load_acquire_shared(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.shared.f64 %0, [%1];"
+#else
+        "ld.acquire.cta.shared.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "r"(convert_generic_ptr_to_smem_ptr(
+            const_cast<gko::custom_double*>(ptr)))
+        : "memory");
+    membar_acq_rel_shared();
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_release_shared(gko::custom_double* ptr,
+                                                     gko::custom_double result)
+{
+    membar_acq_rel_shared();
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.shared.f64 [%0], %1;"
+#else
+        "st.release.cta.shared.f64 [%0], %1;"
+#endif
+        ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "d"(res)
+        : "memory");
+}
+
+
 __device__ __forceinline__ uint32 load_acquire_shared(const uint32* ptr)
 {
     uint32 result;
@@ -1178,6 +1269,60 @@ __device__ __forceinline__ double atomic_add_relaxed_local(double* ptr,
         : "l"(ptr), "d"(value)
         : "memory");
     return result;
+}
+
+
+__device__ __forceinline__ gko::custom_double load_relaxed_local(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.f64 %0, [%1];"
+#else
+        "ld.relaxed.cta.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "l"(const_cast<gko::custom_double*>(ptr))
+        : "memory");
+
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(gko::custom_double* ptr,
+                                                    gko::custom_double result)
+{
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.f64 [%0], %1;"
+#else
+        "st.relaxed.cta.f64 [%0], %1;"
+#endif
+        ::"l"(ptr),
+        "d"(res)
+        : "memory");
+}
+
+
+__device__ __forceinline__ gko::custom_double atomic_add_relaxed_local(
+    gko::custom_double* ptr, gko::custom_double value)
+{
+    double result;
+    auto val = gko::custom_double::custom_to_native(value);
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom.add.f64 %0, [%1], %2;"
+#elif __CUDA_ARCH__ < 700
+        "atom.cta.add.f64 %0, [%1], %2;"
+#else
+        "atom.relaxed.cta.add.f64 %0, [%1], %2;"
+#endif
+        : "=d"(result)
+        : "l"(ptr), "d"(val)
+        : "memory");
+    return gko::custom_double::to_custom(result);
 }
 
 
@@ -1601,6 +1746,41 @@ __device__ __forceinline__ void store_release_local(double* ptr, double result)
 }
 
 
+__device__ __forceinline__ gko::custom_double load_acquire_local(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.f64 %0, [%1];"
+#else
+        "ld.acquire.cta.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "l"(const_cast<gko::custom_double*>(ptr))
+        : "memory");
+    membar_acq_rel_local();
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_release_local(gko::custom_double* ptr,
+                                                    gko::custom_double result)
+{
+    membar_acq_rel_local();
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.f64 [%0], %1;"
+#else
+        "st.release.cta.f64 [%0], %1;"
+#endif
+        ::"l"(ptr),
+        "d"(res)
+        : "memory");
+}
+
+
 __device__ __forceinline__ uint32 load_acquire_local(const uint32* ptr)
 {
     uint32 result;
@@ -1968,6 +2148,60 @@ __device__ __forceinline__ double atomic_add_relaxed(double* ptr, double value)
         : "l"(ptr), "d"(value)
         : "memory");
     return result;
+}
+
+
+__device__ __forceinline__ gko::custom_double load_relaxed(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.f64 %0, [%1];"
+#else
+        "ld.relaxed.gpu.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "l"(const_cast<gko::custom_double*>(ptr))
+        : "memory");
+
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_relaxed(gko::custom_double* ptr,
+                                              gko::custom_double result)
+{
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.f64 [%0], %1;"
+#else
+        "st.relaxed.gpu.f64 [%0], %1;"
+#endif
+        ::"l"(ptr),
+        "d"(res)
+        : "memory");
+}
+
+
+__device__ __forceinline__ gko::custom_double atomic_add_relaxed(
+    gko::custom_double* ptr, gko::custom_double value)
+{
+    double result;
+    auto val = gko::custom_double::custom_to_native(value);
+    asm volatile(
+#if __CUDA_ARCH__ < 600
+        "atom.add.f64 %0, [%1], %2;"
+#elif __CUDA_ARCH__ < 700
+        "atom.gpu.add.f64 %0, [%1], %2;"
+#else
+        "atom.relaxed.gpu.add.f64 %0, [%1], %2;"
+#endif
+        : "=d"(result)
+        : "l"(ptr), "d"(val)
+        : "memory");
+    return gko::custom_double::to_custom(result);
 }
 
 
@@ -2381,6 +2615,41 @@ __device__ __forceinline__ void store_release(double* ptr, double result)
 }
 
 
+__device__ __forceinline__ gko::custom_double load_acquire(
+    const gko::custom_double* ptr)
+{
+    double result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.f64 %0, [%1];"
+#else
+        "ld.acquire.gpu.f64 %0, [%1];"
+#endif
+        : "=d"(result)
+        : "l"(const_cast<gko::custom_double*>(ptr))
+        : "memory");
+    membar_acq_rel();
+    return gko::custom_double::to_custom(result);
+}
+
+
+__device__ __forceinline__ void store_release(gko::custom_double* ptr,
+                                              gko::custom_double result)
+{
+    membar_acq_rel();
+    auto res = gko::custom_double::custom_to_native(result);
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.f64 [%0], %1;"
+#else
+        "st.release.gpu.f64 [%0], %1;"
+#endif
+        ::"l"(ptr),
+        "d"(res)
+        : "memory");
+}
+
+
 __device__ __forceinline__ uint32 load_acquire(const uint32* ptr)
 {
     uint32 result;
@@ -2517,6 +2786,45 @@ __device__ __forceinline__ void store_relaxed_shared(
 }
 
 
+__device__ __forceinline__ thrust::complex<gko::custom_double>
+load_relaxed_shared(const thrust::complex<gko::custom_double>* ptr)
+{
+    double real_result;
+    double imag_result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.shared.v2.f64 {%0, %1}, [%2];"
+#else
+        "ld.relaxed.cta.shared.v2.f64 {%0, %1}, [%2];"
+#endif
+        : "=d"(real_result), "=d"(imag_result)
+        : "r"(convert_generic_ptr_to_smem_ptr(
+            const_cast<thrust::complex<gko::custom_double>*>(ptr)))
+        : "memory");
+    return thrust::complex<gko::custom_double>{
+        gko::custom_double::to_custom(real_result),
+        gko::custom_double::to_custom(imag_result)};
+}
+
+
+__device__ __forceinline__ void store_relaxed_shared(
+    thrust::complex<gko::custom_double>* ptr,
+    thrust::complex<gko::custom_double> result)
+{
+    auto real_result = gko::custom_double::custom_to_native(result.real());
+    auto imag_result = gko::custom_double::custom_to_native(result.imag());
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.shared.v2.f64 [%0], {%1, %2};"
+#else
+        "st.relaxed.cta.shared.v2.f64 [%0], {%1, %2};"
+#endif
+        ::"r"(convert_generic_ptr_to_smem_ptr(ptr)),
+        "d"(real_result), "d"(imag_result)
+        : "memory");
+}
+
+
 __device__ __forceinline__ thrust::complex<float> load_relaxed_local(
     const thrust::complex<float>* ptr)
 {
@@ -2587,6 +2895,44 @@ __device__ __forceinline__ void store_relaxed_local(
 }
 
 
+__device__ __forceinline__ thrust::complex<gko::custom_double>
+load_relaxed_local(const thrust::complex<gko::custom_double>* ptr)
+{
+    double real_result;
+    double imag_result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.v2.f64 {%0, %1}, [%2];"
+#else
+        "ld.relaxed.cta.v2.f64 {%0, %1}, [%2];"
+#endif
+        : "=d"(real_result), "=d"(imag_result)
+        : "l"(const_cast<thrust::complex<gko::custom_double>*>(ptr))
+        : "memory");
+    return thrust::complex<gko::custom_double>{
+        gko::custom_double::to_custom(real_result),
+        gko::custom_double::to_custom(imag_result)};
+}
+
+
+__device__ __forceinline__ void store_relaxed_local(
+    thrust::complex<gko::custom_double>* ptr,
+    thrust::complex<gko::custom_double> result)
+{
+    auto real_result = gko::custom_double::custom_to_native(result.real());
+    auto imag_result = gko::custom_double::custom_to_native(result.imag());
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.v2.f64 [%0], {%1, %2};"
+#else
+        "st.relaxed.cta.v2.f64 [%0], {%1, %2};"
+#endif
+        ::"l"(ptr),
+        "d"(real_result), "d"(imag_result)
+        : "memory");
+}
+
+
 __device__ __forceinline__ thrust::complex<float> load_relaxed(
     const thrust::complex<float>* ptr)
 {
@@ -2645,6 +2991,44 @@ __device__ __forceinline__ void store_relaxed(thrust::complex<double>* ptr,
 {
     auto real_result = result.real();
     auto imag_result = result.imag();
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "st.volatile.v2.f64 [%0], {%1, %2};"
+#else
+        "st.relaxed.gpu.v2.f64 [%0], {%1, %2};"
+#endif
+        ::"l"(ptr),
+        "d"(real_result), "d"(imag_result)
+        : "memory");
+}
+
+
+__device__ __forceinline__ thrust::complex<gko::custom_double> load_relaxed(
+    const thrust::complex<gko::custom_double>* ptr)
+{
+    double real_result;
+    double imag_result;
+    asm volatile(
+#if __CUDA_ARCH__ < 700
+        "ld.volatile.v2.f64 {%0, %1}, [%2];"
+#else
+        "ld.relaxed.gpu.v2.f64 {%0, %1}, [%2];"
+#endif
+        : "=d"(real_result), "=d"(imag_result)
+        : "l"(const_cast<thrust::complex<gko::custom_double>*>(ptr))
+        : "memory");
+    return thrust::complex<gko::custom_double>{
+        gko::custom_double::to_custom(real_result),
+        gko::custom_double::to_custom(imag_result)};
+}
+
+
+__device__ __forceinline__ void store_relaxed(
+    thrust::complex<gko::custom_double>* ptr,
+    thrust::complex<gko::custom_double> result)
+{
+    auto real_result = gko::custom_double::custom_to_native(result.real());
+    auto imag_result = gko::custom_double::custom_to_native(result.imag());
     asm volatile(
 #if __CUDA_ARCH__ < 700
         "st.volatile.v2.f64 [%0], {%1, %2};"
