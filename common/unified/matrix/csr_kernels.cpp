@@ -313,46 +313,25 @@ void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL);
 
 
-template <typename ValueType, typename IndexType, typename Closure>
-void row_wise_sum_impl(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* orig,
-                       array<ValueType>& sum, Closure closure)
+template <typename ValueType, typename IndexType>
+void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Csr<ValueType, IndexType>* orig,
+                           array<ValueType>& sum)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto row_ptrs, auto value_ptr, auto sum_ptr,
-                      auto closure_) {
-            for (size_type k = row_ptrs[row];
-                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                sum_ptr[row] += closure_(value_ptr[k]);
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto value_ptr, auto sum_ptr) {
+            sum_ptr[row] = zero<device_type<ValueType>>();
+            for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+                sum_ptr[row] += abs(value_ptr[k]);
             }
         },
         sum.get_num_elems(), orig->get_const_row_ptrs(),
-        orig->get_const_values(), sum.get_data(), closure);
-};
-
-
-template <typename ValueType, typename IndexType>
-void row_wise_sum(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* orig,
-                  array<ValueType>& sum, bool absolute)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto sum_ptr) {
-            sum_ptr[row] = zero<ValueType>();
-        },
-        sum.get_num_elems(), sum.get_data());
-
-    if (absolute) {
-        row_wise_sum_impl(exec, orig, sum,
-                          [] GKO_KERNEL(auto v) { return abs(v); });
-    } else {
-        row_wise_sum_impl(exec, orig, sum, [] GKO_KERNEL(auto v) { return v; });
-    }
+        orig->get_const_values(), sum.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ROW_WISE_SUM);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_WISE_ABSOLUTE_SUM);
 
 
 }  // namespace csr

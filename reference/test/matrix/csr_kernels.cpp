@@ -2558,32 +2558,16 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
 }
 
 
-TYPED_TEST(Csr, CanComputeRowWiseSum)
-{
-    using value_type = typename TestFixture::value_type;
-    gko::array<value_type> sum(this->exec, this->mtx3_sorted->get_size()[0]);
-    this->create_mtx3(this->mtx3_sorted, this->mtx3_unsorted);
-    this->mtx3_sorted->scale(gko::initialize<gko::matrix::Dense<value_type>>(
-        {-gko::one<value_type>()}, this->exec));
-
-    gko::kernels::reference::csr::row_wise_sum(
-        this->exec, this->mtx3_sorted.get(), sum, false);
-
-    gko::array<value_type> sum_result(this->exec, {-3, -12, -5});
-    GKO_ASSERT_ARRAY_EQ(sum, sum_result);
-}
-
-
 TYPED_TEST(Csr, CanComputeRowWiseAbsoluteSum)
 {
     using value_type = typename TestFixture::value_type;
     gko::array<value_type> sum(this->exec, this->mtx3_sorted->get_size()[0]);
-    this->create_mtx3(this->mtx3_sorted, this->mtx3_unsorted);
+    this->create_mtx3(this->mtx3_sorted.get(), this->mtx3_unsorted.get());
     this->mtx3_sorted->scale(gko::initialize<gko::matrix::Dense<value_type>>(
         {-gko::one<value_type>()}, this->exec));
 
-    gko::kernels::reference::csr::row_wise_sum(
-        this->exec, this->mtx3_sorted.get(), sum, true);
+    gko::kernels::reference::csr::row_wise_absolute_sum(
+        this->exec, this->mtx3_sorted.get(), sum);
 
     gko::array<value_type> sum_result(this->exec, {3, 12, 5});
     GKO_ASSERT_ARRAY_EQ(sum, sum_result);
