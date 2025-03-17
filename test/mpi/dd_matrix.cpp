@@ -123,7 +123,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
