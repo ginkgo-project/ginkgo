@@ -64,58 +64,53 @@ class Vector;
 
 
 /**
- * The Matrix class defines a (MPI-)distributed matrix.
+ * The DdMatrix class defines a (MPI-)distributed matrix.
  *
- * The matrix is stored in a row-wise distributed format.
- * Each process owns a specific set of rows, where the assignment of rows is
- * defined by a row Partition. The following depicts the distribution of
- * global rows according to their assigned part-id (which will usually be the
- * owning process id):
+ * The matrix is stored in an unassembled distributed format as it occurs in
+ * Domain Decomposition applications.
+ * Each process owns a locally assembled matrix, and the local contributions
+ * are coupled on subdomain interfaces via a restriction and a prolongation
+ * operator, which are distributed matrices
+ * (gko::experimental::distributed::Matrix) defined through the global indices
+ * appearing in the local contributions as well as a right and a left partition.
+ * The right partition considers the partitioning of vectors x to which the
+ * matrix is applied, the left partition in turn considers the partitioning of
+ * the resulting vector y = A*x. The following example attempts to give an
+ * overview over how this would look for a 3x3 matrix distributed to two ranks.
  * ```
- * Part-Id  Global Rows                   Part-Id  Local Rows
- * 0        | .. 1  2  .. .. .. |         0        | .. 1  2  .. .. .. |
- * 1        | 3  4  .. .. .. .. |                  | 13 .. .. .. 14 .. |
- * 2        | .. 5  6  ..  7 .. |  ---->  1        | 3  4  .. .. .. .. |
- * 2        | .. .. .. 8  ..  9 |  ---->           | .. .. .. 10 11 12 |
- * 1        | .. .. .. 10 11 12 |         2        | .. 5  6  ..  7 .. |
- * 0        | 13 .. .. .. 14 .. |                  | .. .. .. 8  ..  9 |
+ * Local Contribution on       Globally Assembled Matrix A
+ * Rank 0        Rank 1
+ * |  4 -2  0 |  |  0  0  0 |  |  4 -2  0 |
+ * | -2  2  0 |  |  0  2 -2 |  | -2  4 -2 |
+ * |  0  0  0 |  |  0 -2  4 |  |  0 -2  4 |
  * ```
- * The local rows are further split into two matrices on each process.
- * One matrix, called `local`, contains only entries from columns that are
- * also owned by the process, while the other one, called `non_local`,
- * contains entries from columns that are not owned by the process. The
- * non-local matrix is stored in a compressed format, where empty columns are
- * discarded and the remaining columns are renumbered. This splitting is
- * depicted in the following:
+ * With a right partition where rank 0 owns the first two rows and rank 1 the
+ * third and a left partition where rank 0 owns the first row and rank 2 the
+ * second and third, this would lead to a restriction operator R
  * ```
- * Part-Id  Global                            Local      Non-Local
- * 0        | .. 1  ! 2  .. ! .. .. |         | .. 1  |  | 2  |
- * 0        | 3  4  ! .. .. ! .. .. |         | 3  4  |  | .. |
- *          |-----------------------|
- * 1        | .. 5  ! 6  .. ! 7  .. |  ---->  | 6  .. |  | 5  7  .. |
- * 1        | .. .. ! .. 8  ! ..  9 |  ---->  | 8  .. |  | .. .. 9  |
- *          |-----------------------|
- * 2        | .. .. ! .. 10 ! 11 12 |         | 11 12 |  | .. 10 |
- * 2        | 13 .. ! .. .. ! 14 .. |         | 14 .. |  | 13 .. |
+ * Part-Id  Global              Local    Non-Local
+ * 0        | 1 0 ! 0 |         | 1 0 |  | |
+ * 0        | 0 1 ! 0 |         | 0 1 |  | |
+ *          |---------|  ---->
+ * 1        | 0 1 ! 0 |         | 0 |    | 1 |
+ * 1        | 0 0 ! 1 |         | 1 |    | 0 |
  * ```
- * This uses the same ownership of the columns as for the rows.
- * Additionally, the ownership of the columns may be explicitly defined with an
- * second column partition. If that is not provided, the same row partition will
- * be used for the columns. Using a column partition also allows to create
- * non-square matrices, like the one below:
+ * and a prolongation operator R^T
  * ```
- * Part-Id  Global                  Local      Non-Local
- * P_R/P_C    2  2  0  1
- * 0        | .. 1  2  .. |         | 2  |     | 1  .. |
- * 0        | 3  4  .. .. |         | .. |     | 3  4  |
- *          |-------------|
- * 1        | .. 5  6  .. |  ---->  | .. |     | 6  5  |
- * 1        | .. .. .. 8  |  ---->  | 8  |     | .. .. |
- *          |-------------|
- * 2        | .. .. .. 10 |         | .. .. |  | 10 |
- * 2        | 13 .. .. .. |         | 13 .. |  | .. |
+ * Part-Id  Global                Local    Non-Local
+ * 0        | 1 0 ! 0 0 |         | 1 0 |  | |
+ *          |-----------|  ---->
+ * 1        | 0 1 ! 1 0 |         | 1 0 |  | 1 |
+ * 1        | 0 0 ! 0 1 |         | 0 1 |  | 0 |
  * ```
- * Here `P_R` denotes the row partition and `P_C` denotes the column partition.
+ * With these operators and  ablock diagonal 4x4 matrix A_BD
+ * ```
+ * |  4 -2  0  0 |
+ * | -2  2  0  0 |
+ * |  0  0  2 -2 |
+ * |  0  0 -2  4 |
+ * ```
+ * we can now write A = R^T A_BD R.
  *
  * The Matrix should be filled using the read_distributed method, e.g.
  * ```
@@ -123,36 +118,36 @@ class Vector;
  * auto mat = Matrix<...>::create(exec, comm);
  * mat->read_distributed(matrix_data, part);
  * ```
- * or if different partitions for the rows and columns are used:
+ * or if different partitions for the left and right vectors are used:
  * ```
- * auto row_part = Partition<...>::build_from_mapping(...);
- * auto col_part = Partition<...>::build_from_mapping(...);
+ * auto right_part = Partition<...>::build_from_mapping(...);
+ * auto left_part = Partition<...>::build_from_mapping(...);
  * auto mat = Matrix<...>::create(exec, comm);
- * mat->read_distributed(matrix_data, row_part, col_part);
+ * mat->read_distributed(matrix_data, right_part, left_part);
  * ```
- * This will set the dimensions of the global and local matrices automatically
- * by deducing the sizes from the partitions.
+ * This will set the dimensions of the global and local matrices and generate
+ * the restriction and prolongation matrices automatically by deducing the sizes
+ * from the partitions.
  *
- * By default the Matrix type uses Csr for both stored matrices. It is possible
- * to explicitly change the datatype for the stored matrices, with the
- * constraint that the new type should implement the LinOp and
+ * By default the Matrix type uses Csr for the local matrix and the storage of
+ * the local and non-local parts of the restriction and prolongation matrices.
+ * It is possible to explicitly change the datatype for the local matrices, with
+ * the constraint that the new type should implement the LinOp and
  * ReadableFromMatrixData interface. The type can be set by:
  * ```
  * auto mat = Matrix<ValueType, LocalIndexType[, ...]>::create(
  *   exec, comm,
- *   Ell<ValueType, LocalIndexType>::create(exec).get(),
  *   Coo<ValueType, LocalIndexType>::create(exec).get());
  * ```
  * Alternatively, the helper function with_matrix_type can be used:
  * ```
  * auto mat = Matrix<ValueType, LocalIndexType>::create(
  *   exec, comm,
- *   with_matrix_type<Ell>(),
  *   with_matrix_type<Coo>());
  * ```
  * @see with_matrix_type
  *
- * The Matrix LinOp supports the following operations:
+ * The DdMatrix LinOp supports the following operations:
  * ```cpp
  * experimental::distributed::Matrix *A;       // distributed matrix
  * experimental::distributed::Vector *b, *x;   // distributed multi-vectors
@@ -161,6 +156,8 @@ class Vector;
  * // Applying to distributed multi-vectors computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
+ * A->row_scale(b)             // A = A * diag(b)
+ * A->col_scale(b)             // A = diag(b) * A
  * ```
  *
  * @tparam ValueType  The underlying value type.
@@ -211,10 +208,12 @@ public:
      * are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
+     *        by the process. The local matrix still considers these and the
+     * restriction and prolongation operators take care of fetching /
+     * re-distributing the corresponding vector entries.
      *
      * @param data  The device_matrix_data structure.
-     * @param partition  The global row and column partition.
+     * @param partition  The global left and right partition.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -249,17 +248,17 @@ public:
      *        by the process. Entries for those rows are discarded.
      *
      * @param data  The device_matrix_data structure.
-     * @param row_partition  The global row partition.
-     * @param col_partition  The global col partition.
+     * @param right_partition  The global right partition.
+     * @param left_partition  The global left partition.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            row_partition,
+            right_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            left_partition);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -273,9 +272,9 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            row_partition,
+            right_partition,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            col_partition);
+            left_partition);
 
     /**
      * Get read access to the stored local matrix.
@@ -339,7 +338,7 @@ public:
     DdMatrix& operator=(DdMatrix&& other);
 
     /**
-     * Creates an empty distributed matrix.
+     * Creates an empty distributed domain decomposition matrix.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
@@ -351,8 +350,8 @@ public:
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /**
-     * Creates an empty distributed matrix with specified type
-     * for local matrices.
+     * Creates an empty domain decomposition distributed matrix with specified
+     * type for local matrices.
      *
      * @note This is mainly a convenience wrapper for
      *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
@@ -383,8 +382,8 @@ public:
     }
 
     /**
-     * Creates an empty distributed matrix with specified type
-     * for local matrices.
+     * Creates an empty distributed domain decomposition matrix with specified
+     * type for local matrices.
      *
      * @note It internally clones the passed in matrix_template. Therefore, the
      *       LinOp should be empty.
@@ -402,7 +401,7 @@ public:
 
     /**
      * Scales the columns of the matrix by the respective entries of the vector.
-     * The vector's row partition has to be the same as the matrix's column
+     * The vector's row partition has to be the same as the matrix's left
      * partition. The scaling is done in-place.
      *
      * @param scaling_factors  The vector containing the scaling factors.
@@ -411,8 +410,8 @@ public:
 
     /**
      * Scales the rows of the matrix by the respective entries of the vector.
-     * The vector and the matrix have to have the same row partition.
-     * The scaling is done in-place.
+     * The vector's row partition has to be the same as the matrix's right
+     * partition. The scaling is done in-place.
      *
      * @param scaling_factors  The vector containing the scaling factors.
      */
