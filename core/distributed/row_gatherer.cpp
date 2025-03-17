@@ -64,7 +64,11 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
         "memory.");
 
     // dispatch global vector
-    run<Vector, double, float, std::complex<double>, std::complex<float>>(
+    run<Vector,
+#if GINKGO_ENABLE_HALF
+        half, std::complex<half>,
+#endif
+        double, float, std::complex<double>, std::complex<float>>(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
