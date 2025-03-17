@@ -151,7 +151,7 @@ protected:
         local_contributions;
 };
 
-TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(DdMatrix, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
