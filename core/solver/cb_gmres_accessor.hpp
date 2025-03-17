@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -137,12 +137,13 @@ struct helper_functions_accessor<Accessor3d, true> {
                                                    arithmetic_type value)
     {
         using storage_type = typename Accessor3d::accessor::storage_type;
-        constexpr arithmetic_type correction =
+        const arithmetic_type correction =
             std::is_integral<storage_type>::value
                 // Use 2 instead of 1 here to allow for a bit more room
-                ? 2 / static_cast<arithmetic_type>(
+                ? static_cast<arithmetic_type>(2) /
+                      static_cast<arithmetic_type>(
                           std::numeric_limits<storage_type>::max())
-                : 1;
+                : static_cast<arithmetic_type>(1);
         krylov_bases.get_accessor().write_scalar_direct(value * correction,
                                                         vector_idx, col_idx);
     }

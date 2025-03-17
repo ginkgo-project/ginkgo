@@ -279,6 +279,18 @@ __forceinline__ __device__ thrust::complex<double> atomic_add(
 }
 
 
+__forceinline__ __device__ thrust::complex<gko::custom_double> atomic_add(
+    thrust::complex<gko::custom_double>* __restrict__ address,
+    thrust::complex<gko::custom_double> val)
+{
+    auto addr = reinterpret_cast<gko::custom_double*>(address);
+    // Separate to real part and imag part
+    auto real = atomic_add(addr, val.real());
+    auto imag = atomic_add(addr + 1, val.imag());
+    return {real, imag};
+}
+
+
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

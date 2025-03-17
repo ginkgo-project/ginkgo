@@ -27,7 +27,7 @@
 
 #include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/thrust_macro.hpp"
-
+#include "core/base/custom_double.hpp"
 
 namespace gko {
 
@@ -66,6 +66,14 @@ struct device_numeric_limits<__half> {
         return __half{bits};
     }
 };
+
+template <>
+GKO_INLINE constexpr custom_double one<custom_double>()
+{
+    constexpr auto bits = static_cast<uint64>(
+        0b0'01111111111'0000000000000000000000000000000000000000000000000000ull);
+    return custom_double::create_from_bits(bits);
+}
 
 
 #ifdef GKO_COMPILING_CUDA
@@ -157,6 +165,9 @@ struct is_complex_or_scalar_impl<__half> : public std::true_type {};
 
 template <>
 struct is_complex_or_scalar_impl<vendor_bf16> : public std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<gko::custom_double> : public std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<thrust::complex<T>>
@@ -269,6 +280,30 @@ GKO_ATTRIBUTES GKO_INLINE gko::vendor_bf16 abs<gko::vendor_bf16>(
 
 
 #endif  // GINKGO_ENABLE_BFLOAT16
+
+
+template <>
+GKO_ATTRIBUTES GKO_INLINE complex<gko::custom_double> sqrt<gko::custom_double>(
+    const complex<gko::custom_double>& a)
+{
+    auto result =
+        sqrt(complex<double>(gko::custom_double::custom_to_native(a.real()),
+                             gko::custom_double::custom_to_native(a.imag())));
+    return complex<gko::custom_double>(
+        gko::custom_double::to_custom(result.real()),
+        gko::custom_double::to_custom(result.imag()));
+}
+
+
+template <>
+GKO_ATTRIBUTES GKO_INLINE gko::custom_double abs<gko::custom_double>(
+    const complex<gko::custom_double>& z)
+{
+    auto result =
+        abs(complex<double>(gko::custom_double::custom_to_native(z.real()),
+                            gko::custom_double::custom_to_native(z.imag())));
+    return gko::custom_double::to_custom(result);
+}
 
 
 }  // namespace thrust
@@ -391,6 +426,36 @@ __device__ __forceinline__ bool is_finite(
 
 
 #endif  // GINKGO_ENABLE_BFLOAT16
+
+
+__device__ __forceinline__ bool is_nan(const gko::custom_double& val)
+{
+    return is_nan(gko::custom_double::custom_to_native(val));
+}
+
+__device__ __forceinline__ bool is_nan(
+    const thrust::complex<gko::custom_double>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+__device__ __forceinline__ gko::custom_double abs(const gko::custom_double& val)
+{
+    return custom_double::to_custom(abs(custom_double::custom_to_native(val)));
+}
+
+__device__ __forceinline__ gko::custom_double sqrt(
+    const gko::custom_double& val)
+{
+    return custom_double::to_custom(sqrt(custom_double::custom_to_native(val)));
+}
+
+__device__ __forceinline__ bool is_finite(const gko::custom_double& value)
+{
+    return is_finite(custom_double::custom_to_native(value));
+}
+
+
 #endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
 
 

@@ -348,6 +348,11 @@ struct float_to_unsigned_impl<double> {
 };
 
 template <>
+struct float_to_unsigned_impl<gko::custom_double> {
+    using type = uint64;
+};
+
+template <>
 struct float_to_unsigned_impl<float> {
     using type = uint32;
 };

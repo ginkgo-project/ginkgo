@@ -488,7 +488,7 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     stopping_status* __restrict__ reorth_status,
     size_type* __restrict__ num_reorth)
 {
-    const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
+    const remove_complex<ValueType> eta_squared = 1.0f / 2.0f;
     const auto col_idx = thread::get_thread_id_flat();
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;

@@ -29,6 +29,8 @@ class half;
 
 class bfloat16;
 
+class custom_double;
+
 
 namespace acc {
 namespace detail {
@@ -47,6 +49,11 @@ struct cuda_type<gko::half> {
 template <>
 struct cuda_type<gko::bfloat16> {
     using type = __nv_bfloat16;
+};
+
+template <>
+struct cuda_type<double> {
+    using type = gko::custom_double;
 };
 
 // Unpack cv and reference / pointer qualifiers

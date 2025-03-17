@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "core/base/custom_double.hpp"
 #include "core/base/extended_float.hpp"
 
 

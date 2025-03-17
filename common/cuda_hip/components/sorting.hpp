@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "core/base/custom_double.hpp"
 
 
 namespace gko {
@@ -115,14 +116,22 @@ struct bitonic_warp {
     {
         auto new_reverse = reverse != upper_half();
         for (int i = 0; i < num_local; ++i) {
-            // workaround for ROCm 6.x segfaults on gfx906
+            if constexpr (std::is_same_v<ValueType, gko::custom_double>) {
+                auto other = gko::custom_double::to_custom(__shfl_xor_sync(
+                    config::full_lane_mask,
+                    gko::custom_double::custom_to_native(els[i]),
+                    num_threads / 2, num_threads));
+                bitonic_cas(els[i], other, new_reverse);
+            } else {
+                // workaround for ROCm 6.x segfaults on gfx906
 #ifdef GKO_COMPILING_CUDA
-            auto other = __shfl_xor_sync(config::full_lane_mask, els[i],
-                                         num_threads / 2, num_threads);
+                auto other = __shfl_xor_sync(config::full_lane_mask, els[i],
+                                             num_threads / 2, num_threads);
 #else
-            auto other = __shfl_xor(els[i], num_threads / 2, num_threads);
+                auto other = __shfl_xor(els[i], num_threads / 2, num_threads);
 #endif
-            bitonic_cas(els[i], other, new_reverse);
+                bitonic_cas(els[i], other, new_reverse);
+            }
         }
         half::merge(els, reverse);
     }

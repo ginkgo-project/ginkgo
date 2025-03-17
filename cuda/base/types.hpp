@@ -20,6 +20,8 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "core/base/custom_double.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -127,6 +129,9 @@ struct culibs_type_impl<half> {
     using type = __half;
 };
 
+// TODO: we do not need custom_double for compiler because the vendor also can
+// not support native operation.
+
 template <>
 struct culibs_type_impl<std::complex<half>> {
     using type = __half2;
@@ -183,6 +188,11 @@ struct cuda_type_impl<bfloat16> {
     using type = __nv_bfloat16;
 };
 
+template <>
+struct cuda_type_impl<double> {
+    using type = gko::custom_double;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
     using type = thrust::complex<typename cuda_type_impl<T>::type>;
@@ -190,7 +200,7 @@ struct cuda_type_impl<std::complex<T>> {
 
 template <>
 struct cuda_type_impl<cuDoubleComplex> {
-    using type = thrust::complex<double>;
+    using type = thrust::complex<gko::custom_double>;
 };
 
 template <>
@@ -228,6 +238,11 @@ struct cuda_struct_member_type_impl<gko::bfloat16> {
     using type = __nv_bfloat16;
 };
 
+template <>
+struct cuda_struct_member_type_impl<double> {
+    using type = gko::custom_double;
+};
+
 template <typename ValueType, typename IndexType>
 struct cuda_type_impl<matrix_data_entry<ValueType, IndexType>> {
     using type = matrix_data_entry<
@@ -250,6 +265,8 @@ GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<gko::half>, CUDA_C_16F);
 GKO_CUDA_DATA_TYPE(std::complex<gko::bfloat16>, CUDA_C_16BF);
+// TODO:
+GKO_CUDA_DATA_TYPE(gko::custom_double, CUDA_R_64F);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
