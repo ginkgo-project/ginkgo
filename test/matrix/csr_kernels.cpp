@@ -84,16 +84,11 @@ TEST_F(Csr, RowWiseSumIsEquivalentToRef)
     gko::array<value_type> sum{ref, x->get_size()[0]};
     gko::array<value_type> dsum{exec, dx->get_size()[0]};
 
-    for (auto use_absolute : {false, true}) {
-        SCOPED_TRACE(use_absolute ? "With absolute" : "Without absolute");
+    gko::kernels::reference::csr::row_wise_absolute_sum(ref, x.get(), sum);
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::row_wise_absolute_sum(
+        exec, dx.get(), dsum);
 
-        gko::kernels::reference::csr::row_wise_sum(ref, x.get(), sum,
-                                                   use_absolute);
-        gko::kernels::EXEC_NAMESPACE::csr::row_wise_sum(exec, dx.get(), dsum,
-                                                        use_absolute);
-
-        GKO_ASSERT_ARRAY_EQ(sum, dsum);
-    }
+    GKO_ASSERT_ARRAY_EQ(sum, dsum);
 }
 
 

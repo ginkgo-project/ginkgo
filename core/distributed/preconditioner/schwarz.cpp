@@ -33,7 +33,7 @@ namespace preconditioner {
 namespace {
 
 
-GKO_REGISTER_OPERATION(row_wise_sum, csr::row_wise_sum);
+GKO_REGISTER_OPERATION(row_wise_absolute_sum, csr::row_wise_absolute_sum);
 
 
 }
@@ -163,7 +163,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
         array<ValueType> l1_diag_arr{exec, local_matrix->get_size()[0]};
 
-        exec->run(make_row_wise_sum(non_local_matrix.get(), l1_diag_arr, true));
+        exec->run(
+            make_row_wise_absolute_sum(non_local_matrix.get(), l1_diag_arr));
 
         // compute local_matrix_copy <- diag(l1) + local_matrix_copy
         auto l1_diag = matrix::Diagonal<ValueType>::create(
