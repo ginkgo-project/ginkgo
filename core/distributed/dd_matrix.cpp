@@ -146,24 +146,24 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        row_partition,
+        right_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        left_partition)
 {
     const auto comm = this->get_communicator();
-    GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
-    GKO_ASSERT_EQ(data.get_size()[1], col_partition->get_size());
-    GKO_ASSERT_EQ(comm.size(), row_partition->get_num_parts());
-    GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
+    GKO_ASSERT_EQ(data.get_size()[0], right_partition->get_size());
+    GKO_ASSERT_EQ(data.get_size()[1], left_partition->get_size());
+    GKO_ASSERT_EQ(comm.size(), right_partition->get_num_parts());
+    GKO_ASSERT_EQ(comm.size(), left_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
     auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
-    auto tmp_row_partition = make_temporary_clone(exec, row_partition);
-    auto tmp_col_partition = make_temporary_clone(exec, col_partition);
+    auto tmp_right_partition = make_temporary_clone(exec, right_partition);
+    auto tmp_left_partition = make_temporary_clone(exec, left_partition);
 
     // set up LinOp sizes
-    auto global_num_rows = row_partition->get_size();
-    auto global_num_cols = col_partition->get_size();
+    auto global_num_rows = right_partition->get_size();
+    auto global_num_cols = left_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
     this->set_size(global_dim);
 
@@ -174,16 +174,16 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto arrays = data_copy.empty_out();
 
     exec->run(dd_matrix::make_filter_non_owning_idxs(
-        data, make_temporary_clone(exec, row_partition).get(),
-        make_temporary_clone(exec, col_partition).get(), local_part,
+        data, make_temporary_clone(exec, right_partition).get(),
+        make_temporary_clone(exec, left_partition).get(), local_part,
         non_owning_row_idxs, non_owning_col_idxs));
 
     auto col_map = gko::experimental::distributed::index_map<LocalIndexType,
                                                              GlobalIndexType>(
-        exec, col_partition, local_part, non_owning_col_idxs);
+        exec, left_partition, local_part, non_owning_col_idxs);
     auto row_map = gko::experimental::distributed::index_map<LocalIndexType,
                                                              GlobalIndexType>(
-        exec, row_partition, local_part, non_owning_row_idxs);
+        exec, right_partition, local_part, non_owning_row_idxs);
 
     GlobalIndexType local_num_cols =
         col_map.get_local_size() + col_map.get_non_local_size();
@@ -234,13 +234,13 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                                      static_cast<size_type>(local_num_rows)};
     restrict_values.fill(one<ValueType>());
     device_matrix_data<ValueType, GlobalIndexType> restrict_data{
-        exec, dim<2>{large_partition->get_size(), col_partition->get_size()},
+        exec, dim<2>{large_partition->get_size(), left_partition->get_size()},
         std::move(restrict_row_idxs), std::move(restrict_col_idxs),
         std::move(restrict_values)};
     restriction_ =
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
     restriction_->read_distributed(restrict_data, large_partition,
-                                   col_partition);
+                                   left_partition);
     auto prolongate_col_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     auto prolongate_row_idxs =
@@ -249,12 +249,12 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                                        static_cast<size_type>(local_num_rows)};
     prolongate_values.fill(one<ValueType>());
     device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
-        exec, dim<2>{row_partition->get_size(), large_partition->get_size()},
+        exec, dim<2>{right_partition->get_size(), large_partition->get_size()},
         std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
         std::move(prolongate_values)};
     prolongation_ =
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
-    prolongation_->read_distributed(prolongate_data, row_partition,
+    prolongation_->read_distributed(prolongate_data, right_partition,
                                     large_partition,
                                     assembly_mode::communicate);
 }
@@ -264,14 +264,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<value_type, global_index_type>& data,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        row_partition,
+        right_partition,
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        left_partition)
 {
     return this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        row_partition, col_partition);
+        right_partition, left_partition);
 }
 
 
