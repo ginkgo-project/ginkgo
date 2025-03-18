@@ -47,17 +47,17 @@ namespace csr {
  */
 template <typename IndexType>
 inline void merge_path_search(
-    const int diagonal,      ///< [in]The diagonal to search
-    const IndexType* A,      ///< [in]List A
-    const int A_len,         ///< [in]Length of A
-    const int B_len,         ///< [in]Length of B
-    int& path_coordinate_x,  ///< [out] (x) coordinate where diagonal intersects
-                             ///< the merge path
-    int& path_coordinate_y)  ///< [out] (y) coordinate where diagonal intersects
-                             ///< the merge path
+    const IndexType diagonal,      ///< [in]The diagonal to search
+    const IndexType* A,            ///< [in]List A
+    const IndexType a_len,         ///< [in]Length of A
+    const IndexType b_len,         ///< [in]Length of B
+    IndexType& path_coordinate_x,  ///< [out] (x) coordinate where diagonal
+                                   ///< intersects the merge path
+    IndexType& path_coordinate_y)  ///< [out] (y) coordinate where diagonal
+                                   ///< intersects the merge path
 {
-    auto x_min = std::max(diagonal - B_len, 0);
-    auto x_max = std::min(diagonal, A_len);
+    auto x_min = std::max(diagonal - b_len, zero<IndexType>());
+    auto x_max = std::min(diagonal, a_len);
 
     while (x_min < x_max) {
         auto x_pivot = x_min + ((x_max - x_min) / 2);
@@ -68,9 +68,10 @@ inline void merge_path_search(
         }
     }
 
-    path_coordinate_x = std::min(x_min, A_len);
+    path_coordinate_x = std::min(x_min, a_len);
     path_coordinate_y = diagonal - x_min;
 }
+
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
@@ -98,22 +99,27 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
     const IndexType* row_end_offsets =
         row_ptrs + 1;  // Merge list A: row end offsets
     const auto num_merge_items = num_rows + nnz;  // Merge path total length
-    const auto items_per_thread = (num_merge_items + num_threads - 1) /
-                                  num_threads;  // Merge items per thread
+    const auto items_per_thread =
+        ceildiv(num_merge_items, num_threads);  // Merge items per thread
     array<IndexType> row_carry_out{exec, num_threads};
     array<arithmetic_type> value_carry_out{exec, num_threads};
     auto row_carry_out_ptr = row_carry_out.get_data();
     auto value_carry_out_ptr = value_carry_out.get_data();
 
     for (size_type j = 0; j < c->get_size()[1]; ++j) {
+        // TODO: It uses static from the observation of the previous
+        // experiments. Check it with different system and different kinds of
+        // schedule.
 #pragma omp parallel for schedule(static)
         for (size_type tid = 0; tid < num_threads; tid++) {
-            const auto start_diagonal =
-                std::min(items_per_thread * tid, num_merge_items);
-            const auto end_diagonal =
-                std::min(start_diagonal + items_per_thread, num_merge_items);
-            int thread_coord_x, thread_coord_y, thread_coord_end_x,
-                thread_coord_end_y;
+            const auto start_diagonal = static_cast<IndexType>(
+                std::min(items_per_thread * tid, num_merge_items));
+            const auto end_diagonal = static_cast<IndexType>(
+                std::min(start_diagonal + items_per_thread, num_merge_items));
+            IndexType thread_coord_x;
+            IndexType thread_coord_y;
+            IndexType thread_coord_end_x;
+            IndexType thread_coord_end_y;
 
             merge_path_search(start_diagonal, row_end_offsets, num_rows, nnz,
                               thread_coord_x, thread_coord_y);
@@ -146,6 +152,8 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
         }
 
         // Carry-out fix-up (rows spanning multiple threads)
+        // The last thread does not carry out partial result becaust it must
+        // compute the result till the last row end.
         for (int tid = 0; tid < num_threads - 1; tid++) {
             if (row_carry_out_ptr[tid] < num_rows) {
                 c_vals(row_carry_out_ptr[tid], j) += value_carry_out_ptr[tid];
