@@ -11,6 +11,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
@@ -402,6 +403,7 @@ struct GaussSeidel
 
 #if GINKGO_BUILD_MPI
 
+using DummyMgLevel = gko::multigrid::Pgm<float, int>;
 
 struct Schwarz
     : PreconditionerConfigTest<
@@ -428,17 +430,34 @@ struct Schwarz
             param.with_local_solver(
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
                     reg, "solver"));
+            config_map["coarse_solver"] = pnode{"solver"};
+            param.with_coarse_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "solver"));
+            config_map["coarse_level"] = pnode{"c_level"};
+            param.with_coarse_level(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "c_level"));
         } else {
             config_map["local_solver"] =
                 pnode{{{"type", pnode{"solver::Ir"}},
                        {"value_type", pnode{"float32"}}}};
             param.with_local_solver(DummyIr::build().on(exec));
+            config_map["coarse_solver"] =
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
+            param.with_coarse_solver(DummyIr::build().on(exec));
+            config_map["coarse_level"] =
+                pnode{{{"type", pnode{"multigrid::Pgm"}}}};
+            param.with_coarse_level(DummyMgLevel::build().on(exec));
         }
         config_map["generated_local_solver"] = pnode{"linop"};
         param.with_generated_local_solver(
             detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
         config_map["l1_smoother"] = pnode{true};
         param.with_l1_smoother(true);
+        config_map["coarse_weight"] = pnode{0.1};
+        param.with_coarse_weight(0.1);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -449,14 +468,25 @@ struct Schwarz
 
         if (from_reg) {
             ASSERT_EQ(res_param.local_solver, ans_param.local_solver);
+            ASSERT_EQ(res_param.coarse_solver, ans_param.coarse_solver);
+            ASSERT_EQ(res_param.coarse_level, ans_param.coarse_level);
         } else {
             ASSERT_NE(
                 std::dynamic_pointer_cast<const typename DummyIr::Factory>(
                     res_param.local_solver),
                 nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.coarse_solver),
+                nullptr);
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyMgLevel::Factory>(
+                    res_param.coarse_level),
+                nullptr);
         }
         ASSERT_EQ(res_param.generated_local_solver,
                   ans_param.generated_local_solver);
+        ASSERT_EQ(res_param.coarse_weight, ans_param.coarse_weight);
     }
 };
 
@@ -477,9 +507,11 @@ protected:
           u_solver(DummyIr::build().on(exec)),
           factorization(DummyIr::build().on(exec)),
           linop(gko::matrix::Dense<>::create(exec)),
+          coarse_level(DummyMgLevel::build().on(exec)),
           reg()
     {
         reg.emplace("solver", solver_factory);
+        reg.emplace("c_level", coarse_level);
         reg.emplace("l_solver", l_solver);
         reg.emplace("u_solver", u_solver);
         reg.emplace("factorization", factorization);
@@ -492,6 +524,7 @@ protected:
     std::shared_ptr<typename DummyIr::Factory> l_solver;
     std::shared_ptr<typename DummyIr::Factory> u_solver;
     std::shared_ptr<typename DummyIr::Factory> factorization;
+    std::shared_ptr<typename DummyMgLevel::Factory> coarse_level;
     std::shared_ptr<gko::LinOp> linop;
     registry reg;
 };
