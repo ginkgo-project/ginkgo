@@ -17,6 +17,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 #include "core/base/utils.hpp"
 #include "core/config/config_helper.hpp"
@@ -56,6 +57,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
         params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("coarse_weight")) {
+        params.with_coarse_weight(gko::config::get_value<double>(obj));
     }
 
     return params;
@@ -186,7 +190,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto dist_mat =
         as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                              GlobalIndexType>>(system_matrix);
-    if (parameters_.coarse_weight > 0) {
+    if (parameters_.coarse_weight > 0 && parameters_.coarse_weight <= 1) {
         this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
             {ValueType{1} - ValueType{parameters_.coarse_weight}},
             this->get_executor());
@@ -205,7 +209,6 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     } else {
         this->set_solver(parameters_.generated_local_solver);
     }
-
 
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
