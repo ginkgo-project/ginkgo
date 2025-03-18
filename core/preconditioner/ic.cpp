@@ -26,27 +26,25 @@ typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    // additional l_solver_type because we allow user select one of
-    // instantiation.
-    std::set<std::string> allowed_keys{"l_solver", "factorization",
-                                       "l_solver_type"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = Ic::build();
+    std::set<std::string> allowed_keys;
+
     using l_solver_type = typename Ic::l_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,
                   "only support IC parse when l_solver_type is LinOp.");
-    if (auto& obj = config.get("l_solver")) {
+
+    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("factorization")) {
+    if (auto& obj =
+            config::get_config_node(config, "factorization", allowed_keys)) {
         params.with_factorization(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/solver/gcr.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -19,8 +22,6 @@
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
-
 namespace gko {
 namespace solver {
 namespace gcr {
@@ -42,13 +43,14 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gcr<ValueType>::build();
-    auto allowed_keys =
-        common_solver_parse(params, config, context, td_for_child);
-    allowed_keys.insert("krylov_dim");
-    gko::config::check_allowed_keys(config, allowed_keys);
-    if (auto& obj = config.get("krylov_dim")) {
-        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    std::set<std::string> allowed_keys;
+    config::common_solver_parse(params, config, context, td_for_child,
+                                allowed_keys);
+    if (auto& obj =
+            config::get_config_node(config, "krylov_dim", allowed_keys)) {
+        params.with_krylov_dim(config::get_value<size_type>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

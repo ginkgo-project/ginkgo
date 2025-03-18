@@ -20,17 +20,18 @@ namespace config {
 
 
 template <typename SolverParam>
-inline std::set<std::string> common_trisolver_parse(
-    SolverParam& params, const pnode& config, const registry& context,
-    type_descriptor td_for_child)
+inline void common_trisolver_parse(SolverParam& params, const pnode& config,
+                                   const registry& context,
+                                   type_descriptor td_for_child,
+                                   std::set<std::string>& allowed_keys)
 {
-    if (auto& obj = config.get("num_rhs")) {
+    if (auto& obj = get_config_node(config, "num_rhs", allowed_keys)) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("unit_diagonal")) {
+    if (auto& obj = get_config_node(config, "unit_diagonal", allowed_keys)) {
         params.with_unit_diagonal(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("algorithm")) {
+    if (auto& obj = get_config_node(config, "algorithm", allowed_keys)) {
         using gko::solver::trisolve_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {
@@ -41,7 +42,6 @@ inline std::set<std::string> common_trisolver_parse(
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
     }
-    return {"num_rhs", "unit_diagonal", "algorithm"};
 }
 
 

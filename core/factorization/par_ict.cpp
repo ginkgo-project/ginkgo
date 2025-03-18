@@ -152,34 +152,37 @@ ParIct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{
-        "iterations",           "skip_sorting",  "approximate_select",
-        "deterministic_sample", "fill_in_limit", "l_strategy",
-        "lt_strategy"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = factorization::ParIct<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("iterations")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "iterations", allowed_keys)) {
         params.with_iterations(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("approximate_select")) {
+    if (auto& obj = config::get_config_node(config, "approximate_select",
+                                            allowed_keys)) {
         params.with_approximate_select(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("deterministic_sample")) {
+    if (auto& obj = config::get_config_node(config, "deterministic_sample",
+                                            allowed_keys)) {
         params.with_deterministic_sample(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("fill_in_limit")) {
+    if (auto& obj =
+            config::get_config_node(config, "fill_in_limit", allowed_keys)) {
         params.with_fill_in_limit(config::get_value<double>(obj));
     }
-    if (auto& obj = config.get("l_strategy")) {
+    if (auto& obj =
+            config::get_config_node(config, "l_strategy", allowed_keys)) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj = config.get("lt_strategy")) {
+    if (auto& obj =
+            config::get_config_node(config, "lt_strategy", allowed_keys)) {
         params.with_lt_strategy(config::get_strategy<matrix_type>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

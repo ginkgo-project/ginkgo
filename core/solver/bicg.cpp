@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/solver/bicg.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -15,7 +18,6 @@
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
 
 namespace gko {
 namespace solver {
@@ -38,9 +40,10 @@ typename Bicg<ValueType>::parameters_type Bicg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Bicg<ValueType>::build();
-    auto allowed_keys =
-        common_solver_parse(params, config, context, td_for_child);
-    gko::config::check_allowed_keys(config, allowed_keys);
+    std::set<std::string> allowed_keys;
+    config::common_solver_parse(params, config, context, td_for_child,
+                                allowed_keys);
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

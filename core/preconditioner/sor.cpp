@@ -43,34 +43,32 @@ Sor<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{"skip_sorting", "symmetric",
-                                       "relaxation_factor", "l_solver",
-                                       "u_solver"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = Sor::build();
-
-    if (auto& obj = config.get("skip_sorting")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("symmetric")) {
+    if (auto& obj =
+            config::get_config_node(config, "symmetric", allowed_keys)) {
         params.with_symmetric(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("relaxation_factor")) {
+    if (auto& obj = config::get_config_node(config, "relaxation_factor",
+                                            allowed_keys)) {
         params.with_relaxation_factor(
             config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = config.get("l_solver")) {
+    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("u_solver")) {
+    if (auto& obj = config::get_config_node(config, "u_solver", allowed_keys)) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

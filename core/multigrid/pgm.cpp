@@ -165,23 +165,25 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{"max_iterations", "max_unassigned_ratio",
-                                       "deterministic", "skip_sorting"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = Pgm<ValueType, IndexType>::build();
-    if (auto& obj = config.get("max_iterations")) {
-        params.with_max_iterations(gko::config::get_value<unsigned>(obj));
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "max_iterations", allowed_keys)) {
+        params.with_max_iterations(config::get_value<unsigned>(obj));
     }
-    if (auto& obj = config.get("max_unassigned_ratio")) {
-        params.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
+    if (auto& obj = config::get_config_node(config, "max_unassigned_ratio",
+                                            allowed_keys)) {
+        params.with_max_unassigned_ratio(config::get_value<double>(obj));
     }
-    if (auto& obj = config.get("deterministic")) {
-        params.with_deterministic(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "deterministic", allowed_keys)) {
+        params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
-
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

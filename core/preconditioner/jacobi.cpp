@@ -63,22 +63,19 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{
-        "max_block_size", "max_block_stride",     "skip_sorting",
-        "block_pointers", "storage_optimization", "accuracy",
-        "aggregate_l1"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("max_block_size")) {
-        params.with_max_block_size(gko::config::get_value<uint32>(obj));
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "max_block_size", allowed_keys)) {
+        params.with_max_block_size(config::get_value<uint32>(obj));
     }
-    if (auto& obj = config.get("max_block_stride")) {
-        params.with_max_block_stride(gko::config::get_value<uint32>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "max_block_stride", allowed_keys)) {
+        params.with_max_block_stride(config::get_value<uint32>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
     // No array support
     if (config.get("block_pointers")) {
@@ -89,17 +86,19 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
     // storage_optimization_type is not public. It uses precision_reduction
     // as input. It allows value and array input, but we only support the value
     // input [x, y] -> one precision_reduction (value mode)
-    if (auto& obj = config.get("storage_optimization")) {
+    if (auto& obj = config::get_config_node(config, "storage_optimization",
+                                            allowed_keys)) {
         params.with_storage_optimization(
-            gko::config::get_value<precision_reduction>(obj));
+            config::get_value<precision_reduction>(obj));
     }
-    if (auto& obj = config.get("accuracy")) {
-        params.with_accuracy(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+    if (auto& obj = config::get_config_node(config, "accuracy", allowed_keys)) {
+        params.with_accuracy(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = config.get("aggregate_l1")) {
-        params.with_aggregate_l1(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "aggregate_l1", allowed_keys)) {
+        params.with_aggregate_l1(config::get_value<bool>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

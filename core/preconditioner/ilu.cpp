@@ -16,7 +16,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 
-
 namespace gko {
 namespace preconditioner {
 namespace detail {
@@ -27,35 +26,34 @@ typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    // additional l_solver_type and reverse_apply because we allow user select
-    // one of instantiation.
-    std::set<std::string> allowed_keys{"l_solver", "u_solver", "factorization",
-                                       "l_solver_type", "reverse_apply"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = Ilu::build();
+    // reverse_apply is used for determining the Ilu type
+    std::set<std::string> allowed_keys{"reverse_apply"};
+
     using l_solver_type = typename Ilu::l_solver_type;
     using u_solver_type = typename Ilu::u_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,
                   "only support ILU parse when l_solver_type is LinOp.");
     static_assert(std::is_same_v<u_solver_type, LinOp>,
                   "only support ILU parse when u_solver_type is LinOp.");
-    if (auto& obj = config.get("l_solver")) {
+
+    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("u_solver")) {
+    if (auto& obj = config::get_config_node(config, "u_solver", allowed_keys)) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("factorization")) {
+    if (auto& obj =
+            config::get_config_node(config, "factorization", allowed_keys)) {
         params.with_factorization(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

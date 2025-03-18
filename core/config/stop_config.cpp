@@ -22,7 +22,6 @@
 #include "core/config/registry_accessor.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
-
 namespace gko {
 namespace config {
 
@@ -30,12 +29,12 @@ namespace config {
 deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
-    std::set<std::string> allowed_keys{"time_limit"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = stop::Time::build();
-    if (auto& obj = config.get("time_limit")) {
-        params.with_time_limit(gko::config::get_value<long long int>(obj));
+    std::set<std::string> allowed_keys;
+    if (auto& obj = get_config_node(config, "time_limit", allowed_keys)) {
+        params.with_time_limit(get_value<long long int>(obj));
     }
+    check_allowed_keys(config, allowed_keys);
     return params;
 }
 
@@ -43,12 +42,12 @@ deferred_factory_parameter<stop::CriterionFactory> configure_time(
 deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
-    std::set<std::string> allowed_keys{"max_iters"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = stop::Iteration::build();
-    if (auto& obj = config.get("max_iters")) {
-        params.with_max_iters(gko::config::get_value<size_type>(obj));
+    std::set<std::string> allowed_keys;
+    if (auto& obj = get_config_node(config, "max_iters", allowed_keys)) {
+        params.with_max_iters(get_value<size_type>(obj));
     }
+    check_allowed_keys(config, allowed_keys);
     return params;
 }
 
@@ -75,16 +74,17 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        std::set<std::string> allowed_keys{"reduction_factor", "baseline"};
-        gko::config::check_allowed_keys(config, allowed_keys);
+        std::set<std::string> allowed_keys;
         auto params = stop::ResidualNorm<ValueType>::build();
-        if (auto& obj = config.get("reduction_factor")) {
+        if (auto& obj =
+                get_config_node(config, "reduction_factor", allowed_keys)) {
             params.with_reduction_factor(
-                gko::config::get_value<remove_complex<ValueType>>(obj));
+                get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = config.get("baseline")) {
+        if (auto& obj = get_config_node(config, "baseline", allowed_keys)) {
             params.with_baseline(get_mode(obj.get_string()));
         }
+        check_allowed_keys(config, allowed_keys);
         return params;
     }
 };
@@ -109,16 +109,17 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        std::set<std::string> allowed_keys{"reduction_factor", "baseline"};
-        gko::config::check_allowed_keys(config, allowed_keys);
+        std::set<std::string> allowed_keys;
         auto params = stop::ImplicitResidualNorm<ValueType>::build();
-        if (auto& obj = config.get("reduction_factor")) {
+        if (auto& obj =
+                get_config_node(config, "reduction_factor", allowed_keys)) {
             params.with_reduction_factor(
-                gko::config::get_value<remove_complex<ValueType>>(obj));
+                get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = config.get("baseline")) {
+        if (auto& obj = get_config_node(config, "baseline", allowed_keys)) {
             params.with_baseline(get_mode(obj.get_string()));
         }
+        check_allowed_keys(config, allowed_keys);
         return params;
     }
 };
