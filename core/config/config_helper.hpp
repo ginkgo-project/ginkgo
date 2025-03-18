@@ -318,35 +318,12 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
 
 // It is to check whether the keys of config (map type) are mentioned in
 // allowed_keys. If not, it will throw an error message.
-inline void check_allowed_keys(const pnode& config,
-                               const std::set<std::string>& allowed_keys)
-{
-    if (config.get_tag() != pnode::tag_t::map) {
-        // we only check the key in the map
-        return;
-    }
-    const auto& map = config.get_map();
-    auto set_output = [](auto& set) {
-        std::string output = "[";
-        for (const auto& item : set) {
-            output = output + " " + item;
-        }
-        output += " ]";
-        return output;
-    };
-    for (const auto& item : map) {
-        if (item.first == "value_type" || item.first == "type") {
-            // We always allow value_type in any class and use type to choose
-            // the class
-            continue;
-        }
-        auto search = allowed_keys.find(item.first);
-        GKO_THROW_IF_INVALID(
-            search != allowed_keys.end(),
-            item.first + " is not a allowed key. The allowed keys here is " +
-                set_output(allowed_keys));
-    }
-}
+void check_allowed_keys(const pnode& config,
+                        const std::set<std::string>& allowed_keys);
+
+// using this to append the available option to the set.
+const pnode& get_config_node(const pnode& config, const std::string& key,
+                             std::set<std::string>& allowed_keys);
 
 
 }  // namespace config

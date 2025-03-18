@@ -28,7 +28,6 @@
 #include "core/distributed/helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
-
 namespace gko {
 namespace experimental {
 namespace distributed {
@@ -48,38 +47,41 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{
-        "generated_local_solver", "local_solver",  "l1_smoother",
-        "coarse_level",           "coarse_solver", "coarse_weight"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = Schwarz::build();
-
-    if (auto& obj = config.get("generated_local_solver")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj = config::get_config_node(config, "generated_local_solver",
+                                            allowed_keys)) {
         params.with_generated_local_solver(
-            gko::config::get_stored_obj<const LinOp>(obj, context));
+            config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = config.get("local_solver")) {
+    if (auto& obj =
+            config::get_config_node(config, "local_solver", allowed_keys)) {
         params.with_local_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-    if (auto& obj = config.get("l1_smoother")) {
+    if (auto& obj =
+            config::get_config_node(config, "l1_smoother", allowed_keys)) {
         params.with_l1_smoother(obj.get_boolean());
     }
-    if (auto& obj = config.get("coarse_level")) {
+    if (auto& obj =
+            config::get_config_node(config, "coarse_level", allowed_keys)) {
         params.with_coarse_level(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("coarse_solver")) {
+    if (auto& obj =
+            config::get_config_node(config, "coarse_solver", allowed_keys)) {
         params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("coarse_weight")) {
+    if (auto& obj =
+            config::get_config_node(config, "coarse_weight", allowed_keys)) {
         params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
     }
 
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

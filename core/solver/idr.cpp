@@ -20,7 +20,6 @@
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
-
 namespace gko {
 namespace solver {
 namespace idr {
@@ -44,25 +43,25 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Idr<ValueType>::build();
-    auto allowed_keys =
-        common_solver_parse(params, config, context, td_for_child);
-    std::set<std::string> other_keys{"subspace_dim", "kappa", "deterministic",
-                                     "complex_subspace"};
-    allowed_keys.merge(other_keys);
-    gko::config::check_allowed_keys(config, allowed_keys);
-    if (auto& obj = config.get("subspace_dim")) {
-        params.with_subspace_dim(gko::config::get_value<size_type>(obj));
+    std::set<std::string> allowed_keys;
+    config::common_solver_parse(params, config, context, td_for_child,
+                                allowed_keys);
+    if (auto& obj =
+            config::get_config_node(config, "subspace_dim", allowed_keys)) {
+        params.with_subspace_dim(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("kappa")) {
-        params.with_kappa(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+    if (auto& obj = config::get_config_node(config, "kappa", allowed_keys)) {
+        params.with_kappa(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = config.get("deterministic")) {
-        params.with_deterministic(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "deterministic", allowed_keys)) {
+        params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("complex_subspace")) {
-        params.with_complex_subspace(gko::config::get_value<bool>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "complex_subspace", allowed_keys)) {
+        params.with_complex_subspace(config::get_value<bool>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

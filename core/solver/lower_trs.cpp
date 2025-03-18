@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -16,7 +19,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/trisolver_config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
-
 
 namespace gko {
 namespace solver {
@@ -41,9 +43,10 @@ LowerTrs<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = LowerTrs<ValueType, IndexType>::build();
-    auto allowed_keys =
-        common_trisolver_parse(params, config, context, td_for_child);
-    gko::config::check_allowed_keys(config, allowed_keys);
+    std::set<std::string> allowed_keys;
+    config::common_trisolver_parse(params, config, context, td_for_child,
+                                   allowed_keys);
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

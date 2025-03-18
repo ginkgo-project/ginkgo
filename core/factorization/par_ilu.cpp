@@ -50,23 +50,25 @@ ParIlu<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::registry& context,
                                     const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{"iterations", "skip_sorting",
-                                       "l_strategy", "u_strategy"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params = factorization::ParIlu<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("iterations")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "iterations", allowed_keys)) {
         params.with_iterations(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("l_strategy")) {
+    if (auto& obj =
+            config::get_config_node(config, "l_strategy", allowed_keys)) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj = config.get("u_strategy")) {
+    if (auto& obj =
+            config::get_config_node(config, "u_strategy", allowed_keys)) {
         params.with_u_strategy(config::get_strategy<matrix_type>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 
