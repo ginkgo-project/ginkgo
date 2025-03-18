@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/solver/cgs.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -17,8 +20,6 @@
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
-
 namespace gko {
 namespace solver {
 namespace cgs {
@@ -41,9 +42,10 @@ typename Cgs<ValueType>::parameters_type Cgs<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Cgs<ValueType>::build();
-    auto allowed_keys =
-        common_solver_parse(params, config, context, td_for_child);
-    gko::config::check_allowed_keys(config, allowed_keys);
+    std::set<std::string> allowed_keys;
+    config::common_solver_parse(params, config, context, td_for_child,
+                                allowed_keys);
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

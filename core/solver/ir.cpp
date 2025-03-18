@@ -38,31 +38,31 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Ir<ValueType>::build();
-    std::set<std::string> allowed_keys{"criteria", "solver", "generated_solver",
-                                       "relaxation_factor",
-                                       "default_initial_guess"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-    if (auto& obj = config.get("criteria")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj = config::get_config_node(config, "criteria", allowed_keys)) {
         params.with_criteria(
-            gko::config::parse_or_get_factory_vector<
-                const stop::CriterionFactory>(obj, context, td_for_child));
-    }
-    if (auto& obj = config.get("solver")) {
-        params.with_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
+            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("generated_solver")) {
+    if (auto& obj = config::get_config_node(config, "solver", allowed_keys)) {
+        params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
+    }
+    if (auto& obj =
+            config::get_config_node(config, "generated_solver", allowed_keys)) {
         params.with_generated_solver(
-            gko::config::get_stored_obj<const LinOp>(obj, context));
+            config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = config.get("relaxation_factor")) {
-        params.with_relaxation_factor(gko::config::get_value<ValueType>(obj));
+    if (auto& obj = config::get_config_node(config, "relaxation_factor",
+                                            allowed_keys)) {
+        params.with_relaxation_factor(config::get_value<ValueType>(obj));
     }
-    if (auto& obj = config.get("default_initial_guess")) {
+    if (auto& obj = config::get_config_node(config, "default_initial_guess",
+                                            allowed_keys)) {
         params.with_default_initial_guess(
-            gko::config::get_value<solver::initial_guess_mode>(obj));
+            config::get_value<solver::initial_guess_mode>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

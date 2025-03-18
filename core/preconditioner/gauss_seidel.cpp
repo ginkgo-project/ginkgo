@@ -22,28 +22,25 @@ GaussSeidel<ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{"skip_sorting", "symmetric", "l_solver",
-                                       "u_solver"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = GaussSeidel::build();
-
-    if (auto& obj = config.get("skip_sorting")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("symmetric")) {
+    if (auto& obj =
+            config::get_config_node(config, "symmetric", allowed_keys)) {
         params.with_symmetric(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("l_solver")) {
-        params.with_l_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
+        params.with_l_solver(config::parse_or_get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
     }
-    if (auto& obj = config.get("u_solver")) {
-        params.with_u_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+    if (auto& obj = config::get_config_node(config, "u_solver", allowed_keys)) {
+        params.with_u_solver(config::parse_or_get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
     }
+    config::check_allowed_keys(config, allowed_keys);
 
     return params;
 }

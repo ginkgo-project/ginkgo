@@ -100,32 +100,33 @@ Isai<IsaiType, ValueType, IndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    // isai_type is allowed to select the instantiation.
-    std::set<std::string> allowed_keys{
-        "skip_sorting",          "sparsity_power",          "excess_limit",
-        "excess_solver_factory", "excess_solver_reduction", "isai_type"};
-    gko::config::check_allowed_keys(config, allowed_keys);
-
     auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    // isai_type is allowed to select the instantiation.
+    std::set<std::string> allowed_keys{"isai_type"};
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("sparsity_power")) {
-        params.with_sparsity_power(gko::config::get_value<int>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "sparsity_power", allowed_keys)) {
+        params.with_sparsity_power(config::get_value<int>(obj));
     }
-    if (auto& obj = config.get("excess_limit")) {
-        params.with_excess_limit(gko::config::get_value<size_type>(obj));
+    if (auto& obj =
+            config::get_config_node(config, "excess_limit", allowed_keys)) {
+        params.with_excess_limit(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("excess_solver_factory")) {
+    if (auto& obj = config::get_config_node(config, "excess_solver_factory",
+                                            allowed_keys)) {
         params.with_excess_solver_factory(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-    if (auto& obj = config.get("excess_solver_reduction")) {
+    if (auto& obj = config::get_config_node(config, "excess_solver_reduction",
+                                            allowed_keys)) {
         params.with_excess_solver_reduction(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+            config::get_value<remove_complex<ValueType>>(obj));
     }
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

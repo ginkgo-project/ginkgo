@@ -46,17 +46,16 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::registry& context,
                                 const config::type_descriptor& td_for_child)
 {
-    std::set<std::string> allowed_keys{"symbolic_factorization",
-                                       "symbolic_algorithm", "skip_sorting"};
-    gko::config::check_allowed_keys(config, allowed_keys);
     auto params =
         experimental::factorization::Lu<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("symbolic_factorization")) {
+    std::set<std::string> allowed_keys;
+    if (auto& obj = config::get_config_node(config, "symbolic_factorization",
+                                            allowed_keys)) {
         params.with_symbolic_factorization(
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
-    if (auto& obj = config.get("symbolic_algorithm")) {
+    if (auto& obj = config::get_config_node(config, "symbolic_algorithm",
+                                            allowed_keys)) {
         auto str = obj.get_string();
         if (str == "general") {
             params.with_symbolic_algorithm(symbolic_type::general);
@@ -68,10 +67,12 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
             GKO_INVALID_CONFIG_VALUE("symbolic_type", str);
         }
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj =
+            config::get_config_node(config, "skip_sorting", allowed_keys)) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
 
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 
