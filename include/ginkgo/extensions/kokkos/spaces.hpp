@@ -47,11 +47,6 @@ template <typename MemorySpace>
 struct compatible_space<MemorySpace, OmpExecutor>
     : compatible_space<MemorySpace, ReferenceExecutor> {};
 #endif
-#ifdef KOKKOS_ENABLE_THREADS
-template <typename MemorySpace>
-struct compatible_space<MemorySpace, OmpExecutor>
-    : compatible_space<MemorySpace, ReferenceExecutor> {};
-#endif
 #ifdef KOKKOS_ENABLE_CUDA
 template <typename MemorySpace>
 struct compatible_space<MemorySpace, CudaExecutor> {
@@ -160,15 +155,15 @@ inline std::shared_ptr<Executor> create_default_host_executor()
         return ReferenceExecutor::create();
     }
 #endif
-#ifdef KOKKOS_ENABLE_OPENMP
-    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
-                                 Kokkos::OpenMP>) {
-        return OmpExecutor::create();
-    }
-#endif
 #ifdef KOKKOS_ENABLE_THREADS
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::Threads>) {
+        return ReferenceExecutor::create();
+    }
+#endif
+#ifdef KOKKOS_ENABLE_OPENMP
+    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
+                                 Kokkos::OpenMP>) {
         return OmpExecutor::create();
     }
 #endif
@@ -215,7 +210,7 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
 #endif
 #ifdef KOKKOS_ENABLE_THREADS
     if constexpr (std::is_same_v<ExecSpace, Kokkos::Threads>) {
-        return OmpExecutor::create();
+        return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
