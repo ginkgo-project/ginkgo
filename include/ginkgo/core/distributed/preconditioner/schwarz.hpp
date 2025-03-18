@@ -20,7 +20,6 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
-#include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
@@ -112,9 +111,9 @@ public:
         /**
          * Coarse weighting.
          *
-         * By default the coarse and the local solutions are added together. A
-         * weighting can instead be provided if the coarse solution tends to
-         * over-correct.
+         * By default the coarse and the local solutions are added together
+         * (when the coarse weight is < 0). A weighting can instead be provided
+         * if the coarse solution tends to over-correct.
          */
         double GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, double{-1.0});
 
@@ -166,7 +165,6 @@ protected:
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Schwarz>(std::move(exec))
-
     {}
 
     /**
