@@ -130,7 +130,7 @@ struct CsrWithDefaultStrategy : CsrBase {
 
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
 
 
 struct CsrWithClassicalStrategy : CsrBase {
@@ -176,6 +176,14 @@ struct CsrWithMergePathStrategy : CsrBase {
             mtx->get_strategy().get()));
     }
 };
+
+
+#endif
+
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
+
 
 struct CsrWithSparselibStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
@@ -827,8 +835,11 @@ protected:
 using MatrixTypes = ::testing::Types<
     DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
     CsrWithClassicalStrategy, CsrWithMergePathStrategy,
+#endif
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
     CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
     CsrWithAutomaticalStrategy,
 #endif
