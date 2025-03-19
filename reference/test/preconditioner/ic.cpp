@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,11 +30,11 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using ic_prec_type =
-        gko::preconditioner::Ic<gko::solver::LowerTrs<value_type, index_type>,
-                                index_type>;
+    using lower_trs = gko::solver::LowerTrs<value_type, index_type>;
+    using ic_prec_type = gko::preconditioner::Ic<lower_trs, index_type>;
     using ic_isai_prec_type = gko::preconditioner::Ic<
         gko::preconditioner::LowerIsai<value_type, index_type>, index_type>;
+    using ic_linop_prec_type = gko::preconditioner::Ic<gko::LinOp, index_type>;
     using Composition = gko::Composition<value_type>;
 
     Ic()
@@ -51,6 +51,13 @@ protected:
           l_lh_composition(Composition::create(l_factor, lh_factor)),
           ic_pre_factory(ic_prec_type::build().on(exec)),
           ic_isai_pre_factory(ic_isai_prec_type::build().on(exec)),
+          ic_linop_pre_factory(
+              ic_linop_prec_type::build()
+                  .with_l_solver(lower_trs::build())
+                  .with_factorization(
+                      gko::factorization::ParIc<value_type, index_type>::build()
+                          .with_both_factors(false))
+                  .on(exec)),
           tol{r<value_type>::value}
     {}
 
@@ -64,6 +71,7 @@ protected:
     std::shared_ptr<Composition> l_lh_composition;
     std::shared_ptr<typename ic_prec_type::Factory> ic_pre_factory;
     std::shared_ptr<typename ic_isai_prec_type::Factory> ic_isai_pre_factory;
+    std::shared_ptr<typename ic_linop_prec_type::Factory> ic_linop_pre_factory;
     gko::remove_complex<value_type> tol;
 };
 
@@ -123,6 +131,72 @@ TYPED_TEST(Ic, BuildsIsaiFromMatrix)
                         this->l_isai_factor, this->tol);
     GKO_ASSERT_MTX_NEAR(precond->get_lh_solver()->get_approximate_inverse(),
                         this->lh_isai_factor, this->tol);
+}
+
+
+TYPED_TEST(Ic, BuildsTwoFactorCompositionWithLinOp)
+{
+    using lower_trs = typename TestFixture::lower_trs;
+
+    auto precond = this->ic_linop_pre_factory->generate(this->l_lh_composition);
+
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<lower_trs>(precond->get_l_solver())->get_system_matrix(),
+        this->l_factor, this->tol);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<typename lower_trs::transposed_type>(precond->get_lh_solver())
+            ->get_system_matrix(),
+        this->lh_factor, this->tol);
+}
+
+
+TYPED_TEST(Ic, BuildsOneFactorCompositionWithLinOp)
+{
+    using lower_trs = typename TestFixture::lower_trs;
+
+    auto precond = this->ic_linop_pre_factory->generate(this->l_composition);
+
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<lower_trs>(precond->get_l_solver())->get_system_matrix(),
+        this->l_factor, this->tol);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<typename lower_trs::transposed_type>(precond->get_lh_solver())
+            ->get_system_matrix(),
+        this->lh_factor, this->tol);
+}
+
+
+TYPED_TEST(Ic, BuildsSymmetricTwoFactorWithLinOp)
+{
+    using lower_trs = typename TestFixture::lower_trs;
+
+    auto precond = this->ic_linop_pre_factory->generate(this->l_lh_composition);
+
+    // the first factor should be identical, the second not as it was transposed
+    ASSERT_EQ(
+        gko::as<lower_trs>(precond->get_l_solver())->get_system_matrix().get(),
+        this->l_factor.get());
+    ASSERT_NE(
+        gko::as<typename lower_trs::transposed_type>(precond->get_lh_solver())
+            ->get_system_matrix()
+            .get(),
+        this->lh_factor.get());
+}
+
+
+TYPED_TEST(Ic, BuildsFromMatrixWithLinOp)
+{
+    using lower_trs = typename TestFixture::lower_trs;
+
+    auto precond = this->ic_linop_pre_factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<lower_trs>(precond->get_l_solver())->get_system_matrix(),
+        this->l_factor, this->tol);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<typename lower_trs::transposed_type>(precond->get_lh_solver())
+            ->get_system_matrix(),
+        this->lh_factor, this->tol);
 }
 
 
@@ -221,6 +295,52 @@ TYPED_TEST(Ic, CanBeConjTransposed)
 
     auto l_transp = gko::as<Mtx>(transp->get_l_solver()->get_system_matrix());
     auto lh_transp = gko::as<Mtx>(transp->get_lh_solver()->get_system_matrix());
+    GKO_ASSERT_MTX_NEAR(l_transp, l_ref, 0);
+    GKO_ASSERT_MTX_NEAR(lh_transp, lh_ref, 0);
+}
+
+
+TYPED_TEST(Ic, CanBeTransposedWithLinOp)
+{
+    using Ic = typename TestFixture::ic_linop_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    using lower_trs = typename TestFixture::lower_trs;
+    using upper_trs = typename lower_trs::transposed_type;
+    auto ic = this->ic_linop_pre_factory->generate(this->l_lh_composition);
+    auto l_ref = gko::as<Mtx>(
+        gko::as<lower_trs>(ic->get_l_solver())->get_system_matrix());
+    auto lh_ref = gko::as<Mtx>(
+        gko::as<upper_trs>(ic->get_lh_solver())->get_system_matrix());
+
+    auto transp = gko::as<Ic>(ic->transpose());
+
+    auto l_transp = gko::as<Mtx>(
+        gko::as<lower_trs>(transp->get_l_solver())->get_system_matrix());
+    auto lh_transp = gko::as<Mtx>(
+        gko::as<upper_trs>(transp->get_lh_solver())->get_system_matrix());
+    GKO_ASSERT_MTX_NEAR(l_transp, l_ref, 0);
+    GKO_ASSERT_MTX_NEAR(lh_transp, lh_ref, 0);
+}
+
+
+TYPED_TEST(Ic, CanBeConjTransposedWithLinOp)
+{
+    using Ic = typename TestFixture::ic_linop_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    using lower_trs = typename TestFixture::lower_trs;
+    using upper_trs = typename lower_trs::transposed_type;
+    auto ic = this->ic_linop_pre_factory->generate(this->l_lh_composition);
+    auto l_ref = gko::as<Mtx>(
+        gko::as<lower_trs>(ic->get_l_solver())->get_system_matrix());
+    auto lh_ref = gko::as<Mtx>(
+        gko::as<upper_trs>(ic->get_lh_solver())->get_system_matrix());
+
+    auto transp = gko::as<Ic>(ic->conj_transpose());
+
+    auto l_transp = gko::as<Mtx>(
+        gko::as<lower_trs>(transp->get_l_solver())->get_system_matrix());
+    auto lh_transp = gko::as<Mtx>(
+        gko::as<upper_trs>(transp->get_lh_solver())->get_system_matrix());
     GKO_ASSERT_MTX_NEAR(l_transp, l_ref, 0);
     GKO_ASSERT_MTX_NEAR(lh_transp, lh_ref, 0);
 }
@@ -383,6 +503,22 @@ TYPED_TEST(Ic, SolvesMultipleRhs)
     auto x = Vec::create(this->exec, gko::dim<2>{3, 3});
     auto preconditioner =
         ic_prec_type::build().on(this->exec)->generate(this->mtx);
+
+    preconditioner->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(
+        x, l({{3.0, 6.0, 9.0}, {-2.0, -4.0, -6.0}, {4.0, 8.0, 12.0}}),
+        this->tol);
+}
+
+
+TYPED_TEST(Ic, SolvesMultipleRhsWithLinop)
+{
+    using Vec = typename TestFixture::Vec;
+    const auto b = gko::initialize<Vec>(
+        {{1.0, 2.0, 3.0}, {3.0, 6.0, 9.0}, {6.0, 12.0, 18.0}}, this->exec);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 3});
+    auto preconditioner = this->ic_linop_pre_factory->generate(this->mtx);
 
     preconditioner->apply(b, x);
 

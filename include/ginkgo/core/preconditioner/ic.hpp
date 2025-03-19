@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,7 +40,8 @@ constexpr bool support_ic_parse =
     is_instantiation_of<Type, solver::LowerTrs>::value ||
     is_instantiation_of<Type, solver::Ir>::value ||
     is_instantiation_of<Type, solver::Gmres>::value ||
-    is_instantiation_of<Type, preconditioner::LowerIsai>::value;
+    is_instantiation_of<Type, preconditioner::LowerIsai>::value ||
+    std::is_same_v<Type, LinOp>;
 
 
 template <
@@ -60,6 +61,54 @@ template <
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child);
+
+
+// helper for handle the transposed type of concrete type and LinOp
+template <typename Type>
+struct transposed_type_impl {
+    using type = typename Type::transposed_type;
+};
+
+template <>
+struct transposed_type_impl<LinOp> {
+    using type = LinOp;
+};
+
+
+template <typename Type>
+using transposed_type = typename transposed_type_impl<Type>::type;
+
+
+// helper to get factory type of concrete type or LinOp
+template <typename Type>
+struct factory_type_impl {
+    using type = typename Type::Factory;
+};
+
+template <>
+struct factory_type_impl<LinOp> {
+    using type = LinOpFactory;
+};
+
+
+template <typename Type>
+using factory_type = typename factory_type_impl<Type>::type;
+
+
+// helper to get value_type of concrete type or void for LinOp
+template <typename Type>
+struct get_value_type_impl {
+    using type = typename Type::value_type;
+};
+
+template <>
+struct get_value_type_impl<LinOp> {
+    using type = void;
+};
+
+
+template <typename Type>
+using get_value_type = typename get_value_type_impl<Type>::type;
 
 
 }  // namespace detail
@@ -116,12 +165,13 @@ class Ic : public EnableLinOp<Ic<LSolverType, IndexType>>, public Transposable {
 
 public:
     static_assert(
-        std::is_same<typename LSolverType::transposed_type::transposed_type,
-                     LSolverType>::value,
+        std::is_same<
+            detail::transposed_type<detail::transposed_type<LSolverType>>,
+            LSolverType>::value,
         "LSolverType::transposed_type must be symmetric");
-    using value_type = typename LSolverType::value_type;
+    using value_type = detail::get_value_type<LSolverType>;
     using l_solver_type = LSolverType;
-    using lh_solver_type = typename LSolverType::transposed_type;
+    using lh_solver_type = detail::transposed_type<l_solver_type>;
     using index_type = IndexType;
     using transposed_type = Ic<LSolverType, IndexType>;
 
@@ -132,7 +182,7 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<const typename l_solver_type::Factory>
+        std::shared_ptr<const detail::factory_type<l_solver_type>>
             l_solver_factory{};
 
         /**
@@ -142,14 +192,16 @@ public:
 
         GKO_DEPRECATED("use with_l_solver instead")
         parameters_type& with_l_solver_factory(
-            deferred_factory_parameter<const typename l_solver_type::Factory>
+            deferred_factory_parameter<
+                const detail::factory_type<l_solver_type>>
                 solver)
         {
             return with_l_solver(std::move(solver));
         }
 
         parameters_type& with_l_solver(
-            deferred_factory_parameter<const typename l_solver_type::Factory>
+            deferred_factory_parameter<
+                const detail::factory_type<l_solver_type>>
                 solver)
         {
             this->l_solver_generator = std::move(solver);
@@ -185,7 +237,7 @@ public:
         }
 
     private:
-        deferred_factory_parameter<const typename l_solver_type::Factory>
+        deferred_factory_parameter<const detail::factory_type<l_solver_type>>
             l_solver_generator;
 
         deferred_factory_parameter<const LinOpFactory> factorization_generator;
@@ -204,16 +256,21 @@ public:
      * @param context  the registry
      * @param td_for_child  the type descriptor for children configs. The
      *                      default uses the value/index type of this class.
+     *                      When l_solver_type uses LinOp not concrete type, it
+     *                      will use the default_precision in ginkgo.
      *
      * @return parameters
      *
      * @note only support the following for l_solver:
-     *       Ir, Gmres, LowerTrs, and LowerIsai
+     *       Ir, Gmres, LowerTrs, LowerIsai, LinOp
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
-            config::make_type_descriptor<value_type, index_type>())
+            config::make_type_descriptor<
+                std::conditional_t<std::is_same_v<l_solver_type, LinOp>,
+                                   default_precision, value_type>,
+                index_type>())
     {
         return detail::ic_parse<Ic>(config, context, td_for_child);
     }
@@ -244,11 +301,11 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<typename lh_solver_type::transposed_type>(
-                this->get_lh_solver()->transpose()));
+            share(as<detail::transposed_type<lh_solver_type>>(
+                as<Transposable>(this->get_lh_solver())->transpose()));
         transposed->lh_solver_ =
-            share(as<typename l_solver_type::transposed_type>(
-                this->get_l_solver()->transpose()));
+            share(as<detail::transposed_type<l_solver_type>>(
+                as<Transposable>(this->get_l_solver())->transpose()));
 
         return std::move(transposed);
     }
@@ -259,11 +316,11 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<typename lh_solver_type::transposed_type>(
-                this->get_lh_solver()->conj_transpose()));
+            share(as<detail::transposed_type<lh_solver_type>>(
+                as<Transposable>(this->get_lh_solver())->conj_transpose()));
         transposed->lh_solver_ =
-            share(as<typename l_solver_type::transposed_type>(
-                this->get_l_solver()->conj_transpose()));
+            share(as<detail::transposed_type<l_solver_type>>(
+                as<Transposable>(this->get_l_solver())->conj_transpose()));
 
         return std::move(transposed);
     }
@@ -327,30 +384,22 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        // take care of real-to-complex apply
-        precision_dispatch_real_complex<value_type>(
-            [&](auto dense_b, auto dense_x) {
-                this->set_cache_to(dense_b);
-                l_solver_->apply(dense_b, cache_.intermediate);
-                if (lh_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(cache_.intermediate);
-                }
-                lh_solver_->apply(cache_.intermediate, dense_x);
-            },
-            b, x);
+        // let the solver to handle the precision
+        this->set_cache_to(b);
+        l_solver_->apply(b, cache_.intermediate);
+        if (lh_solver_->apply_uses_initial_guess()) {
+            x->copy_from(cache_.intermediate);
+        }
+        lh_solver_->apply(cache_.intermediate, x);
     }
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        precision_dispatch_real_complex<value_type>(
-            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-                this->set_cache_to(dense_b);
-                l_solver_->apply(dense_b, cache_.intermediate);
-                lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                                  dense_x);
-            },
-            alpha, b, beta, x);
+        // let the solver to handle the precision
+        this->set_cache_to(b);
+        l_solver_->apply(b, cache_.intermediate);
+        lh_solver_->apply(alpha, cache_.intermediate, beta, x);
     }
 
     explicit Ic(std::shared_ptr<const Executor> exec)
@@ -361,24 +410,28 @@ protected:
         : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
-        auto comp =
-            std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
+        auto comp = std::dynamic_pointer_cast<const CompositionBase>(lin_op);
         std::shared_ptr<const LinOp> l_factor;
 
         // build factorization if we weren't passed a composition
         if (!comp) {
             auto exec = lin_op->get_executor();
             if (!parameters_.factorization_factory) {
-                parameters_.factorization_factory =
-                    factorization::ParIc<value_type, index_type>::build()
-                        .with_both_factors(false)
-                        .on(exec);
+                if constexpr (std::is_same_v<LinOp, l_solver_type>) {
+                    // linop does not have the value_type such that we do not
+                    // know which par_ic can use.
+                    GKO_NOT_IMPLEMENTED;
+                } else {
+                    parameters_.factorization_factory =
+                        factorization::ParIc<value_type, index_type>::build()
+                            .with_both_factors(false)
+                            .on(exec);
+                }
             }
             auto fact = std::shared_ptr<const LinOp>(
                 parameters_.factorization_factory->generate(lin_op));
             // ensure that the result is a composition
-            comp =
-                std::dynamic_pointer_cast<const Composition<value_type>>(fact);
+            comp = std::dynamic_pointer_cast<const CompositionBase>(fact);
             if (!comp) {
                 GKO_NOT_SUPPORTED(comp);
             }
@@ -394,19 +447,28 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ = generate_default_solver<l_solver_type>(exec, l_factor);
-            // If comp contains both factors: use the transposed factor to avoid
-            // transposing twice
-            if (comp->get_operators().size() == 2) {
-                auto lh_factor = comp->get_operators()[1];
-                GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
-                lh_solver_ = as<lh_solver_type>(l_solver_->conj_transpose());
+            if constexpr (std::is_same_v<l_solver_type, LinOp>) {
+                // linop can not have a default factory generation
+                GKO_NOT_IMPLEMENTED;
             } else {
-                lh_solver_ = as<lh_solver_type>(l_solver_->conj_transpose());
+                l_solver_ =
+                    generate_default_solver<l_solver_type>(exec, l_factor);
+                // If comp contains both factors: use the transposed factor to
+                // avoid transposing twice
+                if (comp->get_operators().size() == 2) {
+                    auto lh_factor = comp->get_operators()[1];
+                    GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
+                    lh_solver_ = as<lh_solver_type>(
+                        as<Transposable>(l_solver_)->conj_transpose());
+                } else {
+                    lh_solver_ = as<lh_solver_type>(
+                        as<Transposable>(l_solver_)->conj_transpose());
+                }
             }
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
-            lh_solver_ = as<lh_solver_type>(l_solver_->conj_transpose());
+            lh_solver_ = as<lh_solver_type>(
+                as<Transposable>(l_solver_)->conj_transpose());
         }
     }
 
@@ -419,12 +481,13 @@ protected:
      */
     void set_cache_to(const LinOp* b) const
     {
-        if (cache_.intermediate == nullptr) {
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor());
+        if (cache_.intermediate == nullptr ||
+            cache_.intermediate->get_size() != b->get_size()) {
+            cache_.intermediate = b->clone(this->get_executor());
+        } else {
+            // Use b as the initial guess for the first triangular solve
+            cache_.intermediate->copy_from(b);
         }
-        // Use b as the initial guess for the first triangular solve
-        cache_.intermediate->copy_from(b);
     }
 
 
@@ -436,7 +499,8 @@ protected:
      * preconditioner.
      */
     template <typename SolverType>
-    static std::enable_if_t<solver::has_with_criteria<SolverType>::value,
+    static std::enable_if_t<solver::has_with_criteria<SolverType>::value &&
+                                !std::is_same_v<SolverType, LinOp>,
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor>& exec,
                             const std::shared_ptr<const LinOp>& mtx)
@@ -458,7 +522,8 @@ protected:
      * @copydoc generate_default_solver
      */
     template <typename SolverType>
-    static std::enable_if_t<!solver::has_with_criteria<SolverType>::value,
+    static std::enable_if_t<!solver::has_with_criteria<SolverType>::value &&
+                                !std::is_same_v<SolverType, LinOp>,
                             std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor>& exec,
                             const std::shared_ptr<const LinOp>& mtx)
