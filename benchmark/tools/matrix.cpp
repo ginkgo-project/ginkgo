@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,9 +6,12 @@
 #include <iostream>
 #include <vector>
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/utils/matrix_utils.hpp"
 
 
@@ -43,7 +46,9 @@ int main(int argc, char** argv)
                "  diagonal-dominant  scales diagonal entries so the\n"
                "                     matrix becomes diagonally dominant\n"
                "  spd                symmetric + diagonal-dominant\n"
-               "  hpd                hermitian + diagonal-dominant"
+               "  hpd                hermitian + diagonal-dominant\n"
+               "  skeleton-tree      computes an edge-max-node MST that has "
+               "                     the same elimination tree as A"
             << std::endl;
         return 1;
     }
@@ -78,6 +83,26 @@ int main(int argc, char** argv)
             gko::utils::make_spd(data);
         } else if (arg == "hpd") {
             gko::utils::make_hpd(data);
+        } else if (arg == "skeleton-tree") {
+            auto exec = gko::ReferenceExecutor::create();
+            auto mtx = gko::matrix::Csr<value_type, gko::int64>::create(exec);
+            mtx->read(data);
+            auto tree = gko::matrix::Csr<value_type, gko::int64>::create(
+                exec, mtx->get_size(), mtx->get_size()[0]);
+            gko::kernels::reference::elimination_forest::compute_skeleton_tree(
+                exec, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                mtx->get_size()[0], tree->get_row_ptrs(), tree->get_col_idxs());
+            tree->write(data);
+            std::unique_ptr<gko::factorization::elimination_forest<gko::int64>>
+                etree, etree2;
+            gko::factorization::compute_elimination_forest(mtx.get(), etree);
+            gko::factorization::compute_elimination_forest(tree.get(), etree2);
+            if (!std::equal(
+                    etree->parents.get_const_data(),
+                    etree->parents.get_const_data() + mtx->get_size()[0],
+                    etree2->parents.get_const_data())) {
+                std::cerr << "failed\n";
+            }
         } else {
             std::cerr << "Unknown operation " << arg << std::endl;
             return 1;
