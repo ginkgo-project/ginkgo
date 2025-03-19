@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,6 +75,20 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
     dx->inv_scale(dalpha);
 
     GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
+}
+
+
+TEST_F(Csr, RowWiseSumIsEquivalentToRef)
+{
+    set_up_apply_data();
+    gko::array<value_type> sum{ref, x->get_size()[0]};
+    gko::array<value_type> dsum{exec, dx->get_size()[0]};
+
+    gko::kernels::reference::csr::row_wise_absolute_sum(ref, x.get(), sum);
+    gko::kernels::GKO_DEVICE_NAMESPACE::csr::row_wise_absolute_sum(
+        exec, dx.get(), dsum);
+
+    GKO_ASSERT_ARRAY_EQ(sum, dsum);
 }
 
 

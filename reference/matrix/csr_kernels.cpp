@@ -1458,6 +1458,28 @@ void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Csr<ValueType, IndexType>* orig,
+                           array<ValueType>& sum)
+{
+    auto row_ptrs = orig->get_const_row_ptrs();
+    auto value_ptr = orig->get_const_values();
+    auto sum_ptr = sum.get_data();
+
+    for (size_type row = 0; row < orig->get_size()[0]; ++row) {
+        sum_ptr[row] = zero<ValueType>();
+        for (size_type k = row_ptrs[row];
+             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+            sum_ptr[row] += abs(value_ptr[k]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_WISE_ABSOLUTE_SUM);
+
+
 }  // namespace csr
 }  // namespace reference
 }  // namespace kernels
