@@ -49,36 +49,6 @@ typename Ic::parameters_type ic_parse(
     return params;
 }
 
-
-#define GKO_DECLARE_LOWERTRS_IC_PARSE(ValueType, IndexType)          \
-    typename Ic<solver::LowerTrs<ValueType, IndexType>,              \
-                IndexType>::parameters_type                          \
-    ic_parse<Ic<solver::LowerTrs<ValueType, IndexType>, IndexType>>( \
-        const config::pnode&, const config::registry&,               \
-        const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERTRS_IC_PARSE);
-
-#define GKO_DECLARE_IR_IC_PARSE(ValueType, IndexType)              \
-    typename Ic<solver::Ir<ValueType>, IndexType>::parameters_type \
-    ic_parse<Ic<solver::Ir<ValueType>, IndexType>>(                \
-        const config::pnode&, const config::registry&,             \
-        const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IR_IC_PARSE);
-
-#define GKO_DECLARE_GMRES_IC_PARSE(ValueType, IndexType)              \
-    typename Ic<solver::Gmres<ValueType>, IndexType>::parameters_type \
-    ic_parse<Ic<solver::Gmres<ValueType>, IndexType>>(                \
-        const config::pnode&, const config::registry&,                \
-        const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GMRES_IC_PARSE);
-
-#define GKO_DECLARE_LOWERISAI_IC_PARSE(ValueType, IndexType)                 \
-    typename Ic<LowerIsai<ValueType, IndexType>, IndexType>::parameters_type \
-    ic_parse<Ic<LowerIsai<ValueType, IndexType>, IndexType>>(                \
-        const config::pnode&, const config::registry&,                       \
-        const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWERISAI_IC_PARSE);
-
 #define GKO_DECLARE_LINOP_IC_PARSE(IndexType)               \
     typename Ic<LinOp, IndexType>::parameters_type          \
     ic_parse<Ic<LinOp, IndexType>>(const config::pnode&,    \

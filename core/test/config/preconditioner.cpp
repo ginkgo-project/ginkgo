@@ -46,9 +46,9 @@ struct PreconditionerConfigTest {
 };
 
 
-struct Ic : PreconditionerConfigTest<
-                ::gko::preconditioner::Ic<DummyIr, int>,
-                ::gko::preconditioner::Ic<gko::solver::LowerTrs<>, int>> {
+struct Ic
+    : PreconditionerConfigTest<::gko::preconditioner::Ic<gko::LinOp, int>,
+                               ::gko::preconditioner::Ic<gko::LinOp, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ic"}}};
@@ -57,7 +57,6 @@ struct Ic : PreconditionerConfigTest<
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["l_solver_type"] = pnode{"solver::Ir"};
     }
 
     template <bool from_reg, typename ParamType>
@@ -66,9 +65,9 @@ struct Ic : PreconditionerConfigTest<
     {
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
-            param.with_l_solver(detail::registry_accessor::get_data<
-                                typename changed_type::l_solver_type::Factory>(
-                reg, "l_solver"));
+            param.with_l_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "l_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
@@ -76,7 +75,7 @@ struct Ic : PreconditionerConfigTest<
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_l_solver(changed_type::l_solver_type::build().on(exec));
+            param.with_l_solver(DummyIr::build().on(exec));
             config_map["factorization"] =
                 pnode{{{"type", pnode{"solver::Ir"}},
                        {"value_type", pnode{"float32"}}}};

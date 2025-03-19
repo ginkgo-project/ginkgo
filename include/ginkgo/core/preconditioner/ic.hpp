@@ -36,12 +36,7 @@ namespace detail {
 
 
 template <typename Type>
-constexpr bool support_ic_parse =
-    is_instantiation_of<Type, solver::LowerTrs>::value ||
-    is_instantiation_of<Type, solver::Ir>::value ||
-    is_instantiation_of<Type, solver::Gmres>::value ||
-    is_instantiation_of<Type, preconditioner::LowerIsai>::value ||
-    std::is_same_v<Type, LinOp>;
+constexpr bool support_ic_parse = std::is_same_v<Type, LinOp>;
 
 
 template <
@@ -149,6 +144,9 @@ using get_value_type = typename get_value_type_impl<Type>::type;
  *       uses an internal cache to accelerate multiple (sequential) applies.
  *       Using it in parallel can lead to segmentation faults, wrong results
  *       and other unwanted behavior.
+ *
+ * @note The default template during parse is <LinOp, IndexType> not
+ *       <LowerTrs, IndexType>. Only LinOp is supported in parse.
  *
  * @tparam LSolverType  type of the solver used for the L matrix.
  *                      Defaults to solver::LowerTrs
@@ -261,8 +259,7 @@ public:
      *
      * @return parameters
      *
-     * @note only support the following for l_solver:
-     *       Ir, Gmres, LowerTrs, LowerIsai, LinOp
+     * @note only support the following for l_solver: LinOp
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
