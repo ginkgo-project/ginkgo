@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,21 @@
 
 
 namespace gko {
+
+
+/**
+ * CompositeionBase provides the interface
+ */
+class CompositionBase {
+public:
+    /**
+     * Returns a list of operators of the composition.
+     *
+     * @return a list of operators
+     */
+    virtual const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept = 0;
+};
 
 
 /**
@@ -38,7 +53,8 @@ namespace gko {
 template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
-                    public Transposable {
+                    public Transposable,
+                    public CompositionBase {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 
@@ -52,7 +68,7 @@ public:
      * @return a list of operators
      */
     const std::vector<std::shared_ptr<const LinOp>>& get_operators()
-        const noexcept
+        const noexcept override
     {
         return operators_;
     }
