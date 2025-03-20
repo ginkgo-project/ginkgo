@@ -527,4 +527,6 @@ TEST(CustomDense, CustomViewKeepsRuntimeType)
 }
 
 
+TYPED_TEST(Dense, RecognizesInvalidData) {}
+
 }  // namespace

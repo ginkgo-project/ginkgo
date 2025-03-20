@@ -264,6 +264,11 @@ public:
     const_device_view get_const_device_view() const;
 
     /**
+     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     */
+    void validate_data() const;
+
+    /**
      * Creates an uninitialized Ell matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix

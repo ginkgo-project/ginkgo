@@ -249,3 +249,5 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 
     this->assert_equal_to_original_mtx(m);
 }
+
+TYPED_TEST(Ell, RecognizesInvalidData) {}
