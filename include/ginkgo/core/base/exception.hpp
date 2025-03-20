@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,9 @@
 
 #include <exception>
 #include <string>
+#include <typeinfo>
 
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -54,7 +56,7 @@ namespace gko {
  *
  * @ingroup error
  */
-class Error : public std::exception {
+class Error : public std::runtime_error {
 public:
     /**
      * Initializes an error.
@@ -64,17 +66,8 @@ public:
      * @param what  The error message
      */
     Error(const std::string& file, int line, const std::string& what)
-        : what_(file + ":" + std::to_string(line) + ": " + what)
+        : std::runtime_error(file + ":" + std::to_string(line) + ": " + what)
     {}
-
-    /**
-     * Returns a human-readable string with a more detailed description of the
-     * error.
-     */
-    virtual const char* what() const noexcept override { return what_.c_str(); }
-
-private:
-    const std::string what_;
 };
 
 
@@ -669,6 +662,30 @@ public:
                       const std::string& func, const std::string& clarification)
         : Error(file, line,
                 func + ": Invalid state encountered : " + clarification)
+    {}
+};
+
+
+/**
+ * InvalidData is thrown in case an object in Ginkgo contains invalid data,
+ * either because the data was user-provided, or because of a bug.
+ * Invalid data is described by the invariant it violated.
+ */
+class InvalidData : public Error {
+public:
+    /**
+     * Initializes an InvalidData error.
+     *
+     * @param file  The name of the source file containing the check
+     * @param line  The source code line number where the check failed
+     * @param type  The object type on which the requested operation failed.
+     * @param invariant  The invariant that was violated by the invalid data.
+     */
+    InvalidData(const std::string& file, int line, const std::type_info& type,
+                const std::string& invariant)
+        : Error(file, line,
+                "Invariant violated in " +
+                    name_demangling::get_type_name(type) + ": " + invariant)
     {}
 };
 

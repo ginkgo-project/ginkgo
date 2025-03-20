@@ -23,6 +23,7 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -102,6 +103,14 @@ GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 }  // anonymous namespace
 }  // namespace csr
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::is_sorted(row_ptrs_),
+                 "row_ptrs must be non-descending");
+}
 
 
 template <typename ValueType, typename IndexType>

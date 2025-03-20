@@ -429,4 +429,24 @@ TYPED_TEST(Csr, PermutingReuseInfoDefaultUpdateException)
 }
 
 
+TYPED_TEST(Csr, RecognizesInvalidRowPtr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.fill(0);
+    col_idxs.fill(0);
+    values.fill(gko::zero<value_type>());
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view(),
+                         std::make_shared<typename Mtx::load_balance>(2));
+    row_ptrs.get_data()[0] = 1;
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
 }  // namespace
