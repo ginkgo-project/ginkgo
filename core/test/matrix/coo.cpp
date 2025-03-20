@@ -390,4 +390,22 @@ TYPED_TEST(Coo, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Coo, RecognizesInvalidData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_idxs = gko::array<index_type>(this->exec, 4);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_idxs.fill(0);
+    col_idxs.fill(0);
+    values.fill(gko::zero<value_type>());
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         row_idxs.as_view(), col_idxs.as_view());
+    row_idxs.get_data()[3] = 5;
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
 }  // namespace
