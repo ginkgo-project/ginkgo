@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -96,7 +96,6 @@ Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
         this->parameters_ = other.parameters_;
         this->set_solver(other.get_solver());
         this->set_relaxation_factor(other.relaxation_factor_);
-        parameters_ = other.parameters_;
     }
     return *this;
 }
@@ -114,7 +113,6 @@ Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
         this->set_relaxation_factor(other.relaxation_factor_);
         other.set_solver(nullptr);
         other.set_relaxation_factor(nullptr);
-        parameters_ = other.parameters_;
     }
     return *this;
 }
