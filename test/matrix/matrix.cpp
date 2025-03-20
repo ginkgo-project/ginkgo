@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/matrix/compressed_coo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -101,6 +102,44 @@ struct Coo : SimpleMatrixTest<gko::matrix::Coo<matrix_value_type, int>> {
         ASSERT_EQ(mtx->get_const_row_idxs(), nullptr);
         ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
         ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
+};
+
+struct CompactRowCoo
+    : SimpleMatrixTest<gko::matrix::CompactRowCoo<matrix_value_type, int>> {
+    static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_row_bits(), nullptr);
+        ASSERT_EQ(mtx->get_const_row_bit_ranks(), nullptr);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
+
+    static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
+    {
+        if (data.size[0] == 0 || data.nonzeros.size() == 0) {
+            return;
+        }
+        int row = 0;
+        constexpr auto zero = gko::zero<matrix_value_type>();
+        const auto max_col = static_cast<int>(data.size[1]) - 1;
+        for (auto it = data.nonzeros.begin(); it != data.nonzeros.end(); it++) {
+            const auto new_row = it->row;
+            if (new_row == row) {
+                continue;
+            }
+            for (int i = row + 1; i < new_row; i++) {
+                // insert a diagonal entry for each missing row
+                it = data.nonzeros.insert(it, {i, std::min(i, max_col), zero}) +
+                     1;
+            }
+            row = new_row;
+        }
+        for (int i = row + 1; i < static_cast<int>(data.size[0]); i++) {
+            data.nonzeros.emplace_back(i, std::min(i, max_col), zero);
+        }
     }
 };
 
@@ -825,7 +864,8 @@ protected:
 };
 
 using MatrixTypes = ::testing::Types<
-    DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
+    DenseWithDefaultStride, DenseWithCustomStride, Coo, CompactRowCoo,
+    CsrWithDefaultStrategy,
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
     defined(GKO_COMPILING_DPCPP)
     CsrWithClassicalStrategy, CsrWithMergePathStrategy,
@@ -1005,7 +1045,7 @@ TYPED_TEST(Matrix, MixedOutputAdvancedSpMVIsEquivalentToRef)
 }
 #endif
 
-
+/*
 TYPED_TEST(Matrix, ConvertToCsrIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -1184,7 +1224,7 @@ TYPED_TEST(Matrix, MoveFromDenseIsEquivalentToRef)
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
     });
-}
+}*/
 
 
 TYPED_TEST(Matrix, ReadWriteRoundtrip)

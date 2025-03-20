@@ -79,6 +79,7 @@ target_sources(
         matrix/batch_dense.cpp
         matrix/batch_ell.cpp
         matrix/batch_identity.cpp
+        matrix/compressed_coo.cpp
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/csr_lookup.cpp

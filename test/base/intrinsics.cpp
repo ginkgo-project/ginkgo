@@ -8,9 +8,8 @@
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/intrinsics.hpp>
-
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
 

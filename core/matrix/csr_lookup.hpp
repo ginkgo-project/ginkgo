@@ -8,9 +8,10 @@
 
 #include <type_traits>
 
-#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+
+#include "core/base/intrinsics.hpp"
 
 
 namespace gko {

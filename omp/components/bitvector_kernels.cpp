@@ -4,9 +4,8 @@
 
 #include "core/components/bitvector_kernels.hpp"
 
-#include <ginkgo/core/base/intrinsics.hpp>
-
 #include "core/base/index_range.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 

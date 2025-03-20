@@ -6,9 +6,10 @@
 #define GKO_CORE_COMPONENTS_BITVECTOR_HPP_
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+
+#include "core/base/intrinsics.hpp"
 
 namespace gko {
 
@@ -21,11 +22,11 @@ public:
     constexpr static int block_size = CHAR_BIT * sizeof(storage_type);
 
     constexpr device_bitvector(const storage_type* bits,
-                               const index_type* ranks, index_type size)
+                               const index_type* ranks, int64 size)
         : bits_{bits}, ranks_{ranks}, size_{size}
     {}
 
-    constexpr index_type size() const { return size_; }
+    constexpr int64 size() const { return size_; }
 
     constexpr index_type num_blocks() const
     {
@@ -54,7 +55,7 @@ public:
 private:
     const index_type* ranks_;
     const storage_type* bits_;
-    index_type size_;
+    int64 size_;
 };
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,6 +128,7 @@ namespace formats {
 using hybrid = gko::matrix::Hybrid<etype, itype>;
 using csr = gko::matrix::Csr<etype, itype>;
 using coo = gko::matrix::Coo<etype, itype>;
+using compressed_coo = gko::matrix::CompactRowCoo<etype, itype>;
 using ell = gko::matrix::Ell<etype, itype>;
 using ell_mixed = gko::matrix::Ell<gko::next_precision_base<etype>, itype>;
 
@@ -208,6 +209,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"csrm", create_matrix_type<csr>(std::make_shared<csr::merge_path>())},
         {"csrc", create_matrix_type<csr>(std::make_shared<csr::classical>())},
         {"csrs", create_matrix_type<csr>(std::make_shared<csr::sparselib>())},
+        {"compressed_coo", create_matrix_type<compressed_coo>()},
         {"coo", create_matrix_type<coo>()},
         {"ell", create_matrix_type<ell>()},
         {"ell_mixed", create_matrix_type<ell_mixed>()},

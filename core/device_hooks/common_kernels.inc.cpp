@@ -39,6 +39,7 @@
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/compressed_coo_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -794,6 +795,18 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL);
 
 
 }  // namespace fbcsr
+
+
+namespace compressed_coo {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CRCOO_SPMV_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CRCOCOCOO_SPMV_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_CRCOO_IDXS_TO_BITS_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_CRCOO_BITS_TO_IDXS_KERNEL);
+
+
+}  // namespace compressed_coo
 
 
 namespace coo {

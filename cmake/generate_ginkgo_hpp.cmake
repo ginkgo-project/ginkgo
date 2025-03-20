@@ -12,6 +12,7 @@ function(ginkgo_generate_ginkgo_hpp)
         if(
             (file MATCHES "^ginkgo/extensions/.*$")
             OR (file MATCHES "^ginkgo/core/stop/residual_norm_reduction.hpp$")
+            OR (file MATCHES "^ginkgo/core/base/intrinsics.hpp$")
             OR (file MATCHES "^ginkgo/core/solver/.*_trs.hpp$")
         )
             continue()

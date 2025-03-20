@@ -46,6 +46,7 @@ target_sources(
         matrix/batch_csr_kernels.dp.cpp
         matrix/batch_dense_kernels.dp.cpp
         matrix/batch_ell_kernels.dp.cpp
+        matrix/compressed_coo_kernels.dp.cpp
         matrix/coo_kernels.dp.cpp
         matrix/csr_kernels.dp.cpp
         matrix/fbcsr_kernels.dp.cpp

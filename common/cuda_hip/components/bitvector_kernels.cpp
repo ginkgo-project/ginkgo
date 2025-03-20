@@ -9,9 +9,8 @@
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/scan.h>
 
-#include <ginkgo/core/base/intrinsics.hpp>
-
 #include "common/cuda_hip/base/thrust.hpp"
+#include "core/base/intrinsics.hpp"
 
 
 namespace gko {
