@@ -19,17 +19,28 @@
 
 namespace gko {
 namespace solver {
-namespace chebyshev {
+namespace ir {
 namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, ir::initialize);
+
+
+}
+}  // namespace ir
+
+
+namespace chebyshev {
+namespace {
+
+
 GKO_REGISTER_OPERATION(init_update, chebyshev::init_update);
 GKO_REGISTER_OPERATION(update, chebyshev::update);
 
 
 }  // anonymous namespace
 }  // namespace chebyshev
+
 
 template <typename ValueType>
 typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
@@ -43,8 +54,9 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
         if (arr.size() != 2) {
             GKO_INVALID_CONFIG_VALUE("foci", "must contain two elements");
         }
-        params.with_foci(gko::config::get_value<ValueType>(arr.at(0)),
-                         gko::config::get_value<ValueType>(arr.at(1)));
+        params.with_foci(
+            gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(0)),
+            gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(1)));
     }
     if (auto& obj = config.get("default_initial_guess")) {
         params.with_default_initial_guess(
@@ -52,6 +64,12 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
     }
     return params;
 }
+
+
+template <typename ValueType>
+Chebyshev<ValueType>::Chebyshev(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Chebyshev>(std::move(exec))
+{}
 
 
 template <typename ValueType>
@@ -64,11 +82,13 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
       parameters_{factory->get_parameters()}
 {
     this->set_default_initial_guess(parameters_.default_initial_guess);
-    center_ = (std::get<0>(parameters_.foci) + std::get<1>(parameters_.foci)) /
-              ValueType{2};
+    auto left_foci = std::get<0>(parameters_.foci);
+    auto right_foci = std::get<1>(parameters_.foci);
+    GKO_ASSERT(real(left_foci) <= real(right_foci));
+    center_ =
+        (left_foci + right_foci) / solver::detail::coeff_type<ValueType>{2};
     foci_direction_ =
-        (std::get<1>(parameters_.foci) - std::get<0>(parameters_.foci)) /
-        ValueType{2};
+        (right_foci - left_foci) / solver::detail::coeff_type<ValueType>{2};
 }
 
 
@@ -80,6 +100,8 @@ Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(const Chebyshev& other)
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(other);
         this->parameters_ = other.parameters_;
+        this->center_ = other.center_;
+        this->foci_direction_ = other.foci_direction_;
     }
     return *this;
 }
@@ -92,6 +114,11 @@ Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(Chebyshev&& other)
         EnableLinOp<Chebyshev>::operator=(std::move(other));
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(std::move(other));
+        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
+        this->center_ = std::exchange(other.center_,
+                                      solver::detail::coeff_type<ValueType>{});
+        this->foci_direction_ = std::exchange(
+            other.foci_direction_, solver::detail::coeff_type<ValueType>{});
     }
     return *this;
 }
@@ -173,7 +200,7 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Chebyshev>;
-    using coeff_type = detail::coeff_type<ValueType>;
+    using coeff_type = solver::detail::coeff_type<ValueType>;
 
     auto exec = this->get_executor();
     this->setup_workspace();
@@ -184,13 +211,13 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    auto alpha_ref = coeff_type{1} / center_;
-    auto beta_ref = coeff_type{0.5} * (foci_direction_ * alpha_ref) *
-                    (foci_direction_ * alpha_ref);
+    auto alpha_host = coeff_type{1} / center_;
+    auto beta_host = coeff_type{0.5} * (foci_direction_ * alpha_host) *
+                     (foci_direction_ * alpha_host);
 
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
-    exec->run(chebyshev::make_initialize(&stop_status));
+    exec->run(ir::make_initialize(&stop_status));
     if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -233,22 +260,22 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // x = x + alpha * inner_solution
             // update_solultion = inner_solution
             exec->run(chebyshev::make_init_update(
-                alpha_ref, gko::detail::get_local(inner_solution),
+                alpha_host, gko::detail::get_local(inner_solution),
                 gko::detail::get_local(update_solution),
                 gko::detail::get_local(dense_x)));
             continue;
         }
-        // beta_ref for iter == 1 is initialized in the beginning
+        // beta_host for iter == 1 is initialized in the beginning
         if (iter > 1) {
-            beta_ref = (foci_direction_ * alpha_ref / coeff_type{2.0}) *
-                       (foci_direction_ * alpha_ref / coeff_type{2.0});
+            beta_host = (foci_direction_ * alpha_host / coeff_type{2.0}) *
+                        (foci_direction_ * alpha_host / coeff_type{2.0});
         }
-        alpha_ref = coeff_type{1.0} / (center_ - beta_ref / alpha_ref);
+        alpha_host = coeff_type{1.0} / (center_ - beta_host / alpha_host);
         // z = z + beta * p
         // p = z
         // x += alpha * p
         exec->run(chebyshev::make_update(
-            alpha_ref, beta_ref, gko::detail::get_local(inner_solution),
+            alpha_host, beta_host, gko::detail::get_local(inner_solution),
             gko::detail::get_local(update_solution),
             gko::detail::get_local(dense_x)));
     }
