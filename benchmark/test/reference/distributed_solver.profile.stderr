@@ -36,6 +36,10 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
 DEBUG: begin copy(<typename>)
 DEBUG: begin copy
 DEBUG: end   copy
@@ -88,8 +92,6 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin index_map::map_to_local
 DEBUG: end   index_map::map_to_local
-DEBUG: begin copy
-DEBUG: end   copy
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin copy
