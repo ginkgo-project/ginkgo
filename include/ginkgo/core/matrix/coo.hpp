@@ -248,6 +248,11 @@ public:
                         ptr_param<LinOp> x) const;
 
     /**
+     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     */
+    void validate_data() const;
+
+    /**
      * Creates an uninitialized COO matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix

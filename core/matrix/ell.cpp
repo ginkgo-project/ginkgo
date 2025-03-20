@@ -18,6 +18,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -52,6 +53,18 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace ell
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::is_finite(values_),
+                 "matrix must contain only finite values");
+
+    GKO_VALIDATE(
+        validation::ell_is_within_bounds(col_idxs_, 0, this->get_size()[1]),
+        "col_idxs must be within bounds");
+}
 
 
 template <typename ValueType, typename IndexType>

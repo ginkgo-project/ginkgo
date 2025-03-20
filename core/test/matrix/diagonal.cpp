@@ -193,4 +193,16 @@ TYPED_TEST(Diagonal, GeneratesCorrectMatrixData)
 }
 
 
+// TYPED_TEST(Diagonal, RecognizesInvalidData)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using Diag = typename TestFixture::Diag;
+//     auto diag = Diag::create(this->exec);
+//     auto values = gko::array<value_type>(this->exec, 3);
+//     values.fill(gko::zero<value_type>());
+//     diag->read({{3, 3}, {{0, 0, 1.0}, {1, 1, 3.0}, {2, 2, 2.0}}});
+
+//     ASSERT_THROW(diag->validate_data(), gko::InvalidData);
+// }
+
 }  // namespace

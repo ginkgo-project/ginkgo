@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -231,3 +231,5 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 
     this->assert_equal_to_original_mtx(m);
 }
+
+TYPED_TEST(Ell, RecognizesInvalidData) {}

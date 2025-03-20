@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -440,5 +440,7 @@ TEST(DenseView, CustomViewKeepsRuntimeType)
     ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
 }
 
+
+TYPED_TEST(Dense, RecognizesInvalidData) {}
 
 }  // namespace
