@@ -236,7 +236,7 @@
  *
  *   <tr valign="top">
  *       <td>@subpage kokkos_assembly</td>
- *       <td> Use Kokkos to assemble as simple linear system.
+ *       <td> Use Kokkos to assemble a simple linear system.
  *       </td></tr>
  *
  *   <tr valign="top">
@@ -412,14 +412,14 @@
  *         @ref mixed_multigrid_solver
  *     </td>
  *   </tr>
- * 
+ *
  *   <tr valign="top">
  *     <td> Configure a solver from a config file
  *     </td>
  *     <td>@ref file_config_solver
  *     </td>
  *   </tr>
- * 
+ *
  *   <tr valign="top">
  *     <td> Distributed
  *     </td>

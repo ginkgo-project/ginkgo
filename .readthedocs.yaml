@@ -14,8 +14,7 @@ build:
     python: "3.11"
   jobs:
     pre_build:
-      - |
-        cmake -S . -B build \
+      - cmake -S . -B build \
         -DGINKGO_BUILD_DOC=ON \
         -DGINKGO_DOC_GENERATE_PDF=OFF \
         -DGINKGO_BUILD_EXAMPLES=ON \
@@ -27,7 +26,7 @@ build:
         -DGINKGO_BUILD_HIP=OFF \
         -DGINKGO_BUILD_SYCL=OFF \
         -DGINKGO_BUILD_MPI=OFF
-        cmake --build build -t doxysphinx -- -j
+      - cmake --build build -t doxysphinx -- -j
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
