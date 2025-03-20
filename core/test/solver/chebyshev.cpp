@@ -14,9 +14,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
-
-
-namespace {
+#include "core/test/utils/assertions.hpp"
 
 
 template <typename T>
@@ -44,17 +42,6 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<typename Solver::Factory> chebyshev_factory;
     std::unique_ptr<gko::LinOp> solver;
-
-    static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 TYPED_TEST_SUITE(Chebyshev, gko::test::ValueTypes, TypenameNameGenerator);
@@ -87,8 +74,8 @@ TYPED_TEST(Chebyshev, CanBeCopied)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()),
+                        this->mtx.get(), 0.0);
 }
 
 
@@ -102,8 +89,8 @@ TYPED_TEST(Chebyshev, CanBeMoved)
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(copy_mtx.get()),
+                        this->mtx.get(), 0.0);
 }
 
 
@@ -116,8 +103,8 @@ TYPED_TEST(Chebyshev, CanBeCloned)
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
-                               this->mtx.get());
+    GKO_ASSERT_MTX_NEAR(static_cast<const Mtx*>(clone_mtx.get()),
+                        this->mtx.get(), 0.0);
 }
 
 
@@ -144,16 +131,17 @@ TYPED_TEST(Chebyshev, CanSetEigenRegion)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
+    using coeff_type = gko::solver::detail::coeff_type<value_type>;
 
     std::shared_ptr<Solver> chebyshev_solver =
         Solver::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
-            .with_foci(value_type{0.2}, value_type{1.2})
+            .with_foci(coeff_type{0.2}, coeff_type{1.2})
             .on(this->exec)
             ->generate(this->mtx);
 
     ASSERT_EQ(chebyshev_solver->get_parameters().foci,
-              std::make_pair(value_type{0.2}, value_type{1.2}));
+              std::make_pair(coeff_type{0.2}, coeff_type{1.2}));
 }
 
 
@@ -324,6 +312,3 @@ TYPED_TEST(Chebyshev, ThrowsOnRectangularMatrixInFactory)
     ASSERT_THROW(this->chebyshev_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
 }
-
-
-}  // namespace

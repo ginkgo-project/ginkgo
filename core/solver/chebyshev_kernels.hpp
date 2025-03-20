@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/chebyshev.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -20,24 +21,19 @@ namespace kernels {
 namespace chebyshev {
 
 
-template <typename T>
-using coeff_type =
-    std::conditional_t<is_complex<T>, std::complex<double>, double>;
-
-
-#define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType)       \
-    void init_update(std::shared_ptr<const DefaultExecutor> exec, \
-                     const coeff_type<ValueType> alpha,           \
-                     const matrix::Dense<ValueType>* inner_sol,   \
-                     matrix::Dense<ValueType>* update_sol,        \
+#define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType)             \
+    void init_update(std::shared_ptr<const DefaultExecutor> exec,       \
+                     const solver::detail::coeff_type<ValueType> alpha, \
+                     const matrix::Dense<ValueType>* inner_sol,         \
+                     matrix::Dense<ValueType>* update_sol,              \
                      matrix::Dense<ValueType>* output)
 
-#define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)       \
-    void update(std::shared_ptr<const DefaultExecutor> exec, \
-                const coeff_type<ValueType> alpha,           \
-                const coeff_type<ValueType> beta,            \
-                matrix::Dense<ValueType>* inner_sol,         \
-                matrix::Dense<ValueType>* update_sol,        \
+#define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)             \
+    void update(std::shared_ptr<const DefaultExecutor> exec,       \
+                const solver::detail::coeff_type<ValueType> alpha, \
+                const solver::detail::coeff_type<ValueType> beta,  \
+                matrix::Dense<ValueType>* inner_sol,               \
+                matrix::Dense<ValueType>* update_sol,              \
                 matrix::Dense<ValueType>* output)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                     \

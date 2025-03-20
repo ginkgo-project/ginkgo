@@ -188,7 +188,7 @@ struct Chebyshev : SimpleSolverTest<gko::solver::Chebyshev<solver_value_type>> {
         return SimpleSolverTest<gko::solver::Chebyshev<solver_value_type>>::
             build(exec, iteration_count, check_residual)
                 .with_preconditioner(
-                    precond_type::build().with_max_block_size(1u).on(exec));
+                    precond_type::build().with_max_block_size(1u));
     }
 };
 

@@ -28,7 +28,7 @@ namespace detail {
 
 template <typename T>
 using coeff_type =
-    std::conditional_t<is_complex<T>, std::complex<double>, double>;
+    std::conditional_t<is_complex<T>(), std::complex<double>, double>;
 
 
 }
@@ -126,8 +126,10 @@ public:
               parameters_type, Factory> {
         /**
          * The pair of foci of ellipse, which covers the eigenvalues of
-         * preconditioned system. It is usually be {lower bound of eigval, upper
-         * bound of eigval} of preconditioned real matrices.
+         * preconditioned system. It is usually a pair {lower bound of eigval,
+         * upper bound of eigval} of the preconditioned system if the
+         * preconditioned system only contains non-complex eigenvalues. The foci
+         * value must satisfy real(foci(1)) >= real(foci(0)).
          */
         std::pair<detail::coeff_type<value_type>,
                   detail::coeff_type<value_type>>
@@ -181,9 +183,7 @@ protected:
                                        const LinOp* beta, LinOp* x,
                                        initial_guess_mode guess) const override;
 
-    explicit Chebyshev(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Chebyshev>(std::move(exec))
-    {}
+    explicit Chebyshev(std::shared_ptr<const Executor> exec);
 
     explicit Chebyshev(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix);
