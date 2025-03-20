@@ -55,11 +55,19 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
-GKO_REGISTER_OPERATION(map_to_global, index_map::map_to_global);
 
 
 }  // anonymous namespace
 }  // namespace pgm
+namespace index_map {
+namespace {
+
+
+GKO_REGISTER_OPERATION(map_to_global, index_map::map_to_global);
+
+
+}
+}  // namespace index_map
 
 namespace {
 
@@ -280,9 +288,9 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
         gather_idxs.get_const_data(), send_agg.get_data()));
 
     // There is no index map on the coarse level yet, so map the local indices
-    // to global manually
+    // to global indices on the coarse level manually
     array<GlobalIndexType> send_global_agg(exec, send_agg.get_size());
-    exec->run(pgm::make_map_to_global(
+    exec->run(index_map::make_map_to_global(
         to_device_const(coarse_partition.get()),
         device_segmented_array<const GlobalIndexType>{}, comm.rank(), send_agg,
         experimental::distributed::index_space::local, send_global_agg));
@@ -424,7 +432,7 @@ void Pgm<ValueType, IndexType>::generate()
 
             // build csr from row and col map
             // unlike non-distributed version, generate_coarse uses
-            // differentrow and col maps.
+            // different row and col maps.
             auto non_local_csr =
                 as<const csr_type>(matrix->get_non_local_matrix());
             auto result_non_local_csr = generate_coarse(

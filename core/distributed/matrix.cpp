@@ -13,21 +13,10 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
-#include "core/components/precision_conversion_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 
 
 namespace gko {
-namespace conversion {
-namespace {
-
-
-GKO_REGISTER_OPERATION(convert, components::convert_precision);
-
-
-}  // anonymous namespace
-}  // namespace conversion
 namespace experimental {
 namespace distributed {
 namespace matrix {
