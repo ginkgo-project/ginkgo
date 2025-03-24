@@ -31,6 +31,8 @@ using namespace gko::config;
 
 using DummyIr = gko::solver::Ir<float>;
 
+using DummyMgLevel = gko::multigrid::Pgm<float, int>;
+
 
 template <typename ChangedType, typename DefaultType>
 struct PreconditionerConfigTest {
@@ -402,8 +404,6 @@ struct GaussSeidel
 
 
 #if GINKGO_BUILD_MPI
-
-using DummyMgLevel = gko::multigrid::Pgm<float, int>;
 
 struct Schwarz
     : PreconditionerConfigTest<
