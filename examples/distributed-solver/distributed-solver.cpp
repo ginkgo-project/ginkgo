@@ -64,7 +64,8 @@ int main(int argc, char* argv[])
     // - The executor, defaults to reference.
     // - The number of grid points, defaults to 100.
     // - The number of iterations, defaults to 1000.
-    // - One-level or two-level preconditioner, defaults to one-level.
+    // - One-level, two-level preconditioner, and no preconditioner, defaults to
+    // one-level.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
@@ -214,6 +215,9 @@ int main(int argc, char* argv[])
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     std::shared_ptr<gko::LinOp> Ainv{};
+    // The benefit of the two-level Schwarz preconditioner is generally
+    // observable (in runtime and in number of iterations) usually for larger
+    // problem sizes and for larger number of ranks.
     if (schw_type == "two-level") {
         Ainv =
             solver::build()
