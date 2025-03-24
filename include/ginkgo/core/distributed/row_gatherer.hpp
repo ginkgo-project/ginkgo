@@ -39,11 +39,10 @@ namespace distributed {
  * auto x = matrix::Dense<double>::create(...);
  *
  * auto req = rg->apply_async(b, x);
- * // do some computation that doesn't modify b, or access x
+ * // users can do some computation that doesn't modify b, or access x
  * req.wait();
  * // x now contains the gathered rows of b
  * ```
- * Using apply instead of apply_async will lead to a blocking communication.
  *
  * @note The output vector for the apply_async functions *must* use an executor
  *       that is compatible with the MPI implementation. In particular, if the
@@ -168,7 +167,7 @@ public:
 private:
     /**
      * @copydoc RowGatherer::create(std::shared_ptr<const
-     *          Executor>, std::shared_ptr<const mpi::collective_communicator>,
+     *          Executor>, std::shared_ptr<const mpi::CollectiveCommunicator>,
      *          const index_map<LocalIndexType, GlobalIndexType>&)
      */
     template <typename GlobalIndexType>
@@ -187,10 +186,12 @@ private:
     array<LocalIndexType> send_idxs_;
     mutable array<char> send_workspace_;
     // This object might not hold an actual MPI request, so we can't use the
-    // always owning mpi::request. It's destructor would otherwise make the
+    // always owning mpi::request. Its destructor would otherwise make the
     // program crash.
     mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
 };
+
+
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko

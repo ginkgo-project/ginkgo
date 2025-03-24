@@ -878,7 +878,6 @@ public:
 class AllocationLogger : public gko::log::Logger {
 public:
     mutable int count = 0;
-    mutable std::set<const gko::Executor*> execs;
 
 protected:
     void on_allocation_completed(const gko::Executor* exec,
@@ -886,7 +885,6 @@ protected:
                                  const gko::uintptr& location) const override
     {
         ++count;
-        execs.insert(exec);
     }
 };
 
