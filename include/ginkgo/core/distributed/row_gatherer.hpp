@@ -129,11 +129,8 @@ public:
      * @tparam GlobalIndexType  the global index type of the index map
      *
      * @param exec  the executor
-     * @param coll_comm  the collective communicator
+     * @param coll_comm_creator  the collective communicator creator_fn
      * @param imap  the index map defining which rows to gather
-     *
-     * @note The coll_comm and imap have to be compatible. The coll_comm must
-     *       send and recv exactly as many rows as the imap defines.
      *
      * @return  a shared_ptr to the created distributed::RowGatherer
      */
@@ -142,11 +139,12 @@ public:
                                           sizeof(LocalIndexType)>>
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec,
-        std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
+        mpi::CollectiveCommunicator::creator_fn coll_comm_creator,
+        mpi::communicator base_comm,
         const index_map<LocalIndexType, GlobalIndexType>& imap)
     {
-        return std::unique_ptr<RowGatherer>(
-            new RowGatherer(std::move(exec), std::move(coll_comm), imap));
+        return std::unique_ptr<RowGatherer>(new RowGatherer(
+            std::move(exec), coll_comm_creator(base_comm, &imap), imap));
     }
 
     /*

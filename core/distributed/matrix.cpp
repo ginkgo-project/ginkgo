@@ -101,9 +101,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
     row_gatherer_ = RowGatherer<LocalIndexType>::create(
         row_gatherer_->get_executor(),
-        row_gatherer_->get_collective_communicator()->create_with_same_type(
-            row_gatherer_->get_communicator(), imap_),
-        imap_);
+        row_gatherer_->get_collective_communicator()->creator_with_same_type(),
+        comm, imap_);
 }
 
 
@@ -383,9 +382,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     row_gatherer_ = RowGatherer<LocalIndexType>::create(
         row_gatherer_->get_executor(),
-        row_gatherer_->get_collective_communicator()->create_with_same_type(
-            row_gatherer_->get_communicator(), imap_),
-        imap_);
+        row_gatherer_->get_collective_communicator()->creator_with_same_type(),
+        comm, imap_);
 }
 
 

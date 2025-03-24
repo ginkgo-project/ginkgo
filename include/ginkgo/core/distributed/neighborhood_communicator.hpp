@@ -68,9 +68,7 @@ public:
         communicator base,
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap);
 
-    std::unique_ptr<CollectiveCommunicator> create_with_same_type(
-        communicator base,
-        const distributed::index_map_variant& imap) const override;
+    creator_fn creator_with_same_type() const override;
 
     /**
      * Creates the inverse NeighborhoodCommunicator by switching sources
