@@ -110,15 +110,16 @@ request DenseCommunicator::i_all_to_all_v_impl(
 }
 
 
-std::unique_ptr<CollectiveCommunicator>
-DenseCommunicator::create_with_same_type(
-    communicator base, const distributed::index_map_variant& imap) const
+CollectiveCommunicator::creator_fn DenseCommunicator::creator_with_same_type()
+    const
 {
-    return std::visit(
-        [base](const auto& imap) {
-            return std::make_unique<DenseCommunicator>(base, imap);
-        },
-        imap);
+    return [](communicator base, index_map_ptr imap) {
+        return std::visit(
+            [base](auto imap_) {
+                return std::make_unique<DenseCommunicator>(base, *imap_);
+            },
+            imap);
+    };
 }
 
 

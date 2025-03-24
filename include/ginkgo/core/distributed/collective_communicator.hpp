@@ -11,9 +11,10 @@
 
 #if GINKGO_BUILD_MPI
 
+#include <variant>
 
 #include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/distributed/index_map_fwd.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 
 
 namespace gko {
@@ -29,6 +30,21 @@ namespace mpi {
  */
 class CollectiveCommunicator {
 public:
+    /**
+     * All allowed index_map types (as const *)
+     */
+    using index_map_ptr =
+        std::variant<const distributed::index_map<int32, int32>*,
+                     const distributed::index_map<int32, int64>*,
+                     const distributed::index_map<int64, int64>*>;
+
+    /**
+     * Creator function to create a new CollectiveCommunicator from a
+     * communicator and a pointer to an index_map.
+     */
+    using creator_fn = std::function<std::unique_ptr<CollectiveCommunicator>(
+        communicator, index_map_ptr)>;
+
     virtual ~CollectiveCommunicator() = default;
 
     explicit CollectiveCommunicator(communicator base = MPI_COMM_NULL);
@@ -65,16 +81,10 @@ public:
                            void* recv_buffer, MPI_Datatype recv_type) const;
 
     /**
-     * Creates a new CollectiveCommunicator with the same dynamic type.
-     *
-     * @param base  The base communicator
-     * @param imap  The index_map that defines the communication pattern
-     *
-     * @return  a CollectiveCommunicator with the same dynamic type
+     * Returns a CollectiveCommunicator::creator_fn which will create a new
+     * CollectiveCommunicator with the same dynamic type.
      */
-    [[nodiscard]] virtual std::unique_ptr<CollectiveCommunicator>
-    create_with_same_type(communicator base,
-                          const distributed::index_map_variant& imap) const = 0;
+    [[nodiscard]] virtual creator_fn creator_with_same_type() const = 0;
 
     /**
      * Creates a CollectiveCommunicator with the inverse communication pattern
