@@ -189,20 +189,23 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         GKO_INVALID_STATE(
             "Provided both a generated solver and a solver factory");
     }
-
     if (!parameters_.local_solver && !parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
             "Requires either a generated solver or an solver factory");
     }
-
     if (parameters_.generated_local_solver) {
         this->set_solver(parameters_.generated_local_solver);
         return;
     }
+    if ((parameters_.coarse_level && !parameters_.coarse_solver) ||
+        (!parameters_.coarse_level && parameters_.coarse_solver)) {
+        GKO_INVALID_STATE(
+            "Requires both coarse solver and coarse level to be set.");
+    }
 
-    auto local_matrix =
-        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
-            ->get_local_matrix();
+    auto dist_mat =
+        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
+    auto local_matrix = dist_mat->get_local_matrix();
 
     if (parameters_.l1_smoother) {
         auto exec = this->get_executor();
@@ -239,14 +242,6 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             gko::share(parameters_.local_solver->generate(local_matrix)));
     }
 
-    if ((parameters_.coarse_level && !parameters_.coarse_solver) ||
-        (!parameters_.coarse_level && parameters_.coarse_solver)) {
-        GKO_INVALID_STATE(
-            "Requires both coarse solver and coarse level to be set.");
-    }
-    auto dist_mat =
-        as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                             GlobalIndexType>>(system_matrix);
     gko::remove_complex<ValueType> cweight =
         gko::detail::real_impl(parameters_.coarse_weight);
     if (cweight > 0.0 && cweight <= 1.0) {
@@ -262,13 +257,6 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             {ValueType{1.0}}, this->get_executor());
     }
 
-    if (parameters_.local_solver) {
-        this->set_solver(gko::share(
-            parameters_.local_solver->generate(dist_mat->get_local_matrix())));
-    } else {
-        this->set_solver(parameters_.generated_local_solver);
-    }
-
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
             share(parameters_.coarse_level->generate(system_matrix));
@@ -279,8 +267,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             if (coarse != nullptr) {
                 this->coarse_solver_ =
                     share(parameters_.coarse_solver->generate(
-                        as<experimental::distributed::Matrix<
-                            ValueType, LocalIndexType, GlobalIndexType>>(
+                        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
                             coarse)));
             }
         } else {
