@@ -92,9 +92,13 @@ system $^X, "$cmake_source_dir/doc/doxygen/scripts/program2doxygen", "$cmake_sou
 
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox";
 
-print
-"<a name=\"PlainProg\"></a>
-<h1> The plain program</h1>
-\@include \"$example.cpp\"
- */
-";
+print "<a name=\"PlainProg\"></a>";
+print "<h1> The plain program</h1>\n";
+print " * \@code\n";
+open(my $prog, '<', "$example.cpp") or die "Can't open plain program $example.cpp";
+while(my $line = readline($prog)){
+    print " *    $line"
+}
+close $prog;
+print " * \@endcode\n";
+print "*/";
