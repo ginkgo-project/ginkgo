@@ -15,6 +15,8 @@
 namespace gko {
 namespace experimental {
 namespace distributed {
+
+
 #if GINKGO_HAVE_OPENMPI_PRE_4_1_X
 using DefaultCollComm = mpi::DenseCommunicator;
 #else
