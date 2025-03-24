@@ -44,7 +44,7 @@ protected:
                       .with_local_solver(jacobi_factory)
                       .with_coarse_level(pgm_factory)
                       .with_coarse_solver(cg_factory)
-                      .with_coarse_weight(0.4)
+                      .with_coarse_weight(value_type{0.4})
                       .on(exec)
                       ->generate(mtx);
     }
@@ -109,7 +109,9 @@ TYPED_TEST(SchwarzFactory, CanSetCoarseSolverFactory)
 
 TYPED_TEST(SchwarzFactory, CanSetCoarseWeight)
 {
-    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, 0.4);
+    using value_type = typename TestFixture::value_type;
+
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{0.4});
 }
 
 
@@ -123,6 +125,7 @@ TYPED_TEST(SchwarzFactory, CanBeCloned)
 
 TYPED_TEST(SchwarzFactory, CanBeCopied)
 {
+    using value_type = typename TestFixture::value_type;
     using Jacobi = typename TestFixture::Jacobi;
     using Pgm = typename TestFixture::Pgm;
     using Cg = typename TestFixture::Cg;
@@ -135,7 +138,7 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
                     .with_local_solver(bj)
                     .with_coarse_level(pgm)
                     .with_coarse_solver(cg)
-                    .with_coarse_weight(0.4)
+                    .with_coarse_weight(value_type{0.4})
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -147,6 +150,7 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
 
 TYPED_TEST(SchwarzFactory, CanBeMoved)
 {
+    using value_type = typename TestFixture::value_type;
     using Jacobi = typename TestFixture::Jacobi;
     using Pgm = typename TestFixture::Pgm;
     using Cg = typename TestFixture::Cg;
@@ -160,7 +164,7 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
                     .with_local_solver(bj)
                     .with_coarse_level(pgm)
                     .with_coarse_solver(cg)
-                    .with_coarse_weight(0.4)
+                    .with_coarse_weight(value_type{0.4})
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -172,13 +176,14 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
 
 TYPED_TEST(SchwarzFactory, CanBeCleared)
 {
+    using value_type = typename TestFixture::value_type;
     this->schwarz->clear();
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
     ASSERT_EQ(this->schwarz->get_parameters().coarse_level, nullptr);
     ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, nullptr);
-    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, -1);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{-1});
 }
 
 

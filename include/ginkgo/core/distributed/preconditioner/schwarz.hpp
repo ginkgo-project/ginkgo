@@ -112,10 +112,10 @@ public:
          * Coarse weighting.
          *
          * By default the coarse and the local solutions are added together
-         * (when the coarse weight is < 0). A weighting can instead be provided
-         * if the coarse solution tends to over-correct.
+         * (when the coarse weight is < 0 or > 1). A weighting can instead be
+         * provided if the coarse solution tends to over-correct.
          */
-        double GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, double{-1.0});
+        ValueType GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, ValueType{-1.0});
 
         /**
          * Operator factory list to generate the triplet (prolong_op, coarse_op,
@@ -212,6 +212,7 @@ private:
     detail::VectorCache<ValueType> cache_;
     // Used in apply for two-level method
     detail::VectorCache<ValueType> csol_cache_;
+    detail::VectorCache<ValueType> crhs_cache_;
 
     std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
