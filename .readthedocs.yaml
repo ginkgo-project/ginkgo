@@ -11,20 +11,20 @@ build:
     - cmake
     - graphviz
   tools:
-    python: "3.11"
+    python: "3.12"
   jobs:
     pre_build:
-      - cmake -S . -B build \
-        -DGINKGO_BUILD_DOC=ON \
-        -DGINKGO_DOC_GENERATE_PDF=OFF \
-        -DGINKGO_BUILD_EXAMPLES=ON \
-        -DGINKGO_BUILD_TESTS=OFF \
-        -DGINKGO_BUILD_BENCHMARKS=OFF \
-        -DGINKGO_BUILD_REFERENCE=ON \
-        -DGINKGO_BUILD_OMP=OFF \
-        -DGINKGO_BUILD_CUDA=OFF \
-        -DGINKGO_BUILD_HIP=OFF \
-        -DGINKGO_BUILD_SYCL=OFF \
+      - cmake -S . -B build
+        -DGINKGO_BUILD_DOC=ON
+        -DGINKGO_DOC_GENERATE_PDF=OFF
+        -DGINKGO_BUILD_EXAMPLES=OFF
+        -DGINKGO_BUILD_TESTS=OFF
+        -DGINKGO_BUILD_BENCHMARKS=OFF
+        -DGINKGO_BUILD_REFERENCE=OFF
+        -DGINKGO_BUILD_OMP=OFF
+        -DGINKGO_BUILD_CUDA=OFF
+        -DGINKGO_BUILD_HIP=OFF
+        -DGINKGO_BUILD_SYCL=OFF
         -DGINKGO_BUILD_MPI=OFF
       - cmake --build build -t doxysphinx -- -j
 

@@ -162,7 +162,7 @@ details.
 
 # Contributing to Ginkgo
 
-We are glad  that you would like to contribute to Ginkgo, and we are happy to help you with any questions you may have.
+We are glad that you would like to contribute to Ginkgo, and we are happy to help you with any questions you may have.
 
 If you are contributing for the first time, please add yourself to the list of external contributors with the following info
 

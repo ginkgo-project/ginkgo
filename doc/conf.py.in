@@ -3,14 +3,15 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
+import datetime
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Ginkgo'
-copyright = '2024, The Ginkgo Authors'
+copyright = f'{datetime.date.today().year}, The Ginkgo Authors'
 author = 'The Ginkgo Authors'
-release = '1.9.0'
+release = '@Ginkgo_VERSION@'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -229,8 +229,7 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](## 6: Available
-benchmark options). Here are the most important options:
+collection. For details, see the [available benchmark options](#7-available-benchmark-options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be ran.
 * `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform

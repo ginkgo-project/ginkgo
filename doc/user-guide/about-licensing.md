@@ -84,10 +84,10 @@ benchmark suites. gtest is available under the following license:
 
 nlohmann-json is available under the following license:
 
-> MIT License 
-> 
+> MIT License
+>
 > Copyright (c) 2013-2022 Niels Lohmann
-> 
+>
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
 > in the Software without restriction, including without limitation the rights
@@ -97,7 +97,7 @@ nlohmann-json is available under the following license:
 >
 > The above copyright notice and this permission notice shall be included in all
 > copies or substantial portions of the Software.
-> 
+>
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 > IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 > FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -112,17 +112,17 @@ will be downloaded. doxygen-awesome-css is available under the following license
 > MIT License
 >
 > Copyright (c) 2021 - 2023 jothepro
-> 
+>
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
 > in the Software without restriction, including without limitation the rights
 > to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 > copies of the Software, and to permit persons to whom the Software is
 > furnished to do so, subject to the following conditions:
-> 
+>
 > The above copyright notice and this permission notice shall be included in all
 > copies or substantial portions of the Software.
-> 
+>
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 > IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 > FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -144,7 +144,7 @@ also licensed the same as the deal.II library.
 > modify it under the terms of the GNU Lesser General Public License as published
 > by the Free Software Foundation; either version 2.1 of the License, or (at your
 > option) any later version.
-> 
+>
 > The full text of the GNU Lesser General Public
 > version 2.1 is available on the [deal.II repository
 > page](https://github.com/dealii/dealii/blob/master/LICENSE.md) or on the
@@ -230,18 +230,18 @@ For detecting the HWLOC library, we used a modified version of the FindHWLOC.cma
 __NOTE:__ Some of the options that pull additional software when compiling
 Ginkgo are ON by default, and have to be disabled manually to prevent
 third-party licensing. Refer to the [Installation section in
-install.md](install.md#building) for more details.
+install.md](install.md) for more details.
 
 
 When using testing with MPI switched on, the gtest-mpi-listener header only library is used for testing MPI functionality. The repository is licensed triple licensed under BSD-3, MIT and Apache 2.0. The License duplicated below. More details on the License and the library are [available on github](https://github.com/LLNL/gtest-mpi-listener)
 
 
 > Copyright 2005, Google Inc.  All rights reserved.
-> 
+>
 > Redistribution and use in source and binary forms, with or without
 > modification, are permitted provided that the following conditions are
 > met:
-> 
+>
 > * Redistributions of source code must retain the above copyright
 > notice, this list of conditions and the following disclaimer.
 > * Redistributions in binary form must reproduce the above
@@ -251,7 +251,7 @@ When using testing with MPI switched on, the gtest-mpi-listener header only libr
 > * Neither the name of Google Inc. nor the names of its
 > contributors may be used to endorse or promote products derived from
 > this software without specific prior written permission.
-> 
+>
 > THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 > "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 > LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
