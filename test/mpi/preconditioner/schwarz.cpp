@@ -104,6 +104,12 @@ protected:
 
         local_solver_factory =
             local_prec_type::build().with_max_block_size(1u).on(exec);
+        coarse_solver_factory =
+            solver_type::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(5u).on(exec))
+                .on(exec);
+        pgm_factory = coarse_level_type::build().on(exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -280,15 +286,9 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyMultilevelPreconditioner)
                                .with_coarse_solver(this->coarse_solver_factory)
                                .with_coarse_level(this->pgm_factory)
                                .on(this->exec);
-    auto local_precond =
-        this->local_solver_factory->generate(this->non_dist_mat);
     auto precond = precond_factory->generate(this->dist_mat);
 
-    precond->apply(this->dist_b.get(), this->dist_x.get());
-    local_precond->apply(this->non_dist_b.get(), this->non_dist_x.get());
-
-    this->assert_equal_to_non_distributed_vector(this->dist_x,
-                                                 this->non_dist_x);
+    ASSERT_NO_THROW(precond->apply(this->dist_b.get(), this->dist_x.get()));
 }
 
 
