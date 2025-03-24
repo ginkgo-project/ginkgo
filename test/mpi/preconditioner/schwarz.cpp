@@ -80,7 +80,13 @@ protected:
                      {2, 1, -1}, {2, 2, 2},  {2, 3, -1}, {3, 2, -1}, {3, 3, 2},
                      {3, 4, -1}, {4, 3, -1}, {4, 4, 2},  {4, 5, -1}, {5, 4, -1},
                      {5, 5, 2},  {5, 6, -1}, {6, 5, -1}, {6, 6, 2},  {6, 7, -1},
-                     {7, 6, -1}, {7, 7, 2}}}
+                     {7, 6, -1}, {7, 7, 2}}},
+          pgm_factory(coarse_level_type::build().on(exec)),
+          coarse_solver_factory(
+              solver_type::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(20u))
+                  .on(exec))
     {
         row_part = Partition::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -286,6 +292,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyMultilevelPreconditioner)
                                .with_local_solver(this->local_solver_factory)
                                .with_coarse_solver(this->coarse_solver_factory)
                                .with_coarse_level(this->pgm_factory)
+                               .with_overlap(true)
                                .on(this->exec);
     auto local_precond =
         this->local_solver_factory->generate(this->non_dist_mat);

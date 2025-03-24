@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1583,6 +1583,8 @@ public:
         std::shared_ptr<CudaAllocatorBase> alloc =
             std::make_shared<CudaAllocator>(),
         CUstream_st* stream = nullptr);
+
+    std::shared_ptr<Executor> create_alternative() const;
 
     std::shared_ptr<Executor> get_master() noexcept override;
 

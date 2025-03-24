@@ -108,6 +108,16 @@ public:
         double GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, double{-1.0});
 
         /**
+         * control whether we need to overlap the computation when use gpu
+         * executor
+         *
+         * When turn it on, we will move coarse solver and coarse level to a
+         * different stream. We will need to have an additional synchronization
+         * when we sum the solution together.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(overlap, false);
+
+        /**
          * Operator factory list to generate the triplet (prolong_op, coarse_op,
          * restrict_op), `A_c = R * A * P`
          *

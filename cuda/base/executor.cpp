@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/memory.hpp>
+#include <ginkgo/core/base/stream.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/executor.hpp.inc"
@@ -67,6 +68,16 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
         device_id, std::move(master), std::move(alloc), stream));
 }
 
+
+std::shared_ptr<Executor> CudaExecutor::create_alternative() const
+{
+    auto device_id = this->get_device_id();
+    CUstream_st* stream;
+    detail::cuda_scoped_device_id_guard g(device_id);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream));
+    // deletion?
+    return create(this->get_device_id(), master_, alloc_, stream);
+}
 
 void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
 {

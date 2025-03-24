@@ -61,6 +61,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     if (auto& obj = config.get("coarse_weight")) {
         params.with_coarse_weight(gko::config::get_value<double>(obj));
     }
+    if (auto& obj = config.get("overlap")) {
+        params.with_overlap(gko::config::get_value<bool>(obj));
+    }
 
     return params;
 }
@@ -121,12 +124,18 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
         auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
         auto comm = coarse_op->get_communicator();
-        csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
-        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
+        auto another_exec = coarse_solver_->get_executor();
+        csol_cache_.init(another_exec, comm, cs_global_size, cs_local_size);
+        crhs_cache_.init(another_exec, comm, cs_global_size, cs_local_size);
         csol_cache_->fill(zero<ValueType>());
         // Additive apply of coarse correction
         restrict_op->apply(dense_b, crhs_cache_.get());
         this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
+        // prolong_op is on another stream, so we need to wait for exec finish
+        // operation on dense_x
+        if (another_exec != exec) {
+            exec->synchronize();
+        }
         prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
                           this->local_weight_, dense_x);
     }
@@ -207,7 +216,6 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     } else {
         this->set_solver(parameters_.generated_local_solver);
     }
-
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
             share(parameters_.coarse_level->generate(system_matrix));
@@ -221,6 +229,22 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
                         as<experimental::distributed::Matrix<
                             ValueType, LocalIndexType, GlobalIndexType>>(
                             coarse)));
+                // change to another executor with different stream, which
+                // requires clone everything now.
+                if (auto cuda_executor =
+                        std::dynamic_pointer_cast<const CudaExecutor>(
+                            this->get_executor())) {
+                    if (parameters_.overlap) {
+                        std::cout << "generate a different stream" << std::endl;
+                        auto different_stream =
+                            cuda_executor->create_alternative();
+                        // move two to another stream
+                        this->coarse_level_ =
+                            this->coarse_level_->clone(different_stream);
+                        this->coarse_solver_ =
+                            this->coarse_solver_->clone(different_stream);
+                    }
+                }
             }
         } else {
             GKO_NOT_SUPPORTED(this->coarse_level_);
