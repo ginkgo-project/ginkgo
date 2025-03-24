@@ -94,10 +94,13 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     using dist_vec = experimental::distributed::Vector<ValueType>;
     auto exec = this->get_executor();
 
-    // Two-level
-    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
+    // One-level
+    if (this->local_solver_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
                                    gko::detail::get_local(dense_x));
+    }
+    // Two-level
+    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
         auto restrict_op =
             as<gko::multigrid::MultigridLevel>(this->coarse_level_)
                 ->get_restrict_op();
@@ -119,18 +122,13 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
         auto comm = coarse_op->get_communicator();
         csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
-
+        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
+        csol_cache_->fill(zero<ValueType>());
         // Additive apply of coarse correction
-        restrict_op->apply(dense_b, csol_cache_.get());
-        this->coarse_solver_->apply(csol_cache_.get(), csol_cache_.get());
+        restrict_op->apply(dense_b, crhs_cache_.get());
+        this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
         prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
                           this->local_weight_, dense_x);
-    } else {
-        // One-level
-        if (this->local_solver_ != nullptr) {
-            this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                       gko::detail::get_local(dense_x));
-        }
     }
 }
 

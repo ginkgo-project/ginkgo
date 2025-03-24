@@ -202,6 +202,7 @@ private:
     detail::VectorCache<ValueType> cache_;
     // Used in apply for two-level method
     detail::VectorCache<ValueType> csol_cache_;
+    detail::VectorCache<ValueType> crhs_cache_;
 
     std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
