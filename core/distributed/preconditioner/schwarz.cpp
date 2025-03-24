@@ -71,7 +71,7 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
                 obj, context, td_for_child));
     }
     if (auto& obj = config.get("coarse_weight")) {
-        params.with_coarse_weight(gko::config::get_value<double>(obj));
+        params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
     }
 
     return params;
@@ -110,20 +110,18 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
                                    gko::detail::get_local(dense_x));
-        auto restrict_op =
-            as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                ->get_restrict_op();
-        auto prolong_op =
-            as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                ->get_prolong_op();
+        auto coarse_level =
+            as<gko::multigrid::MultigridLevel>(this->coarse_level_);
+        auto restrict_op = coarse_level->get_restrict_op();
+        auto prolong_op = coarse_level->get_prolong_op();
         auto coarse_op =
             as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                  GlobalIndexType>>(
-                as<gko::multigrid::MultigridLevel>(this->coarse_level_)
-                    ->get_coarse_op());
+                coarse_level->get_coarse_op());
 
         // Coarse solve vector cache init
-        // Should allocate only in the first apply call.
+        // Should allocate only in the first apply call if the number of rhs is
+        // unchanged.
         auto cs_ncols = dense_x->get_size()[1];
         auto cs_local_nrows = coarse_op->get_local_matrix()->get_size()[0];
         auto cs_global_nrows = coarse_op->get_size()[0];
@@ -131,10 +129,13 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
         auto comm = coarse_op->get_communicator();
         csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
+        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
 
         // Additive apply of coarse correction
-        restrict_op->apply(dense_b, csol_cache_.get());
-        this->coarse_solver_->apply(csol_cache_.get(), csol_cache_.get());
+        restrict_op->apply(dense_b, crhs_cache_.get());
+        // TODO: Does it make sense to restrict dense_x (to csol_cache) to
+        // provide a good initial guess for the coarse solver ?
+        this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
         prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
                           this->local_weight_, dense_x);
     } else {
@@ -246,7 +247,9 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto dist_mat =
         as<experimental::distributed::Matrix<ValueType, LocalIndexType,
                                              GlobalIndexType>>(system_matrix);
-    if (parameters_.coarse_weight > 0 && parameters_.coarse_weight <= 1) {
+    gko::remove_complex<ValueType> cweight =
+        gko::detail::real_impl(parameters_.coarse_weight);
+    if (cweight > 0.0 && cweight <= 1.0) {
         this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
             {ValueType{1} - ValueType{parameters_.coarse_weight}},
             this->get_executor());

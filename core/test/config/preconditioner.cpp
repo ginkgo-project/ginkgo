@@ -457,7 +457,7 @@ struct Schwarz
         config_map["l1_smoother"] = pnode{true};
         param.with_l1_smoother(true);
         config_map["coarse_weight"] = pnode{0.1};
-        param.with_coarse_weight(0.1);
+        param.with_coarse_weight(decltype(param.coarse_weight){0.1});
     }
 
     template <bool from_reg, typename AnswerType>
