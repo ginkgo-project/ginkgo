@@ -44,6 +44,7 @@ TEST(ExceptionClasses, NotSupportedReturnsCorrectWhatMessage)
         error.what());
 }
 
+
 TEST(ExceptionClasses, CudaErrorReturnsCorrectWhatMessage)
 {
     gko::CudaError error("test_file.cpp", 123, "test_func", 1);
