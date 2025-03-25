@@ -7,30 +7,37 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 #if GKO_HAVE_LAPACK
 
 
 extern "C" {
-void ssygvd(const int* itype, const char* jobz, const char* uplo, const int* n,
-            float* A, const int* lda, float* B, const int* ldb, float* w,
-            float* work, const int* lwork, int* iwork, const int* liwork,
-            int* info);
+void ssygvd(const std::int32_t* itype, const char* jobz, const char* uplo,
+            const std::int32_t* n, float* A, const std::int32_t* lda, float* B,
+            const std::int32_t* ldb, float* w, float* work,
+            const std::int32_t* lwork, std::int32_t* iwork,
+            const std::int32_t* liwork, std::int32_t* info);
 
-void dsygvd(const int* itype, const char* jobz, const char* uplo, const int* n,
-            double* A, const int* lda, double* B, const int* ldb, double* w,
-            double* work, const int* lwork, int* iwork, const int* liwork,
-            int* info);
+void dsygvd(const std::int32_t* itype, const char* jobz, const char* uplo,
+            const std::int32_t* n, double* A, const std::int32_t* lda,
+            double* B, const std::int32_t* ldb, double* w, double* work,
+            const std::int32_t* lwork, std::int32_t* iwork,
+            const std::int32_t* liwork, std::int32_t* info);
 
-void chegvd(const int* itype, const char* jobz, const char* uplo, const int* n,
-            std::complex<float>* A, const int* lda, std::complex<float>* B,
-            const int* ldb, float* w, std::complex<float>* work, int* lwork,
-            float* rwork, int* lrwork, int* iwork, int* liwork, int* info);
+void chegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
+            const std::int32_t* n, std::complex<float>* A,
+            const std::int32_t* lda, std::complex<float>* B,
+            const std::int32_t* ldb, float* w, std::complex<float>* work,
+            std::int32_t* lwork, float* rwork, std::int32_t* lrwork,
+            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
 
-void zhegvd(const int* itype, const char* jobz, const char* uplo, const int* n,
-            std::complex<double>* A, const int* lda, std::complex<double>* B,
-            const int* ldb, double* w, std::complex<double>* work, int* lwork,
-            double* rwork, int* lrwork, int* iwork, int* liwork, int* info);
+void zhegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
+            const std::int32_t* n, std::complex<double>* A,
+            const std::int32_t* lda, std::complex<double>* B,
+            const std::int32_t* ldb, double* w, std::complex<double>* work,
+            std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
+            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
 }
 
 namespace gko {
@@ -60,120 +67,122 @@ template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
 
-#define GKO_BIND_SYGVD_BUFFERSIZES(ValueType, LapackName)                    \
-    inline void sygvd_buffersizes(                                           \
-        const int* itype, const char* jobz, const char* uplo, const int* n,  \
-        ValueType* a, const int* lda, ValueType* b, const int* ldb,          \
-        ValueType* w, ValueType* work, int* fp_buffer_num_elems, int* iwork, \
-        int* int_buffer_num_elems)                                           \
-    {                                                                        \
-        int info;                                                            \
-        *fp_buffer_num_elems = -1;                                           \
-        *int_buffer_num_elems = -1;                                          \
-        GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
-            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,        \
-                       fp_buffer_num_elems, iwork, int_buffer_num_elems,     \
-                       &info),                                               \
-            info);                                                           \
-        *fp_buffer_num_elems = static_cast<int>(work[0]);                    \
-        *int_buffer_num_elems = iwork[0];                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_SYGVD_BUFFERSIZES(ValueType, LapackName)                      \
+    inline void sygvd_buffersizes(                                             \
+        const int32* itype, const char* jobz, const char* uplo,                \
+        const int32* n, ValueType* a, const int32* lda, ValueType* b,          \
+        const int32* ldb, ValueType* w, ValueType* work,                       \
+        int32* fp_buffer_num_elems, int32* iwork, int32* int_buffer_num_elems) \
+    {                                                                          \
+        int32 info;                                                            \
+        *fp_buffer_num_elems = -1;                                             \
+        *int_buffer_num_elems = -1;                                            \
+        GKO_ASSERT_NO_LAPACK_ERRORS(                                           \
+            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,          \
+                       fp_buffer_num_elems, iwork, int_buffer_num_elems,       \
+                       &info),                                                 \
+            info);                                                             \
+        *fp_buffer_num_elems = static_cast<int32>(work[0]);                    \
+        *int_buffer_num_elems = iwork[0];                                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 GKO_BIND_SYGVD_BUFFERSIZES(float, ssygvd);
 GKO_BIND_SYGVD_BUFFERSIZES(double, dsygvd);
 template <typename ValueType>
-inline void sygvd_buffersizes(const int* itype, const char* jobz,
-                              const char* uplo, const int* n, ValueType* a,
-                              const int* lda, ValueType* b, const int* ldb,
+inline void sygvd_buffersizes(const int32* itype, const char* jobz,
+                              const char* uplo, const int32* n, ValueType* a,
+                              const int32* lda, ValueType* b, const int32* ldb,
                               ValueType* w, ValueType* work,
-                              int* fp_buffer_num_elems, int* iwork,
-                              int* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
+                              int32* fp_buffer_num_elems, int32* iwork,
+                              int32* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
 
 #undef GKO_BIND_SYGVD_BUFFERSIZES
 
 
-#define GKO_BIND_SYGVD(ValueType, LapackName)                                \
-    inline void sygvd(const int* itype, const char* jobz, const char* uplo,  \
-                      const int* n, ValueType* a, const int* lda,            \
-                      ValueType* b, const int* ldb, ValueType* w,            \
-                      ValueType* work, int* fp_buffer_num_elems, int* iwork, \
-                      int* int_buffer_num_elems)                             \
-    {                                                                        \
-        int info;                                                            \
-        GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
-            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,        \
-                       fp_buffer_num_elems, iwork, int_buffer_num_elems,     \
-                       &info),                                               \
-            info);                                                           \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_SYGVD(ValueType, LapackName)                                 \
+    inline void sygvd(const int32* itype, const char* jobz, const char* uplo, \
+                      const int32* n, ValueType* a, const int32* lda,         \
+                      ValueType* b, const int32* ldb, ValueType* w,           \
+                      ValueType* work, int32* fp_buffer_num_elems,            \
+                      int32* iwork, int32* int_buffer_num_elems)              \
+    {                                                                         \
+        int32 info;                                                           \
+        GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
+            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,         \
+                       fp_buffer_num_elems, iwork, int_buffer_num_elems,      \
+                       &info),                                                \
+            info);                                                            \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 GKO_BIND_SYGVD(float, ssygvd);
 GKO_BIND_SYGVD(double, dsygvd);
 template <typename ValueType>
-inline void sygvd(const int* itype, const char* jobz, const char* uplo,
-                  const int* n, ValueType* a, const int* lda, ValueType* b,
-                  const int* ldb, ValueType* w, ValueType* work,
-                  int* fp_buffer_num_elems, int* iwork,
-                  int* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
+inline void sygvd(const int32* itype, const char* jobz, const char* uplo,
+                  const int32* n, ValueType* a, const int32* lda, ValueType* b,
+                  const int32* ldb, ValueType* w, ValueType* work,
+                  int32* fp_buffer_num_elems, int32* iwork,
+                  int32* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
 
 #undef GKO_BIND_SYGVD
 
 
-#define GKO_BIND_HEGVD_BUFFERSIZES(ValueType, LapackName)                    \
-    inline void hegvd_buffersizes(                                           \
-        const int* itype, const char* jobz, const char* uplo, const int* n,  \
-        ValueType* a, const int* lda, ValueType* b, const int* ldb,          \
-        gko::remove_complex<ValueType>* w, ValueType* work,                  \
-        int* fp_buffer_num_elems, gko::remove_complex<ValueType>* rwork,     \
-        int* rfp_buffer_num_elems, int* iwork, int* int_buffer_num_elems)    \
-    {                                                                        \
-        int info;                                                            \
-        *fp_buffer_num_elems = -1;                                           \
-        *rfp_buffer_num_elems = -1;                                          \
-        *int_buffer_num_elems = -1;                                          \
-        GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
-            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,        \
-                       fp_buffer_num_elems, rwork, rfp_buffer_num_elems,     \
-                       iwork, int_buffer_num_elems, &info),                  \
-            info);                                                           \
-        *fp_buffer_num_elems = static_cast<int>(work[0].real());             \
-        *rfp_buffer_num_elems = static_cast<int>(rwork[0]);                  \
-        *int_buffer_num_elems = iwork[0];                                    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_HEGVD_BUFFERSIZES(ValueType, LapackName)                     \
+    inline void hegvd_buffersizes(                                            \
+        const int32* itype, const char* jobz, const char* uplo,               \
+        const int32* n, ValueType* a, const int32* lda, ValueType* b,         \
+        const int32* ldb, gko::remove_complex<ValueType>* w, ValueType* work, \
+        int32* fp_buffer_num_elems, gko::remove_complex<ValueType>* rwork,    \
+        int32* rfp_buffer_num_elems, int32* iwork,                            \
+        int32* int_buffer_num_elems)                                          \
+    {                                                                         \
+        int32 info;                                                           \
+        *fp_buffer_num_elems = -1;                                            \
+        *rfp_buffer_num_elems = -1;                                           \
+        *int_buffer_num_elems = -1;                                           \
+        GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
+            LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,         \
+                       fp_buffer_num_elems, rwork, rfp_buffer_num_elems,      \
+                       iwork, int_buffer_num_elems, &info),                   \
+            info);                                                            \
+        *fp_buffer_num_elems = static_cast<int32>(work[0].real());            \
+        *rfp_buffer_num_elems = static_cast<int32>(rwork[0]);                 \
+        *int_buffer_num_elems = iwork[0];                                     \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 GKO_BIND_HEGVD_BUFFERSIZES(std::complex<float>, chegvd);
 GKO_BIND_HEGVD_BUFFERSIZES(std::complex<double>, zhegvd);
 template <typename ValueType>
-inline void hegvd_buffersizes(const int* itype, const char* jobz,
-                              const char* uplo, const int* n, ValueType* a,
-                              const int* lda, ValueType* b, const int* ldb,
+inline void hegvd_buffersizes(const int32* itype, const char* jobz,
+                              const char* uplo, const int32* n, ValueType* a,
+                              const int32* lda, ValueType* b, const int32* ldb,
                               gko::remove_complex<ValueType>* w,
-                              ValueType* work, int* fp_buffer_num_elems,
+                              ValueType* work, int32* fp_buffer_num_elems,
                               gko::remove_complex<ValueType>* rwork,
-                              int* rfp_buffer_num_elems, int* iwork,
-                              int* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
+                              int32* rfp_buffer_num_elems, int32* iwork,
+                              int32* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
 
 #undef GKO_BIND_HEGVD_BUFFERSIZES
 
 
 #define GKO_BIND_HEGVD(ValueType, LapackName)                                \
     inline void hegvd(                                                       \
-        const int* itype, const char* jobz, const char* uplo, const int* n,  \
-        ValueType* a, const int* lda, ValueType* b, const int* ldb,          \
-        remove_complex<ValueType>* w, ValueType* work,                       \
-        int* fp_buffer_num_elems, remove_complex<ValueType>* rwork,          \
-        int* rfp_buffer_num_elems, int* iwork, int* int_buffer_num_elems)    \
+        const int32* itype, const char* jobz, const char* uplo,              \
+        const int32* n, ValueType* a, const int32* lda, ValueType* b,        \
+        const int32* ldb, remove_complex<ValueType>* w, ValueType* work,     \
+        int32* fp_buffer_num_elems, remove_complex<ValueType>* rwork,        \
+        int32* rfp_buffer_num_elems, int32* iwork,                           \
+        int32* int_buffer_num_elems)                                         \
     {                                                                        \
-        int info;                                                            \
+        int32 info;                                                          \
         GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
             LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,        \
                        fp_buffer_num_elems, rwork, rfp_buffer_num_elems,     \
@@ -187,12 +196,13 @@ inline void hegvd_buffersizes(const int* itype, const char* jobz,
 GKO_BIND_HEGVD(std::complex<float>, chegvd);
 GKO_BIND_HEGVD(std::complex<double>, zhegvd);
 template <typename ValueType>
-inline void hegvd(const int* itype, const char* jobz, const char* uplo,
-                  const int* n, ValueType* a, const int* lda, ValueType* b,
-                  const int* ldb, remove_complex<ValueType>* w, ValueType* work,
-                  int* fp_buffer_num_elems, remove_complex<ValueType>* rwork,
-                  int* rfp_buffer_num_elems, int* iwork,
-                  int* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
+inline void hegvd(const int32* itype, const char* jobz, const char* uplo,
+                  const int32* n, ValueType* a, const int32* lda, ValueType* b,
+                  const int32* ldb, remove_complex<ValueType>* w,
+                  ValueType* work, int32* fp_buffer_num_elems,
+                  remove_complex<ValueType>* rwork, int32* rfp_buffer_num_elems,
+                  int32* iwork,
+                  int32* int_buffer_num_elems) GKO_NOT_IMPLEMENTED;
 
 #undef GKO_BIND_HEGVD
 
