@@ -26,6 +26,7 @@ build:
         -DGINKGO_BUILD_HIP=OFF
         -DGINKGO_BUILD_SYCL=OFF
         -DGINKGO_BUILD_MPI=OFF
+      - cat build/doc/doxygen/html/classgko_1_1experimental_1_1distributed_1_1index__map.html
       - cmake --build build -t doxysphinx -- -j
 
 # Build documentation in the "docs/" directory with Sphinx
