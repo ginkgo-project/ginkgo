@@ -54,23 +54,24 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
 
     if constexpr (!gko::is_complex_s<ValueType>::value) {
         // Even if the workspace is already allocated, we need to know where to
-        // se set the pointers for the individual workspaces of LAPACK
+        // set the pointers for the individual workspaces of LAPACK
         int fp_buffer_num_elems;
         int int_buffer_num_elems;
+        ValueType* work = reinterpret_cast<ValueType*>(workspace->get_data());
         array<int> tmp_iwork(exec, 1);
         lapack::sygvd_buffersizes(
             &itype, &job, &uplo, &n, a->get_values(), &lda, b->get_values(),
-            &ldb, e_vals->get_data(), (ValueType*)workspace->get_data(),
-            &fp_buffer_num_elems, tmp_iwork.get_data(), &int_buffer_num_elems);
+            &ldb, e_vals->get_data(), work, &fp_buffer_num_elems,
+            tmp_iwork.get_data(), &int_buffer_num_elems);
         if (alloc == workspace_mode::allocate) {
             size_type total_bytes = sizeof(ValueType) * fp_buffer_num_elems +
                                     sizeof(int) * int_buffer_num_elems;
             workspace->resize_and_reset(total_bytes);
+            work = reinterpret_cast<ValueType*>(workspace->get_data());
         }
-        // Set work and iwork pointers inside the workspace array
-        ValueType* work = (ValueType*)(workspace->get_data());
-        int* iwork = (int*)(workspace->get_data() +
-                            sizeof(ValueType) * fp_buffer_num_elems);
+        // Set iwork pointer inside the workspace array
+        int* iwork = reinterpret_cast<int*>(
+            workspace->get_data() + sizeof(ValueType) * fp_buffer_num_elems);
         lapack::sygvd(&itype, &job, &uplo, &n, a->get_values(), &lda,
                       b->get_values(), &ldb, e_vals->get_data(), work,
                       &fp_buffer_num_elems, iwork, &int_buffer_num_elems);
@@ -79,30 +80,30 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
         int fp_buffer_num_elems;
         int rfp_buffer_num_elems;
         int int_buffer_num_elems;
-        array<remove_complex<ValueType>> tmp_rwork(exec, 1);
+        ValueType* work = reinterpret_cast<ValueType*>(workspace->get_data());
         array<int> tmp_iwork(exec, 1);
+        array<remove_complex<ValueType>> tmp_rwork(exec, 1);
         lapack::hegvd_buffersizes(
             &itype, &job, &uplo, &n, a->get_values(), &lda, b->get_values(),
-            &ldb, e_vals->get_data(), (ValueType*)workspace->get_data(),
-            &fp_buffer_num_elems, tmp_rwork.get_data(), &rfp_buffer_num_elems,
-            tmp_iwork.get_data(), &int_buffer_num_elems);
+            &ldb, e_vals->get_data(), work, &fp_buffer_num_elems,
+            tmp_rwork.get_data(), &rfp_buffer_num_elems, tmp_iwork.get_data(),
+            &int_buffer_num_elems);
         if (alloc == workspace_mode::allocate) {
             size_type total_bytes =
                 sizeof(ValueType) * fp_buffer_num_elems +
                 sizeof(remove_complex<ValueType>) * rfp_buffer_num_elems +
                 sizeof(int) * int_buffer_num_elems;
             workspace->resize_and_reset(total_bytes);
+            work = reinterpret_cast<ValueType*>(workspace->get_data());
         }
-        // Set work and iwork pointers inside the workspace array
-        ValueType* work = (ValueType*)(workspace->get_data());
+        // Set rwork and iwork pointers inside the workspace array
         remove_complex<ValueType>* rwork =
-            (remove_complex<ValueType>*)(workspace->get_data() +
-                                         sizeof(ValueType) *
-                                             fp_buffer_num_elems);
-        int* iwork =
-            (int*)(workspace->get_data() +
-                   sizeof(ValueType) * fp_buffer_num_elems +
-                   sizeof(remove_complex<ValueType>) * rfp_buffer_num_elems);
+            reinterpret_cast<remove_complex<ValueType>*>(
+                workspace->get_data() +
+                sizeof(ValueType) * fp_buffer_num_elems);
+        int* iwork = reinterpret_cast<int*>(
+            workspace->get_data() + sizeof(ValueType) * fp_buffer_num_elems +
+            sizeof(remove_complex<ValueType>) * rfp_buffer_num_elems);
         lapack::hegvd(&itype, &job, &uplo, &n, a->get_values(), &lda,
                       b->get_values(), &ldb, e_vals->get_data(), work,
                       &fp_buffer_num_elems, rwork, &rfp_buffer_num_elems, iwork,

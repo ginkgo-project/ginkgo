@@ -580,7 +580,7 @@ inline size_type get_num_batch_items(const T& obj)
 /**
  * Asserts that a cuSOLVER library call completed without errors.
  *
- * @param _cublas_call  a library call expression
+ * @param _cusolver_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUSOLVER_ERRORS(_cusolver_call) \
     do {                                              \

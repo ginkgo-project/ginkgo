@@ -1689,7 +1689,7 @@ public:
 #if GKO_HAVE_LAPACK
         return cusolver_handle_.get();
 #else
-        return NULL;
+        return nullptr;
 #endif
     }
 
