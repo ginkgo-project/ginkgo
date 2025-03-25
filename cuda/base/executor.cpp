@@ -76,7 +76,12 @@ std::shared_ptr<Executor> CudaExecutor::create_alternative() const
     detail::cuda_scoped_device_id_guard g(device_id);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream));
     // deletion?
-    return create(this->get_device_id(), master_, alloc_, stream);
+    auto new_exec = create(this->get_device_id(), master_, alloc_, stream);
+    auto& loggers = this->get_loggers();
+    for (auto& logger : loggers) {
+        new_exec->add_logger(logger);
+    }
+    return new_exec;
 }
 
 void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
