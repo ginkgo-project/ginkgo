@@ -20,7 +20,7 @@ void init_update(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::Dense<ValueType>* update_sol,
                  matrix::Dense<ValueType>* output)
 {
-    // the backend_coeff_type always be the highest precision, so we need
+    // the coeff_type always be the highest precision, so we need
     // to cast the others from ValueType to this precision.
     using arithmetic_type = solver::detail::coeff_type<ValueType>;
     for (size_t row = 0; row < output->get_size()[0]; row++) {
@@ -46,7 +46,7 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType>* update_sol,
             matrix::Dense<ValueType>* output)
 {
-    // the backend_coeff_type always be the highest precision, so we need
+    // the coeff_type always be the highest precision, so we need
     // to cast the others from ValueType to this precision.
     using arithmetic_type = solver::detail::coeff_type<ValueType>;
     for (size_t row = 0; row < output->get_size()[0]; row++) {

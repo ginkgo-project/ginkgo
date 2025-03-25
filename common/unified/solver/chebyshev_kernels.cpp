@@ -47,13 +47,13 @@ void init_update(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::Dense<ValueType>* update_sol,
                  matrix::Dense<ValueType>* output)
 {
-    using backend_coeff_type =
+    using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
-    // the backend_coeff_type always be the highest precision, so we need
+    // the coeff_type always be the highest precision, so we need
     // to cast the others from ValueType to this precision.
-    using arithmetic_type = device_type<backend_coeff_type>;
+    using arithmetic_type = device_type<coeff_type>;
 
-    auto alpha_val = static_cast<backend_coeff_type>(alpha);
+    auto alpha_val = static_cast<coeff_type>(alpha);
 
     run_kernel(
         exec,
@@ -81,14 +81,14 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType>* update_sol,
             matrix::Dense<ValueType>* output)
 {
-    using backend_coeff_type =
+    using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
-    // the backend_coeff_type always be the highest precision, so we need
+    // the coeff_type always be the highest precision, so we need
     // to cast the others from ValueType to this precision.
-    using arithmetic_type = device_type<backend_coeff_type>;
+    using arithmetic_type = device_type<coeff_type>;
 
-    auto alpha_val = static_cast<backend_coeff_type>(alpha);
-    auto beta_val = static_cast<backend_coeff_type>(beta);
+    auto alpha_val = static_cast<coeff_type>(alpha);
+    auto beta_val = static_cast<coeff_type>(beta);
 
     run_kernel(
         exec,
