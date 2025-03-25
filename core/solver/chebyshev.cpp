@@ -85,10 +85,13 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
     auto left_foci = std::get<0>(parameters_.foci);
     auto right_foci = std::get<1>(parameters_.foci);
     GKO_ASSERT(real(left_foci) <= real(right_foci));
+    GKO_ASSERT(is_nonzero(left_foci) || is_nonzero(right_foci));
     center_ =
         (left_foci + right_foci) / solver::detail::coeff_type<ValueType>{2};
     foci_direction_ =
         (right_foci - left_foci) / solver::detail::coeff_type<ValueType>{2};
+    // if the center is zero then the alpha will be inf
+    GKO_ASSERT(is_nonzero(center_));
 }
 
 
