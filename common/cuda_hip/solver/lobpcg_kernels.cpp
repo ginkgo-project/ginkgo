@@ -33,23 +33,23 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
     const auto id = exec->get_device_id();
     auto handle = exec->get_dev_lapack_handle();
 
-    constexpr auto max = std::numeric_limits<int>::max();
+    constexpr auto max = std::numeric_limits<int32>::max();
     if (a->get_size()[1] > max) {
         throw OverflowError(__FILE__, __LINE__,
-                            name_demangling::get_type_name(typeid(int)));
+                            name_demangling::get_type_name(typeid(int32)));
     }
     if (a->get_stride() > max) {
         throw OverflowError(__FILE__, __LINE__,
-                            name_demangling::get_type_name(typeid(int)));
+                            name_demangling::get_type_name(typeid(int32)));
     }
     if (b->get_stride() > max) {
         throw OverflowError(__FILE__, __LINE__,
-                            name_demangling::get_type_name(typeid(int)));
+                            name_demangling::get_type_name(typeid(int32)));
     }
-    int n = static_cast<int>(a->get_size()[1]);  // column-major
-    int lda = static_cast<int>(a->get_stride());
-    int ldb = static_cast<int>(b->get_stride());
-    int fp_buffer_num_elems;
+    int32 n = static_cast<int32>(a->get_size()[1]);  // column-major
+    int32 lda = static_cast<int32>(a->get_stride());
+    int32 ldb = static_cast<int32>(b->get_stride());
+    int32 fp_buffer_num_elems;
     if (alloc == workspace_mode::allocate) {
         dev_lapack::sygvd_buffersize(handle, LAPACK_EIG_TYPE_1,
                                      LAPACK_EIG_VECTOR, LAPACK_FILL_LOWER, n,
@@ -60,7 +60,7 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         fp_buffer_num_elems = workspace->get_size() / sizeof(ValueType);
     }
-    array<int> dev_info(exec, 1);
+    array<int32> dev_info(exec, 1);
     try {
         dev_lapack::sygvd(handle, LAPACK_EIG_TYPE_1, LAPACK_EIG_VECTOR,
                           LAPACK_FILL_LOWER, n, a->get_values(), lda,
@@ -69,7 +69,7 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
                           fp_buffer_num_elems, dev_info.get_data());
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
-        int host_info = exec->copy_val_to_host(dev_info.get_data());
+        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         std::cout << "devInfo was " << host_info << std::endl;
     }
 }

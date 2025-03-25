@@ -57,19 +57,19 @@ template <>
 struct is_supported<std::complex<double>> : std::true_type {};
 
 
-#define GKO_BIND_CUSOLVER_SYGVD_BUFFERSIZE(ValueType, CusolverName)          \
-    inline void sygvd_buffersize(                                            \
-        cusolverDnHandle_t handle, cusolverEigType_t itype,                  \
-        cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, ValueType* a,  \
-        int lda, ValueType* b, int ldb, remove_complex<ValueType>* w,        \
-        int* buffer_num_elems)                                               \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSOLVER_ERRORS(CusolverName(                          \
-            handle, itype, jobz, uplo, n, as_culibs_type(a), lda,            \
-            as_culibs_type(b), ldb, as_culibs_type(w), buffer_num_elems));   \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_CUSOLVER_SYGVD_BUFFERSIZE(ValueType, CusolverName)           \
+    inline void sygvd_buffersize(                                             \
+        cusolverDnHandle_t handle, cusolverEigType_t itype,                   \
+        cusolverEigMode_t jobz, cublasFillMode_t uplo, int32 n, ValueType* a, \
+        int32 lda, ValueType* b, int32 ldb, remove_complex<ValueType>* w,     \
+        int32* buffer_num_elems)                                              \
+    {                                                                         \
+        GKO_ASSERT_NO_CUSOLVER_ERRORS(CusolverName(                           \
+            handle, itype, jobz, uplo, n, as_culibs_type(a), lda,             \
+            as_culibs_type(b), ldb, as_culibs_type(w), buffer_num_elems));    \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 GKO_BIND_CUSOLVER_SYGVD_BUFFERSIZE(float, cusolverDnSsygvd_bufferSize);
@@ -86,10 +86,10 @@ GKO_BIND_CUSOLVER_SYGVD_BUFFERSIZE(ValueType, detail::not_implemented);
 
 #define GKO_BIND_CUSOLVER_SYGVD(ValueType, CusolverName)                       \
     inline void sygvd(cusolverDnHandle_t handle, cusolverEigType_t itype,      \
-                      cusolverEigMode_t jobz, cublasFillMode_t uplo, int n,    \
-                      ValueType* a, int lda, ValueType* b, int ldb,            \
+                      cusolverEigMode_t jobz, cublasFillMode_t uplo, int32 n,  \
+                      ValueType* a, int32 lda, ValueType* b, int32 ldb,        \
                       remove_complex<ValueType>* w, ValueType* work,           \
-                      int buffer_num_elems, int* dev_info)                     \
+                      int32 buffer_num_elems, int32* dev_info)                 \
     {                                                                          \
         GKO_ASSERT_NO_CUSOLVER_ERRORS(                                         \
             CusolverName(handle, itype, jobz, uplo, n, as_culibs_type(a), lda, \
