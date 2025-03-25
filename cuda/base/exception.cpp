@@ -101,9 +101,9 @@ std::string CusparseError::get_error(int64 error_code)
 }
 
 
-#if GKO_HAVE_LAPACK
 std::string CusolverError::get_error(int64 error_code)
 {
+#if GKO_HAVE_LAPACK
 #define GKO_REGISTER_CUSOLVER_ERROR(error_name)         \
     if (error_code == static_cast<int64>(error_name)) { \
         return #error_name;                             \
@@ -120,8 +120,10 @@ std::string CusolverError::get_error(int64 error_code)
     return "Unknown error";
 
 #undef GKO_REGISTER_CUSOLVER_ERROR
-}
+#else
+    return "Ginkgo must be built with LAPACK support to enable cuSOLVER";
 #endif
+}
 
 
 std::string CufftError::get_error(int64 error_code)
