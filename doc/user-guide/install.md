@@ -245,7 +245,7 @@ user, e.g. when installing Ginkgo system-wide, it might be necessary to prefix
 the call with `sudo`.
 
 After the installation, CMake can find ginkgo with `find_package(Ginkgo)`.
-An example can be found in the [`test_install`](../../test/test_install/CMakeLists.txt).
+An example can be found in the [`test_install`](https://github.com/ginkgo-project/ginkgo/blob/develop/test/test_install/CMakeLists.txt).
 
 :::{toctree}
 :hidden:

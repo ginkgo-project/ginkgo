@@ -21,15 +21,8 @@ file(
 # Create symlinks for top-level files referenced by documentation
 # Here links are fine, since those files are not part of the documentation,
 # they are just referenced
-file(MAKE_DIRECTORY ${Ginkgo_BINARY_DIR}/test/test_install/)
 file(
     CREATE_LINK ${Ginkgo_SOURCE_DIR}/LICENSE ${Ginkgo_BINARY_DIR}/LICENSE
-    SYMBOLIC
-)
-file(
-    CREATE_LINK
-        ${Ginkgo_SOURCE_DIR}/test/test_install/CMakeLists.txt
-        ${Ginkgo_BINARY_DIR}/test/test_install/CMakeLists.txt
     SYMBOLIC
 )
 
