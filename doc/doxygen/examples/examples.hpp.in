@@ -230,6 +230,11 @@
  *       </td></tr>
  *
  *   <tr valign="top">
+ *       <td>@subpage distributed_multigrid_preconditioned_solver</td>
+ *       <td> Use a distributed solver to solve a 1D Laplace equation.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
  *       <td>@subpage batched_solver</td>
  *       <td> Using and interfacing with a batched solver.
  *       </td></tr>
@@ -257,6 +262,11 @@
  *   <tr valign="top">
  *       <td>@subpage schroedinger_splitting</td>
  *       <td> Use the FFT and iFFT implementations to solve Schrödinger's equation.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@subpage file_config_solver</td>
+ *       <td> Use a solver from a config file in Ginkgo to solve a linear system.
  *       </td></tr>
  *
  * </table>
@@ -424,6 +434,7 @@
  *     <td> Distributed
  *     </td>
  *     <td>@ref distributed_solver
+ *         @ref distributed_multigrid_preconditioned_solver
  *     </td>
  *   </tr>
  * </table>
