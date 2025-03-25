@@ -32,12 +32,26 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
                           array<remove_complex<ValueType>>* e_vals,
                           array<char>* workspace)
 {
-    const char job = LAPACK_EIG_VECTOR;
-    const char uplo = LAPACK_FILL_LOWER;
-    const int n = static_cast<int>(a->get_size()[1]);
+    constexpr auto max = std::numeric_limits<int>::max();
+    if (a->get_size()[1] > max) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(int)));
+    }
+    if (a->get_stride() > max) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(int)));
+    }
+    if (b->get_stride() > max) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(int)));
+    }
+    const int n = static_cast<int>(a->get_size()[1]);  // column-major
     const int lda = static_cast<int>(a->get_stride());
     const int ldb = static_cast<int>(b->get_stride());
     const int itype = 1;
+    const char job = LAPACK_EIG_VECTOR;
+    const char uplo = LAPACK_FILL_LOWER;
+
     if constexpr (!gko::is_complex_s<ValueType>::value) {
         // Even if the workspace is already allocated, we need to know where to
         // se set the pointers for the individual workspaces of LAPACK
