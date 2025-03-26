@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,6 +58,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
+            public Transposable,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Coo, LinOp>;
@@ -80,6 +81,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type = Coo<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
@@ -121,6 +123,10 @@ public:
     void read(device_mat_data&& data) override;
 
     void write(mat_data& data) const override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 

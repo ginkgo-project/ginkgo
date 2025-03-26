@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,6 +42,8 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
+GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
+GKO_REGISTER_OPERATION(conj_array, coo::conj_array);
 
 
 }  // anonymous namespace
@@ -378,6 +380,27 @@ void Coo<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Coo<ValueType, IndexType>::transpose() const
+{
+    auto coo = this->clone();
+    std::swap(coo->row_idxs_, coo->col_idxs_);
+    auto size = this->get_size();
+    coo->set_size(dim<2>{size[1], size[0]});
+    coo->get_executor()->run(coo::make_sort_row_major(
+        coo->get_num_stored_elements(), coo->get_row_idxs(),
+        coo->get_col_idxs(), coo->get_values()));
+    return coo;
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Coo<ValueType, IndexType>::conj_transpose() const
+{
+    auto coo = as<transposed_type>(this->transpose());
+    coo->get_executor()->run(coo::make_conj_array(
+        coo->get_num_stored_elements(), coo->get_values()));
+    return coo;
+}
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>
