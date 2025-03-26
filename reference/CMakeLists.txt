@@ -20,6 +20,7 @@ target_sources(
         distributed/partition_helpers_kernels.cpp
         distributed/partition_kernels.cpp
         distributed/vector_kernels.cpp
+        eigensolver/lobpcg_kernels.cpp
         factorization/cholesky_kernels.cpp
         factorization/elimination_forest_kernels.cpp
         factorization/factorization_kernels.cpp
@@ -65,7 +66,6 @@ target_sources(
         solver/gmres_kernels.cpp
         solver/idr_kernels.cpp
         solver/ir_kernels.cpp
-        solver/lobpcg_kernels.cpp
         solver/lower_trs_kernels.cpp
         solver/multigrid_kernels.cpp
         solver/minres_kernels.cpp

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/solver/lobpcg_kernels.hpp"
+#include "core/eigensolver/lobpcg_kernels.hpp"
 
 #include <algorithm>
 #include <limits>
