@@ -362,6 +362,8 @@ endif()
 
 set(GINKGO_HAVE_LAPACK 0)
 if(GINKGO_BUILD_LAPACK)
+    # Need CMake 3.18+ to use LAPACK::LAPACK target
+    cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
     find_package(LAPACK REQUIRED)
     set(GINKGO_HAVE_LAPACK 1)
 endif()
