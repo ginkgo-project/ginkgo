@@ -1,0 +1,1 @@
+ginkgo_create_common_test(lobpcg_kernels DISABLE_EXECUTORS omp dpcpp hip)
