@@ -69,8 +69,6 @@ protected:
             GKO_ASSERT_ARRAY_EQ(d_non_local_row_idxs, non_local_row_idxs);
             GKO_ASSERT_ARRAY_EQ(d_non_local_col_idxs, non_local_col_idxs);
         }
-
-        std::default_random_engine engine;
     }
 
     std::default_random_engine engine;
