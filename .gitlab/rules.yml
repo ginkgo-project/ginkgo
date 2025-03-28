@@ -3,14 +3,14 @@
 # in order until the first match. When a match is found, the job is either
 # included or excluded from the pipeline, depending on the configuration.
 
-.pr_condition:
-  rules:
-    # Exclude `develop`, `main`, and tags with `when: never`
-    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_TAG
-      when: never
-    # Run only when the `RUN_CI_TAG` variable is set
-    - if: $RUN_CI_TAG
-  dependencies: []
+.changes_other_than_doc: &changes_other_than_doc
+# there is no check for the change out of the condition, so we need to reverse the file changes by ourselves
+# We always compare it against the develop because the 
+  changes: 
+    paths:
+      - '{[^d][^o][^c],[^d][^o]c,[^d]oc}/**/*'
+    compared_to:
+      - develop
 
 
 .pr_trigger_condition:
@@ -20,13 +20,16 @@
       when: never
     # Run only for quick pipelines and when the `RUN_CI_TAG` variable is set
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
+      <<: *changes_other_than_doc
   dependencies: []
 
 
 .full_test_condition:
   rules:
-    # Run only when the `RUN_CI_TAG` variable is set and this is a full pipeline, or for `master`, `develop` or tags.
-    - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
+    # Run only when the `RUN_CI_TAG` variable is set and this is for `master`, `develop` or tags.
+    - if: $RUN_CI_TAG && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full"
+      <<: *changes_other_than_doc
   dependencies: []
 
 
@@ -35,6 +38,7 @@
     - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"  || $CI_COMMIT_TAG
       when: never
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full"
+      <<: *changes_other_than_doc
   dependencies: []
 
 
@@ -42,7 +46,9 @@
   rules:
     - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "master"
       when: never
+    - if: $RUN_CI_TAG && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == null
+      <<: *changes_other_than_doc
   dependencies: []
 
 
