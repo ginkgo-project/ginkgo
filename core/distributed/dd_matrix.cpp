@@ -13,6 +13,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/distributed/dd_matrix_kernels.hpp"
+#include "ginkgo/core/base/exception_helpers.hpp"
 
 namespace gko {
 namespace experimental {
@@ -382,6 +383,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
+    GKO_ASSERT_CONFORMANT(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
     dim<2> global_buffer_size{restriction_->get_size()[0], 1u};
@@ -401,6 +404,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {
+    GKO_ASSERT_EQUAL_ROWS(this, scaling_factors.get());
+    GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
     dim<2> global_buffer_size{restriction_->get_size()[0], 1u};
