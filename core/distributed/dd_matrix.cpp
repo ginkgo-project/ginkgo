@@ -379,15 +379,6 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::
-    check_and_adjust_buffer_size(const size_type nrhs) const
-{
-    auto exec = this->get_executor();
-    auto comm = this->get_communicator();
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     ptr_param<const global_vector_type> scaling_factors)
 {

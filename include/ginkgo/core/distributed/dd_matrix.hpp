@@ -103,7 +103,7 @@ class Vector;
  * 1        | 0 1 ! 1 0 |         | 1 0 |  | 1 |
  * 1        | 0 0 ! 0 1 |         | 0 1 |  | 0 |
  * ```
- * With these operators and  ablock diagonal 4x4 matrix A_BD
+ * With these operators and a block diagonal 4x4 matrix A_BD
  * ```
  * |  4 -2  0  0 |
  * | -2  2  0  0 |
@@ -209,13 +209,11 @@ public:
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. The local matrix still considers these and the
-     * restriction and prolongation operators take care of fetching /
-     * re-distributing the corresponding vector entries.
+     *        restriction and prolongation operators take care of fetching /
+     *        re-distributing the corresponding vector entries.
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global left and right partition.
-     *
-     * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
@@ -250,8 +248,6 @@ public:
      * @param data  The device_matrix_data structure.
      * @param right_partition  The global right partition.
      * @param left_partition  The global left partition.
-     *
-     * @return the index_map induced by the partitions and the matrix structure
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
@@ -435,8 +431,6 @@ protected:
                     LinOp* x) const override;
 
 private:
-    void check_and_adjust_buffer_size(const size_type nrhs) const;
-
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
