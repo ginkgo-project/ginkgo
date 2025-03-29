@@ -758,119 +758,101 @@ static void ensure_storage(array<ValueType>& arr, size_type new_size)
 
 
 template <typename IndexType>
-void bucket_sort_levels(std::shared_ptr<const DefaultExecutor> exec,
-                        const IndexType* in_edge_starts,
-                        const IndexType* in_edge_ends, size_type num_edges,
-                        array<IndexType>& out_edge_starts,
-                        array<IndexType>& out_edge_ends,
-                        array<IndexType>& local_block_offsets,
-                        array<IndexType>& level_block_offsets)
-{
-    using Config = kernel::elimination_forest_kernel_config<IndexType>;
-    const auto num_bucketsort_blocks =
-        ceildiv(num_edges, Config::work_per_threadblock);
-    ensure_storage(local_block_offsets,
-                   (num_bucketsort_blocks + 1) * Config::max_levels);
-    kernel::count_edge_buckets<Config>
-        <<<num_bucketsort_blocks, Config::blocksize, 0, exec->get_stream()>>>(
-            in_edge_starts, in_edge_ends, num_edges,
-            local_block_offsets.get_data());
-    kernel::bucket_count_prefixsum<Config>
-        <<<1, Config::prefixsum_blocksize, 0, exec->get_stream()>>>(
-            local_block_offsets.get_data(), num_bucketsort_blocks);
-    std::array<IndexType, Config::max_levels> edge_counts{};
-    exec->get_master()->copy_from(
-        exec, Config::max_levels,
-        local_block_offsets.get_const_data() +
-            num_bucketsort_blocks * Config::max_levels,
-        edge_counts.data());
-    const auto total_edge_count =
-        std::accumulate(edge_counts.begin(), edge_counts.end(), IndexType{});
-    // ensure_storage();
-}
+void bucketsort_count(const IndexType* edge_starts, const IndexType* edge_ends,
+                      size_type num_edges, )
 
 
-template <typename IndexType>
-struct disjoint_set_levels {
-    disjoint_set_levels(IndexType num_nodes)
-        : num_nodes{num_nodes},
-          num_levels{get_num_levels(num_nodes)},
-          parent_levels{exec, static_cast<size_type>(num_nodes) *
-                                  static_cast<size_type>(num_levels)}
+    template <typename IndexType>
+    struct elimination_forest_state {
+    constexpr int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
+    static size_type storage_requirement(size_type num_nodes,
+                                         size_type num_edges)
     {
-        components::fill_seq_array(exec, parent_levels.get_data(),
-                                   static_cast<size_type>(num_nodes));
+        const auto edge_capacity = 2 * num_edges;
+        const auto bucket_threadblocks = static_cast<size_type>(
+            ceildiv(edge_capacity, default_block_size * elements_per_thread));
+        return edge_capacity    // edge_starts
+               + edge_capacity  // edge_ends
+               + edge_capacity  // tmp_edge_starts
+               + edge_capacity  // tmp_edge_ends
+               + num_nodes      // tree_parents
+               + num_nodes + 2  // tree_child_ptrs
+               + num_nodes      // tree_children
+               + num_nodes + 2  // tree_new_child_ptrs
+               + num_nodes      // tree_new_children
+               + 2 * num_nodes  // tree_euler_path
+               + 2 * num_nodes  // tree_euler_level
+               + num_nodes      // tree_euler_first
+               + num_nodes      // tree_euler_last
+               + num_nodes      // tree_node_level
+               + num_nodes      // cc_parents
+               + num_nodes      // cc_mins
+               + 1              // atomic_counters
+               + num_buckets * (bucket_threadblocks + 1);
     }
 
-    void init_from_previous(IndexType level)
+    IndexType* edge_starts() { return workspace.get_data(); }
+    IndexType* edge_ends() { return edge_starts() + edge_capacity; }
+    IndexType* tmp_edge_starts() { return edge_ends() + edge_capacity; }
+    IndexType* tmp_edge_ends() { return tmp_edge_starts() + edge_capacity; }
+    IndexType* new_edge_starts() { return tmp_edge_ends() + edge_capacity; }
+    IndexType* new_edge_ends() { return new_edge_starts() + edge_capacity; }
+    IndexType* tree_parents() { return new_edge_ends() + edge_capacity; }
+    IndexType* tree_child_ptrs() { return tree_parents() + num_nodes; }
+    IndexType* tree_children() { return tree_child_ptrs() + num_nodes + 2; }
+    IndexType* tree_new_child_ptrs() { return tree_children() + num_nodes; }
+    IndexType* tree_new_children()
     {
-        assert(level > 0);
-        assert(level < num_levels);
-        const auto data =
-            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
-        parent_levels->get_executor()->copy(static_cast<size_type>(num_nodes),
-                                            data, data + num_nodes);
+        return tree_new_child_ptrs() + num_nodes + 2;
     }
 
-    disjoint_sets<IndexType> get_level(IndexType level)
-    {
-        assert(level >= 0);
-        assert(level < num_levels);
-        const auto data =
-            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
-        return disjoint_sets<IndexType>{data, num_nodes};
-    }
+    // current set of edges, sorted by level at which they become cut edges
+    array<IndexType> edge_starts;
+    array<IndexType> edge_ends;
+    // offsets into edge_starts/ends for each level bucket
+    std::array<IndexType, num_buckets> bucket_offsets;
+    // temporary arrays for rearranging after adding fill edges
+    array<IndexType> tmp_edge_starts;
+    array<IndexType> tmp_edge_ends;
+    // temporary arrays for storing fill edges before rearrangement
+    array<IndexType> new_edge_starts;
+    array<IndexType> new_edge_ends;
+    // parent array for the resulting elimination forest
+    array<IndexType> tree_parents;
+    // child array representation of the resulting elimination forest
+    array<IndexType> tree_child_ptrs;
+    array<IndexType> tree_children;
+    array<IndexType> tree_new_child_ptrs;
+    array<IndexType> tree_new_children;
+    // node sequence of euler walk through the forest (including pseudo root)
+    array<IndexType> tree_euler_path;
+    // level sequence of nodes in euler walk (+/-1 sequence)
+    array<IndexType> tree_euler_level;
+    // index in the euler walk where each node first occurs
+    array<IndexType> tree_euler_first;
+    // index in the euler walk where each node last occurs
+    array<IndexType> tree_euler_last;
+    // level index for each node
+    array<IndexType> tree_node_level;
+    // parent array for connected components
+    array<IndexType> cc_parents;
+    // smallest node reachable from each connected component
+    array<IndexType> cc_mins;
+    // atomic counters used by fill and fill
+    array<IndexType> atomic_counters;
+    // counters used by bucket sort kernel
+    array<IndexType> bucket_sort_counters;
 
-    IndexType num_nodes;
-    IndexType num_levels;
-    array<IndexType> parent_levels;
-};
-
-
-template <typename IndexType>
-struct elimination_forest_state {
     elimination_forest_state(std::shared_ptr<const DefaultExecutor> exec,
-                             IndexType num_nodes)
-        : num_nodes{num_nodes},
-          num_levels{get_num_levels(num_nodes)},
-          parent_levels{exec, static_cast<size_type>(num_nodes) *
-                                  static_cast<size_type>(num_levels)}
-    {
-        components::fill_seq_array(exec, parent_levels.get_data(),
-                                   static_cast<size_type>(num_nodes));
-    }
-
-    static int get_num_levels(IndexType num_nodes)
-    {
-        return gko::detail::find_highest_bit(
-                   static_cast<std::make_unsigned_t<IndexType>>(num_nodes -
-                                                                1)) +
-               1;
-    }
-
-    void init_cc_from_previous(IndexType level)
-    {
-        assert(level > 0);
-        assert(level < num_levels);
-        const auto data =
-            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
-        parent_levels->get_executor()->copy(static_cast<size_type>(num_nodes),
-                                            data, data + num_nodes);
-    }
-
-    disjoint_sets<IndexType> get_cc_level(IndexType level)
-    {
-        assert(level >= 0);
-        assert(level < num_levels);
-        const auto data =
-            parent_levels.get_data() + static_cast<int64>(level) * num_nodes;
-        return disjoint_sets<IndexType>{data, num_nodes};
-    }
-
-    IndexType num_nodes;
-    IndexType num_levels;
-    array<IndexType> parent_levels;
-};
+                             size_type num_nodes, size_type num_edges)
+        : edge_starts{exec, num_nodes},
+          edge_ends{exec, num_nodes},
+          bucket_offsets{},
+          tmp_edge_starts{exec, num_edges},
+          tmp_edge_ends{exec, num_edges},
+          new_edge_starts{exec, num_edges},
+          new_edge_starts{exec, num_edges},
+}
 
 
 template <typename IndexType>
