@@ -738,7 +738,7 @@ __global__ __launch_bounds__(default_block_size) void add_tree_edges(
         return;
     }
     disjoint_sets<const IndexType> sets{parents, size};
-    if (sets.is_representative_weak(i)) {
+    if (sets.is_representative_weak(i) && mins[i] < size) {
         forest_parents[i] = mins[i];
     }
 }
@@ -926,6 +926,11 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
             edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
             new_edge_start_array.get_data(), new_edge_end_array.get_data(),
             counter_array.get_data());
+        // add tree edges
+        const auto num_node_blocks = ceildiv(size, default_block_size);
+        kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
+                                 exec->get_stream()>>>(parents, mins, size,
+                                                       forest_parents);
         const auto new_edges =
             exec->copy_val_to_host(counter_array.get_const_data());
         array<IndexType> new_full_edge_start_array{exec, num_edges + new_edges};
@@ -942,33 +947,6 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         edge_end_array = std::move(new_full_edge_end_array);
         edge_starts = edge_start_array.get_data();
         edge_ends = edge_end_array.get_data();
-    }
-    // initialize parent array
-    array<IndexType> parent_array{exec, usize};
-    const auto parents = parent_array.get_data();
-    components::fill_seq_array(exec, parents, usize);
-    for (IndexType block_size = 2; block_size <= rounded_up_size;
-         block_size *= 2) {
-        // build connected components
-        const auto num_blocks = ceildiv(num_edges, default_block_size);
-        kernel::build_conn_components<<<num_blocks, default_block_size, 0,
-                                        exec->get_stream()>>>(
-            edge_starts, edge_ends, num_edges, size, block_size, parents);
-        // now find the smallest upper node adjacent to a cc in a lower block
-        array<IndexType> min_array{exec, usize};
-        const auto mins = min_array.get_data();
-        components::fill_array(exec, mins, usize, size);
-        array<IndexType> counter_array{exec, 1};
-        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        kernel::find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
-                                         exec->get_stream()>>>(
-            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
-            counter_array.get_data());
-        // add edges
-        const auto num_node_blocks = ceildiv(size, default_block_size);
-        kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(parents, mins, size,
-                                                       forest_parents);
     }
 }
 
