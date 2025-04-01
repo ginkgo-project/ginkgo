@@ -24,7 +24,8 @@ namespace pipe_cg {
 namespace {
 
 
-GKO_REGISTER_OPERATION(initialize, pipe_cg::initialize);
+GKO_REGISTER_OPERATION(initialize_1, pipe_cg::initialize_1);
+GKO_REGISTER_OPERATION(initialize_2, pipe_cg::initialize_2);
 GKO_REGISTER_OPERATION(step_1, pipe_cg::step_1);
 GKO_REGISTER_OPERATION(step_2, pipe_cg::step_2);
 
@@ -100,47 +101,88 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
     GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(w, dense_b);
+    GKO_SOLVER_VECTOR(m, dense_b);
+    GKO_SOLVER_VECTOR(n, dense_b);
     GKO_SOLVER_VECTOR(q, dense_b);
+    GKO_SOLVER_VECTOR(f, dense_b);
+    GKO_SOLVER_VECTOR(g, dense_b);
 
     GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(delta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
     GKO_SOLVER_SCALAR(rho, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
+
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // r = dense_b
-    // rho = 0.0
+    // r = b
     // prev_rho = 1.0
-    // z = p = q = 0
-    exec->run(pipe_cg::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(z), gko::detail::get_local(p),
-        gko::detail::get_local(q), prev_rho, rho, &stop_status));
-
+    exec->run(pipe_cg::make_initialize_1(gko::detail::get_local(dense_b),
+                                         gko::detail::get_local(r), prev_rho,
+                                         &stop_status));
+    // r = r - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // z = preconditioner * r
+    this->get_preconditioner()->apply(r, z);
+    // w = A * z
+    this->get_system_matrix()->apply(z, w);
+    // m = preconditioner * w
+    this->get_preconditioner()->apply(w, m);
+    // n = A * m
+    this->get_system_matrix()->apply(m, n);
+    // rho = dot(r, z)
+    r->compute_conj_dot(z, rho, reduction_tmp);
+    // delta = dot(w, z)
+    w->compute_conj_dot(z, delta, reduction_tmp);
+    // can these two dot products above be merged in some way?
+
+    // beta = delta
+    // p = z
+    // q = w
+    // f = m
+    // g = n
+    exec->run(pipe_cg::make_initialize_2(
+        gko::detail::get_local(p), gko::detail::get_local(q),
+        gko::detail::get_local(f), gko::detail::get_local(g), beta,
+        gko::detail::get_local(z), gko::detail::get_local(w),
+        gko::detail::get_local(m), gko::detail::get_local(n), delta));
+
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
-    int iter = -1;
+    int iter = 0;
     /* Memory movement summary:
-     * 18n * values + matrix/preconditioner storage
-     * 1x SpMV:           2n * values + storage
-     * 1x Preconditioner: 2n * values + storage
-     * 2x dot             4n
-     * 1x step 1 (axpy)   3n
-     * 1x step 2 (axpys)  6n
-     * 1x norm2 residual   n
+     TODO
      */
     while (true) {
-        // z = preconditioner * r
-        this->get_preconditioner()->apply(r, z);
+        // tmp = rho / beta
+        // x = x + tmp * p
+        // r = r - tmp * q
+        // z = z - tmp * f
+        // w = w - tmp * g
+        exec->run(pipe_cg::make_step_1(
+            gko::detail::get_local(dense_x), gko::detail::get_local(r),
+            gko::detail::get_local(z), gko::detail::get_local(w),
+            gko::detail::get_local(p), gko::detail::get_local(q),
+            gko::detail::get_local(f), gko::detail::get_local(g), rho, beta,
+            &stop_status));
+        // m = preconditioner * w
+        this->get_preconditioner()->apply(w, m);
+        // n = A * m
+        this->get_system_matrix()->apply(m, n);
+        // prev_rho = rho
+        swap(prev_rho, rho);
+        // MERGE THESE TWO PRODUCTS:
         // rho = dot(r, z)
         r->compute_conj_dot(z, rho, reduction_tmp);
-
+        // delta = dot(w, z)
+        w->compute_conj_dot(z, delta, reduction_tmp);
+        // check
         ++iter;
         bool all_stopped =
             stop_criterion->update()
@@ -155,24 +197,18 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (all_stopped) {
             break;
         }
-
         // tmp = rho / prev_rho
+        // beta = delta - |tmp|^2 * beta
         // p = z + tmp * p
-        exec->run(pipe_cg::make_step_1(gko::detail::get_local(p),
-                                       gko::detail::get_local(z), rho, prev_rho,
-                                       &stop_status));
-        // q = A * p
-        this->get_system_matrix()->apply(p, q);
-        // beta = dot(p, q)
-        p->compute_conj_dot(q, beta, reduction_tmp);
-        // tmp = rho / beta
-        // x = x + tmp * p
-        // r = r - tmp * q
+        // q = w + tmp * q
+        // f = m + tmp * f
+        // g = n + tmp * g
         exec->run(pipe_cg::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
-            &stop_status));
-        swap(prev_rho, rho);
+            beta, gko::detail::get_local(p), gko::detail::get_local(q),
+            gko::detail::get_local(f), gko::detail::get_local(g),
+            gko::detail::get_local(z), gko::detail::get_local(w),
+            gko::detail::get_local(m), gko::detail::get_local(n), prev_rho, rho,
+            delta, &stop_status));
     }
 }
 
@@ -205,7 +241,7 @@ int workspace_traits<PipeCg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<PipeCg<ValueType>>::num_vectors(const Solver&)
 {
-    return 9;
+    return 15;
 }
 
 
@@ -214,7 +250,21 @@ std::vector<std::string> workspace_traits<PipeCg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r", "z", "p", "q", "beta", "prev_rho", "rho", "one", "minus_one",
+        "r",
+        "z",
+        "p",
+        "w",
+        "m",
+        "n"
+        "q",
+        "f",
+        "g"
+        "beta",
+        "delta",
+        "prev_rho",
+        "rho",
+        "one",
+        "minus_one",
     };
 }
 
@@ -230,14 +280,14 @@ std::vector<std::string> workspace_traits<PipeCg<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<PipeCg<ValueType>>::scalars(const Solver&)
 {
-    return {beta, prev_rho, rho};
+    return {beta, delta, prev_rho, rho};
 }
 
 
 template <typename ValueType>
 std::vector<int> workspace_traits<PipeCg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q};
+    return {r, z, p, w, m, n, q, f, g};
 }
 
 
