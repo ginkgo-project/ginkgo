@@ -364,10 +364,6 @@ struct mst_state {
         }
         input_sources_ = new_input_sources;
         input_targets_ = new_input_targets;
-    }
-
-    void run()
-    {
         std::array<IndexType, 3> zeros{};
         exec_->copy_from(exec_->get_master(), 3, zeros.data(), tree_counter());
         components::fill_array(exec_, min_edges(),
@@ -379,6 +375,10 @@ struct mst_state {
         exec_->copy(num_edges_, input_targets_, output_wl_targets());
         components::fill_seq_array(exec_, output_wl_edge_ids(),
                                    static_cast<size_type>(num_edges_));
+    }
+
+    void run()
+    {
         output_to_input();
         auto input_wl_size = num_edges_;
         while (input_wl_size > 0) {

@@ -127,10 +127,6 @@ struct mst_state {
         }
         input_sources_ = new_input_sources;
         input_targets_ = new_input_targets;
-    }
-
-    void run()
-    {
         tree_counter() = 0;
         output_counter() = 0;
         components::fill_array(exec_, min_edges(),
@@ -144,64 +140,84 @@ struct mst_state {
                                    static_cast<size_type>(num_edges_));
         output_counter() = num_edges_;
         output_to_input();
-        while (input_size() > 0) {
-            device_disjoint_sets<IndexType> sets{parents(), num_nodes_};
+    }
+
+    void find_min_edges()
+    {
+        device_disjoint_sets<IndexType> sets{parents(), num_nodes_};
+#pragma omp parallel for
+        for (IndexType i = 0; i < input_size(); i++) {
+            // attach each node to its smallest adjacent non-cycle edge
+            const auto source = input_wl_sources()[i];
+            const auto target = input_wl_targets()[i];
+            const auto edge_id = input_wl_edge_ids()[i];
+            const auto source_rep = sets.find_weak(source);
+            const auto target_rep = sets.find_weak(target);
+            if (source_rep != target_rep) {
+                const auto output_idx = atomic_inc(output_counter());
+                output_wl_sources()[output_idx] = source_rep;
+                output_wl_targets()[output_idx] = target_rep;
+                output_wl_edge_ids()[output_idx] = edge_id;
+                atomic_min(min_edges() + source_rep, edge_id);
+                atomic_min(min_edges() + target_rep, edge_id);
+            }
+        }
+    }
+
+    void join_min_edges()
+    {
+        device_disjoint_sets<IndexType> sets{parents(), num_nodes_};
+#pragma omp parallel for
+        for (IndexType i = 0; i < input_size(); i++) {
+            // join minimal edges
+            const auto source = input_wl_sources()[i];
+            const auto target = input_wl_targets()[i];
+            const auto edge_id = input_wl_edge_ids()[i];
+            if (min_edges()[source] == edge_id ||
+                min_edges()[target] == edge_id) {
+                // join source and sink
+                const auto source_rep = sets.find_relaxed(source);
+                const auto target_rep = sets.find_relaxed(target);
+                assert(source_rep != target_rep);
+                sets.join(source_rep, target_rep);
+                const auto out_i = atomic_inc(tree_counter());
+                tree_sources_[out_i] = input_sources_[edge_id];
+                tree_targets_[out_i] = input_targets_[edge_id];
+            }
+        }
+    }
+
+    void reset_min_edges()
+    {
+        if (input_size() < num_nodes_ / 8) {
+            // if there are only a handful of min_edges values to reset:
+            // do it individually
 #pragma omp parallel for
             for (IndexType i = 0; i < input_size(); i++) {
-                // attach each node to its smallest adjacent non-cycle edge
+                // join minimal edges
                 const auto source = input_wl_sources()[i];
                 const auto target = input_wl_targets()[i];
-                const auto edge_id = input_wl_edge_ids()[i];
-                const auto source_rep = sets.find_weak(source);
-                const auto target_rep = sets.find_weak(target);
-                if (source_rep != target_rep) {
-                    const auto output_idx = atomic_inc(output_counter());
-                    output_wl_sources()[output_idx] = source_rep;
-                    output_wl_targets()[output_idx] = target_rep;
-                    output_wl_edge_ids()[output_idx] = edge_id;
-                    atomic_min(min_edges() + source_rep, edge_id);
-                    atomic_min(min_edges() + target_rep, edge_id);
-                }
+#pragma omp atomic write
+                min_edges()[source] = min_edge_sentinel;
+#pragma omp atomic write
+                min_edges()[target] = min_edge_sentinel;
             }
+        } else {
+            // otherwise reset the entire array
+            components::fill_array(exec_, min_edges(),
+                                   static_cast<size_type>(num_nodes_),
+                                   min_edge_sentinel);
+        }
+    }
+
+    void run()
+    {
+        while (input_size() > 0) {
+            find_min_edges();
             output_to_input();
             if (input_size() > 0) {
-#pragma omp parallel for
-                for (IndexType i = 0; i < input_size(); i++) {
-                    // join minimal edges
-                    const auto source = input_wl_sources()[i];
-                    const auto target = input_wl_targets()[i];
-                    const auto edge_id = input_wl_edge_ids()[i];
-                    if (min_edges()[source] == edge_id ||
-                        min_edges()[target] == edge_id) {
-                        // join source and sink
-                        const auto source_rep = sets.find_relaxed(source);
-                        const auto target_rep = sets.find_relaxed(target);
-                        assert(source_rep != target_rep);
-                        sets.join(source_rep, target_rep);
-                        const auto out_i = atomic_inc(tree_counter());
-                        tree_sources_[out_i] = input_sources_[edge_id];
-                        tree_targets_[out_i] = input_targets_[edge_id];
-                    }
-                }
-                if (input_size() < num_nodes_ / 8) {
-                    // if there are only a handful of min_edges values to reset:
-                    // do it individually
-#pragma omp parallel for
-                    for (IndexType i = 0; i < input_size(); i++) {
-                        // join minimal edges
-                        const auto source = input_wl_sources()[i];
-                        const auto target = input_wl_targets()[i];
-#pragma omp atomic write
-                        min_edges()[source] = min_edge_sentinel;
-#pragma omp atomic write
-                        min_edges()[target] = min_edge_sentinel;
-                    }
-                } else {
-                    // otherwise reset the entire array
-                    components::fill_array(exec_, min_edges(),
-                                           static_cast<size_type>(num_nodes_),
-                                           min_edge_sentinel);
-                }
+                join_min_edges();
+                reset_min_edges();
             }
         }
     }
