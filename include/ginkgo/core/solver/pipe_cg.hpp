@@ -140,18 +140,30 @@ struct workspace_traits<PipeCg<ValueType>> {
     constexpr static int z = 1;
     // p vector
     constexpr static int p = 2;
+    // w vector
+    constexpr static int w = 3;
+    // m vector
+    constexpr static int m = 4;
+    // n vector
+    constexpr static int n = 5;
     // q vector
-    constexpr static int q = 3;
+    constexpr static int q = 6;
+    // f vector
+    constexpr static int f = 7;
+    // g vector
+    constexpr static int g = 8;
     // beta scalar
-    constexpr static int beta = 4;
+    constexpr static int beta = 9;
+    // delta scalar
+    constexpr static int delta = 10;
     // previous rho scalar
-    constexpr static int prev_rho = 5;
+    constexpr static int prev_rho = 11;
     // current rho scalar
-    constexpr static int rho = 6;
+    constexpr static int rho = 12;
     // constant 1.0 scalar
-    constexpr static int one = 7;
+    constexpr static int one = 13;
     // constant -1.0 scalar
-    constexpr static int minus_one = 8;
+    constexpr static int minus_one = 14;
 
     // stopping status array
     constexpr static int stop = 0;
