@@ -271,6 +271,10 @@ void sort_edges(std::shared_ptr<const DefaultExecutor> exec, IndexType* sources,
 }
 
 
+// This is a minimum spanning tree algorithm implementation based on
+// A. Fallin, A. Gonzalez, J. Seo, and M. Burtscher,
+// "A High-Performance MST Implementation for GPUs,”
+// doi: 10.1145/3581784.3607093
 template <typename IndexType>
 struct mst_state {
     static size_type storage_requirement(IndexType num_nodes,
@@ -341,6 +345,7 @@ struct mst_state {
     void output_to_input()
     {
         flip_ = !flip_;
+        // reset output counter to 0
         IndexType value{};
         exec_->copy_from(exec_->get_master(), 1, &value, output_counter());
     }
@@ -367,7 +372,7 @@ struct mst_state {
         exec_->copy_from(exec_->get_master(), 3, zeros.data(), tree_counter());
         components::fill_array(exec_, min_edges(),
                                static_cast<size_type>(num_nodes_),
-                               min_node_sentinel);
+                               min_edge_sentinel);
         components::fill_seq_array(exec_, parents(),
                                    static_cast<size_type>(num_nodes_));
         exec_->copy(num_edges_, input_sources_, output_wl_sources());
@@ -409,7 +414,7 @@ struct mst_state {
                     // otherwise reset the entire array
                     components::fill_array(exec_, min_edges(),
                                            static_cast<size_type>(num_nodes_),
-                                           min_node_sentinel);
+                                           min_edge_sentinel);
                 }
             }
         }
@@ -425,7 +430,7 @@ struct mst_state {
         sort_edges(exec_, tree_sources_, tree_targets_, tree_size());
     }
 
-    constexpr static auto min_node_sentinel =
+    constexpr static auto min_edge_sentinel =
         std::numeric_limits<IndexType>::max();
     std::shared_ptr<const DefaultExecutor> exec_;
     IndexType num_nodes_;
@@ -473,10 +478,6 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
                            size_type size, IndexType* out_row_ptrs,
                            IndexType* out_cols)
 {
-    // This is a minimum spanning tree algorithm implementation based on
-    // A. Fallin, A. Gonzalez, J. Seo, and M. Burtscher,
-    // "A High-Performance MST Implementation for GPUs,”
-    // doi: 10.1145/3581784.3607093
     // we don't filter heavy edges since the heaviest edges are necessary to
     // reach the last node and we don't need to sort since the COO format
     // already sorts by row index.
