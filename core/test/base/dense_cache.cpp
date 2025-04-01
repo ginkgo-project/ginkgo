@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,9 +8,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
-
-
-namespace {
 
 
 template <typename ValueType>
@@ -194,4 +191,174 @@ TYPED_TEST(DenseCache, VectorIsNotMoveAssigned)
 }
 
 
-}  // namespace
+template <typename ValueType>
+class GenericDenseCache : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+
+    GenericDenseCache() : ref(gko::ReferenceExecutor::create()), size(4, 7) {}
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    gko::dim<2> size;
+    gko::detail::GenericDenseCache cache;
+};
+
+TYPED_TEST_SUITE(GenericDenseCache, gko::test::ValueTypes,
+                 TypenameNameGenerator);
+
+
+TYPED_TEST(GenericDenseCache, GenericCanInitWithSize)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+
+    ASSERT_NE(buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(buffer->get_size(), this->size);
+    ASSERT_EQ(buffer->get_executor(), this->ref);
+}
+
+
+TYPED_TEST(GenericDenseCache, SecondInitWithSameSizeIsNoOp)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    auto array_ptr = this->cache.workspace.get_const_data();
+    auto array_size = this->cache.workspace.get_size();
+
+    auto second_buffer =
+        this->cache.template get<value_type>(this->ref, this->size);
+
+    ASSERT_NE(second_buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), this->size);
+    ASSERT_EQ(second_buffer->get_executor(), this->ref);
+    ASSERT_EQ(array_ptr, this->cache.workspace.get_const_data());
+    ASSERT_EQ(array_size, this->cache.workspace.get_size());
+}
+
+
+TYPED_TEST(GenericDenseCache, SecondInitWithTheSmallEqSizeIsNoOp)
+{
+    using value_type = typename TestFixture::value_type;
+    gko::dim<2> second_size{7, 4};
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    auto array_ptr = this->cache.workspace.get_const_data();
+    auto array_size = this->cache.workspace.get_size();
+
+    auto second_buffer =
+        this->cache.template get<value_type>(this->ref, second_size);
+
+    ASSERT_NE(second_buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), second_size);
+    ASSERT_EQ(second_buffer->get_executor(), this->ref);
+    ASSERT_EQ(array_ptr, this->cache.workspace.get_const_data());
+    ASSERT_EQ(array_size, this->cache.workspace.get_size());
+}
+
+
+TYPED_TEST(GenericDenseCache, SecondInitWithTheLargerSizeRecreate)
+{
+    using value_type = typename TestFixture::value_type;
+    gko::dim<2> second_size{7, 5};
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    auto array_ptr = this->cache.workspace.get_const_data();
+    auto array_size = this->cache.workspace.get_size();
+
+    auto second_buffer =
+        this->cache.template get<value_type>(this->ref, second_size);
+
+    ASSERT_NE(second_buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), second_size);
+    ASSERT_EQ(second_buffer->get_executor(), this->ref);
+    ASSERT_NE(array_ptr, this->cache.workspace.get_const_data());
+    ASSERT_GT(this->cache.workspace.get_size(), array_size);
+}
+
+
+TYPED_TEST(GenericDenseCache, GenericCanInitWithSizeAndType)
+{
+    using value_type = typename TestFixture::value_type;
+    using another_type = gko::next_precision<value_type>;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    auto array_ptr = this->cache.workspace.get_const_data();
+    auto array_size = this->cache.workspace.get_size();
+
+    auto second_buffer =
+        this->cache.template get<another_type>(this->ref, this->size);
+
+    ASSERT_NE(second_buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), this->size);
+    ASSERT_EQ(second_buffer->get_executor(), this->ref);
+    if (sizeof(another_type) > sizeof(value_type)) {
+        // the requring workspace will be bigger if the type is larger.
+        ASSERT_NE(array_ptr, this->cache.workspace.get_const_data());
+        ASSERT_GT(this->cache.workspace.get_size(), array_size);
+    } else {
+        ASSERT_EQ(array_ptr, this->cache.workspace.get_const_data());
+        ASSERT_EQ(array_size, this->cache.workspace.get_size());
+    }
+}
+
+
+TYPED_TEST(GenericDenseCache, GenericCanInitWithDifferentExecutor)
+{
+    using value_type = typename TestFixture::value_type;
+    auto another_ref = gko::ReferenceExecutor::create();
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    auto array_ptr = this->cache.workspace.get_const_data();
+    auto array_size = this->cache.workspace.get_size();
+
+    auto second_buffer =
+        this->cache.template get<value_type>(another_ref, this->size);
+    ASSERT_NE(second_buffer, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), this->size);
+    ASSERT_EQ(second_buffer->get_executor(), another_ref);
+    // Different executor always regenerate different workspace
+    ASSERT_NE(array_ptr, this->cache.workspace.get_const_data());
+}
+
+
+TYPED_TEST(GenericDenseCache, WorkspaceIsNotCopied)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    gko::detail::GenericDenseCache cache(this->cache);
+
+    ASSERT_EQ(cache.workspace.get_size(), 0);
+    ASSERT_EQ(cache.workspace.get_executor(), nullptr);
+}
+
+
+TYPED_TEST(GenericDenseCache, WorkspaceIsNotMoved)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    gko::detail::GenericDenseCache cache(std::move(this->cache));
+
+    ASSERT_EQ(cache.workspace.get_size(), 0);
+    ASSERT_EQ(cache.workspace.get_executor(), nullptr);
+}
+
+
+TYPED_TEST(GenericDenseCache, WorkspaceIsNotCopyAssigned)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    gko::detail::GenericDenseCache cache;
+    cache = this->cache;
+
+    ASSERT_EQ(cache.workspace.get_size(), 0);
+    ASSERT_EQ(cache.workspace.get_executor(), nullptr);
+}
+
+
+TYPED_TEST(GenericDenseCache, WorkspaceIsNotMoveAssigned)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = this->cache.template get<value_type>(this->ref, this->size);
+    gko::detail::GenericDenseCache cache;
+    cache = std::move(this->cache);
+
+    ASSERT_EQ(cache.workspace.get_size(), 0);
+    ASSERT_EQ(cache.workspace.get_executor(), nullptr);
+}
