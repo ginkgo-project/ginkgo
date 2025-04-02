@@ -3,7 +3,7 @@ name: OnSyncPR-ABI
 on:
   pull_request_target:
     types: [opened,synchronize]
-    paths-ignore: 
+    paths-ignore:
       - 'doc/**'
 
 concurrency:

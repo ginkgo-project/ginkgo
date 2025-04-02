@@ -9,14 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
-    - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v4
-      with:
-        ref: develop
-    - name: Add appropriate labels
-      env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/label.sh /tmp && /tmp/label.sh
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+      - name: Add appropriate labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: cp --preserve .github/label.sh /tmp && /tmp/label.sh
 
   check_format:
     name: check-format
@@ -29,12 +29,12 @@ jobs:
     runs-on: ubuntu-22.04
     if: github.event.issue.pull_request != '' && github.event.comment.body == 'format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
     steps:
-    - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v4
-      with:
-        ref: develop
-        persist-credentials: false
-    - name: Commit formatting changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: cp --preserve .github/format.sh /tmp && /tmp/format.sh
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: false
+      - name: Commit formatting changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: cp --preserve .github/format.sh /tmp && /tmp/format.sh
