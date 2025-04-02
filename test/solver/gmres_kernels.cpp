@@ -93,6 +93,8 @@ protected:
         }
         sketched_krylov_bases = gen_mtx(k_rows * (krylov_dim + 1), nrhs);
         sketched_next_krylov2 = gen_mtx(k_rows, nrhs);
+        sketched_hessenberg_iter = gen_mtx(krylov_dim + 1, nrhs);
+
 
         d_x = gko::clone(exec, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x);
@@ -110,6 +112,7 @@ protected:
         d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
         d_sketched_krylov_bases = gko::clone(exec, sketched_krylov_bases);
         d_sketched_next_krylov2 = gko::clone(exec, sketched_next_krylov2);
+        d_sketched_hessenberg_iter = gko::clone(exec, sketched_hessenberg_iter);
     }
 
     std::default_random_engine rand_engine;
@@ -130,6 +133,7 @@ protected:
     std::unique_ptr<Mtx> sketched_next_krylov2;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
+    std::unique_ptr<Mtx> sketched_hessenberg_iter;
     std::unique_ptr<Mtx> residual;
     std::unique_ptr<NormVector> residual_norm;
     std::unique_ptr<Mtx> residual_norm_collection;
@@ -147,6 +151,7 @@ protected:
     std::unique_ptr<Mtx> d_sketched_next_krylov2;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
+    std::unique_ptr<Mtx> d_sketched_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
     std::unique_ptr<NormVector> d_residual_norm;
     std::unique_ptr<Mtx> d_residual_norm_collection;
@@ -220,6 +225,30 @@ TEST_F(Gmres, GmresKernelRestartRgsIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_sketched_krylov_bases, sketched_krylov_bases,
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
+}
+
+
+TEST_F(Gmres, GmresKernelRichardsonLsqIsEquivalentToRef)
+{
+    initialize_data();
+    int iter = 5;
+    ASSERT_LE(iter, this->krylov_dim);
+
+    gko::kernels::reference::gmres::richardson_lsq(
+        ref, sketched_krylov_bases.get(), hessenberg_iter.get(),
+        sketched_hessenberg_iter.get(), sketched_next_krylov2.get(), iter,
+        k_rows);
+    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::richardson_lsq(
+        exec, d_sketched_krylov_bases.get(), d_hessenberg_iter.get(),
+        d_sketched_hessenberg_iter.get(), d_sketched_next_krylov2.get(), iter,
+        k_rows);
+
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_sketched_hessenberg_iter, sketched_hessenberg_iter,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_sketched_next_krylov2, sketched_next_krylov2,
+                        r<value_type>::value);
 }
 
 

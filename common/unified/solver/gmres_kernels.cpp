@@ -78,7 +78,7 @@ void restart_rgs(std::shared_ptr<const DefaultExecutor> exec,
             residual->get_size()[1], residual_norm, residual_norm_collection,
             final_iter_nums);
     } else {
-        const auto max_i = std::max(k_rows, residual->get_size()[0]);
+        const auto max_i = max(k_rows, residual->get_size()[0]);
         const dim<2> kernel_size{max_i, residual->get_size()[1]};
         run_kernel(
             exec,
@@ -111,8 +111,64 @@ void richardson_lsq(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* sketched_krylov_bases,
                     matrix::Dense<ValueType>* hessenberg_iter,
                     matrix::Dense<ValueType>* d_hessenberg_iter,
-                    matrix::Dense<ValueType>* sketch_next_krylov2,
-                    size_type iter, size_type k_rows) GKO_NOT_IMPLEMENTED;
+                    matrix::Dense<ValueType>* sketched_next_krylov2,
+                    size_type iter, size_type k_rows)
+{
+    const auto num_rhs = sketched_krylov_bases->get_size()[1];
+    const gko::dim<2> launch_size1(max(iter + 1, k_rows), num_rhs);
+
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto sketched_krylov_bases,
+                      auto hessenberg_iter, auto sketched_next_krylov2,
+                      auto num_rhs, auto iter, auto k_rows) {
+            // col is guaranteed to be < num_rhs
+            if (row < k_rows) {
+                sketched_next_krylov2(row, col) =
+                    sketched_krylov_bases(row + (iter + 1) * k_rows, col);
+            }
+            if (row <= iter) {
+                hessenberg_iter(row, col) = zero(hessenberg_iter(row, col));
+            }
+        },
+        launch_size1, sketched_krylov_bases, hessenberg_iter,
+        sketched_next_krylov2, num_rhs, iter, k_rows);
+
+    const gko::dim<2> launch_size2(iter + 1, num_rhs);
+    for (size_type ell = 0; ell < 3; ell++) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto sketched_krylov_bases,
+                          auto d_hessenberg_iter, auto sketched_next_krylov2,
+                          auto k_rows) {
+                auto value = zero(d_hessenberg_iter(row, col));
+                for (size_type j = 0; j < k_rows; ++j) {
+                    value += sketched_krylov_bases(j + row * k_rows, col) *
+                             sketched_next_krylov2(j, col);
+                }
+                d_hessenberg_iter(row, col) = value;
+            },
+            launch_size2, sketched_krylov_bases, d_hessenberg_iter,
+            sketched_next_krylov2, k_rows);
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto col, auto sketched_krylov_bases,
+                          auto hessenberg_iter, auto d_hessenberg_iter,
+                          auto sketched_next_krylov2, auto iter, auto k_rows) {
+                for (size_type row = 0; row <= iter; ++row) {
+                    const auto d_hess_value = d_hessenberg_iter(row, col);
+                    for (size_type j = 0; j < k_rows; ++j) {
+                        sketched_next_krylov2(j, col) -=
+                            sketched_krylov_bases(j + row * k_rows, col) *
+                            d_hess_value;
+                    }
+                    hessenberg_iter(row, col) += d_hess_value;
+                }
+            },
+            num_rhs, sketched_krylov_bases, hessenberg_iter, d_hessenberg_iter,
+            sketched_next_krylov2, iter, k_rows);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL);
 
