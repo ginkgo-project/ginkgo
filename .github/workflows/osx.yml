@@ -10,6 +10,8 @@ on:
       - '**'
   pull_request:
     types: [opened,synchronize]
+    paths-ignore: 
+      - 'doc/**'
   workflow_dispatch:
     inputs:
       debug_enabled:

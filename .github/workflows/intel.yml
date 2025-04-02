@@ -10,6 +10,8 @@ on:
       - '**'
   pull_request:
     types: [opened,synchronize]
+    paths-ignore: 
+      - 'doc/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
