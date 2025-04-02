@@ -19,11 +19,59 @@ GKO_REGISTER_OPERATION(compute_bits_and_ranks,
 
 }  // namespace
 
+
 template <typename IndexType>
 device_bitvector<IndexType> bitvector<IndexType>::device_view() const
 {
-    return device_bitvector<IndexType>{bits_.get_const_data(),
-                                       ranks_.get_const_data(), size_};
+    return device_bitvector<IndexType>{this->get_bits(), this->get_ranks(),
+                                       this->get_size()};
+}
+
+
+template <typename IndexType>
+std::shared_ptr<const Executor> bitvector<IndexType>::get_executor() const
+{
+    return bits_.get_executor();
+}
+
+
+template <typename IndexType>
+const typename bitvector<IndexType>::storage_type*
+bitvector<IndexType>::get_bits() const
+{
+    return bits_.get_const_data();
+}
+
+
+template <typename IndexType>
+const IndexType* bitvector<IndexType>::get_ranks() const
+{
+    return ranks_.get_const_data();
+}
+
+
+template <typename IndexType>
+IndexType bitvector<IndexType>::get_size() const
+{
+    return size_;
+}
+
+
+template <typename IndexType>
+IndexType bitvector<IndexType>::get_num_blocks() const
+{
+    return static_cast<IndexType>(ceildiv(this->get_size(), block_size));
+}
+
+
+template <typename IndexType>
+bitvector<IndexType>::bitvector(array<storage_type> bits,
+                                array<index_type> ranks, index_type size)
+    : size_{size}, bits_{std::move(bits)}, ranks_{std::move(ranks)}
+{
+    GKO_ASSERT(bits_.get_executor() == ranks_.get_executor());
+    GKO_ASSERT(this->get_num_blocks() == bits_.get_size());
+    GKO_ASSERT(this->get_num_blocks() == ranks_.get_size());
 }
 
 
@@ -31,8 +79,8 @@ template <typename IndexType>
 bitvector<IndexType>::bitvector(std::shared_ptr<const Executor> exec,
                                 index_type size)
     : size_{size},
-      bits_{exec, static_cast<size_type>(ceildiv(size, block_size))},
-      ranks_{exec, static_cast<size_type>(ceildiv(size, block_size))}
+      bits_{exec, static_cast<size_type>(this->get_num_blocks())},
+      ranks_{exec, static_cast<size_type>(this->get_num_blocks())}
 {
     bits_.fill(storage_type{});
     ranks_.fill(0);
