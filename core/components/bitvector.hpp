@@ -76,6 +76,19 @@ public:
     static bitvector from_sorted_indices(const array<index_type>& indices,
                                          index_type size);
 
+    std::shared_ptr<const Executor> get_executor() const;
+
+    const storage_type* get_bits() const;
+
+    const index_type* get_ranks() const;
+
+    index_type get_size() const;
+
+    index_type get_num_blocks() const;
+
+    bitvector(array<storage_type> bits, array<index_type> ranks,
+              index_type size);
+
 private:
     bitvector(std::shared_ptr<const Executor> exec, index_type size);
 
