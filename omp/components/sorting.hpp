@@ -14,13 +14,16 @@ namespace kernels {
 namespace omp {
 
 
-template <int num_buckets, typename Iterator, typename BucketIndexOp>
-std::array<int64, num_buckets + 1> bucket_sort(Iterator begin, Iterator end,
-                                               Iterator out_begin,
+template <int num_buckets, typename InputIterator, typename OutputIterator,
+          typename BucketIndexOp>
+std::array<int64, num_buckets + 1> bucket_sort(InputIterator begin,
+                                               InputIterator end,
+                                               OutputIterator out_begin,
                                                BucketIndexOp bucket_op,
                                                gko::array<int64>& tmp)
 {
-    using index_type = typename std::iterator_traits<Iterator>::difference_type;
+    using index_type =
+        typename std::iterator_traits<InputIterator>::difference_type;
     const auto size = end - begin;
     const auto num_threads = omp_get_max_threads();
     const auto tmp_size = num_threads * num_buckets;

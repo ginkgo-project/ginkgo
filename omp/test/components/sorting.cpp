@@ -40,7 +40,7 @@ TEST_F(Sorting, BucketSort)
         gko::array<gko::int64> tmp{exec};
 
         auto offsets = gko::kernels::omp::bucket_sort<num_buckets>(
-            data.begin(), data.end(), out_data.begin(), proj, tmp);
+            data.cbegin(), data.cend(), out_data.begin(), proj, tmp);
 
         // the output must be sorted by bucket
         ASSERT_TRUE(std::is_sorted(out_data.begin(), out_data.end(), comp));
@@ -48,8 +48,8 @@ TEST_F(Sorting, BucketSort)
         for (int bucket = 0; bucket < num_buckets; bucket++) {
             const auto bucket_begin = offsets[bucket];
             const auto bucket_end = offsets[bucket + 1];
-            for (const auto i :
-                 gko::irange{offsets[bucket], offsets[bucket + 1]}) {
+            ASSERT_LE(bucket_begin, bucket_end);
+            for (const auto i : gko::irange{bucket_begin, bucket_end}) {
                 ASSERT_EQ(proj(out_data[i]), bucket);
             }
         }
