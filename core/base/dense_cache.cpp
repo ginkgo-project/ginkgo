@@ -4,6 +4,12 @@
 
 #include "ginkgo/core/base/dense_cache.hpp"
 
+#include <memory>
+#include <string>
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -70,6 +76,55 @@ std::shared_ptr<matrix::Dense<ValueType>> GenericDenseCache::get(
 }
 
 
+ScalarCache::ScalarCache(std::shared_ptr<const Executor> executor,
+                         double scalar_value)
+    : exec(std::move(executor)), value(scalar_value){};
+
+ScalarCache::ScalarCache(const ScalarCache& other) { *this = other; }
+
+
+ScalarCache::ScalarCache(ScalarCache&& other) noexcept
+{
+    *this = std::move(other);
+}
+
+
+ScalarCache& ScalarCache::operator=(const ScalarCache& other)
+{
+    exec = other.exec;
+    value = other.value;
+    return *this;
+}
+
+
+ScalarCache& ScalarCache::operator=(ScalarCache&& other) noexcept
+{
+    exec = std::exchange(other.exec, nullptr);
+    value = std::exchange(other.value, 0.0);
+    other.scalars.clear();
+    return *this;
+}
+
+
+template <typename ValueType>
+std::shared_ptr<const matrix::Dense<ValueType>> ScalarCache::get() const
+{
+    // using typeid name as key
+    std::string value_string = typeid(ValueType).name();
+    auto search = scalars.find(value_string);
+    if (search != scalars.end()) {
+        return std::dynamic_pointer_cast<const matrix::Dense<ValueType>>(
+            search->second);
+    } else {
+        auto new_scalar =
+            share(matrix::Dense<ValueType>::create(exec, dim<2>{1, 1}));
+        new_scalar->fill(static_cast<ValueType>(value));
+        scalars[value_string] = new_scalar;
+        return new_scalar;
+    }
+}
+
+
 #define GKO_DECLARE_DENSE_CACHE(_type) struct DenseCache<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
 
@@ -77,6 +132,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
     std::shared_ptr<matrix::Dense<_type>> GenericDenseCache::get<_type>( \
         std::shared_ptr<const Executor>, dim<2>) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GENERIC_DENSE_CACHE_GET);
+
+#define GKO_DECLARE_SCALAR_CACHE_GET(_type) \
+    std::shared_ptr<const matrix::Dense<_type>> ScalarCache::get<_type>() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCALAR_CACHE_GET);
 
 
 }  // namespace detail

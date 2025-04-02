@@ -362,3 +362,129 @@ TYPED_TEST(GenericDenseCache, WorkspaceIsNotMoveAssigned)
     ASSERT_EQ(cache.workspace.get_size(), 0);
     ASSERT_EQ(cache.workspace.get_executor(), nullptr);
 }
+
+
+template <typename ValueType>
+class ScalarCache : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+
+    ScalarCache()
+        : ref(gko::ReferenceExecutor::create()), value(1.0), cache(ref, value)
+    {}
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    double value;
+    gko::detail::ScalarCache cache;
+};
+
+TYPED_TEST_SUITE(ScalarCache, gko::test::ValueTypes, TypenameNameGenerator);
+
+
+TYPED_TEST(ScalarCache, CanInitWithExecutorAndValue)
+{
+    using value_type = typename TestFixture::value_type;
+
+    gko::detail::ScalarCache cache(this->ref, 1.0);
+
+    ASSERT_EQ(this->cache.exec, this->ref);
+    ASSERT_EQ(this->cache.value, 1.0);
+    ASSERT_EQ(this->cache.scalars.size(), 0);
+}
+
+
+TYPED_TEST(ScalarCache, CanGetScalar)
+{
+    using value_type = typename TestFixture::value_type;
+
+    auto scalar = this->cache.template get<value_type>();
+
+    ASSERT_NE(scalar, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scalar->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(scalar->at(0, 0), static_cast<value_type>(this->value));
+    ASSERT_EQ(this->cache.scalars.size(), 1);
+}
+
+
+TYPED_TEST(ScalarCache, CanGetScalarWithDifferentType)
+{
+    using value_type = typename TestFixture::value_type;
+    using another_type = gko::next_precision<value_type>;
+
+    auto scalar = this->cache.template get<value_type>();
+    auto another_scalar = this->cache.template get<another_type>();
+
+    // The original one is still valid
+    ASSERT_NE(scalar, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scalar->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(scalar->at(0, 0), static_cast<value_type>(this->value));
+    ASSERT_NE(another_scalar, nullptr);
+    GKO_ASSERT_EQUAL_DIMENSIONS(another_scalar->get_size(), gko::dim<2>(1, 1));
+    ASSERT_EQ(another_scalar->at(0, 0), static_cast<another_type>(this->value));
+    // have two for different value type now
+    ASSERT_EQ(this->cache.scalars.size(), 2);
+}
+
+
+TYPED_TEST(ScalarCache, VectorIsNotCopied)
+{
+    using value_type = typename TestFixture::value_type;
+    auto scalar = this->cache.template get<value_type>();
+
+    gko::detail::ScalarCache cache(this->cache);
+
+    ASSERT_EQ(cache.scalars.size(), 0);
+    ASSERT_EQ(cache.value, this->cache.value);
+    ASSERT_EQ(cache.exec, this->cache.exec);
+    ASSERT_EQ(this->cache.scalars.size(), 1);
+}
+
+
+TYPED_TEST(ScalarCache, VectorIsNotMoved)
+{
+    using value_type = typename TestFixture::value_type;
+    auto scalar = this->cache.template get<value_type>();
+
+    gko::detail::ScalarCache cache(std::move(this->cache));
+
+    ASSERT_EQ(cache.scalars.size(), 0);
+    ASSERT_EQ(cache.value, this->value);
+    ASSERT_EQ(cache.exec, this->ref);
+    // The original one is cleared
+    ASSERT_EQ(this->cache.value, 0.0);
+    ASSERT_EQ(this->cache.exec, nullptr);
+    ASSERT_EQ(this->cache.scalars.size(), 0);
+}
+
+
+TYPED_TEST(ScalarCache, VectorIsNotCopyAssigned)
+{
+    using value_type = typename TestFixture::value_type;
+    auto scalar = this->cache.template get<value_type>();
+    gko::detail::ScalarCache cache(this->ref, 2.0);
+
+    cache = this->cache;
+
+    ASSERT_EQ(cache.scalars.size(), 0);
+    ASSERT_EQ(cache.value, this->cache.value);
+    ASSERT_EQ(cache.exec, this->cache.exec);
+    ASSERT_EQ(this->cache.scalars.size(), 1);
+}
+
+
+TYPED_TEST(ScalarCache, VectorIsNotMoveAssigned)
+{
+    using value_type = typename TestFixture::value_type;
+    auto scalar = this->cache.template get<value_type>();
+    gko::detail::ScalarCache cache(this->ref, 2.0);
+
+    cache = std::move(this->cache);
+
+    ASSERT_EQ(cache.scalars.size(), 0);
+    ASSERT_EQ(cache.value, this->value);
+    ASSERT_EQ(cache.exec, this->ref);
+    // The original one is cleared
+    ASSERT_EQ(this->cache.value, 0.0);
+    ASSERT_EQ(this->cache.exec, nullptr);
+    ASSERT_EQ(this->cache.scalars.size(), 0);
+}
