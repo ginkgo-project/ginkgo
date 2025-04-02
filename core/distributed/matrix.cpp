@@ -50,7 +50,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
       imap_{exec},
-      one_scalar_{},
+      one_scalar_{exec, 1.0},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
 {
@@ -60,8 +60,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
             non_local_mtx_.get())));
-    one_scalar_.init(exec, dim<2>{1, 1});
-    one_scalar_->fill(one<value_type>());
 }
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -72,13 +70,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
       imap_{exec},
-      one_scalar_{},
+      one_scalar_{exec, 1.0},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
           exec, dim<2>{local_linop->get_size()[0], 0}))
 {
     this->set_size(size);
-    one_scalar_.init(exec, dim<2>{1, 1});
-    one_scalar_->fill(one<value_type>());
     local_mtx_ = std::move(local_linop);
 }
 
@@ -91,13 +87,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{comm},
       row_gatherer_(RowGatherer<LocalIndexType>::create(exec, comm)),
       imap_(std::move(imap)),
-      one_scalar_{}
+      one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
     local_mtx_ = std::move(local_linop);
     non_local_mtx_ = std::move(non_local_linop);
-    one_scalar_.init(exec, dim<2>{1, 1});
-    one_scalar_->fill(one<value_type>());
 
     row_gatherer_ = RowGatherer<LocalIndexType>::create(
         row_gatherer_->get_executor(),
@@ -449,6 +443,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
             auto x_exec = dense_x->get_executor();
+            using x_value_type =
+                typename std::decay_t<decltype(*dense_x)>::value_type;
             auto local_x = gko::matrix::Dense<ValueType>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
@@ -471,9 +467,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             if (recv_ptr != recv_buffer_.get()) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
-            non_local_mtx_->apply(one_scalar_.get(),
+            non_local_mtx_->apply(one_scalar_.template get<ValueType>().get(),
                                   recv_buffer_->get_local_vector(),
-                                  one_scalar_.get(), local_x);
+                                  one_scalar_.template get<x_value_type>().get(), local_x);
         },
         b, x);
 }
@@ -487,6 +483,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         [this](const auto local_alpha, const auto dense_b,
                const auto local_beta, auto dense_x) {
             const auto x_exec = dense_x->get_executor();
+            using x_value_type =
+                typename std::decay_t<decltype(*dense_x)>::value_type;
             auto local_x = gko::matrix::Dense<ValueType>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
@@ -511,7 +509,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
             non_local_mtx_->apply(local_alpha, recv_buffer_->get_local_vector(),
-                                  one_scalar_.get(), local_x);
+                                  one_scalar_.template get<x_value_type>().get(), local_x);
         },
         alpha, b, beta, x);
 }
@@ -599,7 +597,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
-      imap_(other.get_executor())
+      imap_(other.get_executor()),
+      one_scalar_(other.get_executor(), 1.0)
 {
     *this = other;
 }
@@ -613,7 +612,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
-      imap_(other.get_executor())
+      imap_(other.get_executor()),
+      one_scalar_(other.get_executor(), 1.0)
 {
     *this = std::move(other);
 }
@@ -632,8 +632,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_mtx_->copy_from(other.non_local_mtx_);
         row_gatherer_->copy_from(other.row_gatherer_);
         imap_ = other.imap_;
-        one_scalar_.init(this->get_executor(), dim<2>{1, 1});
-        one_scalar_->fill(one<value_type>());
     }
     return *this;
 }
@@ -652,8 +650,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         non_local_mtx_->move_from(other.non_local_mtx_);
         row_gatherer_->move_from(other.row_gatherer_);
         imap_ = std::move(other.imap_);
-        one_scalar_.init(this->get_executor(), dim<2>{1, 1});
-        one_scalar_->fill(one<value_type>());
     }
     return *this;
 }

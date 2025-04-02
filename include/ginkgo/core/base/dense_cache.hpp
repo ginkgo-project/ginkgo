@@ -6,7 +6,9 @@
 #define GKO_PUBLIC_CORE_BASE_DENSE_CACHE_HPP_
 
 
+#include <map>
 #include <memory>
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -14,6 +16,11 @@
 
 
 namespace gko {
+
+
+class LinOp;
+
+
 namespace matrix {
 
 
@@ -119,6 +126,38 @@ struct GenericDenseCache {
     template <typename ValueType>
     std::shared_ptr<matrix::Dense<ValueType>> get(
         std::shared_ptr<const Executor> exec, dim<2> size) const;
+};
+
+
+/**
+ * Manages a map to store Dense Scalar with different value_type by a
+ * user-specified value. The workspace is buffered and reused internally to
+ * avoid repeated allocations. Copying an instance will only yield an empty
+ * object since copying the cached vector would not make sense. The stored
+ * object is always mutable, so the cache can be used in a const-context.
+ *
+ * @internal  The struct is present to wrap cache-like buffer storage that will
+ *            not be copied when the outer object gets copied.
+ */
+struct ScalarCache {
+    ScalarCache(std::shared_ptr<const Executor> executor, double scalar_value);
+    ~ScalarCache() = default;
+    ScalarCache(const ScalarCache& other);
+    ScalarCache(ScalarCache&& other) noexcept;
+    ScalarCache& operator=(const ScalarCache& other);
+    ScalarCache& operator=(ScalarCache&& other) noexcept;
+    std::shared_ptr<const Executor> exec;
+    double value;
+    mutable std::map<std::string, std::shared_ptr<const gko::LinOp>> scalars;
+
+
+    /**
+     * Pointer access to the underlying vector with specific type.
+     *
+     * @return  Pointer to the vector view.
+     */
+    template <typename ValueType>
+    std::shared_ptr<const matrix::Dense<ValueType>> get() const;
 };
 
 
