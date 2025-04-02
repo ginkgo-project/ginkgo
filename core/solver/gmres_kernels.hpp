@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,24 +28,23 @@ namespace gmres {
                  matrix::Dense<_type>* krylov_bases,                        \
                  size_type* final_iter_nums)
 
-#define GKO_DECLARE_GMRES_RESTART_RGS_KERNEL(_type)                             \
-    void restart_rgs(std::shared_ptr<const DefaultExecutor> exec,               \
-                     const matrix::Dense<_type>* residual,                      \
-                     const matrix::Dense<remove_complex<_type>>* residual_norm, \
-                     matrix::Dense<_type>* residual_norm_collection,            \
-                     matrix::Dense<_type>* krylov_bases,                        \
-                     matrix::Dense<_type>* sketched_krylov_bases,               \
-                     size_type* final_iter_nums,                                \
-                     size_type k_rows)
+#define GKO_DECLARE_GMRES_RESTART_RGS_KERNEL(_type)                \
+    void restart_rgs(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const matrix::Dense<_type>* residual,                      \
+        const matrix::Dense<remove_complex<_type>>* residual_norm, \
+        matrix::Dense<_type>* residual_norm_collection,            \
+        matrix::Dense<_type>* krylov_bases,                        \
+        matrix::Dense<_type>* sketched_krylov_bases,               \
+        size_type* final_iter_nums, size_type k_rows)
 
-#define GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(_type)                          \
-    void richardson_lsq(std::shared_ptr<const DefaultExecutor> exec,            \
-                        const matrix::Dense<_type>* sketched_krylov_bases,      \
-                        matrix::Dense<_type>* hessenberg_iter,                  \
-                        matrix::Dense<_type>* d_hessenberg_iter,                \
-                        matrix::Dense<_type>* sketch_next_krylov2,              \
-                        size_type iter,                                         \
-                        size_type k_rows)
+#define GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(_type)                     \
+    void richardson_lsq(std::shared_ptr<const DefaultExecutor> exec,       \
+                        const matrix::Dense<_type>* sketched_krylov_bases, \
+                        matrix::Dense<_type>* hessenberg_iter,             \
+                        matrix::Dense<_type>* d_hessenberg_iter,           \
+                        matrix::Dense<_type>* sketched_next_krylov2,       \
+                        size_type iter, size_type k_rows)
 
 #define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)               \
     void multi_axpy(std::shared_ptr<const DefaultExecutor> exec, \
@@ -63,16 +62,16 @@ namespace gmres {
                    matrix::Dense<_type>* hessenberg_col)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_RESTART_RGS_KERNEL(ValueType);\
-    template <typename ValueType>                      \
-    GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(ValueType);\
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
-    template <typename ValueType>                   \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                    \
+    template <typename ValueType>                       \
+    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);        \
+    template <typename ValueType>                       \
+    GKO_DECLARE_GMRES_RESTART_RGS_KERNEL(ValueType);    \
+    template <typename ValueType>                       \
+    GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL(ValueType); \
+    template <typename ValueType>                       \
+    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType);     \
+    template <typename ValueType>                       \
     GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(ValueType)
 
 
