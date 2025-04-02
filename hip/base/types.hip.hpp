@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <type_traits>
 
+#include <hip/hip_bfloat16.h>
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
 
@@ -21,6 +22,7 @@
 #endif
 #include <thrust/complex.h>
 
+#include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
@@ -138,6 +140,12 @@ struct hiplibs_type_impl<std::complex<half>> {
     using type = __half2;
 };
 
+template <>
+struct hiplibs_type_impl<bfloat16> {
+    using type = hip_bfloat16;
+};
+
+// Hip does not have bfloat162
 
 template <typename T>
 struct hiplibs_type_impl<thrust::complex<T>> {
@@ -216,6 +224,11 @@ struct hip_type_impl<gko::half> {
     using type = __half;
 };
 
+template <>
+struct hip_type_impl<gko::bfloat16> {
+    using type = hip_bfloat16;
+};
+
 template <typename T>
 struct hip_type_impl<std::complex<T>> {
     using type = thrust::complex<typename hip_type_impl<T>::type>;
@@ -236,6 +249,8 @@ struct hip_type_impl<__half2> {
     using type = thrust::complex<__half>;
 };
 
+// Hip does not have bfloat162
+
 template <typename T>
 struct hip_struct_member_type_impl {
     using type = T;
@@ -249,6 +264,11 @@ struct hip_struct_member_type_impl<std::complex<T>> {
 template <>
 struct hip_struct_member_type_impl<gko::half> {
     using type = __half;
+};
+
+template <>
+struct hip_struct_member_type_impl<gko::bfloat16> {
+    using type = hip_bfloat16;
 };
 
 template <typename ValueType, typename IndexType>
@@ -265,9 +285,15 @@ constexpr hipblasDatatype_t hip_data_type_impl()
 }
 
 template <>
-constexpr hipblasDatatype_t hip_data_type_impl<float16>()
+constexpr hipblasDatatype_t hip_data_type_impl<half>()
 {
     return HIPBLAS_R_16F;
+}
+
+template <>
+constexpr hipblasDatatype_t hip_data_type_impl<bfloat16>()
+{
+    return HIPBLAS_R_16BF;
 }
 
 template <>
