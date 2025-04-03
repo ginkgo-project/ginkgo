@@ -21,7 +21,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
 #include "ginkgo/core/base/exception.hpp"
+#include "ginkgo/core/base/types.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 
@@ -94,10 +96,7 @@ protected:
                  {5, 0, -0.5}, {5, 2, -1}, {5, 4, -0.5}, {5, 5, 2}}}}},
           engine(42)
     {
-        row_part = part_type::build_from_contiguous(
-            exec, gko::array<global_index_type>(
-                      exec, I<global_index_type>{0, 4, 8, 12}));
-        col_part = part_type::build_from_contiguous(
+        part = part_type::build_from_contiguous(
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 4, 8, 12}));
 
@@ -111,8 +110,7 @@ protected:
 
     gko::dim<2> size;
     gko::dim<2> local_size;
-    std::shared_ptr<part_type> row_part;
-    std::shared_ptr<part_type> col_part;
+    std::shared_ptr<part_type> part;
 
     gko::matrix_data<value_type, global_index_type> mat_input;
     std::array<matrix_data, 3> dist_input;
@@ -151,7 +149,7 @@ TYPED_TEST(DdMatrix, ReadsDistributed)
         {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}},
         {{1}, {0}, {0}, {0}}};
 
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
                         res_local, 0);
@@ -180,9 +178,9 @@ TYPED_TEST(DdMatrix, CanApplyToSingleVector)
     I<I<value_type>> result[3] = {
         {{-4}, {-3}, {-2}, {-1}}, {{0}, {1}, {-1}, {0}}, {{1}, {2}, {3}, {4}}};
     auto rank = this->comm.rank();
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
-    this->y->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
+    this->y->read_distributed(vec_md, this->part);
 
     this->dist_mat->apply(this->x, this->y);
 
@@ -211,9 +209,9 @@ TYPED_TEST(DdMatrix, CanApplyToMultipleVectors)
                                   {{0, 0}, {1, 2}, {-1, -2}, {0, 0}},
                                   {{1, 2}, {2, 4}, {3, 6}, {4, 8}}};
     auto rank = this->comm.rank();
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
-    this->y->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
+    this->y->read_distributed(vec_md, this->part);
 
     this->dist_mat->apply(this->x, this->y);
 
@@ -231,9 +229,9 @@ TYPED_TEST(DdMatrix, CanAdvancedApplyToSingleVector)
     I<I<value_type>> result[3] = {
         {{-3}, {-1}, {1}, {3}}, {{5}, {7}, {6}, {8}}, {{10}, {12}, {14}, {16}}};
     auto rank = this->comm.rank();
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
-    this->y->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
+    this->y->read_distributed(vec_md, this->part);
     auto alpha = gko::initialize<dense_vec_type>({1.0}, this->exec);
     auto beta = gko::initialize<dense_vec_type>({1.0}, this->exec);
 
@@ -265,9 +263,9 @@ TYPED_TEST(DdMatrix, CanAdvancedApplyToMultipleVectors)
                                   {{5, 10}, {7, 14}, {6, 12}, {8, 16}},
                                   {{10, 20}, {12, 24}, {14, 28}, {16, 32}}};
     auto rank = this->comm.rank();
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
-    this->y->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
+    this->y->read_distributed(vec_md, this->part);
     auto alpha = gko::initialize<dense_vec_type>({1.0}, this->exec);
     auto beta = gko::initialize<dense_vec_type>({1.0}, this->exec);
 
@@ -305,8 +303,8 @@ TYPED_TEST(DdMatrix, CanColScale)
     auto rank = this->comm.rank();
     auto res_local = csr::create(this->exec);
     res_local->read(scaled_result[rank]);
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
 
     this->dist_mat->col_scale(this->x);
 
@@ -343,8 +341,8 @@ TYPED_TEST(DdMatrix, CanRowScale)
     auto rank = this->comm.rank();
     auto res_local = csr::create(this->exec);
     res_local->read(scaled_result[rank]);
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
-    this->x->read_distributed(vec_md, this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    this->x->read_distributed(vec_md, this->part);
 
     this->dist_mat->row_scale(this->x);
 
@@ -382,10 +380,10 @@ TYPED_TEST(DdMatrix, CanColScaleWithStride)
     auto rank = this->comm.rank();
     auto res_local = csr::create(this->exec);
     res_local->read(scaled_result[rank]);
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
     auto col_scaling_factors = dist_vec_type::create(
         this->exec, this->comm, gko::dim<2>{12, 1}, gko::dim<2>{4, 1}, 2);
-    col_scaling_factors->read_distributed(vec_md, this->row_part);
+    col_scaling_factors->read_distributed(vec_md, this->part);
 
     this->dist_mat->col_scale(col_scaling_factors);
 
@@ -423,10 +421,10 @@ TYPED_TEST(DdMatrix, CanRowScaleWithStride)
     auto rank = this->comm.rank();
     auto res_local = csr::create(this->exec);
     res_local->read(scaled_result[rank]);
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
     auto row_scaling_factors = dist_vec_type::create(
         this->exec, this->comm, gko::dim<2>{12, 1}, gko::dim<2>{4, 1}, 2);
-    row_scaling_factors->read_distributed(vec_md, this->row_part);
+    row_scaling_factors->read_distributed(vec_md, this->part);
 
     this->dist_mat->row_scale(row_scaling_factors);
 
@@ -457,18 +455,18 @@ TYPED_TEST(DdMatrix, ColScaleThrowsOnWrongDimension)
                                                                   {11, 11},
                                                                   {12, 12}}};
     auto rank = this->comm.rank();
-    auto col_part = part_type::build_from_mapping(
+    auto part = part_type::build_from_mapping(
         this->exec,
         gko::array<gko::experimental::distributed::comm_index_type>(
             this->exec,
             I<gko::experimental::distributed::comm_index_type>{1, 2, 0, 0}),
         3);
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
     auto col_scaling_factors = dist_vec_type::create(this->exec, this->comm);
-    col_scaling_factors->read_distributed(vec_md, col_part);
+    col_scaling_factors->read_distributed(vec_md, part);
     auto two_col_scaling_factors =
         dist_vec_type::create(this->exec, this->comm);
-    two_col_scaling_factors->read_distributed(two_vec_md, this->col_part);
+    two_col_scaling_factors->read_distributed(two_vec_md, this->part);
 
     ASSERT_THROW(this->dist_mat->col_scale(col_scaling_factors),
                  gko::DimensionMismatch);
@@ -499,20 +497,99 @@ TYPED_TEST(DdMatrix, RowScaleThrowsOnWrongDimension)
                                                                   {11, 11},
                                                                   {12, 12}}};
     auto rank = this->comm.rank();
-    auto row_part = part_type::build_from_contiguous(
+    auto part = part_type::build_from_contiguous(
         this->exec,
         gko::array<index_type>(this->exec, I<index_type>{0, 2, 3, 4}));
-    this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
     auto row_scaling_factors = dist_vec_type::create(this->exec, this->comm);
-    row_scaling_factors->read_distributed(vec_md, row_part);
+    row_scaling_factors->read_distributed(vec_md, part);
     auto two_row_scaling_factors =
         dist_vec_type::create(this->exec, this->comm);
-    two_row_scaling_factors->read_distributed(two_vec_md, this->col_part);
+    two_row_scaling_factors->read_distributed(two_vec_md, this->part);
 
     ASSERT_THROW(this->dist_mat->row_scale(row_scaling_factors),
                  gko::DimensionMismatch);
     ASSERT_THROW(this->dist_mat->row_scale(two_row_scaling_factors),
                  gko::ValueMismatch);
+}
+
+
+TYPED_TEST(DdMatrix, CanConvertToNextPrecision)
+{
+    using T = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDist = typename gko::experimental::distributed::DdMatrix<
+        OtherT, local_index_type, global_index_type>;
+    auto rank = this->comm.rank();
+    auto tmp = OtherDist::create(this->ref, this->comm);
+    auto res = TestFixture::dd_mtx_type::create(this->ref, this->comm);
+    // If OtherT is more precise: 0, otherwise r
+    auto residual = r<OtherT>::value < r<T>::value
+                        ? gko::remove_complex<T>{0}
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+
+    this->dist_mat->convert_to(tmp);
+    tmp->convert_to(res);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        gko::as<csr>(res->get_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(this->dist_mat->get_restriction()->get_local_matrix()),
+        gko::as<csr>(res->get_restriction()->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(this->dist_mat->get_restriction()->get_non_local_matrix()),
+        gko::as<csr>(res->get_restriction()->get_non_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(this->dist_mat->get_prolongation()->get_local_matrix()),
+        gko::as<csr>(res->get_prolongation()->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(
+            this->dist_mat->get_prolongation()->get_non_local_matrix()),
+        gko::as<csr>(res->get_prolongation()->get_non_local_matrix()), 0);
+}
+
+
+TYPED_TEST(DdMatrix, CanMoveToNextPrecision)
+{
+    using T = typename TestFixture::value_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDist = typename gko::experimental::distributed::DdMatrix<
+        OtherT, local_index_type, global_index_type>;
+    auto rank = this->comm.rank();
+    auto tmp = OtherDist::create(this->ref, this->comm);
+    auto res = TestFixture::dd_mtx_type::create(this->ref, this->comm);
+    // If OtherT is more precise: 0, otherwise r
+    auto residual = r<OtherT>::value < r<T>::value
+                        ? gko::remove_complex<T>{0}
+                        : static_cast<gko::remove_complex<T>>(r<OtherT>::value);
+    this->dist_mat->read_distributed(this->dist_input[rank], this->part);
+    auto clone_dist_mat = gko::clone(this->dist_mat);
+
+    this->dist_mat->move_to(tmp);
+    tmp->convert_to(res);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_local_matrix()),
+                        gko::as<csr>(res->get_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(clone_dist_mat->get_restriction()->get_local_matrix()),
+        gko::as<csr>(res->get_restriction()->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(clone_dist_mat->get_restriction()->get_non_local_matrix()),
+        gko::as<csr>(res->get_restriction()->get_non_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(clone_dist_mat->get_prolongation()->get_local_matrix()),
+        gko::as<csr>(res->get_prolongation()->get_local_matrix()), 0);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<csr>(
+            clone_dist_mat->get_prolongation()->get_non_local_matrix()),
+        gko::as<csr>(res->get_prolongation()->get_non_local_matrix()), 0);
 }
 
 
