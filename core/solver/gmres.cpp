@@ -60,6 +60,8 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho)
         return stream << "cgs";
     case ortho_method::cgs2:
         return stream << "cgs2";
+    case ortho_method::rgs:
+        return stream << "rgs";
     }
     return stream;
 }
