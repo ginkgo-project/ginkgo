@@ -72,11 +72,11 @@ class Vector;
  * are coupled on subdomain interfaces via a restriction and a prolongation
  * operator, which are distributed matrices
  * (gko::experimental::distributed::Matrix) defined through the global indices
- * appearing in the local contributions as well as a right and a left partition.
- * The right partition considers the partitioning of vectors x to which the
- * matrix is applied, the left partition in turn considers the partitioning of
- * the resulting vector y = A*x. The following example attempts to give an
- * overview over how this would look for a 3x3 matrix distributed to two ranks.
+ * appearing in the local contributions as well as a partition.
+ * The partition considers the partitioning of vectors x to which the
+ * matrix is applied and the resulting vector y = A*x. The following example
+ * attempts to give an overview over how this would look for a 3x3 matrix
+ * distributed to two ranks.
  * ```
  * Local Contribution on       Globally Assembled Matrix A
  * Rank 0        Rank 1
@@ -84,9 +84,8 @@ class Vector;
  * | -2  2  0 |  |  0  2 -2 |  | -2  4 -2 |
  * |  0  0  0 |  |  0 -2  4 |  |  0 -2  4 |
  * ```
- * With a right partition where rank 0 owns the first two rows and rank 1 the
- * third and a left partition where rank 0 owns the first row and rank 2 the
- * second and third, this would lead to a restriction operator R
+ * With a partition where rank 0 owns the first two rows and rank 1 the
+ * third, this would lead to a restriction operator R
  * ```
  * Part-Id  Global              Local    Non-Local
  * 0        | 1 0 ! 0 |         | 1 0 |  | |
@@ -98,10 +97,10 @@ class Vector;
  * and a prolongation operator R^T
  * ```
  * Part-Id  Global                Local    Non-Local
- * 0        | 1 0 ! 0 0 |         | 1 0 |  | |
+ * 0        | 1 0 ! 0 0 |         | 1 0 |  | 0 |
+ * 0        | 0 1 ! 1 0 |         | 0 1 |  | 1 |
  *          |-----------|  ---->
- * 1        | 0 1 ! 1 0 |         | 1 0 |  | 1 |
- * 1        | 0 0 ! 0 1 |         | 0 1 |  | 0 |
+ * 1        | 0 0 ! 0 1 |         | 0 1 |  | |
  * ```
  * With these operators and a block diagonal 4x4 matrix A_BD
  * ```
@@ -118,16 +117,9 @@ class Vector;
  * auto mat = Matrix<...>::create(exec, comm);
  * mat->read_distributed(matrix_data, part);
  * ```
- * or if different partitions for the left and right vectors are used:
- * ```
- * auto right_part = Partition<...>::build_from_mapping(...);
- * auto left_part = Partition<...>::build_from_mapping(...);
- * auto mat = Matrix<...>::create(exec, comm);
- * mat->read_distributed(matrix_data, right_part, left_part);
- * ```
  * This will set the dimensions of the global and local matrices and generate
  * the restriction and prolongation matrices automatically by deducing the sizes
- * from the partitions.
+ * from the partition.
  *
  * By default the Matrix type uses Csr for the local matrix and the storage of
  * the local and non-local parts of the restriction and prolongation matrices.
@@ -213,7 +205,7 @@ public:
      *        re-distributing the corresponding vector entries.
      *
      * @param data  The device_matrix_data structure.
-     * @param partition  The global left and right partition.
+     * @param partition  The global partition.
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
@@ -233,44 +225,6 @@ public:
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition);
-
-    /**
-     * Reads a matrix from the device_matrix_data structure, a global row
-     * partition, and a global column partition.
-     *
-     * The global size of the final matrix is inferred from the size of the row
-     * partition and the size of the column partition. Both the number of rows
-     * and columns of the device_matrix_data are ignored.
-     *
-     * @note The matrix data can contain entries for rows other than those owned
-     *        by the process. Entries for those rows are discarded.
-     *
-     * @param data  The device_matrix_data structure.
-     * @param right_partition  The global right partition.
-     * @param left_partition  The global left partition.
-     */
-    void read_distributed(
-        const device_matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            right_partition,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            left_partition);
-
-    /**
-     * Reads a matrix from the matrix_data structure, a global row partition,
-     * and a global column partition.
-     *
-     * @see read_distributed
-     *
-     * @note For efficiency it is advised to use the device_matrix_data
-     * overload.
-     */
-    void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            right_partition,
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            left_partition);
 
     /**
      * Get read access to the stored local matrix.
@@ -346,7 +300,7 @@ public:
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /**
-     * Creates an empty domain decomposition distributed matrix with specified
+     * Creates an empty distributed domain decomposition matrix with specified
      * type for local matrices.
      *
      * @note This is mainly a convenience wrapper for
@@ -421,27 +375,12 @@ protected:
                       mpi::communicator comm,
                       ptr_param<const LinOp> matrix_template);
 
-    explicit DdMatrix(std::shared_ptr<const Executor> exec,
-                      mpi::communicator comm, dim<2> size,
-                      std::shared_ptr<LinOp> local_linop);
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
 private:
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
-    array<local_index_type> gather_idxs_;
-    array<global_index_type> non_local_to_global_;
-    gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> host_send_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
-    gko::detail::DenseCache<value_type> send_buffer_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
     gko::experimental::distributed::detail::VectorCache<value_type> lhs_buffer_;
     gko::experimental::distributed::detail::VectorCache<value_type> rhs_buffer_;
     std::shared_ptr<global_matrix_type> restriction_;
