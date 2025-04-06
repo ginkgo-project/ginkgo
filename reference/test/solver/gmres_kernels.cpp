@@ -318,7 +318,7 @@ TYPED_TEST(Gmres, KernelRichardsonLsq)
         Mtx::create(this->exec, gko::dim<2>{krylov_dim + 1, num_rhs});
     auto exp_d_hessenberg_iter = gko::clone(d_hessenberg_iter);
     // Test all the different iteration steps
-    for (gko::size_type iter = 1; iter < krylov_dim + 1; ++iter) {
+    for (gko::size_type iter = 0; iter < krylov_dim; ++iter) {
         SCOPED_TRACE(iter);
         auto hessenberg_iter =
             Mtx::create(this->exec, gko::dim<2>{iter + 2, num_rhs});
