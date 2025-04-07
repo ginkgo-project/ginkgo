@@ -1,0 +1,8 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This distributed spmv example should help you understand the basics of using Ginkgo in a distributed setting.
+The example will read a matrix file and row-wise distribute the matrix to different processes
+To run the spmv with multiple processes, use `mpirun -n NUM_PROCS ./distributed-spmv [executor] [file]`.
+
+If you are using GPU devices, please make sure that you run this example with at most as many processes as you have GPU
+devices available.

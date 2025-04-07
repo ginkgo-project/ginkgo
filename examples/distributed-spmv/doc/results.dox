@@ -1,0 +1,11 @@
+<h1>Results</h1>
+This is the expected output for `mpirun -n 4 ./distributed-solver`:
+
+@code{.cpp}
+
+Num rows in matrix: 19
+Num ranks: 4
+Avg apply time: 5.787e-06
+@endcode
+
+The timings may vary depending on the machine.
