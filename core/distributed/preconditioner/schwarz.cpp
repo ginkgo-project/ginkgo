@@ -135,15 +135,15 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         restrict_op->apply(dense_b, crhs_cache_.get());
         // TODO: Does it make sense to restrict dense_x (to csol_cache) to
         // provide a good initial guess for the coarse solver ?
+        if (this->coarse_solver_->apply_uses_initial_guess()) {
+            csol_cache_->copy_from(crhs_cache_.get());
+        }
         this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
         prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
                           this->local_weight_, dense_x);
-    } else {
-        // One-level
-        if (this->local_solver_ != nullptr) {
-            this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                       gko::detail::get_local(dense_x));
-        }
+    } else if (this->local_solver_ != nullptr) {
+        this->local_solver_->apply(gko::detail::get_local(dense_b),
+                                   gko::detail::get_local(dense_x));
     }
 }
 
@@ -246,32 +246,27 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         gko::detail::real_impl(parameters_.coarse_weight);
     if (cweight > 0.0 && cweight <= 1.0) {
         this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-            {ValueType{1} - ValueType{parameters_.coarse_weight}},
+            {one<ValueType>() -
+             static_cast<ValueType>(parameters_.coarse_weight)},
             this->get_executor());
         this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-            {ValueType{parameters_.coarse_weight}}, this->get_executor());
+            {static_cast<ValueType>(parameters_.coarse_weight)},
+            this->get_executor());
     } else {
         this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-            {ValueType{1.0}}, this->get_executor());
+            {one<ValueType>()}, this->get_executor());
         this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
-            {ValueType{1.0}}, this->get_executor());
+            {one<ValueType>()}, this->get_executor());
     }
 
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
             share(parameters_.coarse_level->generate(system_matrix));
-        if (as<multigrid::MultigridLevel>(this->coarse_level_)) {
-            auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
-                              ->get_coarse_op();
-            // Cannot guarantee that coarse op is not nullptr
-            if (coarse != nullptr) {
-                this->coarse_solver_ =
-                    share(parameters_.coarse_solver->generate(
-                        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
-                            coarse)));
-            }
-        } else {
-            GKO_NOT_SUPPORTED(this->coarse_level_);
+        if (auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
+                              ->get_coarse_op()) {
+            this->coarse_solver_ = share(parameters_.coarse_solver->generate(
+                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
+                    coarse)));
         }
     }
 }
