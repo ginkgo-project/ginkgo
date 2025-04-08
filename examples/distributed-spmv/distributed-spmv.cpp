@@ -38,6 +38,8 @@ int main(int argc, char* argv[])
     using dist_mtx =
         gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                GlobalIndexType>;
+    using csr = gko::matrix::Csr<ValueType, LocalIndexType>;
+    using coo = gko::matrix::Coo<ValueType, LocalIndexType>;
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations.
     using vec = gko::matrix::Dense<ValueType>;
@@ -124,8 +126,20 @@ int main(int argc, char* argv[])
     // Although we read the full matrix in all process, read_distributed ignores
     // the entries from the other range. This will also set up the communication
     // pattern needed for the distributed matrix-vector multiplication.
+    // default will use CSR for the local matrix (diagonal matrix) and COO for
+    // the non-local matrix (off-diagonal matrix)
     auto A = gko::share(dist_mtx::create(exec, comm));
+    // create CSR/CSR distributed matrix. the following read_distributed will
+    // convert mat_data to the requiring format. auto A =
+    // gko::share(dist_mtx::create(exec, comm, csr::create(exec),
+    // csr::create(exec)));
     A->read_distributed(A_data, partition);
+
+    // Additionally, it can also be done via convert_to
+    // auto A_orig = gko::share(dist_mtx::create(exec, comm));
+    // A_orig->read_distributed(A_data, partition);
+    // auto A = gko::share(dist_mtx::create(exec, comm, csr::create(exec),
+    // csr::create(exec))); A_orig->convert_to(A);
 
     // generate the vector
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
