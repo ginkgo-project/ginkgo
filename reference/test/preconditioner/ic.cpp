@@ -34,7 +34,7 @@ protected:
     using ic_prec_type = gko::preconditioner::Ic<lower_trs, index_type>;
     using ic_isai_prec_type = gko::preconditioner::Ic<
         gko::preconditioner::LowerIsai<value_type, index_type>, index_type>;
-    using ic_linop_prec_type = gko::preconditioner::Ic<gko::LinOp, index_type>;
+    using ic_linop_prec_type = gko::preconditioner::Ic<value_type, index_type>;
     using Composition = gko::Composition<value_type>;
 
     Ic()

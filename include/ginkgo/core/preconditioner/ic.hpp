@@ -35,29 +35,6 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename Type>
-constexpr bool support_ic_parse = std::is_same_v<Type, LinOp>;
-
-
-template <
-    typename Ic,
-    std::enable_if_t<!support_ic_parse<typename Ic::l_solver_type>>* = nullptr>
-typename Ic::parameters_type ic_parse(
-    const config::pnode& config, const config::registry& context,
-    const config::type_descriptor& td_for_child)
-{
-    GKO_INVALID_STATE(
-        "preconditioner::Ic only supports limited type for parse.");
-}
-
-template <
-    typename Ic,
-    std::enable_if_t<support_ic_parse<typename Ic::l_solver_type>>* = nullptr>
-typename Ic::parameters_type ic_parse(
-    const config::pnode& config, const config::registry& context,
-    const config::type_descriptor& td_for_child);
-
-
 // helper for handle the transposed type of concrete type and LinOp
 template <typename Type>
 struct transposed_type_impl {
@@ -89,11 +66,29 @@ struct factory_type_impl<LinOp> {
 template <typename Type>
 using factory_type = typename factory_type_impl<Type>::type;
 
+template <typename Type>
+constexpr bool is_ginkgo_linop = std::is_convertible_v<Type*, LinOp*>;
+
+template <typename Type>
+struct get_solver_type_impl {
+    using type = std::conditional_t<is_ginkgo_linop<Type>, Type, LinOp>;
+};
+
+template <typename Type>
+using get_solver_type = typename get_solver_type_impl<Type>::type;
+
 
 // helper to get value_type of concrete type or void for LinOp
-template <typename Type>
+template <typename Type, typename = void>
 struct get_value_type_impl {
     using type = typename Type::value_type;
+};
+
+// We need to use SFINAE not conditional_t because both type needs to be valid
+// in conditional_t
+template <typename Type>
+struct get_value_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
+    using type = Type;
 };
 
 template <>
@@ -104,6 +99,42 @@ struct get_value_type_impl<LinOp> {
 
 template <typename Type>
 using get_value_type = typename get_value_type_impl<Type>::type;
+
+
+// get_first_template is to get the first template argument of class.
+// It can be easily done by introducing another member type of IC to alias the
+// first template argument, but it introduces another public interface.
+template <class>
+struct get_first_template {};
+
+template <template <typename...> class Base, class First, class... Rest>
+struct get_first_template<Base<First, Rest...>> {
+    using type = First;
+};
+
+
+// reuse the above the condition
+template <typename SolverTypeOrValueType>
+constexpr bool support_ic_parse =
+    std::is_same_v<get_solver_type<SolverTypeOrValueType>, LinOp> &&
+    !std::is_same_v<get_value_type<SolverTypeOrValueType>, void>;
+
+
+template <typename Ic, std::enable_if_t<!support_ic_parse<
+                           typename get_first_template<Ic>::type>>* = nullptr>
+typename Ic::parameters_type ic_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    GKO_INVALID_STATE(
+        "preconditioner::Ic only supports limited type for parse.");
+}
+
+template <typename Ic, std::enable_if_t<support_ic_parse<
+                           typename get_first_template<Ic>::type>>* = nullptr>
+typename Ic::parameters_type ic_parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child);
 
 
 }  // namespace detail
@@ -145,33 +176,36 @@ using get_value_type = typename get_value_type_impl<Type>::type;
  *       Using it in parallel can lead to segmentation faults, wrong results
  *       and other unwanted behavior.
  *
- * @note The default template during parse is <LinOp, IndexType> not
- *       <LowerTrs, IndexType>. Only LinOp is supported in parse.
+ * @note The default template during parse is <ValueType, IndexType> not
+ *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
+ *       in parse.
  *
- * @tparam LSolverType  type of the solver used for the L matrix.
- *                      Defaults to solver::LowerTrs
+ * @tparam LSolverTypeOrValueType  type of the solver or the value type used for
+ *                                 the L matrix. Defaults to solver::LowerTrs
  * @tparam IndexType  type of the indices when ParIc is used to generate
  *                    the L and L^H factors. Irrelevant otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename LSolverType = solver::LowerTrs<>, typename IndexType = int32>
-class Ic : public EnableLinOp<Ic<LSolverType, IndexType>>, public Transposable {
+template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
+          typename IndexType = int32>
+class Ic : public EnableLinOp<Ic<LSolverTypeOrValueType, IndexType>>,
+           public Transposable {
     friend class EnableLinOp<Ic>;
     friend class EnablePolymorphicObject<Ic, LinOp>;
 
 public:
+    using l_solver_type = detail::get_solver_type<LSolverTypeOrValueType>;
     static_assert(
         std::is_same<
-            detail::transposed_type<detail::transposed_type<LSolverType>>,
-            LSolverType>::value,
-        "LSolverType::transposed_type must be symmetric");
-    using value_type = detail::get_value_type<LSolverType>;
-    using l_solver_type = LSolverType;
+            detail::transposed_type<detail::transposed_type<l_solver_type>>,
+            l_solver_type>::value,
+        "l_solver_type::transposed_type must be symmetric");
+    using value_type = detail::get_value_type<LSolverTypeOrValueType>;
     using lh_solver_type = detail::transposed_type<l_solver_type>;
     using index_type = IndexType;
-    using transposed_type = Ic<LSolverType, IndexType>;
+    using transposed_type = Ic<LSolverTypeOrValueType, IndexType>;
 
     class Factory;
 
@@ -259,16 +293,15 @@ public:
      *
      * @return parameters
      *
-     * @note only support the following for l_solver: LinOp
+     * @note only support the following when using <ValueType, IndexType> not
+     *       <LSolverType, IndexType> variants
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
-            config::make_type_descriptor<
-                std::conditional_t<std::is_same_v<l_solver_type, LinOp>,
-                                   default_precision, value_type>,
-                index_type>())
+            config::make_type_descriptor<value_type, index_type>())
     {
+        // parse is not templated, so we can only use SFINAE later
         return detail::ic_parse<Ic>(config, context, td_for_child);
     }
 
@@ -381,8 +414,10 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        // let the solver to handle the precision
         this->set_cache_to(b);
+        if (l_solver_->apply_uses_initial_guess()) {
+            cache_.intermediate->copy_from(b);
+        }
         l_solver_->apply(b, cache_.intermediate);
         if (lh_solver_->apply_uses_initial_guess()) {
             x->copy_from(cache_.intermediate);
@@ -393,8 +428,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        // let the solver to handle the precision
         this->set_cache_to(b);
+        if (l_solver_->apply_uses_initial_guess()) {
+            cache_.intermediate->copy_from(b);
+        }
         l_solver_->apply(b, cache_.intermediate);
         lh_solver_->apply(alpha, cache_.intermediate, beta, x);
     }
@@ -407,30 +444,30 @@ protected:
         : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
-        auto comp = std::dynamic_pointer_cast<const CompositionBase>(lin_op);
+        auto comp =
+            std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
         std::shared_ptr<const LinOp> l_factor;
 
         // build factorization if we weren't passed a composition
         if (!comp) {
             auto exec = lin_op->get_executor();
-            if (!parameters_.factorization_factory) {
-                if constexpr (std::is_same_v<LinOp, l_solver_type>) {
-                    // linop does not have the value_type such that we do not
-                    // know which par_ic can use.
-                    GKO_NOT_IMPLEMENTED;
-                } else {
+            if constexpr (std::is_same_v<value_type, void>) {
+                GKO_NOT_IMPLEMENTED;
+            } else {
+                if (!parameters_.factorization_factory) {
                     parameters_.factorization_factory =
                         factorization::ParIc<value_type, index_type>::build()
                             .with_both_factors(false)
                             .on(exec);
                 }
-            }
-            auto fact = std::shared_ptr<const LinOp>(
-                parameters_.factorization_factory->generate(lin_op));
-            // ensure that the result is a composition
-            comp = std::dynamic_pointer_cast<const CompositionBase>(fact);
-            if (!comp) {
-                GKO_NOT_SUPPORTED(comp);
+                auto fact = std::shared_ptr<const LinOp>(
+                    parameters_.factorization_factory->generate(lin_op));
+                // ensure that the result is a composition
+                comp = std::dynamic_pointer_cast<const Composition<value_type>>(
+                    fact);
+                if (!comp) {
+                    GKO_NOT_SUPPORTED(comp);
+                }
             }
         }
         // comp must contain one or two factors
@@ -478,15 +515,13 @@ protected:
      */
     void set_cache_to(const LinOp* b) const
     {
-        if (cache_.intermediate == nullptr ||
-            cache_.intermediate->get_size() != b->get_size()) {
-            cache_.intermediate = b->clone(this->get_executor());
-        } else {
-            // Use b as the initial guess for the first triangular solve
-            cache_.intermediate->copy_from(b);
+        if (cache_.intermediate == nullptr) {
+            cache_.intermediate =
+                matrix::Dense<value_type>::create(this->get_executor());
         }
+        // Use b as the initial guess for the first triangular solve
+        cache_.intermediate->copy_from(b);
     }
-
 
     /**
      * Generates a default solver of type SolverType.
