@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,19 +54,26 @@ namespace kernels {
                           const matrix::Coo<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_COO_CONJ_ARRAY_KERNEL(ValueType)             \
+    void conj_array(std::shared_ptr<const DefaultExecutor> exec, \
+                    size_type num_elems, ValueType* values)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType); \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_COO_CONJ_ARRAY_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coo, GKO_DECLARE_ALL_AS_TEMPLATES);

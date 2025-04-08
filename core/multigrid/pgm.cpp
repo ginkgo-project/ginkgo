@@ -23,6 +23,7 @@
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
@@ -48,7 +49,7 @@ GKO_REGISTER_OPERATION(assign_to_exist_agg, pgm::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(sort_agg, pgm::sort_agg);
 GKO_REGISTER_OPERATION(map_row, pgm::map_row);
 GKO_REGISTER_OPERATION(map_col, pgm::map_col);
-GKO_REGISTER_OPERATION(sort_row_major, pgm::sort_row_major);
+GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
 GKO_REGISTER_OPERATION(count_unrepeated_nnz, pgm::count_unrepeated_nnz);
 GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
@@ -115,6 +116,10 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
                                 non_local_agg.get_const_data(),
                                 col_idxs.get_data()));
     // sort by row, col
+    // Because reduce_by_key is not deterministic, so we do not need
+    // stable_sort_by_key
+    // TODO: If we have deterministic reduce_by_key, we might consider
+    // stable_sort_by_key
     exec->run(pgm::make_sort_row_major(nnz, row_idxs.get_data(),
                                        col_idxs.get_data(), vals.get_data()));
     // compute the total nnz and create the fine csr
