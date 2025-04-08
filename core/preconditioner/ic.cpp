@@ -21,8 +21,8 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename Ic,
-          std::enable_if_t<support_ic_parse<typename Ic::l_solver_type>>*>
+template <typename Ic, std::enable_if_t<support_ic_parse<
+                           typename get_first_template<Ic>::type>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
@@ -49,13 +49,24 @@ typename Ic::parameters_type ic_parse(
     return params;
 }
 
-#define GKO_DECLARE_LINOP_IC_PARSE(IndexType)               \
-    typename Ic<LinOp, IndexType>::parameters_type          \
-    ic_parse<Ic<LinOp, IndexType>>(const config::pnode&,    \
-                                   const config::registry&, \
-                                   const config::type_descriptor&)
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LINOP_IC_PARSE);
+
+#define GKO_DECLARE_IC_PARSE(ValueType, IndexType)              \
+    typename Ic<ValueType, IndexType>::parameters_type          \
+    ic_parse<Ic<ValueType, IndexType>>(const config::pnode&,    \
+                                       const config::registry&, \
+                                       const config::type_descriptor&)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC_PARSE);
+
 
 }  // namespace detail
+
+
+// only instantiate the value type variants of IC, whose solver is LinOp.
+#define GKO_DECLARE_IC(ValueType, IndexType) class Ic<ValueType, IndexType>
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC);
+
+
 }  // namespace preconditioner
 }  // namespace gko

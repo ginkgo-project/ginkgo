@@ -46,9 +46,8 @@ struct PreconditionerConfigTest {
 };
 
 
-struct Ic
-    : PreconditionerConfigTest<::gko::preconditioner::Ic<gko::LinOp, int>,
-                               ::gko::preconditioner::Ic<gko::LinOp, int>> {
+struct Ic : PreconditionerConfigTest<::gko::preconditioner::Ic<float, int>,
+                                     ::gko::preconditioner::Ic<double, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ic"}}};
