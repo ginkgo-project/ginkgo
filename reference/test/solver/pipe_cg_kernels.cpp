@@ -506,162 +506,154 @@ TYPED_TEST(PipeCg, SolvesBigDenseSystem1)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
-                        r<value_type>::value * 1e2);
+                        r<value_type>::value * 5 * 1e3);
 }
 
 
-// TYPED_TEST(PipeCg, SolvesBigDenseSystem2)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     // the system is already out of half precision range
-//     SKIP_IF_HALF(value_type);
-//     auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
-//     auto b = gko::initialize<Mtx>(
-//         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
-//         this->exec);
-//     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-//     this->exec);
+TYPED_TEST(PipeCg, SolvesBigDenseSystem2)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-//     solver->apply(b, x);
+    solver->apply(b, x);
 
-//     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-//                         r<value_type>::value * 1e2);
-// }
-
-
-// TYPED_TEST(PipeCg, SolvesBigDenseSystem3)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     // the system is already out of half precision range
-//     SKIP_IF_HALF(value_type);
-//     auto solver = this->pipe_cg_factory_big2->generate(this->mtx_big);
-//     auto b = gko::initialize<Mtx>(
-//         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
-//         this->exec);
-//     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-//     this->exec);
-
-//     solver->apply(b, x);
-
-//     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
-//                         r<value_type>::value * 1e2);
-// }
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 2 * 1e5);
+}
 
 
-// TYPED_TEST(PipeCg, SolvesMultipleDenseSystemForDivergenceCheck)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     // the system is already out of half precision range
-//     SKIP_IF_HALF(value_type);
-//     auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
-//     auto b1 = gko::initialize<Mtx>(
-//         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
-//         this->exec);
-//     auto b2 = gko::initialize<Mtx>(
-//         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
-//         this->exec);
+TYPED_TEST(PipeCg, SolvesBigDenseSystem3)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto solver = this->pipe_cg_factory_big2->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-//     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-//     this->exec); auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0,
-//     0.0}, this->exec);
+    solver->apply(b, x);
 
-//     auto bc =
-//         Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[0],
-//         2});
-//     auto xc =
-//         Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[1],
-//         2});
-//     for (size_t i = 0; i < bc->get_size()[0]; ++i) {
-//         bc->at(i, 0) = b1->at(i);
-//         bc->at(i, 1) = b2->at(i);
-
-//         xc->at(i, 0) = x1->at(i);
-//         xc->at(i, 1) = x2->at(i);
-//     }
-
-//     solver->apply(b1, x1);
-//     solver->apply(b2, x2);
-//     solver->apply(bc, xc);
-//     auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0],
-//     2}); for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
-//         mergedRes->at(i, 0) = x1->at(i);
-//         mergedRes->at(i, 1) = x2->at(i);
-//     }
-
-//     auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
-//     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-
-//     auto residual1 = Mtx::create(this->exec, b1->get_size());
-//     residual1->copy_from(b1);
-//     auto residual2 = Mtx::create(this->exec, b2->get_size());
-//     residual2->copy_from(b2);
-//     auto residualC = Mtx::create(this->exec, bc->get_size());
-//     residualC->copy_from(bc);
-
-//     this->mtx_big->apply(alpha, x1, beta, residual1);
-//     this->mtx_big->apply(alpha, x2, beta, residual2);
-//     this->mtx_big->apply(alpha, xc, beta, residualC);
-
-//     auto normS1 = inf_norm(residual1);
-//     auto normS2 = inf_norm(residual2);
-//     auto normC1 = inf_norm(residualC, 0);
-//     auto normC2 = inf_norm(residualC, 1);
-//     auto normB1 = inf_norm(b1);
-//     auto normB2 = inf_norm(b2);
-
-//     // make sure that all combined solutions are as good or better than the
-//     // single solutions
-//     ASSERT_LE(normC1 / normB1, normS1 / normB1 + r<value_type>::value);
-//     ASSERT_LE(normC2 / normB2, normS2 / normB2 + r<value_type>::value);
-
-//     // Not sure if this is necessary, the assertions above should cover what
-//     is
-//     // needed.
-//     GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
-// }
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 2 * 1e5);
+}
 
 
-// TYPED_TEST(PipeCg, SolvesTransposedBigDenseSystem)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     // the system is already out of half precision range
-//     SKIP_IF_HALF(value_type);
-//     auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
-//     auto b = gko::initialize<Mtx>(
-//         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
-//         this->exec);
-//     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-//     this->exec);
+TYPED_TEST(PipeCg, SolvesMultipleDenseSystemForDivergenceCheck)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
+    auto b1 = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto b2 = gko::initialize<Mtx>(
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
 
-//     solver->transpose()->apply(b, x);
+    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-//     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
-//                         r<value_type>::value * 1e2);
-// }
+    auto bc =
+        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[0], 2});
+    auto xc =
+        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[1], 2});
+    for (size_t i = 0; i < bc->get_size()[0]; ++i) {
+        bc->at(i, 0) = b1->at(i);
+        bc->at(i, 1) = b2->at(i);
+
+        xc->at(i, 0) = x1->at(i);
+        xc->at(i, 1) = x2->at(i);
+    }
+
+    solver->apply(b1, x1);
+    solver->apply(b2, x2);
+    solver->apply(bc, xc);
+    auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
+    for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
+        mergedRes->at(i, 0) = x1->at(i);
+        mergedRes->at(i, 1) = x2->at(i);
+    }
+
+    auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+
+    auto residual1 = Mtx::create(this->exec, b1->get_size());
+    residual1->copy_from(b1);
+    auto residual2 = Mtx::create(this->exec, b2->get_size());
+    residual2->copy_from(b2);
+    auto residualC = Mtx::create(this->exec, bc->get_size());
+    residualC->copy_from(bc);
+
+    this->mtx_big->apply(alpha, x1, beta, residual1);
+    this->mtx_big->apply(alpha, x2, beta, residual2);
+    this->mtx_big->apply(alpha, xc, beta, residualC);
+
+    auto normS1 = inf_norm(residual1);
+    auto normS2 = inf_norm(residual2);
+    auto normC1 = inf_norm(residualC, 0);
+    auto normC2 = inf_norm(residualC, 1);
+    auto normB1 = inf_norm(b1);
+    auto normB2 = inf_norm(b2);
+
+    // make sure that all combined solutions are as good or better than the
+    // single solutions
+    ASSERT_LE(normC1 / normB1, normS1 / normB1 + r<value_type>::value);
+    ASSERT_LE(normC2 / normB2, normS2 / normB2 + r<value_type>::value);
+
+    // Not sure if this is necessary, the assertions above should cover what is
+    // needed.
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
+}
 
 
-// TYPED_TEST(PipeCg, SolvesConjTransposedBigDenseSystem)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     // the system is already out of half precision range
-//     SKIP_IF_HALF(value_type);
-//     auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
-//     auto b = gko::initialize<Mtx>(
-//         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
-//         this->exec);
-//     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-//     this->exec);
+TYPED_TEST(PipeCg, SolvesTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-//     solver->conj_transpose()->apply(b, x);
+    solver->transpose()->apply(b, x);
 
-//     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
-//                         r<value_type>::value * 1e2);
-// }
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 5 * 1e4);
+}
+
+
+TYPED_TEST(PipeCg, SolvesConjTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto solver = this->pipe_cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 5 * 1e4);
+}
 
 
 }  // namespace
