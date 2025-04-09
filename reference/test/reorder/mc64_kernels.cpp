@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -305,6 +305,11 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
+    // TODO: bfloat16 will lead to exp2(0) for some cases, it might be solved
+    // when we have subnormal support.
+    if (std::is_same<real_type, gko::bfloat16>::value) {
+        GTEST_SKIP() << "Skip due to bfloat16 mode";
+    }
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(

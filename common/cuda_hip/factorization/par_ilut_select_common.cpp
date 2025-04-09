@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,7 +44,7 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
 #ifdef GKO_COMPILING_HIP
-    if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
         // HIP does not support 16bit atomic operation
         GKO_NOT_SUPPORTED(values);
     } else

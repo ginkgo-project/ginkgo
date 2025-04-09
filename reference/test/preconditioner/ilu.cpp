@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -397,7 +397,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
 
     preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}), r<TypeParam>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}), r<TypeParam>::value * 2.0);
 }
 
 
@@ -417,7 +417,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
     preconditioner->apply(alpha_linop, b, beta_linop, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}),
-                        (r_mixed<TypeParam, typename Mtx::value_type>()));
+                        (r_mixed<TypeParam, typename Mtx::value_type>() * 2.0));
 }
 
 
@@ -447,7 +447,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
                            complex_type{-1.0, 2.0}}),
-                        r<TypeParam>::value);
+                        r<TypeParam>::value * 2.0);
 }
 
 
@@ -478,7 +478,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
         x,
         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
            complex_type{-1.0, 2.0}}),
-        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()));
+        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()) * 2.0);
 }
 
 

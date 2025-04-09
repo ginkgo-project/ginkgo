@@ -37,7 +37,7 @@ create_accessor_test(math)
 create_accessor_test(block_col_major)
 create_accessor_test(reduced_row_major)
 create_accessor_test(reduced_row_major_reference)
-ginkgo_create_test(reduced_row_major_ginkgo) # needs Ginkgo for gko::half
+ginkgo_create_test(reduced_row_major_ginkgo) # needs Ginkgo for gko::half/bfloat16
 create_accessor_test(row_major)
 create_accessor_test(scaled_reduced_row_major)
 create_accessor_test(scaled_reduced_row_major_reference)

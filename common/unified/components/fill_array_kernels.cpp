@@ -41,7 +41,7 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto array) {
-            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+            if constexpr (std::is_same_v<remove_complex<ValueType>, float16>) {
                 // __half can not be from int64_t
                 array[idx] = static_cast<long long>(idx);
             } else {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -155,7 +155,7 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
     auto num_blocks = ceildiv(total_nnz, block_size);
     if (num_blocks > 0) {
 #ifdef GKO_COMPILING_HIP
-        if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+        if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             // HIP does not support 16bit atomic operation
             GKO_NOT_SUPPORTED(a);
         } else
