@@ -19,12 +19,8 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace lobpcg {
 
 
-using gko::kernels::lobpcg::workspace_mode;
-
-
 template <typename ValueType>
 void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
-                          const workspace_mode alloc,
                           matrix::Dense<ValueType>* a,
                           matrix::Dense<ValueType>* b,
                           array<remove_complex<ValueType>>* e_vals,
@@ -50,15 +46,13 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
     int32 lda = static_cast<int32>(a->get_stride());
     int32 ldb = static_cast<int32>(b->get_stride());
     int32 fp_buffer_num_elems;
-    if (alloc == workspace_mode::allocate) {
-        dev_lapack::sygvd_buffersize(handle, LAPACK_EIG_TYPE_1,
-                                     LAPACK_EIG_VECTOR, LAPACK_FILL_LOWER, n,
-                                     a->get_values(), lda, b->get_values(), ldb,
-                                     e_vals->get_data(), &fp_buffer_num_elems);
-        size_type total_bytes = sizeof(ValueType) * fp_buffer_num_elems;
+    dev_lapack::sygvd_buffersize(handle, LAPACK_EIG_TYPE_1, LAPACK_EIG_VECTOR,
+                                 LAPACK_FILL_LOWER, n, a->get_values(), lda,
+                                 b->get_values(), ldb, e_vals->get_data(),
+                                 &fp_buffer_num_elems);
+    size_type total_bytes = sizeof(ValueType) * fp_buffer_num_elems;
+    if (workspace->get_size() < total_bytes) {
         workspace->resize_and_reset(total_bytes);
-    } else {
-        fp_buffer_num_elems = workspace->get_size() / sizeof(ValueType);
     }
     array<int32> dev_info(exec, 1);
     try {
