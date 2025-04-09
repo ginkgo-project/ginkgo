@@ -24,6 +24,7 @@
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -51,6 +52,7 @@ protected:
         gko::experimental::distributed::preconditioner::Schwarz<
             value_type, local_index_type, global_index_type>;
     using solver_type = gko::solver::Bicgstab<value_type>;
+    using mg_prec_type = gko::solver::Multigrid;
     using local_prec_type =
         gko::preconditioner::Jacobi<value_type, local_index_type>;
     using coarse_solver_type =
@@ -96,6 +98,8 @@ protected:
         dist_b->fill(-gko::one<value_type>());
         dist_x = gko::share(gko::clone(exec, dist_result));
         dist_x->fill(gko::zero<value_type>());
+        dist_x2 = gko::share(gko::clone(exec, dist_result));
+        dist_x2->fill(gko::zero<value_type>());
         auto non_dist_result = local_vec_type::create(ref, global_size, nrhs);
         non_dist_result->fill(-gko::one<value_type>());
         non_dist_b = gko::share(gko::clone(exec, non_dist_result));
@@ -106,10 +110,11 @@ protected:
             local_prec_type::build().with_max_block_size(1u).on(exec);
         coarse_solver_factory =
             solver_type::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(5u).on(exec))
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
                 .on(exec);
         pgm_factory = coarse_level_type::build().on(exec);
+        one_ = gko::initialize<local_vec_type>({gko::one<value_type>()},
+                                               this->exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -122,9 +127,11 @@ protected:
     std::shared_ptr<dist_mtx_type> dist_mat;
     std::shared_ptr<dist_vec_type> dist_b;
     std::shared_ptr<dist_vec_type> dist_x;
+    std::shared_ptr<dist_vec_type> dist_x2;
     std::shared_ptr<non_dist_matrix_type> non_dist_mat;
     std::shared_ptr<local_vec_type> non_dist_b;
     std::shared_ptr<local_vec_type> non_dist_x;
+    std::shared_ptr<local_vec_type> one_;
     std::shared_ptr<gko::LinOpFactory> non_dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> local_solver_factory;
@@ -276,19 +283,45 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
 }
 
 
-TYPED_TEST(SchwarzPreconditioner, CanApplyMultilevelPreconditioner)
+TYPED_TEST(SchwarzPreconditioner, CanApplyTwolevelPreconditioner)
 {
     using value_type = typename TestFixture::value_type;
     using prec = typename TestFixture::dist_prec_type;
+    using mg_prec = typename TestFixture::mg_prec_type;
+    using dist_vec = typename TestFixture::dist_vec_type;
 
     auto precond_factory = prec::build()
                                .with_local_solver(this->local_solver_factory)
                                .with_coarse_solver(this->coarse_solver_factory)
                                .with_coarse_level(this->pgm_factory)
                                .on(this->exec);
+    auto local_precond_factory =
+        prec::build()
+            .with_local_solver(this->local_solver_factory)
+            .on(this->exec);
+    auto mg_precond_factory =
+        mg_prec::build()
+            .with_coarsest_solver(this->coarse_solver_factory)
+            .with_mg_level(this->pgm_factory)
+            .with_post_smoother(nullptr)
+            .with_pre_smoother(nullptr)
+            .with_max_levels(1u)
+            .with_min_coarse_rows(1u)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
     auto precond = precond_factory->generate(this->dist_mat);
+    auto mg_precond = mg_precond_factory->generate(this->dist_mat);
+    auto local_precond = local_precond_factory->generate(this->dist_mat);
+    auto local_dist_x = gko::clone(this->dist_x);
+    local_precond->apply(this->dist_b.get(), local_dist_x.get());
+    mg_precond->apply(this->dist_b.get(), this->dist_x2.get());
+    this->dist_x2->add_scaled(this->one_, local_dist_x);
 
-    ASSERT_NO_THROW(precond->apply(this->dist_b.get(), this->dist_x.get()));
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+
+    GKO_ASSERT_MTX_NEAR(this->dist_x->get_local_vector(),
+                        this->dist_x2->get_local_vector(),
+                        r<value_type>::value);
 }
 
 
