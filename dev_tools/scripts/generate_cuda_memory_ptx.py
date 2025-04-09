@@ -259,28 +259,32 @@ __device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.na
 # since there are no constraints for f16 register an intermediate conversion needs to happen
 # There are some issues when using f16 on shared memory. We disable them currently.
 memory_spaces_without_shared=memory_spaces[1:]
-t = type_desc(ptx_type_suffix='.f16', val_constraint='f', name='__half')
-t.parent_name = "float"
-t.ptx_parent_type_suffix = '.f32'
-t.ptx_mem_type_suffix = '.b16'
-for s in memory_spaces_without_shared:
-    for o in memory_orderings:
-        membar_expression = "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
-        const_ptr_expr = s.ptr_expr.format(
-            ptr=f"const_cast<{t.name}*>(ptr)")
-        mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
-        print(f"""
+types_16bit = [type_desc(ptx_type_suffix='.f16', val_constraint='f', name='__half'),
+               type_desc(ptx_type_suffix='.bf16', val_constraint='f', name='__nv_bfloat16')]
+parent_name = "float"
+ptx_parent_type_suffix = '.f32'
+ptx_mem_type_suffix = '.b16'
+for t in types_16bit:
+    # although it can use .bf16 in operation but need to use b16 in register type
+    reg_type_suffix = t.ptx_type_suffix if t.ptx_type_suffix == '.f16' else '.b16'
+    for s in memory_spaces_without_shared:
+        for o in memory_orderings:
+            membar_expression = "" if o.is_relaxed else f"membar_acq_rel{s.fn_suffix}();"
+            const_ptr_expr = s.ptr_expr.format(
+                ptr=f"const_cast<{t.name}*>(ptr)")
+            mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
+            print(f"""
 __device__ __forceinline__ {t.name} load{o.fn_load_suffix}{s.fn_suffix}(const {t.name}* ptr)
 {{
-    {t.parent_name} result;
+    {parent_name} result;
     asm volatile("{{"
-        "  .reg {t.ptx_type_suffix} t;"
+        "  .reg {reg_type_suffix} t;"
     #if __CUDA_ARCH__ < 700
-        "  ld.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];"
+        "  ld.volatile{s.ptx_space_suffix}{ptx_mem_type_suffix} t, [%1];"
     #else
-        "  ld{o.ptx_load_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} t, [%1];"
+        "  ld{o.ptx_load_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{ptx_mem_type_suffix} t, [%1];"
     #endif
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t;"
+        "  cvt{ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t;"
         "}}"
         : "={t.val_constraint}"(result)
         : "{s.ptr_constraint}"({const_ptr_expr})
@@ -294,40 +298,40 @@ __device__ __forceinline__ void store{o.fn_store_suffix}{s.fn_suffix}({t.name}* 
 {{
     {membar_expression}
     asm volatile("{{"
-        "  .reg {t.ptx_type_suffix} t;"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t, %1;"
+        "  .reg {reg_type_suffix} t;"
+        "  cvt.rn{t.ptx_type_suffix}{ptx_parent_type_suffix} t, %1;"
     #if __CUDA_ARCH__ < 700
-        "  st.volatile{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;"
+        "  st.volatile{s.ptx_space_suffix}{ptx_mem_type_suffix} [%0], t;"
     #else
-        "  st{o.ptx_store_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{t.ptx_mem_type_suffix} [%0], t;"
+        "  st{o.ptx_store_suffix}{s.ptx_scope_suffix}{s.ptx_space_suffix}{ptx_mem_type_suffix} [%0], t;"
     #endif
         "}}"
-        :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(static_cast<{t.parent_name}>(result))
+        :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(static_cast<{parent_name}>(result))
         : "memory");
 }}
 """)
 
-for s in memory_spaces_without_shared:
-    o = ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
-                 ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
-                 ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True)
-    const_ptr_expr = s.ptr_expr.format(
-        ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)")
-    mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
-    print(f"""
+    for s in memory_spaces_without_shared:
+        o = ordering(ptx_load_suffix=".relaxed", fn_load_suffix="_relaxed",
+                    ptx_store_suffix=".relaxed", fn_store_suffix="_relaxed", 
+                    ptx_loadstore_suffix=".relaxed", fn_loadstore_suffix="_relaxed", is_relaxed=True)
+        const_ptr_expr = s.ptr_expr.format(
+            ptr=f"const_cast<thrust::complex<{t.name}>*>(ptr)")
+        mut_ptr_expr = s.ptr_expr.format(ptr="ptr")
+        print(f"""
 __device__ __forceinline__ thrust::complex<{t.name}> load_relaxed{s.fn_suffix}(const thrust::complex<{t.name}>* ptr)
 {{
-    {t.parent_name} real_result;
-    {t.parent_name} imag_result;
+    {parent_name} real_result;
+    {parent_name} imag_result;
     asm volatile("{{"
-        "  .reg .v2 {t.ptx_type_suffix} t;"
+        "  .reg .v2 {reg_type_suffix} t;"
 #if __CUDA_ARCH__ < 700
-        "ld.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
+        "ld.volatile{s.ptx_space_suffix}.v2{ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
 #else
-        "ld.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
+        "ld.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{ptx_mem_type_suffix} {{t.x, t.y}}, [%2];"
 #endif
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t.x;"
-        "  cvt{t.ptx_parent_type_suffix}{t.ptx_type_suffix} %1, t.y;"
+        "  cvt{ptx_parent_type_suffix}{t.ptx_type_suffix} %0, t.x;"
+        "  cvt{ptx_parent_type_suffix}{t.ptx_type_suffix} %1, t.y;"
         "}}"
         : "={t.val_constraint}"(real_result), "={t.val_constraint}"(imag_result)
         : "{s.ptr_constraint}"({const_ptr_expr})
@@ -338,16 +342,16 @@ __device__ __forceinline__ thrust::complex<{t.name}> load_relaxed{s.fn_suffix}(c
 
 __device__ __forceinline__ void store_relaxed{s.fn_suffix}(thrust::complex<{t.name}>* ptr, thrust::complex<{t.name}> result)
 {{
-    auto real_result = static_cast<{t.parent_name}>(result.real());
-    auto imag_result = static_cast<{t.parent_name}>(result.imag());
+    auto real_result = static_cast<{parent_name}>(result.real());
+    auto imag_result = static_cast<{parent_name}>(result.imag());
     asm volatile("{{"
-        "  .reg .v2 {t.ptx_type_suffix} t;"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.x, %1;"
-        "  cvt.rn{t.ptx_type_suffix}{t.ptx_parent_type_suffix} t.y, %2;"
+        "  .reg .v2 {reg_type_suffix} t;"
+        "  cvt.rn{t.ptx_type_suffix}{ptx_parent_type_suffix} t.x, %1;"
+        "  cvt.rn{t.ptx_type_suffix}{ptx_parent_type_suffix} t.y, %2;"
 #if __CUDA_ARCH__ < 700
-        "st.volatile{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;"
+        "st.volatile{s.ptx_space_suffix}.v2{ptx_mem_type_suffix} [%0], t;"
 #else
-        "st.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{t.ptx_mem_type_suffix} [%0], t;"
+        "st.relaxed{s.ptx_scope_suffix}{s.ptx_space_suffix}.v2{ptx_mem_type_suffix} [%0], t;"
 #endif
         "}}"
         :: "{s.ptr_constraint}"({mut_ptr_expr}), "{t.val_constraint}"(real_result), "{t.val_constraint}"(imag_result)
