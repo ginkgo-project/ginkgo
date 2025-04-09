@@ -185,12 +185,13 @@ int main(int argc, char* argv[])
     exec->synchronize();
     comm.synchronize();
     auto t_spmv_end = gko::experimental::mpi::get_walltime();
-
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
+
     if (comm.rank() == 0) {
         // clang-format off
-        std::cout << "Num rows in matrix: " << num_rows
+        std::cout << "Executor: " << exec->get_description()
+                  << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
                   << "\nAvg apply time: " << (t_spmv_end - t_spmv_start)/rep
                   << std::endl;
