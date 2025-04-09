@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -367,6 +367,11 @@ struct float_to_unsigned_impl<__half> {
     using type = uint16;
 };
 
+template <>
+struct float_to_unsigned_impl<__nv_bfloat16> {
+    using type = uint16;
+};
+
 /**
  * Checks if a floating point number representation matches the representation
  * of the quiet NaN with value gko::nan() exactly.
@@ -410,7 +415,7 @@ __global__ void sptrsv_naive_caching_kernel(
     // memory operation on the half-precision shared_memory seem to give
     // wrong result. we use float in shared_memory.
     using SharedValueType = std::conditional_t<
-        std::is_same<remove_complex<ValueType>, __half>::value,
+        std::is_same<remove_complex<ValueType>, device_type<float16>>::value,
         std::conditional_t<is_complex<ValueType>(), thrust::complex<float>,
                            float>,
         ValueType>;
