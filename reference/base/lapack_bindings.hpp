@@ -9,10 +9,13 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+
 #if GKO_HAVE_LAPACK
 
 
 extern "C" {
+
+
 void ssygvd(const std::int32_t* itype, const char* jobz, const char* uplo,
             const std::int32_t* n, float* A, const std::int32_t* lda, float* B,
             const std::int32_t* ldb, float* w, float* work,
@@ -39,6 +42,7 @@ void zhegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
             std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
 }
+
 
 namespace gko {
 namespace kernels {
