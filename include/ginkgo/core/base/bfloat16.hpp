@@ -393,7 +393,7 @@ struct numeric_limits<gko::bfloat16> {
 
     static constexpr gko::bfloat16 epsilon()
     {
-        constexpr auto bits = static_cast<std::uint16_t>(0b0'00000101'0000000u);
+        constexpr auto bits = static_cast<std::uint16_t>(0b0'01111000'0000000u);
         return gko::bfloat16::create_from_bits(bits);
     }
 
