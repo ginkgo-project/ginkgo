@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,8 +17,6 @@
 
 
 namespace gko {
-
-class half;
 
 /* Eliminate circular dependencies the hard way */
 template <typename ValueType>
@@ -588,7 +586,8 @@ protected:
      * @param residual_norms  the array storing the residual norms.
      */
     virtual void on_batch_solver_completed(
-        const array<int>& iters, const array<gko::half>& residual_norms) const
+        const array<int>& iters,
+        const array<gko::float16>& residual_norms) const
     {}
 
 public:

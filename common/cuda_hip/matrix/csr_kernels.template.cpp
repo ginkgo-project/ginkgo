@@ -2093,7 +2093,7 @@ bool load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
 
     // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+    if constexpr (sizeof(remove_complex<OutputValueType>) == sizeof(int16)) {
         return false;
     } else
 #endif

@@ -1381,7 +1381,7 @@ bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
     // not support 16 bit atomic
-    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+    if constexpr (sizeof(remove_complex<OutputValueType>) == sizeof(int16)) {
         return false;
     } else {
         if (beta) {
@@ -1436,7 +1436,8 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                 matrix::Dense<ValueType>* c)
 {
     constexpr bool try_sparselib =
-        !is_complex<ValueType>() && !std::is_same<ValueType, gko::half>::value;
+        !is_complex<ValueType>() &&
+        !std::is_same<ValueType, gko::float16>::value;
     if constexpr (try_sparselib) {
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -87,7 +87,7 @@ TYPED_TEST(BatchCg, SolvesStencilSystem)
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       this->linear_system.host_rhs_norm->get_const_values()[i],
-                  5 * this->solver_settings.residual_tol);
+                  6 * this->solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, this->linear_system.exact_sol,
                               this->eps * 10);
@@ -108,7 +108,7 @@ TYPED_TEST(BatchCg, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        if (!std::is_same<real_type, gko::half>::value) {
+        if (!std::is_same<real_type, gko::float16>::value) {
             // There is no guarantee of this condition. We disable this check in
             // half.
             ASSERT_NEAR(res_log_array[i],

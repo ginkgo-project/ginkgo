@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -107,8 +107,8 @@ using value_type_list_base =
 
 #if GINKGO_ENABLE_HALF
 using value_type_list =
-    syn::type_list<double, float, half, std::complex<double>,
-                   std::complex<float>, std::complex<half>>;
+    syn::type_list<double, float, float16, std::complex<double>,
+                   std::complex<float>, std::complex<float16>>;
 #else
 using value_type_list = value_type_list_base;
 #endif  // GINKGO_ENABLE_HALF

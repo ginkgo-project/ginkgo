@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -52,7 +51,7 @@ inline ResultType copy_cast(const ValueType& val)
 
 
 template <>
-inline void atomic_add(half& out, half val)
+inline void atomic_add(float16& out, float16 val)
 {
 #ifdef __NVCOMPILER
 // NVC++ uses atomic capture on uint16 leads the following error.
@@ -63,8 +62,8 @@ inline void atomic_add(half& out, half val)
     }
 #else
     static_assert(
-        sizeof(half) == sizeof(uint16_t) &&
-            std::alignment_of_v<uint16_t> == std::alignment_of_v<half>,
+        sizeof(float16) == sizeof(uint16_t) &&
+            std::alignment_of_v<uint16_t> == std::alignment_of_v<float16>,
         "half does not fulfill the requirement of reinterpret_cast to half or "
         "vice versa.");
     // It is undefined behavior with reinterpret_cast, but we do not have any
@@ -74,7 +73,7 @@ inline void atomic_add(half& out, half val)
     uint16_t assumed;
     do {
         assumed = old;
-        auto answer = copy_cast<uint16_t>(copy_cast<half>(assumed) + val);
+        auto answer = copy_cast<uint16_t>(copy_cast<float16>(assumed) + val);
 #pragma omp atomic capture
         {
             old = *address_as_converter;
@@ -112,7 +111,7 @@ inline void store(int64* addr, int64 val)
     *addr = val;
 }
 
-inline void store(half* addr, half val)
+inline void store(float16* addr, float16 val)
 {
     auto uint_addr = copy_cast<uint16_t*>(addr);
     auto uint_val = copy_cast<uint16_t>(val);
@@ -162,13 +161,13 @@ inline int64 load(int64* addr)
     return val;
 }
 
-inline half load(half* addr)
+inline float16 load(float16* addr)
 {
     uint16_t uint_val;
     auto uint_addr = copy_cast<uint16_t*>(addr);
 #pragma omp atomic read
     uint_val = *uint_addr;
-    return copy_cast<half>(uint_val);
+    return copy_cast<float16>(uint_val);
 }
 
 template <typename T>

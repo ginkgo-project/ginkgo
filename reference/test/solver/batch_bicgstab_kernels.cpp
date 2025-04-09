@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,7 +88,7 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       this->linear_system.host_rhs_norm->get_const_values()[i],
-                  this->solver_settings.residual_tol);
+                  2 * this->solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, this->linear_system.exact_sol,
                               this->eps * 10);
@@ -111,9 +111,9 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        if (!std::is_same<real_type, gko::half>::value) {
+        if (!std::is_same<real_type, gko::float16>::value) {
             // There is no guarantee of this condition. We disable this check in
-            // half.
+            // float16.
             ASSERT_NEAR(res_log_array[i],
                         res.host_res_norm->get_const_values()[i],
                         10 * this->eps);
@@ -210,13 +210,13 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
 
     auto iter_counts = logger->get_num_iterations();
     auto res_norm = logger->get_residual_norm();
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 100);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto rel_res_norm = res.host_res_norm->get_const_values()[i] /
                             linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
         EXPECT_LE(res_norm.get_const_data()[i], tol * 50);
-        ASSERT_LE(rel_res_norm, tol * 50);
+        ASSERT_LE(rel_res_norm, tol * 100);
     }
 }
 

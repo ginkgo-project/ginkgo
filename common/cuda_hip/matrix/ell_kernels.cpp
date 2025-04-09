@@ -256,9 +256,9 @@ void abstract_spmv(syn::value_list<int, info>,
     // We do atomic on shared memory when num_thread_per_worker is not 1.
     // If atomic is also true, we also do atomic on out_vector.
     constexpr bool shared_half =
-        std::is_same_v<remove_complex<arithmetic_type>, half>;
+        sizeof(remove_complex<arithmetic_type>) == sizeof(int16);
     constexpr bool atomic_half_out =
-        atomic && std::is_same_v<remove_complex<OutputValueType>, half>;
+        atomic && sizeof(remove_complex<OutputValueType>) == sizeof(int16);
     if constexpr (num_thread_per_worker != 1 &&
                   (shared_half || atomic_half_out)) {
         GKO_KERNEL_NOT_FOUND;
