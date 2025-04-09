@@ -22,11 +22,8 @@ namespace reference {
 namespace lobpcg {
 
 
-using gko::kernels::lobpcg::workspace_mode;
-
 template <typename ValueType>
 void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
-                          const workspace_mode alloc,
                           matrix::Dense<ValueType>* a,
                           matrix::Dense<ValueType>* b,
                           array<remove_complex<ValueType>>* e_vals,
@@ -63,12 +60,12 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
             &itype, &job, &uplo, &n, a->get_values(), &lda, b->get_values(),
             &ldb, e_vals->get_data(), work, &fp_buffer_num_elems,
             tmp_iwork.get_data(), &int_buffer_num_elems);
-        if (alloc == workspace_mode::allocate) {
-            size_type total_bytes = sizeof(ValueType) * fp_buffer_num_elems +
-                                    sizeof(int32) * int_buffer_num_elems;
+        size_type total_bytes = sizeof(ValueType) * fp_buffer_num_elems +
+                                sizeof(int32) * int_buffer_num_elems;
+        if (workspace->get_size() < total_bytes) {
             workspace->resize_and_reset(total_bytes);
-            work = reinterpret_cast<ValueType*>(workspace->get_data());
         }
+        work = reinterpret_cast<ValueType*>(workspace->get_data());
         // Set iwork pointer inside the workspace array
         int32* iwork = reinterpret_cast<int32*>(
             workspace->get_data() + sizeof(ValueType) * fp_buffer_num_elems);
@@ -87,14 +84,14 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
             &ldb, e_vals->get_data(), work, &fp_buffer_num_elems,
             tmp_rwork.get_data(), &rfp_buffer_num_elems, tmp_iwork.get_data(),
             &int_buffer_num_elems);
-        if (alloc == workspace_mode::allocate) {
-            size_type total_bytes =
-                sizeof(ValueType) * fp_buffer_num_elems +
-                sizeof(remove_complex<ValueType>) * rfp_buffer_num_elems +
-                sizeof(int32) * int_buffer_num_elems;
+        size_type total_bytes =
+            sizeof(ValueType) * fp_buffer_num_elems +
+            sizeof(remove_complex<ValueType>) * rfp_buffer_num_elems +
+            sizeof(int32) * int_buffer_num_elems;
+        if (workspace->get_size() < total_bytes) {
             workspace->resize_and_reset(total_bytes);
-            work = reinterpret_cast<ValueType*>(workspace->get_data());
         }
+        work = reinterpret_cast<ValueType*>(workspace->get_data());
         // Set rwork and iwork pointers inside the workspace array
         remove_complex<ValueType>* rwork =
             reinterpret_cast<remove_complex<ValueType>*>(
