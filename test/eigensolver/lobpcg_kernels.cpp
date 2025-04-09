@@ -4,9 +4,6 @@
 
 #include "core/eigensolver/lobpcg_kernels.hpp"
 
-#include <algorithm>
-#include <limits>
-
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/array.hpp>
@@ -87,7 +84,7 @@ protected:
     Ary_r d_small_e_vals;
 };
 
-TYPED_TEST_SUITE(Lobpcg, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Lobpcg, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
@@ -96,7 +93,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Ary_r = typename TestFixture::Ary_r;
     using Ary = typename TestFixture::Ary;
-    using T = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
 
     auto refwork = gko::array<char>(this->ref, 1);
     auto d_work = gko::array<char>(this->exec, 1);
@@ -104,7 +101,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
     std::shared_ptr<Mtx> d_small_a_copy;
     std::shared_ptr<Mtx> d_small_b_copy;
 
-    if constexpr (gko::is_complex_s<T>::value) {
+    if constexpr (gko::is_complex_s<value_type>::value) {
         auto small_a_t =
             gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
         auto small_b_t =
@@ -136,56 +133,43 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
         this->d_small_b = this->d_small_b_r;
     }
 
-    if (std::is_same_v<gko::remove_complex<T>, gko::half>) {
-        EXPECT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
-                         this->ref, this->small_a.get(), this->small_b.get(),
-                         &(this->small_e_vals), &refwork),
-                     gko::NotImplemented);
-        EXPECT_THROW(
-            gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
-                this->exec, this->d_small_a.get(), this->d_small_b.get(),
-                &(this->d_small_e_vals), &d_work),
-            gko::NotImplemented);
-        return;
-    } else {
-        gko::kernels::reference::lobpcg::symm_generalized_eig(
-            this->ref, this->small_a.get(), this->small_b.get(),
-            &(this->small_e_vals), &refwork);
-        gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
-            this->exec, this->d_small_a.get(), this->d_small_b.get(),
-            &(this->d_small_e_vals), &d_work);
+    gko::kernels::reference::lobpcg::symm_generalized_eig(
+        this->ref, this->small_a.get(), this->small_b.get(),
+        &(this->small_e_vals), &refwork);
+    gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
+        this->exec, this->d_small_a.get(), this->d_small_b.get(),
+        &(this->d_small_e_vals), &d_work);
 
-        const double tol =
-            100 * std::numeric_limits<gko::remove_complex<T>>::epsilon();
-        GKO_ASSERT_ARRAY_NEAR(this->d_small_e_vals, this->small_e_vals, tol);
+    const double tol = 10 * r<value_type>::value;
+    GKO_ASSERT_ARRAY_NEAR(this->d_small_e_vals, this->small_e_vals, tol);
 
-        // The eigenvectors may differ by a factor of -1 between libraries.
-        // Check for this and adjust before comparing output matrices.
-        for (gko::size_type i = 0; i < this->small_e_vals.get_size(); i++) {
-            auto evec = gko::share(Mtx::create(
-                this->ref, gko::dim<2>{this->small_e_vals.get_size(), 1},
-                Ary::view(this->ref, this->small_e_vals.get_size(),
-                          this->small_a->get_values() +
-                              i * this->small_e_vals.get_size()),
-                1));
-            T evec_first_entry = evec->at(0, 0);
+    // The eigenvectors may differ by a factor of -1 between libraries.
+    // Check for this and adjust before comparing output matrices.
+    for (gko::size_type i = 0; i < this->small_e_vals.get_size(); i++) {
+        auto evec = gko::share(Mtx::create(
+            this->ref, gko::dim<2>{this->small_e_vals.get_size(), 1},
+            Ary::view(this->ref, this->small_e_vals.get_size(),
+                      this->small_a->get_values() +
+                          i * this->small_e_vals.get_size()),
+            1));
+        value_type evec_first_entry = evec->at(0, 0);
 
-            auto d_evec_start = gko::share(
-                Mtx::create(this->exec, gko::dim<2>{1, 1},
-                            Ary::view(this->exec, 1,
-                                      this->d_small_a->get_values() +
-                                          i * this->d_small_e_vals.get_size()),
-                            1));
-            T d_evec_first_entry;
-            this->ref->copy_from(this->exec, 1, d_evec_start->get_values(),
-                                 &d_evec_first_entry);
+        auto d_evec_start = gko::share(
+            Mtx::create(this->exec, gko::dim<2>{1, 1},
+                        Ary::view(this->exec, 1,
+                                  this->d_small_a->get_values() +
+                                      i * this->d_small_e_vals.get_size()),
+                        1));
+        value_type d_evec_first_entry;
+        this->ref->copy_from(this->exec, 1, d_evec_start->get_values(),
+                             &d_evec_first_entry);
 
-            auto neg_one = gko::initialize<Mtx>({-gko::one<T>()}, this->exec);
-            if (gko::abs(evec_first_entry / d_evec_first_entry +
-                         gko::one<T>()) < tol) {
-                evec->scale(neg_one);
-            }
+        auto neg_one =
+            gko::initialize<Mtx>({-gko::one<value_type>()}, this->exec);
+        if (gko::abs(evec_first_entry / d_evec_first_entry +
+                     gko::one<value_type>()) < tol) {
+            evec->scale(neg_one);
         }
-        GKO_ASSERT_MTX_NEAR(this->d_small_a, this->small_a, tol);
     }
+    GKO_ASSERT_MTX_NEAR(this->d_small_a, this->small_a, tol);
 }
