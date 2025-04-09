@@ -67,10 +67,16 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
                           b->get_values(), ldb, e_vals->get_data(),
                           reinterpret_cast<ValueType*>(workspace->get_data()),
                           fp_buffer_num_elems, dev_info.get_data());
+
+        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
+        if (host_info != 0) {
+            throw GKO_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+        }
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
         int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         std::cout << "devInfo was " << host_info << std::endl;
+        throw;
     }
 }
 
