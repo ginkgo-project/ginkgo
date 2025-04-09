@@ -4,9 +4,6 @@
 
 #include "core/eigensolver/lobpcg_kernels.hpp"
 
-#include <algorithm>
-#include <limits>
-
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/array.hpp>
@@ -17,9 +14,6 @@
 
 #include "core/test/utils.hpp"
 #include "reference/base/lapack_bindings.hpp"
-
-
-namespace {
 
 
 template <typename T>
@@ -76,7 +70,7 @@ protected:
     Ary_r small_e_vals;
 };
 
-TYPED_TEST_SUITE(Lobpcg, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(Lobpcg, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
 TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
@@ -86,7 +80,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     using Mtx = typename TestFixture::Mtx;
     using Ary_r = typename TestFixture::Ary_r;
     using Ary = typename TestFixture::Ary;
-    using T = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
 
     auto work = gko::array<char>(this->exec, 1);
     std::shared_ptr<Mtx> small_a;
@@ -95,7 +89,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     std::shared_ptr<Mtx> small_a_copy;
     std::shared_ptr<Mtx> small_b_copy;
 
-    if constexpr (gko::is_complex_s<T>::value) {
+    if constexpr (gko::is_complex_s<value_type>::value) {
         small_a_copy = gko::clone(this->small_a_cmplx);
         small_b_copy = gko::clone(this->small_b_cmplx);
         // LAPACK expects column-major, so transpose the matrices
@@ -115,18 +109,8 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
         small_b = this->small_b_r;
     }
 
-    if (std::is_same_v<gko::remove_complex<T>, gko::half>) {
-        EXPECT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
-                         this->exec, small_a.get(), small_b.get(),
-                         &(this->small_e_vals), &work),
-                     gko::NotImplemented);
-    } else {
-        gko::kernels::reference::lobpcg::symm_generalized_eig(
-            this->exec, small_a.get(), small_b.get(), &(this->small_e_vals),
-            &work);
-    }
-
-    if (std::is_same_v<gko::remove_complex<T>, gko::half>) return;
+    gko::kernels::reference::lobpcg::symm_generalized_eig(
+        this->exec, small_a.get(), small_b.get(), &(this->small_e_vals), &work);
 
     // On exit, the eigenvectors will be stored in the A
     // matrix. We create submatrices for the vectors
@@ -143,7 +127,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
             this->exec, gko::dim<2>{1, 1},
             Ary_r::view(this->exec, 1, this->small_e_vals.get_data() + i), 1));
         std::shared_ptr<Mtx> lambda;
-        if constexpr (gko::is_complex_s<T>::value) {
+        if constexpr (gko::is_complex_s<value_type>::value) {
             lambda = lambda_r->make_complex();
         } else {
             lambda = lambda_r;
@@ -153,18 +137,13 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
                                gko::dim<2>{this->small_e_vals.get_size(), 1});
         auto lambda_b_x = Mtx::create(
             this->exec, gko::dim<2>{this->small_e_vals.get_size(), 1});
-        lambda_b_x->fill(gko::zero<T>());
-        auto one = gko::initialize<Mtx>({gko::one<T>()}, this->exec);
+        lambda_b_x->fill(gko::zero<value_type>());
+        auto one = gko::initialize<Mtx>({gko::one<value_type>()}, this->exec);
         // a_x = A * x
         small_a_copy->apply(evec, a_x);
         // lambda_b_x = lambda * B * x
         small_b_copy->apply(lambda, evec, one, lambda_b_x);
 
-        const double tol =
-            100 * std::numeric_limits<gko::remove_complex<T>>::epsilon();
-        GKO_ASSERT_MTX_NEAR(a_x, lambda_b_x, tol);
+        GKO_ASSERT_MTX_NEAR(a_x, lambda_b_x, r<value_type>::value);
     }
 }
-
-
-}  // namespace
