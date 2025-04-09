@@ -18,27 +18,12 @@ namespace gko {
 namespace kernels {
 namespace lobpcg {
 
-/**
- * Set the workspace mode for LAPACK/cuSOLVER/rocSOLVER/MKL calls
- */
-enum class workspace_mode {
-    /**
-     * Query workspace size and allocate required memory
-     */
-    allocate,
-    /**
-     * Use workspace that has already been allocated
-     */
-    use_preallocated
-};
 
-
-#define GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(_type) \
-    void symm_generalized_eig(                                \
-        std::shared_ptr<const DefaultExecutor> exec,          \
-        const gko::kernels::lobpcg::workspace_mode alloc,     \
-        matrix::Dense<_type>* a, matrix::Dense<_type>* b,     \
-        array<remove_complex<_type>>* e_vals, array<char>* workspace)
+#define GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(_type)                 \
+    void symm_generalized_eig(                                                \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type>* a, \
+        matrix::Dense<_type>* b, array<remove_complex<_type>>* e_vals,        \
+        array<char>* workspace)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

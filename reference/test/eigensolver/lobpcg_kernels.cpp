@@ -116,15 +116,14 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     }
 
     if (std::is_same_v<gko::remove_complex<T>, gko::half>) {
-        EXPECT_THROW(
-            gko::kernels::reference::lobpcg::symm_generalized_eig(
-                this->exec, gko::kernels::lobpcg::workspace_mode::allocate,
-                small_a.get(), small_b.get(), &(this->small_e_vals), &work),
-            gko::NotImplemented);
+        EXPECT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
+                         this->exec, small_a.get(), small_b.get(),
+                         &(this->small_e_vals), &work),
+                     gko::NotImplemented);
     } else {
         gko::kernels::reference::lobpcg::symm_generalized_eig(
-            this->exec, gko::kernels::lobpcg::workspace_mode::allocate,
-            small_a.get(), small_b.get(), &(this->small_e_vals), &work);
+            this->exec, small_a.get(), small_b.get(), &(this->small_e_vals),
+            &work);
     }
 
     if (std::is_same_v<gko::remove_complex<T>, gko::half>) return;

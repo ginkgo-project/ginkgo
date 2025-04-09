@@ -137,27 +137,22 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
     }
 
     if (std::is_same_v<gko::remove_complex<T>, gko::half>) {
-        EXPECT_THROW(
-            gko::kernels::reference::lobpcg::symm_generalized_eig(
-                this->ref, gko::kernels::lobpcg::workspace_mode::allocate,
-                this->small_a.get(), this->small_b.get(), &(this->small_e_vals),
-                &refwork),
-            gko::NotImplemented);
+        EXPECT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
+                         this->ref, this->small_a.get(), this->small_b.get(),
+                         &(this->small_e_vals), &refwork),
+                     gko::NotImplemented);
         EXPECT_THROW(
             gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
-                this->exec, gko::kernels::lobpcg::workspace_mode::allocate,
-                this->d_small_a.get(), this->d_small_b.get(),
+                this->exec, this->d_small_a.get(), this->d_small_b.get(),
                 &(this->d_small_e_vals), &d_work),
             gko::NotImplemented);
         return;
     } else {
         gko::kernels::reference::lobpcg::symm_generalized_eig(
-            this->ref, gko::kernels::lobpcg::workspace_mode::allocate,
-            this->small_a.get(), this->small_b.get(), &(this->small_e_vals),
-            &refwork);
+            this->ref, this->small_a.get(), this->small_b.get(),
+            &(this->small_e_vals), &refwork);
         gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
-            this->exec, gko::kernels::lobpcg::workspace_mode::allocate,
-            this->d_small_a.get(), this->d_small_b.get(),
+            this->exec, this->d_small_a.get(), this->d_small_b.get(),
             &(this->d_small_e_vals), &d_work);
 
         const double tol =
