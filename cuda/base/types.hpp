@@ -204,8 +204,8 @@ struct cuda_type_impl<__half2> {
 };
 
 template <>
-struct cuda_type_impl<__bfloat162> {
-    using type = thrust::complex<__bfloat16>;
+struct cuda_type_impl<__nv_bfloat162> {
+    using type = thrust::complex<__nv_bfloat16>;
 };
 
 template <typename T>

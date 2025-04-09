@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 #include <climits>
 #include <cmath>
 
+#include <sycl/ext/oneapi/bfloat16.hpp>
 #include <sycl/half_type.hpp>
 
 #include <ginkgo/core/base/math.hpp>
@@ -28,9 +29,22 @@ struct basic_float_traits<sycl::half> {
     static constexpr bool rounds_to_nearest = true;
 };
 
+template <>
+struct basic_float_traits<sycl::ext::oneapi::bfloat16> {
+    using type = sycl::ext::oneapi::bfloat16;
+    static constexpr int sign_bits = 1;
+    static constexpr int significand_bits = 7;
+    static constexpr int exponent_bits = 8;
+    static constexpr bool rounds_to_nearest = true;
+};
+
 
 template <>
 struct is_complex_or_scalar_impl<sycl::half> : public std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<sycl::ext::oneapi::bfloat16>
+    : public std::true_type {};
 
 template <typename ValueType>
 struct complex_helper {
@@ -40,6 +54,11 @@ struct complex_helper {
 template <>
 struct complex_helper<sycl::half> {
     using type = gko::complex<sycl::half>;
+};
+
+template <>
+struct complex_helper<sycl::ext::oneapi::bfloat16> {
+    using type = gko::complex<sycl::ext::oneapi::bfloat16>;
 };
 
 
@@ -110,6 +129,56 @@ bool __dpct_inline__ is_finite(const sycl::half& value)
 }
 
 bool __dpct_inline__ is_finite(const gko::complex<sycl::half>& value)
+{
+    return is_finite(value.real()) && is_finite(value.imag());
+}
+
+
+bool __dpct_inline__ is_nan(const sycl::ext::oneapi::bfloat16& val)
+{
+    return std::isnan(static_cast<float>(val));
+}
+
+bool __dpct_inline__
+is_nan(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+
+sycl::ext::oneapi::bfloat16 __dpct_inline__
+abs(const sycl::ext::oneapi::bfloat16& val)
+{
+    return abs(static_cast<float>(val));
+}
+
+sycl::ext::oneapi::bfloat16 __dpct_inline__
+abs(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+{
+    return abs(static_cast<std::complex<float>>(val));
+}
+
+sycl::ext::oneapi::bfloat16 __dpct_inline__
+sqrt(const sycl::ext::oneapi::bfloat16& val)
+{
+    return sqrt(static_cast<float>(val));
+}
+
+gko::complex<sycl::ext::oneapi::bfloat16> __dpct_inline__
+sqrt(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+{
+    return sqrt(static_cast<std::complex<float>>(val));
+}
+
+
+bool __dpct_inline__ is_finite(const sycl::ext::oneapi::bfloat16& value)
+{
+    return abs(value) <
+           std::numeric_limits<sycl::ext::oneapi::bfloat16>::infinity();
+}
+
+bool __dpct_inline__
+is_finite(const gko::complex<sycl::ext::oneapi::bfloat16>& value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }
