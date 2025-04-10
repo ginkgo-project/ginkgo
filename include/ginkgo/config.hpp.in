@@ -125,6 +125,11 @@
 #cmakedefine01 GINKGO_ENABLE_HALF
 // clang-format on
 
+/* Is bfloat16 operation available ? */
+// clang-format off
+#cmakedefine01 GINKGO_ENABLE_BFLOAT16
+// clang-format on
+
 
 /* Do we need to use blocking communication in our SpMV? */
 // clang-format off

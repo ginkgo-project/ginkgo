@@ -247,7 +247,7 @@ private:
         run<gko::matrix::Dense<double>, gko::matrix::Dense<float>,
             gko::matrix::Dense<std::complex<double>>,
             gko::matrix::Dense<std::complex<float>>,
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             gko::matrix::Dense<gko::float16>,
             gko::matrix::Dense<std::complex<gko::float16>>,
             gko::WritableToMatrixData<gko::float16, int32>,

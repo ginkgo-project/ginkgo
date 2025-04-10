@@ -571,7 +571,7 @@ TEST(MtxReader, ReadsBinary)
     test_read(gko::matrix_data<double, gko::int64>{});
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     test_read(gko::matrix_data<gko::float16, gko::int32>{});
     test_read(gko::matrix_data<std::complex<gko::float16>, gko::int32>{});
     test_read(gko::matrix_data<gko::float16, gko::int64>{});
@@ -632,7 +632,7 @@ TEST(MtxReader, ReadsComplexBinary)
     test_read_fail(gko::matrix_data<double, gko::int64>{});
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     test_read_fail(gko::matrix_data<gko::float16, gko::int32>{});
     test_read(gko::matrix_data<std::complex<gko::float16>, gko::int32>{});
     test_read_fail(gko::matrix_data<gko::float16, gko::int64>{});

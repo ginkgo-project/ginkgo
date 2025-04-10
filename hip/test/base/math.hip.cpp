@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -129,6 +129,24 @@ TEST_F(IsFinite, HalfComplex)
 
 
 #endif  // GINKGO_ENABLE_HALF
+
+
+#if GINKGO_ENABLE_BFLOAT16
+
+
+TEST_F(IsFinite, Bfloat16)
+{
+    ASSERT_TRUE(test_real_is_finite_kernel<vendor_bf16>());
+}
+
+
+TEST_F(IsFinite, Bfloat16Complex)
+{
+    ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<vendor_bf16>>());
+}
+
+
+#endif  // GINKGO_ENABLE_BFLOAT16
 
 
 TEST_F(IsFinite, FloatComplex)

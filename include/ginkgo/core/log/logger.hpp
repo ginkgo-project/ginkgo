@@ -578,6 +578,10 @@ protected:
         const array<int>& iters, const array<float>& residual_norms) const
     {}
 
+
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+
+
     /**
      * Batch solver's event that records the iteration count and the residual
      * norm.
@@ -589,6 +593,10 @@ protected:
         const array<int>& iters,
         const array<gko::float16>& residual_norms) const
     {}
+
+
+#endif
+
 
 public:
 #undef GKO_LOGGER_REGISTER_EVENT
