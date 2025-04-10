@@ -105,6 +105,9 @@ public:
          * sum of the non-local matrix entries. The diagonal matrix
          * is then added to the system matrix when generating the
          * local solver.
+         *
+         * Note: The L1 smoother will not be used for the coarse level matrix
+         * generation, and the original system matrix will still be used.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(l1_smoother, false);
 
