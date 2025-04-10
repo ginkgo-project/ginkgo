@@ -23,7 +23,7 @@ using vendor_bf16 = __nv_bfloat16;
 #elif defined(GKO_COMPILING_HIP)
 
 
-#include <hip/hip_bfloat16.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
 
 using vendor_bf16 = hip_bfloat16;
@@ -237,7 +237,7 @@ __device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
 __device__ __forceinline__ bool is_nan(const vendor_bf16& val)
 {
     // from the cuda_fp16.hpp
-#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return __hisnan(val);
 #else
     return isnan(static_cast<float>(val));
@@ -252,7 +252,7 @@ __device__ __forceinline__ bool is_nan(const thrust::complex<vendor_bf16>& val)
 
 __device__ __forceinline__ vendor_bf16 abs(const vendor_bf16& val)
 {
-#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return __habs(val);
 #else
     return abs(static_cast<float>(val));
@@ -261,7 +261,7 @@ __device__ __forceinline__ vendor_bf16 abs(const vendor_bf16& val)
 
 __device__ __forceinline__ vendor_bf16 sqrt(const vendor_bf16& val)
 {
-#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 530)
+#if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return hsqrt(val);
 #else
     return sqrt(static_cast<float>(val));
