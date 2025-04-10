@@ -108,8 +108,10 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 
     // Two-level
     if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
-        this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                   gko::detail::get_local(dense_x));
+        if (this->local_solver_) {
+            this->local_solver_->apply(gko::detail::get_local(dense_b),
+                                       gko::detail::get_local(dense_x));
+        }
         auto coarse_level =
             as<gko::multigrid::MultigridLevel>(this->coarse_level_);
         auto restrict_op = coarse_level->get_restrict_op();
@@ -244,7 +246,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
     gko::remove_complex<ValueType> cweight =
         gko::detail::real_impl(parameters_.coarse_weight);
-    if (cweight > 0.0 && cweight <= 1.0) {
+    if (cweight >= 0.0 && cweight <= 1.0) {
         this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
             {one<ValueType>() -
              static_cast<ValueType>(parameters_.coarse_weight)},
@@ -262,11 +264,17 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     if (parameters_.coarse_level && parameters_.coarse_solver) {
         this->coarse_level_ =
             share(parameters_.coarse_level->generate(system_matrix));
+        if (this->coarse_level_ == nullptr) {
+            GKO_NOT_SUPPORTED(this->coarse_level_);
+        }
         if (auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
                               ->get_coarse_op()) {
             this->coarse_solver_ = share(parameters_.coarse_solver->generate(
                 as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
                     coarse)));
+            if (this->coarse_solver_ == nullptr) {
+                GKO_NOT_SUPPORTED(this->coarse_solver_);
+            }
         }
     }
 }
