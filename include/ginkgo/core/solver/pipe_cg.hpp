@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,15 +29,28 @@ namespace solver {
 
 
 /**
- * PIPE_CG or the conjugate gradient method is an iterative type Krylov subspace
- * method which is suitable for symmetric positive definite methods.
+ * PIPE_CG or the pipelined conjugate gradient method is an iterative type
+ * Krylov subspace method which is suitable for symmetric positive definite
+ * methods. It improves upon the CG method by allowing computation of inner
+ * products and norms to be overlapped with operator and preconditioner
+ * application. The pipelined method scales up to the 10^6 nodes of the assumed
+ * exascale machine, while its standard counterpart level off about one order of
+ * magnitude earlier, as suggested in the referenced paper (see below).
  *
- * Though this method performs very well for symmetric positive definite
- * matrices, it is in general not suitable for general matrices.
+ * Possible issues:
+ * 1. Numerical instability: Due to the rearrangement of the operations, the
+ * method is known to be less stable than standard PCG.
+ * 2. The method is suitable for cases where a large number of iterations need
+ * to be performed and when the solver is distributed over a large number of
+ * distributed nodes. The advantage of lesser number of reductions that need to
+ * be performed comes at the cost of increased vector operations, and the cost
+ * of increased storage of vectors.
+ * 3. As the CG itself, this method performs very well for symmetric positive
+ * definite matrices but it is in general not suitable for general matrices.
  *
- * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of PIPE_CG are
- * merged into 2 separate steps.
+ * The implementation in Ginkgo is based on the following paper:
+ * Pipelined, Flexible Krylov Subspace Methods, P. Sanan et. al, SISC, 2016,
+ * doi: 10.1137/15M1049130
  *
  * @tparam ValueType  precision of matrix elements
  *
