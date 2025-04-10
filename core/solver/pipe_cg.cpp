@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -134,11 +134,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     this->get_preconditioner()->apply(w, m);
     // n = A * m
     this->get_system_matrix()->apply(m, n);
+    // TODO: merge these two dot products:
     // rho = dot(r, z)
     r->compute_conj_dot(z, rho, reduction_tmp);
     // delta = dot(w, z)
     w->compute_conj_dot(z, delta, reduction_tmp);
-    // can these two dot products above be merged in some way?
 
     // beta = delta
     // p = z
@@ -177,7 +177,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(m, n);
         // prev_rho = rho
         swap(prev_rho, rho);
-        // MERGE THESE TWO PRODUCTS:
+        // TODO: merge these two dot products:
         // rho = dot(r, z)
         r->compute_conj_dot(z, rho, reduction_tmp);
         // delta = dot(w, z)
