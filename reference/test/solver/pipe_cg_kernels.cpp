@@ -299,6 +299,41 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
 }
 
 
+TYPED_TEST(PipeCg, KernelStep2BetaZero)
+{
+    this->small_z->fill(1);
+    this->small_w->fill(1);
+    this->small_m->fill(1);
+    this->small_n->fill(1);
+
+    this->small_p->fill(1);
+    this->small_q->fill(1);
+    this->small_f->fill(1);
+    this->small_g->fill(1);
+
+    this->small_rho->at(0) = 3;
+    this->small_rho->at(1) = 3;
+    this->small_prev_rho->at(0) = 3;
+    this->small_prev_rho->at(1) = 6;
+    this->small_beta->at(0) = 2;
+    this->small_beta->at(1) = 4;
+    this->small_delta->at(0) = 2;
+    this->small_delta->at(1) = 1;
+
+    this->small_stop.get_data()[0].reset();
+    this->small_stop.get_data()[1].reset();
+
+    gko::kernels::reference::pipe_cg::step_2(
+        this->exec, this->small_beta.get(), this->small_p.get(),
+        this->small_q.get(), this->small_f.get(), this->small_g.get(),
+        this->small_z.get(), this->small_w.get(), this->small_m.get(),
+        this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
+        this->small_delta.get(), &this->small_stop);
+
+    GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
+}
+
+
 TYPED_TEST(PipeCg, SolvesStencilSystem)
 {
     using Mtx = typename TestFixture::Mtx;

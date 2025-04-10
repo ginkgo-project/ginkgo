@@ -137,6 +137,9 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             auto tmp = rho->at(j) / prev_rho->at(j);
             auto abs_tmp = abs(tmp);
             beta->at(j) = delta->at(j) - abs_tmp * abs_tmp * beta->at(j);
+            if (is_zero(beta->at(j))) {
+                beta->at(j) = delta->at(j);
+            }
 
             for (size_type i = 0; i < p->get_size()[0]; ++i) {
                 p->at(i, j) = z->at(i, j) + tmp * p->at(i, j);
