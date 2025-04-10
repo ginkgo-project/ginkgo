@@ -39,13 +39,18 @@ namespace preconditioner {
  * generalizes the Block Jacobi preconditioner, incorporating options for
  * different local subdomain solvers and overlaps between the subdomains.
  *
+ * A L1 smoother variant is also available, which updates the local matrix with
+ * the sums of the non-local matrix row sums.
+ *
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
  *
  * A Two-level variant is also available. To enable two-level preconditioning,
  * you need to specify a LinOpFactory that can generate a
- * multigrid::MultigridLevel. Currently, only multiplicative coarse correction
- * is supported.
+ * multigrid::MultigridLevel and a solver for the coarse level solution.
+ * Currently, only additive coarse correction is supported with an optional
+ * weighting between the local and the coarse solutions, for cases when the
+ * coarse solutions might tend to overcorrect.
  * - See Smith, Bjorstad, Gropp, Domain Decomposition, 1996, Cambridge
  * University Press.
  *

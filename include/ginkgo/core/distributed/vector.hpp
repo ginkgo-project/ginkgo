@@ -538,7 +538,7 @@ public:
      * @note  The data form the local_vector will be moved into the new
      *        distributed vector. You could either move in a std::unique_ptr
      *        directly, copy a local vector with gko::clone, or create a
-     *        unique non-owining view of a given local vector with
+     *        unique non-owning view of a given local vector with
      *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
@@ -561,7 +561,7 @@ public:
      * @note  The data form the local_vector will be moved into the new
      *        distributed vector. You could either move in a std::unique_ptr
      *        directly, copy a local vector with gko::clone, or create a
-     *        unique non-owining view of a given local vector with
+     *        unique non-owning view of a given local vector with
      *        gko::make_dense_view.
      *
      * @param exec  Executor associated with this vector
