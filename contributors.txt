@@ -18,6 +18,7 @@ Hoemmen Mark <mhoemme@sandia.gov> Sandia National Laboratories
 Holeksa Claudius <mail@keldu.de> Karlsruhe Institute of Technology
 Kashi Aditya <aditya.kashi@kit.edu> Karlsruhe Institute of Technology
 Koch Marcel <marcel.koch@kit.edu> Karlsruhe Institute of Technology
+Krasnopolsky Atell Yehor <delta_atell@protonmail.com> University of Wuerzburg
 Maier Matthias <matthias@43-1.org> Texas A&M University
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
 Nguyen Phuong <phuong.nguyen@icl.utk.edu> University of Tennessee, Knoxville
