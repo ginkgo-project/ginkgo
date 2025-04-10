@@ -8,7 +8,11 @@
 
 #include <type_traits>
 
+#if HIP_VERSION >= 60200000
+#include <hip/hip_bf16.h>
+#else
 #include <hip/hip_bfloat16.h>
+#endif
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
 
@@ -142,7 +146,11 @@ struct hiplibs_type_impl<std::complex<half>> {
 
 template <>
 struct hiplibs_type_impl<bfloat16> {
+#if HIP_VERSION >= 60200000
+    using type = __hip_bfloat16;
+#else
     using type = hip_bfloat16;
+#endif
 };
 
 // Hip does not have bfloat162
@@ -226,7 +234,11 @@ struct hip_type_impl<gko::half> {
 
 template <>
 struct hip_type_impl<gko::bfloat16> {
+#if HIP_VERSION >= 60200000
+    using type = __hip_bfloat16;
+#else
     using type = hip_bfloat16;
+#endif
 };
 
 template <typename T>
@@ -268,7 +280,11 @@ struct hip_struct_member_type_impl<gko::half> {
 
 template <>
 struct hip_struct_member_type_impl<gko::bfloat16> {
+#if HIP_VERSION >= 60200000
+    using type = __hip_bfloat16;
+#else
     using type = hip_bfloat16;
+#endif
 };
 
 template <typename ValueType, typename IndexType>
@@ -293,7 +309,7 @@ constexpr hipblasDatatype_t hip_data_type_impl<half>()
 template <>
 constexpr hipblasDatatype_t hip_data_type_impl<bfloat16>()
 {
-    return HIPBLAS_R_16BF;
+    return HIPBLAS_R_16B;
 }
 
 template <>
