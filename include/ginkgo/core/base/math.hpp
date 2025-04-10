@@ -314,6 +314,9 @@ struct next_precision_base_impl<std::complex<T>> {
 };
 
 
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+
+
 template <typename T>
 struct next_precision_impl {};
 
@@ -337,6 +340,9 @@ template <typename T>
 struct next_precision_impl<std::complex<T>> {
     using type = std::complex<typename next_precision_impl<T>::type>;
 };
+
+
+#endif
 
 
 template <typename T>
@@ -438,7 +444,7 @@ using previous_precision_base = next_precision_base<T>;
 /**
  * Obtains the next type in the singly-linked precision list with half.
  */
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename T>
 using next_precision = typename detail::next_precision_impl<T>::type;
 

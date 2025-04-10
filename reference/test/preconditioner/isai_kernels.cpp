@@ -326,11 +326,11 @@ protected:
 
 
 // Due to NVHPC compilation limitation, we need to split it to two files.
-#ifdef NVHPC_HALF
-using HalfIndexTypes = gko::test::cartesian_type_product_t<
+#ifdef NVHPC_FLOAT16
+using Float16IndexTypes = gko::test::cartesian_type_product_t<
     ::testing::Types<gko::float16, std::complex<gko::float16>>,
     gko::test::IndexTypes>;
-TYPED_TEST_SUITE(Isai, HalfIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Isai, Float16IndexTypes, PairTypenameNameGenerator);
 #else
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesBase,
                  PairTypenameNameGenerator);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,7 +98,7 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
               public ConvertibleTo<
                   Fbcsr<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -156,7 +156,7 @@ public:
 
     void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
 
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Fbcsr<previous_precision<previous_precision<ValueType>>,
                        IndexType>;
     using ConvertibleTo<Fbcsr<next_precision<next_precision<ValueType>>,

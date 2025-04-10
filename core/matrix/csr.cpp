@@ -324,7 +324,7 @@ void Csr<ValueType, IndexType>::move_to(
     this->convert_to(result);
 }
 
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     Csr<next_precision<next_precision<ValueType>>, IndexType>* result) const

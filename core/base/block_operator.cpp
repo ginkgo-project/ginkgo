@@ -20,7 +20,7 @@ template <typename Fn>
 auto dispatch_dense(Fn&& fn, LinOp* v)
 {
     return run<matrix::Dense, float, double,
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                float16, std::complex<float16>,
 #endif
                std::complex<float>, std::complex<double>>(v,

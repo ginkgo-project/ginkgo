@@ -143,10 +143,13 @@ using uintptr = std::uintptr_t;
 
 
 /**
- * Half precision floating point type.
+ * 16 bit floating point type.
  */
-// using float16 = half;
+#if !GINKGO_ENABLE_BFLOAT16
+using float16 = half;
+#else
 using float16 = bfloat16;
+#endif
 
 
 /**
@@ -403,7 +406,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 // cuda half operation is supported from arch 5.3
-#if GINKGO_ENABLE_HALF && (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 530)
+// cuda bfloat16 arithemtic operation is supported from arch 8.0
+#if (GINKGO_ENABLE_HALF &&                                 \
+     (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 530)) || \
+    (GINKGO_ENABLE_BFLOAT16) &&                            \
+        (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 800)
 #define GKO_ADAPT_HF(_macro) _macro
 #else
 #define GKO_ADAPT_HF(_macro)                                                 \

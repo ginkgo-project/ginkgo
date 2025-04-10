@@ -138,11 +138,11 @@ struct is_complex_or_scalar_impl<thrust::complex<T>>
 }  // namespace gko
 
 
-#if GINKGO_ENABLE_HALF
-
-
 GKO_THRUST_NAEMSPACE_PREFIX
 namespace thrust {
+
+
+#if GINKGO_ENABLE_HALF
 
 
 template <>
@@ -158,6 +158,10 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
     return abs(static_cast<complex<float>>(z));
 }
 
+#endif  // GINKGO_ENABLE_HALF
+
+
+#if GINKGO_ENABLE_BFLOAT16
 
 template <>
 GKO_ATTRIBUTES GKO_INLINE complex<vendor_bf16> sqrt<vendor_bf16>(
@@ -175,6 +179,9 @@ abs<vendor_bf16>(const complex<vendor_bf16>& z)
 }
 
 
+#endif  // GINKGO_ENABLE_BFLOAT16
+
+
 }  // namespace thrust
 GKO_THRUST_NAEMSPACE_POSTFIX
 
@@ -185,6 +192,10 @@ namespace gko {
 // It is required by NVHPC 23.3, `isnan` is undefined when NVHPC is used as a
 // host compiler.
 #if defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
+
+
+#if GINKGO_ENABLE_HALF
+
 
 __device__ __forceinline__ bool is_nan(const __half& val)
 {
@@ -234,9 +245,15 @@ __device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
 }
 
 
+#endif  // GINKGO_ENABLE_HALF
+
+
+#if GINKGO_ENABLE_BFLOAT16
+
+
 __device__ __forceinline__ bool is_nan(const vendor_bf16& val)
 {
-    // from the cuda_fp16.hpp
+    // from the cuda_bf16.hpp
 #if GINKGO_HIP_PLATFORM_HCC || (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return __hisnan(val);
 #else
@@ -258,6 +275,7 @@ __device__ __forceinline__ vendor_bf16 abs(const vendor_bf16& val)
     return abs(static_cast<float>(val));
 #endif
 }
+
 
 __device__ __forceinline__ vendor_bf16 sqrt(const vendor_bf16& val)
 {
@@ -282,13 +300,12 @@ __device__ __forceinline__ bool is_finite(
     return is_finite(value.real()) && is_finite(value.imag());
 }
 
-#endif
+
+#endif  // GINKGO_ENABLE_BFLOAT16
+#endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
 
 
 }  // namespace gko
-
-
-#endif  // GINKGO_ENABLE_HALF
 
 
 #endif  // GKO_COMMON_CUDA_HIP_BASE_MATH_HPP_
