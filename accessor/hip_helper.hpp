@@ -21,6 +21,8 @@ struct __half;
 
 struct hip_bfloat16;
 
+struct __hip_bfloat16;
+
 
 namespace gko {
 
@@ -72,7 +74,11 @@ struct hip_type<gko::half> {
 
 template <>
 struct hip_type<gko::bfloat16> {
+#if HIP_VERSION >= 60200000
+    using type = __hip_bfloat16;
+#else
     using type = hip_bfloat16;
+#endif
 };
 
 

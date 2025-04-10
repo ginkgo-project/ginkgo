@@ -17,6 +17,7 @@
 
 class __nv_bfloat16;
 class hip_bfloat16;
+class __hip_bfloat16;
 
 
 namespace gko {
@@ -47,6 +48,15 @@ struct basic_float_traits<__nv_bfloat16> {
 template <>
 struct basic_float_traits<hip_bfloat16> {
     using type = hip_bfloat16;
+    static constexpr int sign_bits = 1;
+    static constexpr int significand_bits = 7;
+    static constexpr int exponent_bits = 8;
+    static constexpr bool rounds_to_nearest = true;
+};
+
+template <>
+struct basic_float_traits<__hip_bfloat16> {
+    using type = __hip_bfloat16;
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 7;
     static constexpr int exponent_bits = 8;
