@@ -23,7 +23,7 @@ using vendor_bf16 = __nv_bfloat16;
 #elif defined(GKO_COMPILING_HIP)
 
 
-#include <hip/hip_bf16.h>
+#include <hip/hip_bfloat16.h>
 #include <hip/hip_fp16.h>
 
 using vendor_bf16 = hip_bfloat16;
