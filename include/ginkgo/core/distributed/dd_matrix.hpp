@@ -367,6 +367,13 @@ public:
      */
     void row_scale(ptr_param<const global_vector_type> scaling_factors);
 
+    const gko::experimental::distributed::index_map<LocalIndexType,
+                                                    GlobalIndexType>
+    get_map() const
+    {
+        return map_;
+    }
+
 protected:
     explicit DdMatrix(std::shared_ptr<const Executor> exec,
                       mpi::communicator comm);
@@ -386,6 +393,8 @@ private:
     std::shared_ptr<global_matrix_type> restriction_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<global_matrix_type> prolongation_;
+    gko::experimental::distributed::index_map<LocalIndexType, GlobalIndexType>
+        map_;
 };
 
 

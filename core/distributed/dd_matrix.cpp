@@ -50,7 +50,8 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
       DistributedBase{comm},
       local_mtx_{matrix_template->clone(exec)},
       restriction_{global_matrix_type::create(exec, comm)},
-      prolongation_{global_matrix_type::create(exec, comm)}
+      prolongation_{global_matrix_type::create(exec, comm)},
+      map_{exec}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -87,6 +88,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->local_mtx_->copy_from(this->local_mtx_);
     result->restriction_->copy_from(this->restriction_);
     result->prolongation_->copy_from(this->prolongation_);
+    result->map_ = map_;
     result->set_size(this->get_size());
 }
 
@@ -102,6 +104,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->restriction_->move_from(this->restriction_);
     result->prolongation_->move_from(this->prolongation_);
     result->set_size(this->get_size());
+    result->map_ = map_;
     this->set_size({});
 }
 
@@ -137,15 +140,15 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         make_temporary_clone(exec, partition).get(), local_part,
         non_owning_row_idxs, non_owning_col_idxs));
 
-    auto map = gko::experimental::distributed::index_map<LocalIndexType,
-                                                         GlobalIndexType>(
+    map_ = gko::experimental::distributed::index_map<LocalIndexType,
+                                                     GlobalIndexType>(
         exec, partition, local_part, non_owning_row_idxs);
 
     GlobalIndexType local_num_rows =
-        map.get_local_size() + map.get_non_local_size();
-    auto local_col_idxs = map.map_to_local(
+        map_.get_local_size() + map_.get_non_local_size();
+    auto local_col_idxs = map_.map_to_local(
         arrays.col_idxs, gko::experimental::distributed::index_space::combined);
-    auto local_row_idxs = map.map_to_local(
+    auto local_row_idxs = map_.map_to_local(
         arrays.row_idxs, gko::experimental::distributed::index_space::combined);
 
     // Construct the local diagonal block.
@@ -181,7 +184,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     exec->run(dd_matrix::make_fill_seq_array(
         local_idxs.get_data(), static_cast<size_type>(local_num_rows)));
     auto restrict_col_idxs =
-        map.map_to_global(local_idxs, index_space::combined);
+        map_.map_to_global(local_idxs, index_space::combined);
     auto restrict_row_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     array<ValueType> restrict_values{exec,
@@ -197,7 +200,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto prolongate_col_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     auto prolongate_row_idxs =
-        map.map_to_global(local_idxs, index_space::combined);
+        map_.map_to_global(local_idxs, index_space::combined);
     array<ValueType> prolongate_values{exec,
                                        static_cast<size_type>(local_num_rows)};
     prolongate_values.fill(one<ValueType>());
@@ -353,7 +356,8 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     const DdMatrix& other)
     : EnableLinOp<DdMatrix<value_type, local_index_type,
                            global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      map_{other.get_executor()}
 {
     *this = other;
 }
@@ -364,7 +368,8 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     DdMatrix&& other) noexcept
     : EnableLinOp<DdMatrix<value_type, local_index_type,
                            global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      map_{other.get_executor()}
 {
     *this = std::move(other);
 }
@@ -382,6 +387,7 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         local_mtx_->copy_from(other.local_mtx_);
         restriction_->copy_from(other.restriction_);
         prolongation_->copy_from(other.prolongation_);
+        map_ = other.map_;
     }
     return *this;
 }
@@ -400,6 +406,7 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         local_mtx_->move_from(other.local_mtx_);
         restriction_->move_from(other.restriction_);
         prolongation_->move_from(other.prolongation_);
+        map_ = other.map_;
     }
     return *this;
 }

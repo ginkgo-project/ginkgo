@@ -19,9 +19,15 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/factorization/cholesky.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/reorder/amd.hpp>
+#include <ginkgo/core/solver/direct.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
@@ -31,6 +37,7 @@
 #include "core/distributed/dd_matrix_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/distributed/preconditioner/bddc_kernels.hpp"
+#include "ginkgo/core/matrix/permutation.hpp"
 
 
 namespace gko {
@@ -164,11 +171,22 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
                           matrix::permute_mode::rows);
     auto interm = gko::share(clone(local_buf_1_));
 
-    // Static condensation 1
-    if (inner_solver_->apply_uses_initial_guess()) {
-        interior_2_->fill(zero<ValueType>());
+    if (parameters_.reordering) {
+        interior_1_->permute(reorder_II_, interior_2_,
+                             matrix::permute_mode::rows);
+        if (inner_solver_->apply_uses_initial_guess()) {
+            interior_1_->fill(zero<ValueType>());
+        }
+        inner_solver_->apply(interior_2_, interior_1_);
+        interior_1_->permute(reorder_II_, interior_2_,
+                             matrix::permute_mode::inverse_rows);
+    } else {
+        // Static condensation 1
+        if (inner_solver_->apply_uses_initial_guess()) {
+            interior_2_->fill(zero<ValueType>());
+        }
+        inner_solver_->apply(interior_1_, interior_2_);
     }
-    inner_solver_->apply(interior_1_, interior_2_);
 
     A_BI->apply(interior_2_, bndry_3_);
     interior_3_->fill(zero<ValueType>());
@@ -193,18 +211,38 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     phi_->apply(local_coarse_buf_1_, bndry_1_);
 
     // Substructure correction
-    if (local_solver_->apply_uses_initial_guess()) {
-        dual_3_->fill(zero<ValueType>());
+    if (parameters_.reordering) {
+        dual_2_->permute(reorder_LL_, dual_3_, matrix::permute_mode::rows);
+        if (local_solver_->apply_uses_initial_guess()) {
+            dual_4_->fill(zero<ValueType>());
+        }
+        local_solver_->apply(dual_3_, dual_4_);
+        dual_4_->permute(reorder_LL_, dual_3_,
+                         matrix::permute_mode::inverse_rows);
+    } else {
+        if (local_solver_->apply_uses_initial_guess()) {
+            dual_3_->fill(zero<ValueType>());
+        }
+        local_solver_->apply(dual_2_, dual_3_);
     }
-    local_solver_->apply(dual_2_, dual_3_);
     constraints_->apply(dual_3_, schur_buf_1_);
     if (schur_solver_->apply_uses_initial_guess()) {
         schur_buf_2_->fill(zero<ValueType>());
     }
     schur_solver_->apply(schur_buf_1_, schur_buf_2_);
     constraints_t_->apply(neg_one_, schur_buf_2_, one_, dual_2_);
-    // local_buf_1_->fill(zero<ValueType>());
-    local_solver_->apply(one_, dual_2_, one_, dual_1_);
+    if (parameters_.reordering) {
+        dual_2_->permute(reorder_LL_, dual_3_, matrix::permute_mode::rows);
+        if (local_solver_->apply_uses_initial_guess()) {
+            dual_4_->fill(zero<ValueType>());
+        }
+        local_solver_->apply(dual_3_, dual_4_);
+        dual_4_->permute(reorder_LL_, dual_3_,
+                         matrix::permute_mode::inverse_rows);
+        dual_1_->add_scaled(one_, dual_3_);
+    } else {
+        local_solver_->apply(one_, dual_2_, one_, dual_1_);
+    }
     interior_1_->fill(zero<ValueType>());
     weights_->apply(local_buf_1_, local_buf_2_);
     local_buf_2_->permute(permutation_, local_buf_1_,
@@ -217,10 +255,21 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     // Static condensation 2
     local_buf_1_->copy_from(interm);
     A_IB->apply(neg_one_, bndry_2_, one_, interior_1_);
-    if (inner_solver_->apply_uses_initial_guess()) {
-        interior_2_->fill(zero<ValueType>());
+    if (parameters_.reordering) {
+        interior_1_->permute(reorder_II_, interior_2_,
+                             matrix::permute_mode::rows);
+        if (inner_solver_->apply_uses_initial_guess()) {
+            interior_1_->fill(zero<ValueType>());
+        }
+        inner_solver_->apply(interior_2_, interior_1_);
+        interior_1_->permute(reorder_II_, interior_2_,
+                             matrix::permute_mode::inverse_rows);
+    } else {
+        if (inner_solver_->apply_uses_initial_guess()) {
+            interior_2_->fill(zero<ValueType>());
+        }
+        inner_solver_->apply(interior_1_, interior_2_);
     }
-    inner_solver_->apply(interior_1_, interior_2_);
     bndry_2_->fill(zero<ValueType>());
     local_buf_2_->permute(permutation_, local_buf_1_,
                           matrix::permute_mode::inverse_rows);
@@ -325,21 +374,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
              n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
         span{n_inner_idxs + n_face_idxs + n_edge_idxs,
              n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices}));
-    if (parameters_.amd) {
-        auto AMD_LL = share(experimental::reorder::Amd<LocalIndexType>::build()
-                                .on(exec)
-                                ->generate(A_LL));
-        auto A_LL_AMD = share(A_LL->permute(AMD_LL));
-        std::swap(A_LL, A_LL_AMD);
-        auto AMD_II = share(experimental::reorder::Amd<LocalIndexType>::build()
-                                .on(exec)
-                                ->generate(A_II));
-        auto A_II_AMD = share(A_II->permute(AMD_II));
-        std::swap(A_II, A_II_AMD);
+    if (parameters_.reordering) {
+        reorder_LL_ = as<matrix::Permutation<LocalIndexType>>(
+            parameters_.reordering->generate(A_LL));
+        auto A_LL_reordered = share(A_LL->permute(reorder_LL_));
+        std::swap(A_LL, A_LL_reordered);
+        reorder_II_ = as<matrix::Permutation<LocalIndexType>>(
+            parameters_.reordering->generate(A_II));
+        auto A_II_reordered = share(A_II->permute(reorder_II_));
+        std::swap(A_II, A_II_reordered);
     }
     local_solver_ = parameters_.local_solver->generate(A_LL);
     inner_solver_ = parameters_.local_solver->generate(A_II);
-    comm.synchronize();
+
     // Set up constraints for faces and edges.
     // One row per constraint, one column per degree of freedom that is not a
     // vertex.
@@ -358,16 +405,36 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     // saddle point problem
     // | A_LL C^T |
     // | C    0   |.
-    auto schur_rhs = local_real_vec::create(exec);
+    auto schur_rhs = local_vec::create(exec);
     schur_rhs->copy_from(constraints_t_);
     auto schur_interm = local_vec::create(
         exec,
         dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_edges + n_faces});
+    if (parameters_.reordering) {
+        schur_rhs->permute(reorder_LL_, schur_interm,
+                           matrix::permute_mode::rows);
+        std::swap(schur_rhs, schur_interm);
+    }
+    if (local_solver_->apply_uses_initial_guess()) {
+        schur_interm->fill(zero<ValueType>());
+    }
     local_solver_->apply(schur_rhs, schur_interm);
+    if (parameters_.reordering) {
+        schur_interm->permute(reorder_LL_, schur_rhs,
+                              matrix::permute_mode::inverse_rows);
+        std::swap(schur_rhs, schur_interm);
+    }
     auto schur_complement = share(
         local_vec::create(exec, dim<2>{n_edges + n_faces, n_edges + n_faces}));
     constraints_->apply(schur_interm, schur_complement);
-    schur_solver_ = parameters_.local_solver->generate(schur_complement);
+    // schur_solver_ = parameters_.local_solver->generate(schur_complement);
+    schur_solver_ =
+        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
+            .with_factorization(gko::experimental::factorization::Cholesky<
+                                    ValueType, LocalIndexType>::build()
+                                    .on(exec))
+            .on(exec)
+            ->generate(schur_complement);
 
     // Compute the harmonic extension coefficients Phi and the contribution to
     // the coarse system Lambda
@@ -403,12 +470,39 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto buffer_1 = local_vec::create(
         exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_constraints});
     auto buffer_2 = local_vec::create_with_config_of(buffer_1);
+    auto buffer_3 = local_vec::create_with_config_of(buffer_1);
     A_LP->apply(phi_P, buffer_1);
-    local_solver_->apply(buffer_1, buffer_2);
+    if (parameters_.reordering) {
+        buffer_1->permute(reorder_LL_, buffer_2, matrix::permute_mode::rows);
+        if (local_solver_->apply_uses_initial_guess()) {
+            buffer_3->fill(zero<ValueType>());
+        }
+        local_solver_->apply(buffer_2, buffer_3);
+        buffer_3->permute(reorder_LL_, buffer_2,
+                          matrix::permute_mode::inverse_rows);
+    } else {
+        if (local_solver_->apply_uses_initial_guess()) {
+            buffer_2->fill(zero<ValueType>());
+        }
+        local_solver_->apply(buffer_1, buffer_2);
+    }
     constraints_->apply(neg_one_, buffer_2, neg_one_, lambda_rhs);
     schur_solver_->apply(lambda_rhs, lambda_D);
     constraints_t_->apply(neg_one_, lambda_D, neg_one_, buffer_1);
-    local_solver_->apply(buffer_1, phi_D);
+    if (parameters_.reordering) {
+        buffer_1->permute(reorder_LL_, buffer_2, matrix::permute_mode::rows);
+        if (local_solver_->apply_uses_initial_guess()) {
+            buffer_1->fill(zero<ValueType>());
+        }
+        local_solver_->apply(buffer_2, buffer_1);
+        buffer_1->permute(reorder_LL_, phi_D,
+                          matrix::permute_mode::inverse_rows);
+    } else {
+        if (local_solver_->apply_uses_initial_guess()) {
+            phi_D->fill(zero<ValueType>());
+        }
+        local_solver_->apply(buffer_1, phi_D);
+    }
     A_PP->apply(phi_P, lambda_P);
     A_PL->apply(neg_one_, phi_D, neg_one_, lambda_P);
 
@@ -424,10 +518,18 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                                 num_parts + 1));
     size_type n_global_interfaces =
         exec->copy_val_to_host(owning_interfaces.get_data() + num_parts);
-    array<real_type> global_labels{exec, n_global_interfaces};
-    comm.all_gather_v(exec, owning_labels.get_data(), n_owning_interfaces,
-                      global_labels.get_data(), owning_sizes.get_data(),
-                      owning_interfaces.get_data());
+    array<real_type> global_labels{exec, n_global_interfaces * num_cols};
+
+    int n_owning_labels = num_cols * n_owning_interfaces;
+    array<int> owning_label_sizes{exec, num_parts + 1};
+    comm.all_gather(exec, &n_owning_labels, 1, owning_label_sizes.get_data(),
+                    1);
+    array<int> label_offsets{owning_label_sizes};
+    exec->run(bddc::make_prefix_sum_nonnegative(label_offsets.get_data(),
+                                                num_parts + 1));
+    comm.all_gather_v(exec, owning_labels.get_data(), n_owning_labels,
+                      global_labels.get_data(), owning_label_sizes.get_data(),
+                      label_offsets.get_data());
     auto coarse_partition = share(
         Partition<int, int>::build_from_contiguous(exec, owning_interfaces));
     device_matrix_data<ValueType, int> coarse_contribution{
@@ -565,6 +667,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{0, 1});
     dual_3_ = local_buf_3_->create_submatrix(
         span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
+    dual_4_ = clone(dual_3_);
     primal_3_ = local_buf_3_->create_submatrix(
         span{n_inner_idxs + n_edge_idxs + n_face_idxs,
              n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
