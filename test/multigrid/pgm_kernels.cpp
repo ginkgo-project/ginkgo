@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,9 +78,15 @@ protected:
 
     void initialize_data()
     {
+#ifdef GINKGO_FAST_TESTS
+        m = 129;
+        n = 65;
+        int nrhs = 2;
+#else
         m = 597;
         n = 300;
         int nrhs = 3;
+#endif
 
         agg = gen_agg_array(m, n);
         // only use 0 ~ n-2 and ensure the end isolated and not yet finished
