@@ -18,6 +18,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 #include "core/base/utils.hpp"
 #include "core/config/config_helper.hpp"
@@ -59,6 +60,20 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     if (auto& obj = config.get("l1_smoother")) {
         params.with_l1_smoother(obj.get_boolean());
     }
+    if (auto& obj = config.get("coarse_level")) {
+        params.with_coarse_level(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("coarse_solver")) {
+        params.with_coarse_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
+                obj, context, td_for_child));
+    }
+    if (auto& obj = config.get("coarse_weight")) {
+        params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
+    }
+
     return params;
 }
 
@@ -87,8 +102,48 @@ template <typename VectorType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     const VectorType* dense_b, VectorType* dense_x) const
 {
+    using Vector = matrix::Dense<ValueType>;
+    using dist_vec = experimental::distributed::Vector<ValueType>;
     auto exec = this->get_executor();
-    if (this->local_solver_ != nullptr) {
+
+    // Two-level
+    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
+        if (this->local_solver_) {
+            this->local_solver_->apply(gko::detail::get_local(dense_b),
+                                       gko::detail::get_local(dense_x));
+        }
+        auto coarse_level =
+            as<gko::multigrid::MultigridLevel>(this->coarse_level_);
+        auto restrict_op = coarse_level->get_restrict_op();
+        auto prolong_op = coarse_level->get_prolong_op();
+        auto coarse_op =
+            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                 GlobalIndexType>>(
+                coarse_level->get_coarse_op());
+
+        // Coarse solve vector cache init
+        // Should allocate only in the first apply call if the number of rhs is
+        // unchanged.
+        auto cs_ncols = dense_x->get_size()[1];
+        auto cs_local_nrows = coarse_op->get_local_matrix()->get_size()[0];
+        auto cs_global_nrows = coarse_op->get_size()[0];
+        auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
+        auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
+        auto comm = coarse_op->get_communicator();
+        csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
+        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
+
+        // Additive apply of coarse correction
+        restrict_op->apply(dense_b, crhs_cache_.get());
+        // TODO: Does it make sense to restrict dense_x (to csol_cache) to
+        // provide a good initial guess for the coarse solver ?
+        if (this->coarse_solver_->apply_uses_initial_guess()) {
+            csol_cache_->copy_from(crhs_cache_.get());
+        }
+        this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
+        prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
+                          this->local_weight_, dense_x);
+    } else if (this->local_solver_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
                                    gko::detail::get_local(dense_x));
     }
@@ -130,24 +185,29 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
+    using Vector = matrix::Dense<ValueType>;
+    using dist_vec = experimental::distributed::Vector<ValueType>;
     if (parameters_.local_solver && parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
             "Provided both a generated solver and a solver factory");
     }
-
     if (!parameters_.local_solver && !parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
             "Requires either a generated solver or an solver factory");
     }
-
     if (parameters_.generated_local_solver) {
         this->set_solver(parameters_.generated_local_solver);
         return;
     }
+    if ((parameters_.coarse_level && !parameters_.coarse_solver) ||
+        (!parameters_.coarse_level && parameters_.coarse_solver)) {
+        GKO_INVALID_STATE(
+            "Requires both coarse solver and coarse level to be set.");
+    }
 
-    auto local_matrix =
-        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix)
-            ->get_local_matrix();
+    auto dist_mat =
+        as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
+    auto local_matrix = dist_mat->get_local_matrix();
 
     if (parameters_.l1_smoother) {
         auto exec = this->get_executor();
@@ -182,6 +242,40 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     } else {
         this->set_solver(
             gko::share(parameters_.local_solver->generate(local_matrix)));
+    }
+
+    gko::remove_complex<ValueType> cweight =
+        gko::detail::real_impl(parameters_.coarse_weight);
+    if (cweight >= 0.0 && cweight <= 1.0) {
+        this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+            {one<ValueType>() -
+             static_cast<ValueType>(parameters_.coarse_weight)},
+            this->get_executor());
+        this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+            {static_cast<ValueType>(parameters_.coarse_weight)},
+            this->get_executor());
+    } else {
+        this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+            {one<ValueType>()}, this->get_executor());
+        this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+            {one<ValueType>()}, this->get_executor());
+    }
+
+    if (parameters_.coarse_level && parameters_.coarse_solver) {
+        this->coarse_level_ =
+            share(parameters_.coarse_level->generate(system_matrix));
+        if (this->coarse_level_ == nullptr) {
+            GKO_NOT_SUPPORTED(this->coarse_level_);
+        }
+        if (auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
+                              ->get_coarse_op()) {
+            this->coarse_solver_ = share(parameters_.coarse_solver->generate(
+                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
+                    coarse)));
+            if (this->coarse_solver_ == nullptr) {
+                GKO_NOT_SUPPORTED(this->coarse_solver_);
+            }
+        }
     }
 }
 
