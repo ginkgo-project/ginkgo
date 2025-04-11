@@ -129,9 +129,12 @@ public:
                 sum += block_val * r[dense_block_col + idx_start];
             }
 
-            // reduction (it does not support complex<half/bfloat16>)
+            // reduction (it does not support complex<half/bfloat16> and
+            // bfloat16)
             if constexpr (std::is_same_v<value_type,
-                                         gko::complex<device_type<float16>>>) {
+                                         gko::complex<device_type<float16>>> ||
+                          std::is_same_v<value_type,
+                                         device_type<gko::bfloat16>>) {
                 for (int i = sg_size / 2; i > 0; i /= 2) {
                     sum += sycl::shift_group_left(sg, sum, i);
                 }
