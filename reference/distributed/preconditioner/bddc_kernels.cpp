@@ -64,7 +64,7 @@ void classify_dofs(
 {
     using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
     comm_index_type n_significand_bits =
-        std::numeric_limits<remove_complex<ValueType>>::digits - 1;
+        std::numeric_limits<remove_complex<ValueType>>::digits;
     auto local_labels = labels->get_const_values();
     auto n_rows = labels->get_size()[0];
     auto n_cols = labels->get_size()[1];
@@ -85,8 +85,8 @@ void classify_dofs(
                     n_cols * sizeof(uint_type));
         occurences[key]++;
         for (size_type j = 0; j < n_cols; j++) {
-            std::memcpy(&int_key, key.data() + j, sizeof(uint_type));
-            n_ranks += gko::detail::popcount(int_key);
+            // std::memcpy(&int_key, key.data() + j, sizeof(uint_type));
+            n_ranks += gko::detail::popcount(key[j]);
         }
         if (n_ranks == 1) {
             n_inner_idxs++;
@@ -178,8 +178,6 @@ void classify_dofs(
     size_type interface_idx = 0;
     for (size_type i = 0; i < n_rows; i++) {
         size_type row = permutation_array.get_const_data()[i];
-        std::memcpy(key.data(), local_labels + n_cols * row,
-                    n_cols * sizeof(uint_type));
         if (!labels_eq(n_cols, local_labels + start_idx * n_cols,
                        local_labels + row * n_cols)) {
             start_idx = row;
@@ -195,13 +193,11 @@ void classify_dofs(
         }
     }
 
-    unique_labels.resize_and_reset(interface_idx);
+    unique_labels.resize_and_reset(interface_idx * n_cols);
     for (size_type i = 0; i < interface_idx; i++) {
         size_type idx = unique_label_idxs[i];
         std::memcpy(unique_labels.get_data() + i * n_cols,
                     local_labels + n_cols * idx, n_cols * sizeof(uint_type));
-        std::memcpy(&int_key, local_labels + n_cols * idx,
-                    n_cols * sizeof(uint_type));
     }
 
     owning_labels.resize_and_reset(n_owning_interfaces * n_cols);
@@ -210,7 +206,6 @@ void classify_dofs(
         std::memcpy(owning_labels.get_data() + i * n_cols,
                     local_labels + n_cols * idx, n_cols * sizeof(uint_type));
     }
-    n_owning_interfaces *= n_cols;
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(

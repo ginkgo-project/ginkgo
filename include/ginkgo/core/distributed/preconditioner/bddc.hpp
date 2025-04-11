@@ -6,6 +6,8 @@
 #define GKO_PUBLIC_CORE_DISTRIBUTED_PRECONDITIONER_BDDC_HPP_
 
 
+#include <memory>
+
 #include <ginkgo/config.hpp>
 
 
@@ -89,6 +91,12 @@ public:
             coarse_solver);
 
         /**
+         * Reordering factory to use on the local matrices for reducing fill-in.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            reordering);
+
+        /**
          * Use of Vertex constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(vertices, true);
@@ -102,11 +110,6 @@ public:
          * Use of Face constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(faces, true);
-
-        /**
-         * Use of AMD reordering to reduce fill-in for local direct solvers.
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(amd, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -210,6 +213,7 @@ private:
     std::shared_ptr<local_vec> interior_3_;
     std::shared_ptr<local_vec> bndry_3_;
     std::shared_ptr<local_vec> dual_3_;
+    std::shared_ptr<local_vec> dual_4_;
     std::shared_ptr<local_vec> primal_3_;
     std::shared_ptr<local_vec> schur_buf_1_;
     std::shared_ptr<local_vec> schur_buf_2_;
@@ -226,6 +230,8 @@ private:
     std::shared_ptr<const LinOp> one_;
     std::shared_ptr<const LinOp> neg_one_;
     std::shared_ptr<const LinOp> zero_;
+    std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_LL_;
+    std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_II_;
 };
 
 
