@@ -376,16 +376,20 @@ protected:
             fn();
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("ani4");
             this->initialize_data(gko::matrices::location_ani4_mtx,
                                   gko::matrices::location_ani4_chol_mtx);
             fn();
+#endif
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("ani4_amd");
             this->initialize_data(gko::matrices::location_ani4_amd_mtx,
                                   gko::matrices::location_ani4_amd_chol_mtx);
             fn();
+#endif
         }
     }
 
