@@ -3,6 +3,7 @@ name: OSX-build
 on:
   push:
     branches:
+      - 'main'
       - 'master'
       - 'develop'
       - 'release/**'
@@ -10,6 +11,8 @@ on:
       - '**'
   pull_request:
     types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -27,40 +30,40 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", "mixed": "OFF"}
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static", "mixed": "ON"}
+          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", "mixed": "OFF"}
+          - {shared: "OFF", build_type: "Release", name: "omp/release/static", "mixed": "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [macos-latest]
 
     steps:
-    - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v4
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
 
-    - name: setup
-      run: |
-        brew install libomp
+      - name: setup
+        run: |
+          brew install libomp
 
-    - name: info
-      run: |
-        g++ -v
-        cmake --version
+      - name: info
+        run: |
+          g++ -v
+          cmake --version
 
-    - name: Debug over SSH (tmate)
-      uses: mxschmitt/action-tmate@v3.5
-      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      - name: Debug over SSH (tmate)
+        uses: mxschmitt/action-tmate@v3.5
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
-    - name: configure
-      run: |
-        mkdir build
-        mkdir install
-        export INSTALL_PREFIX=`pwd`/install
-        cd build
-        cmake .. -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/ -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }}
-        make -j8
-        ctest -j10 --output-on-failure
+      - name: configure
+        run: |
+          mkdir build
+          mkdir install
+          export INSTALL_PREFIX=`pwd`/install
+          cd build
+          cmake .. -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/ -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }}
+          make -j8
+          ctest -j10 --output-on-failure
 
-    - name: install
-      run: |
-        cd build
-        make install
-        make test_install
+      - name: install
+        run: |
+          cd build
+          make install
+          make test_install
