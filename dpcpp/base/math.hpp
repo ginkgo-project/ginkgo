@@ -8,6 +8,7 @@
 #include <climits>
 #include <cmath>
 
+#include <sycl/bit_cast.hpp>
 #include <sycl/ext/oneapi/bfloat16.hpp>
 #include <sycl/half_type.hpp>
 
@@ -88,6 +89,41 @@ struct is_complex_or_scalar_impl<gko::complex<T>>
     : public is_complex_or_scalar_impl<T> {};
 
 }  // namespace detail
+
+
+// currently, std::numeric_limits<bfloat16> from sycl is wrong or use the
+// default implementation.
+//
+template <typename T>
+struct device_numeric_limits {
+    static constexpr auto inf() { return std::numeric_limits<T>::infinity(); }
+    static constexpr auto max() { return std::numeric_limits<T>::max(); }
+    static constexpr auto min() { return std::numeric_limits<T>::min(); }
+};
+
+// There is no underlying data public access or storage_type input in
+// constructor. we use sycl::bit_cast (not guaranteed be constexpr) to create
+// the corresponding bfloat16
+template <>
+struct device_numeric_limits<sycl::ext::oneapi::bfloat16> {
+    static GKO_ATTRIBUTES GKO_INLINE auto inf()
+    {
+        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+            static_cast<unsigned short>(0b0'11111111'0000000u));
+    }
+
+    static GKO_ATTRIBUTES GKO_INLINE auto max()
+    {
+        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+            static_cast<unsigned short>(0b0'11111110'1111111u));
+    }
+
+    static GKO_ATTRIBUTES GKO_INLINE auto min()
+    {
+        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+            static_cast<unsigned short>(0b0'00000001'0000000u));
+    }
+};
 
 
 bool __dpct_inline__ is_nan(const sycl::half& val)
@@ -174,7 +210,7 @@ sqrt(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
 bool __dpct_inline__ is_finite(const sycl::ext::oneapi::bfloat16& value)
 {
     return abs(value) <
-           std::numeric_limits<sycl::ext::oneapi::bfloat16>::infinity();
+           device_numeric_limits<sycl::ext::oneapi::bfloat16>::inf();
 }
 
 bool __dpct_inline__
