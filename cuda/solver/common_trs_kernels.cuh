@@ -415,7 +415,9 @@ __global__ void sptrsv_naive_caching_kernel(
     // memory operation on the half-precision shared_memory seem to give
     // wrong result. we use float in shared_memory.
     using SharedValueType = std::conditional_t<
-        std::is_same<remove_complex<ValueType>, device_type<float16>>::value,
+        std::is_same<remove_complex<ValueType>, device_type<float16>>::value ||
+            std::is_same<remove_complex<ValueType>,
+                         device_type<bfloat16>>::value,
         std::conditional_t<is_complex<ValueType>(), thrust::complex<float>,
                            float>,
         ValueType>;

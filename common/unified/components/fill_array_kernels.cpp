@@ -52,7 +52,9 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
             } else
 #endif
                 if constexpr (std::is_same_v<remove_complex<ValueType>,
-                                             float16>) {
+                                             float16> ||
+                              std::is_same_v<remove_complex<ValueType>,
+                                             bfloat16>) {
                 // __half can not be from int64_t
                 // __hip_bfloat16 can not be from long long
                 array[idx] = static_cast<float>(idx);

@@ -145,11 +145,7 @@ using uintptr = std::uintptr_t;
 /**
  * 16 bit floating point type.
  */
-#if !GINKGO_ENABLE_BFLOAT16
 using float16 = half;
-#else
-using float16 = bfloat16;
-#endif
 
 
 /**
