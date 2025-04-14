@@ -579,7 +579,7 @@ protected:
     {}
 
 
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
 
 
     /**
@@ -592,6 +592,25 @@ protected:
     virtual void on_batch_solver_completed(
         const array<int>& iters,
         const array<gko::float16>& residual_norms) const
+    {}
+
+
+#endif
+
+
+#if GINKGO_ENABLE_BFLOAT16
+
+
+    /**
+     * Batch solver's event that records the iteration count and the residual
+     * norm.
+     *
+     * @param iters  the array of iteration counts.
+     * @param residual_norms  the array storing the residual norms.
+     */
+    virtual void on_batch_solver_completed(
+        const array<int>& iters,
+        const array<gko::bfloat16>& residual_norms) const
     {}
 
 

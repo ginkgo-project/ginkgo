@@ -89,7 +89,9 @@ public:
     // caused by something else in jacobi or isai.
     constexpr bfloat16() noexcept : data_(0){};
 
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, half>>>
     bfloat16(const T& val) : data_(0)
     {
         this->float2bfloat16(static_cast<float>(val));
@@ -135,12 +137,16 @@ public:
 
     // Do operation with different type
     // If it is floating point, using floating point as type.
-    // If it is integer, using bfloat16 as type
+    // If it is bfloat16, using float as type.
+    // If it is integer, using bfloat16 as type.
 #define BFLOAT16_FRIEND_OPERATOR(_op, _opeq)                                   \
     template <typename T>                                                      \
     friend std::enable_if_t<                                                   \
-        !std::is_same<T, bfloat16>::value && std::is_scalar<T>::value,         \
-        std::conditional_t<std::is_floating_point<T>::value, T, bfloat16>>     \
+        !std::is_same<T, bfloat16>::value &&                                   \
+            (std::is_scalar<T>::value || std::is_same_v<T, half>),             \
+        std::conditional_t<                                                    \
+            std::is_floating_point<T>::value, T,                               \
+            std::conditional_t<std::is_same_v<T, half>, float, bfloat16>>>     \
     operator _op(const bfloat16& hf, const T& val)                             \
     {                                                                          \
         using type =                                                           \
@@ -151,8 +157,11 @@ public:
     }                                                                          \
     template <typename T>                                                      \
     friend std::enable_if_t<                                                   \
-        !std::is_same<T, bfloat16>::value && std::is_scalar<T>::value,         \
-        std::conditional_t<std::is_floating_point<T>::value, T, bfloat16>>     \
+        !std::is_same<T, bfloat16>::value &&                                   \
+            (std::is_scalar<T>::value || std::is_same_v<T, half>),             \
+        std::conditional_t<                                                    \
+            std::is_floating_point<T>::value, T,                               \
+            std::conditional_t<std::is_same_v<T, half>, float, bfloat16>>>     \
     operator _op(const T& val, const bfloat16& hf)                             \
     {                                                                          \
         using type =                                                           \
@@ -255,15 +264,19 @@ public:
         : real_(real), imag_(imag)
     {}
 
-    template <typename T, typename U,
-              typename = std::enable_if_t<std::is_scalar<T>::value &&
-                                          std::is_scalar<U>::value>>
+    template <
+        typename T, typename U,
+        typename = std::enable_if_t<
+            (std::is_scalar<T>::value || std::is_same_v<T, gko::half>)&&(
+                std::is_scalar<U>::value || std::is_same_v<U, gko::half>)>>
     explicit complex(const T& real, const U& imag)
         : real_(static_cast<value_type>(real)),
           imag_(static_cast<value_type>(imag))
     {}
 
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, gko::half>>>
     complex(const T& real)
         : real_(static_cast<value_type>(real)),
           imag_(static_cast<value_type>(0.f))
@@ -271,7 +284,9 @@ public:
 
     // When using complex(real, imag), MSVC with CUDA try to recognize the
     // complex is a member not constructor.
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, gko::half>>>
     explicit complex(const complex<T>& other)
         : real_(static_cast<value_type>(other.real())),
           imag_(static_cast<value_type>(other.imag()))
