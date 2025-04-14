@@ -37,6 +37,7 @@
 #include "core/distributed/dd_matrix_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/distributed/preconditioner/bddc_kernels.hpp"
+#include "ginkgo/core/base/types.hpp"
 #include "ginkgo/core/matrix/permutation.hpp"
 
 
@@ -72,7 +73,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     array<remove_complex<ValueType>>& owning_labels, size_type& n_inner_idxs,
     size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
     size_type& n_faces, size_type& n_edges, size_type& n_constraints,
-    int& n_owning_interfaces)
+    int& n_owning_interfaces, bool use_faces, bool use_edges)
 {
     using uint_type = typename gko::detail::float_traits<
         remove_complex<ValueType>>::bits_type;
@@ -119,7 +120,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         buffer_1->get_local_vector(), local_part, dof_types, permutation_array,
         interface_sizes, unique_labels, owning_labels, n_inner_idxs,
         n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges, n_constraints,
-        n_owning_interfaces));
+        n_owning_interfaces, use_faces, use_edges));
     return buffer_1;
 }
 
@@ -333,7 +334,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto labels = bddc::classify_dofs(
         dd_system_matrix, dof_types, permutation_array, interface_sizes,
         unique_labels, owning_labels, n_inner_idxs, n_face_idxs, n_edge_idxs,
-        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces);
+        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces,
+        parameters_.faces, parameters_.edges);
 
     permutation_ = perm_type::create(exec, std::move(permutation_array));
 
@@ -390,13 +392,20 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     // Set up constraints for faces and edges.
     // One row per constraint, one column per degree of freedom that is not a
     // vertex.
-    size_type n_interface_idxs = n_face_idxs + n_edge_idxs;
-    dim<2> C_dim{n_edges + n_faces, n_inner_idxs + n_interface_idxs};
+    size_type n_interface_idxs = 0;
+    n_interface_idxs += parameters_.faces ? n_face_idxs : 0;
+    n_interface_idxs += parameters_.edges ? n_edge_idxs : 0;
+    size_type n_inactive = n_inner_idxs;
+    size_type n_dual = 0;
+    n_dual += parameters_.faces ? n_faces : 0;
+    n_dual += parameters_.edges ? n_edges : 0;
+    n_inactive += parameters_.faces ? 0 : n_face_idxs;
+    n_inactive += parameters_.edges ? 0 : n_edge_idxs;
+    dim<2> C_dim{n_dual, n_inactive + n_interface_idxs};
     device_matrix_data<remove_complex<ValueType>, LocalIndexType> C_data{
         exec, C_dim, n_interface_idxs};
-    exec->run(bddc::make_generate_constraints(local_labels.get(), n_inner_idxs,
-                                              n_edges + n_faces,
-                                              interface_sizes, C_data));
+    exec->run(bddc::make_generate_constraints(local_labels.get(), n_inactive,
+                                              n_dual, interface_sizes, C_data));
     constraints_ = local_real_mtx::create(exec);
     constraints_->read(C_data);
     constraints_t_ = as<local_real_mtx>(constraints_->transpose());
@@ -408,8 +417,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto schur_rhs = local_vec::create(exec);
     schur_rhs->copy_from(constraints_t_);
     auto schur_interm = local_vec::create(
-        exec,
-        dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_edges + n_faces});
+        exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_dual});
     if (parameters_.reordering) {
         schur_rhs->permute(reorder_LL_, schur_interm,
                            matrix::permute_mode::rows);
@@ -424,8 +432,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                               matrix::permute_mode::inverse_rows);
         std::swap(schur_rhs, schur_interm);
     }
-    auto schur_complement = share(
-        local_vec::create(exec, dim<2>{n_edges + n_faces, n_edges + n_faces}));
+    auto schur_complement =
+        share(local_vec::create(exec, dim<2>{n_dual, n_dual}));
     constraints_->apply(schur_interm, schur_complement);
     // schur_solver_ = parameters_.local_solver->generate(schur_complement);
     schur_solver_ =
@@ -456,14 +464,13 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     phi_rhs->fill(zero<ValueType>());
     auto lambda = local_vec::create(exec, dim<2>{n_constraints, n_constraints});
     lambda->fill(zero<ValueType>());
-    auto lambda_rhs =
-        local_vec::create(exec, dim<2>{n_edges + n_faces, n_constraints});
+    auto lambda_rhs = local_vec::create(exec, dim<2>{n_dual, n_constraints});
     lambda_rhs->fill(zero<ValueType>());
     exec->run(bddc::make_fill_coarse_data(phi_P.get(), lambda_rhs.get()));
-    auto lambda_D = lambda->create_submatrix(span{0, n_edges + n_faces},
+    auto lambda_D =
+        lambda->create_submatrix(span{0, n_dual}, span{0, n_constraints});
+    auto lambda_P = lambda->create_submatrix(span{n_dual, n_constraints},
                                              span{0, n_constraints});
-    auto lambda_P = lambda->create_submatrix(
-        span{n_edges + n_faces, n_constraints}, span{0, n_constraints});
     one_ = gko::initialize<local_vec>({1.0}, exec);
     neg_one_ = gko::initialize<local_vec>({-1.0}, exec);
     zero_ = gko::initialize<local_vec>({zero<ValueType>()}, exec);
@@ -672,7 +679,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{n_inner_idxs + n_edge_idxs + n_face_idxs,
              n_inner_idxs + n_face_idxs + n_edge_idxs + n_vertices},
         span{0, 1});
-    schur_buf_1_ = local_vec::create(exec, dim<2>{n_faces + n_edges, 1});
+    schur_buf_1_ = local_vec::create(exec, dim<2>{n_dual, 1});
     schur_buf_2_ = local_vec::create_with_config_of(schur_buf_1_);
 }
 

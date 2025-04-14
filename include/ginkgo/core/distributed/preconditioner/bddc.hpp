@@ -39,7 +39,7 @@ namespace distributed {
 namespace preconditioner {
 
 
-enum class dof_type { inner, vertex, edge, face };
+enum class dof_type { inner, inactive, face, edge, vertex };
 
 
 /**
