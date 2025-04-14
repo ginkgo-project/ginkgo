@@ -90,9 +90,7 @@ if(MSVC OR MINGW)
         FORCE
     )
 endif()
-if(GINKGO_ENABLE_HALF AND GINKGO_ENABLE_BFLOAT16)
-    message(FATAL_ERROR "We do not support half and bfloat16 at the same time.")
-endif()
+
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt"
