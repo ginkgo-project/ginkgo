@@ -49,6 +49,9 @@ class Csr final
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision_move<ValueType, 2>, IndexType>>,
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Csr<next_precision_move<ValueType, 3>, IndexType>>,
+#endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
     friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
@@ -83,6 +86,20 @@ public:
 
     void move_to(
         Csr<next_precision_move<ValueType, 2>, IndexType>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Csr<previous_precision_move<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Csr<next_precision_move<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Csr<next_precision_move<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(Csr<next_precision_move<ValueType, 3>, IndexType>* result)
+        const override;
+
+    void move_to(
+        Csr<next_precision_move<ValueType, 3>, IndexType>* result) override;
 #endif
 
     /**

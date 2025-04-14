@@ -220,6 +220,30 @@ void Sellp<ValueType, IndexType>::move_to(
 #endif
 
 
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::convert_to(
+    Sellp<next_precision_move<ValueType, 3>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->slice_lengths_ = this->slice_lengths_;
+    result->slice_sets_ = this->slice_sets_;
+    result->slice_size_ = this->slice_size_;
+    result->stride_factor_ = this->stride_factor_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::move_to(
+    Sellp<next_precision_move<ValueType, 3>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {

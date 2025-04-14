@@ -50,6 +50,9 @@ class Dense final
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Dense<next_precision_move<ValueType, 2>>>,
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>,
+#endif
       public ConvertibleTo<Dense<next_precision<ValueType>>> {
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
@@ -79,6 +82,17 @@ public:
         Dense<next_precision_move<ValueType, 2>>* result) const override;
 
     void move_to(Dense<next_precision_move<ValueType, 2>>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Dense<previous_precision_move<ValueType, 3>>;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Dense<next_precision_move<ValueType, 3>>* result) const override;
+
+    void move_to(Dense<next_precision_move<ValueType, 3>>* result) override;
 #endif
 
     /**
