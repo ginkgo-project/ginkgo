@@ -606,7 +606,7 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Dense<ValueType>::convert_to(
-    Dense<next_precision<next_precision<ValueType>>>* result) const
+    Dense<next_precision_move<ValueType, 2>>* result) const
 {
     if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
@@ -621,8 +621,7 @@ void Dense<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(
-    Dense<next_precision<next_precision<ValueType>>>* result)
+void Dense<ValueType>::move_to(Dense<next_precision_move<ValueType, 2>>* result)
 {
     this->convert_to(result);
 }
@@ -1546,7 +1545,7 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     run<matrix::Dense, ValueType, next_precision<ValueType>,
-        next_precision<next_precision<ValueType>>>(out, fn);
+        next_precision_move<ValueType, 2>>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif

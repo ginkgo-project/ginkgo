@@ -53,8 +53,7 @@ class MultiVector
     : public EnablePolymorphicObject<MultiVector<ValueType>>,
       public EnablePolymorphicAssignment<MultiVector<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<
-          MultiVector<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<MultiVector<next_precision_move<ValueType, 2>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
     friend class EnablePolymorphicObject<MultiVector>;
@@ -88,17 +87,17 @@ public:
     void move_to(MultiVector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class MultiVector<previous_precision<previous_precision<ValueType>>>;
+    friend class MultiVector<previous_precision_move<ValueType, 2>>;
     using ConvertibleTo<
-        MultiVector<next_precision<next_precision<ValueType>>>>::convert_to;
+        MultiVector<next_precision_move<ValueType, 2>>>::convert_to;
     using ConvertibleTo<
-        MultiVector<next_precision<next_precision<ValueType>>>>::move_to;
+        MultiVector<next_precision_move<ValueType, 2>>>::move_to;
 
-    void convert_to(MultiVector<next_precision<next_precision<ValueType>>>*
-                        result) const override;
+    void convert_to(
+        MultiVector<next_precision_move<ValueType, 2>>* result) const override;
 
-    void move_to(MultiVector<next_precision<next_precision<ValueType>>>* result)
-        override;
+    void move_to(
+        MultiVector<next_precision_move<ValueType, 2>>* result) override;
 #endif
 
     /**

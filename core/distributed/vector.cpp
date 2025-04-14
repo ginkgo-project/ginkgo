@@ -299,7 +299,7 @@ void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
-    Vector<next_precision<next_precision<ValueType>>>* result) const
+    Vector<next_precision_move<ValueType, 2>>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -310,7 +310,7 @@ void Vector<ValueType>::convert_to(
 
 template <typename ValueType>
 void Vector<ValueType>::move_to(
-    Vector<next_precision<next_precision<ValueType>>>* result)
+    Vector<next_precision_move<ValueType, 2>>* result)
 {
     this->convert_to(result);
 }
