@@ -328,8 +328,11 @@ using RealValueTypesBase =
 #endif
 
 using RealValueTypes = ::testing::Types<
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
     gko::float16,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    gko::bfloat16,
 #endif
 #if !GINKGO_DPCPP_SINGLE_MODE
     double,
