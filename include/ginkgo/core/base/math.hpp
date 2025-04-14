@@ -314,27 +314,35 @@ struct next_precision_base_impl<std::complex<T>> {
 };
 
 
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+template <typename T, typename... Rest>
+struct next_precision_list_impl {};
 
+template <typename T, typename U, typename... Rest>
+struct next_precision_list_impl<T, U, Rest...> {
+    using type = typename next_precision_list_impl<T, Rest...>::type;
+};
+
+template <typename T, typename U, typename... Rest>
+struct next_precision_list_impl<T, T, U, Rest...> {
+    using type = U;
+};
 
 template <typename T>
-struct next_precision_impl {};
-
-
-template <>
-struct next_precision_impl<gko::float16> {
-    using type = float;
+struct next_precision_impl {
+    using type =
+        typename next_precision_list_impl<T,
+                                          double,  // put the last entry here
+                                                   // again to make the
+                                                   // searching easier
+#if GINKGO_ENABLE_HALF
+                                          half,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+                                          bfloat16,
+#endif
+                                          float, double>::type;
 };
 
-template <>
-struct next_precision_impl<float> {
-    using type = double;
-};
-
-template <>
-struct next_precision_impl<double> {
-    using type = gko::float16;
-};
 
 template <typename T>
 struct next_precision_impl<std::complex<T>> {
@@ -342,7 +350,46 @@ struct next_precision_impl<std::complex<T>> {
 };
 
 
-#endif
+/**
+ * Move to next precision until move is zero
+ */
+template <typename T, unsigned move>
+struct next_precision_move_impl {
+    using type = typename next_precision_move_impl<
+        typename detail::next_precision_impl<T>::type, move - 1>::type;
+};
+
+template <typename T>
+struct next_precision_move_impl<T, 0> {
+    using type = T;
+};
+
+/**
+ * Move U until next_precision_move_impl<T, move> == U
+ */
+template <typename T, unsigned move,
+          typename U = typename next_precision_impl<T>::type>
+struct previous_precision_move_impl {
+    using type = std::conditional_t<
+        std::is_same_v<T, typename next_precision_move_impl<U, move>::type>, U,
+        typename previous_precision_move_impl<
+            T, move, typename next_precision_impl<U>::type>::type>;
+};
+
+/**
+ * When move is not zero, we end up the same type in the list, which means we do
+ * not find the previous type in the list. We need to provide a type such that
+ * the conditional T work
+ */
+template <typename T, unsigned move>
+struct previous_precision_move_impl<T, move, T> {
+    using type = void;
+};
+
+template <typename T>
+struct previous_precision_move_impl<T, 0, T> {
+    using type = T;
+};
 
 
 template <typename T>
@@ -441,24 +488,38 @@ using next_precision_base = typename detail::next_precision_base_impl<T>::type;
 template <typename T>
 using previous_precision_base = next_precision_base<T>;
 
+
 /**
- * Obtains the next type in the singly-linked precision list with half.
+ * Obtains the next `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
  */
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+template <typename T, unsigned move>
+using next_precision_move =
+    typename detail::next_precision_move_impl<T, move>::type;
 
-template <typename T>
-using previous_precision = next_precision<next_precision<T>>;
-#else
-// fallback to float/double list
-template <typename T>
-using next_precision = next_precision_base<T>;
+/**
+ * Obtains the previous `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
+ */
+template <typename T, unsigned move>
+using previous_precision_move =
+    typename detail::previous_precision_move_impl<T, move>::type;
 
-template <typename T>
-using previous_precision = previous_precision_base<T>;
-#endif
 
+/**
+ * Obtains the next type in the singly-linked precision list corresponding to
+ * bfloat16/half.
+ */
+template <typename T>
+using next_precision = next_precision_move<T, 1>;
+
+
+/**
+ * Obtains the previous type in the singly-linked precision list corresponding
+ * to bfloat16/half.
+ */
+template <typename T>
+using previous_precision = previous_precision_move<T, 1>;
 
 /**
  * Obtains the next type in the hierarchy with lower precision than T.
