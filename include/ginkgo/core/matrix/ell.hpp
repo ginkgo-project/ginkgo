@@ -49,19 +49,19 @@ class Hybrid;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
+class Ell
+    : public EnableLinOp<Ell<ValueType, IndexType>>,
+      public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<
-                Ell<next_precision<next_precision<ValueType>>, IndexType>>,
+      public ConvertibleTo<Ell<next_precision_move<ValueType, 2>, IndexType>>,
 #endif
-            public ConvertibleTo<Dense<ValueType>>,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public EnableAbsoluteComputation<
-                remove_complex<Ell<ValueType, IndexType>>> {
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public EnableAbsoluteComputation<
+          remove_complex<Ell<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
@@ -93,18 +93,17 @@ public:
     void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Ell<previous_precision<previous_precision<ValueType>>,
-                     IndexType>;
+    friend class Ell<previous_precision_move<ValueType, 2>, IndexType>;
     using ConvertibleTo<
-        Ell<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+        Ell<next_precision_move<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<
-        Ell<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+        Ell<next_precision_move<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(Ell<next_precision<next_precision<ValueType>>, IndexType>*
-                        result) const override;
+    void convert_to(Ell<next_precision_move<ValueType, 2>, IndexType>* result)
+        const override;
 
-    void move_to(Ell<next_precision<next_precision<ValueType>>, IndexType>*
-                     result) override;
+    void move_to(
+        Ell<next_precision_move<ValueType, 2>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

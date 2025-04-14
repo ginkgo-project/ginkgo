@@ -43,7 +43,7 @@ class Diagonal
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Diagonal<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<Diagonal<next_precision_move<ValueType, 2>>>,
 #endif
       public Transposable,
       public WritableToMatrixData<ValueType, int32>,
@@ -85,17 +85,15 @@ public:
     void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Diagonal<previous_precision<previous_precision<ValueType>>>;
+    friend class Diagonal<previous_precision_move<ValueType, 2>>;
     using ConvertibleTo<
-        Diagonal<next_precision<next_precision<ValueType>>>>::convert_to;
-    using ConvertibleTo<
-        Diagonal<next_precision<next_precision<ValueType>>>>::move_to;
+        Diagonal<next_precision_move<ValueType, 2>>>::convert_to;
+    using ConvertibleTo<Diagonal<next_precision_move<ValueType, 2>>>::move_to;
 
-    void convert_to(Diagonal<next_precision<next_precision<ValueType>>>* result)
-        const override;
+    void convert_to(
+        Diagonal<next_precision_move<ValueType, 2>>* result) const override;
 
-    void move_to(
-        Diagonal<next_precision<next_precision<ValueType>>>* result) override;
+    void move_to(Diagonal<next_precision_move<ValueType, 2>>* result) override;
 #endif
 
     void convert_to(Csr<ValueType, int32>* result) const override;

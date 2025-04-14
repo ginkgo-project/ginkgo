@@ -89,7 +89,7 @@ class Dense
     : public EnableLinOp<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<Dense<next_precision_move<ValueType, 2>>>,
 #endif
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
@@ -286,17 +286,14 @@ public:
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Dense<previous_precision<previous_precision<ValueType>>>;
-    using ConvertibleTo<
-        Dense<next_precision<next_precision<ValueType>>>>::convert_to;
-    using ConvertibleTo<
-        Dense<next_precision<next_precision<ValueType>>>>::move_to;
+    friend class Dense<previous_precision_move<ValueType, 2>>;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 2>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 2>>>::move_to;
 
-    void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
-        const override;
+    void convert_to(
+        Dense<next_precision_move<ValueType, 2>>* result) const override;
 
-    void move_to(
-        Dense<next_precision<next_precision<ValueType>>>* result) override;
+    void move_to(Dense<next_precision_move<ValueType, 2>>* result) override;
 #endif
 
     void convert_to(Coo<ValueType, int32>* result) const override;
