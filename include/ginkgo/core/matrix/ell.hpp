@@ -55,6 +55,9 @@ class Ell
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Ell<next_precision_move<ValueType, 2>, IndexType>>,
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Ell<next_precision_move<ValueType, 3>, IndexType>>,
+#endif
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
@@ -104,6 +107,20 @@ public:
 
     void move_to(
         Ell<next_precision_move<ValueType, 2>, IndexType>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Ell<previous_precision_move<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Ell<next_precision_move<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Ell<next_precision_move<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(Ell<next_precision_move<ValueType, 3>, IndexType>* result)
+        const override;
+
+    void move_to(
+        Ell<next_precision_move<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

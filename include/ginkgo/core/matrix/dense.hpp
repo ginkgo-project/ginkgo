@@ -91,6 +91,9 @@ class Dense
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Dense<next_precision_move<ValueType, 2>>>,
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>,
+#endif
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
@@ -294,6 +297,17 @@ public:
         Dense<next_precision_move<ValueType, 2>>* result) const override;
 
     void move_to(Dense<next_precision_move<ValueType, 2>>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Dense<previous_precision_move<ValueType, 3>>;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision_move<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Dense<next_precision_move<ValueType, 3>>* result) const override;
+
+    void move_to(Dense<next_precision_move<ValueType, 3>>* result) override;
 #endif
 
     void convert_to(Coo<ValueType, int32>* result) const override;

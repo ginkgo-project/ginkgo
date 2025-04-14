@@ -70,6 +70,9 @@ class Vector
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Vector<next_precision_move<ValueType, 2>>>,
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Vector<next_precision_move<ValueType, 3>>>,
+#endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
     friend class EnablePolymorphicObject<Vector, LinOp>;
@@ -184,6 +187,17 @@ public:
         Vector<next_precision_move<ValueType, 2>>* result) const override;
 
     void move_to(Vector<next_precision_move<ValueType, 2>>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Vector<previous_precision_move<ValueType, 3>>;
+    using ConvertibleTo<Vector<next_precision_move<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision_move<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Vector<next_precision_move<ValueType, 3>>* result) const override;
+
+    void move_to(Vector<next_precision_move<ValueType, 3>>* result) override;
 #endif
 
     std::unique_ptr<absolute_type> compute_absolute() const override;

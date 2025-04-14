@@ -254,6 +254,27 @@ void Coo<ValueType, IndexType>::move_to(
 #endif
 
 
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
+    Coo<next_precision_move<ValueType, 3>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->row_idxs_ = this->row_idxs_;
+    result->col_idxs_ = this->col_idxs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(
+    Coo<next_precision_move<ValueType, 3>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
