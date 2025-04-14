@@ -28,7 +28,8 @@ void classify_dofs(
     array<ValueType>& unique_labels, array<ValueType>& owning_labels,
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
-    size_type& n_constraints, int& n_owning_interfaces) GKO_NOT_IMPLEMENTED;
+    size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
+    bool use_edges) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS);
