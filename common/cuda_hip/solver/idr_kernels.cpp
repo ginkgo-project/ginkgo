@@ -515,7 +515,7 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
             // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-            if constexpr (std::is_same_v<remove_complex<ValueType>, float16>) {
+            if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
                 GKO_NOT_SUPPORTED(m_i);
             } else
 #endif
