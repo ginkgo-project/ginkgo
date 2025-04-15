@@ -615,7 +615,8 @@ TYPED_TEST(Jacobi, AvoidsPrecisionsThatOverflow)
     auto precision = std::is_same<gko::remove_complex<T>, float>::value
                          ? gko::precision_reduction(0, 2)   // float
                          : gko::precision_reduction(1, 1);  // double
-    if (std::is_same<gko::remove_complex<T>, gko::float16>::value) {
+    if (std::is_same<gko::remove_complex<T>, gko::float16>::value ||
+        std::is_same<gko::remove_complex<T>, gko::bfloat16>::value) {
         precision = gko::precision_reduction(2, 0);
     }
     EXPECT_EQ(prec[0], precision);

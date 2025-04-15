@@ -391,6 +391,8 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
     // to be invalid_index after the kernel such that scale_permute gives
     // segmentation fault.
     SKIP_IF_HALF(value_type);
+    // rounding error for bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_nontrivial_mc64_example};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));
