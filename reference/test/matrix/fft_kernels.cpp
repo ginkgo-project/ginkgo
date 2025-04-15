@@ -40,7 +40,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           rng{7381},
 #ifdef GINKGO_FAST_TESTS
-          n1{2},
+          n1{4},
           n2{4},
           n3{8},
 #else
