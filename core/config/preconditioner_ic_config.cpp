@@ -17,7 +17,30 @@ namespace gko {
 namespace config {
 
 
-GKO_PARSE_VALUE_AND_INDEX_TYPE(Ic, gko::preconditioner::Ic);
+template <>
+deferred_factory_parameter<gko::LinOpFactory>
+parse<gko::config::LinOpFactoryType::Ic>(const gko::config::pnode& config,
+                                         const gko::config::registry& context,
+                                         const gko::config::type_descriptor& td)
+{
+    auto updated = gko::config::update_type(config, td);
+    if (config.get("l_solver_type_or_value_type")) {
+        GKO_INVALID_STATE(
+            "preconditioner::Ic only allows value_type from "
+            "l_solver_type_or_value_type. To avoid type confusion between "
+            "these types and value_type, l_solver_type_or_value_type uses "
+            "the value_type directly.");
+    }
+    return gko::config::dispatch<gko::LinOpFactory, gko::preconditioner::Ic>(
+        config, context, updated,
+        gko::config::make_type_selector(updated.get_value_typestr(),
+                                        gko::config::value_type_list()),
+        gko::config::make_type_selector(updated.get_index_typestr(),
+                                        gko::config::index_type_list()));
+}
+static_assert(true,
+              "This assert is used to counter the false positive extra "
+              "semi-colon warnings");
 
 
 }  // namespace config

@@ -15,7 +15,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/base/type_traits.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
@@ -32,14 +32,12 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename SolverTypeOrValueType>
+template <typename Type>
 constexpr bool support_ic_parse =
-    std::is_same_v<gko::detail::get_solver_type<SolverTypeOrValueType>, LinOp>;
+    std::is_same_v<typename Type::l_solver_type, LinOp>;
 
 
-template <typename Ic,
-          std::enable_if_t<!support_ic_parse<
-              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic, std::enable_if_t<!support_ic_parse<Ic>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
@@ -48,9 +46,7 @@ typename Ic::parameters_type ic_parse(
         "preconditioner::Ic only supports limited type for parse.");
 }
 
-template <typename Ic,
-          std::enable_if_t<support_ic_parse<
-              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic, std::enable_if_t<support_ic_parse<Ic>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child);
@@ -116,7 +112,9 @@ class Ic : public EnableLinOp<Ic<LSolverTypeOrValueType, IndexType>>,
     friend class EnablePolymorphicObject<Ic, LinOp>;
 
 public:
-    using l_solver_type = gko::detail::get_solver_type<LSolverTypeOrValueType>;
+    using l_solver_type =
+        std::conditional_t<gko::detail::is_ginkgo_linop<LSolverTypeOrValueType>,
+                           LSolverTypeOrValueType, LinOp>;
     static_assert(std::is_same<gko::detail::transposed_type<
                                    gko::detail::transposed_type<l_solver_type>>,
                                l_solver_type>::value,
@@ -334,26 +332,30 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        this->set_cache_to(b);
-        if (l_solver_->apply_uses_initial_guess()) {
-            cache_.intermediate->copy_from(b);
-        }
-        l_solver_->apply(b, cache_.intermediate);
-        if (lh_solver_->apply_uses_initial_guess()) {
-            x->copy_from(cache_.intermediate);
-        }
-        lh_solver_->apply(cache_.intermediate, x);
+        // take care of real-to-complex apply
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_b, auto dense_x) {
+                this->set_cache_to(dense_b);
+                l_solver_->apply(dense_b, cache_.intermediate);
+                if (lh_solver_->apply_uses_initial_guess()) {
+                    dense_x->copy_from(cache_.intermediate);
+                }
+                lh_solver_->apply(cache_.intermediate, dense_x);
+            },
+            b, x);
     }
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        this->set_cache_to(b);
-        if (l_solver_->apply_uses_initial_guess()) {
-            cache_.intermediate->copy_from(b);
-        }
-        l_solver_->apply(b, cache_.intermediate);
-        lh_solver_->apply(alpha, cache_.intermediate, beta, x);
+        precision_dispatch_real_complex<value_type>(
+            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+                this->set_cache_to(dense_b);
+                l_solver_->apply(dense_b, cache_.intermediate);
+                lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                                  dense_x);
+            },
+            alpha, b, beta, x);
     }
 
     explicit Ic(std::shared_ptr<const Executor> exec)
@@ -432,6 +434,8 @@ protected:
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor());
         }
+        // Use b as the initial guess for the first triangular solve
+        cache_.intermediate->copy_from(b);
     }
 
     /**
