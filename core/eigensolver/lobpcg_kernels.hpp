@@ -19,6 +19,12 @@ namespace kernels {
 namespace lobpcg {
 
 
+#define GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL(_type)                             \
+    void symm_eig(                                                            \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type>* a, \
+        array<remove_complex<_type>>* e_vals, array<char>* workspace)
+
+
 #define GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(_type)                 \
     void symm_generalized_eig(                                                \
         std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type>* a, \
@@ -26,8 +32,10 @@ namespace lobpcg {
         array<char>* workspace)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
+#define GKO_DECLARE_ALL_AS_TEMPLATES               \
+    template <typename ValueType>                  \
+    GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL(ValueType); \
+    template <typename ValueType>                  \
     GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(ValueType)
 
 
