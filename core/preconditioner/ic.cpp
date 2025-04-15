@@ -5,12 +5,9 @@
 #include "ginkgo/core/preconditioner/ic.hpp"
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-#include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/utils.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/ir.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
@@ -21,8 +18,9 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename Ic, std::enable_if_t<support_ic_parse<
-                           typename get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic,
+          std::enable_if_t<support_ic_parse<
+              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)

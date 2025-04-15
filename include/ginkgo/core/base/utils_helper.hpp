@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -150,6 +150,79 @@ using cloned_type =
 
 template <typename Pointer>
 using shared_type = std::shared_ptr<pointee<Pointer>>;
+
+
+// helper for handle the transposed type of concrete type and LinOp
+template <typename Type>
+struct transposed_type_impl {
+    using type = typename Type::transposed_type;
+};
+
+template <>
+struct transposed_type_impl<LinOp> {
+    using type = LinOp;
+};
+
+
+template <typename Type>
+using transposed_type = typename transposed_type_impl<Type>::type;
+
+
+// helper to get factory type of concrete type or LinOp
+template <typename Type>
+struct factory_type_impl {
+    using type = typename Type::Factory;
+};
+
+template <>
+struct factory_type_impl<LinOp> {
+    using type = LinOpFactory;
+};
+
+
+template <typename Type>
+using factory_type = typename factory_type_impl<Type>::type;
+
+template <typename Type>
+constexpr bool is_ginkgo_linop = std::is_convertible_v<Type*, LinOp*>;
+
+template <typename Type>
+struct get_solver_type_impl {
+    using type = std::conditional_t<is_ginkgo_linop<Type>, Type, LinOp>;
+};
+
+template <typename Type>
+using get_solver_type = typename get_solver_type_impl<Type>::type;
+
+
+// helper to get value_type of concrete type or void for LinOp
+template <typename Type, typename = void>
+struct get_value_type_impl {
+    using type = typename Type::value_type;
+};
+
+// We need to use SFINAE not conditional_t because both type needs to be valid
+// in conditional_t
+template <typename Type>
+struct get_value_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
+    using type = Type;
+};
+
+
+template <typename Type>
+using get_value_type = typename get_value_type_impl<Type>::type;
+
+
+// get_first_template is to get the first template argument of class.
+// It can be easily done by introducing another member type of IC to alias the
+// first template argument, but it introduces another public interface.
+template <class>
+struct get_first_template {};
+
+template <template <typename...> class Base, class First, class... Rest>
+struct get_first_template<Base<First, Rest...>> {
+    using type = First;
+};
 
 
 }  // namespace detail

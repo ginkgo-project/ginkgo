@@ -15,14 +15,11 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/utils.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -35,93 +32,14 @@ namespace preconditioner {
 namespace detail {
 
 
-// helper for handle the transposed type of concrete type and LinOp
-template <typename Type>
-struct transposed_type_impl {
-    using type = typename Type::transposed_type;
-};
-
-template <>
-struct transposed_type_impl<LinOp> {
-    using type = LinOp;
-};
-
-
-template <typename Type>
-using transposed_type = typename transposed_type_impl<Type>::type;
-
-
-// helper to get factory type of concrete type or LinOp
-template <typename Type>
-struct factory_type_impl {
-    using type = typename Type::Factory;
-};
-
-template <>
-struct factory_type_impl<LinOp> {
-    using type = LinOpFactory;
-};
-
-
-template <typename Type>
-using factory_type = typename factory_type_impl<Type>::type;
-
-template <typename Type>
-constexpr bool is_ginkgo_linop = std::is_convertible_v<Type*, LinOp*>;
-
-template <typename Type>
-struct get_solver_type_impl {
-    using type = std::conditional_t<is_ginkgo_linop<Type>, Type, LinOp>;
-};
-
-template <typename Type>
-using get_solver_type = typename get_solver_type_impl<Type>::type;
-
-
-// helper to get value_type of concrete type or void for LinOp
-template <typename Type, typename = void>
-struct get_value_type_impl {
-    using type = typename Type::value_type;
-};
-
-// We need to use SFINAE not conditional_t because both type needs to be valid
-// in conditional_t
-template <typename Type>
-struct get_value_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
-    using type = Type;
-};
-
-template <>
-struct get_value_type_impl<LinOp> {
-    using type = void;
-};
-
-
-template <typename Type>
-using get_value_type = typename get_value_type_impl<Type>::type;
-
-
-// get_first_template is to get the first template argument of class.
-// It can be easily done by introducing another member type of IC to alias the
-// first template argument, but it introduces another public interface.
-template <class>
-struct get_first_template {};
-
-template <template <typename...> class Base, class First, class... Rest>
-struct get_first_template<Base<First, Rest...>> {
-    using type = First;
-};
-
-
-// reuse the above the condition
 template <typename SolverTypeOrValueType>
 constexpr bool support_ic_parse =
-    std::is_same_v<get_solver_type<SolverTypeOrValueType>, LinOp> &&
-    !std::is_same_v<get_value_type<SolverTypeOrValueType>, void>;
+    std::is_same_v<gko::detail::get_solver_type<SolverTypeOrValueType>, LinOp>;
 
 
-template <typename Ic, std::enable_if_t<!support_ic_parse<
-                           typename get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic,
+          std::enable_if_t<!support_ic_parse<
+              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
@@ -130,14 +48,16 @@ typename Ic::parameters_type ic_parse(
         "preconditioner::Ic only supports limited type for parse.");
 }
 
-template <typename Ic, std::enable_if_t<support_ic_parse<
-                           typename get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic,
+          std::enable_if_t<support_ic_parse<
+              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child);
 
 
 }  // namespace detail
+
 
 /**
  * The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$
@@ -196,14 +116,13 @@ class Ic : public EnableLinOp<Ic<LSolverTypeOrValueType, IndexType>>,
     friend class EnablePolymorphicObject<Ic, LinOp>;
 
 public:
-    using l_solver_type = detail::get_solver_type<LSolverTypeOrValueType>;
-    static_assert(
-        std::is_same<
-            detail::transposed_type<detail::transposed_type<l_solver_type>>,
-            l_solver_type>::value,
-        "l_solver_type::transposed_type must be symmetric");
-    using value_type = detail::get_value_type<LSolverTypeOrValueType>;
-    using lh_solver_type = detail::transposed_type<l_solver_type>;
+    using l_solver_type = gko::detail::get_solver_type<LSolverTypeOrValueType>;
+    static_assert(std::is_same<gko::detail::transposed_type<
+                                   gko::detail::transposed_type<l_solver_type>>,
+                               l_solver_type>::value,
+                  "l_solver_type::transposed_type must be symmetric");
+    using value_type = gko::detail::get_value_type<LSolverTypeOrValueType>;
+    using lh_solver_type = gko::detail::transposed_type<l_solver_type>;
     using index_type = IndexType;
     using transposed_type = Ic<LSolverTypeOrValueType, IndexType>;
 
@@ -214,7 +133,7 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<const detail::factory_type<l_solver_type>>
+        std::shared_ptr<const gko::detail::factory_type<l_solver_type>>
             l_solver_factory{};
 
         /**
@@ -225,7 +144,7 @@ public:
         GKO_DEPRECATED("use with_l_solver instead")
         parameters_type& with_l_solver_factory(
             deferred_factory_parameter<
-                const detail::factory_type<l_solver_type>>
+                const gko::detail::factory_type<l_solver_type>>
                 solver)
         {
             return with_l_solver(std::move(solver));
@@ -233,7 +152,7 @@ public:
 
         parameters_type& with_l_solver(
             deferred_factory_parameter<
-                const detail::factory_type<l_solver_type>>
+                const gko::detail::factory_type<l_solver_type>>
                 solver)
         {
             this->l_solver_generator = std::move(solver);
@@ -269,7 +188,8 @@ public:
         }
 
     private:
-        deferred_factory_parameter<const detail::factory_type<l_solver_type>>
+        deferred_factory_parameter<
+            const gko::detail::factory_type<l_solver_type>>
             l_solver_generator;
 
         deferred_factory_parameter<const LinOpFactory> factorization_generator;
@@ -331,10 +251,10 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<detail::transposed_type<lh_solver_type>>(
+            share(as<gko::detail::transposed_type<lh_solver_type>>(
                 as<Transposable>(this->get_lh_solver())->transpose()));
         transposed->lh_solver_ =
-            share(as<detail::transposed_type<l_solver_type>>(
+            share(as<gko::detail::transposed_type<l_solver_type>>(
                 as<Transposable>(this->get_l_solver())->transpose()));
 
         return std::move(transposed);
@@ -346,10 +266,10 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<detail::transposed_type<lh_solver_type>>(
+            share(as<gko::detail::transposed_type<lh_solver_type>>(
                 as<Transposable>(this->get_lh_solver())->conj_transpose()));
         transposed->lh_solver_ =
-            share(as<detail::transposed_type<l_solver_type>>(
+            share(as<gko::detail::transposed_type<l_solver_type>>(
                 as<Transposable>(this->get_l_solver())->conj_transpose()));
 
         return std::move(transposed);
@@ -451,24 +371,17 @@ protected:
         // build factorization if we weren't passed a composition
         if (!comp) {
             auto exec = lin_op->get_executor();
-            if constexpr (std::is_same_v<value_type, void>) {
-                GKO_NOT_IMPLEMENTED;
-            } else {
-                if (!parameters_.factorization_factory) {
-                    parameters_.factorization_factory =
-                        factorization::ParIc<value_type, index_type>::build()
-                            .with_both_factors(false)
-                            .on(exec);
-                }
-                auto fact = std::shared_ptr<const LinOp>(
-                    parameters_.factorization_factory->generate(lin_op));
-                // ensure that the result is a composition
-                comp = std::dynamic_pointer_cast<const Composition<value_type>>(
-                    fact);
-                if (!comp) {
-                    GKO_NOT_SUPPORTED(comp);
-                }
+
+            if (!parameters_.factorization_factory) {
+                parameters_.factorization_factory =
+                    factorization::ParIc<value_type, index_type>::build()
+                        .with_both_factors(false)
+                        .on(exec);
             }
+            auto fact = std::shared_ptr<const LinOp>(
+                parameters_.factorization_factory->generate(lin_op));
+            // ensure that the result is a composition
+            comp = gko::as<const Composition<value_type>>(fact);
         }
         // comp must contain one or two factors
         if (comp->get_operators().size() > 2 || comp->get_operators().empty()) {
@@ -519,8 +432,6 @@ protected:
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor());
         }
-        // Use b as the initial guess for the first triangular solve
-        cache_.intermediate->copy_from(b);
     }
 
     /**
