@@ -728,6 +728,17 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
                                    source->get_communicator());
     }
 #endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    using trd_source_type = experimental::distributed::Vector<
+        previous_precision_move<ValueType, 3>>;
+
+    static std::unique_ptr<target_type> create_empty(
+        const trd_source_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+#endif
 };
 
 

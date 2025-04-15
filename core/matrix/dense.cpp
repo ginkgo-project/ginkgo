@@ -1570,7 +1570,8 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     run<matrix::Dense, ValueType, next_precision<ValueType>,
-        next_precision_move<ValueType, 2>>(out, fn);
+        next_precision_move<ValueType, 2>, next_precision_move<ValueType, 3>>(
+        out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
 #endif
