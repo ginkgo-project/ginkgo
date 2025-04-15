@@ -73,6 +73,68 @@ protected:
 TYPED_TEST_SUITE(Lobpcg, gko::test::ValueTypesBase, TypenameNameGenerator);
 
 
+TYPED_TEST(Lobpcg, KernelSymmEig)
+{
+    using Mtx_r = typename TestFixture::Mtx_r;
+    using Mtx_c = typename TestFixture::Mtx_c;
+    using Mtx = typename TestFixture::Mtx;
+    using Ary_r = typename TestFixture::Ary_r;
+    using Ary = typename TestFixture::Ary;
+    using value_type = typename TestFixture::value_type;
+
+    auto work = gko::array<char>(this->exec, 1);
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> small_a_copy;
+
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a_copy = gko::clone(this->small_a_cmplx);
+        // LAPACK expects column-major, so transpose the matrices
+        auto small_a_t =
+            gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
+        this->small_a_cmplx = small_a_t;
+
+        small_a = this->small_a_cmplx;
+    } else {
+        small_a_copy = gko::clone(this->small_a_r);
+        small_a = this->small_a_r;
+    }
+
+    gko::kernels::reference::lobpcg::symm_eig(this->exec, small_a.get(),
+                                              &(this->small_e_vals), &work);
+
+    // On exit, the eigenvectors will be stored in the A
+    // matrix. We create submatrices for the vectors
+    // to check that A * x = lambda * x for each vector.
+    for (gko::size_type i = 0; i < this->small_e_vals.get_size(); i++) {
+        auto evec = gko::share(Mtx::create(
+            this->exec, gko::dim<2>{this->small_e_vals.get_size(), 1},
+            Ary::view(
+                this->exec, this->small_e_vals.get_size(),
+                small_a->get_values() + i * this->small_e_vals.get_size()),
+            1));
+
+        auto lambda_r = gko::share(Mtx_r::create(
+            this->exec, gko::dim<2>{1, 1},
+            Ary_r::view(this->exec, 1, this->small_e_vals.get_data() + i), 1));
+        std::shared_ptr<Mtx> lambda;
+        if constexpr (gko::is_complex_s<value_type>::value) {
+            lambda = lambda_r->make_complex();
+        } else {
+            lambda = lambda_r;
+        }
+        // A*x = lambda * x;
+        auto a_x = Mtx::create(this->exec,
+                               gko::dim<2>{this->small_e_vals.get_size(), 1});
+        // a_x = A * x
+        small_a_copy->apply(evec, a_x);
+        // scale x by lambda
+        evec->scale(lambda);
+
+        GKO_ASSERT_MTX_NEAR(a_x, evec, r<value_type>::value);
+    }
+}
+
+
 TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
 {
     using Mtx_r = typename TestFixture::Mtx_r;
