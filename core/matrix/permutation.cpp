@@ -268,8 +268,11 @@ void dispatch_dense(const LinOp* op, Functor fn)
     using matrix::Dense;
     using std::complex;
     run<Dense,
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
         gko::float16, std::complex<gko::float16>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        gko::bfloat16, std::complex<gko::bfloat16>,
 #endif
         double, float, std::complex<double>, std::complex<float>>(op, fn);
 }
