@@ -18,25 +18,19 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename Ic,
-          std::enable_if_t<support_ic_parse<
-              typename gko::detail::get_first_template<Ic>::type>>* = nullptr>
+template <typename Ic, std::enable_if_t<support_ic_parse<Ic>>*>
 typename Ic::parameters_type ic_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
     auto params = Ic::build();
-
+    using l_solver_type = typename Ic::l_solver_type;
+    static_assert(std::is_same_v<l_solver_type, LinOp>,
+                  "only support IC parse when l_solver_type is LinOp.");
     if (auto& obj = config.get("l_solver")) {
-        if constexpr (std::is_same_v<typename Ic::l_solver_type, LinOp>) {
-            params.with_l_solver(
-                gko::config::parse_or_get_factory<const LinOpFactory>(
-                    obj, context, td_for_child));
-        } else {
-            params.with_l_solver(gko::config::parse_or_get_specific_factory<
-                                 const typename Ic::l_solver_type>(
+        params.with_l_solver(
+            gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
-        }
     }
     if (auto& obj = config.get("factorization")) {
         params.with_factorization(
