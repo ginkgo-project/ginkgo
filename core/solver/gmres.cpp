@@ -409,8 +409,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     using theta_index_type = int32;
     using SparseMtx = matrix::Csr<ValueType, theta_index_type>;
-    SparseMtx* theta{};
-    auto theta_up = SparseMtx::create(exec);
+    std::unique_ptr<SparseMtx> theta{};
     LocalVector* sketched_krylov_bases{};
     LocalVector* d_hessenberg_iter{};
     LocalVector* sketched_next_krylov2{};
@@ -421,6 +420,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
             ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
     } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+        theta = SparseMtx::create(exec);
         // No distributed support yet
         if (num_rows != local_num_rows || is_flexible) {
             GKO_NOT_IMPLEMENTED;
@@ -441,7 +441,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                     0, k_rows - 1)(gen),
                 i, v);
         }
-        theta = theta_up.get();
         theta->read(data);
 
         // each vector is stored contiguously in memory:
