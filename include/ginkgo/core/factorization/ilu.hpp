@@ -109,6 +109,8 @@ public:
          */
         incomplete_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, incomplete_algorithm::sparselib);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(later_drop, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -38,6 +38,7 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(initialize, lu_factorization::initialize);
 GKO_REGISTER_OPERATION(factorize, lu_factorization::factorize);
+GKO_REGISTER_OPERATION(factorize_on_both, ilu_factorization::factorize_on_both);
 
 
 }  // anonymous namespace
@@ -145,10 +146,25 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         }
         // run numerical factorization
         array<int> tmp{exec};
-        exec->run(ilu_factorization::make_factorize(
-            lookup.storage_offsets.get_const_data(),
-            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-            diag_idxs.get_const_data(), factors.get(), false, tmp));
+        if (parameters_.later_drop) {
+            auto copy_matrix = local_system_matrix->clone();
+            const auto matrix_lookup =
+                matrix::csr::build_lookup(copy_matrix.get());
+            exec->run(ilu_factorization::make_factorize_on_both(
+                lookup.storage_offsets.get_const_data(),
+                lookup.row_descs.get_const_data(),
+                lookup.storage.get_const_data(), diag_idxs.get_const_data(),
+                factors.get(), matrix_lookup.storage_offsets.get_const_data(),
+                matrix_lookup.row_descs.get_const_data(),
+                matrix_lookup.storage.get_const_data(), copy_matrix.get(),
+                tmp));
+        } else {
+            exec->run(ilu_factorization::make_factorize(
+                lookup.storage_offsets.get_const_data(),
+                lookup.row_descs.get_const_data(),
+                lookup.storage.get_const_data(), diag_idxs.get_const_data(),
+                factors.get(), false, tmp));
+        }
         ilu = factors;
     } else {
         exec->run(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,11 +23,22 @@ namespace kernels {
 #define GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)  \
     void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec, \
                        matrix::Csr<ValueType, IndexType>* system_matrix)
+#define GKO_DECLARE_ILU_FACTORIZE_ON_BOTH_KERNEL(ValueType, IndexType)        \
+    void factorize_on_both(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const IndexType* lookup_offsets, const int64* lookup_descs,           \
+        const int32* lookup_storage, const IndexType* diag_idxs,              \
+        matrix::Csr<ValueType, IndexType>* factors,                           \
+        const IndexType* matrix_lookup_offsets,                               \
+        const int64* matrix_lookup_descs, const int32* matrix_lookup_storage, \
+        matrix::Csr<ValueType, IndexType>* matrix, array<int>& tmp_storage)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
+    template <typename ValueType, typename IndexType>           \
+    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>           \
+    GKO_DECLARE_ILU_FACTORIZE_ON_BOTH_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ilu_factorization,

@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -60,6 +61,38 @@ TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
 }
 
 
+TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSortedWithLaterDrop)
+{
+    auto sparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
+    auto dsparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->exec));
+    mtx->convert_to(sparsity);
+    dmtx->convert_to(dsparsity);
+    auto fact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(sparsity)
+            .on(ref)
+            ->generate(mtx);
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(dsparsity)
+            .on(exec)
+            ->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
+}
+
+
 TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfree)
 {
     // diag + full first row and column
@@ -78,6 +111,48 @@ TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfree)
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
             .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->exec);
+
+    auto ilu = factory->generate(mtx);
+    auto dilu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(ilu->get_l_factor(), dilu->get_l_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(ilu->get_u_factor(), dilu->get_u_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_l_factor(), dilu->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_u_factor(), dilu->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUWithBitmapIsEquivalentToRefBySyncfreeWithLaterDrop)
+{
+    // diag + full first row and column
+    // the third and forth row use bitmap for lookup table
+    auto mtx = gko::share(gko::initialize<Csr>({{1.0, 1.0, 1.0, 1.0},
+                                                {1.0, 1.0, 0.0, 0.0},
+                                                {1.0, 0.0, 1.0, 0.0},
+                                                {1.0, 0.0, 0.0, 1.0}},
+                                               this->ref));
+    auto dmtx = gko::share(mtx->clone(this->exec));
+    auto sparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
+    auto dsparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->exec));
+    mtx->convert_to(sparsity);
+    dmtx->convert_to(dsparsity);
+
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(dsparsity)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);
@@ -115,6 +190,53 @@ TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfree)
     auto dfactory =
         gko::factorization::Ilu<value_type, index_type>::build()
             .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->exec);
+
+    auto ilu = factory->generate(mtx);
+    auto dilu = dfactory->generate(dmtx);
+
+    GKO_ASSERT_MTX_NEAR(ilu->get_l_factor(), dilu->get_l_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(ilu->get_u_factor(), dilu->get_u_factor(),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_l_factor(), dilu->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(ilu->get_u_factor(), dilu->get_u_factor());
+}
+
+
+TEST_F(Ilu, ComputeILUWithHashmapIsEquivalentToRefBySyncfreeWithLaterDrop)
+{
+    int n = 68;
+    // the first row and second last row use hashmap for lookup table
+    gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+    for (int i = 0; i < n; i++) {
+        data.nonzeros.emplace_back(i, i, gko::one<value_type>());
+    }
+    // add dependence
+    data.nonzeros.emplace_back(n - 3, 0, gko::one<value_type>());
+    // add a entry whose col idx is not shown in the above row
+    data.nonzeros.emplace_back(0, n - 2, gko::one<value_type>());
+    data.sort_row_major();
+    auto mtx = gko::share(Csr::create(this->ref));
+    mtx->read(data);
+    auto dmtx = gko::share(mtx->clone(this->exec));
+    auto sparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
+    auto dsparsity = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->exec));
+    mtx->convert_to(sparsity);
+    dmtx->convert_to(dsparsity);
+    auto factory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .with_later_drop(true)
+            .with_sparsity(dsparsity)
             .on(this->exec);
 
     auto ilu = factory->generate(mtx);
