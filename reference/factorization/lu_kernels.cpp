@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const IndexType* factor_lookup_offsets,
                 const int64* factor_lookup_descs,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
-                matrix::Csr<ValueType, IndexType>* factors)
+                matrix::Csr<ValueType, IndexType>* factors, bool full_fillin)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto mtx_row_ptrs = mtx->get_const_row_ptrs();
@@ -51,8 +51,15 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
             factor_lookup_storage, factor_lookup_descs, row};
         for (auto nz = mtx_row_ptrs[row]; nz < mtx_row_ptrs[row + 1]; nz++) {
             const auto col = mtx_cols[nz];
-            factor_vals[lookup.lookup_unsafe(col) + factor_begin] =
-                mtx_vals[nz];
+            if (full_fillin) {
+                factor_vals[lookup.lookup_unsafe(col) + factor_begin] =
+                    mtx_vals[nz];
+            } else {
+                auto pos = lookup[col];
+                if (pos != invalid_index<IndexType>()) {
+                    factor_vals[pos + factor_begin] = mtx_vals[nz];
+                }
+            }
         }
         diag_idxs[row] = lookup.lookup_unsafe(row) + factor_begin;
     }

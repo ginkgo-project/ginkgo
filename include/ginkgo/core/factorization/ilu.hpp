@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,6 +15,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 namespace gko {
@@ -95,6 +96,9 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+            GKO_FACTORY_PARAMETER_SCALAR(sparsity, nullptr);
 
         /**
          * Select the implementation which is supposed to be used for

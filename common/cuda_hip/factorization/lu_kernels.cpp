@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,7 +40,7 @@ constexpr static int default_block_size = 512;
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
+template <bool full_fillin, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void initialize(
     const IndexType* __restrict__ mtx_row_ptrs,
     const IndexType* __restrict__ mtx_cols,
@@ -77,9 +77,17 @@ __global__ __launch_bounds__(default_block_size) void initialize(
     for (auto nz = row_begin + lane; nz < row_end; nz += config::warp_size) {
         const auto col = mtx_cols[nz];
         const auto val = mtx_vals[nz];
-        factor_vals[lookup.lookup_unsafe(col) + factor_begin] = val;
+        if constexpr (full_fillin) {
+            factor_vals[lookup.lookup_unsafe(col) + factor_begin] = val;
+        } else {
+            const auto pos = lookup[col];
+            if (pos != invalid_index<IndexType>()) {
+                factor_vals[pos + factor_begin] = val;
+            }
+        }
     }
     if (lane == 0) {
+        // should always contain diagonal
         diag_idxs[row] = lookup.lookup_unsafe(row) + factor_begin;
     }
 }
@@ -237,19 +245,31 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const IndexType* factor_lookup_offsets,
                 const int64* factor_lookup_descs,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
-                matrix::Csr<ValueType, IndexType>* factors)
+                matrix::Csr<ValueType, IndexType>* factors, bool full_fillin)
 {
     const auto num_rows = mtx->get_size()[0];
     if (num_rows > 0) {
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::initialize<<<num_blocks, default_block_size, 0,
-                             exec->get_stream()>>>(
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_device_type(mtx->get_const_values()),
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            factor_lookup_offsets, factor_lookup_storage, factor_lookup_descs,
-            as_device_type(factors->get_values()), diag_idxs, num_rows);
+        if (full_fillin) {
+            kernel::initialize<true>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                    as_device_type(mtx->get_const_values()),
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), factor_lookup_offsets,
+                    factor_lookup_storage, factor_lookup_descs,
+                    as_device_type(factors->get_values()), diag_idxs, num_rows);
+        } else {
+            kernel::initialize<false>
+                <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                    as_device_type(mtx->get_const_values()),
+                    factors->get_const_row_ptrs(),
+                    factors->get_const_col_idxs(), factor_lookup_offsets,
+                    factor_lookup_storage, factor_lookup_descs,
+                    as_device_type(factors->get_values()), diag_idxs, num_rows);
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,8 @@ namespace kernels {
                     const IndexType* factor_lookup_offsets,                   \
                     const int64* factor_lookup_descs,                         \
                     const int32* factor_lookup_storage, IndexType* diag_idxs, \
-                    matrix::Csr<ValueType, IndexType>* factors)
+                    matrix::Csr<ValueType, IndexType>* factors,               \
+                    bool full_fillin)
 
 
 #define GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType)                         \

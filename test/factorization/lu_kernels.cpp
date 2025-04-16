@@ -139,13 +139,13 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            this->mtx_lu.get());
+            this->mtx_lu.get(), true);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            this->dmtx_lu.get());
+            this->dmtx_lu.get(), true);
 
         GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
         GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
@@ -167,13 +167,13 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            this->mtx_lu.get());
+            this->mtx_lu.get(), true);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            this->dmtx_lu.get());
+            this->dmtx_lu.get(), true);
 
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->lookup.storage_offsets.get_const_data(),

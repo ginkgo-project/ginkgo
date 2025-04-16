@@ -136,7 +136,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     exec->run(make_initialize(
         mtx.get(), lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        diag_idxs.get_data(), factors.get()));
+        diag_idxs.get_data(), factors.get(), true));
     // run numerical factorization
     array<int> tmp{exec};
     exec->run(make_factorize(

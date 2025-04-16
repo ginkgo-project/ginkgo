@@ -115,7 +115,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 {
     lu_factorization::initialize(exec, mtx, factor_lookup_offsets,
                                  factor_lookup_descs, factor_lookup_storage,
-                                 diag_idxs, factors);
+                                 diag_idxs, factors, true);
     // convert to COO
     const auto nnz = factors->get_num_stored_elements();
     array<IndexType> row_idx_array{exec, nnz};

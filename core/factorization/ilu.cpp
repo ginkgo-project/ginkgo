@@ -101,25 +101,48 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // Compute LU factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||
         exec == exec->get_master()) {
-        const auto nnz = local_system_matrix->get_num_stored_elements();
+        const auto nnz = parameters_.sparsity
+                             ? parameters_.sparsity->get_num_nonzeros()
+                             : local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
         auto factors = share(
             matrix_type::create(exec, local_system_matrix->get_size(), nnz));
-        exec->copy_from(exec, nnz, local_system_matrix->get_const_col_idxs(),
-                        factors->get_col_idxs());
-        exec->copy_from(exec, num_rows + 1,
-                        local_system_matrix->get_const_row_ptrs(),
-                        factors->get_row_ptrs());
+        if (parameters_.sparsity) {
+            exec->copy_from(exec, nnz,
+                            parameters_.sparsity->get_const_col_idxs(),
+                            factors->get_col_idxs());
+            exec->copy_from(exec, num_rows + 1,
+                            parameters_.sparsity->get_const_row_ptrs(),
+                            factors->get_row_ptrs());
+        } else {
+            exec->copy_from(exec, nnz,
+                            local_system_matrix->get_const_col_idxs(),
+                            factors->get_col_idxs());
+            exec->copy_from(exec, num_rows + 1,
+                            local_system_matrix->get_const_row_ptrs(),
+                            factors->get_row_ptrs());
+        }
         // update srow to be safe
         factors->set_strategy(factors->get_strategy());
 
         // setup lookup structure on factors
         const auto lookup = matrix::csr::build_lookup(factors.get());
         array<IndexType> diag_idxs{exec, num_rows};
-        exec->run(ilu_factorization::make_initialize(
-            local_system_matrix.get(), lookup.storage_offsets.get_const_data(),
-            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-            diag_idxs.get_data(), factors.get()));
+        if (parameters_.sparsity) {
+            exec->run(ilu_factorization::make_initialize(
+                local_system_matrix.get(),
+                lookup.storage_offsets.get_const_data(),
+                lookup.row_descs.get_const_data(),
+                lookup.storage.get_const_data(), diag_idxs.get_data(),
+                factors.get(), true));
+        } else {
+            exec->run(ilu_factorization::make_initialize(
+                local_system_matrix.get(),
+                lookup.storage_offsets.get_const_data(),
+                lookup.row_descs.get_const_data(),
+                lookup.storage.get_const_data(), diag_idxs.get_data(),
+                factors.get(), false));
+        }
         // run numerical factorization
         array<int> tmp{exec};
         exec->run(ilu_factorization::make_factorize(

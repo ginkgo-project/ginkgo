@@ -186,7 +186,7 @@ TYPED_TEST(Lu, KernelInitializeWorks)
         gko::kernels::reference::lu_factorization::initialize(
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), this->mtx_lu.get());
+            diag_idxs.get_data(), this->mtx_lu.get(), true);
 
         GKO_ASSERT_MTX_NEAR(this->mtx, this->mtx_lu, 0.0);
         for (gko::size_type row = 0; row < this->num_rows; row++) {
@@ -213,7 +213,7 @@ TYPED_TEST(Lu, KernelFactorizeWorks)
         gko::kernels::reference::lu_factorization::initialize(
             this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
             this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), this->mtx_lu.get());
+            diag_idxs.get_data(), this->mtx_lu.get(), true);
 
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->storage_offsets.get_const_data(),
