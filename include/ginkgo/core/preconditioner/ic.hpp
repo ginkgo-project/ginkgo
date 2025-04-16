@@ -148,6 +148,11 @@ public:
             return with_l_solver(std::move(solver));
         }
 
+        /**
+         * When LSolverTypeOrValueType is a concrete solver type, this only
+         * accepts the factory from the same concrete solver type. When
+         * LSolverTypeOrValueType is a value type, it accepts any LinOpFactory.
+         */
         parameters_type& with_l_solver(
             deferred_factory_parameter<
                 const gko::detail::factory_type<l_solver_type>>

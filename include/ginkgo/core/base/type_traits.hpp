@@ -34,15 +34,6 @@ template <typename Type>
 using factory_type = typename factory_type_impl<Type>::type;
 
 
-template <typename Type>
-struct get_solver_type_impl {
-    using type = std::conditional_t<is_ginkgo_linop<Type>, Type, LinOp>;
-};
-
-template <typename Type>
-using get_solver_type = typename get_solver_type_impl<Type>::type;
-
-
 // helper for handle the transposed type of concrete type and LinOp
 template <typename Type>
 struct transposed_type_impl {
