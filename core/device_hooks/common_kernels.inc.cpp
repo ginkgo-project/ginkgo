@@ -63,6 +63,7 @@
 #include "core/solver/cb_gmres_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
+#include "core/solver/chebyshev_kernels.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gcr_kernels.hpp"
@@ -675,6 +676,16 @@ GKO_STUB_CB_GMRES_CONST(GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres
+
+
+namespace chebyshev {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);
+
+
+}  // namespace chebyshev
 
 
 namespace ir {
