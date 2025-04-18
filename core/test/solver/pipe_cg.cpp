@@ -16,9 +16,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename T>
 class PipeCg : public ::testing::Test {
 protected:
@@ -267,6 +264,3 @@ TYPED_TEST(PipeCg, PassExplicitFactory)
     ASSERT_EQ(factory->get_parameters().criteria.front(), stop_factory);
     ASSERT_EQ(factory->get_parameters().preconditioner, precond_factory);
 }
-
-
-}  // namespace
