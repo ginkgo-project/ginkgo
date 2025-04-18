@@ -27,6 +27,7 @@
 #include "common/cuda_hip/components/disjoint_sets.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
+#include "common/cuda_hip/components/sorting.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
@@ -287,16 +288,31 @@ struct mst_state {
     mst_state(std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
               IndexType num_edges, IndexType* input_sources,
               IndexType* input_targets, IndexType* tree_sources,
-              IndexType* tree_targets)
+              IndexType* tree_targets, array<IndexType> workspace)
         : exec_{exec},
           num_nodes_{num_nodes},
           num_edges_{num_edges},
           input_sources_{input_sources},
           input_targets_{input_targets},
-          work_array_{exec, storage_requirement(num_nodes, num_edges)},
+          work_array_{std::move(workspace)},
           tree_sources_{tree_sources},
           tree_targets_{tree_targets},
           flip_{}
+    {
+        assert(work_array_.get_executor() == exec);
+        assert(work_array_.get_size() >=
+               storage_requirement(num_nodes, num_edges));
+        reset(input_sources, input_targets_, num_edges_);
+    }
+
+    mst_state(std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
+              IndexType num_edges, IndexType* input_sources,
+              IndexType* input_targets, IndexType* tree_sources,
+              IndexType* tree_targets)
+        : mst_state(
+              exec, num_nodes, num_edges, input_sources, input_targets,
+              tree_sources, tree_targets,
+              array<IndexType>{exec, storage_requirement(num_nodes, num_edges)})
     {
         reset(input_sources, input_targets_, num_edges_);
     }
@@ -511,236 +527,178 @@ namespace kernel {
 
 
 template <typename IndexType>
-__device__ __forceinline__ int get_edge_level(IndexType start, IndexType end)
+__device__ __forceinline__ int get_edge_level(IndexType src, IndexType tgt)
 {
     using unsigned_type = std::make_unsigned_t<IndexType>;
-    assert(start != end);
-    return gko::detail::find_lowest_bit(static_cast<unsigned_type>(start) ^
-                                        static_cast<unsigned_type>(end));
-}
-
-
-template <typename IndexType>
-struct elimination_forest_kernel_config {
-    constexpr static int work_per_thread = 16;
-    constexpr static int blocksize = 512;
-    constexpr static int work_per_threadblock = work_per_thread * blocksize;
-    constexpr static int max_levels = sizeof(IndexType) * CHAR_BIT;
-    constexpr static int prefixsum_blocksize = max_levels;
-};
-
-
-/*
-template <typename Config, typename IndexType>
-__global__ __launch_bounds__(Config::blocksize) void count_edge_buckets(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    IndexType* __restrict__ block_counts)
-{
-    const auto threadblock = group::this_thread_block();
-    __shared__ int local_count[Config::max_levels];
-    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
-        local_count[i] = 0;
-    }
-    __syncthreads();
-    const auto base_i = Config::work_per_threadblock * blockIdx.x;
-    for (int local_i = threadIdx.x; local_i < Config::work_per_threadblock;
-         local_i += Config::blocksize) {
-        const auto i = local_i + base_i;
-        const auto start = edge_starts[i];
-        const auto end = edge_ends[i];
-        if (start < end) {
-            const auto level = get_edge_level(start, end);
-            atomicAdd(local_count + level, 1);
-        }
-    }
-    __syncthreads();
-    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
-        block_counts[i + Config::max_levels * blockIdx.x] = local_count[i];
-    }
-}
-
-
-template <typename Config, typename IndexType>
-__global__
-__launch_bounds__(Config::prefixsum_blocksize) void bucket_count_prefixsum(
-    IndexType* __restrict__ block_counts, IndexType num_blocks)
-{
-    if (threadIdx.x > Config::max_levels) {
-        return;
-    }
-    const auto bucket = static_cast<IndexType>(threadIdx.x);
-    IndexType sum{};
-    for (const auto block : irange{num_blocks}) {
-        const auto idx = bucket + Config::max_levels * block;
-        const auto count = block_counts[idx];
-        block_counts[idx] = sum;
-        sum += count;
-    }
-    block_counts[bucket + Config::max_levels * num_blocks] = sum;
-}
-
-
-template <typename Config, typename IndexType>
-__global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    const IndexType* __restrict__ block_count_prefixsum,
-    IndexType* __restrict__ out_edge_starts,
-    IndexType* __restrict__ out_edge_ends)
-{
-    const auto threadblock = group::this_thread_block();
-    __shared__ int local_count[Config::max_levels];
-    for (int i = threadIdx.x; i < Config::max_levels; i += Config::blocksize) {
-        local_count[i] =
-            block_count_prefixsum[i + Config::max_levels * blockIdx.x];
-    }
-    __syncthreads();
-    const auto base_i = Config::work_per_threadblock * blockIdx.x;
-    for (int local_i = threadIdx.x; local_i < Config::work_per_threadblock;
-         local_i += Config::blocksize) {
-        const auto i = local_i + base_i;
-        const auto start = edge_starts[i];
-        const auto end = edge_ends[i];
-        if (start < end) {
-            const auto level = get_edge_level(start, end);
-            const auto out_i = atomicAdd(local_count + level, 1);
-            out_edge_starts[out_i] = start;
-            out_edge_ends[out_i] = end;
-        }
-    }
-}*/
-template <typename Config, typename IndexType>
-__global__ __launch_bounds__(Config::blocksize) void count_edge_buckets(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    IndexType* __restrict__ global_counts)
-{
-    const auto i = thread::get_thread_id_flat();
-    if (i >= num_edges) {
-        return;
-    }
-    const auto start = edge_starts[i];
-    const auto end = edge_ends[i];
-    assert(start < end);
-    const auto level = get_edge_level(start, end);
-    atomic_add(global_counts + level, 1);
-}
-
-
-template <typename Config, typename IndexType>
-__global__ __launch_bounds__(Config::blocksize) void distribute_edge_buckets(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    const IndexType* __restrict__ global_offsets,
-    IndexType* __restrict__ out_edge_starts,
-    IndexType* __restrict__ out_edge_ends)
-{
-    const auto i = thread::get_thread_id_flat();
-    if (i >= num_edges) {
-        return;
-    }
-    const auto start = edge_starts[i];
-    const auto end = edge_ends[i];
-    assert(start < end);
-    const auto level = get_edge_level(start, end);
-    auto output_pos = atomic_add(global_offsets + level, 1);
-    out_edge_starts[i] = start;
-    out_edge_ends[i] = end;
+    assert(src != tgt);
+    return gko::detail::find_highest_bit(static_cast<unsigned_type>(src) ^
+                                         static_cast<unsigned_type>(tgt));
 }
 
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_conn_components(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    IndexType size, IndexType block_size, IndexType* __restrict__ parents)
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, size_type num_edges,
+    IndexType size, IndexType* __restrict__ parents)
 {
     const auto i = thread::get_thread_id_flat();
     if (i >= num_edges) {
         return;
     }
     disjoint_sets<IndexType> sets{parents, size};
-    const auto start = edge_starts[i];
-    const auto end = edge_ends[i];
-    const auto half_block_size = block_size / 2;
-    // interior edge: join
-    if (start / half_block_size == end / half_block_size) {
-        const auto start_rep = sets.find_relaxed_compressing(start);
-        const auto end_rep = sets.find_relaxed_compressing(end);
-        sets.join(start_rep, end_rep);
-    }
+    const auto src = edge_sources[i];
+    const auto tgt = edge_targets[i];
+    const auto src_rep = sets.find_relaxed_compressing(src);
+    const auto tgt_rep = sets.find_relaxed_compressing(tgt);
+    sets.join(src_rep, tgt_rep);
 }
 
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void find_min_cut_neighbors(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    IndexType size, IndexType block_size, IndexType* __restrict__ parents,
-    IndexType* __restrict__ mins, IndexType* __restrict__ cut_edge_counter)
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, size_type num_edges,
+    IndexType size, IndexType* __restrict__ parents,
+    IndexType* __restrict__ mins)
 {
     const auto i = thread::get_thread_id_flat();
     if (i >= num_edges) {
         return;
     }
     disjoint_sets<IndexType> sets{parents, size};
-    const auto start = edge_starts[i];
-    const auto end = edge_ends[i];
-    const auto half_block_size = block_size / 2;
-    if (start / block_size == end / block_size &&
-        start / half_block_size < end / half_block_size) {
-        // cut edge: count for minimum
-        const auto start_rep = sets.find_relaxed_compressing(start);
-        kernel::guarded_atomic_min(mins + start_rep, end);
-        atomic_add_relaxed(cut_edge_counter, 1);
-    }
+    const auto src = edge_sources[i];
+    const auto tgt = edge_targets[i];
+    // cut edge: count for minimum
+    const auto src_rep = sets.find_relaxed_compressing(src);
+    guarded_atomic_min(mins + src_rep, tgt);
 }
 
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void add_fill_edges(
-    const IndexType* __restrict__ edge_starts,
-    const IndexType* __restrict__ edge_ends, size_type num_edges,
-    IndexType size, IndexType block_size, const IndexType* __restrict__ parents,
-    const IndexType* __restrict__ mins, IndexType* __restrict__ new_edge_starts,
-    IndexType* __restrict__ new_edge_ends,
-    IndexType* __restrict__ cut_edge_counter)
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, size_type num_edges,
+    IndexType size, const IndexType* __restrict__ parents,
+    const IndexType* __restrict__ mins,
+    IndexType* __restrict__ new_edge_sources,
+    IndexType* __restrict__ new_edge_targets)
 {
     const auto i = thread::get_thread_id_flat();
     if (i >= num_edges) {
         return;
     }
     disjoint_sets<const IndexType> sets{parents, size};
-    const auto start = edge_starts[i];
-    const auto end = edge_ends[i];
-    const auto half_block_size = block_size / 2;
-    if (start / block_size == end / block_size &&
-        start / half_block_size < end / half_block_size) {
-        // cut edge: potentially add fill-in
-        const auto start_rep = sets.find_weak(start);
-        const auto min_node = mins[start_rep];
-        if (min_node != end) {
-            const auto out_i = atomic_add_relaxed(cut_edge_counter, 1);
-            new_edge_starts[out_i] = min_node;
-            new_edge_ends[out_i] = end;
-        }
+    const auto src = edge_sources[i];
+    const auto tgt = edge_targets[i];
+    const auto src_rep = sets.find_weak(src);
+    const auto min_node = mins[src_rep];
+    // we may have min_node == tgt, but that will get filtered out in the
+    // sorting step
+    new_edge_sources[i] = min_node;
+    new_edge_targets[i] = tgt;
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void add_fill_and_tree_edges(
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, size_type num_edges,
+    IndexType size, const IndexType* __restrict__ parents,
+    const IndexType* __restrict__ mins,
+    IndexType* __restrict__ new_edge_sources,
+    IndexType* __restrict__ new_edge_targets,
+    IndexType* __restrict__ forest_parents)
+{
+    const auto i = thread::get_thread_id_flat();
+    if (i >= num_edges) {
+        return;
     }
+    disjoint_sets<const IndexType> sets{parents, size};
+    const auto src = edge_sources[i];
+    const auto tgt = edge_targets[i];
+    const auto src_rep = sets.find_weak(src);
+    const auto min_node = mins[src_rep];
+    assert(min_node < size);
+    // we may have min_node == tgt, but that will get filtered out in the
+    // sorting step
+    new_edge_sources[i] = min_node;
+    new_edge_targets[i] = tgt;
+    store_relaxed_local(forest_parents + src_rep, min_node);
 }
 
 
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void add_tree_edges(
-    const IndexType* __restrict__ parents, const IndexType* __restrict__ mins,
-    IndexType size, IndexType* __restrict__ forest_parents)
+    const IndexType* __restrict__ cc_parents,
+    const IndexType* __restrict__ mins, IndexType size,
+    IndexType* __restrict__ forest_parents)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
     if (i >= size) {
         return;
     }
-    disjoint_sets<const IndexType> sets{parents, size};
+    disjoint_sets<const IndexType> sets{cc_parents, size};
     if (sets.is_representative_weak(i) && mins[i] < size) {
         forest_parents[i] = mins[i];
+    }
+}
+
+
+template <typename Config, typename IndexType, typename ToSortInputIterator,
+          typename SortedInputIterator, typename OutputIterator,
+          typename Predicate, typename BucketIndexOp>
+__global__
+__launch_bounds__(Config::threadblock_size) void bucket_sort_merge_filter_distribute(
+    ToSortInputIterator to_sort_begin, SortedInputIterator sorted_begin,
+    OutputIterator out_begin, IndexType to_sort_size, IndexType sorted_size,
+    IndexType num_sort_blocks, Predicate predicate, BucketIndexOp bucket_op,
+    const IndexType* to_sort_offsets, const IndexType* sorted_offsets)
+{
+    constexpr auto num_buckets = Config::num_buckets;
+    constexpr auto threadblock_size = Config::threadblock_size;
+    const auto block_id = static_cast<IndexType>(blockIdx.x);
+    const auto global_to_sort_offsets =
+        to_sort_offsets + num_buckets * num_sort_blocks;
+    if (block_id >= num_sort_blocks) {
+        const auto relative_block = block_id - num_sort_blocks;
+        const auto i =
+            relative_block * threadblock_size + static_cast<int>(threadIdx.x);
+        if (i >= sorted_size) {
+            return;
+        }
+        const auto value = *(sorted_begin + i);
+        // TODO do this manually and explicitly
+        if (predicate(value)) {
+            const auto bucket = bucket_op(value);
+            const auto bucket_offset = sorted_offsets[bucket];
+            const auto relative_pos = i - bucket_offset;
+            assert(relative_pos >= 0);
+            const auto out_pos = global_to_sort_offsets[bucket] +
+                                 sorted_offsets[bucket] + relative_pos;
+            *(out_begin + out_pos) = value;
+        }
+    } else {
+        __shared__ IndexType sh_counters[num_buckets];
+        for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
+            sh_counters[i] = to_sort_offsets[i + num_buckets * block_id] +
+                             global_to_sort_offsets[i] + sorted_offsets[i + 1];
+        }
+        __syncthreads();
+        const auto base_i = Config::items_per_threadblock * block_id;
+        const auto end =
+            min(base_i + Config::items_per_threadblock, to_sort_size);
+        for (IndexType i = base_i + threadIdx.x; i < end;
+             i += threadblock_size) {
+            const auto value = *(to_sort_begin + i);
+            if (predicate(value)) {
+                const auto bucket = bucket_op(value);
+                assert(bucket >= 0 && bucket < num_buckets);
+                auto out_pos =
+                    atomic_add_relaxed_shared(sh_counters + bucket, 1);
+                *(out_begin + out_pos) = value;
+            }
+        }
     }
 }
 
@@ -759,98 +717,339 @@ static void ensure_storage(array<ValueType>& arr, size_type new_size)
 
 
 template <typename IndexType>
+struct elimination_forest_algorithm_state {
+    constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
+    elimination_forest_algorithm_state(
+        std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
+        IndexType num_edges)
+        : exec{exec},
+          workspace{exec, storage_requirement(num_nodes, num_edges)},
+          num_nodes{num_nodes},
+          edge_capacity{2 * num_edges},
+          num_levels{
+              gko::detail::find_highest_bit(
+                  static_cast<std::make_unsigned_t<IndexType>>(num_nodes - 1)) +
+              1},
+          ceil_num_nodes{IndexType{1} << num_levels},
+          bucket_ranges{},
+          flip{}
+    {
+        bucket_ranges.back() = num_edges;
+    }
+
+    static size_type storage_requirement(size_type num_nodes,
+                                         size_type num_edges)
+    {
+        const auto edge_capacity = 2 * num_edges;
+        return edge_capacity      // buf1_edge_sources
+               + edge_capacity    // buf1_edge_targets
+               + edge_capacity    // buf2_edge_sources
+               + edge_capacity    // buf2_edge_targets
+               + num_nodes        // tree_parents
+               + num_nodes + 2    // tree_child_ptrs
+               + num_nodes        // tree_children
+               + num_nodes        // cc_parents
+               + num_nodes        // cc_mins
+               + num_buckets + 1  // device_bucket_ranges
+               + 1                // tree_counter
+               + bucket_sort_workspace_size<num_buckets>(edge_capacity);
+    }
+
+    IndexType* buf1_edge_sources() { return workspace.get_data(); }
+
+    IndexType* buf1_edge_targets()
+    {
+        return buf1_edge_sources() + edge_capacity;
+    }
+
+    IndexType* buf2_edge_sources()
+    {
+        return buf1_edge_targets() + edge_capacity;
+    }
+
+    IndexType* buf2_edge_targets()
+    {
+        return buf2_edge_sources() + edge_capacity;
+    }
+
+    IndexType* tree_parents() { return buf2_edge_targets() + edge_capacity; }
+
+    IndexType* tree_child_ptrs() { return tree_parents() + num_nodes; }
+
+    IndexType* tree_children() { return tree_child_ptrs() + num_nodes + 2; }
+
+    IndexType* cc_parents() { return tree_children() + num_nodes; }
+
+    IndexType* cc_mins() { return cc_parents() + num_nodes; }
+
+    IndexType* device_bucket_ranges() { return cc_mins() + num_nodes; }
+
+    IndexType* tree_counter() { return device_bucket_ranges() + num_nodes + 1; }
+
+    IndexType* bucket_sort_workspace() { return tree_counter() + 1; }
+
+    array<IndexType> bucket_sort_workspace_view()
+    {
+        return make_array_view(
+            exec, bucket_sort_workspace_size<num_buckets>(edge_capacity),
+            bucket_sort_workspace());
+    }
+
+    IndexType num_edges() const { return bucket_ranges.back(); }
+
+    const IndexType* in_edge_sources()
+    {
+        return flip ? buf2_edge_sources() : buf1_edge_sources();
+    }
+
+    const IndexType* in_edge_targets()
+    {
+        return flip ? buf2_edge_targets() : buf1_edge_targets();
+    }
+
+    IndexType* fill_edge_sources()
+    {
+        return (flip ? buf2_edge_sources() : buf1_edge_sources()) + num_edges();
+    }
+
+    IndexType* fill_edge_targets()
+    {
+        return (flip ? buf2_edge_targets() : buf1_edge_targets()) + num_edges();
+    }
+
+    IndexType* out_edge_sources()
+    {
+        return flip ? buf1_edge_sources() : buf2_edge_sources();
+    }
+    IndexType* out_edge_targets()
+    {
+        return flip ? buf1_edge_targets() : buf2_edge_targets();
+    }
+
+    void output_to_input() { flip = !flip; }
+
+    void init(const array<IndexType>& sources, const array<IndexType>& ends)
+    {
+        assert(sources.get_size() == ends.get_size());
+        assert(sources.get_size() <= edge_capacity);
+        exec->copy(sources.get_size(), sources.get_const_data(),
+                   out_edge_sources());
+        exec->copy(ends.get_size(), ends.get_const_data(), out_edge_targets());
+        bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
+        components::fill_array(exec, tree_parents(),
+                               static_cast<size_type>(num_nodes), num_nodes);
+        output_to_input();
+    }
+
+    void bucket_sort_input()
+    {
+        auto sort_workspace = bucket_sort_workspace_view();
+        auto it =
+            thrust::make_zip_iterator(in_edge_sources(), in_edge_targets());
+        auto out_it =
+            thrust::make_zip_iterator(out_edge_sources(), out_edge_targets());
+        array<IndexType> tmp{exec};
+        bucket_ranges = bucket_sort<num_buckets>(
+            exec, it, it + num_edges(), out_it,
+            [] __device__(thrust::tuple<IndexType, IndexType> edge) {
+                return kernel::get_edge_level(thrust::get<0>(edge),
+                                              thrust::get<1>(edge));
+            },
+            tmp);  // sort_workspace);
+        exec->copy_from(exec->get_master(), num_buckets + 1,
+                        bucket_ranges.data(), device_bucket_ranges());
+        output_to_input();
+    }
+
+    irange<IndexType> get_inner_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto end = bucket_ranges[level];
+        assert(end >= 0);
+        assert(end < edge_capacity);
+        return irange<IndexType>{end};
+    }
+
+    irange<IndexType> get_cut_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto begin = bucket_ranges[level];
+        const auto end = bucket_ranges[level + 1];
+        assert(begin >= 0);
+        assert(begin <= end);
+        assert(end < edge_capacity);
+        return irange<IndexType>{begin, end};
+    }
+
+    void find_connected_components(int level)
+    {
+        components::fill_seq_array(exec, cc_parents(),
+                                   static_cast<size_type>(num_nodes));
+        const auto inner_edges = get_inner_edge_range(level);
+        if (inner_edges.size() > 0) {
+            const auto num_blocks =
+                ceildiv(inner_edges.size(), default_block_size);
+            kernel::build_conn_components<<<num_blocks, default_block_size, 0,
+                                            exec->get_stream()>>>(
+                in_edge_sources(), in_edge_targets(), inner_edges.size(),
+                num_nodes, cc_parents());
+        }
+    }
+
+    void find_min_cut_neighbors(int level)
+    {
+        const auto min_sentinel = num_nodes;
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        const auto cut_edge_range = get_cut_edge_range(level);
+        if (cut_edge_range.size() > 0) {
+            const auto num_blocks =
+                ceildiv(cut_edge_range.size(), default_block_size);
+            kernel::find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
+                                             exec->get_stream()>>>(
+                in_edge_sources() + cut_edge_range.begin_index(),
+                in_edge_targets() + cut_edge_range.begin_index(),
+                cut_edge_range.size(), num_nodes, cc_parents(), cc_mins());
+        }
+    }
+
+    void add_fill_and_tree_edges(int level)
+    {
+        const auto cut_edge_range = get_cut_edge_range(level);
+        if (cut_edge_range.size() > 0) {
+            const auto num_blocks =
+                ceildiv(cut_edge_range.size(), default_block_size);
+            /*if (num_cut_edges < num_nodes) {
+                kernel::add_fill_and_tree_edges<<<
+                    num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                    in_edge_sources() + begin_cut_edges,
+                    in_edge_targets() + begin_cut_edges, num_cut_edges,
+            num_nodes, cc_parents(), cc_mins(), fill_edge_sources(),
+                    fill_edge_targets(), tree_parents());
+            } else*/
+            {
+                const auto num_node_blocks =
+                    ceildiv(num_nodes, default_block_size);
+                kernel::add_fill_edges<<<num_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(
+                    in_edge_sources() + cut_edge_range.begin_index(),
+                    in_edge_targets() + cut_edge_range.begin_index(),
+                    cut_edge_range.size(), num_nodes, cc_parents(), cc_mins(),
+                    fill_edge_sources(), fill_edge_targets());
+                kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
+                                         exec->get_stream()>>>(
+                    cc_parents(), cc_mins(), num_nodes, tree_parents());
+            }
+        }
+    }
+
+    void bucket_sort_fill_edges(int level)
+    {
+        const auto cut_edge_range = get_cut_edge_range(level);
+        using namespace gko::kernels::GKO_DEVICE_NAMESPACE::kernel;
+        using config = bucket_sort_config<num_buckets>;
+        const auto num_fill_edges = cut_edge_range.size();
+        auto fill_it =
+            thrust::make_zip_iterator(fill_edge_sources(), fill_edge_targets());
+        auto in_it =
+            thrust::make_zip_iterator(in_edge_sources(), in_edge_targets());
+        auto out_it =
+            thrust::make_zip_iterator(out_edge_sources(), out_edge_targets());
+        std::array<IndexType, num_buckets + 1> fill_bucket_ranges{};
+        // bucket sort by edge level
+        auto bucket_op =
+            [] __device__(thrust::tuple<IndexType, IndexType> edge) {
+                return kernel::get_edge_level(thrust::get<0>(edge),
+                                              thrust::get<1>(edge));
+            };
+        // removing cut edges from the current level and above
+        // and loops (which allow us to avoid atomics)
+        auto predicate =
+            [level] __device__(thrust::tuple<IndexType, IndexType> edge) {
+                const auto src = thrust::get<0>(edge);
+                const auto end = thrust::get<1>(edge);
+                return src != end && kernel::get_edge_level(src, end) <= level;
+            };
+        assert(num_fill_edges <= edge_capacity);
+        const auto num_blocks = std::max<IndexType>(
+            1, static_cast<IndexType>(
+                   ceildiv(num_fill_edges, config::items_per_threadblock)));
+        array<IndexType> tmp{exec,
+                             bucket_sort_workspace_size<num_buckets, config>(
+                                 std::max<IndexType>(1, num_fill_edges))};
+        const auto workspace = tmp.get_data();  // bucket_sort_workspace();
+        bucket_sort_filter_count<config>
+            <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
+                fill_it, num_fill_edges, predicate, bucket_op, workspace);
+        bucket_sort_prefixsum<config>
+            <<<1, config::num_buckets, 0, exec->get_stream()>>>(workspace,
+                                                                num_blocks);
+        const auto global_offsets = workspace + num_buckets * num_blocks;
+        components::prefix_sum_nonnegative(exec, global_offsets,
+                                           num_buckets + 1);
+        exec->get_master()->copy_from(exec, num_buckets + 1, global_offsets,
+                                      fill_bucket_ranges.data());
+        const auto num_merge_blocks = static_cast<IndexType>(
+            ceildiv(num_edges(), config::threadblock_size));
+        components::fill_array(exec, out_edge_sources(), edge_capacity,
+                               IndexType{-1});
+        components::fill_array(exec, out_edge_targets(), edge_capacity,
+                               IndexType{-1});
+        kernel::bucket_sort_merge_filter_distribute<config>
+            <<<num_blocks + num_merge_blocks, config::threadblock_size, 0,
+               exec->get_stream()>>>(
+                fill_it, in_it, out_it, num_fill_edges, num_edges(), num_blocks,
+                predicate, bucket_op, workspace, device_bucket_ranges());
+        for (int i = 0; i <= level; i++) {
+            bucket_ranges[i] += fill_bucket_ranges[i];
+        }
+        // all edges >= level were filtered out
+        for (int i = level + 1; i <= num_levels; i++) {
+            bucket_ranges[i] = bucket_ranges[level];
+        }
+        exec->copy_from(exec->get_master(), num_buckets + 1,
+                        bucket_ranges.data(), device_bucket_ranges());
+    }
+
+    void run()
+    {
+        bucket_sort_input();
+        for (int level = num_levels - 1; level >= 0; level--) {
+            find_connected_components(level);
+            find_min_cut_neighbors(level);
+            add_fill_and_tree_edges(level);
+            bucket_sort_fill_edges(level);
+            output_to_input();
+        }
+    }
+
+    std::shared_ptr<const DefaultExecutor> exec;
+    array<IndexType> workspace;
+    IndexType num_nodes;
+    IndexType edge_capacity;
+    int num_levels;
+    IndexType ceil_num_nodes;
+    std::array<IndexType, num_buckets + 1> bucket_ranges;
+    bool flip;
+};
+
+
+template <typename IndexType>
 void compute(std::shared_ptr<const DefaultExecutor> exec,
              const IndexType* row_ptrs, const IndexType* cols, size_type usize,
              gko::factorization::elimination_forest<IndexType>& forest)
 {
     using unsigned_type = std::make_unsigned_t<IndexType>;
     const auto size = static_cast<IndexType>(usize);
-    if (size == 0) {
-        return;
-    }
-    const auto forest_parents = forest.parents.get_data();
-    components::fill_array(exec, forest_parents, usize, size);
-    const auto nnz =
-        static_cast<size_type>(exec->copy_val_to_host(row_ptrs + size));
-    if (nnz == 0) {
-        return;
-    }
-    const auto policy = thrust_policy(exec);
-    array<IndexType> row_idx_array{exec, nnz};
-    const auto row_idxs = row_idx_array.get_data();
-    components::convert_ptrs_to_idxs(exec, row_ptrs, size, row_idxs);
-    const auto nz_it = thrust::make_zip_iterator(cols, row_idxs);
-    const auto edge_predicate =
-        [] __device__(thrust::tuple<IndexType, IndexType> tuple) {
-            return thrust::get<0>(tuple) < thrust::get<1>(tuple);
-        };
-    auto num_edges = static_cast<size_type>(
-        thrust::count_if(policy, nz_it, nz_it + nnz, edge_predicate));
-    array<IndexType> edge_start_array{exec, num_edges};
-    array<IndexType> edge_end_array{exec, num_edges};
-    auto edge_starts = edge_start_array.get_data();
-    auto edge_ends = edge_end_array.get_data();
-    auto edge_it = thrust::make_zip_iterator(edge_starts, edge_ends);
-    thrust::copy_if(policy, nz_it, nz_it + nnz, edge_it, edge_predicate);
-    // round up size to the next power of two
-    const auto rounded_up_size = IndexType{1}
-                                 << (gko::detail::find_highest_bit(
-                                         static_cast<unsigned_type>(size - 1)) +
-                                     1);
-    // insert fill-in edges top-down
-    for (auto block_size = rounded_up_size; block_size > 1; block_size /= 2) {
-        // initialize parent array
-        array<IndexType> parent_array{exec, usize};
-        const auto parents = parent_array.get_data();
-        components::fill_seq_array(exec, parents, usize);
-        // build connected components
-        const auto num_blocks = ceildiv(num_edges, default_block_size);
-        kernel::build_conn_components<<<num_blocks, default_block_size, 0,
-                                        exec->get_stream()>>>(
-            edge_starts, edge_ends, num_edges, size, block_size, parents);
-        // now find the smallest upper node adjacent to a cc in a lower block
-        array<IndexType> min_array{exec, usize};
-        const auto mins = min_array.get_data();
-        components::fill_array(exec, mins, usize, size);
-        array<IndexType> counter_array{exec, 1};
-        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        kernel::find_min_cut_neighbors<<<num_blocks, default_block_size, 0,
-                                         exec->get_stream()>>>(
-            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
-            counter_array.get_data());
-        const auto new_edge_space = static_cast<size_type>(
-            exec->copy_val_to_host(counter_array.get_const_data()));
-        array<IndexType> new_edge_start_array{exec, new_edge_space};
-        array<IndexType> new_edge_end_array{exec, new_edge_space};
-        // now add new edges for every one of those cut edges
-        components::fill_array(exec, counter_array.get_data(), 1, IndexType{});
-        kernel::add_fill_edges<<<num_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(
-            edge_starts, edge_ends, num_edges, size, block_size, parents, mins,
-            new_edge_start_array.get_data(), new_edge_end_array.get_data(),
-            counter_array.get_data());
-        // add tree edges
-        const auto num_node_blocks = ceildiv(size, default_block_size);
-        kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
-                                 exec->get_stream()>>>(parents, mins, size,
-                                                       forest_parents);
-        const auto new_edges =
-            exec->copy_val_to_host(counter_array.get_const_data());
-        array<IndexType> new_full_edge_start_array{exec, num_edges + new_edges};
-        array<IndexType> new_full_edge_end_array{exec, num_edges + new_edges};
-        exec->copy(num_edges, edge_starts,
-                   new_full_edge_start_array.get_data());
-        exec->copy(num_edges, edge_ends, new_full_edge_end_array.get_data());
-        exec->copy(new_edges, new_edge_start_array.get_data(),
-                   new_full_edge_start_array.get_data() + num_edges);
-        exec->copy(new_edges, new_edge_end_array.get_data(),
-                   new_full_edge_end_array.get_data() + num_edges);
-        num_edges = new_full_edge_start_array.get_size();
-        edge_start_array = std::move(new_full_edge_start_array);
-        edge_end_array = std::move(new_full_edge_end_array);
-        edge_starts = edge_start_array.get_data();
-        edge_ends = edge_end_array.get_data();
-    }
+    auto [targets, sources] =
+        extract_lower_triangular(exec, row_ptrs, cols, size);
+    const auto num_edges = static_cast<IndexType>(sources.get_size());
+    elimination_forest_algorithm_state<IndexType> state{exec, size, num_edges};
+    state.init(sources, targets);
+    state.run();
+    exec->copy(size, state.tree_parents(), forest.parents.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);

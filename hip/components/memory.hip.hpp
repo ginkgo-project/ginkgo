@@ -136,6 +136,14 @@ __device__ __forceinline__ ValueType atomic_add_relaxed(ValueType* ptr,
 }
 
 
+template <typename ValueType, typename AddType>
+__device__ __forceinline__ ValueType atomic_add_relaxed_shared(ValueType* ptr,
+                                                               AddType value)
+{
+    return atomic_add_relaxed(ptr, value);
+}
+
+
 template <typename ValueType>
 __device__ __forceinline__ ValueType atomic_min_relaxed(ValueType* ptr,
                                                         ValueType value)
