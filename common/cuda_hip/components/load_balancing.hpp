@@ -23,7 +23,7 @@ namespace GKO_DEVICE_NAMESPACE {
  *
  * @param chunk_count  how many total chunks of work are there?
  * @param work_count   functor work_count(i) should return how many work items
- *                     are in the i'th chunk, at least 1.
+ *                     are in the i'th chunk.
  *                     It will only be executed once for each i.
  * @param op           the operation to execute for a single work item, called
  *                     via op(chunk_id, work_item_id)
@@ -35,7 +35,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <int subwarp_size, typename IndexType, typename WorkCountFunctor,
           typename OpFunctor>
-__forceinline__ __device__ void load_balance_subwarp_nonempty(
+__forceinline__ __device__ void load_balance_subwarp(
     IndexType chunk_count, WorkCountFunctor work_count, OpFunctor op)
 {
     const auto subwarp =
@@ -50,7 +50,7 @@ __forceinline__ __device__ void load_balance_subwarp_nonempty(
     IndexType work_prefix_sum{};
     subwarp_prefix_sum<true>(local_work, work_prefix_sum, subwarp);
     while (chunk_base < chunk_count) {
-        assert(local_work > 0);
+        assert(local_work >= 0);
         // binary search over this prefix sum tells us which chunk each thread
         // works in
         const auto local_work_pos = work_base + lane;
@@ -58,45 +58,54 @@ __forceinline__ __device__ void load_balance_subwarp_nonempty(
             synchronous_fixed_binary_search<subwarp_size>([&](int i) {
                 return local_work_pos < subwarp.shfl(work_prefix_sum, i);
             });
-        assert(local_chunk < subwarp_size);
-        auto local_chunk_work_base =
-            subwarp.shfl(work_prefix_sum - local_work, local_chunk);
+        // guard against out-of-bounds shuffle
+        auto local_chunk_work_base = subwarp.shfl(
+            work_prefix_sum - local_work, max(local_chunk, subwarp_size - 1));
         const auto chunk = chunk_base + local_chunk;
         // do the work inside this chunk
-        if (chunk < chunk_count) {
+        if (chunk < chunk_count && local_chunk < subwarp_size) {
             op(chunk, local_work_pos - local_chunk_work_base, local_work_pos);
         }
         const auto last_local_chunk =
             subwarp.shfl(local_chunk, subwarp_size - 1);
-        const auto last_local_chunk_end =
-            subwarp.shfl(work_prefix_sum, last_local_chunk);
-        assert(last_local_chunk < subwarp_size);
-        assert(last_local_chunk_end > local_work_pos);
-        work_base += subwarp_size;
-        // how many chunks have we completed? The last one is completed if its
-        // end matches work_base after the update
-        const auto chunk_advance =
-            last_local_chunk + (last_local_chunk_end == work_base ? 1 : 0);
-        chunk_base += chunk_advance;
-        // shift down local_work and work_prefix_sum,
-        // adding new values when necessary
-        local_work = subwarp.shfl_down(local_work, chunk_advance);
         // find the last value of the prefix sum and remember it for later
         const auto work_prefix_sum_end =
             subwarp.shfl(work_prefix_sum, subwarp_size - 1);
-        // this shuffle leaves the trailing elements unchaged, we need to
-        // overwrite them later
-        work_prefix_sum = subwarp.shfl_down(work_prefix_sum, chunk_advance);
         IndexType work_prefix_sum_add{};
-        if (lane >= subwarp_size - chunk_advance) {
-            const auto in_chunk = chunk_base + lane;
-            // load new work counters at the end
-            local_work =
-                in_chunk < chunk_count ? work_count(in_chunk) : IndexType{1};
-            work_prefix_sum_add = local_work;
-            // fill the trailing work_prefix_sum with the last element
+        if (last_local_chunk == subwarp_size) {
+            // if we didn't have enough work to do: all local chunks are
+            // completed
+            chunk_base += subwarp_size;
             work_prefix_sum = work_prefix_sum_end;
+            const auto in_chunk = chunk_base + lane;
+            local_work =
+                in_chunk < chunk_count ? work_count(in_chunk) : IndexType{};
+            work_prefix_sum_add = local_work;
+        } else {
+            const auto last_local_chunk_end =
+                subwarp.shfl(work_prefix_sum, last_local_chunk);
+            // how many chunks have we completed? The last one is completed if
+            // its end matches work_base after the update
+            const auto chunk_advance =
+                last_local_chunk + (last_local_chunk_end == work_base ? 1 : 0);
+            chunk_base += chunk_advance;
+            // shift down local_work and work_prefix_sum,
+            // adding new values when necessary
+            local_work = subwarp.shfl_down(local_work, chunk_advance);
+            // this shuffle leaves the trailing elements unchaged, we need to
+            // overwrite them later
+            work_prefix_sum = subwarp.shfl_down(work_prefix_sum, chunk_advance);
+            if (lane >= subwarp_size - chunk_advance) {
+                const auto in_chunk = chunk_base + lane;
+                // load new work counters at the end
+                local_work =
+                    in_chunk < chunk_count ? work_count(in_chunk) : IndexType{};
+                work_prefix_sum_add = local_work;
+                // fill the trailing work_prefix_sum with the last element
+                work_prefix_sum = work_prefix_sum_end;
+            }
         }
+        work_base += popcnt(subwarp.ballot(local_chunk < subwarp_size));
         // compute a prefix sum over new chunks and add to the prefix sum
         subwarp_prefix_sum<true>(work_prefix_sum_add, work_prefix_sum_add,
                                  subwarp);
