@@ -8,6 +8,7 @@
 
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/base/index_range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -353,6 +354,38 @@ __global__ __launch_bounds__(Config::threadblock_size) void bucket_sort_count(
 }
 
 
+template <typename Config, typename IndexType, typename InputIterator,
+          typename Predicate, typename BucketIndexOp>
+__global__
+__launch_bounds__(Config::threadblock_size) void bucket_sort_filter_count(
+    InputIterator begin, IndexType size, Predicate predicate,
+    BucketIndexOp bucket_op, IndexType* counters)
+{
+    constexpr auto num_buckets = Config::num_buckets;
+    constexpr auto threadblock_size = Config::threadblock_size;
+    const auto block_id = static_cast<IndexType>(blockIdx.x);
+    __shared__ int sh_counters[num_buckets];
+    for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
+        sh_counters[i] = 0;
+    }
+    __syncthreads();
+    const auto base_i = Config::items_per_threadblock * block_id;
+    const auto end = min(base_i + Config::items_per_threadblock, size);
+    for (IndexType i = base_i + threadIdx.x; i < end; i += threadblock_size) {
+        auto value = *(begin + i);
+        if (predicate(value)) {
+            const auto bucket = bucket_op(*(begin + i));
+            assert(bucket >= 0 && bucket < num_buckets);
+            atomicAdd(sh_counters + bucket, 1);
+        }
+    }
+    __syncthreads();
+    for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
+        counters[i + num_buckets * block_id] = sh_counters[i];
+    }
+}
+
+
 template <typename Config, typename IndexType>
 __global__ __launch_bounds__(Config::num_buckets) void bucket_sort_prefixsum(
     IndexType* offsets, IndexType num_blocks)
@@ -383,10 +416,11 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_distribute(
     constexpr auto num_buckets = Config::num_buckets;
     constexpr auto threadblock_size = Config::threadblock_size;
     const auto block_id = static_cast<IndexType>(blockIdx.x);
+    const auto global_offsets = offsets + num_buckets * num_blocks;
     __shared__ IndexType sh_counters[num_buckets];
     for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
-        sh_counters[i] = offsets[i + num_buckets * block_id] +
-                         offsets[i + num_buckets * num_blocks];
+        sh_counters[i] =
+            offsets[i + num_buckets * block_id] + global_offsets[i];
     }
     __syncthreads();
     const auto base_i = Config::items_per_threadblock * block_id;
@@ -395,13 +429,55 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_distribute(
         const auto value = *(begin + i);
         const auto bucket = bucket_op(value);
         assert(bucket >= 0 && bucket < num_buckets);
-        auto out_pos = atomicAdd(sh_counters + bucket, 1);
+        auto out_pos = atomic_add_relaxed_shared(sh_counters + bucket, 1);
         *(out_begin + out_pos) = value;
     }
 }
 
 
+template <typename Config, typename IndexType, typename InputIterator,
+          typename OutputIterator, typename Predicate, typename BucketIndexOp>
+__global__
+__launch_bounds__(Config::threadblock_size) void bucket_sort_filter_distribute(
+    InputIterator begin, OutputIterator out_begin, IndexType size,
+    IndexType num_blocks, Predicate predicate, BucketIndexOp bucket_op,
+    const IndexType* offsets)
+{
+    constexpr auto num_buckets = Config::num_buckets;
+    constexpr auto threadblock_size = Config::threadblock_size;
+    const auto block_id = static_cast<IndexType>(blockIdx.x);
+    const auto global_offsets = offsets + num_buckets * num_blocks;
+    __shared__ IndexType sh_counters[num_buckets];
+    for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
+        sh_counters[i] =
+            offsets[i + num_buckets * block_id] + global_offsets[i];
+    }
+    __syncthreads();
+    const auto base_i = Config::items_per_threadblock * block_id;
+    const auto end = min(base_i + Config::items_per_threadblock, size);
+    for (IndexType i = base_i + threadIdx.x; i < end; i += threadblock_size) {
+        const auto value = *(begin + i);
+        if (predicate(value)) {
+            const auto bucket = bucket_op(value);
+            assert(bucket >= 0 && bucket < num_buckets);
+            auto out_pos = atomicAdd(sh_counters + bucket, 1);
+            *(out_begin + out_pos) = value;
+        }
+    }
+}
+
+
 }  // namespace kernel
+
+
+template <int num_buckets,
+          typename Config = kernel::bucket_sort_config<num_buckets>>
+size_type bucket_sort_workspace_size(size_type num_elements)
+{
+    const auto num_blocks = static_cast<size_type>(
+        ceildiv(num_elements, Config::items_per_threadblock));
+    return (num_blocks + 1) * Config::num_buckets + 1;
+}
 
 
 template <int num_buckets, typename IndexType, typename InputIterator,
@@ -414,27 +490,70 @@ std::array<IndexType, num_buckets + 1> bucket_sort(
     using config = kernel::bucket_sort_config<num_buckets>;
     const auto size = static_cast<IndexType>(end - begin);
     std::array<IndexType, num_buckets + 1> offsets{};
-    offsets.back() = size;
 
     if (size > 0) {
         const auto num_blocks = static_cast<IndexType>(
             ceildiv(size, config::items_per_threadblock));
-        const auto tmp_size = (num_blocks + 1) * config::num_buckets;
+        const auto tmp_size =
+            bucket_sort_workspace_size<config::num_buckets, config>(
+                static_cast<size_type>(size));
         if (tmp.get_size() < tmp_size) {
             tmp.resize_and_reset(tmp_size);
         }
         kernel::bucket_sort_count<config>
             <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
                 begin, size, bucket_op, tmp.get_data());
-        kernel::bucket_sort_prefixsum<config, IndexType>
+        kernel::bucket_sort_prefixsum<config>
             <<<1, config::num_buckets, 0, exec->get_stream()>>>(tmp.get_data(),
                                                                 num_blocks);
         const auto global_offsets = tmp.get_data() + num_buckets * num_blocks;
-        components::prefix_sum_nonnegative(exec, global_offsets, num_buckets);
-        kernel::bucket_sort_distribute<config, IndexType>
+        components::prefix_sum_nonnegative(exec, global_offsets,
+                                           num_buckets + 1);
+        kernel::bucket_sort_distribute<config>
             <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
                 begin, out_begin, size, num_blocks, bucket_op, tmp.get_data());
-        exec->get_master()->copy_from(exec, num_buckets, global_offsets,
+        exec->get_master()->copy_from(exec, num_buckets + 1, global_offsets,
+                                      offsets.data());
+        assert(offsets.back() == size);
+    }
+    return offsets;
+}
+
+
+template <int num_buckets, typename IndexType, typename InputIterator,
+          typename OutputIterator, typename Predicate, typename BucketIndexOp>
+std::array<IndexType, num_buckets + 1> filter_and_bucket_sort(
+    std::shared_ptr<const DefaultExecutor> exec, InputIterator begin,
+    InputIterator end, OutputIterator out_begin, Predicate predicate,
+    BucketIndexOp bucket_op, array<IndexType>& tmp)
+{
+    using config = kernel::bucket_sort_config<num_buckets>;
+    const auto size = static_cast<IndexType>(end - begin);
+    std::array<IndexType, num_buckets + 1> offsets{};
+
+    if (size > 0) {
+        const auto num_blocks = static_cast<IndexType>(
+            ceildiv(size, config::items_per_threadblock));
+        const auto tmp_size =
+            bucket_sort_workspace_size<config::num_buckets, config>(
+                static_cast<size_type>(size));
+        if (tmp.get_size() < tmp_size) {
+            tmp.resize_and_reset(tmp_size);
+        }
+        kernel::bucket_sort_filter_count<config>
+            <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
+                begin, size, predicate, bucket_op, tmp.get_data());
+        kernel::bucket_sort_prefixsum<config>
+            <<<1, config::num_buckets, 0, exec->get_stream()>>>(tmp.get_data(),
+                                                                num_blocks);
+        const auto global_offsets = tmp.get_data() + num_buckets * num_blocks;
+        components::prefix_sum_nonnegative(exec, global_offsets,
+                                           num_buckets + 1);
+        kernel::bucket_sort_filter_distribute<config>
+            <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
+                begin, out_begin, size, num_blocks, predicate, bucket_op,
+                tmp.get_data());
+        exec->get_master()->copy_from(exec, num_buckets + 1, global_offsets,
                                       offsets.data());
     }
     return offsets;
