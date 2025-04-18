@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 #include <ginkgo/core/base/types.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/components/bitvector.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
 
@@ -21,16 +23,23 @@ void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
                           const RowPtrType* ptrs, size_type num_blocks,
                           IndexType* idxs)
 {
+    const auto num_elements = exec->copy_val_to_host(ptrs + num_blocks);
+    // transform the ptrs to a bitvector in unary delta encoding, i.e.
+    // every row with n elements is encoded as 1 0 ... n times ... 0
+    auto it = detail::make_transform_iterator(
+        index_iterator<IndexType>{0},
+        [ptrs] GKO_KERNEL(IndexType i) -> RowPtrType { return ptrs[i] + i; });
+    auto bv = bitvector::from_sorted_indices(exec, it, num_blocks,
+                                             num_blocks + num_elements);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto block, auto ptrs, auto idxs) {
-            auto begin = ptrs[block];
-            auto end = ptrs[block + 1];
-            for (auto i = begin; i < end; i++) {
-                idxs[i] = block;
+        [] GKO_KERNEL(RowPtrType i, auto bv, auto idxs) {
+            if (!bv[i]) {
+                auto rank = bv.get_rank(i);
+                idxs[i - rank] = rank - 1;
             }
         },
-        num_blocks, ptrs, idxs);
+        num_blocks + num_elements, bv.device_view(), idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_IDXS32);
