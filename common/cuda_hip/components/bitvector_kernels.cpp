@@ -21,6 +21,30 @@ namespace bitvector {
 
 
 template <typename IndexType>
+struct bitvector_functor {
+    using storage_type = typename device_bitvector<IndexType>::storage_type;
+    __device__ void operator()(IndexType idx)
+    {
+        constexpr auto block_size = device_bitvector<IndexType>::block_size;
+        const auto block = idx / block_size;
+        const auto local = idx % block_size;
+        atomicOr(bits + block, storage_type{1} << local);
+    }
+
+    storage_type* bits;
+};
+
+template <typename IndexType>
+struct popcnt_functor {
+    __device__ IndexType
+    operator()(typename device_bitvector<IndexType>::storage_type word)
+    {
+        return gko::detail::popcount(word);
+    }
+};
+
+
+template <typename IndexType>
 void compute_bits_and_ranks(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* indices,
     IndexType num_indices, IndexType size,
@@ -31,17 +55,10 @@ void compute_bits_and_ranks(
     using storage_type = typename bv::storage_type;
     const auto num_blocks = ceildiv(size, bv::block_size);
     thrust::fill_n(policy, bits, num_blocks, 0u);
-    thrust::for_each_n(
-        policy, indices, num_indices, [bits] __device__(IndexType idx) {
-            constexpr auto block_size = device_bitvector<IndexType>::block_size;
-            const auto block = idx / block_size;
-            const auto local = idx % block_size;
-            atomicOr(bits + block, storage_type{1} << local);
-        });
-    const auto it = thrust::make_transform_iterator(
-        bits, [] __device__(storage_type word) -> IndexType {
-            return gko::detail::popcount(word);
-        });
+    thrust::for_each_n(policy, indices, num_indices,
+                       bitvector_functor<IndexType>{bits});
+    const auto it =
+        thrust::make_transform_iterator(bits, popcnt_functor<IndexType>{});
     thrust::exclusive_scan(policy, it, it + num_blocks, ranks, IndexType{});
 }
 
