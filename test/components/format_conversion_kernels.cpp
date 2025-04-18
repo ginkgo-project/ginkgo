@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/base/index_range.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
 
@@ -64,6 +65,30 @@ TYPED_TEST(FormatConversion, ConvertsEmptyPtrsToIdxs)
         this->exec, ptrs.get_const_data(), this->size, output);
 
     // mustn't segfault
+}
+
+
+TYPED_TEST(FormatConversion, ConvertPtrsToIdxsImbalanced)
+{
+    using index_type = typename TestFixture::index_type;
+    std::vector<index_type> ptrs{0};
+    std::vector<index_type> idxs;
+    std::geometric_distribution<int> size_dist{0.01};
+    for (auto i : gko::irange{10000}) {
+        auto count = size_dist(this->rand);
+        ptrs.push_back(ptrs.back() + count);
+        idxs.insert(idxs.end(), count, i);
+    }
+    gko::array<index_type> ptr_array{this->exec, ptrs.begin(), ptrs.end()};
+    gko::array<index_type> idx_array{this->exec, idxs.begin(), idxs.end()};
+    auto ref_idx_array = idx_array;
+    idx_array.fill(-1);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_ptrs_to_idxs(
+        this->exec, ptr_array.get_const_data(), ptrs.size() - 1,
+        idx_array.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(idx_array, ref_idx_array);
 }
 
 

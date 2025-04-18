@@ -15,6 +15,7 @@ target_sources(
         base/scoped_device_id.cpp
         base/version.cpp
         components/bitvector_kernels.cpp
+        components/format_conversion_kernels.cpp
         components/prefix_sum_kernels.cpp
         distributed/assembly_kernels.cpp
         distributed/index_map_kernels.cpp

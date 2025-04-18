@@ -40,14 +40,17 @@ __forceinline__ __device__ void load_balance_subwarp(
 {
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
-    static_assert(std::is_same_v<decltype(work_count(IndexType{})), IndexType>,
-                  "work_count needs to return IndexType");
+    using work_count_type = decltype(work_count(IndexType{}));
+    static_assert(std::is_signed_v<work_count_type> &&
+                      std::is_integral_v<work_count_type>,
+                  "work_count needs to return signed integer type");
     const auto lane = subwarp.thread_rank();
     IndexType chunk_base{};
-    IndexType work_base{};
-    IndexType local_work = lane < chunk_count ? work_count(lane) : IndexType{1};
+    work_count_type work_base{};
+    auto local_work =
+        lane < chunk_count ? work_count(lane) : work_count_type{1};
     // inclusive prefix sum over work tells us where each chunk begins
-    IndexType work_prefix_sum{};
+    work_count_type work_prefix_sum{};
     subwarp_prefix_sum<true>(local_work, work_prefix_sum, subwarp);
     while (chunk_base < chunk_count) {
         assert(local_work >= 0);
@@ -60,7 +63,7 @@ __forceinline__ __device__ void load_balance_subwarp(
             });
         // guard against out-of-bounds shuffle
         auto local_chunk_work_base = subwarp.shfl(
-            work_prefix_sum - local_work, max(local_chunk, subwarp_size - 1));
+            work_prefix_sum - local_work, min(local_chunk, subwarp_size - 1));
         const auto chunk = chunk_base + local_chunk;
         // do the work inside this chunk
         if (chunk < chunk_count && local_chunk < subwarp_size) {
@@ -71,15 +74,15 @@ __forceinline__ __device__ void load_balance_subwarp(
         // find the last value of the prefix sum and remember it for later
         const auto work_prefix_sum_end =
             subwarp.shfl(work_prefix_sum, subwarp_size - 1);
-        IndexType work_prefix_sum_add{};
+        work_count_type work_prefix_sum_add{};
         if (last_local_chunk == subwarp_size) {
             // if we didn't have enough work to do: all local chunks are
             // completed
             chunk_base += subwarp_size;
             work_prefix_sum = work_prefix_sum_end;
             const auto in_chunk = chunk_base + lane;
-            local_work =
-                in_chunk < chunk_count ? work_count(in_chunk) : IndexType{};
+            local_work = in_chunk < chunk_count ? work_count(in_chunk)
+                                                : work_count_type{};
             work_prefix_sum_add = local_work;
         } else {
             const auto last_local_chunk_end =
@@ -98,8 +101,8 @@ __forceinline__ __device__ void load_balance_subwarp(
             if (lane >= subwarp_size - chunk_advance) {
                 const auto in_chunk = chunk_base + lane;
                 // load new work counters at the end
-                local_work =
-                    in_chunk < chunk_count ? work_count(in_chunk) : IndexType{};
+                local_work = in_chunk < chunk_count ? work_count(in_chunk)
+                                                    : work_count_type{};
                 work_prefix_sum_add = local_work;
                 // fill the trailing work_prefix_sum with the last element
                 work_prefix_sum = work_prefix_sum_end;
