@@ -326,8 +326,8 @@ void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
                 sum_ptr[row] += abs(value_ptr[k]);
             }
         },
-        sum.get_num_elems(), orig->get_const_row_ptrs(),
-        orig->get_const_values(), sum.get_data());
+        sum.get_size(), orig->get_const_row_ptrs(), orig->get_const_values(),
+        sum.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
