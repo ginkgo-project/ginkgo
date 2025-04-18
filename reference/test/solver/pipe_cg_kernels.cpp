@@ -17,10 +17,6 @@
 
 #include "core/test/utils.hpp"
 
-
-namespace {
-
-
 template <typename T>
 class PipeCg : public ::testing::Test {
 protected:
@@ -173,12 +169,10 @@ TYPED_TEST(PipeCg, KernelStep1)
     this->small_r->fill(2);
     this->small_z->fill(3);
     this->small_w->fill(4);
-
     this->small_p->fill(4);
     this->small_q->fill(3);
     this->small_f->fill(2);
     this->small_g->fill(1);
-
     this->small_rho->at(0) = 2;
     this->small_rho->at(1) = 3;
     this->small_beta->at(0) = 8;
@@ -204,12 +198,10 @@ TYPED_TEST(PipeCg, KernelStep1DivByZero)
     this->small_r->fill(2);
     this->small_z->fill(3);
     this->small_w->fill(4);
-
     this->small_p->fill(4);
     this->small_q->fill(3);
     this->small_f->fill(2);
     this->small_g->fill(1);
-
     this->small_rho->fill(1);
     this->small_beta->fill(0);
 
@@ -232,12 +224,10 @@ TYPED_TEST(PipeCg, KernelStep2)
     this->small_w->fill(2);
     this->small_m->fill(3);
     this->small_n->fill(4);
-
     this->small_p->fill(4);
     this->small_q->fill(3);
     this->small_f->fill(2);
     this->small_g->fill(1);
-
     this->small_rho->at(0) = -2;
     this->small_rho->at(1) = 3;
     this->small_prev_rho->at(0) = 4;
@@ -246,7 +236,6 @@ TYPED_TEST(PipeCg, KernelStep2)
     this->small_beta->at(1) = 3;
     this->small_delta->at(0) = 5;
     this->small_delta->at(1) = 6;
-
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::pipe_cg::step_2(
@@ -270,12 +259,10 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
     this->small_w->fill(2);
     this->small_m->fill(3);
     this->small_n->fill(4);
-
     this->small_p->fill(4);
     this->small_q->fill(3);
     this->small_f->fill(2);
     this->small_g->fill(1);
-
     this->small_rho->at(0) = -2;
     this->small_rho->at(1) = 3;
     this->small_prev_rho->fill(0);
@@ -301,16 +288,15 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
 
 TYPED_TEST(PipeCg, KernelStep2BetaZero)
 {
+    using value_type = typename TestFixture::value_type;
     this->small_z->fill(1);
     this->small_w->fill(1);
     this->small_m->fill(1);
     this->small_n->fill(1);
-
     this->small_p->fill(1);
     this->small_q->fill(1);
     this->small_f->fill(1);
     this->small_g->fill(1);
-
     this->small_rho->at(0) = 3;
     this->small_rho->at(1) = 3;
     this->small_prev_rho->at(0) = 3;
@@ -319,7 +305,6 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
     this->small_beta->at(1) = 4;
     this->small_delta->at(0) = 2;
     this->small_delta->at(1) = 1;
-
     this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[1].reset();
 
@@ -331,6 +316,8 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
         this->small_delta.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, l({{2.0, 1.5}, {2.0, 1.5}}),
+                        r<value_type>::value);
 }
 
 
@@ -689,6 +676,3 @@ TYPED_TEST(PipeCg, SolvesConjTransposedBigDenseSystem)
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
                         r<value_type>::value * 5 * 1e4);
 }
-
-
-}  // namespace

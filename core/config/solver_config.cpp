@@ -21,6 +21,7 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -43,6 +44,7 @@ GKO_PARSE_VALUE_TYPE(Gcr, gko::solver::Gcr);
 GKO_PARSE_VALUE_TYPE(Gmres, gko::solver::Gmres);
 GKO_PARSE_VALUE_TYPE_BASE(CbGmres, gko::solver::CbGmres);
 GKO_PARSE_VALUE_TYPE(Minres, gko::solver::Minres);
+GKO_PARSE_VALUE_TYPE(PipeCg, gko::solver::PipeCg);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Direct, gko::experimental::solver::Direct);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(LowerTrs, gko::solver::LowerTrs);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(UpperTrs, gko::solver::UpperTrs);
