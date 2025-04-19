@@ -534,7 +534,9 @@ template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void add_tree_edges(
     const IndexType* __restrict__ cc_parents,
     const IndexType* __restrict__ mins, IndexType size,
-    IndexType* __restrict__ forest_parents)
+    IndexType* __restrict__ forest_sources,
+    IndexType* __restrict__ forest_targets,
+    IndexType* __restrict__ forest_counter)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
     if (i >= size) {
@@ -542,7 +544,9 @@ __global__ __launch_bounds__(default_block_size) void add_tree_edges(
     }
     disjoint_sets<const IndexType> sets{cc_parents, size};
     if (sets.is_representative_weak(i) && mins[i] < size) {
-        forest_parents[i] = mins[i];
+        auto out_i = atomic_add_relaxed(forest_counter, 1);
+        forest_sources[out_i] = i;
+        forest_targets[out_i] = mins[i];
     }
 }
 
@@ -705,7 +709,8 @@ __global__ __launch_bounds__(default_block_size) void basecase(
     const IndexType* __restrict__ edge_sources,
     const IndexType* __restrict__ edge_targets, IndexType num_nodes,
     const IndexType* __restrict__ basecase_ranges,
-    IndexType* __restrict__ tree_parents)
+    IndexType* __restrict__ tree_sources, IndexType* __restrict__ tree_targets,
+    IndexType* __restrict__ tree_counter)
 {
     const auto num_basecases = ceildiv(num_nodes, basecase_size);
     const auto basecase_i = thread::get_thread_id_flat<IndexType>();
@@ -727,16 +732,26 @@ __global__ __launch_bounds__(default_block_size) void basecase(
             assert(local_tgt < basecase_size);
             return thrust::make_pair(int(local_src), int(local_tgt));
         });
-    // translate local parents to global parents
+    // translate local parents to global edges
     const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
+    // count how many edges we want to output
+    IndexType local_edge_count{};
     for (auto i : irange{basecase_base, basecase_end}) {
         const auto local_i = static_cast<int>(i - basecase_base);
         const auto local_parent = local_parents.get(local_i);
         // the local version uses parent[i] = i to denote roots
-        // the global version uses parent[i] = n to denote roots
+        local_edge_count += local_parent != local_i ? 1 : 0;
+    }
+    // reserve space
+    auto out_i = atomic_add_relaxed(tree_counter, local_edge_count);
+    // and output the edges
+    for (auto i : irange{basecase_base, basecase_end}) {
+        const auto local_i = static_cast<int>(i - basecase_base);
+        const auto local_parent = local_parents.get(local_i);
         if (local_parent != local_i) {
-            assert(tree_parents[i] == num_nodes);
-            tree_parents[i] = local_parent + basecase_base;
+            tree_sources[out_i] = i;
+            tree_targets[out_i] = local_parent + basecase_base;
+            out_i++;
         }
     }
 }
@@ -763,6 +778,7 @@ struct elimination_forest_algorithm_state {
           ceil_num_nodes{IndexType{1} << num_levels},
           workspace{exec, workspace_sizes(num_nodes, num_edges)},
           bucket_ranges{},
+          tree_ranges{},
           flip{}
     {
         bucket_ranges.back() = num_edges;
@@ -779,16 +795,17 @@ struct elimination_forest_algorithm_state {
             edge_capacity,      // 1: buf1_targets
             edge_capacity,      // 2: buf2_sources
             edge_capacity,      // 3: buf2_targets
-            num_nodes,          // 4: tree_parents
-            num_nodes + 2,      // 5: tree_child_ptrs
-            num_nodes,          // 6: tree_children
+            num_nodes - 1,      // 4: tree_sources
+            num_nodes - 1,      // 5: tree_targets
+            num_nodes,          // 6: tree_levels
             num_nodes,          // 7: cc_parents
             num_nodes,          // 8: cc_mins
-            num_buckets + 1,    // 9: device_bucket_ranges
-            1,                  // 10: tree_counter
-            num_basecases + 2,  // 11: basecase_ranges
+            num_nodes,          // 9: cc_sizes
+            num_buckets + 1,    // 10: device_bucket_ranges
+            1,                  // 11: tree_counter
+            num_basecases + 2,  // 12: basecase_ranges
             bucket_sort_workspace_size<num_buckets>(
-                edge_capacity)  // 12: bucketsort_workspace
+                edge_capacity)  // 13: bucketsort_workspace
         };
     }
 
@@ -807,27 +824,29 @@ struct elimination_forest_algorithm_state {
 
     IndexType* buf2_edge_targets() { return workspace.get_pointer(3); }
 
-    IndexType* tree_parents() { return workspace.get_pointer(4); }
+    IndexType* tree_sources() { return workspace.get_pointer(4); }
 
-    IndexType* tree_child_ptrs() { return workspace.get_pointer(5); }
+    IndexType* tree_targets() { return workspace.get_pointer(5); }
 
-    IndexType* tree_children() { return workspace.get_pointer(6); }
+    IndexType* tree_levels() { return workspace.get_pointer(6); }
 
     IndexType* cc_parents() { return workspace.get_pointer(7); }
 
     IndexType* cc_mins() { return workspace.get_pointer(8); }
 
-    IndexType* device_bucket_ranges() { return workspace.get_pointer(9); }
+    IndexType* cc_sizes() { return workspace.get_pointer(9); }
 
-    IndexType* tree_counter() { return workspace.get_pointer(10); }
+    IndexType* device_bucket_ranges() { return workspace.get_pointer(10); }
 
-    IndexType* basecase_ranges() { return workspace.get_pointer(11); }
+    IndexType* tree_counter() { return workspace.get_pointer(11); }
 
-    IndexType* bucketsort_workspace() { return workspace.get_pointer(12); }
+    IndexType* basecase_ranges() { return workspace.get_pointer(12); }
+
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(13); }
 
     array<IndexType> bucketsort_workspace_view()
     {
-        return workspace.get_view(12);
+        return workspace.get_view(13);
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
@@ -871,9 +890,9 @@ struct elimination_forest_algorithm_state {
         exec->copy(sources.get_size(), sources.get_const_data(),
                    out_edge_sources());
         exec->copy(ends.get_size(), ends.get_const_data(), out_edge_targets());
+        IndexType zero{};
+        exec->copy_from(exec->get_master(), 1, &zero, tree_counter());
         bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
-        components::fill_array(exec, tree_parents(),
-                               static_cast<size_type>(num_nodes), num_nodes);
         output_to_input();
     }
 
@@ -974,7 +993,9 @@ struct elimination_forest_algorithm_state {
                 fill_edge_sources(), fill_edge_targets());
             kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
                                      exec->get_stream()>>>(
-                cc_parents(), cc_mins(), num_nodes, tree_parents());
+                cc_parents(), cc_mins(), num_nodes, tree_sources(),
+                tree_targets(), tree_counter());
+            tree_ranges[level] = exec->copy_val_to_host(tree_counter());
         }
     }
 
@@ -1094,6 +1115,7 @@ struct elimination_forest_algorithm_state {
             static_cast<IndexType>(ceildiv(num_nodes, basecase_size));
         const auto num_basecase_blocks =
             ceildiv(num_basecases, default_block_size);
+        reset_connected_components();
         kernel::compute_basecase_ranges<basecase_size>
             <<<num_edge_p1_blocks, default_block_size, 0, exec->get_stream()>>>(
                 in_edge_sources(), in_edge_targets(), num_basecases,
@@ -1102,7 +1124,8 @@ struct elimination_forest_algorithm_state {
             <<<num_basecase_blocks, default_block_size, 0,
                exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
                                      num_nodes, basecase_ranges(),
-                                     tree_parents());
+                                     tree_sources(), tree_targets(),
+                                     tree_counter());
     }
 
     void run()
@@ -1140,6 +1163,7 @@ struct elimination_forest_algorithm_state {
     IndexType ceil_num_nodes;
     combined_workspace<IndexType> workspace;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
+    std::array<IndexType, num_buckets + 1> tree_ranges;
     bool flip;
 };
 
@@ -1157,7 +1181,11 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     elimination_forest_algorithm_state<IndexType> state{exec, size, num_edges};
     state.init(sources, targets);
     state.run();
-    exec->copy(size, state.tree_parents(), forest.parents.get_data());
+    auto num_tree_edges = exec->copy_val_to_host(state.tree_counter());
+    thrust::fill_n(thrust_policy(exec), forest.parents.get_data(), size, size);
+    thrust::scatter(thrust_policy(exec), state.tree_targets(),
+                    state.tree_targets() + num_tree_edges, state.tree_sources(),
+                    forest.parents.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
