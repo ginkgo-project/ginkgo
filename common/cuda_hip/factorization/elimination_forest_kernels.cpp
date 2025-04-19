@@ -699,7 +699,7 @@ __global__ __launch_bounds__(default_block_size) void compute_basecase_ranges(
     const auto basecase_cur =
         i == num_edges ? num_basecases : edge_sources[i] / basecase_size;
     assert(basecase_prev <= basecase_cur);
-    for (auto basecase_i = basecase_prev; i < basecase_cur; basecase_i++) {
+    for (auto basecase_i : irange{basecase_prev, basecase_cur}) {
         basecase_ranges[basecase_i + 1] = i;
     }
     if (i == 0) {
@@ -808,8 +808,9 @@ __global__ __launch_bounds__(default_block_size) void basecase(
             assert(local_tgt < basecase_size);
             return thrust::make_pair(int(local_src), int(local_tgt));
         });
+    // translate local parents to global parents
     const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
-    for (auto i = basecase_base; i < basecase_end; i++) {
+    for (auto i : irange{basecase_base, basecase_end}) {
         const auto local_i = static_cast<int>(i - basecase_base);
         const auto local_parent = local_parents.get(local_i);
         // the local version uses parent[i] = i to denote roots
