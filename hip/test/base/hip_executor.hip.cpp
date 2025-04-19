@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,7 +51,7 @@ public:
 
     void run(std::shared_ptr<const gko::HipExecutor>) const override
     {
-        hipGetDevice(&value);
+        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&value));
     }
 
     int& value;
@@ -124,7 +124,7 @@ TEST_F(HipExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;
-    hipGetDeviceCount(&count);
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDeviceCount(&count));
 
     auto num_devices = gko::HipExecutor::get_num_devices();
 
