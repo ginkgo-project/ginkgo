@@ -531,34 +531,6 @@ __global__ __launch_bounds__(default_block_size) void add_fill_edges(
 
 
 template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void add_fill_and_tree_edges(
-    const IndexType* __restrict__ edge_sources,
-    const IndexType* __restrict__ edge_targets, size_type num_edges,
-    IndexType size, const IndexType* __restrict__ parents,
-    const IndexType* __restrict__ mins,
-    IndexType* __restrict__ new_edge_sources,
-    IndexType* __restrict__ new_edge_targets,
-    IndexType* __restrict__ forest_parents)
-{
-    const auto i = thread::get_thread_id_flat();
-    if (i >= num_edges) {
-        return;
-    }
-    disjoint_sets<const IndexType> sets{parents, size};
-    const auto src = edge_sources[i];
-    const auto tgt = edge_targets[i];
-    const auto src_rep = sets.find_weak(src);
-    const auto min_node = mins[src_rep];
-    assert(min_node < size);
-    // we may have min_node == tgt, but that will get filtered out in the
-    // sorting step
-    new_edge_sources[i] = min_node;
-    new_edge_targets[i] = tgt;
-    store_relaxed_local(forest_parents + src_rep, min_node);
-}
-
-
-template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void add_tree_edges(
     const IndexType* __restrict__ cc_parents,
     const IndexType* __restrict__ mins, IndexType size,
@@ -947,11 +919,16 @@ struct elimination_forest_algorithm_state {
         return irange<IndexType>{begin, end};
     }
 
+    void reset_connected_components()
+    {
+        components::fill_seq_array(exec, cc_parents(),
+                                   static_cast<size_type>(num_nodes));
+    }
+
     void find_connected_components(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(find_connected_components);
-        components::fill_seq_array(exec, cc_parents(),
-                                   static_cast<size_type>(num_nodes));
+        reset_connected_components();
         const auto inner_edges = get_inner_edge_range(level);
         if (inner_edges.size() > 0) {
             const auto num_blocks =
@@ -988,27 +965,16 @@ struct elimination_forest_algorithm_state {
         if (cut_edge_range.size() > 0) {
             const auto num_blocks =
                 ceildiv(cut_edge_range.size(), default_block_size);
-            /*if (num_cut_edges < num_nodes) {
-                kernel::add_fill_and_tree_edges<<<
-                    num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    in_edge_sources() + begin_cut_edges,
-                    in_edge_targets() + begin_cut_edges, num_cut_edges,
-            num_nodes, cc_parents(), cc_mins(), fill_edge_sources(),
-                    fill_edge_targets(), tree_parents());
-            } else*/
-            {
-                const auto num_node_blocks =
-                    ceildiv(num_nodes, default_block_size);
-                kernel::add_fill_edges<<<num_blocks, default_block_size, 0,
-                                         exec->get_stream()>>>(
-                    in_edge_sources() + cut_edge_range.begin_index(),
-                    in_edge_targets() + cut_edge_range.begin_index(),
-                    cut_edge_range.size(), num_nodes, cc_parents(), cc_mins(),
-                    fill_edge_sources(), fill_edge_targets());
-                kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
-                                         exec->get_stream()>>>(
-                    cc_parents(), cc_mins(), num_nodes, tree_parents());
-            }
+            const auto num_node_blocks = ceildiv(num_nodes, default_block_size);
+            kernel::add_fill_edges<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
+                in_edge_sources() + cut_edge_range.begin_index(),
+                in_edge_targets() + cut_edge_range.begin_index(),
+                cut_edge_range.size(), num_nodes, cc_parents(), cc_mins(),
+                fill_edge_sources(), fill_edge_targets());
+            kernel::add_tree_edges<<<num_node_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
+                cc_parents(), cc_mins(), num_nodes, tree_parents());
         }
     }
 
