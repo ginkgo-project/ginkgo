@@ -110,46 +110,6 @@ namespace kernel {
 
 
 template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void mst_extract_edges_count(
-    const IndexType* __restrict__ row_ptrs, const IndexType* cols,
-    IndexType num_rows, IndexType* lower_nnz)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-    IndexType counter{};
-    for (auto nz : irange{row_ptrs[row], row_ptrs[row + 1]}) {
-        const auto col = cols[nz];
-        counter += col < row ? 1 : 0;
-    }
-    lower_nnz[row] = counter;
-}
-
-
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void mst_extract_edges(
-    const IndexType* __restrict__ row_ptrs, const IndexType* cols,
-    IndexType num_rows, const IndexType* out_ptrs, IndexType* out_source,
-    IndexType* out_target)
-{
-    const auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-    auto out_idx = out_ptrs[row];
-    for (auto nz : irange{row_ptrs[row], row_ptrs[row + 1]}) {
-        const auto col = cols[nz];
-        if (col < row) {
-            out_source[out_idx] = row;
-            out_target[out_idx] = col;
-            out_idx++;
-        }
-    }
-}
-
-
-template <typename IndexType>
 __device__ void guarded_atomic_min(IndexType* ptr, IndexType value)
 {
     // only execute the atomic if we know that it might have an effect
