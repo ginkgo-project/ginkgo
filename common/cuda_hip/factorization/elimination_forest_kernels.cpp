@@ -7,7 +7,16 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <string>
 
+#ifdef GKO_COMPILING_CUDA
+#include <cub/device/device_radix_sort.cuh>
+#define GKO_ASSERT_NO_CUB_ERRORS(expr) GKO_ASSERT_NO_CUDA_ERRORS(expr)
+#else
+#include <hipcub/device/device_radix_sort.hpp>
+namespace cub = hipcub;
+#define GKO_ASSERT_NO_CUB_ERRORS(expr) GKO_ASSERT_NO_HIP_ERRORS(expr)
+#endif
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/detail/for_each.inl>
@@ -36,6 +45,8 @@
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
+#include "core/log/profiler_hook.hpp"
+#include "ginkgo/core/log/profiler_hook.hpp"
 
 
 namespace gko {
@@ -47,80 +58,55 @@ namespace elimination_forest {
 constexpr int default_block_size = 512;
 
 
-namespace kernel {
+struct OperationScopeGuard : Operation {
+    void run(std::shared_ptr<const OmpExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const CudaExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const HipExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    const char* get_name() const noexcept override { return name.c_str(); }
 
-
-template <int size>
-struct small_disjoint_sets {
-    bit_packed_array<ceil_log2_constexpr(size), size, uint64> reps{};
-
-    constexpr small_disjoint_sets()
+    OperationScopeGuard(std::string name, std::shared_ptr<const Executor> exec)
+        : name{std::move(name)}, exec{exec}
     {
-        for (int i = 0; i < size; i++) {
-            reps.set_from_zero(i, i);
+        std::cout << this->name << '\n';
+        for (auto& log : exec->get_loggers()) {
+            if (auto profiler =
+                    std::dynamic_pointer_cast<const log::ProfilerHook>(log)) {
+                profiler->on_operation_launched(exec.get(), this);
+            }
         }
     }
 
-    // path-compressing find
-    constexpr int find(int node)
+    OperationScopeGuard(const OperationScopeGuard&) = delete;
+    OperationScopeGuard(OperationScopeGuard&&) = delete;
+    OperationScopeGuard& operator=(const OperationScopeGuard&) = delete;
+    OperationScopeGuard& operator=(OperationScopeGuard&&) = delete;
+
+    ~OperationScopeGuard()
     {
-        int cur = node;
-        int rep = reps.get(cur);
-        // first find root
-        while (cur != rep) {
-            cur = rep;
-            rep = reps.get(cur);
+        for (auto& log : exec->get_loggers()) {
+            if (auto profiler =
+                    std::dynamic_pointer_cast<const log::ProfilerHook>(log)) {
+                profiler->on_operation_completed(exec.get(), this);
+            }
         }
-        // then path-compress
-        cur = node;
-        while (cur != rep) {
-            int new_rep = reps.get(cur);
-            reps.set(cur, rep);
-            rep = new_rep;
-        }
-        return rep;
     }
 
-    constexpr int join_reps(int a_rep, int b_rep)
-    {
-        assert(reps.get(a_rep) == a_rep);
-        assert(reps.get(b_rep) == b_rep);
-        // always make the largest value the root
-        auto new_root = max(a_rep, b_rep);
-        auto new_child = min(a_rep, b_rep);
-        reps.set(new_child, new_root);
-        return new_root;
-    }
+    std::string name;
+    std::shared_ptr<const Executor> exec;
 };
 
+#define GKO_FUNCTION_SCOPEGUARD(_name) \
+    OperationScopeGuard guard { #_name, exec }
 
-template <int size, typename EdgeAccessor>
-__device__ bit_packed_array<ceil_log2_constexpr(size), size>
-base_case_elimination_forest(int num_edges, EdgeAccessor edges)
-{
-    bit_packed_array<ceil_log2_constexpr(size), size, uint64> forest_parents{};
-    small_disjoint_sets<size> disjoint_sets{};
-    for (int i = 0; i < size; i++) {
-        forest_parents.set_from_zero(i, i);
-    }
-    // assuming edges are sorted by row indices
-    int current_row = 0;
-    for (int i = 0; i < num_edges; i++) {
-        const auto [col, row] = edges(i);
-        assert(row >= current_row);
-        assert(col < row);
-        if (row > current_row) {
-            current_row = row;
-        }
-        auto col_rep = disjoint_sets.find(col);
-        if (forest_parents.get(col_rep) == col_rep && col_rep != row) {
-            assert(disjoint_sets.find(row) == row);
-            disjoint_sets.join_reps(col_rep, row);
-            forest_parents.set(col_rep, row);
-        }
-    }
-    return forest_parents;
-}
+
+namespace kernel {
 
 
 template <typename IndexType>
@@ -465,26 +451,23 @@ std::pair<array<IndexType>, array<IndexType>> extract_lower_triangular(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
     const IndexType* cols, size_type size)
 {
-    array<IndexType> sources{exec};
-    array<IndexType> targets{exec};
-    if (size > 0) {
-        const auto ssize = static_cast<IndexType>(size);
-        array<IndexType> out_ptrs{exec, size + 1};
-        const auto num_blocks = ceildiv(ssize, default_block_size);
-        kernel::mst_extract_edges_count<<<num_blocks, default_block_size, 0,
-                                          exec->get_stream()>>>(
-            row_ptrs, cols, ssize, out_ptrs.get_data());
-        components::prefix_sum_nonnegative(exec, out_ptrs.get_data(), size + 1);
-        const auto num_edges =
-            exec->copy_val_to_host(out_ptrs.get_const_data() + ssize);
-        sources.resize_and_reset(num_edges);
-        targets.resize_and_reset(num_edges);
-        kernel::mst_extract_edges<<<num_blocks, default_block_size, 0,
-                                    exec->get_stream()>>>(
-            row_ptrs, cols, ssize, out_ptrs.get_const_data(),
-            sources.get_data(), targets.get_data());
-    }
-    return std::make_pair(std::move(sources), std::move(targets));
+    GKO_FUNCTION_SCOPEGUARD(extract_lower_triangular);
+    const auto nnz = exec->copy_val_to_host(row_ptrs + size);
+    array<IndexType> rows{exec, static_cast<size_type>(nnz)};
+    components::convert_ptrs_to_idxs(exec, row_ptrs, size, rows.get_data());
+    const auto in_it = thrust::make_zip_iterator(rows.get_const_data(), cols);
+    const auto edge_predicate = [] __device__(auto edge) {
+        return thrust::get<0>(edge) > thrust::get<1>(edge);
+    };
+    const auto num_edges = static_cast<size_type>(thrust::count_if(
+        thrust_policy(exec), in_it, in_it + nnz, edge_predicate));
+    array<IndexType> out_rows{exec, num_edges};
+    array<IndexType> out_cols{exec, num_edges};
+    const auto out_it =
+        thrust::make_zip_iterator(out_rows.get_data(), out_cols.get_data());
+    thrust::copy_if(thrust_policy(exec), in_it, in_it + nnz, out_it,
+                    edge_predicate);
+    return std::make_pair(std::move(out_rows), std::move(out_cols));
 }
 
 
@@ -703,27 +686,158 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_merge_filter_distri
 }
 
 
-}  // namespace kernel
-
-
-template <typename ValueType>
-static void ensure_storage(array<ValueType>& arr, size_type new_size)
+template <int basecase_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void compute_basecase_ranges(
+    const IndexType* __restrict__ edge_sources, IndexType num_basecases,
+    IndexType num_edges, IndexType* __restrict__ basecase_ranges)
 {
-    if (arr.get_size() >= new_size) {
+    const auto i = thread::get_thread_id_flat<IndexType>();
+    if (i >= num_edges) {
         return;
     }
-    arr.resize(2 * new_size);
+
+    const auto basecase_prev =
+        i == 0 ? IndexType{-1} : (edge_sources[i - 1] / basecase_size);
+    const auto basecase_cur = edge_sources[i] / basecase_size;
+    assert(basecase_prev <= basecase_cur);
+    if (i == 0) {
+        basecase_ranges[0] = 0;
+    }
+    for (auto basecase_i = basecase_prev; i < basecase_cur; basecase_i++) {
+        basecase_ranges[basecase_i + 1] = i;
+    }
+    if (i == num_edges - 1) {
+        basecase_ranges[num_basecases] = num_edges;
+    }
 }
+
+
+template <int size>
+struct small_disjoint_sets {
+    bit_packed_array<ceil_log2_constexpr(size), size, uint64> reps{};
+
+    constexpr small_disjoint_sets()
+    {
+        for (int i = 0; i < size; i++) {
+            reps.set_from_zero(i, i);
+        }
+    }
+
+    // path-compressing find
+    constexpr int find(int node)
+    {
+        int cur = node;
+        int rep = reps.get(cur);
+        // first find root
+        while (cur != rep) {
+            cur = rep;
+            rep = reps.get(cur);
+        }
+        // then path-compress
+        cur = node;
+        while (cur != rep) {
+            int new_rep = reps.get(cur);
+            reps.set(cur, rep);
+            rep = new_rep;
+        }
+        return rep;
+    }
+
+    constexpr int join_reps(int a_rep, int b_rep)
+    {
+        assert(reps.get(a_rep) == a_rep);
+        assert(reps.get(b_rep) == b_rep);
+        // always make the largest value the root
+        auto new_root = max(a_rep, b_rep);
+        auto new_child = min(a_rep, b_rep);
+        reps.set(new_child, new_root);
+        return new_root;
+    }
+};
+
+
+template <int size, typename EdgeAccessor>
+__device__ bit_packed_array<ceil_log2_constexpr(size), size, uint64>
+basecase_elimination_forest(int num_edges, EdgeAccessor edges)
+{
+    bit_packed_array<ceil_log2_constexpr(size), size, uint64> forest_parents{};
+    small_disjoint_sets<size> disjoint_sets{};
+    for (int i = 0; i < size; i++) {
+        forest_parents.set_from_zero(i, i);
+    }
+    // assuming edges are sorted by row indices
+    int current_row = 0;
+    for (int i = 0; i < num_edges; i++) {
+        const auto [col, row] = edges(i);
+        assert(row >= current_row);
+        assert(col < row);
+        if (row > current_row) {
+            current_row = row;
+        }
+        auto col_rep = disjoint_sets.find(col);
+        if (forest_parents.get(col_rep) == col_rep && col_rep != row) {
+            assert(disjoint_sets.find(row) == row);
+            disjoint_sets.join_reps(col_rep, row);
+            forest_parents.set(col_rep, row);
+        }
+    }
+    return forest_parents;
+}
+
+
+template <int basecase_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void basecase(
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, IndexType num_nodes,
+    const IndexType* __restrict__ basecase_ranges,
+    IndexType* __restrict__ tree_parents)
+{
+    const auto num_basecases = ceildiv(num_nodes, basecase_size);
+    const auto basecase_i = thread::get_thread_id_flat<IndexType>();
+    if (basecase_i >= num_basecases) {
+        return;
+    }
+    const auto edges_begin = basecase_ranges[basecase_i];
+    const auto edges_end = basecase_ranges[basecase_i + 1];
+    const auto basecase_base = basecase_i * basecase_size;
+    auto local_parents = basecase_elimination_forest<basecase_size>(
+        edges_end - edges_begin, [&](int edge) {
+            const auto local_src =
+                edge_sources[edge + edges_begin] - basecase_base;
+            const auto local_tgt =
+                edge_targets[edge + edges_begin] - basecase_base;
+            assert(local_src >= 0);
+            assert(local_tgt >= 0);
+            assert(local_src < basecase_size);
+            assert(local_tgt < basecase_size);
+            return thrust::make_pair(local_src, local_tgt);
+        });
+    const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
+    for (auto i = basecase_base; i < basecase_end; i++) {
+        const auto local_i = static_cast<int>(i - basecase_base);
+        const auto local_parent = local_parents.get(local_i);
+        // the local version uses parent[i] = i to denote roots
+        // the global version uses parent[i] = n to denote roots
+        if (local_parent != local_i) {
+            assert(tree_parents[i] == num_nodes);
+            tree_parents[i] = local_parent + basecase_base;
+        }
+    }
+}
+
+
+}  // namespace kernel
 
 
 template <typename IndexType>
 struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
+    constexpr static int basecase_level = 4;
+    constexpr static int basecase_size = 1 << basecase_level;
     elimination_forest_algorithm_state(
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
         IndexType num_edges)
         : exec{exec},
-          workspace{exec, storage_requirement(num_nodes, num_edges)},
           num_nodes{num_nodes},
           edge_capacity{2 * num_edges},
           num_levels{
@@ -731,6 +845,9 @@ struct elimination_forest_algorithm_state {
                   static_cast<std::make_unsigned_t<IndexType>>(num_nodes - 1)) +
               1},
           ceil_num_nodes{IndexType{1} << num_levels},
+          workspace{exec, storage_requirement(num_nodes, num_edges)},
+          bucket_sort_workspace{
+              exec, bucket_sort_workspace_size<num_buckets>(edge_capacity)},
           bucket_ranges{},
           flip{}
     {
@@ -752,7 +869,8 @@ struct elimination_forest_algorithm_state {
                + num_nodes        // cc_mins
                + num_buckets + 1  // device_bucket_ranges
                + 1                // tree_counter
-               + bucket_sort_workspace_size<num_buckets>(edge_capacity);
+               + static_cast<size_type>(ceildiv(num_nodes, basecase_size) +
+                                        2);  // base_rase_ranges
     }
 
     IndexType* buf1_edge_sources() { return workspace.get_data(); }
@@ -786,14 +904,7 @@ struct elimination_forest_algorithm_state {
 
     IndexType* tree_counter() { return device_bucket_ranges() + num_nodes + 1; }
 
-    IndexType* bucket_sort_workspace() { return tree_counter() + 1; }
-
-    array<IndexType> bucket_sort_workspace_view()
-    {
-        return make_array_view(
-            exec, bucket_sort_workspace_size<num_buckets>(edge_capacity),
-            bucket_sort_workspace());
-    }
+    IndexType* basecase_ranges() { return tree_counter() + 1; }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
 
@@ -830,6 +941,7 @@ struct elimination_forest_algorithm_state {
 
     void init(const array<IndexType>& sources, const array<IndexType>& ends)
     {
+        GKO_FUNCTION_SCOPEGUARD(init);
         assert(sources.get_size() == ends.get_size());
         assert(sources.get_size() <= edge_capacity);
         exec->copy(sources.get_size(), sources.get_const_data(),
@@ -843,7 +955,7 @@ struct elimination_forest_algorithm_state {
 
     void bucket_sort_input()
     {
-        auto sort_workspace = bucket_sort_workspace_view();
+        GKO_FUNCTION_SCOPEGUARD(bucket_sort_input);
         auto it =
             thrust::make_zip_iterator(in_edge_sources(), in_edge_targets());
         auto out_it =
@@ -855,7 +967,7 @@ struct elimination_forest_algorithm_state {
                 return kernel::get_edge_level(thrust::get<0>(edge),
                                               thrust::get<1>(edge));
             },
-            tmp);  // sort_workspace);
+            bucket_sort_workspace);
         exec->copy_from(exec->get_master(), num_buckets + 1,
                         bucket_ranges.data(), device_bucket_ranges());
         output_to_input();
@@ -885,6 +997,7 @@ struct elimination_forest_algorithm_state {
 
     void find_connected_components(int level)
     {
+        GKO_FUNCTION_SCOPEGUARD(find_connected_components);
         components::fill_seq_array(exec, cc_parents(),
                                    static_cast<size_type>(num_nodes));
         const auto inner_edges = get_inner_edge_range(level);
@@ -900,6 +1013,7 @@ struct elimination_forest_algorithm_state {
 
     void find_min_cut_neighbors(int level)
     {
+        GKO_FUNCTION_SCOPEGUARD(find_min_cut_neighbors);
         const auto min_sentinel = num_nodes;
         components::fill_array(exec, cc_mins(),
                                static_cast<size_type>(num_nodes), min_sentinel);
@@ -917,6 +1031,7 @@ struct elimination_forest_algorithm_state {
 
     void add_fill_and_tree_edges(int level)
     {
+        GKO_FUNCTION_SCOPEGUARD(add_fill_and_tree_edges);
         const auto cut_edge_range = get_cut_edge_range(level);
         if (cut_edge_range.size() > 0) {
             const auto num_blocks =
@@ -947,6 +1062,7 @@ struct elimination_forest_algorithm_state {
 
     void bucket_sort_fill_edges(int level)
     {
+        GKO_FUNCTION_SCOPEGUARD(bucket_sort_fill_edges);
         const auto cut_edge_range = get_cut_edge_range(level);
         using namespace gko::kernels::GKO_DEVICE_NAMESPACE::kernel;
         using config = bucket_sort_config<num_buckets>;
@@ -976,17 +1092,14 @@ struct elimination_forest_algorithm_state {
         const auto num_blocks = std::max<IndexType>(
             1, static_cast<IndexType>(
                    ceildiv(num_fill_edges, config::items_per_threadblock)));
-        array<IndexType> tmp{exec,
-                             bucket_sort_workspace_size<num_buckets, config>(
-                                 std::max<IndexType>(1, num_fill_edges))};
-        const auto workspace = tmp.get_data();  // bucket_sort_workspace();
+        const auto sort_workspace = bucket_sort_workspace.get_data();
         bucket_sort_filter_count<config>
             <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
-                fill_it, num_fill_edges, predicate, bucket_op, workspace);
+                fill_it, num_fill_edges, predicate, bucket_op, sort_workspace);
         bucket_sort_prefixsum<config>
-            <<<1, config::num_buckets, 0, exec->get_stream()>>>(workspace,
+            <<<1, config::num_buckets, 0, exec->get_stream()>>>(sort_workspace,
                                                                 num_blocks);
-        const auto global_offsets = workspace + num_buckets * num_blocks;
+        const auto global_offsets = sort_workspace + num_buckets * num_blocks;
         components::prefix_sum_nonnegative(exec, global_offsets,
                                            num_buckets + 1);
         exec->get_master()->copy_from(exec, num_buckets + 1, global_offsets,
@@ -1001,7 +1114,7 @@ struct elimination_forest_algorithm_state {
             <<<num_blocks + num_merge_blocks, config::threadblock_size, 0,
                exec->get_stream()>>>(
                 fill_it, in_it, out_it, num_fill_edges, num_edges(), num_blocks,
-                predicate, bucket_op, workspace, device_bucket_ranges());
+                predicate, bucket_op, sort_workspace, device_bucket_ranges());
         for (int i = 0; i <= level; i++) {
             bucket_ranges[i] += fill_bucket_ranges[i];
         }
@@ -1013,24 +1126,78 @@ struct elimination_forest_algorithm_state {
                         bucket_ranges.data(), device_bucket_ranges());
     }
 
+    // sort the edges by src index, which also groups them by block
+    // they will lose their grouping by level
+    void radix_sort_edges()
+    {
+        GKO_FUNCTION_SCOPEGUARD(radix_sort_edges);
+        std::size_t tmp_storage_size{};
+        cub::DoubleBuffer<IndexType> sources{buf1_edge_sources(),
+                                             buf2_edge_sources()};
+        cub::DoubleBuffer<IndexType> targets{buf1_edge_targets(),
+                                             buf2_edge_targets()};
+        sources.selector = flip ? 1 : 0;
+        targets.selector = flip ? 1 : 0;
+        GKO_ASSERT_NO_CUB_ERRORS(cub::DeviceRadixSort::SortPairs(
+            nullptr, tmp_storage_size, sources, targets, num_edges(), 0,
+            num_levels, exec->get_stream()));
+        array<char> buffer{exec, tmp_storage_size};
+        // sort by column first
+        GKO_ASSERT_NO_CUB_ERRORS(cub::DeviceRadixSort::SortPairs(
+            buffer.get_data(), tmp_storage_size, sources, targets, num_edges(),
+            0, num_levels, exec->get_stream()));
+        // then by row, keeping the relative col order
+        GKO_ASSERT_NO_CUB_ERRORS(cub::DeviceRadixSort::SortPairs(
+            buffer.get_data(), tmp_storage_size, targets, sources, num_edges(),
+            0, num_levels, exec->get_stream()));
+        flip = (sources.selector == 1);
+        assert(targets.selector == sources.selector);
+    }
+
+    void basecase()
+    {
+        GKO_FUNCTION_SCOPEGUARD(basecase);
+        if (num_edges() == 0) {
+            return;
+        }
+        const auto num_edge_blocks = ceildiv(num_edges(), default_block_size);
+        const auto num_basecases =
+            static_cast<IndexType>(ceildiv(num_nodes, basecase_size));
+        const auto num_basecase_blocks =
+            ceildiv(num_basecases, default_block_size);
+        kernel::compute_basecase_ranges<basecase_size>
+            <<<num_edge_blocks, default_block_size, 0, exec->get_stream()>>>(
+                in_edge_sources(), num_basecases, num_edges(),
+                basecase_ranges());
+        kernel::basecase<basecase_size>
+            <<<num_basecase_blocks, default_block_size, 0,
+               exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
+                                     num_nodes, basecase_ranges(),
+                                     tree_parents());
+    }
+
     void run()
     {
         bucket_sort_input();
-        for (int level = num_levels - 1; level >= 0; level--) {
+        for (int level = num_levels - 1; level >= basecase_level; level--) {
+            OperationScopeGuard guard{"level" + std::to_string(level), exec};
             find_connected_components(level);
             find_min_cut_neighbors(level);
             add_fill_and_tree_edges(level);
             bucket_sort_fill_edges(level);
             output_to_input();
         }
+        radix_sort_edges();
+        basecase();
     }
 
     std::shared_ptr<const DefaultExecutor> exec;
-    array<IndexType> workspace;
     IndexType num_nodes;
     IndexType edge_capacity;
     int num_levels;
     IndexType ceil_num_nodes;
+    array<IndexType> workspace;
+    array<IndexType> bucket_sort_workspace;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     bool flip;
 };
