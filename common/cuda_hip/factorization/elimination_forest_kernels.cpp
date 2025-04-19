@@ -738,7 +738,7 @@ struct small_disjoint_sets {
         while (cur != rep) {
             int new_rep = reps.get(cur);
             reps.set(cur, rep);
-            rep = new_rep;
+            cur = new_rep;
         }
         return rep;
     }
