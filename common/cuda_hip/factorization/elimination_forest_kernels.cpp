@@ -28,6 +28,7 @@ namespace cub = hipcub;
 #include <thrust/transform.h>
 #include <thrust/tuple.h>
 
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "common/cuda_hip/base/math.hpp"
@@ -41,12 +42,12 @@ namespace cub = hipcub;
 #include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
 #include "core/components/bit_packed_storage.hpp"
+#include "core/components/combined_workspace.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/log/profiler_hook.hpp"
-#include "ginkgo/core/log/profiler_hook.hpp"
 
 
 namespace gko {
@@ -823,41 +824,6 @@ __global__ __launch_bounds__(default_block_size) void basecase(
 
 
 }  // namespace kernel
-
-
-template <typename IndexType>
-struct combined_workspace {
-    combined_workspace(std::shared_ptr<const Executor> exec,
-                       std::vector<size_type> sizes)
-        : offsets{std::move(sizes)}, workspace{exec}
-    {
-        offsets.insert(offsets.begin(), 0);
-        std::partial_sum(offsets.begin(), offsets.end(), offsets.begin());
-        workspace.resize_and_reset(offsets.back());
-    }
-
-    static size_type get_total_size(std::vector<size_type> sizes)
-    {
-        return std::accumulate(sizes.begin(), sizes.end(), size_type{});
-    }
-
-    IndexType* get_pointer(int i)
-    {
-        return workspace.get_data() + offsets.at(i);
-    }
-    size_type get_size(int i) const
-    {
-        return offsets.at(i + 1) - offsets.at(i);
-    }
-    array<IndexType> get_view(int i)
-    {
-        return make_array_view(workspace.get_executor(), get_size(i),
-                               get_pointer(i));
-    }
-
-    array<IndexType> workspace;
-    std::vector<size_type> offsets;
-};
 
 
 template <typename IndexType>
