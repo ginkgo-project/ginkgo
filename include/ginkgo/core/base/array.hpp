@@ -643,6 +643,20 @@ public:
     }
 
     /**
+     * Copies the data into an std::vector.
+     *
+     * @return an std::vector containing this array's data.
+     */
+    std::vector<value_type> copy_to_host() const
+    {
+        std::vector<value_type> result(this->get_size());
+        auto view = make_array_view(this->get_executor()->get_master(),
+                                    this->get_size(), result.data());
+        view = *this;
+        return result;
+    }
+
+    /**
      * Fill the array with the given value.
      *
      * @param value the value to be filled

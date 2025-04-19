@@ -219,6 +219,16 @@ TYPED_TEST(Array, CanBeCopiedToExecutorlessArray)
 }
 
 
+TYPED_TEST(Array, CanBeCopiedToHost)
+{
+    std::vector<TypeParam> ref{5, 2};
+
+    auto vec = this->x.copy_to_host();
+
+    ASSERT_EQ(vec, ref);
+}
+
+
 TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
 {
     gko::array<TypeParam> a;
