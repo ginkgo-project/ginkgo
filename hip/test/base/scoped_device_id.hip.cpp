@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ TEST_F(ScopedDeviceIdGuard, SetsId)
     gko::detail::hip_scoped_device_id_guard g{new_device_id};
 
     int device_id;
-    hipGetDevice(&device_id);
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&device_id));
     ASSERT_EQ(device_id, new_device_id);
 }
 
@@ -45,7 +45,7 @@ TEST_F(ScopedDeviceIdGuard, ResetsId)
     }
 
     int device_id;
-    hipGetDevice(&device_id);
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&device_id));
     ASSERT_EQ(device_id, old_device_id);
 }
 
