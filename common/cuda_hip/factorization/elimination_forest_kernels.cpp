@@ -224,78 +224,89 @@ void sort_edges(std::shared_ptr<const DefaultExecutor> exec, IndexType* sources,
 // doi: 10.1145/3581784.3607093
 template <typename IndexType>
 struct mst_state {
-    static size_type storage_requirement(IndexType num_nodes,
-                                         IndexType num_edges)
+    static std::vector<size_type> storage_sizes(size_type num_nodes,
+                                                size_type num_edges)
     {
-        return 6 * static_cast<size_type>(num_edges) +
-               2 * static_cast<size_type>(num_nodes) + 3;
+        return {
+            num_edges,  // 0: input_wl_sources
+            num_edges,  // 1: input_wl_targets
+            num_edges,  // 2: input_wl_edge_ids
+            num_edges,  // 3: output_wl_sources
+            num_edges,  // 4: output_wl_targets
+            num_edges,  // 5: output_wl_edge_ids
+            num_nodes,  // 6: parents
+            num_nodes,  // 7: min_neighbors
+            3           // 8: atomic counters
+        };
     }
 
-    mst_state(std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
-              IndexType num_edges, IndexType* input_sources,
+    static size_type storage_requirement(size_type num_nodes,
+                                         size_type num_edges)
+    {
+        return combined_workspace<IndexType>::get_total_size(
+            storage_sizes(num_nodes, num_edges));
+    }
+
+    mst_state(std::shared_ptr<const DefaultExecutor> exec, size_type num_nodes,
+              size_type num_edges, IndexType* input_sources,
               IndexType* input_targets, IndexType* tree_sources,
-              IndexType* tree_targets, array<IndexType> workspace)
+              IndexType* tree_targets)
         : exec_{exec},
           num_nodes_{num_nodes},
           num_edges_{num_edges},
           input_sources_{input_sources},
           input_targets_{input_targets},
-          work_array_{std::move(workspace)},
+          workspace_{exec, storage_sizes(num_nodes, num_edges)},
           tree_sources_{tree_sources},
           tree_targets_{tree_targets},
           flip_{}
     {
-        assert(work_array_.get_executor() == exec);
-        assert(work_array_.get_size() >=
-               storage_requirement(num_nodes, num_edges));
-        reset(input_sources, input_targets_, num_edges_);
+        std::array<IndexType, 3> zeros{};
+        exec_->copy_from(exec_->get_master(), 3, zeros.data(), tree_counter());
+        components::fill_array(exec_, min_edges(), num_nodes_,
+                               min_edge_sentinel);
+        components::fill_seq_array(exec_, parents(), num_nodes_);
+        exec_->copy(num_edges_, input_sources_, output_wl_sources());
+        exec_->copy(num_edges_, input_targets_, output_wl_targets());
+        components::fill_seq_array(exec_, output_wl_edge_ids(), num_edges_);
+        output_to_input();
     }
 
-    mst_state(std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
-              IndexType num_edges, IndexType* input_sources,
-              IndexType* input_targets, IndexType* tree_sources,
-              IndexType* tree_targets)
-        : mst_state(
-              exec, num_nodes, num_edges, input_sources, input_targets,
-              tree_sources, tree_targets,
-              array<IndexType>{exec, storage_requirement(num_nodes, num_edges)})
+    const IndexType* input_wl_sources()
     {
-        reset(input_sources, input_targets_, num_edges_);
+        return workspace_.get_pointer(flip_ ? 3 : 0);
     }
-
-    const IndexType* input_worklist()
-    {
-        return work_array_.get_const_data() + (flip_ ? 3 * num_edges_ : 0);
-    }
-
-    IndexType* output_worklist()
-    {
-        return work_array_.get_data() + (flip_ ? 0 : 3 * num_edges_);
-    }
-
-    const IndexType* input_wl_sources() { return input_worklist(); }
 
     const IndexType* input_wl_targets()
     {
-        return input_wl_sources() + num_edges_;
+        return workspace_.get_pointer(flip_ ? 4 : 1);
     }
 
     const IndexType* input_wl_edge_ids()
     {
-        return input_wl_targets() + num_edges_;
+        return workspace_.get_pointer(flip_ ? 5 : 2);
     }
 
-    IndexType* output_wl_sources() { return output_worklist(); }
+    IndexType* output_wl_sources()
+    {
+        return workspace_.get_pointer(flip_ ? 0 : 3);
+    }
 
-    IndexType* output_wl_targets() { return output_wl_sources() + num_edges_; }
+    IndexType* output_wl_targets()
+    {
+        return workspace_.get_pointer(flip_ ? 1 : 4);
+    }
 
-    IndexType* output_wl_edge_ids() { return output_wl_targets() + num_edges_; }
+    IndexType* output_wl_edge_ids()
+    {
+        return workspace_.get_pointer(flip_ ? 2 : 5);
+    }
 
-    IndexType* parents() { return work_array_.get_data() + 6 * num_edges_; }
+    IndexType* parents() { return workspace_.get_pointer(6); }
 
-    IndexType* min_edges() { return parents() + num_nodes_; }
+    IndexType* min_edges() { return workspace_.get_pointer(7); }
 
-    IndexType* tree_counter() { return min_edges() + num_nodes_; }
+    IndexType* tree_counter() { return workspace_.get_pointer(8); }
 
     const IndexType* input_counter()
     {
@@ -316,40 +327,17 @@ struct mst_state {
 
     IndexType tree_size() { return exec_->copy_val_to_host(tree_counter()); }
 
-    void reset(IndexType* new_input_sources, IndexType* new_input_targets,
-               IndexType new_num_edges)
-    {
-        if (new_num_edges > num_edges_) {
-            num_edges_ = new_num_edges;
-            work_array_.resize_and_reset(
-                storage_requirement(num_nodes_, num_edges_));
-        }
-        input_sources_ = new_input_sources;
-        input_targets_ = new_input_targets;
-        std::array<IndexType, 3> zeros{};
-        exec_->copy_from(exec_->get_master(), 3, zeros.data(), tree_counter());
-        components::fill_array(exec_, min_edges(),
-                               static_cast<size_type>(num_nodes_),
-                               min_edge_sentinel);
-        components::fill_seq_array(exec_, parents(),
-                                   static_cast<size_type>(num_nodes_));
-        exec_->copy(num_edges_, input_sources_, output_wl_sources());
-        exec_->copy(num_edges_, input_targets_, output_wl_targets());
-        components::fill_seq_array(exec_, output_wl_edge_ids(),
-                                   static_cast<size_type>(num_edges_));
-    }
-
     void run()
     {
-        output_to_input();
-        auto input_wl_size = num_edges_;
+        auto ssize = static_cast<IndexType>(num_nodes_);
+        auto input_wl_size = static_cast<IndexType>(num_edges_);
         while (input_wl_size > 0) {
             const auto num_find_blocks =
                 ceildiv(input_wl_size, default_block_size);
             kernel::mst_find_minimum<<<num_find_blocks, default_block_size, 0,
                                        exec_->get_stream()>>>(
                 input_wl_sources(), input_wl_targets(), input_wl_edge_ids(),
-                input_wl_size, num_nodes_, parents(), min_edges(),
+                input_wl_size, ssize, parents(), min_edges(),
                 output_wl_sources(), output_wl_targets(), output_wl_edge_ids(),
                 output_counter());
             output_to_input();
@@ -361,10 +349,10 @@ struct mst_state {
                 kernel::mst_join_edges<<<num_join_blocks, default_block_size, 0,
                                          exec_->get_stream()>>>(
                     input_wl_sources(), input_wl_targets(), input_wl_edge_ids(),
-                    input_wl_size, num_nodes_, parents(), min_edges(),
+                    input_wl_size, ssize, parents(), min_edges(),
                     input_sources_, input_targets_, tree_sources_,
                     tree_targets_, tree_counter());
-                if (input_wl_size < num_nodes_ / 8) {
+                if (input_wl_size < ssize / 8) {
                     // if there are only a handful of min_edges values to reset:
                     // do it individually
                     kernel::mst_reset_min_edges<<<num_join_blocks,
@@ -374,8 +362,7 @@ struct mst_state {
                         min_edges());
                 } else {
                     // otherwise reset the entire array
-                    components::fill_array(exec_, min_edges(),
-                                           static_cast<size_type>(num_nodes_),
+                    components::fill_array(exec_, min_edges(), ssize,
                                            min_edge_sentinel);
                 }
             }
@@ -384,7 +371,8 @@ struct mst_state {
 
     void sort_input_edges()
     {
-        sort_edges(exec_, input_sources_, input_targets_, num_edges_);
+        sort_edges(exec_, input_sources_, input_targets_,
+                   static_cast<IndexType>(num_edges_));
     }
 
     void sort_tree_edges()
@@ -395,13 +383,13 @@ struct mst_state {
     constexpr static auto min_edge_sentinel =
         std::numeric_limits<IndexType>::max();
     std::shared_ptr<const DefaultExecutor> exec_;
-    IndexType num_nodes_;
-    IndexType num_edges_;
+    size_type num_nodes_;
+    size_type num_edges_;
     IndexType* input_sources_;
     IndexType* input_targets_;
     IndexType* tree_sources_;
     IndexType* tree_targets_;
-    array<IndexType> work_array_;
+    combined_workspace<IndexType> workspace_;
     bool flip_;
 };
 
@@ -442,13 +430,12 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // already sorts by row index.
     auto [sources, targets] =
         extract_lower_triangular(exec, row_ptrs, cols, size);
-    const auto ssize = static_cast<IndexType>(size);
-    const auto num_edges = static_cast<IndexType>(sources.get_size());
+    const auto num_edges = sources.get_size();
 
     array<IndexType> out_row_array{exec, size - 1};
     mst_state<IndexType> state{
         exec,
-        ssize,
+        size,
         num_edges,
         sources.get_data(),
         targets.get_data(),
