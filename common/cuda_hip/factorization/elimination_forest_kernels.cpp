@@ -74,7 +74,6 @@ struct OperationScopeGuard : Operation {
     OperationScopeGuard(std::string name, std::shared_ptr<const Executor> exec)
         : name{std::move(name)}, exec{exec}
     {
-        std::cout << this->name << '\n';
         for (auto& log : exec->get_loggers()) {
             if (auto profiler =
                     std::dynamic_pointer_cast<const log::ProfilerHook>(log)) {
