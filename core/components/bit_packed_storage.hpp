@@ -251,7 +251,7 @@ public:
     constexpr static int values_per_word = bits_per_word / bits_per_value;
     constexpr static int num_words =
         (size + values_per_word - 1) / values_per_word;
-    // we need to shift by less than 32 to avoid UB
+    // we need to shift by less than bits_per_word to avoid UB
     constexpr static storage_type mask =
         (storage_type{2} << (bits_per_value - 1)) - storage_type{1};
     // ignore the sign bit in this comparison
@@ -268,7 +268,8 @@ public:
         assert(value >= 0);
         assert(value <= mask);
         data_[i / values_per_word] |=
-            value << ((i % values_per_word) * bits_per_value);
+            static_cast<storage_type>(value)
+            << ((i % values_per_word) * bits_per_value);
     }
 
     /** @copydoc bit_packed_span::clear */
@@ -288,9 +289,9 @@ public:
     /** @copydoc bit_packed_span::get */
     constexpr int get(int i) const
     {
-        return (data_[i / values_per_word] >>
-                (i % values_per_word) * bits_per_value) &
-               mask;
+        return static_cast<int>((data_[i / values_per_word] >>
+                                 (i % values_per_word) * bits_per_value) &
+                                mask);
     }
 
 private:
