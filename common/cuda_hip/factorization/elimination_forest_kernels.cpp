@@ -651,16 +651,13 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_merge_filter_distri
             return;
         }
         const auto value = *(sorted_begin + i);
-        // TODO do this manually and explicitly
-        if (predicate(value)) {
-            const auto bucket = bucket_op(value);
-            const auto bucket_offset = sorted_offsets[bucket];
-            const auto relative_pos = i - bucket_offset;
-            assert(relative_pos >= 0);
-            const auto out_pos = global_to_sort_offsets[bucket] +
-                                 sorted_offsets[bucket] + relative_pos;
-            *(out_begin + out_pos) = value;
-        }
+        const auto bucket = bucket_op(value);
+        const auto bucket_offset = sorted_offsets[bucket];
+        const auto relative_pos = i - bucket_offset;
+        assert(relative_pos >= 0);
+        const auto out_pos = global_to_sort_offsets[bucket] +
+                             sorted_offsets[bucket] + relative_pos;
+        *(out_begin + out_pos) = value;
     } else {
         __shared__ IndexType sh_counters[num_buckets];
         for (int i = threadIdx.x; i < num_buckets; i += threadblock_size) {
@@ -688,26 +685,25 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_merge_filter_distri
 
 template <int basecase_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void compute_basecase_ranges(
-    const IndexType* __restrict__ edge_sources, IndexType num_basecases,
+    const IndexType* __restrict__ edge_sources,
+    const IndexType* __restrict__ edge_targets, IndexType num_basecases,
     IndexType num_edges, IndexType* __restrict__ basecase_ranges)
 {
     const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= num_edges) {
+    if (i >= num_edges + 1) {
         return;
     }
 
     const auto basecase_prev =
-        i == 0 ? IndexType{-1} : (edge_sources[i - 1] / basecase_size);
-    const auto basecase_cur = edge_sources[i] / basecase_size;
+        i == 0 ? IndexType{} : (edge_sources[i - 1] / basecase_size);
+    const auto basecase_cur =
+        i == num_edges ? num_basecases : edge_sources[i] / basecase_size;
     assert(basecase_prev <= basecase_cur);
-    if (i == 0) {
-        basecase_ranges[0] = 0;
-    }
     for (auto basecase_i = basecase_prev; i < basecase_cur; basecase_i++) {
         basecase_ranges[basecase_i + 1] = i;
     }
-    if (i == num_edges - 1) {
-        basecase_ranges[num_basecases] = num_edges;
+    if (i == 0) {
+        basecase_ranges[0] = 0;
     }
 }
 
@@ -810,7 +806,7 @@ __global__ __launch_bounds__(default_block_size) void basecase(
             assert(local_tgt >= 0);
             assert(local_src < basecase_size);
             assert(local_tgt < basecase_size);
-            return thrust::make_pair(local_src, local_tgt);
+            return thrust::make_pair(int(local_src), int(local_tgt));
         });
     const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
     for (auto i = basecase_base; i < basecase_end; i++) {
@@ -830,6 +826,41 @@ __global__ __launch_bounds__(default_block_size) void basecase(
 
 
 template <typename IndexType>
+struct combined_workspace {
+    combined_workspace(std::shared_ptr<const Executor> exec,
+                       std::vector<size_type> sizes)
+        : offsets{std::move(sizes)}, workspace{exec}
+    {
+        offsets.insert(offsets.begin(), 0);
+        std::partial_sum(offsets.begin(), offsets.end(), offsets.begin());
+        workspace.resize_and_reset(offsets.back());
+    }
+
+    static size_type get_total_size(std::vector<size_type> sizes)
+    {
+        return std::accumulate(sizes.begin(), sizes.end(), size_type{});
+    }
+
+    IndexType* get_pointer(int i)
+    {
+        return workspace.get_data() + offsets.at(i);
+    }
+    size_type get_size(int i) const
+    {
+        return offsets.at(i + 1) - offsets.at(i);
+    }
+    array<IndexType> get_view(int i)
+    {
+        return make_array_view(workspace.get_executor(), get_size(i),
+                               get_pointer(i));
+    }
+
+    array<IndexType> workspace;
+    std::vector<size_type> offsets;
+};
+
+
+template <typename IndexType>
 struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
     constexpr static int basecase_level = 4;
@@ -845,66 +876,74 @@ struct elimination_forest_algorithm_state {
                   static_cast<std::make_unsigned_t<IndexType>>(num_nodes - 1)) +
               1},
           ceil_num_nodes{IndexType{1} << num_levels},
-          workspace{exec, storage_requirement(num_nodes, num_edges)},
-          bucket_sort_workspace{
-              exec, bucket_sort_workspace_size<num_buckets>(edge_capacity)},
+          workspace{exec, workspace_sizes(num_nodes, num_edges)},
           bucket_ranges{},
           flip{}
     {
         bucket_ranges.back() = num_edges;
     }
 
+    static std::vector<size_type> workspace_sizes(size_type num_nodes,
+                                                  size_type num_edges)
+    {
+        const auto edge_capacity = 2 * num_edges;
+        const auto num_basecases =
+            static_cast<size_type>(ceildiv(num_nodes, basecase_size));
+        return {
+            edge_capacity,      // 0: buf1_sources
+            edge_capacity,      // 1: buf1_targets
+            edge_capacity,      // 2: buf2_sources
+            edge_capacity,      // 3: buf2_targets
+            num_nodes,          // 4: tree_parents
+            num_nodes + 2,      // 5: tree_child_ptrs
+            num_nodes,          // 6: tree_children
+            num_nodes,          // 7: cc_parents
+            num_nodes,          // 8: cc_mins
+            num_buckets + 1,    // 9: device_bucket_ranges
+            1,                  // 10: tree_counter
+            num_basecases + 2,  // 11: basecase_ranges
+            bucket_sort_workspace_size<num_buckets>(
+                edge_capacity)  // 12: bucketsort_workspace
+        };
+    }
+
     static size_type storage_requirement(size_type num_nodes,
                                          size_type num_edges)
     {
-        const auto edge_capacity = 2 * num_edges;
-        return edge_capacity      // buf1_edge_sources
-               + edge_capacity    // buf1_edge_targets
-               + edge_capacity    // buf2_edge_sources
-               + edge_capacity    // buf2_edge_targets
-               + num_nodes        // tree_parents
-               + num_nodes + 2    // tree_child_ptrs
-               + num_nodes        // tree_children
-               + num_nodes        // cc_parents
-               + num_nodes        // cc_mins
-               + num_buckets + 1  // device_bucket_ranges
-               + 1                // tree_counter
-               + static_cast<size_type>(ceildiv(num_nodes, basecase_size) +
-                                        2);  // base_rase_ranges
+        return combined_workspace<IndexType>::get_total_size(
+            workspace_sizes(num_nodes, num_edges));
     }
 
-    IndexType* buf1_edge_sources() { return workspace.get_data(); }
+    IndexType* buf1_edge_sources() { return workspace.get_pointer(0); }
 
-    IndexType* buf1_edge_targets()
+    IndexType* buf1_edge_targets() { return workspace.get_pointer(1); }
+
+    IndexType* buf2_edge_sources() { return workspace.get_pointer(2); }
+
+    IndexType* buf2_edge_targets() { return workspace.get_pointer(3); }
+
+    IndexType* tree_parents() { return workspace.get_pointer(4); }
+
+    IndexType* tree_child_ptrs() { return workspace.get_pointer(5); }
+
+    IndexType* tree_children() { return workspace.get_pointer(6); }
+
+    IndexType* cc_parents() { return workspace.get_pointer(7); }
+
+    IndexType* cc_mins() { return workspace.get_pointer(8); }
+
+    IndexType* device_bucket_ranges() { return workspace.get_pointer(9); }
+
+    IndexType* tree_counter() { return workspace.get_pointer(10); }
+
+    IndexType* basecase_ranges() { return workspace.get_pointer(11); }
+
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(12); }
+
+    array<IndexType> bucketsort_workspace_view()
     {
-        return buf1_edge_sources() + edge_capacity;
+        return workspace.get_view(12);
     }
-
-    IndexType* buf2_edge_sources()
-    {
-        return buf1_edge_targets() + edge_capacity;
-    }
-
-    IndexType* buf2_edge_targets()
-    {
-        return buf2_edge_sources() + edge_capacity;
-    }
-
-    IndexType* tree_parents() { return buf2_edge_targets() + edge_capacity; }
-
-    IndexType* tree_child_ptrs() { return tree_parents() + num_nodes; }
-
-    IndexType* tree_children() { return tree_child_ptrs() + num_nodes + 2; }
-
-    IndexType* cc_parents() { return tree_children() + num_nodes; }
-
-    IndexType* cc_mins() { return cc_parents() + num_nodes; }
-
-    IndexType* device_bucket_ranges() { return cc_mins() + num_nodes; }
-
-    IndexType* tree_counter() { return device_bucket_ranges() + num_nodes + 1; }
-
-    IndexType* basecase_ranges() { return tree_counter() + 1; }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
 
@@ -960,14 +999,14 @@ struct elimination_forest_algorithm_state {
             thrust::make_zip_iterator(in_edge_sources(), in_edge_targets());
         auto out_it =
             thrust::make_zip_iterator(out_edge_sources(), out_edge_targets());
-        array<IndexType> tmp{exec};
+        auto ws = bucketsort_workspace_view();
         bucket_ranges = bucket_sort<num_buckets>(
             exec, it, it + num_edges(), out_it,
             [] __device__(thrust::tuple<IndexType, IndexType> edge) {
                 return kernel::get_edge_level(thrust::get<0>(edge),
                                               thrust::get<1>(edge));
             },
-            bucket_sort_workspace);
+            ws);
         exec->copy_from(exec->get_master(), num_buckets + 1,
                         bucket_ranges.data(), device_bucket_ranges());
         output_to_input();
@@ -1064,9 +1103,9 @@ struct elimination_forest_algorithm_state {
     {
         GKO_FUNCTION_SCOPEGUARD(bucket_sort_fill_edges);
         const auto cut_edge_range = get_cut_edge_range(level);
+        const auto inner_edge_range = get_inner_edge_range(level);
         using namespace gko::kernels::GKO_DEVICE_NAMESPACE::kernel;
         using config = bucket_sort_config<num_buckets>;
-        const auto num_fill_edges = cut_edge_range.size();
         auto fill_it =
             thrust::make_zip_iterator(fill_edge_sources(), fill_edge_targets());
         auto in_it =
@@ -1080,46 +1119,56 @@ struct elimination_forest_algorithm_state {
                 return kernel::get_edge_level(thrust::get<0>(edge),
                                               thrust::get<1>(edge));
             };
-        // removing cut edges from the current level and above
-        // and loops (which allow us to avoid atomics)
+        // removing loops (which allow us to avoid atomics)
         auto predicate =
             [level] __device__(thrust::tuple<IndexType, IndexType> edge) {
                 const auto src = thrust::get<0>(edge);
                 const auto end = thrust::get<1>(edge);
-                return src != end && kernel::get_edge_level(src, end) <= level;
+                assert(src == end || kernel::get_edge_level(src, end) < level);
+                return src != end;
             };
-        assert(num_fill_edges <= edge_capacity);
-        const auto num_blocks = std::max<IndexType>(
-            1, static_cast<IndexType>(
-                   ceildiv(num_fill_edges, config::items_per_threadblock)));
-        const auto sort_workspace = bucket_sort_workspace.get_data();
-        bucket_sort_filter_count<config>
-            <<<num_blocks, config::threadblock_size, 0, exec->get_stream()>>>(
-                fill_it, num_fill_edges, predicate, bucket_op, sort_workspace);
+        assert(cut_edge_range.size() <= edge_capacity);
+        // compute number of fill edges added to each level
+        const auto num_sort_blocks = static_cast<IndexType>(
+            ceildiv(cut_edge_range.size(), config::items_per_threadblock));
+        const auto sort_workspace = bucketsort_workspace();
+        if (num_sort_blocks > 0) {
+            bucket_sort_filter_count<config>
+                <<<num_sort_blocks, config::threadblock_size, 0,
+                   exec->get_stream()>>>(fill_it, cut_edge_range.size(),
+                                         predicate, bucket_op,
+                                         bucketsort_workspace());
+        }
         bucket_sort_prefixsum<config>
-            <<<1, config::num_buckets, 0, exec->get_stream()>>>(sort_workspace,
-                                                                num_blocks);
-        const auto global_offsets = sort_workspace + num_buckets * num_blocks;
+            <<<1, config::num_buckets, 0, exec->get_stream()>>>(
+                bucketsort_workspace(), num_sort_blocks);
+        const auto global_offsets =
+            bucketsort_workspace() + num_buckets * num_sort_blocks;
         components::prefix_sum_nonnegative(exec, global_offsets,
                                            num_buckets + 1);
         exec->get_master()->copy_from(exec, num_buckets + 1, global_offsets,
                                       fill_bucket_ranges.data());
         const auto num_merge_blocks = static_cast<IndexType>(
-            ceildiv(num_edges(), config::threadblock_size));
+            ceildiv(inner_edge_range.size(), config::threadblock_size));
+        // TODO remove, just used for debugging
         components::fill_array(exec, out_edge_sources(), edge_capacity,
                                IndexType{-1});
         components::fill_array(exec, out_edge_targets(), edge_capacity,
                                IndexType{-1});
-        kernel::bucket_sort_merge_filter_distribute<config>
-            <<<num_blocks + num_merge_blocks, config::threadblock_size, 0,
-               exec->get_stream()>>>(
-                fill_it, in_it, out_it, num_fill_edges, num_edges(), num_blocks,
-                predicate, bucket_op, sort_workspace, device_bucket_ranges());
-        for (int i = 0; i <= level; i++) {
+        // END TODO
+        if (num_sort_blocks + num_merge_blocks > 0) {
+            kernel::bucket_sort_merge_filter_distribute<config>
+                <<<num_sort_blocks + num_merge_blocks, config::threadblock_size,
+                   0, exec->get_stream()>>>(
+                    fill_it, in_it, out_it, cut_edge_range.size(),
+                    inner_edge_range.size(), num_sort_blocks, predicate,
+                    bucket_op, bucketsort_workspace(), device_bucket_ranges());
+        }
+        for (int i = 0; i <= num_buckets; i++) {
             bucket_ranges[i] += fill_bucket_ranges[i];
         }
         // all edges >= level were filtered out
-        for (int i = level + 1; i <= num_levels; i++) {
+        for (int i = level + 1; i <= num_buckets; i++) {
             bucket_ranges[i] = bucket_ranges[level];
         }
         exec->copy_from(exec->get_master(), num_buckets + 1,
@@ -1160,15 +1209,16 @@ struct elimination_forest_algorithm_state {
         if (num_edges() == 0) {
             return;
         }
-        const auto num_edge_blocks = ceildiv(num_edges(), default_block_size);
+        const auto num_edge_p1_blocks =
+            ceildiv(num_edges() + 1, default_block_size);
         const auto num_basecases =
             static_cast<IndexType>(ceildiv(num_nodes, basecase_size));
         const auto num_basecase_blocks =
             ceildiv(num_basecases, default_block_size);
         kernel::compute_basecase_ranges<basecase_size>
-            <<<num_edge_blocks, default_block_size, 0, exec->get_stream()>>>(
-                in_edge_sources(), num_basecases, num_edges(),
-                basecase_ranges());
+            <<<num_edge_p1_blocks, default_block_size, 0, exec->get_stream()>>>(
+                in_edge_sources(), in_edge_targets(), num_basecases,
+                num_edges(), basecase_ranges());
         kernel::basecase<basecase_size>
             <<<num_basecase_blocks, default_block_size, 0,
                exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
@@ -1179,12 +1229,25 @@ struct elimination_forest_algorithm_state {
     void run()
     {
         bucket_sort_input();
+        // now the input is sorted by the level at which they become cut edges
         for (int level = num_levels - 1; level >= basecase_level; level--) {
+            // this level considers block of size 2^level
+            // every even block is lower, every odd block is upper (0-based)
+            // we consider connected components inside the blocks and
+            // cut edges between an even block and its following odd block
             OperationScopeGuard guard{"level" + std::to_string(level), exec};
+            // first compute connected components of all edges inside the blocks
+            // these edges have at most level - 1
             find_connected_components(level);
+            // then we find the smallest node from an odd block adjacent to each
+            // even block's connected component with cut edges at level
             find_min_cut_neighbors(level);
+            // then we add fill edges and tree edges with this information
             add_fill_and_tree_edges(level);
+            // and insert the new fill edges sorted according to their level
+            // additionally, we throw away all edges at level or higher
             bucket_sort_fill_edges(level);
+            // finally we swap the double buffer
             output_to_input();
         }
         radix_sort_edges();
@@ -1196,8 +1259,7 @@ struct elimination_forest_algorithm_state {
     IndexType edge_capacity;
     int num_levels;
     IndexType ceil_num_nodes;
-    array<IndexType> workspace;
-    array<IndexType> bucket_sort_workspace;
+    combined_workspace<IndexType> workspace;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     bool flip;
 };
