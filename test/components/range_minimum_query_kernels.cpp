@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+/*@GKO_PREPROCESSOR_FILENAME_HELPER@*/
+
 #include "core/components/range_minimum_query_kernels.hpp"
 
 #include <limits>
