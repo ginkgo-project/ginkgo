@@ -11,13 +11,10 @@
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
 #include "common/cuda_hip/components/bitvector.hpp"
-#elif defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
-#include "common/unified/components/bitvector.generic.hpp"
-#ifdef GKO_COMPILING_OMP
+#elif defined(GKO_COMPILING_OMP)
 #include "omp/components/bitvector.hpp"
-#else
+#elif defined(GKO_COMPILING_DPCPP)
 #include "dpcpp/components/bitvector.dp.hpp"
-#endif
 #else
 #error "This file should only be used inside Ginkgo device compilation"
 #endif

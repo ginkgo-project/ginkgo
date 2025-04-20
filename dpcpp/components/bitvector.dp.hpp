@@ -21,6 +21,47 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace bitvector {
 
 
+template <typename IndexType, typename DevicePredicate>
+gko::bitvector<IndexType> from_predicate(
+    std::shared_ptr<const DefaultExecutor> exec, IndexType size,
+    DevicePredicate device_predicate)
+{
+    using storage_type = typename device_bitvector<IndexType>::storage_type;
+    constexpr auto block_size = device_bitvector<IndexType>::block_size;
+    const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
+    array<uint32> bit_array{exec, num_blocks};
+    array<IndexType> rank_array{exec, num_blocks};
+    const auto bits = bit_array.get_data();
+    const auto ranks = rank_array.get_data();
+    const auto queue = exec->get_queue();
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_blocks, [=](sycl::id<1> block_i) {
+            const auto base_i = static_cast<IndexType>(block_i) * block_size;
+            storage_type mask{};
+            if (base_i + block_size <= size) {
+                for (int local_i = 0; local_i < block_size; local_i++) {
+                    const storage_type bit =
+                        device_predicate(base_i + local_i) ? 1 : 0;
+                    mask |= bit << local_i;
+                }
+            } else {
+                for (int local_i = 0; base_i + local_i < size; local_i++) {
+                    const storage_type bit =
+                        device_predicate(base_i + local_i) ? 1 : 0;
+                    mask |= bit << local_i;
+                }
+            }
+            bits[block_i] = mask;
+            ranks[block_i] = gko::detail::popcount(mask);
+        });
+    });
+    components::prefix_sum_nonnegative(exec, ranks, num_blocks);
+
+    return gko::bitvector<IndexType>{std::move(bit_array),
+                                     std::move(rank_array), size};
+}
+
+
 template <typename IndexIterator>
 gko::bitvector<typename std::iterator_traits<IndexIterator>::value_type>
 from_sorted_indices(
