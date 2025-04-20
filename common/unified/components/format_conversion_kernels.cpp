@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,25 +16,7 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
-template <typename IndexType, typename RowPtrType>
-void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
-                          const RowPtrType* ptrs, size_type num_blocks,
-                          IndexType* idxs)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto block, auto ptrs, auto idxs) {
-            auto begin = ptrs[block];
-            auto end = ptrs[block + 1];
-            for (auto i = begin; i < end; i++) {
-                idxs[i] = block;
-            }
-        },
-        num_blocks, ptrs, idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_IDXS32);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_IDXS64);
+#ifdef GKO_COMPILING_DPCPP
 
 
 template <typename IndexType, typename RowPtrType>
@@ -64,6 +46,9 @@ void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS64);
+
+
+#endif
 
 
 template <typename RowPtrType>
