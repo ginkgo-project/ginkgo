@@ -676,11 +676,13 @@ struct small_disjoint_sets {
 
 
 template <int size, typename EdgeAccessor>
-__device__ bit_packed_array<ceil_log2_constexpr(size), size, uint64>
-basecase_elimination_forest(int num_edges, EdgeAccessor edges)
+__device__
+    thrust::pair<bit_packed_array<ceil_log2_constexpr(size), size, uint64>,
+                 small_disjoint_sets<size>>
+    basecase_elimination_forest(int num_edges, EdgeAccessor edges)
 {
     bit_packed_array<ceil_log2_constexpr(size), size, uint64> forest_parents{};
-    small_disjoint_sets<size> disjoint_sets{};
+    small_disjoint_sets<size> sets{};
     for (int i = 0; i < size; i++) {
         forest_parents.set_from_zero(i, i);
     }
@@ -693,14 +695,14 @@ basecase_elimination_forest(int num_edges, EdgeAccessor edges)
         if (row > current_row) {
             current_row = row;
         }
-        auto col_rep = disjoint_sets.find(col);
+        auto col_rep = sets.find(col);
         if (forest_parents.get(col_rep) == col_rep && col_rep != row) {
-            assert(disjoint_sets.find(row) == row);
-            disjoint_sets.join_reps(col_rep, row);
+            assert(sets.find(row) == row);
+            sets.join_reps(col_rep, row);
             forest_parents.set(col_rep, row);
         }
     }
-    return forest_parents;
+    return thrust::make_pair(forest_parents, sets);
 }
 
 
@@ -709,6 +711,7 @@ __global__ __launch_bounds__(default_block_size) void basecase(
     const IndexType* __restrict__ edge_sources,
     const IndexType* __restrict__ edge_targets, IndexType num_nodes,
     const IndexType* __restrict__ basecase_ranges,
+    IndexType* __restrict__ cc_parents, IndexType* __restrict__ cc_sizes,
     IndexType* __restrict__ tree_sources, IndexType* __restrict__ tree_targets,
     IndexType* __restrict__ tree_counter)
 {
@@ -720,25 +723,35 @@ __global__ __launch_bounds__(default_block_size) void basecase(
     const auto edges_begin = basecase_ranges[basecase_i];
     const auto edges_end = basecase_ranges[basecase_i + 1];
     const auto basecase_base = basecase_i * basecase_size;
-    auto local_parents = basecase_elimination_forest<basecase_size>(
-        edges_end - edges_begin, [&](int edge) {
-            const auto local_src =
-                edge_sources[edge + edges_begin] - basecase_base;
-            const auto local_tgt =
-                edge_targets[edge + edges_begin] - basecase_base;
-            assert(local_src >= 0);
-            assert(local_tgt >= 0);
-            assert(local_src < basecase_size);
-            assert(local_tgt < basecase_size);
-            return thrust::make_pair(int(local_src), int(local_tgt));
-        });
+    auto [local_tree_parents, local_cc] =
+        basecase_elimination_forest<basecase_size>(
+            edges_end - edges_begin, [&](int edge) {
+                const auto local_src =
+                    edge_sources[edge + edges_begin] - basecase_base;
+                const auto local_tgt =
+                    edge_targets[edge + edges_begin] - basecase_base;
+                assert(local_src >= 0);
+                assert(local_tgt >= 0);
+                assert(local_src < basecase_size);
+                assert(local_tgt < basecase_size);
+                return thrust::make_pair(int(local_src), int(local_tgt));
+            });
+    bit_packed_array<ceil_log2_constexpr(basecase_size), basecase_size, uint64>
+        local_cc_sizes{};
     // translate local parents to global edges
     const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
     // count how many edges we want to output
     IndexType local_edge_count{};
     for (auto i : irange{basecase_base, basecase_end}) {
         const auto local_i = static_cast<int>(i - basecase_base);
-        const auto local_parent = local_parents.get(local_i);
+        const auto local_parent = local_tree_parents.get(local_i);
+        const auto local_rep = local_cc.find(local_i);
+        // increment count for local rep
+        if (local_rep != local_i) {
+            local_cc_sizes.set(local_rep, local_cc_sizes.get(local_rep) + 1);
+        }
+        // store global parent
+        cc_parents[i] = local_rep == local_rep + basecase_base;
         // the local version uses parent[i] = i to denote roots
         local_edge_count += local_parent != local_i ? 1 : 0;
     }
@@ -747,7 +760,12 @@ __global__ __launch_bounds__(default_block_size) void basecase(
     // and output the edges
     for (auto i : irange{basecase_base, basecase_end}) {
         const auto local_i = static_cast<int>(i - basecase_base);
-        const auto local_parent = local_parents.get(local_i);
+        const auto local_parent = local_tree_parents.get(local_i);
+        const auto local_rep = local_cc.find(local_i);
+        // store size and parent for all representatives
+        cc_sizes[i] =
+            local_rep == local_i ? local_cc_sizes.get(local_i) + 1 : 0;
+        cc_parents[i] = local_rep + basecase_base;
         if (local_parent != local_i) {
             tree_sources[out_i] = i;
             tree_targets[out_i] = local_parent + basecase_base;
@@ -1123,8 +1141,8 @@ struct elimination_forest_algorithm_state {
         kernel::basecase<basecase_size>
             <<<num_basecase_blocks, default_block_size, 0,
                exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
-                                     num_nodes, basecase_ranges(),
-                                     tree_sources(), tree_targets(),
+                                     num_nodes, basecase_ranges(), cc_parents(),
+                                     cc_sizes(), tree_sources(), tree_targets(),
                                      tree_counter());
     }
 
