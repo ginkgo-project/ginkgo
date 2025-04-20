@@ -93,8 +93,11 @@ struct bitvector_bit_functor {
 
     __device__ storage_type operator()(storage_type a, storage_type b)
     {
+        // https://github.com/ROCm/rocThrust/issues/352
+#ifndef GKO_COMPILING_HIP
         // there must not be any duplicate indices
         assert(a ^ b == 0);
+#endif
         return a | b;
     }
 };
