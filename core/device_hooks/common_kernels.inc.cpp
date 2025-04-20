@@ -13,7 +13,6 @@
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array_kernels.hpp"
-#include "core/components/bitvector_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
@@ -289,15 +288,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 
 
 }  // namespace components
-
-
-namespace bitvector {
-
-
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_BITVECTOR_COMPUTE_BITS_AND_RANKS_KERNEL);
-
-
-}  // namespace bitvector
 
 
 namespace range_minimum_query {

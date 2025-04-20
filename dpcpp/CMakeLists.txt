@@ -20,7 +20,6 @@ target_sources(
         base/scoped_device_id.dp.cpp
         base/timer.dp.cpp
         base/version.dp.cpp
-        components/bitvector_kernels.dp.cpp
         components/prefix_sum_kernels.dp.cpp
         distributed/assembly_kernels.dp.cpp
         distributed/index_map_kernels.dp.cpp

@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_KERNELS_HPP_
-#define GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_KERNELS_HPP_
-
-#include "core/components/bitvector.hpp"
+#ifndef GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_HPP_
+#define GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_HPP_
 
 #include <thrust/functional.h>
 #include <thrust/iterator/transform_iterator.h>
@@ -18,6 +16,7 @@
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "core/components/bitvector.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -34,12 +33,13 @@ namespace kernel {
 
 
 template <typename IndexType, typename DevicePredicate>
-__global__ __launch_bounds__(default_block_size) void bitvector_from_predicate(
+__global__ __launch_bounds__(default_block_size) void from_predicate(
     IndexType size,
     typename device_bitvector<IndexType>::storage_type* __restrict__ bits,
     IndexType* __restrict__ popcounts, DevicePredicate predicate)
 {
     constexpr auto block_size = device_bitvector<IndexType>::block_size;
+    static_assert(block_size <= config::warp_size);
     const auto subwarp_id = thread::get_subwarp_id_flat<block_size>();
     const auto subwarp_base = subwarp_id * block_size;
     if (subwarp_base >= size) {
@@ -61,7 +61,7 @@ __global__ __launch_bounds__(default_block_size) void bitvector_from_predicate(
 
 
 template <typename IndexType, typename DevicePredicate>
-gko::bitvector<IndexType> bitvector_from_predicate(
+gko::bitvector<IndexType> from_predicate(
     std::shared_ptr<const DefaultExecutor> exec, IndexType size,
     DevicePredicate device_predicate)
 {
@@ -72,8 +72,8 @@ gko::bitvector<IndexType> bitvector_from_predicate(
     if (num_blocks > 0) {
         const auto num_threadblocks =
             ceildiv(num_blocks, default_block_size / block_size);
-        kernel::bitvector_from_predicate<<<num_threadblocks, default_block_size,
-                                           0, exec->get_stream()>>>(
+        kernel::from_predicate<<<num_threadblocks, default_block_size, 0,
+                                 exec->get_stream()>>>(
             size, bits.get_data(), ranks.get_data(), device_predicate);
         components::prefix_sum_nonnegative(exec, ranks.get_data(), num_blocks);
     }
@@ -126,7 +126,7 @@ struct bitvector_popcnt_functor {
 
 template <typename IndexIterator>
 gko::bitvector<typename std::iterator_traits<IndexIterator>::value_type>
-bitvector_from_sorted_indices(
+from_sorted_indices(
     std::shared_ptr<const DefaultExecutor> exec, IndexIterator it,
     typename std::iterator_traits<IndexIterator>::difference_type count,
     typename std::iterator_traits<IndexIterator>::value_type size)
@@ -169,4 +169,4 @@ bitvector_from_sorted_indices(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_KERNELS_HPP_
+#endif  // GKO_COMMON_CUDA_HIP_COMPONENTS_BITVECTOR_HPP_
