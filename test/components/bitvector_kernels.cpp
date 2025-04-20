@@ -84,6 +84,35 @@ protected:
 TYPED_TEST_SUITE(Bitvector, gko::test::IndexTypes, TypenameNameGenerator);
 
 
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+
+
+TYPED_TEST(Bitvector, BuildFromIndicesDeviceIsEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using bitvector = typename TestFixture::bitvector;
+    for (auto size : this->sizes) {
+        SCOPED_TRACE(size);
+        for (auto num_values :
+             {index_type{}, size / 10, size / 4, size / 2, size}) {
+            SCOPED_TRACE(num_values);
+            auto values = this->create_random_values(num_values, size);
+            gko::array<index_type> dvalues{this->exec, values};
+
+            auto bv = bitvector::from_sorted_indices(values, size);
+            auto dbv = gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::
+                bitvector_from_sorted_indices(this->exec, dvalues.get_data(),
+                                              dvalues.get_size(), size);
+
+            this->assert_bitvector_equal(bv, dbv);
+        }
+    }
+}
+
+
+#endif
+
+
 TYPED_TEST(Bitvector, BuildFromIndicesIsEquivalentToRef)
 {
     using index_type = typename TestFixture::index_type;
