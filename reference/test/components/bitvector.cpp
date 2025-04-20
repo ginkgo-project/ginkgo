@@ -11,8 +11,9 @@
 #include <gtest/gtest.h>
 
 #include "core/base/index_range.hpp"
-#include "core/components/bitvector_kernels.hpp"
+#include "core/components/bitvector.hpp"
 #include "core/test/utils.hpp"
+#include "reference/components/bitvector.hpp"
 
 
 template <typename IndexType>
@@ -68,34 +69,33 @@ TYPED_TEST(Bitvector, ComputeBitsAndRanks)
             SCOPED_TRACE(num_values);
             auto values = this->create_random_values(num_values, size);
             num_values = values.size();
-            const auto num_blocks = (size + block_size - 1) / block_size;
-            std::vector<storage_type> bits(num_blocks, ~storage_type{});
-            std::vector<index_type> ranks(num_blocks, -1);
+            auto num_blocks = gko::ceildiv(size, block_size);
 
-            gko::kernels::reference::bitvector::compute_bits_and_ranks(
-                this->ref, values.data(), num_values, size, bits.data(),
-                ranks.data());
+            auto bv = gko::kernels::reference::bitvector::from_sorted_indices(
+                this->ref, values.data(), num_values, size);
+            auto dbv = bv.device_view();
 
             // check bits and ranks are correct
-            gko::device_bitvector<index_type> bv(bits.data(), ranks.data(),
-                                                 size);
-            ASSERT_EQ(bv.size(), size);
-            ASSERT_EQ(bv.num_blocks(), num_blocks);
+            ASSERT_EQ(bv.get_size(), size);
+            ASSERT_EQ(dbv.size(), size);
+            ASSERT_EQ(bv.get_num_blocks(), num_blocks);
+            ASSERT_EQ(dbv.num_blocks(), num_blocks);
             auto it = values.begin();
             index_type rank{};
             for (auto i : gko::irange{size}) {
                 const auto block = i / block_size;
                 const auto local = i % block_size;
-                ASSERT_EQ(bv.rank(i), rank);
+                ASSERT_EQ(dbv.rank(i), rank);
                 if (it != values.end() && *it == i) {
-                    ASSERT_TRUE(bool(bits[block] & (storage_type{1} << local)));
-                    ASSERT_TRUE(bv.get(i));
+                    ASSERT_TRUE(bool(bv.get_bits()[block] &
+                                     (storage_type{1} << local)));
+                    ASSERT_TRUE(dbv.get(i));
                     ++rank;
                     ++it;
                 } else {
-                    ASSERT_FALSE(
-                        bool(bits[block] & (storage_type{1} << local)));
-                    ASSERT_FALSE(bv.get(i));
+                    ASSERT_FALSE(bool(bv.get_bits()[block] &
+                                      (storage_type{1} << local)));
+                    ASSERT_FALSE(dbv.get(i));
                 }
             }
         }

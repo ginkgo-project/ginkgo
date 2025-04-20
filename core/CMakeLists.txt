@@ -43,7 +43,6 @@ target_sources(
         base/segmented_array.cpp
         base/timer.cpp
         base/version.cpp
-        components/bitvector.cpp
         components/range_minimum_query.cpp
         config/config.cpp
         config/config_helper.cpp

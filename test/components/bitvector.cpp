@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/components/bitvector_kernels.hpp"
+/*@GKO_PREPROCESSOR_FILENAME_HELPER@*/
 
-#include <limits>
+#include "core/components/bitvector.hpp"
+
 #include <memory>
 #include <random>
-#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -16,10 +16,10 @@
 #include <ginkgo/core/base/executor.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
-#include "common/unified/components/bitvector_kernels.hpp"
+#include "common/unified/components/bitvector.hpp"
 #include "core/base/index_range.hpp"
 #include "core/test/utils.hpp"
-#include "reference/components/bitvector_kernels.hpp"
+#include "reference/components/bitvector.hpp"
 #include "test/utils/common_fixture.hpp"
 
 
@@ -84,35 +84,6 @@ protected:
 TYPED_TEST_SUITE(Bitvector, gko::test::IndexTypes, TypenameNameGenerator);
 
 
-#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
-
-
-TYPED_TEST(Bitvector, BuildFromIndicesDeviceIsEquivalentToRef)
-{
-    using index_type = typename TestFixture::index_type;
-    using bitvector = typename TestFixture::bitvector;
-    for (auto size : this->sizes) {
-        SCOPED_TRACE(size);
-        for (auto num_values :
-             {index_type{}, size / 10, size / 4, size / 2, size}) {
-            SCOPED_TRACE(num_values);
-            auto values = this->create_random_values(num_values, size);
-            gko::array<index_type> dvalues{this->exec, values};
-
-            auto bv = bitvector::from_sorted_indices(values, size);
-            auto dbv = gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::
-                bitvector_from_sorted_indices(this->exec, dvalues.get_data(),
-                                              dvalues.get_size(), size);
-
-            this->assert_bitvector_equal(bv, dbv);
-        }
-    }
-}
-
-
-#endif
-
-
 TYPED_TEST(Bitvector, BuildFromIndicesIsEquivalentToRef)
 {
     using index_type = typename TestFixture::index_type;
@@ -125,8 +96,11 @@ TYPED_TEST(Bitvector, BuildFromIndicesIsEquivalentToRef)
             auto values = this->create_random_values(num_values, size);
             gko::array<index_type> dvalues{this->exec, values};
 
-            auto bv = bitvector::from_sorted_indices(values, size);
-            auto dbv = bitvector::from_sorted_indices(dvalues, size);
+            auto bv = gko::kernels::reference::bitvector::from_sorted_indices(
+                this->ref, values.get_data(), values.get_size(), size);
+            auto dbv = gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::
+                from_sorted_indices(this->exec, dvalues.get_data(),
+                                    dvalues.get_size(), size);
 
             this->assert_bitvector_equal(bv, dbv);
         }
@@ -140,9 +114,9 @@ std::pair<gko::bitvector<IndexType>, gko::bitvector<IndexType>> run_predicate(
     std::shared_ptr<const gko::EXEC_TYPE> exec, IndexType size, int stride)
 {
     return std::make_pair(
-        gko::kernels::reference::bitvector::bitvector_from_predicate(
+        gko::kernels::reference::bitvector::from_predicate(
             ref, size, [stride](int i) { return i % stride == 0; }),
-        gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::bitvector_from_predicate(
+        gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::from_predicate(
             exec, size,
             [stride] GKO_KERNEL(int i) { return i % stride == 0; }));
 }
@@ -165,7 +139,9 @@ TYPED_TEST(Bitvector, BuildFromPredicateIsEquivalentToFromIndices)
 
             auto [bv, dbv] = run_predicate(this->ref, this->exec, size, stride);
 
-            auto ref_bv = bitvector::from_sorted_indices(values, size);
+            auto ref_bv =
+                gko::kernels::reference::bitvector::from_sorted_indices(
+                    this->ref, values.get_data(), values.get_size(), size);
             this->assert_bitvector_equal(bv, dbv);
             this->assert_bitvector_equal(ref_bv, dbv);
         }
@@ -174,7 +150,6 @@ TYPED_TEST(Bitvector, BuildFromPredicateIsEquivalentToFromIndices)
 
 
 // nvcc doesn't like device lambdas inside class member functions
-
 template <typename IndexType>
 void run_device(std::shared_ptr<const gko::EXEC_TYPE> exec,
                 const gko::device_bitvector<IndexType> bv,
@@ -212,10 +187,11 @@ TYPED_TEST(Bitvector, AccessIsEquivalentToRef)
             num_values = values.get_size();
             gko::array<index_type> dvalues{this->exec, values};
 
-            auto bv =
-                gko::bitvector<index_type>::from_sorted_indices(values, size);
-            auto dbv =
-                gko::bitvector<index_type>::from_sorted_indices(dvalues, size);
+            auto bv = gko::kernels::reference::bitvector::from_sorted_indices(
+                this->ref, values.get_const_data(), values.get_size(), size);
+            auto dbv = gko::kernels::GKO_DEVICE_NAMESPACE::bitvector::
+                from_sorted_indices(this->exec, dvalues.get_const_data(),
+                                    dvalues.get_size(), size);
 
             const auto usize = static_cast<gko::size_type>(size);
             gko::array<bool> output_bools{this->ref, usize};

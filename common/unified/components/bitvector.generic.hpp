@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_KERNELS_GENERIC_HPP_
-#define GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_KERNELS_GENERIC_HPP_
+#ifndef GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_GENERIC_HPP_
+#define GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_GENERIC_HPP_
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/components/bitvector.hpp"
@@ -17,7 +17,7 @@ namespace bitvector {
 
 
 template <typename IndexType, typename DevicePredicate>
-gko::bitvector<IndexType> bitvector_from_predicate(
+gko::bitvector<IndexType> from_predicate(
     std::shared_ptr<const DefaultExecutor> exec, IndexType size,
     DevicePredicate device_predicate)
 {
@@ -39,7 +39,6 @@ gko::bitvector<IndexType> bitvector_from_predicate(
                     mask |= bit << local_i;
                 }
             } else {
-                int local_i = 0;
                 for (int local_i = 0; base_i + local_i < size; local_i++) {
                     const storage_type bit =
                         device_predicate(base_i + local_i) ? 1 : 0;
@@ -62,4 +61,4 @@ gko::bitvector<IndexType> bitvector_from_predicate(
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_KERNELS_GENERIC_HPP_
+#endif  // GKO_COMMON_UNIFIED_COMPONENTS_BITVECTOR_GENERIC_HPP_
