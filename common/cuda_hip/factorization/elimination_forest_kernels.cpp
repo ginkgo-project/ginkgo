@@ -606,183 +606,12 @@ __launch_bounds__(Config::threadblock_size) void bucket_sort_merge_filter_distri
 }
 
 
-template <int basecase_size, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void compute_basecase_ranges(
-    const IndexType* __restrict__ edge_sources,
-    const IndexType* __restrict__ edge_targets, IndexType num_basecases,
-    IndexType num_edges, IndexType* __restrict__ basecase_ranges)
-{
-    const auto i = thread::get_thread_id_flat<IndexType>();
-    if (i >= num_edges + 1) {
-        return;
-    }
-
-    const auto basecase_prev =
-        i == 0 ? IndexType{} : (edge_sources[i - 1] / basecase_size);
-    const auto basecase_cur =
-        i == num_edges ? num_basecases : edge_sources[i] / basecase_size;
-    assert(basecase_prev <= basecase_cur);
-    for (auto basecase_i : irange{basecase_prev, basecase_cur}) {
-        basecase_ranges[basecase_i + 1] = i;
-    }
-    if (i == 0) {
-        basecase_ranges[0] = 0;
-    }
-}
-
-
-template <int size>
-struct small_disjoint_sets {
-    bit_packed_array<ceil_log2_constexpr(size), size, uint64> reps{};
-
-    constexpr small_disjoint_sets()
-    {
-        for (int i = 0; i < size; i++) {
-            reps.set_from_zero(i, i);
-        }
-    }
-
-    // path-compressing find
-    constexpr int find(int node)
-    {
-        int cur = node;
-        int rep = reps.get(cur);
-        // first find root
-        while (cur != rep) {
-            cur = rep;
-            rep = reps.get(cur);
-        }
-        // then path-compress
-        cur = node;
-        while (cur != rep) {
-            int new_rep = reps.get(cur);
-            reps.set(cur, rep);
-            cur = new_rep;
-        }
-        return rep;
-    }
-
-    constexpr int join_reps(int a_rep, int b_rep)
-    {
-        assert(reps.get(a_rep) == a_rep);
-        assert(reps.get(b_rep) == b_rep);
-        // always make the largest value the root
-        auto new_root = max(a_rep, b_rep);
-        auto new_child = min(a_rep, b_rep);
-        reps.set(new_child, new_root);
-        return new_root;
-    }
-};
-
-
-template <int size, typename EdgeAccessor>
-__device__
-    thrust::pair<bit_packed_array<ceil_log2_constexpr(size), size, uint64>,
-                 small_disjoint_sets<size>>
-    basecase_elimination_forest(int num_edges, EdgeAccessor edges)
-{
-    bit_packed_array<ceil_log2_constexpr(size), size, uint64> forest_parents{};
-    small_disjoint_sets<size> sets{};
-    for (int i = 0; i < size; i++) {
-        forest_parents.set_from_zero(i, i);
-    }
-    // assuming edges are sorted by row indices
-    int current_row = 0;
-    for (int i = 0; i < num_edges; i++) {
-        const auto [col, row] = edges(i);
-        assert(row >= current_row);
-        assert(col < row);
-        if (row > current_row) {
-            current_row = row;
-        }
-        auto col_rep = sets.find(col);
-        if (forest_parents.get(col_rep) == col_rep && col_rep != row) {
-            assert(sets.find(row) == row);
-            sets.join_reps(col_rep, row);
-            forest_parents.set(col_rep, row);
-        }
-    }
-    return thrust::make_pair(forest_parents, sets);
-}
-
-
-template <int basecase_size, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void basecase(
-    const IndexType* __restrict__ edge_sources,
-    const IndexType* __restrict__ edge_targets, IndexType num_nodes,
-    const IndexType* __restrict__ basecase_ranges,
-    IndexType* __restrict__ cc_parents, IndexType* __restrict__ cc_sizes,
-    IndexType* __restrict__ tree_sources, IndexType* __restrict__ tree_targets,
-    IndexType* __restrict__ tree_counter)
-{
-    const auto num_basecases = ceildiv(num_nodes, basecase_size);
-    const auto basecase_i = thread::get_thread_id_flat<IndexType>();
-    if (basecase_i >= num_basecases) {
-        return;
-    }
-    const auto edges_begin = basecase_ranges[basecase_i];
-    const auto edges_end = basecase_ranges[basecase_i + 1];
-    const auto basecase_base = basecase_i * basecase_size;
-    auto [local_tree_parents, local_cc] =
-        basecase_elimination_forest<basecase_size>(
-            edges_end - edges_begin, [&](int edge) {
-                const auto local_src =
-                    edge_sources[edge + edges_begin] - basecase_base;
-                const auto local_tgt =
-                    edge_targets[edge + edges_begin] - basecase_base;
-                assert(local_src >= 0);
-                assert(local_tgt >= 0);
-                assert(local_src < basecase_size);
-                assert(local_tgt < basecase_size);
-                return thrust::make_pair(int(local_src), int(local_tgt));
-            });
-    bit_packed_array<ceil_log2_constexpr(basecase_size), basecase_size, uint64>
-        local_cc_sizes{};
-    // translate local parents to global edges
-    const auto basecase_end = min(basecase_base + basecase_size, num_nodes);
-    // count how many edges we want to output
-    IndexType local_edge_count{};
-    for (auto i : irange{basecase_base, basecase_end}) {
-        const auto local_i = static_cast<int>(i - basecase_base);
-        const auto local_parent = local_tree_parents.get(local_i);
-        const auto local_rep = local_cc.find(local_i);
-        // increment count for local rep
-        if (local_rep != local_i) {
-            local_cc_sizes.set(local_rep, local_cc_sizes.get(local_rep) + 1);
-        }
-        // store global parent
-        cc_parents[i] = local_rep == local_rep + basecase_base;
-        // the local version uses parent[i] = i to denote roots
-        local_edge_count += local_parent != local_i ? 1 : 0;
-    }
-    // reserve space
-    auto out_i = atomic_add_relaxed(tree_counter, local_edge_count);
-    // and output the edges
-    for (auto i : irange{basecase_base, basecase_end}) {
-        const auto local_i = static_cast<int>(i - basecase_base);
-        const auto local_parent = local_tree_parents.get(local_i);
-        const auto local_rep = local_cc.find(local_i);
-        // store size and parent for all representatives
-        cc_sizes[i] =
-            local_rep == local_i ? local_cc_sizes.get(local_i) + 1 : 0;
-        cc_parents[i] = local_rep + basecase_base;
-        if (local_parent != local_i) {
-            tree_sources[out_i] = i;
-            tree_targets[out_i] = local_parent + basecase_base;
-            out_i++;
-        }
-    }
-}
-
-
 }  // namespace kernel
 
 
 template <typename IndexType>
 struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
-    constexpr static int basecase_level = 4;
-    constexpr static int basecase_size = 1 << basecase_level;
     elimination_forest_algorithm_state(
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
         IndexType num_edges)
@@ -806,24 +635,21 @@ struct elimination_forest_algorithm_state {
                                                   size_type num_edges)
     {
         const auto edge_capacity = 2 * num_edges;
-        const auto num_basecases =
-            static_cast<size_type>(ceildiv(num_nodes, basecase_size));
         return {
-            edge_capacity,      // 0: buf1_sources
-            edge_capacity,      // 1: buf1_targets
-            edge_capacity,      // 2: buf2_sources
-            edge_capacity,      // 3: buf2_targets
-            num_nodes - 1,      // 4: tree_sources
-            num_nodes - 1,      // 5: tree_targets
-            num_nodes,          // 6: tree_levels
-            num_nodes,          // 7: cc_parents
-            num_nodes,          // 8: cc_mins
-            num_nodes,          // 9: cc_sizes
-            num_buckets + 1,    // 10: device_bucket_ranges
-            1,                  // 11: tree_counter
-            num_basecases + 2,  // 12: basecase_ranges
+            edge_capacity,    // 0: buf1_sources
+            edge_capacity,    // 1: buf1_targets
+            edge_capacity,    // 2: buf2_sources
+            edge_capacity,    // 3: buf2_targets
+            num_nodes - 1,    // 4: tree_sources
+            num_nodes - 1,    // 5: tree_targets
+            num_nodes,        // 6: tree_levels
+            num_nodes,        // 7: cc_parents
+            num_nodes,        // 8: cc_mins
+            num_nodes,        // 9: cc_sizes
+            num_buckets + 1,  // 10: device_bucket_ranges
+            1,                // 11: tree_counter
             bucket_sort_workspace_size<num_buckets>(
-                edge_capacity)  // 13: bucketsort_workspace
+                edge_capacity)  // 12: bucketsort_workspace
         };
     }
 
@@ -858,13 +684,11 @@ struct elimination_forest_algorithm_state {
 
     IndexType* tree_counter() { return workspace.get_pointer(11); }
 
-    IndexType* basecase_ranges() { return workspace.get_pointer(12); }
-
-    IndexType* bucketsort_workspace() { return workspace.get_pointer(13); }
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(12); }
 
     array<IndexType> bucketsort_workspace_view()
     {
-        return workspace.get_view(13);
+        return workspace.get_view(12);
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
@@ -1121,36 +945,11 @@ struct elimination_forest_algorithm_state {
         assert(targets.selector == sources.selector);
     }
 
-    void basecase()
-    {
-        GKO_FUNCTION_SCOPEGUARD(basecase);
-        if (num_edges() == 0) {
-            return;
-        }
-        const auto num_edge_p1_blocks =
-            ceildiv(num_edges() + 1, default_block_size);
-        const auto num_basecases =
-            static_cast<IndexType>(ceildiv(num_nodes, basecase_size));
-        const auto num_basecase_blocks =
-            ceildiv(num_basecases, default_block_size);
-        reset_connected_components();
-        kernel::compute_basecase_ranges<basecase_size>
-            <<<num_edge_p1_blocks, default_block_size, 0, exec->get_stream()>>>(
-                in_edge_sources(), in_edge_targets(), num_basecases,
-                num_edges(), basecase_ranges());
-        kernel::basecase<basecase_size>
-            <<<num_basecase_blocks, default_block_size, 0,
-               exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
-                                     num_nodes, basecase_ranges(), cc_parents(),
-                                     cc_sizes(), tree_sources(), tree_targets(),
-                                     tree_counter());
-    }
-
     void run()
     {
         bucket_sort_input();
         // now the input is sorted by the level at which they become cut edges
-        for (int level = num_levels - 1; level >= basecase_level; level--) {
+        for (int level = num_levels - 1; level >= 0; level--) {
             // this level considers block of size 2^level
             // every even block is lower, every odd block is upper (0-based)
             // we consider connected components inside the blocks and
@@ -1170,8 +969,6 @@ struct elimination_forest_algorithm_state {
             // finally we swap the double buffer
             output_to_input();
         }
-        radix_sort_edges();
-        basecase();
     }
 
     std::shared_ptr<const DefaultExecutor> exec;
