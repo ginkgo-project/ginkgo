@@ -131,7 +131,7 @@ void symbolic_count_lca(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT);
+    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT_LCA);
 
 
 template <typename ValueType, typename IndexType>

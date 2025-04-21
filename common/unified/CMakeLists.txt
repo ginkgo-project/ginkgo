@@ -10,7 +10,6 @@ set(UNIFIED_SOURCES
     distributed/assembly_kernels.cpp
     distributed/partition_helpers_kernels.cpp
     distributed/partition_kernels.cpp
-    factorization/elimination_forest_kernels.cpp
     factorization/ic_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
