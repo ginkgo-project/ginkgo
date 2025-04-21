@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ namespace gko {
         const auto error_code = _operation;                                \
         if (error_code != hipSuccess) {                                    \
             int device_id{-1};                                             \
-            hipGetDevice(&device_id);                                      \
+            (void)hipGetDevice(&device_id);                                \
             std::cerr << "Unrecoverable HIP error on device " << device_id \
                       << " in " << __func__ << ": "                        \
                       << hipGetErrorName(error_code) << ": "               \
