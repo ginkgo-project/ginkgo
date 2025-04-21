@@ -316,12 +316,12 @@ __global__ __launch_bounds__(default_block_size) void compute_postorder(
 
 
 template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void compute_euler_path(
+__global__ __launch_bounds__(default_block_size) void compute_euler_walk(
     const IndexType* __restrict__ child_ptrs,
     const IndexType* __restrict__ children,
-    const IndexType* __restrict__ euler_path_sizes,
+    const IndexType* __restrict__ euler_walk_sizes,
     const IndexType* __restrict__ levels, IndexType size,
-    IndexType* __restrict__ euler_path, IndexType* __restrict__ euler_level,
+    IndexType* __restrict__ euler_walk, IndexType* __restrict__ euler_level,
     IndexType* __restrict__ euler_first)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
@@ -334,22 +334,22 @@ __global__ __launch_bounds__(default_block_size) void compute_euler_path(
     const auto child_begin = child_ptrs[i];
     const auto child_end = child_ptrs[i + 1];
     const auto level = i == size ? IndexType{-1} : levels[i];
-    const auto euler_path_size = i == size ? 2 * size + 1 : euler_path_sizes[i];
+    const auto euler_walk_size = i == size ? 2 * size + 1 : euler_walk_sizes[i];
     IndexType euler_idx =
         i == size ? IndexType{} : load_relaxed_local(euler_first + i);
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
     while (euler_idx == invalid_index<IndexType>()) {
         euler_idx = load_relaxed(euler_first + i);
     }
-    euler_path[euler_idx] = i;
+    euler_walk[euler_idx] = i;
     euler_level[euler_idx] = level;
     for (auto child_idx : irange{child_begin, child_end}) {
         euler_idx++;
         const auto child = children[child_idx];
-        const auto child_subtree_size = euler_path_sizes[child];
+        const auto child_subtree_size = euler_walk_sizes[child];
         store_relaxed(euler_first + child, euler_idx);
         euler_idx += child_subtree_size + 1;
-        euler_path[euler_idx] = i;
+        euler_walk[euler_idx] = i;
         euler_level[euler_idx] = level;
     }
 #else
@@ -357,15 +357,15 @@ __global__ __launch_bounds__(default_block_size) void compute_euler_path(
     while (child_idx < child_end) {
         if (euler_idx != invalid_index<IndexType>()) {
             if (child_idx == child_begin - 1) {
-                euler_path[euler_idx] = i;
+                euler_walk[euler_idx] = i;
                 euler_level[euler_idx] = level;
             } else {
                 euler_idx++;
                 const auto child = children[child_idx];
-                const auto child_subtree_size = euler_path_sizes[child];
+                const auto child_subtree_size = euler_walk_sizes[child];
                 store_relaxed(euler_first + child, euler_idx);
                 euler_idx += child_subtree_size + 1;
-                euler_path[euler_idx] = i;
+                euler_walk[euler_idx] = i;
                 euler_level[euler_idx] = level;
             }
             child_idx++;
@@ -1231,9 +1231,6 @@ void compute_children(std::shared_ptr<const DefaultExecutor> exec,
                                      usize + 1,  // rows plus sentinel
                                      child_ptrs);
 }
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN);
 
 
 template <typename ValueType, typename IndexType>

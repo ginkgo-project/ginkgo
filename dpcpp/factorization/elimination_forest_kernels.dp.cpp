@@ -21,16 +21,6 @@ namespace elimination_forest {
 
 
 template <typename IndexType>
-void compute_children(std::shared_ptr<const DefaultExecutor> exec,
-                      const IndexType* parents, IndexType size,
-                      IndexType* child_ptrs,
-                      IndexType* children) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_CHILDREN);
-
-
-template <typename IndexType>
 void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
                            const IndexType* row_ptrs, const IndexType* cols,
                            size_type size, IndexType* out_row_ptrs,
@@ -69,7 +59,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_subtree_euler_path_sizes(
+void compute_subtree_euler_walk_sizes(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* child_ptrs,
     const IndexType* children, IndexType size,
     IndexType* subtree_sizes) GKO_NOT_IMPLEMENTED;
@@ -112,11 +102,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute_euler_path(std::shared_ptr<const DefaultExecutor> exec,
+void compute_euler_walk(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* child_ptrs, const IndexType* children,
                         IndexType size,
                         const IndexType* subtree_euler_tree_size,
-                        const IndexType* levels, IndexType* euler_path,
+                        const IndexType* levels, IndexType* euler_walk,
                         IndexType* first_visit,
                         IndexType* euler_levels) GKO_NOT_IMPLEMENTED;
 
