@@ -419,6 +419,11 @@ function(ginkgo_create_common_device_test test_name)
         "${gko_test_multi_args}"
     )
     ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
+    # the line number 5 here needs to match the line number that
+    # /*@GKO_PREPROCESSOR_FILENAME_HELPER@*/ is placed in the source file
+    set(GKO_PREPROCESSOR_FILENAME_HELPER
+        "*/\n#line 5 \"${CMAKE_CURRENT_SOURCE_DIR}/${test_name}.cpp\"\n/*"
+    )
     if(
         GINKGO_BUILD_SYCL
         AND NOT ("dpcpp" IN_LIST common_device_test_DISABLE_EXECUTORS)
@@ -429,7 +434,7 @@ function(ginkgo_create_common_device_test test_name)
             PRIVATE ${GINKGO_DPCPP_FLAGS}
         )
         # We need to use a new file to avoid sycl setting in other backends because add_sycl_to_target will change the source property.
-        configure_file(${test_name}.cpp ${test_name}.dp.cpp COPYONLY)
+        configure_file(${test_name}.cpp ${test_name}.dp.cpp @ONLY)
         gko_add_sycl_to_target(TARGET ${test_target_name}_dpcpp SOURCES ${test_name}.dp.cpp)
         target_link_options(
             ${test_target_name}_dpcpp
@@ -448,7 +453,7 @@ function(ginkgo_create_common_device_test test_name)
         AND NOT ("cuda" IN_LIST common_device_test_DISABLE_EXECUTORS)
     )
         # need to make a separate file for this, since we can't set conflicting properties on the same file
-        configure_file(${test_name}.cpp ${test_name}.cu COPYONLY)
+        configure_file(${test_name}.cpp ${test_name}.cu @ONLY)
         ginkgo_create_cuda_test_internal(${test_name}_cuda ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.cu ${test_target_name}_cuda ${ARGN})
         target_compile_definitions(
             ${test_target_name}_cuda
@@ -460,7 +465,7 @@ function(ginkgo_create_common_device_test test_name)
         AND NOT ("hip" IN_LIST common_device_test_DISABLE_EXECUTORS)
     )
         # need to make a separate file for this, since we can't set conflicting properties on the same file
-        configure_file(${test_name}.cpp ${test_name}.hip.cpp COPYONLY)
+        configure_file(${test_name}.cpp ${test_name}.hip.cpp @ONLY)
         ginkgo_create_hip_test_internal(${test_name}_hip ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp ${test_target_name}_hip ${ARGN})
         target_compile_definitions(
             ${test_target_name}_hip

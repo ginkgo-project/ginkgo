@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+/*@GKO_PREPROCESSOR_FILENAME_HELPER@*/
+
 #include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
