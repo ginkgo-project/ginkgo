@@ -16,9 +16,6 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
-#ifdef GKO_COMPILING_DPCPP
-
-
 template <typename IndexType, typename RowPtrType>
 void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* idxs, size_type num_idxs,
@@ -46,9 +43,6 @@ void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS64);
-
-
-#endif
 
 
 template <typename RowPtrType>
