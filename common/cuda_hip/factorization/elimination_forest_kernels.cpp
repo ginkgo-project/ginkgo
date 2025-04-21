@@ -947,6 +947,8 @@ struct elimination_forest_algorithm_state {
         output_to_input();
         components::fill_array(exec, tree_levels,
                                static_cast<size_type>(num_nodes), IndexType{});
+        components::fill_array(exec, cc_sizes(),
+                               static_cast<size_type>(num_nodes), IndexType{1});
     }
 
     void bucket_sort_input()
@@ -1082,15 +1084,40 @@ struct elimination_forest_algorithm_state {
         const auto* mins = cc_mins();
         foreach_lower_node(level, [level, num_nodes = this->num_nodes, levels,
                                    parents, mins] __device__(IndexType i) {
+            const auto min_sentinel = num_nodes;
             disjoint_sets<const IndexType> sets{parents, num_nodes};
             // for every node in a CC that gets connected to an upper node,
             // update the level using that upper node's level
             const auto rep = sets.find_weak(i);
             const auto min = mins[rep];
-            if (min < num_nodes) {
+            if (min < min_sentinel) {
                 levels[i] += levels[min] + 1;
             }
         });
+    }
+
+    void update_cc_sizes(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
+        const auto sizes = cc_sizes();
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        const auto tree_edge_range = get_tree_edge_range(level);
+        const auto it =
+            thrust::make_zip_iterator(tree_sources(), tree_targets());
+        thrust::for_each(
+            thrust_policy(exec), it + tree_edge_range.begin_index(),
+            it + tree_edge_range.end_index(),
+            [level, num_nodes = this->num_nodes, sizes, parents,
+             mins] __device__(thrust::tuple<IndexType, IndexType> edge) {
+                const auto min_sentinel = num_nodes;
+                const auto lower = thrust::get<0>(edge);
+                const auto upper = thrust::get<1>(edge);
+                disjoint_sets<const IndexType> sets{parents, num_nodes};
+                // add the size of the lower set to the size of the upper set
+                const auto upper_rep = sets.find_weak(upper);
+                atomic_add_relaxed(sizes + upper_rep, sizes[lower]);
+            });
     }
 
     void add_fill_and_tree_edges(int level)
@@ -1267,6 +1294,9 @@ struct elimination_forest_algorithm_state {
             find_tree_min_cut_neighbors(level);
             // for every CC in this level, update using cc_min's level
             update_tree_node_levels(level);
+            // before actually connecting the CCs, add the size of each lower CC
+            // to its upper CC if they are getting connected
+            update_cc_sizes(level);
             // build connected components with the tree edges from this level
             // to advance to the next level
             find_tree_connected_components(level);
