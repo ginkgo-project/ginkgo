@@ -226,6 +226,7 @@ TYPED_TEST(CholeskySymbolic, KernelComputeEliminationForest)
             size, dforest);
 
         GKO_ASSERT_ARRAY_EQ(forest.parents, dforest.parents);
+        GKO_ASSERT_ARRAY_EQ(forest.levels, dforest.levels);
     }
 }
 

@@ -22,6 +22,7 @@ namespace cub = hipcub;
 #include <thrust/detail/for_each.inl>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
+#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/detail/zip_iterator.inl>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
@@ -820,7 +821,7 @@ struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
     elimination_forest_algorithm_state(
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
-        IndexType num_edges)
+        IndexType num_edges, IndexType* tree_levels)
         : exec{exec},
           num_nodes{num_nodes},
           edge_capacity{2 * num_edges},
@@ -832,7 +833,8 @@ struct elimination_forest_algorithm_state {
           workspace{exec, workspace_sizes(num_nodes, num_edges)},
           bucket_ranges{},
           tree_ranges{},
-          flip{}
+          flip{},
+          tree_levels{tree_levels}
     {
         bucket_ranges.back() = num_edges;
     }
@@ -842,20 +844,23 @@ struct elimination_forest_algorithm_state {
     {
         const auto edge_capacity = 2 * num_edges;
         return {
-            edge_capacity,    // 0: buf1_sources
-            edge_capacity,    // 1: buf1_targets
-            edge_capacity,    // 2: buf2_sources
-            edge_capacity,    // 3: buf2_targets
-            num_nodes - 1,    // 4: tree_sources
-            num_nodes - 1,    // 5: tree_targets
-            num_nodes,        // 6: tree_levels
-            num_nodes,        // 7: cc_parents
-            num_nodes,        // 8: cc_mins
-            num_nodes,        // 9: cc_sizes
-            num_buckets + 1,  // 10: device_bucket_ranges
-            1,                // 11: tree_counter
+            edge_capacity,      // 0: buf1_sources
+            edge_capacity,      // 1: buf1_targets
+            edge_capacity,      // 2: buf2_sources
+            edge_capacity,      // 3: buf2_targets
+            num_nodes - 1,      // 4: tree_sources
+            num_nodes - 1,      // 5: tree_targets
+            2 * num_nodes - 1,  // 6: euler_walk1
+            2 * num_nodes - 1,  // 7: euler_walk2
+            num_nodes,          // 8: euler_first1
+            num_nodes,          // 9: euler_first2
+            num_nodes,          // 10: cc_parents
+            num_nodes,          // 11: cc_mins
+            num_nodes,          // 12: cc_sizes
+            num_buckets + 1,    // 13: device_bucket_ranges
+            1,                  // 14: tree_counter
             bucket_sort_workspace_size<num_buckets>(
-                edge_capacity)  // 12: bucketsort_workspace
+                edge_capacity),  // 15: bucketsort_workspace
         };
     }
 
@@ -878,23 +883,21 @@ struct elimination_forest_algorithm_state {
 
     IndexType* tree_targets() { return workspace.get_pointer(5); }
 
-    IndexType* tree_levels() { return workspace.get_pointer(6); }
+    IndexType* cc_parents() { return workspace.get_pointer(10); }
 
-    IndexType* cc_parents() { return workspace.get_pointer(7); }
+    IndexType* cc_mins() { return workspace.get_pointer(11); }
 
-    IndexType* cc_mins() { return workspace.get_pointer(8); }
+    IndexType* cc_sizes() { return workspace.get_pointer(12); }
 
-    IndexType* cc_sizes() { return workspace.get_pointer(9); }
+    IndexType* device_bucket_ranges() { return workspace.get_pointer(13); }
 
-    IndexType* device_bucket_ranges() { return workspace.get_pointer(10); }
+    IndexType* tree_counter() { return workspace.get_pointer(14); }
 
-    IndexType* tree_counter() { return workspace.get_pointer(11); }
-
-    IndexType* bucketsort_workspace() { return workspace.get_pointer(12); }
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(15); }
 
     array<IndexType> bucketsort_workspace_view()
     {
-        return workspace.get_view(12);
+        return workspace.get_view(15);
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
@@ -942,6 +945,8 @@ struct elimination_forest_algorithm_state {
         exec->copy_from(exec->get_master(), 1, &zero, tree_counter());
         bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
         output_to_input();
+        components::fill_array(exec, tree_levels,
+                               static_cast<size_type>(num_nodes), IndexType{});
     }
 
     void bucket_sort_input()
@@ -964,13 +969,25 @@ struct elimination_forest_algorithm_state {
         output_to_input();
     }
 
+    irange<IndexType> get_tree_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto begin = tree_ranges[level + 1];
+        const auto end = tree_ranges[level];
+        assert(end >= 0);
+        assert(begin <= end);
+        assert(end <= num_nodes - 1);
+        return irange<IndexType>{begin, end};
+    }
+
     irange<IndexType> get_inner_edge_range(int level) const
     {
         assert(level >= 0);
         assert(level < num_levels);
         const auto end = bucket_ranges[level];
         assert(end >= 0);
-        assert(end < edge_capacity);
+        assert(end <= edge_capacity);
         return irange<IndexType>{end};
     }
 
@@ -982,7 +999,7 @@ struct elimination_forest_algorithm_state {
         const auto end = bucket_ranges[level + 1];
         assert(begin >= 0);
         assert(begin <= end);
-        assert(end < edge_capacity);
+        assert(end <= edge_capacity);
         return irange<IndexType>{begin, end};
     }
 
@@ -1007,6 +1024,21 @@ struct elimination_forest_algorithm_state {
         }
     }
 
+    void find_tree_connected_components(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_connected_components);
+        const auto tree_edges = get_tree_edge_range(level);
+        if (tree_edges.size() > 0) {
+            const auto num_blocks =
+                ceildiv(tree_edges.size(), default_block_size);
+            kernel::build_conn_components<<<num_blocks, default_block_size, 0,
+                                            exec->get_stream()>>>(
+                tree_sources() + tree_edges.begin_index(),
+                tree_targets() + tree_edges.begin_index(), tree_edges.size(),
+                num_nodes, cc_parents());
+        }
+    }
+
     void find_min_cut_neighbors(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(find_min_cut_neighbors);
@@ -1023,6 +1055,42 @@ struct elimination_forest_algorithm_state {
                 in_edge_targets() + cut_edge_range.begin_index(),
                 cut_edge_range.size(), num_nodes, cc_parents(), cc_mins());
         }
+    }
+
+    template <typename Op>
+    void foreach_lower_node(int level, Op op)
+    {
+        auto it = thrust::make_counting_iterator(IndexType{});
+        thrust::for_each_n(
+            thrust_policy(exec), it, ceil_num_nodes / 2,
+            [level, num_nodes = this->num_nodes, op] __device__(IndexType idx) {
+                // we only need to consider nodes where the level'th bit is 0
+                const auto lower_part = idx & ((IndexType{1} << level) - 1);
+                const auto upper_part = idx & ~((IndexType{1} << level) - 1);
+                const auto i = (upper_part << 1) | lower_part;
+                if (i < num_nodes) {
+                    op(i);
+                }
+            });
+    }
+
+    void update_tree_node_levels(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_tree_node_levels);
+        const auto levels = tree_levels;
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        foreach_lower_node(level, [level, num_nodes = this->num_nodes, levels,
+                                   parents, mins] __device__(IndexType i) {
+            disjoint_sets<const IndexType> sets{parents, num_nodes};
+            // for every node in a CC that gets connected to an upper node,
+            // update the level using that upper node's level
+            const auto rep = sets.find_weak(i);
+            const auto min = mins[rep];
+            if (min < num_nodes) {
+                levels[i] += levels[min] + 1;
+            }
+        });
     }
 
     void add_fill_and_tree_edges(int level)
@@ -1043,8 +1111,23 @@ struct elimination_forest_algorithm_state {
                                      exec->get_stream()>>>(
                 cc_parents(), cc_mins(), num_nodes, tree_sources(),
                 tree_targets(), tree_counter());
-            tree_ranges[level] = exec->copy_val_to_host(tree_counter());
         }
+        tree_ranges[level] = exec->copy_val_to_host(tree_counter());
+    }
+
+    void find_tree_min_cut_neighbors(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
+        const auto min_sentinel = num_nodes;
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        const auto tree_edge_range = get_tree_edge_range(level);
+        // set mins[source] = target for every tree edge in that level
+        // because we set source = i and target = mins[i] before
+        thrust::scatter(
+            thrust_policy(exec), tree_targets() + tree_edge_range.begin_index(),
+            tree_targets() + tree_edge_range.end_index(),
+            tree_sources() + tree_edge_range.begin_index(), cc_mins());
     }
 
     void bucket_sort_fill_edges(int level)
@@ -1175,6 +1258,19 @@ struct elimination_forest_algorithm_state {
             // finally we swap the double buffer
             output_to_input();
         }
+        // bottom-up add edges to assemble the tree
+        reset_connected_components();
+        for (int level = 0; level < num_levels; level++) {
+            OperationScopeGuard guard{"tree_level" + std::to_string(level),
+                                      exec};
+            // first reconstruct the cut edge minima from the tree edges
+            find_tree_min_cut_neighbors(level);
+            // for every CC in this level, update using cc_min's level
+            update_tree_node_levels(level);
+            // build connected components with the tree edges from this level
+            // to advance to the next level
+            find_tree_connected_components(level);
+        }
     }
 
     std::shared_ptr<const DefaultExecutor> exec;
@@ -1186,30 +1282,8 @@ struct elimination_forest_algorithm_state {
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     std::array<IndexType, num_buckets + 1> tree_ranges;
     bool flip;
+    IndexType* tree_levels;
 };
-
-
-template <typename IndexType>
-void compute(std::shared_ptr<const DefaultExecutor> exec,
-             const IndexType* row_ptrs, const IndexType* cols, size_type usize,
-             gko::factorization::elimination_forest<IndexType>& forest)
-{
-    using unsigned_type = std::make_unsigned_t<IndexType>;
-    const auto size = static_cast<IndexType>(usize);
-    auto [targets, sources] =
-        extract_lower_triangular(exec, row_ptrs, cols, size);
-    const auto num_edges = static_cast<IndexType>(sources.get_size());
-    elimination_forest_algorithm_state<IndexType> state{exec, size, num_edges};
-    state.init(sources, targets);
-    state.run();
-    auto num_tree_edges = exec->copy_val_to_host(state.tree_counter());
-    thrust::fill_n(thrust_policy(exec), forest.parents.get_data(), size, size);
-    thrust::scatter(thrust_policy(exec), state.tree_targets(),
-                    state.tree_targets() + num_tree_edges, state.tree_sources(),
-                    forest.parents.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 
 
 template <typename IndexType>
@@ -1231,6 +1305,30 @@ void compute_children(std::shared_ptr<const DefaultExecutor> exec,
                                      usize + 1,  // rows plus sentinel
                                      child_ptrs);
 }
+
+
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type usize,
+             gko::factorization::elimination_forest<IndexType>& forest)
+{
+    using unsigned_type = std::make_unsigned_t<IndexType>;
+    const auto size = static_cast<IndexType>(usize);
+    auto [targets, sources] =
+        extract_lower_triangular(exec, row_ptrs, cols, size);
+    const auto num_edges = static_cast<IndexType>(sources.get_size());
+    elimination_forest_algorithm_state<IndexType> state{
+        exec, size, num_edges, forest.levels.get_data()};
+    state.init(sources, targets);
+    state.run();
+    auto num_tree_edges = exec->copy_val_to_host(state.tree_counter());
+    thrust::fill_n(thrust_policy(exec), forest.parents.get_data(), size, size);
+    thrust::scatter(thrust_policy(exec), state.tree_targets(),
+                    state.tree_targets() + num_tree_edges, state.tree_sources(),
+                    forest.parents.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);
 
 
 template <typename ValueType, typename IndexType>
