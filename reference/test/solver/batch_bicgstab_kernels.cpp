@@ -184,6 +184,11 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
     using Logger = gko::batch::log::BatchConvergence<value_type>;
+    // bfloat16 will need to bump the scale from 50 to 100, which gives around
+    // 0.7 for error check, so it is not really useful for testing. We skip the
+    // bfloat16 for this check.
+    // TODO: figure out a suitible test for different precision.
+    SKIP_IF_HALF(value_type);
     const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
@@ -210,7 +215,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
 
     auto iter_counts = logger->get_num_iterations();
     auto res_norm = logger->get_residual_norm();
-    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 100);
+    GKO_ASSERT_BATCH_MTX_NEAR(res.x, linear_system.exact_sol, tol * 50);
     for (size_t i = 0; i < num_batch_items; i++) {
         auto rel_res_norm = res.host_res_norm->get_const_values()[i] /
                             linear_system.host_rhs_norm->get_const_values()[i];
