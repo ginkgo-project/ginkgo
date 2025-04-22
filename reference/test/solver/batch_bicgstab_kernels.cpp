@@ -189,7 +189,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     // 0.7 for error check, so it is not really useful for testing. We skip the
     // bfloat16 for this check.
     // TODO: figure out a suitible test for different precision.
-    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
     const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
