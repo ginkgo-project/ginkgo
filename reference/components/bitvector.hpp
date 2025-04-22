@@ -58,9 +58,8 @@ from_sorted_indices(
     assert(std::is_sorted(it, it + count));
     for (auto i : irange{count}) {
         const auto value = it[i];
-        const auto block = value / block_size;
-        const auto local = value % block_size;
-        const auto mask = storage_type{1} << local;
+        const auto [block, mask] =
+            device_bitvector<index_type>::get_block_and_mask(value);
         assert((bits.get_data()[block] & mask) == 0);
         bits.get_data()[block] |= mask;
     }

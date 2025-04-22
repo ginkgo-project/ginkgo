@@ -34,17 +34,17 @@ gko::bitvector<IndexType> from_predicate(
     for (IndexType block_i = 0; block_i < num_blocks; block_i++) {
         const auto base_i = block_i * block_size;
         storage_type mask{};
+        const auto local_op = [&](int local_i) {
+            const storage_type bit = device_predicate(base_i + local_i) ? 1 : 0;
+            mask |= bit << local_i;
+        };
         if (base_i + block_size <= size) {
             for (int local_i = 0; local_i < block_size; local_i++) {
-                const storage_type bit =
-                    device_predicate(base_i + local_i) ? 1 : 0;
-                mask |= bit << local_i;
+                local_op(local_i);
             }
         } else {
             for (int local_i = 0; base_i + local_i < size; local_i++) {
-                const storage_type bit =
-                    device_predicate(base_i + local_i) ? 1 : 0;
-                mask |= bit << local_i;
+                local_op(local_i);
             }
         }
         bits[block_i] = mask;

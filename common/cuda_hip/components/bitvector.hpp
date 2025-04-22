@@ -88,7 +88,7 @@ struct bitvector_bit_functor {
     constexpr static auto block_size = device_bitvector<IndexType>::block_size;
     __device__ storage_type operator()(IndexType i)
     {
-        return storage_type{1} << (i % block_size);
+        return device_bitvector<IndexType>::get_block_and_mask(i).second;
     }
 
     __device__ storage_type operator()(storage_type a, storage_type b)
