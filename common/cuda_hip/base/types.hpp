@@ -5,6 +5,7 @@
 #ifndef GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
 #define GKO_COMMON_CUDA_HIP_BASE_TYPES_HPP_
 
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/types.hpp"
@@ -34,13 +35,13 @@ THRUST_HALF_FRIEND_OPERATOR(/, /=)
 #undef THRUST_HALF_FRIEND_OPERATOR
 
 
-#define THRUST_BF16_FRIEND_OPERATOR(_op, _opeq)                          \
-    GKO_ATTRIBUTES GKO_INLINE GKO_THRUST_QUALIFIER::complex<vendor_bf16> \
-    operator _op(const GKO_THRUST_QUALIFIER::complex<vendor_bf16> lhs,   \
-                 const GKO_THRUST_QUALIFIER::complex<vendor_bf16> rhs)   \
-    {                                                                    \
-        return GKO_THRUST_QUALIFIER::complex<float>{                     \
-            lhs} _op GKO_THRUST_QUALIFIER::complex<float>(rhs);          \
+#define THRUST_BF16_FRIEND_OPERATOR(_op, _opeq)                               \
+    GKO_ATTRIBUTES GKO_INLINE GKO_THRUST_QUALIFIER::complex<gko::vendor_bf16> \
+    operator _op(const GKO_THRUST_QUALIFIER::complex<gko::vendor_bf16> lhs,   \
+                 const GKO_THRUST_QUALIFIER::complex<gko::vendor_bf16> rhs)   \
+    {                                                                         \
+        return GKO_THRUST_QUALIFIER::complex<float>{                          \
+            lhs} _op GKO_THRUST_QUALIFIER::complex<float>(rhs);               \
     }
 
 THRUST_BF16_FRIEND_OPERATOR(+, +=)

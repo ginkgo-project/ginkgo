@@ -21,6 +21,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "hip/test/utils.hip.hpp"
 
@@ -136,13 +137,14 @@ TEST_F(IsFinite, HalfComplex)
 
 TEST_F(IsFinite, Bfloat16)
 {
-    ASSERT_TRUE(test_real_is_finite_kernel<vendor_bf16>());
+    ASSERT_TRUE(test_real_is_finite_kernel<gko::vendor_bf16>());
 }
 
 
 TEST_F(IsFinite, Bfloat16Complex)
 {
-    ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<vendor_bf16>>());
+    ASSERT_TRUE(
+        test_complex_is_finite_kernel<thrust::complex<gko::vendor_bf16>>());
 }
 
 

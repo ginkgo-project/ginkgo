@@ -9,11 +9,11 @@
 #include <cmath>
 
 #include <sycl/bit_cast.hpp>
-#include <sycl/ext/oneapi/bfloat16.hpp>
 #include <sycl/half_type.hpp>
 
 #include <ginkgo/core/base/math.hpp>
 
+#include "dpcpp/base/bf16_alias.hpp"
 #include "dpcpp/base/complex.hpp"
 #include "dpcpp/base/dpct.hpp"
 
@@ -31,8 +31,8 @@ struct basic_float_traits<sycl::half> {
 };
 
 template <>
-struct basic_float_traits<sycl::ext::oneapi::bfloat16> {
-    using type = sycl::ext::oneapi::bfloat16;
+struct basic_float_traits<vendor_bf16> {
+    using type = vendor_bf16;
     static constexpr int sign_bits = 1;
     static constexpr int significand_bits = 7;
     static constexpr int exponent_bits = 8;
@@ -44,8 +44,7 @@ template <>
 struct is_complex_or_scalar_impl<sycl::half> : public std::true_type {};
 
 template <>
-struct is_complex_or_scalar_impl<sycl::ext::oneapi::bfloat16>
-    : public std::true_type {};
+struct is_complex_or_scalar_impl<vendor_bf16> : public std::true_type {};
 
 template <typename ValueType>
 struct complex_helper {
@@ -58,8 +57,8 @@ struct complex_helper<sycl::half> {
 };
 
 template <>
-struct complex_helper<sycl::ext::oneapi::bfloat16> {
-    using type = gko::complex<sycl::ext::oneapi::bfloat16>;
+struct complex_helper<vendor_bf16> {
+    using type = gko::complex<vendor_bf16>;
 };
 
 
@@ -105,22 +104,22 @@ struct device_numeric_limits {
 // constructor. we use sycl::bit_cast (not guaranteed be constexpr) to create
 // the corresponding bfloat16
 template <>
-struct device_numeric_limits<sycl::ext::oneapi::bfloat16> {
+struct device_numeric_limits<vendor_bf16> {
     static GKO_ATTRIBUTES GKO_INLINE auto inf()
     {
-        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+        return sycl::bit_cast<vendor_bf16>(
             static_cast<unsigned short>(0b0'11111111'0000000u));
     }
 
     static GKO_ATTRIBUTES GKO_INLINE auto max()
     {
-        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+        return sycl::bit_cast<vendor_bf16>(
             static_cast<unsigned short>(0b0'11111110'1111111u));
     }
 
     static GKO_ATTRIBUTES GKO_INLINE auto min()
     {
-        return sycl::bit_cast<sycl::ext::oneapi::bfloat16>(
+        return sycl::bit_cast<vendor_bf16>(
             static_cast<unsigned short>(0b0'00000001'0000000u));
     }
 };
@@ -170,51 +169,45 @@ bool __dpct_inline__ is_finite(const gko::complex<sycl::half>& value)
 }
 
 
-bool __dpct_inline__ is_nan(const sycl::ext::oneapi::bfloat16& val)
+bool __dpct_inline__ is_nan(const vendor_bf16& val)
 {
     return std::isnan(static_cast<float>(val));
 }
 
-bool __dpct_inline__
-is_nan(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+bool __dpct_inline__ is_nan(const gko::complex<vendor_bf16>& val)
 {
     return is_nan(val.real()) || is_nan(val.imag());
 }
 
 
-sycl::ext::oneapi::bfloat16 __dpct_inline__
-abs(const sycl::ext::oneapi::bfloat16& val)
+vendor_bf16 __dpct_inline__ abs(const vendor_bf16& val)
 {
     return abs(static_cast<float>(val));
 }
 
-sycl::ext::oneapi::bfloat16 __dpct_inline__
-abs(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+vendor_bf16 __dpct_inline__ abs(const gko::complex<vendor_bf16>& val)
 {
     return abs(static_cast<std::complex<float>>(val));
 }
 
-sycl::ext::oneapi::bfloat16 __dpct_inline__
-sqrt(const sycl::ext::oneapi::bfloat16& val)
+vendor_bf16 __dpct_inline__ sqrt(const vendor_bf16& val)
 {
     return sqrt(static_cast<float>(val));
 }
 
-gko::complex<sycl::ext::oneapi::bfloat16> __dpct_inline__
-sqrt(const gko::complex<sycl::ext::oneapi::bfloat16>& val)
+gko::complex<vendor_bf16> __dpct_inline__
+sqrt(const gko::complex<vendor_bf16>& val)
 {
     return sqrt(static_cast<std::complex<float>>(val));
 }
 
 
-bool __dpct_inline__ is_finite(const sycl::ext::oneapi::bfloat16& value)
+bool __dpct_inline__ is_finite(const vendor_bf16& value)
 {
-    return abs(value) <
-           device_numeric_limits<sycl::ext::oneapi::bfloat16>::inf();
+    return abs(value) < device_numeric_limits<vendor_bf16>::inf();
 }
 
-bool __dpct_inline__
-is_finite(const gko::complex<sycl::ext::oneapi::bfloat16>& value)
+bool __dpct_inline__ is_finite(const gko::complex<vendor_bf16>& value)
 {
     return is_finite(value.real()) && is_finite(value.imag());
 }

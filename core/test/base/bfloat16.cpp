@@ -134,22 +134,6 @@ TEST(FloatToBFloat16, TruncatesLargeNumberRoundToEven)
 }
 
 
-// TEST(FloatToBFloat16, Convert)
-// {
-//     float rho = 86.25;
-//     float beta = 1110;
-//     auto float_res = rho/beta;
-//     gko::bfloat16 rho_h = rho;
-//     gko::bfloat16 beta_h = beta;
-//     auto bfloat16_res = rho_h/beta_h;
-//     std::cout << float_res << std::endl;
-//     std::cout << float(bfloat16_res) << std::endl;
-
-//     std::complex<gko::bfloat16> cpx{100.0, 0.0};
-//     std::cout << float(gko::squared_norm(cpx)) << std::endl;
-// }
-
-
 TEST(Bfloat16ToFloat, ConvertsOne)
 {
     float x = create_from_bits<bfloat16>("0" "01111111" "0000000");
