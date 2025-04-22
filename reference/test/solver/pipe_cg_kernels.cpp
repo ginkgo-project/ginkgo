@@ -35,6 +35,14 @@ protected:
                {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
                {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
               exec)),
+          mtx_big(gko::initialize<Mtx>(
+              {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
+               {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
+               {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
+               {-3139.5, 73.0, 2656.0, 6048.0, 665.0, -132.0},
+               {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
+               {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
+              exec)),
           stopped{},
           non_stopped{},
           pipe_cg_factory(
@@ -177,6 +185,7 @@ TYPED_TEST(PipeCg, KernelStep1)
     this->small_beta->at(0) = 8;
     this->small_beta->at(1) = 3;
     this->small_stop.get_data()[0].reset();
+    this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::pipe_cg::step_1(
@@ -236,6 +245,7 @@ TYPED_TEST(PipeCg, KernelStep2)
     this->small_beta->at(1) = 3;
     this->small_delta->at(0) = 5;
     this->small_delta->at(1) = 6;
+    this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[1] = this->stopped;
 
@@ -318,6 +328,12 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{2.0, 1.5}, {2.0, 1.5}}),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->small_q, l({{2.0, 1.5}, {2.0, 1.5}}),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->small_f, l({{2.0, 1.5}, {2.0, 1.5}}),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->small_g, l({{2.0, 1.5}, {2.0, 1.5}}),
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{2.0, 1.5}, {2.0, 1.5}}),
                         r<value_type>::value);
@@ -553,7 +569,9 @@ TYPED_TEST(PipeCg, SolvesBigDenseSystem2)
 
     solver->apply(b, x);
 
-    // TODO: the tolerance is too big.
+    // TODO: the tolerance is too big. We might need to design better tests by
+    // generating matrices with specific condition numbers and eigenvalue
+    // distributions and defining vectors with controlled vector norms.
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 2 * 1e5);
 }
