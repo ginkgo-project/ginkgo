@@ -44,10 +44,10 @@ class Sellp
     : public EnableLinOp<Sellp<ValueType, IndexType>>,
       public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Sellp<next_precision_move<ValueType, 2>, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType, 2>, IndexType>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Sellp<next_precision_move<ValueType, 3>, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -87,31 +87,31 @@ public:
     void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Sellp<previous_precision_move<ValueType, 2>, IndexType>;
+    friend class Sellp<previous_precision<ValueType, 2>, IndexType>;
     using ConvertibleTo<
-        Sellp<next_precision_move<ValueType, 2>, IndexType>>::convert_to;
+        Sellp<next_precision<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<
-        Sellp<next_precision_move<ValueType, 2>, IndexType>>::move_to;
+        Sellp<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(Sellp<next_precision_move<ValueType, 2>, IndexType>* result)
-        const override;
+    void convert_to(
+        Sellp<next_precision<ValueType, 2>, IndexType>* result) const override;
 
     void move_to(
-        Sellp<next_precision_move<ValueType, 2>, IndexType>* result) override;
+        Sellp<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    friend class Sellp<previous_precision_move<ValueType, 3>, IndexType>;
+    friend class Sellp<previous_precision<ValueType, 3>, IndexType>;
     using ConvertibleTo<
-        Sellp<next_precision_move<ValueType, 3>, IndexType>>::convert_to;
+        Sellp<next_precision<ValueType, 3>, IndexType>>::convert_to;
     using ConvertibleTo<
-        Sellp<next_precision_move<ValueType, 3>, IndexType>>::move_to;
+        Sellp<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(Sellp<next_precision_move<ValueType, 3>, IndexType>* result)
-        const override;
+    void convert_to(
+        Sellp<next_precision<ValueType, 3>, IndexType>* result) const override;
 
     void move_to(
-        Sellp<next_precision_move<ValueType, 3>, IndexType>* result) override;
+        Sellp<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

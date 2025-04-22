@@ -199,7 +199,7 @@ void Sellp<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
-    Sellp<next_precision_move<ValueType, 2>, IndexType>* result) const
+    Sellp<next_precision<ValueType, 2>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -213,7 +213,7 @@ void Sellp<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(
-    Sellp<next_precision_move<ValueType, 2>, IndexType>* result)
+    Sellp<next_precision<ValueType, 2>, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -223,7 +223,7 @@ void Sellp<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(
-    Sellp<next_precision_move<ValueType, 3>, IndexType>* result) const
+    Sellp<next_precision<ValueType, 3>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -237,7 +237,7 @@ void Sellp<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::move_to(
-    Sellp<next_precision_move<ValueType, 3>, IndexType>* result)
+    Sellp<next_precision<ValueType, 3>, IndexType>* result)
 {
     this->convert_to(result);
 }

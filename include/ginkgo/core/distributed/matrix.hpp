@@ -262,12 +262,12 @@ class Matrix
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Matrix<next_precision_move<ValueType, 2>,
-                                  LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<Matrix<next_precision<ValueType, 2>, LocalIndexType,
+                                  GlobalIndexType>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Matrix<next_precision_move<ValueType, 3>,
-                                  LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
+                                  GlobalIndexType>>,
 #endif
       public DistributedBase {
     friend class EnablePolymorphicObject<Matrix, LinOp>;
@@ -299,34 +299,32 @@ public:
                         global_index_type>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Matrix<previous_precision_move<ValueType, 2>, LocalIndexType,
+    friend class Matrix<previous_precision<ValueType, 2>, LocalIndexType,
                         GlobalIndexType>;
-    using ConvertibleTo<
-        Matrix<next_precision_move<value_type, 2>, local_index_type,
-               global_index_type>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision_move<value_type, 2>,
-                               local_index_type, global_index_type>>::move_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 2>, local_index_type,
+                               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 2>, local_index_type,
+                               global_index_type>>::move_to;
 
-    void convert_to(Matrix<next_precision_move<value_type, 2>, local_index_type,
+    void convert_to(Matrix<next_precision<value_type, 2>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision_move<value_type, 2>, local_index_type,
+    void move_to(Matrix<next_precision<value_type, 2>, local_index_type,
                         global_index_type>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    friend class Matrix<previous_precision_move<ValueType, 3>, LocalIndexType,
+    friend class Matrix<previous_precision<ValueType, 3>, LocalIndexType,
                         GlobalIndexType>;
-    using ConvertibleTo<
-        Matrix<next_precision_move<value_type, 3>, local_index_type,
-               global_index_type>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision_move<value_type, 3>,
-                               local_index_type, global_index_type>>::move_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 3>, local_index_type,
+                               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 3>, local_index_type,
+                               global_index_type>>::move_to;
 
-    void convert_to(Matrix<next_precision_move<value_type, 3>, local_index_type,
+    void convert_to(Matrix<next_precision<value_type, 3>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision_move<value_type, 3>, local_index_type,
+    void move_to(Matrix<next_precision<value_type, 3>, local_index_type,
                         global_index_type>* result) override;
 #endif
     /**

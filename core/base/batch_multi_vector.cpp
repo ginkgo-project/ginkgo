@@ -299,7 +299,7 @@ void MultiVector<ValueType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
-    MultiVector<next_precision_move<ValueType, 2>>* result) const
+    MultiVector<next_precision<ValueType, 2>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -308,7 +308,7 @@ void MultiVector<ValueType>::convert_to(
 
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
-    MultiVector<next_precision_move<ValueType, 2>>* result)
+    MultiVector<next_precision<ValueType, 2>>* result)
 {
     this->convert_to(result);
 }
@@ -318,7 +318,7 @@ void MultiVector<ValueType>::move_to(
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
-    MultiVector<next_precision_move<ValueType, 3>>* result) const
+    MultiVector<next_precision<ValueType, 3>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -327,7 +327,7 @@ void MultiVector<ValueType>::convert_to(
 
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
-    MultiVector<next_precision_move<ValueType, 3>>* result)
+    MultiVector<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }
