@@ -167,7 +167,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision_move<ValueType, 2>, IndexType>* const result) const
+    Fbcsr<next_precision<ValueType, 2>, IndexType>* const result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -180,7 +180,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision_move<ValueType, 2>, IndexType>* const result)
+    Fbcsr<next_precision<ValueType, 2>, IndexType>* const result)
 {
     this->convert_to(result);
 }
@@ -190,7 +190,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
-    Fbcsr<next_precision_move<ValueType, 3>, IndexType>* const result) const
+    Fbcsr<next_precision<ValueType, 3>, IndexType>* const result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -203,7 +203,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::move_to(
-    Fbcsr<next_precision_move<ValueType, 3>, IndexType>* const result)
+    Fbcsr<next_precision<ValueType, 3>, IndexType>* const result)
 {
     this->convert_to(result);
 }

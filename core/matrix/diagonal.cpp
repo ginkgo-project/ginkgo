@@ -166,7 +166,7 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision_move<ValueType, 2>>* result) const
+    Diagonal<next_precision<ValueType, 2>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -175,7 +175,7 @@ void Diagonal<ValueType>::convert_to(
 
 template <typename ValueType>
 void Diagonal<ValueType>::move_to(
-    Diagonal<next_precision_move<ValueType, 2>>* result)
+    Diagonal<next_precision<ValueType, 2>>* result)
 {
     this->convert_to(result);
 }
@@ -185,7 +185,7 @@ void Diagonal<ValueType>::move_to(
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision_move<ValueType, 3>>* result) const
+    Diagonal<next_precision<ValueType, 3>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -194,7 +194,7 @@ void Diagonal<ValueType>::convert_to(
 
 template <typename ValueType>
 void Diagonal<ValueType>::move_to(
-    Diagonal<next_precision_move<ValueType, 3>>* result)
+    Diagonal<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }

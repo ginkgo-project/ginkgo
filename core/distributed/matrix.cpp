@@ -307,8 +307,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision_move<value_type, 2>, local_index_type,
-           global_index_type>* result) const
+    Matrix<next_precision<value_type, 2>, local_index_type, global_index_type>*
+        result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -326,8 +326,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision_move<value_type, 2>, local_index_type,
-           global_index_type>* result)
+    Matrix<next_precision<value_type, 2>, local_index_type, global_index_type>*
+        result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -348,8 +348,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision_move<value_type, 3>, local_index_type,
-           global_index_type>* result) const
+    Matrix<next_precision<value_type, 3>, local_index_type, global_index_type>*
+        result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -367,8 +367,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision_move<value_type, 3>, local_index_type,
-           global_index_type>* result)
+    Matrix<next_precision<value_type, 3>, local_index_type, global_index_type>*
+        result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
