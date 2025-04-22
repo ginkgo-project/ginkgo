@@ -16,6 +16,34 @@
 
 namespace gko {
 
+// This can be enabled for debugging purposes
+#if 0
+
+template <typename IndexType>
+struct combined_workspace {
+    explicit combined_workspace(std::shared_ptr<const Executor> exec,
+                                std::vector<size_type> sizes)
+    {
+        for (auto size : sizes) {
+            arrays.emplace_back(exec, size);
+        }
+    }
+
+    static size_type get_total_size(std::vector<size_type> sizes)
+    {
+        return std::accumulate(sizes.begin(), sizes.end(), size_type{});
+    }
+
+    IndexType* get_pointer(int i) { return arrays.at(i).get_data(); }
+
+    size_type get_size(int i) const { return arrays.at(i).get_size(); }
+
+    array<IndexType> get_view(int i) { return arrays.at(i).as_view(); }
+
+    std::vector<array<IndexType>> arrays;
+};
+
+#else
 
 template <typename IndexType>
 struct combined_workspace {
@@ -50,6 +78,8 @@ struct combined_workspace {
     array<IndexType> workspace;
     std::vector<size_type> offsets;
 };
+
+#endif
 
 
 }  // namespace gko
