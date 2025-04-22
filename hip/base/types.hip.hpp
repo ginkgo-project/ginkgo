@@ -8,11 +8,6 @@
 
 #include <type_traits>
 
-#if HIP_VERSION >= 60200000
-#include <hip/hip_bf16.h>
-#else
-#include <hip/hip_bfloat16.h>
-#endif
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
 
@@ -30,6 +25,7 @@
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 
 namespace gko {
@@ -146,14 +142,11 @@ struct hiplibs_type_impl<std::complex<half>> {
 
 template <>
 struct hiplibs_type_impl<bfloat16> {
-#if HIP_VERSION >= 60200000
-    using type = __hip_bfloat16;
-#else
-    using type = hip_bfloat16;
-#endif
+    using type = vendor_bf16;
 };
 
-// Hip does not have bfloat162
+// Hip vendor library does not have bfloat162, so complex<bfloat16> is not
+// supported in Hip library call.
 
 template <typename T>
 struct hiplibs_type_impl<thrust::complex<T>> {
@@ -234,11 +227,7 @@ struct hip_type_impl<gko::half> {
 
 template <>
 struct hip_type_impl<gko::bfloat16> {
-#if HIP_VERSION >= 60200000
-    using type = __hip_bfloat16;
-#else
-    using type = hip_bfloat16;
-#endif
+    using type = vendor_bf16;
 };
 
 template <typename T>
@@ -261,7 +250,8 @@ struct hip_type_impl<__half2> {
     using type = thrust::complex<__half>;
 };
 
-// Hip does not have bfloat162
+// Hip vendor library does not have bfloat162, so complex<bfloat16> is not
+// supported in Hip library call.
 
 template <typename T>
 struct hip_struct_member_type_impl {
@@ -280,11 +270,7 @@ struct hip_struct_member_type_impl<gko::half> {
 
 template <>
 struct hip_struct_member_type_impl<gko::bfloat16> {
-#if HIP_VERSION >= 60200000
-    using type = __hip_bfloat16;
-#else
-    using type = hip_bfloat16;
-#endif
+    using type = vendor_bf16;
 };
 
 template <typename ValueType, typename IndexType>

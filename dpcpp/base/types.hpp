@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "dpcpp/base/bf16_alias.hpp"
 #include "dpcpp/base/complex.hpp"
 
 
@@ -56,7 +57,7 @@ struct sycl_type_impl<half> {
 
 template <>
 struct sycl_type_impl<bfloat16> {
-    using type = sycl::ext::oneapi::bfloat16;
+    using type = vendor_bf16;
 };
 
 template <typename T>

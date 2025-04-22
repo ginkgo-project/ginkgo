@@ -7,10 +7,11 @@
 
 #include <complex>
 
-#include <sycl/ext/oneapi/bfloat16.hpp>
 #include <sycl/half_type.hpp>
 
 #include <ginkgo/config.hpp>
+
+#include "dpcpp/base/bf16_alias.hpp"
 
 
 namespace gko {
@@ -204,9 +205,9 @@ private:
 
 
 template <>
-class complex<sycl::ext::oneapi::bfloat16> {
+class complex<vendor_bf16> {
 public:
-    using value_type = sycl::ext::oneapi::bfloat16;
+    using value_type = vendor_bf16;
 
     complex(const value_type& real = value_type(0.f),
             const value_type& imag = value_type(0.f))

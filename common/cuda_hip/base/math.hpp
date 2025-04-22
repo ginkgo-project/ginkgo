@@ -14,27 +14,10 @@
 #ifdef GKO_COMPILING_CUDA
 
 
-#include <cuda_bf16.h>
 #include <cuda_fp16.h>
-
-using vendor_bf16 = __nv_bfloat16;
 
 
 #elif defined(GKO_COMPILING_HIP)
-
-
-#if HIP_VERSION >= 60200000
-// HIP has __hip_bfloat16 after ROCM 5.6.0 but enough implementation for us
-// (conversion and operation overload) after ROCM 6.2.0 which provides more
-// native operations support.
-#include <hip/hip_bf16.h>
-using vendor_bf16 = __hip_bfloat16;
-#else
-// HIP has hip_bfloat16 but only the type with the operation fallback to the
-// single precision
-#include <hip/hip_bfloat16.h>
-using vendor_bf16 = hip_bfloat16;
-#endif
 
 
 #include <hip/hip_fp16.h>
@@ -42,7 +25,7 @@ using vendor_bf16 = hip_bfloat16;
 
 #endif
 
-
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/thrust_macro.hpp"
 
 
@@ -242,8 +225,8 @@ GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 #if GINKGO_ENABLE_BFLOAT16
 
 template <>
-GKO_ATTRIBUTES GKO_INLINE complex<vendor_bf16> sqrt<vendor_bf16>(
-    const complex<vendor_bf16>& a)
+GKO_ATTRIBUTES GKO_INLINE complex<gko::vendor_bf16> sqrt<gko::vendor_bf16>(
+    const complex<gko::vendor_bf16>& a)
 {
     return static_cast<complex<gko::vendor_bf16>>(
         sqrt(static_cast<complex<float>>(a)));
@@ -251,8 +234,8 @@ GKO_ATTRIBUTES GKO_INLINE complex<vendor_bf16> sqrt<vendor_bf16>(
 
 
 template <>
-GKO_ATTRIBUTES GKO_INLINE vendor_bf16
-abs<vendor_bf16>(const complex<vendor_bf16>& z)
+GKO_ATTRIBUTES GKO_INLINE gko::vendor_bf16 abs<gko::vendor_bf16>(
+    const complex<gko::vendor_bf16>& z)
 {
     return static_cast<gko::vendor_bf16>(abs(static_cast<complex<float>>(z)));
 }
