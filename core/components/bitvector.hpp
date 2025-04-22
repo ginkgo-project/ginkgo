@@ -21,6 +21,19 @@ public:
     constexpr static int block_size = CHAR_BIT * sizeof(storage_type);
 
     /**
+     * Returns the block index and bitmask belonging to a specific bit index.
+     *
+     * @param i  the bit index
+     * @returns a pair consisting of the block index and bitmask for this bit.
+     */
+    constexpr static std::pair<index_type, storage_type> get_block_and_mask(
+        index_type i)
+    {
+        return std::make_pair(i / block_size,
+                              storage_type{1} << (i % block_size));
+    }
+
+    /**
      * Constructs a device_bitvector from its underlying data.
      *
      * @param bits  the bitmask array
@@ -68,9 +81,8 @@ public:
     {
         assert(i >= 0);
         assert(i < size());
-        const auto block = i / block_size;
-        const auto local = i % block_size;
-        const auto prefix_mask = (storage_type{1} << local) - 1;
+        const auto [block, mask] = get_block_and_mask(i);
+        const auto prefix_mask = mask - 1;
         return ranks_[block] + detail::popcount(prefix_mask & bits_[block]);
     }
 
@@ -85,9 +97,7 @@ public:
     {
         assert(i >= 0);
         assert(i < size());
-        const auto block = i / block_size;
-        const auto local = i % block_size;
-        const auto mask = storage_type{1} << local;
+        const auto [block, mask] = get_block_and_mask(i);
         const auto prefix_mask = mask - 1 | mask;
         return ranks_[block] + detail::popcount(prefix_mask & bits_[block]);
     }
@@ -122,9 +132,6 @@ public:
     {
         return view_type{this->get_bits(), this->get_ranks(), this->get_size()};
     }
-
-    static bitvector from_sorted_indices(const array<index_type>& indices,
-                                         index_type size);
 
     std::shared_ptr<const Executor> get_executor() const
     {

@@ -38,17 +38,18 @@ gko::bitvector<IndexType> from_predicate(
         cgh.parallel_for(num_blocks, [=](sycl::id<1> block_i) {
             const auto base_i = static_cast<IndexType>(block_i) * block_size;
             storage_type mask{};
+            const auto local_op = [&](int local_i) {
+                const storage_type bit =
+                    device_predicate(base_i + local_i) ? 1 : 0;
+                mask |= bit << local_i;
+            };
             if (base_i + block_size <= size) {
                 for (int local_i = 0; local_i < block_size; local_i++) {
-                    const storage_type bit =
-                        device_predicate(base_i + local_i) ? 1 : 0;
-                    mask |= bit << local_i;
+                    local_op(local_i);
                 }
             } else {
                 for (int local_i = 0; base_i + local_i < size; local_i++) {
-                    const storage_type bit =
-                        device_predicate(base_i + local_i) ? 1 : 0;
-                    mask |= bit << local_i;
+                    local_op(local_i);
                 }
             }
             bits[block_i] = mask;
@@ -83,13 +84,13 @@ from_sorted_indices(
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(count, [=](sycl::id<1> i) {
             auto value = it[i];
-            const auto block = value / block_size;
-            const auto local = value % block_size;
+            const auto [block, mask] =
+                device_bitvector<IndexType>::get_block_and_mask(value);
             sycl::atomic_ref<storage_type, sycl::memory_order::relaxed,
                              sycl::memory_scope::device,
                              sycl::access::address_space::global_space>
                 atomic(bits[block]);
-            atomic.fetch_or(storage_type{1} << local);
+            atomic.fetch_or(mask);
         });
     });
     queue->submit([&](sycl::handler& cgh) {

@@ -6,6 +6,7 @@
 
 #include "core/components/bitvector.hpp"
 
+#include <cassert>
 #include <memory>
 #include <random>
 #include <vector>
@@ -45,14 +46,12 @@ protected:
     gko::array<index_type> create_random_values(index_type num_values,
                                                 index_type size)
     {
-        std::vector<index_type> values(num_values);
-        std::uniform_int_distribution<index_type> dist(
-            0, std::max(size - 1, index_type{}));
-        for (auto& value : values) {
-            value = dist(this->rng);
-        }
+        assert(num_values <= size);
+        std::vector<index_type> values(size);
+        std::iota(values.begin(), values.end(), index_type{});
+        std::shuffle(values.begin(), values.end(), rng);
+        values.resize(num_values);
         std::sort(values.begin(), values.end());
-        values.erase(std::unique(values.begin(), values.end()), values.end());
         return gko::array<index_type>{this->ref, values.begin(), values.end()};
     }
 
@@ -108,6 +107,7 @@ TYPED_TEST(Bitvector, BuildFromIndicesIsEquivalentToRef)
 }
 
 
+// nvcc doesn't like device lambdas inside class member functions
 template <typename IndexType>
 std::pair<gko::bitvector<IndexType>, gko::bitvector<IndexType>> run_predicate(
     std::shared_ptr<const gko::ReferenceExecutor> ref,
@@ -203,6 +203,9 @@ TYPED_TEST(Bitvector, AccessIsEquivalentToRef)
             run_device(this->exec, bv.device_view(), dbv.device_view(),
                        output_bools, output_ranks, doutput_bools,
                        doutput_ranks);
+
+            GKO_ASSERT_ARRAY_EQ(doutput_bools, output_bools);
+            GKO_ASSERT_ARRAY_EQ(doutput_ranks, output_ranks);
         }
     }
 }

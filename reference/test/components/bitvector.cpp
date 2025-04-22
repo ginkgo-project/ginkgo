@@ -38,14 +38,12 @@ protected:
     std::vector<index_type> create_random_values(index_type num_values,
                                                  index_type size)
     {
-        std::vector<index_type> values(num_values);
-        std::uniform_int_distribution<index_type> dist(
-            0, std::max(size - 1, index_type{}));
-        for (auto& value : values) {
-            value = dist(this->rng);
-        }
+        assert(num_values <= size);
+        std::vector<index_type> values(size);
+        std::iota(values.begin(), values.end(), index_type{});
+        std::shuffle(values.begin(), values.end(), rng);
+        values.resize(num_values);
         std::sort(values.begin(), values.end());
-        values.erase(std::unique(values.begin(), values.end()), values.end());
         return values;
     }
 
