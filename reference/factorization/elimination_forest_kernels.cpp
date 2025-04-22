@@ -185,6 +185,8 @@ void compute_elimination_forest_traversal_impl(
             }
         }
     }
+    // fill the remaining elements with sentinels
+    std::fill(euler_walk + euler_idx, euler_walk + 2 * size - 1, -1);
 }
 
 
