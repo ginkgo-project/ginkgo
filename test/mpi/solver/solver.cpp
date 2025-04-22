@@ -442,14 +442,18 @@ protected:
                        gen_out_vec<DistVecType>(part, solver, 2, 4));
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("Multivector with 17 columns");
             guarded_fn(gen_in_vec<DistVecType>(part, solver, 17, 17),
                        gen_out_vec<DistVecType>(part, solver, 17, 17));
+#endif
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("Strided multivector with 17 columns");
             guarded_fn(gen_in_vec<DistVecType>(part, solver, 17, 21),
                        gen_out_vec<DistVecType>(part, solver, 17, 21));
+#endif
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector

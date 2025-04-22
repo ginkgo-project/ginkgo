@@ -1,7 +1,7 @@
 set(gko_test_resource_args "RESOURCE_LOCAL_CORES;RESOURCE_TYPE")
 set(gko_test_single_args "MPI_SIZE;EXECUTABLE_NAME;${gko_test_resource_args}")
 set(gko_test_multi_args
-    "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES"
+    "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES;LABELS"
 )
 set(gko_test_option_args "NO_RESOURCES;NO_GTEST_MAIN")
 
@@ -217,6 +217,12 @@ function(ginkgo_add_test test_name test_target_name)
         set_tests_properties(
             ${REL_BINARY_DIR}/${test_binary_name}
             PROPERTIES ENVIRONMENT LD_PRELOAD=${test_preload}
+        )
+    endif()
+    if(add_test_LABELS)
+        set_tests_properties(
+            ${REL_BINARY_DIR}/${test_binary_name}
+            PROPERTIES LABELS "${add_test_LABELS}"
         )
     endif()
 endfunction()
