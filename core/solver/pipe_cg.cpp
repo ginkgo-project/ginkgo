@@ -4,6 +4,9 @@
 
 #include "ginkgo/core/solver/pipe_cg.hpp"
 
+#include <set>
+#include <string>
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -40,7 +43,9 @@ typename PipeCg<ValueType>::parameters_type PipeCg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::PipeCg<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
+    std::set<std::string> allowed_keys;
+    common_solver_parse(params, config, context, td_for_child, allowed_keys);
+    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 
