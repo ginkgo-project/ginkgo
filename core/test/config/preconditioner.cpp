@@ -106,11 +106,9 @@ struct Ic : PreconditionerConfigTest<::gko::preconditioner::Ic<float, int>,
 };
 
 
-struct Ilu
-    : PreconditionerConfigTest<
-          ::gko::preconditioner::Ilu<DummyIr, DummyIr, true, int>,
-          ::gko::preconditioner::Ilu<gko::solver::LowerTrs<>,
-                                     gko::solver::UpperTrs<>, false, int>> {
+struct Ilu : PreconditionerConfigTest<
+                 ::gko::preconditioner::Ilu<float, float, true, int>,
+                 ::gko::preconditioner::Ilu<double, double, false, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ilu"}}};
@@ -119,7 +117,6 @@ struct Ilu
     static void change_template(pnode::map_type& config_map)
     {
         config_map["value_type"] = pnode{"float32"};
-        config_map["l_solver_type"] = pnode{"solver::Ir"};
         config_map["reverse_apply"] = pnode{true};
     }
 
@@ -129,13 +126,13 @@ struct Ilu
     {
         if (from_reg) {
             config_map["l_solver"] = pnode{"l_solver"};
-            param.with_l_solver(detail::registry_accessor::get_data<
-                                typename changed_type::l_solver_type::Factory>(
-                reg, "l_solver"));
+            param.with_l_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "l_solver"));
             config_map["u_solver"] = pnode{"u_solver"};
-            param.with_u_solver(detail::registry_accessor::get_data<
-                                typename changed_type::u_solver_type::Factory>(
-                reg, "u_solver"));
+            param.with_u_solver(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "u_solver"));
             config_map["factorization"] = pnode{"factorization"};
             param.with_factorization(
                 detail::registry_accessor::get_data<gko::LinOpFactory>(
@@ -143,10 +140,10 @@ struct Ilu
         } else {
             config_map["l_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_l_solver(changed_type::l_solver_type::build().on(exec));
+            param.with_l_solver(DummyIr::build().on(exec));
             config_map["u_solver"] = pnode{{{"type", pnode{"solver::Ir"}},
                                             {"value_type", pnode{"float32"}}}};
-            param.with_u_solver(changed_type::u_solver_type::build().on(exec));
+            param.with_u_solver(DummyIr::build().on(exec));
             config_map["factorization"] =
                 pnode{{{"type", pnode{"solver::Ir"}},
                        {"value_type", pnode{"float32"}}}};

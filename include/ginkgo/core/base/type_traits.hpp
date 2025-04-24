@@ -35,17 +35,24 @@ using factory_type = typename factory_type_impl<Type>::type;
 
 
 // helper for handle the transposed type of concrete type and LinOp
-template <typename Type>
+template <typename Type, typename = void>
 struct transposed_type_impl {
     using type = typename Type::transposed_type;
 };
 
 // It requires LinOp to be complete type
 template <>
-struct transposed_type_impl<LinOp> {
+struct transposed_type_impl<LinOp, void> {
     using type = LinOp;
 };
 
+
+// return the same type when Type is the precision format.
+// it is used in ILU.
+template <typename Type>
+struct transposed_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
+    using type = Type;
+};
 
 template <typename Type>
 using transposed_type = typename transposed_type_impl<Type>::type;
