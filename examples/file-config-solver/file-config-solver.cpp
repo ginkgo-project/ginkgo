@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -86,7 +86,8 @@ int main(int argc, char* argv[])
     // blockjacobi-cg.json: preconditioned-solver
     // ir.json: iterative-refinement
     // parilu.json: ilu-preconditioned-solver (by using factoization parameter
-    //              directly)
+    //              directly) Ilu only support the value_type variant for parse.
+    //              We need to give the l_solver/u_solver directly
     // pgm-multigrid-cg.json: multigrid-preconditioned-solver (set
     //                        min_coarse_rows additionally due to this small
     //                        example matrix)

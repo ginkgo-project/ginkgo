@@ -2,7 +2,12 @@
     "type": "solver::Gmres",
     "preconditioner": {
         "type": "preconditioner::Ilu",
-        "l_solver_type": "solver::LowerTrs",
+        "l_solver": {
+            "type": "solver::LowerTrs"
+        },
+        "u_solver": {
+            "type": "solver::UpperTrs"
+        },
         "reverse_apply": false,
         "factorization": {
             "type": "factorization::ParIlu"
