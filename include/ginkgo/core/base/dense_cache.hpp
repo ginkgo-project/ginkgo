@@ -116,7 +116,6 @@ struct GenericDenseCache {
     GenericDenseCache(GenericDenseCache&&) noexcept;
     GenericDenseCache& operator=(const GenericDenseCache&);
     GenericDenseCache& operator=(GenericDenseCache&&) noexcept;
-    mutable array<char> workspace;
 
     /**
      * Pointer access to the underlying vector with specific type.
@@ -126,6 +125,9 @@ struct GenericDenseCache {
     template <typename ValueType>
     std::shared_ptr<matrix::Dense<ValueType>> get(
         std::shared_ptr<const Executor> exec, dim<2> size) const;
+
+private:
+    mutable array<char> workspace;
 };
 
 
@@ -146,10 +148,6 @@ struct ScalarCache {
     ScalarCache(ScalarCache&& other) noexcept;
     ScalarCache& operator=(const ScalarCache& other);
     ScalarCache& operator=(ScalarCache&& other) noexcept;
-    std::shared_ptr<const Executor> exec;
-    double value;
-    mutable std::map<std::string, std::shared_ptr<const gko::LinOp>> scalars;
-
 
     /**
      * Pointer access to the underlying vector with specific type.
@@ -158,6 +156,11 @@ struct ScalarCache {
      */
     template <typename ValueType>
     std::shared_ptr<const matrix::Dense<ValueType>> get() const;
+
+private:
+    std::shared_ptr<const Executor> exec;
+    double value;
+    mutable std::map<std::string, std::shared_ptr<const gko::LinOp>> scalars;
 };
 
 
