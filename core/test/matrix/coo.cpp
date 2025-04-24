@@ -398,20 +398,66 @@ TYPED_TEST(Coo, GeneratesCorrectMatrixData)
 }
 
 
-TYPED_TEST(Coo, RecognizesInvalidData)
+TYPED_TEST(Coo, RecognizesInfiniteValue)
 {
+    using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using Mtx = typename TestFixture::Mtx;
     auto row_idxs = gko::array<index_type>(this->exec, 4);
     auto col_idxs = gko::array<index_type>(this->exec, 4);
     auto values = gko::array<value_type>(this->exec, 4);
-    row_idxs.fill(0);
-    col_idxs.fill(0);
-    values.fill(gko::zero<value_type>());
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         row_idxs.as_view(), col_idxs.as_view());
-    row_idxs.get_data()[3] = 5;
+                         col_idxs.as_view(), row_idxs.as_view());
+
+    m->read(
+        {{2, 3}, {{0, 0, INFINITY}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+TYPED_TEST(Coo, RecognizesUnboundedRowIndex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_idxs = gko::array<index_type>(this->exec, 4);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_idxs.as_view());
+
+    m->read({{2, 3}, {{2, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+TYPED_TEST(Coo, RecognizesUnboundedColumnIndex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_idxs = gko::array<index_type>(this->exec, 4);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_idxs.as_view());
+
+    m->read({{2, 3}, {{0, 3, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+TYPED_TEST(Coo, RecognizesUnorderedRowIndex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto row_idxs = gko::array<index_type>(this->exec, 4);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_idxs.as_view());
+
+    m->read({{2, 3}, {{1, 1, 5.0}, {0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}}});
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
