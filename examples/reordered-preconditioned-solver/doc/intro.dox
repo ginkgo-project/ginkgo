@@ -1,7 +1,6 @@
-<a name="Intro"></a>
-@section vNHAwb Introduction
+@section hFqDjt Introduction
 
-@subsection NKLTuh About the example
+@subsection UzCdlu About the example
 
 This uses an RCM reordering on an input matrix to construct
 a ParILU preconditioned solver and solve a linear system.

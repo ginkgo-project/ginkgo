@@ -1,4 +1,4 @@
-@section KisDEU Results
+@section ENWOSC Results
 This is the expected output for `mpirun -n 4 ./distributed-solver`:
 
 @code{.cpp}

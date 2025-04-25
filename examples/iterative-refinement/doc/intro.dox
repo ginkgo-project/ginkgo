@@ -1,5 +1,4 @@
-<a name="Iterative Refinement"></a>
-@section eQmFNh This example shows how to use the iterative refinement solver.
+@section lTaICm This example shows how to use the iterative refinement solver.
 
 In this example, we first read in a matrix from file, then generate a
 right-hand side and an initial guess. An inaccurate CG solver is used as the

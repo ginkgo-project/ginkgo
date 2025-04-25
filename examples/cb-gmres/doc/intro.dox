@@ -1,7 +1,6 @@
-<a name="Intro"></a>
-@section uEPwCB Introduction
+@section wqTBJb Introduction
 
-@subsection EzvFDg About the example
+@subsection tIWtSy About the example
 This example showcases the usage of the Ginkgo solver CB-GMRES (Compressed
 Basis GMRES). A small system is solved with two un-preconditioned CB-GMRES
 solvers:

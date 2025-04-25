@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// @subsection QioaSw Include files
+// @subsection IAjSkR Include files
 
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    // @subsection HoyOIx Where do you want to run your operation?
+    // @subsection wOmzea Where do you want to run your operation?
     // The gko::Executor class is one of the cornerstones of Ginkgo. Currently,
     // we have support for
     // an gko::OmpExecutor, which uses OpenMP multi-threading in most of its
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // @subsection qnCoHI Preparing your data and transfer to the proper device.
+    // @subsection LcKcEI Preparing your data and transfer to the proper device.
     // Read the matrix using the @ref read function and set the right hand side
     // randomly.
     // @note Ginkgo uses C++ smart pointers to automatically manage memory. To
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
     auto lplp_x = share(hp_x->clone());
     auto lphp_x = share(hp_x->clone());
 
-    // @subsection KvKJnn Measure the time of apply
+    // @subsection mbpBXB Measure the time of apply
     // We measure the time among different combination of apply operation.
 
     // Hp * Hp -> Hp

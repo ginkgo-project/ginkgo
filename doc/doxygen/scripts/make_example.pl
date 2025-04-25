@@ -65,13 +65,11 @@ my @chars = ('a'..'z');
 my $sec1 = join '', map { $chars[rand @chars] } 1..6;
 my $sec2 = join '', map { $chars[rand @chars] } 1..6;
 
-print " * <a name=\"CommProg\"></a>\n";
 print " * \@section $sec1 The commented program\n";
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/program2doxygen", "$cmake_source_dir/examples/$example/$example.cpp";
 
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox";
 
-print "<a name=\"PlainProg\"></a>";
 print "\@section $sec2 The plain program\n";
 print " * \@code\n";
 open(my $prog, '<', "$example.cpp") or die "Can't open plain program $example.cpp";

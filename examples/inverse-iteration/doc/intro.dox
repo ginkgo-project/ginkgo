@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section XgdZKt Introduction
+@section QvVxvW Introduction
 This example shows how components available in Ginkgo can be used to implement
 higher-level numerical methods. The method used here will be the shifted inverse
 iteration method for eigenvalue computation which find the eigenvalue and
@@ -18,4 +17,4 @@ for i = 0 .. max_iterations:
         break
 @endcode
 
-@subsection lLXdzg About the example
+@subsection eQIPow About the example

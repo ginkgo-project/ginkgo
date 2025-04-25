@@ -83,7 +83,7 @@
 namespace Step9 {
 using namespace dealii;
 
-// @subsection fxXFTI AdvectionProblem class declaration
+// @subsection MKyGfh AdvectionProblem class declaration
 
 // Following we declare the main class of this program. It is very much
 // like the main classes of previous examples, so we again only comment on
@@ -176,7 +176,7 @@ private:
 };
 
 
-// @subsection reerFE Equation data declaration
+// @subsection iMfwug Equation data declaration
 
 // Next we declare a class that describes the advection field. This, of
 // course, is a vector field with as many components as there are space
@@ -388,7 +388,7 @@ void BoundaryValues<dim>::value_list(const std::vector<Point<dim>>& points,
 }
 
 
-// @subsection ezLmxh GradientEstimation class declaration
+// @subsection BUnqjg GradientEstimation class declaration
 
 // Now, finally, here comes the class that will compute the difference
 // approximation of the gradient on each cell and weighs that with a power
@@ -491,7 +491,7 @@ private:
 };
 
 
-// @subsection QztTag AdvectionProblem class implementation
+// @subsection XyyZig AdvectionProblem class implementation
 
 
 // Now for the implementation of the main class. Constructor, destructor and
@@ -981,7 +981,7 @@ void AdvectionProblem<dim>::run()
 }
 
 
-// @subsection iOlNAD GradientEstimation class implementation
+// @subsection NcryNh GradientEstimation class implementation
 
 // Now for the implementation of the <code>GradientEstimation</code> class.
 // Let us start by defining constructors for the
@@ -1309,7 +1309,7 @@ void GradientEstimation::estimate_cell(
 }  // namespace Step9
 
 
-// @subsection EiIKAo Main function
+// @subsection ocpeJM Main function
 
 // The <code>main</code> function is similar to the previous examples. The main
 // difference is that we use MultithreadInfo to set the maximum

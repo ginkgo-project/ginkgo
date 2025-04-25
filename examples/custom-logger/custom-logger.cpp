@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// @subsection ZSqfhi Include files
+// @subsection BqoNeP Include files
 
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
 
-    // @subsection TbKNkR Where do you want to run your solver ?
+    // @subsection AfZgUj Where do you want to run your solver ?
     // The gko::Executor class is one of the cornerstones of Ginkgo.
     // Currently, we have support for an gko::OmpExecutor, which uses OpenMP
     // multi-threading in most of its kernels, a gko::ReferenceExecutor, a
@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    // @subsection yBtDnv Reading your data and transfer to the proper device.
+    // @subsection jkxSwp Reading your data and transfer to the proper device.
     // Read the matrix, right hand side and the initial solution using the
     // @ref read function.
     // @note Ginkgo uses C++ smart pointers to automatically manage memory.
@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
     const RealValueType reduction_factor = 1e-7;
 
-    // @subsection lUynuX Creating the solver
+    // @subsection FwWycj Creating the solver
     // Generate the gko::solver factory. Ginkgo uses the concept of
     // Factories to build solvers with certain properties. Observe the
     // Fluent interface used here. Here a cg solver is generated with a

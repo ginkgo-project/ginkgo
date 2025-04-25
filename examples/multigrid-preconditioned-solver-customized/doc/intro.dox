@@ -1,5 +1,4 @@
-<a name="Customized Multigrid Preconditioner"></a>
-@section FeHnXc This example shows how to customize the multigrid preconditioner.
+@section anDkzc This example shows how to customize the multigrid preconditioner.
 
 In this example, we first read in a matrix from a file. The preconditioned CG solver is enhanced
 with a multigrid preconditioner. Several non-default options are used to create this preconditioner.

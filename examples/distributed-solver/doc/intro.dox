@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section xSmbIG Introduction
+@section hEkBAe Introduction
 This distributed solver example should help you understand the basics of using Ginkgo in a distributed setting.
 The example will solve a simple 1D Laplace equation where the system can be distributed row-wise to multiple processes.
 To run the solver with multiple processes, use `mpirun -n NUM_PROCS ./distributed-solver [executor] [num_grid_points] [num_iterations]`.

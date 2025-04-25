@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section SFGdqP Introduction
+@section HrMnib Introduction
 This example solves a 1D Poisson equation:
 
 $
@@ -45,4 +44,4 @@ all (i.e. they could have been there before the application developer decided to
 use Ginkgo, and the only part where Ginkgo is introduced is inside the
 `solve_system` function.
 
-@subsection GFBryR About the example
+@subsection pkAwQW About the example

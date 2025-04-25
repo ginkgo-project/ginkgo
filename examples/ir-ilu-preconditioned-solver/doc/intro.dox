@@ -1,7 +1,6 @@
-<a name="Intro"></a>
-@section GpQQFZ Introduction
+@section IrAzuA Introduction
 
-@subsection VqpDTv About the example
+@subsection Wgevnt About the example
 This example shows how to combine iterative refinement with the adaptive
 precision block-Jacobi preconditioner in order to approximately solve the
 triangular systems occurring in ILU preconditioning. Using an adaptive precision

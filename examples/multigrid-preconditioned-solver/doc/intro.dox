@@ -1,5 +1,4 @@
-<a name="Multigrid Preconditioner"></a>
-@section woSlWT This example shows how to use the multigrid preconditioner.
+@section BlMZiD This example shows how to use the multigrid preconditioner.
 
 In this example, we first read in a matrix from a file. The preconditioned CG solver is enhanced
 with a multigrid preconditioner. The example features the generating time and runtime of the CG solver.

@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section dmHzsm Introduction
+@section inbUgR Introduction
 This example solves a 1D Poisson equation:
 
 @f[
@@ -15,7 +14,7 @@ points (`K` can be controlled with a command line parameter).
 The resulting CSR matrix is assembled using Kokkos kernels.
 This example show how to use Ginkgo data with Kokkos kernels.
 
-@subsection Rhbyhn Notes
+@subsection upmFBu Notes
 
 If this example is built as part of Ginkgo, it is advised to configure Ginkgo with
 `-DGINKGO_WITH_CCACHE=OFF` to prevent incompabilities with Kokkos' compiler wrapper

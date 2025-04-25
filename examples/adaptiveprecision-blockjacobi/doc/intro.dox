@@ -1,5 +1,4 @@
-<a name="Adaptive Precision block-Jacobi"></a>
-@section XcYbOK This example shows how to use the adaptive precision block-Jacobi
+@section MTBCCC This example shows how to use the adaptive precision block-Jacobi
 preconditioner.
 
 In this example, we first read in a matrix from file, then generate a

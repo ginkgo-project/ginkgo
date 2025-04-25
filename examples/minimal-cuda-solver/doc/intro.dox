@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section myhFjS Introduction
+@section PyvAXe Introduction
 
 This is a minimal example that solves a system with Ginkgo. The matrix, right
 hand side and initial guess are read from standard input, and the result is
@@ -13,4 +12,4 @@ and pipe the result to the minimal_solver_cuda executable:
 
 @code{.cpp}cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal-cuda-solver@endcode
 
-@subsection TXzDUZ About the example
+@subsection EHotGS About the example

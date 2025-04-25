@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section LTPPiu Introduction
+@section uYksGU Introduction
 This distributed multigrid preconditioned solver example should help you understand customizing Ginkgo multigrid in a distributed setting.
 The example will solve a simple 1D Laplace equation where the system can be distributed row-wise to multiple processes.
 Note. Because the stencil for the discretized Laplacian is configured with equal weight, the coarsening method does not perform well on this kind of problem.

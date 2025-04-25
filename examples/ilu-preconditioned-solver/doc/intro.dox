@@ -1,7 +1,6 @@
-<a name="Intro"></a>
-@section jYRiIW Introduction
+@section LAakSI Introduction
 
-@subsection ZaNOqB About the example
+@subsection lcXnhY About the example
 This example shows how to use incomplete factors generated via the ParILU 
 algorithm to generate an incomplete factorization (ILU) preconditioner, how to
 specify the sparse triangular solves in the ILU preconditioner application, and

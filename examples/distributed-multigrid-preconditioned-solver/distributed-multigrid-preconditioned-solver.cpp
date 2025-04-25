@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// @subsection YkXbPm Include files
+// @subsection OMWZrD Include files
 
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
@@ -17,13 +17,13 @@
 
 int main(int argc, char* argv[])
 {
-    // @subsection xevvBr Initialize the MPI environment
+    // @subsection uUULvj Initialize the MPI environment
     // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
     // done with the following helper construct that uses RAII to automate the
     // initialization and finalization.
     const gko::experimental::mpi::environment env(argc, argv);
-    // @subsection cvLjri Type Definitions
+    // @subsection inzzMv Type Definitions
     // Define the needed types. In a parallel program we need to differentiate
     // between global and local indices, thus we have two index types.
     using GlobalIndexType = gko::int64;
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
 
-    // @subsection OlDipI User Input Handling
+    // @subsection mUWjDd User Input Handling
     // User input settings:
     // - The executor, defaults to reference.
     // - The number of grid points, defaults to 100.
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 
     auto exec = executor_factory_mpi.at(executor_string)(MPI_COMM_WORLD);
 
-    // @subsection PIgTSP Creating the Distributed Matrix and Vectors
+    // @subsection nrNUBa Creating the Distributed Matrix and Vectors
     // As a first step, we create a partition of the rows. The partition
     // consists of ranges of consecutive rows which are assigned a part-id.
     // These part-ids will be used for the distributed data structures to
@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
     ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
 
 
-    // @subsection drKNYM Solve the Distributed System
+    // @subsection mtyAsY Solve the Distributed System
     // Generate the solver
 
     // Setup the multigrid factory with customized smoother and coarse solver
@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
     auto res_norm = gko::clone(exec->get_master(),
                                gko::as<vec>(logger->get_residual_norm()));
 
-    // @subsection pzHAwV Printing Results
+    // @subsection hgXciJ Printing Results
     // Print the achieved residual norm and timings on rank 0.
     if (comm.rank() == 0) {
         // clang-format off

@@ -1,7 +1,6 @@
-<a name="Intro"></a>
-@section YogYZO Introduction
+@section emsjcW Introduction
 
-@subsection mWBiEz About the example
+@subsection SZSaRQ About the example
 
 This example shows how to explicitly generate and store preconditioners for a given matrix.
 It can also be used to inspect and debug the preconditioner generation.

@@ -1,5 +1,4 @@
-<a name="Mixed Precision Iterative Refinement (MPIR)"></a>
-@section gNGHbr This example manually implements a Mixed Precision Iterative Refinement (MPIR) solver.
+@section CnVdod This example manually implements a Mixed Precision Iterative Refinement (MPIR) solver.
 
 In this example, we first read in a matrix from file, then generate a
 right-hand side and an initial guess. An inaccurate CG solver in single precision

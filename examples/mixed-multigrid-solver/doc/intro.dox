@@ -1,5 +1,4 @@
-<a name="Mixed Precision Multigrid"></a>
-@section SfTNrz This example shows how to use the mixed-precision multigrid solver.
+@section zOicHi This example shows how to use the mixed-precision multigrid solver.
 
 In this example, we first read in a matrix from a file, then generate a
 right-hand side and an initial guess. The multigrid solver can mix different precision of MultigridLevel. The example

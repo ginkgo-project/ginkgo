@@ -1,5 +1,4 @@
-<a name="Intro"></a>
-@section IAKaHW Introduction
+@section MOxrnx Introduction
 This example solves a 1D Poisson equation:
 
 $
@@ -41,4 +40,4 @@ that can be changed in the `main` function.
 The intention of this example is to show how a custom linear operator can be
 created and integrated into Ginkgo to achieve performance benefits.
 
-@subsection yetEDP About the example
+@subsection aYQpbw About the example

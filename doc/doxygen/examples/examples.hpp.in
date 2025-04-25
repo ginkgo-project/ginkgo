@@ -12,13 +12,11 @@
  * Ginkgo, which can be used in your own code.
  *
  * You can browse the available example programs
- * <ol>
- *   <li> as <b><a href="#graph">a graph</a></b> that shows how example programs
+ * 1. as @ref ex_graph "a graph" that shows how example programs
  *     build upon each other.
- *   <li> as <b><a href="#list">a list</a></b> that provides a short
+ * 2. as @ref ex_list "a list" that provides a short
  *     synopsis of each program.
- *   <li> or <b><a href="#topic">grouped by topic</a></b>.
- * </ol>
+ * 3. or @ref ex_topic "grouped by topic".
  *
  * By default, all Ginkgo examples are built using CMake.
  *
@@ -40,9 +38,7 @@
  *        possibly any other platform).
  * </ol>
  *
- * <a name="graph"></a>
- * @anchor ExampleConnectionGraph
- * <h3>Connections between example programs</h3>
+ * @subsection ex_graph Connections between example programs
  *
  * The following graph shows the connections between example programs and
  * how they build on each other.
@@ -58,8 +54,7 @@
 @@EXAMPLE_LEGEND@@
  * @enddot
  *
- * <a name="list"></a>
- * <h3>Example programs </h3>
+ * @subsection ex_list Example programs
  *
  * <table align="center" width="90%">
  *   <tr valign="top">
@@ -271,10 +266,9 @@
  *
  * </table>
  *
- * <a name="topic"></a>
- * <h3>Example programs grouped by topics</h3>
+ * @subsection ex_topic Example programs grouped by topics
  *
- * <h4><b>Basic techniques</b></h4>
+ * @subsubsection basic Basic techniques
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
@@ -348,7 +342,7 @@
  *
  * </table>
  *
- * <h4><b>Advanced techniques</b></h4>
+ * @subsubsection advanced Advanced techniques
  * <table align="center" width="90%">
  *
  *   <tr valign="top">
