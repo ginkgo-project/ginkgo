@@ -27,6 +27,7 @@
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/minres.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -123,6 +124,9 @@ struct Cgs : SimpleSolverTest<gko::solver::Cgs<solver_value_type>> {
 struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
     static double tolerance() { return 1e7 * r<value_type>::value; }
 };
+
+
+struct PipeCg : SimpleSolverTest<gko::solver::PipeCg<solver_value_type>> {};
 
 
 struct Bicg : SimpleSolverTest<gko::solver::Bicg<solver_value_type>> {
@@ -917,7 +921,7 @@ protected:
 };
 
 using SolverTypes =
-    ::testing::Types<Cg, Cgs, Fcg, Bicg, Bicgstab,
+    ::testing::Types<Cg, Cgs, Fcg, PipeCg, Bicg, Bicgstab,
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, Chebyshev, CbGmres<2>, CbGmres<10>, Gmres<2>,
