@@ -1,10 +1,10 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section NfEscH Introduction
 This mixed spmv example should give the usage of Ginkgo mixed precision. This example is meant for you to understand
 how Ginkgo works with different precision of data. We encourage you to play with the code,
 change the parameters and see what is best suited for your purposes.
 
-<h3> About the example </h3>
+@subsection kEhCTb About the example
 Each example has the following sections:
 <ol>
     <li> <b>Introduction:</b>This gives an overview of the example and mentions

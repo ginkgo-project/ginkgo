@@ -1,7 +1,7 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section RWfnql Introduction
 
-<h3> About the example </h3>
+@subsection vuxong About the example
 
 This example can be used to inspect the convergence behavior of parallel
 incomplete factorizations.

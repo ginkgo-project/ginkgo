@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section CycjXu Results
 The following is the expected result on the reference executor:
 
 @code{.cpp}
@@ -10,4 +10,4 @@ Entire solve took: 2.18558e-05 seconds.
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection CagFzU Comments about programming and debugging

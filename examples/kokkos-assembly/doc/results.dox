@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section EPqbOO Results
 Example output:
 ```
 > ./kokkos-assembly

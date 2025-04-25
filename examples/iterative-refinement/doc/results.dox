@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section kThVXl Results
 This is the expected output:
 
 @code{.cpp}
@@ -16,4 +16,4 @@ IR execution time [ms]: 0.794962
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection IIQPzT Comments about programming and debugging

@@ -1,10 +1,10 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section dZnuuV Introduction
 This simple solver example should help you get started with Ginkgo. This example is meant for you to understand
 how Ginkgo works and how you can solve a simple linear system with Ginkgo. We encourage you to play with the code,
 change the parameters and see what is best suited for your purposes.
 
-<h3> About the example </h3>
+@subsection CzKtUk About the example
 Each example has the following sections:
 <ol>
     <li> <b>Introduction:</b>This gives an overview of the example and mentions

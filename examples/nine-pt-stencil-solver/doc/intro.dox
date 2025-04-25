@@ -1,5 +1,5 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section PocNMv Introduction
 
 This example solves a 2D Poisson equation:
 
@@ -42,4 +42,4 @@ additional parameters.
 The intention of this is to show how generation of stencil values and the right
 hand side vector changes when increasing the dimension.
 
-<h3> About the example </h3>
+@subsection xYkICD About the example

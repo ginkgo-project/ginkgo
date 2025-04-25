@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section XHKOaF Results
 The following is the expected result (omp):
 
 @code{.cpp}
@@ -15,4 +15,4 @@ Lp * Hp -> Hp time(s): 2.0312300000e-05
 Lp * Hp -> Hp relative error: 3.7173133506e-08
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection UVnZBi Comments about programming and debugging

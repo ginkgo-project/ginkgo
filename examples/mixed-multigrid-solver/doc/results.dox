@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section KeqIKz Results
 This is the expected output:
 
 @code{.cpp}
@@ -18,4 +18,4 @@ Multigrid execution time per iteration[ms]: 1.11644
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection DjqXDX Comments about programming and debugging

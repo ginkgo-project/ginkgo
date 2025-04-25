@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section PxkFSb Results
 This is the expected standard output:
 
 @code{.cpp}
@@ -88,4 +88,4 @@ True Residual Norms:
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection WedNCn Comments about programming and debugging

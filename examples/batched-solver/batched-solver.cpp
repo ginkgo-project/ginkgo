@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// @sect3{Include files}
+// @subsection poGHnV Include files
 
 #include <fstream>
 #include <iostream>
@@ -15,7 +15,7 @@
 #include <ginkgo/ginkgo.hpp>
 
 
-// @sect3{Type aliases for convenience}
+// @subsection hrYTAS Type aliases for convenience
 // Use some shortcuts.
 using value_type = double;
 using real_type = gko::remove_complex<value_type>;
@@ -27,7 +27,7 @@ using mtx_type = gko::batch::matrix::Csr<value_type, index_type>;
 using bicgstab = gko::batch::solver::Bicgstab<value_type>;
 
 
-// @sect3{Convenience functions}
+// @subsection oQuzke Convenience functions
 // Unbatch batch items into distinct Ginkgo types
 namespace detail {
 
@@ -48,7 +48,7 @@ auto unbatch(const InputType* batch_object)
 }  // namespace detail
 
 
-// @sect3{'Application' structures and functions}
+// @subsection 'Application' 'Application' structures and functions
 // Structure to simulate application data related to the linear systems
 // to be solved.
 //
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    // @sect3{Where do you want to run your solver ?}
+    // @subsection lmRxoT Where do you want to run your solver ?
     // The gko::Executor class is one of the cornerstones of Ginkgo. Currently,
     // we have support for an gko::OmpExecutor, which uses OpenMP
     // multi-threading in most of its kernels,
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
         argc >= 5 ? (std::string(argv[4]) == "true") : false;
     // The number of repetitions for the timing.
     const int num_reps = argc >= 6 ? std::atoi(argv[5]) : 20;
-    // @sect3{Generate data}
+    // @subsection GPYTdU Generate data
     // The "application" generates the batch of linear systems on the device
     auto appl_sys = appl_generate_system(num_rows, num_systems, exec);
     // Create batch_dim object to describe the dimensions of the batch matrix.
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
         gko::batch_dim<2>(num_systems, gko::dim<2>(num_rows, num_rows));
     auto batch_vec_size =
         gko::batch_dim<2>(num_systems, gko::dim<2>(num_rows, 1));
-    // @sect3{Use of application-allocated memory}
+    // @subsection VBaMgl Use of application-allocated memory
     // We can either work on the existing memory allocated in the application,
     // or we can copy it for the linear solve.
     // Ginkgo expects the nonzero values for all the small matrices to be
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
     auto A = gko::share(mtx_type::create_const(
         exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
         std::move(rowptrs_view)));
-    // @sect3{RHS and solution vectors}
+    // @subsection qrZvqJ RHS and solution vectors
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
     //  as the common value for all the matrices.
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
     }
     x->copy_from(host_x.get());
 
-    // @sect3{Create the batch solver factory}
+    // @subsection oDELdw Create the batch solver factory
     const real_type reduction_factor{1e-10};
     // Create a batched solver factory with relevant parameters.
     auto solver =
@@ -197,13 +197,13 @@ int main(int argc, char* argv[])
             .on(exec)
             ->generate(A);
 
-    // @sect3{Batch logger}
+    // @subsection iLSWea Batch logger
     // Create a logger to obtain the iteration counts and "implicit" residual
     //  norms for every system after the solve.
     std::shared_ptr<const gko::batch::log::BatchConvergence<value_type>>
         logger = gko::batch::log::BatchConvergence<value_type>::create();
 
-    // @sect3{Generate and solve}
+    // @subsection UPsPGm Generate and solve
     // add the logger to the solver
     solver->add_logger(logger);
     // Solve the batch system
@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
     //  the next solve using the same solver object.
     solver->remove_logger(logger.get());
 
-    // @sect3{Check result}
+    // @subsection UxXeUx Check result
     // Compute norm of RHS on the device and automatically copy to host
     auto norm_dim = gko::batch_dim<2>(num_systems, gko::dim<2>(1, 1));
     auto host_b_norm = real_vec_type::create(exec->get_master(), norm_dim);

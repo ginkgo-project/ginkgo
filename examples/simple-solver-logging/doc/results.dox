@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section FviKix Results
 This is the expected output:
 
 @code{.cpp}
@@ -752,4 +752,4 @@ Residual norm sqrt(r^T r):
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection FKiRfs Comments about programming and debugging

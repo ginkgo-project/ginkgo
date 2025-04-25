@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section PEgaJP Results
 This is the expected output:
 
 @code{.cpp}

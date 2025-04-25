@@ -1,5 +1,5 @@
 <a name="Batched Solver"></a>
-<h1>Using batched solvers</h1>
+@section IOXqKM Using batched solvers
 This example shows how to use Ginkgo batched solvers with data coming from an
 application. The "application" in this case is just a function in the example
 itself; nevertheless, the steps to be taken are shown.

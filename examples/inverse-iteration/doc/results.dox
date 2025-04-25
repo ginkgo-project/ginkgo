@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section mNimep Results
 This is the expected output:
 
 @code{.cpp}
@@ -26,4 +26,4 @@ This is the expected output:
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection iDyvzQ Comments about programming and debugging

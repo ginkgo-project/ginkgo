@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section AAizbf Results
 The following is the expected result:
 
 @code{.cpp}
@@ -32,4 +32,4 @@ Residual norm sqrt(r^T r):
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection CdBiJq Comments about programming and debugging

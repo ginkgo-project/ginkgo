@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section rbkUuX Results
 This is the expected output:
 
 @code{.cpp}
@@ -8,4 +8,4 @@ Running 1000000 iterations of the CG solver took a total of 1.60337 seconds.
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection WOzZLa Comments about programming and debugging

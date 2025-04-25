@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section xvbXpn Results
 The expected output should be
 
 @code{.cpp}
@@ -8,4 +8,4 @@ The runtime is 167.320520 ms
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection NVUUBw Comments about programming and debugging

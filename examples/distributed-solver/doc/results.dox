@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section KisDEU Results
 This is the expected output for `mpirun -n 4 ./distributed-solver`:
 
 @code{.cpp}

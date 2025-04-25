@@ -56,44 +56,23 @@ if ($buildson ne "")
 }
 
 # then show the table of contents
-print
-"\@htmlonly
-<table class=\"example\" width=\"50%\">
-<tr><th colspan=\"2\"><b><small>Table of contents</small></b></th></tr>
-<tr><td width=\"50%\" valign=\"top\">
-<ol>
-  <li> <a href=\"#Intro\" class=bold>Introduction</a>
-";
-
-system $^X, "$cmake_source_dir/doc/doxygen/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/intro.dox";
-
-print "  <li> <a href=\"#CommProg\" class=bold>The commented program</a>\n";
-
-system $^X, "$cmake_source_dir/doc/doxygen/scripts/program2toc", "$cmake_source_dir/examples/$example/$example.cpp";
-
-print
-"</ol></td><td width=\"50%\" valign=\"top\"><ol>
-  <li value=\"3\"> <a href=\"#Results\" class=bold>Results</a>
-";
-
-system $^X, "$cmake_source_dir/doc/doxygen/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/results.dox";
-
-print
-"  <li> <a href=\"#PlainProg\" class=bold>The plain program</a>
-</ol> </td> </tr> </table>
-\@endhtmlonly
-";
+print "\@tableofcontents\n";
 
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/intro.dox";
 
+# Curtesy of claude
+my @chars = ('a'..'z');
+my $sec1 = join '', map { $chars[rand @chars] } 1..6;
+my $sec2 = join '', map { $chars[rand @chars] } 1..6;
+
 print " * <a name=\"CommProg\"></a>\n";
-print " * <h1> The commented program</h1>\n";
+print " * \@section $sec1 The commented program\n";
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/program2doxygen", "$cmake_source_dir/examples/$example/$example.cpp";
 
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox";
 
 print "<a name=\"PlainProg\"></a>";
-print "<h1> The plain program</h1>\n";
+print "\@section $sec2 The plain program\n";
 print " * \@code\n";
 open(my $prog, '<', "$example.cpp") or die "Can't open plain program $example.cpp";
 while(my $line = readline($prog)){

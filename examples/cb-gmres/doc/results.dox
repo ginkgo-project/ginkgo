@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section KUSUlC Results
 The following is the expected result:
 
 @code{.cpp}
@@ -18,4 +18,4 @@ Residual norm with compression:
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection UMOSJR Comments about programming and debugging

@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section ngWZGu Results
 This is the expected output:
 
 @code{.cpp}
@@ -18,4 +18,4 @@ CG execution time per iteration[ms]: 0.574036
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection bgXycq Comments about programming and debugging

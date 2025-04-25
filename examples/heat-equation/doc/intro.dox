@@ -1,5 +1,5 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section tRZeZk Introduction
 This example solves a 2D heat conduction equation
 
 $
@@ -37,4 +37,4 @@ The intention of this example is to provide a mini-app showing matrix assembly,
 vector initialization, solver setup and the use of Ginkgo in a more complex
 setting.
 
-<h3> About the example </h3>
+@subsection HGvZqc About the example

@@ -1,5 +1,5 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section nbBWBL Introduction
 This example solves a 1D Poisson equation:
 
 $
@@ -42,4 +42,4 @@ The intention of the example is to show how Ginkgo can be used to build an
 application solving a real-world problem, which includes a solution of a large,
 sparse linear system as a component.
 
-<h3> About the example </h3>
+@subsection ASANvS About the example

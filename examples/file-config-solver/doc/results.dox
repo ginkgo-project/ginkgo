@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section cnKVNY Results
 This is the expected output:
 
 @code{.cpp}
@@ -32,4 +32,4 @@ Solver execution time per iteration[ms]: 0.0396882
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection IqwgrV Comments about programming and debugging

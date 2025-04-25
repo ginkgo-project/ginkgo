@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section TAaMEa Results
 This is the expected output:
 
 @code{.cpp}
@@ -20,4 +20,4 @@ CG execution time [ms]: 0.080041
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection TnLtcy Comments about programming and debugging

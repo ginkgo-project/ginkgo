@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section LCrngT Results
 This is the expected output:
 
 @code{.cpp}
@@ -16,4 +16,4 @@ MPIR execution time [ms]: 0.846559
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection uXKouw Comments about programming and debugging

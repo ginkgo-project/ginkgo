@@ -1,5 +1,5 @@
 <a name="Intro"></a>
-<h1>Introduction</h1>
+@section EDwWbk Introduction
 This example shows how to use the FFT and iFFT implementations in Ginkgo
 to solve the non-linear Schrödinger equation with a splitting method.
 
@@ -42,4 +42,4 @@ by alternating between small time steps for (1) and (2).
 For nicer visual results, we add another constant potential term V(x) \theta
 to the non-linear part, which turns it into the Gross–Pitaevskii equation.
 
-<h3> About the example </h3>
+@subsection ftifkr About the example

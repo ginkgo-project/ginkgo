@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section FljJuz Results
 This is the expected output:
 
 @code{.cpp}
@@ -22,4 +22,4 @@ Writing data/A.mtx.jacobi
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection OEEbXb Comments about programming and debugging

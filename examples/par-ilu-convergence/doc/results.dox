@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section NiKbmi Results
 This is the expected output:
 
 @code{.cpp}
@@ -25,4 +25,4 @@ Reading data/A.mtx
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection nDQxwt Comments about programming and debugging

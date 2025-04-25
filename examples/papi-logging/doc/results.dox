@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section sCwwmG Results
 The following is the expected result:
 
 @code{.cpp}
@@ -34,4 +34,4 @@ Residual norm sqrt(r^T r):
 8.87107e-16
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection ypIRrC Comments about programming and debugging

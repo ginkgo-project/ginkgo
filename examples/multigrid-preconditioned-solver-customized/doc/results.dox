@@ -1,4 +1,4 @@
-<h1>Results</h1>
+@section AvdMte Results
 This is the expected output:
 
 @code{.cpp}
@@ -18,4 +18,4 @@ CG execution time per iteration[ms]: 0.54937
 
 @endcode
 
-<h3> Comments about programming and debugging </h3>
+@subsection rzalYS Comments about programming and debugging
