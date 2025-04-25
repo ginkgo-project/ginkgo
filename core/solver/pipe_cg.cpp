@@ -160,6 +160,21 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      TODO
      */
     while (true) {
+        // check
+        bool all_stopped =
+            stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
+        if (all_stopped) {
+            break;
+        }
+        ++iter;
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
@@ -182,21 +197,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         r->compute_conj_dot(z, rho, reduction_tmp);
         // delta = dot(w, z)
         w->compute_conj_dot(z, delta, reduction_tmp);
-        // check
-        ++iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r)
-                .implicit_sq_residual_norm(rho)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
-        this->template log<log::Logger::iteration_complete>(
-            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
-            all_stopped);
-        if (all_stopped) {
-            break;
-        }
         // tmp = rho / prev_rho
         // beta = delta - |tmp|^2 * beta
         // p = z + tmp * p
