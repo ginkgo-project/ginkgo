@@ -1,9 +1,0 @@
-sphinx
-sphinx_sitemap
-furo
-myst-parser
-linkify-it-py
-sphinxcontrib-doxylink
-doxysphinx
-sphinx-book-theme
-sphinx-rtd-theme

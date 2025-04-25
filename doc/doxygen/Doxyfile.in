@@ -297,6 +297,7 @@ REFERENCES_RELATION    = YES
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 HTML_EXTRA_STYLESHEET  = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome.css \
+                         @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-paragraph-link.js \
                          @GINKGO_DOXYGEN_DIR@/stylesheet.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
@@ -308,6 +309,8 @@ HTML_EXTRA_STYLESHEET  = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome.css \
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 HTML_EXTRA_FILES       = @Ginkgo_SOURCE_DIR@/assets/favicon.ico
+
+HTML_HEADER            = header.html
 
 # The HTML_COLORSTYLE tag can be used to specify if the generated HTML output
 # should be rendered with a dark or light theme.
@@ -348,7 +351,7 @@ DISABLE_INDEX          = NO
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-GENERATE_TREEVIEW      = NO
+GENERATE_TREEVIEW      = YES
 
 USE_MATHJAX = YES
 MATHJAX_VERSION = MathJax_3
@@ -585,3 +588,5 @@ MAX_DOT_GRAPH_DEPTH    = 5
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_TRANSPARENT        = YES
+
+FULL_SIDEBAR = NO

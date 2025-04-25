@@ -3,12 +3,6 @@ add_subdirectory(doxygen)
 find_program(sphinx-build NAMES sphinx-build REQUIRED)
 find_program(doxysphinx NAMES doxysphinx REQUIRED)
 
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/conf.py.in
-    ${CMAKE_CURRENT_BINARY_DIR}/conf.py
-    @ONLY
-)
-
 # Copy to the sphinx sources in the build directory
 # These have to be actual copies, since sphinx (or myst) can't
 # resolve (symbolic) links to files outside the sphinx source
