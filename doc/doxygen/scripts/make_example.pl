@@ -58,9 +58,12 @@ if ($buildson ne "")
 # then show the table of contents
 print "\@tableofcontents\n";
 
-system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/intro.dox";
+open(my $intro, '<', "$cmake_source_dir/examples/$example/doc/intro.dox")
+    or die "Can't open intro file $cmake_source_dir/examples/$example/doc/intro.dox";
+while(<$intro>){ print ;}
+close($intro);
 
-# Curtesy of claude
+# generating a unique id for section names, curtesy of claude
 my @chars = ('a'..'z');
 my $sec1 = join '', map { $chars[rand @chars] } 1..6;
 my $sec2 = join '', map { $chars[rand @chars] } 1..6;
@@ -68,7 +71,10 @@ my $sec2 = join '', map { $chars[rand @chars] } 1..6;
 print " * \@section $sec1 The commented program\n";
 system $^X, "$cmake_source_dir/doc/doxygen/scripts/program2doxygen", "$cmake_source_dir/examples/$example/$example.cpp";
 
-system $^X, "$cmake_source_dir/doc/doxygen/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox";
+open(my $results, '<', "$cmake_source_dir/examples/$example/doc/results.dox")
+    or die "Can't open results file $cmake_source_dir/examples/$example/doc/results.dox";
+while(<$results>){ print ;}
+close($results);
 
 print "\@section $sec2 The plain program\n";
 print " * \@code\n";

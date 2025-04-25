@@ -69,8 +69,6 @@ foreach(example ${_ginkgo_examples})
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
             ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/make_example.pl
-            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/intro2toc
-            ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/create_anchors
             ${PROJECT_SOURCE_DIR}/doc/doxygen/scripts/program2doxygen
             ${PROJECT_SOURCE_DIR}/examples/${example}/${example}.cpp
             ${PROJECT_SOURCE_DIR}/examples/${example}/doc/intro.dox
