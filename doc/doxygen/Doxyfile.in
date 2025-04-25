@@ -310,8 +310,6 @@ HTML_EXTRA_STYLESHEET  = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome.css \
 
 HTML_EXTRA_FILES       = @Ginkgo_SOURCE_DIR@/assets/favicon.ico
 
-HTML_HEADER            = header.html
-
 # The HTML_COLORSTYLE tag can be used to specify if the generated HTML output
 # should be rendered with a dark or light theme.
 # Possible values are: LIGHT always generates light mode output, DARK always
