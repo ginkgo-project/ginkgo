@@ -4,6 +4,7 @@ function(ginkgo_doc_gen)
     set(GINKGO_DOXYGEN_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/header.html ${CMAKE_CURRENT_BINARY_DIR}/header.html COPYONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml ${CMAKE_CURRENT_BINARY_DIR}/DoxygenLayout.xml COPYONLY)
     file(GLOB doxygen_depend
         ${GINKGO_DOXYGEN_DIR}/headers/*.hpp
         ${Ginkgo_SOURCE_DIR}/include/ginkgo/**/*.hpp
