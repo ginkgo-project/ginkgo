@@ -297,6 +297,7 @@ REFERENCES_RELATION    = YES
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 HTML_EXTRA_STYLESHEET  = @doxygen_awesome_SOURCE_DIR@/doxygen-awesome.css \
+                         @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-sidebar-only.css \
                          @doxygen_awesome_SOURCE_DIR@/doxygen-awesome-paragraph-link.js \
                          @GINKGO_DOXYGEN_DIR@/stylesheet.css
 
@@ -376,7 +377,7 @@ MATHJAX_FORMAT = chtml
 # The default value is: YES.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-SEARCHENGINE           = NO
+SEARCHENGINE           = YES
 
 # If the GENERATE_LATEX tag is set to YES, Doxygen will generate LaTeX output.
 # The default value is: YES.
