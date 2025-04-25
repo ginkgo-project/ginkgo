@@ -38,13 +38,6 @@ public:
                      const distributed::index_map<int32, int64>*,
                      const distributed::index_map<int64, int64>*>;
 
-    /**
-     * Creator function to create a new CollectiveCommunicator from a
-     * communicator and a pointer to an index_map.
-     */
-    using creator_fn = std::function<std::unique_ptr<CollectiveCommunicator>(
-        communicator, index_map_ptr)>;
-
     virtual ~CollectiveCommunicator() = default;
 
     explicit CollectiveCommunicator(communicator base = MPI_COMM_NULL);
@@ -81,10 +74,15 @@ public:
                            void* recv_buffer, MPI_Datatype recv_type) const;
 
     /**
-     * Returns a CollectiveCommunicator::creator_fn which will create a new
-     * CollectiveCommunicator with the same dynamic type.
+     * Creates a new CollectiveCommunicator with the same dynamic type.
+     *
+     * @param base  The base communicator
+     * @param imap  The index_map that defines the communication pattern
+     *
+     * @return  a CollectiveCommunicator with the same dynamic type
      */
-    [[nodiscard]] virtual creator_fn creator_with_same_type() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<CollectiveCommunicator>
+    create_with_same_type(communicator base, index_map_ptr imap) const = 0;
 
     /**
      * Creates a CollectiveCommunicator with the inverse communication pattern
@@ -97,16 +95,16 @@ public:
     create_inverse() const = 0;
 
     /**
-     * Get the total number of received elements this communication patterns
-     * expects.
+     * Get the number of elements received by this process within this
+     * communication pattern.
      *
      * @return  number of received elements.
      */
     [[nodiscard]] virtual comm_index_type get_recv_size() const = 0;
 
     /**
-     * Get the total number of sent elements this communication patterns
-     * expects.
+     * Get the number of elements sent by this process within this communication
+     * pattern.
      *
      * @return  number of sent elements.
      */

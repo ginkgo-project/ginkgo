@@ -187,6 +187,15 @@ size_type RowGatherer<LocalIndexType>::get_num_send_idxs() const
 
 
 template <typename LocalIndexType>
+std::unique_ptr<RowGatherer<LocalIndexType>>
+RowGatherer<LocalIndexType>::create(std::shared_ptr<const Executor> exec,
+                                    mpi::communicator comm)
+{
+    return std::unique_ptr<RowGatherer>(new RowGatherer(std::move(exec), comm));
+}
+
+
+template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                          mpi::communicator comm)
     : EnablePolymorphicObject<RowGatherer>(exec),
