@@ -85,12 +85,16 @@ gko::bitvector<IndexType> from_predicate(
 template <typename IndexType>
 struct bitvector_bit_functor {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
-    constexpr static auto block_size = device_bitvector<IndexType>::block_size;
     __device__ storage_type operator()(IndexType i)
     {
         return device_bitvector<IndexType>::get_block_and_mask(i).second;
     }
+};
 
+
+template <typename IndexType>
+struct bitvector_or_functor {
+    using storage_type = typename device_bitvector<IndexType>::storage_type;
     __device__ storage_type operator()(storage_type a, storage_type b)
     {
         // https://github.com/ROCm/rocThrust/issues/352
@@ -151,7 +155,7 @@ from_sorted_indices(
     auto out_bit_it = bits_compact.get_data();
     auto [out_pos_end, out_bit_end] = thrust::reduce_by_key(
         policy, block_it, block_it + count, bit_it, out_pos_it, out_bit_it,
-        thrust::equal_to<index_type>{}, bitvector_bit_functor<storage_type>{});
+        thrust::equal_to<index_type>{}, bitvector_or_functor<storage_type>{});
     assert(thrust::is_sorted(policy, out_pos_it, out_pos_end));
     const auto out_size = out_pos_end - out_pos_it;
     thrust::fill_n(policy, bits.get_data(), num_blocks, 0);
