@@ -109,6 +109,8 @@ struct bitvector_or_functor {
 
 template <typename IndexType>
 struct bitvector_block_functor {
+    // workaround for ROCm 4.5 bug
+    using result_type = IndexType;
     constexpr static auto block_size = device_bitvector<IndexType>::block_size;
     __device__ IndexType operator()(IndexType i)
     {
