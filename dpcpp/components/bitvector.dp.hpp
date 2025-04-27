@@ -85,7 +85,7 @@ from_sorted_indices(
         cgh.parallel_for(count, [=](sycl::id<1> i) {
             auto value = it[i];
             const auto [block, mask] =
-                device_bitvector<IndexType>::get_block_and_mask(value);
+                device_bitvector<index_type>::get_block_and_mask(value);
             sycl::atomic_ref<storage_type, sycl::memory_order::relaxed,
                              sycl::memory_scope::device,
                              sycl::access::address_space::global_space>
