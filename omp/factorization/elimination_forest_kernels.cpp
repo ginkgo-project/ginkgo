@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <memory>
 
+#include <omp.h>
+
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/allocator.hpp"
@@ -20,12 +23,60 @@
 #include "core/factorization/elimination_forest_kernels.hpp"
 #include "omp/components/atomic.hpp"
 #include "omp/components/disjoint_sets.hpp"
+#include "omp/components/sorting.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
 namespace elimination_forest {
+
+
+struct OperationScopeGuard : Operation {
+    void run(std::shared_ptr<const OmpExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const CudaExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const HipExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+        GKO_NOT_IMPLEMENTED;
+    const char* get_name() const noexcept override { return name.c_str(); }
+
+    OperationScopeGuard(std::string name, std::shared_ptr<const Executor> exec)
+        : name{std::move(name)}, exec{exec}
+    {
+        for (auto& log : exec->get_loggers()) {
+            if (auto profiler =
+                    std::dynamic_pointer_cast<const log::ProfilerHook>(log)) {
+                profiler->on_operation_launched(exec.get(), this);
+            }
+        }
+    }
+
+    OperationScopeGuard(const OperationScopeGuard&) = delete;
+    OperationScopeGuard(OperationScopeGuard&&) = delete;
+    OperationScopeGuard& operator=(const OperationScopeGuard&) = delete;
+    OperationScopeGuard& operator=(OperationScopeGuard&&) = delete;
+
+    ~OperationScopeGuard()
+    {
+        for (auto& log : exec->get_loggers()) {
+            if (auto profiler =
+                    std::dynamic_pointer_cast<const log::ProfilerHook>(log)) {
+                profiler->on_operation_completed(exec.get(), this);
+            }
+        }
+    }
+
+    std::string name;
+    std::shared_ptr<const Executor> exec;
+};
+
+#define GKO_FUNCTION_SCOPEGUARD(_name) \
+    OperationScopeGuard guard { #_name, exec }
 
 
 template <typename IndexType>
@@ -324,117 +375,545 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename IndexType>
-void compute(std::shared_ptr<const DefaultExecutor> exec,
-             const IndexType* row_ptrs, const IndexType* cols, size_type size,
-             gko::factorization::elimination_forest<IndexType>& forest)
-{
-    if (size == 0) {
-        return;
+struct elimination_forest_algorithm_state {
+    constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
+    elimination_forest_algorithm_state(
+        std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
+        IndexType num_edges, IndexType* tree_levels)
+        : exec{exec},
+          num_nodes{num_nodes},
+          edge_capacity{2 * num_edges},
+          num_levels{
+              gko::detail::find_highest_bit(
+                  static_cast<std::make_unsigned_t<IndexType>>(num_nodes - 1)) +
+              1},
+          num_threads{static_cast<int>(omp_get_max_threads())},
+          ceil_num_nodes{IndexType{1} << num_levels},
+          workspace{exec, workspace_sizes(num_nodes, num_edges)},
+          bucket_ranges{},
+          tree_ranges{},
+          flip{},
+          tree_levels{tree_levels}
+    {
+        bucket_ranges.back() = num_edges;
     }
-    using unsigned_type = std::make_unsigned_t<IndexType>;
-    const auto ssize = static_cast<IndexType>(size);
-    std::vector<std::pair<IndexType, IndexType>> edges;
-    for (const auto row : irange{ssize}) {
-        for (const auto nz : irange{row_ptrs[row], row_ptrs[row + 1]}) {
-            const auto col = cols[nz];
-            if (col < row) {
-                edges.emplace_back(col, row);
-            }
+
+    static int get_edge_level(IndexType src, IndexType tgt)
+    {
+        using unsigned_type = std::make_unsigned_t<IndexType>;
+        assert(src != tgt);
+        return gko::detail::find_highest_bit(static_cast<unsigned_type>(src) ^
+                                             static_cast<unsigned_type>(tgt));
+    }
+
+    static std::vector<size_type> workspace_sizes(size_type num_nodes,
+                                                  size_type num_edges)
+    {
+        const auto edge_capacity = 2 * num_edges;
+        return {
+            edge_capacity,      // 0: buf1_sources
+            edge_capacity,      // 1: buf1_targets
+            edge_capacity,      // 2: buf2_sources
+            edge_capacity,      // 3: buf2_targets
+            num_nodes - 1,      // 4: tree_sources
+            num_nodes - 1,      // 5: tree_targets
+            2 * num_nodes - 1,  // 6: euler_walk1
+            2 * num_nodes - 1,  // 7: euler_walk2
+            num_nodes,          // 8: euler_first1
+            num_nodes,          // 9: euler_first2
+            num_nodes,          // 10: cc_parents
+            num_nodes,          // 11: cc_mins
+            num_nodes,          // 12: cc_sizes
+            bucket_sort_workspace_size<num_buckets>(
+                edge_capacity),  // 13: bucketsort_workspace
+        };
+    }
+
+    static size_type storage_requirement(size_type num_nodes,
+                                         size_type num_edges)
+    {
+        return combined_workspace<IndexType>::get_total_size(
+            workspace_sizes(num_nodes, num_edges));
+    }
+
+    IndexType* buf1_edge_sources() { return workspace.get_pointer(0); }
+
+    IndexType* buf1_edge_targets() { return workspace.get_pointer(1); }
+
+    IndexType* buf2_edge_sources() { return workspace.get_pointer(2); }
+
+    IndexType* buf2_edge_targets() { return workspace.get_pointer(3); }
+
+    IndexType* tree_sources() { return workspace.get_pointer(4); }
+
+    IndexType* tree_targets() { return workspace.get_pointer(5); }
+
+    IndexType* cc_parents() { return workspace.get_pointer(10); }
+
+    IndexType* cc_mins() { return workspace.get_pointer(11); }
+
+    IndexType* cc_sizes() { return workspace.get_pointer(12); }
+
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(13); }
+
+    array<IndexType> bucketsort_workspace_view()
+    {
+        return workspace.get_view(13);
+    }
+
+    IndexType num_edges() const { return bucket_ranges.back(); }
+
+    const IndexType* in_edge_sources()
+    {
+        return flip ? buf2_edge_sources() : buf1_edge_sources();
+    }
+
+    const IndexType* in_edge_targets()
+    {
+        return flip ? buf2_edge_targets() : buf1_edge_targets();
+    }
+
+    IndexType* fill_edge_sources()
+    {
+        return (flip ? buf2_edge_sources() : buf1_edge_sources()) + num_edges();
+    }
+
+    IndexType* fill_edge_targets()
+    {
+        return (flip ? buf2_edge_targets() : buf1_edge_targets()) + num_edges();
+    }
+
+    IndexType* out_edge_sources()
+    {
+        return flip ? buf1_edge_sources() : buf2_edge_sources();
+    }
+    IndexType* out_edge_targets()
+    {
+        return flip ? buf1_edge_targets() : buf2_edge_targets();
+    }
+
+    void output_to_input() { flip = !flip; }
+
+    void init(const array<IndexType>& sources, const array<IndexType>& ends)
+    {
+        GKO_FUNCTION_SCOPEGUARD(init);
+        assert(sources.get_size() == ends.get_size());
+        assert(sources.get_size() <= edge_capacity);
+        std::copy_n(sources.get_const_data(), sources.get_size(),
+                    out_edge_sources());
+        std::copy_n(ends.get_const_data(), ends.get_size(), out_edge_targets());
+        tree_counter = 0;
+        bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
+        output_to_input();
+        components::fill_array(exec, tree_levels,
+                               static_cast<size_type>(num_nodes), IndexType{});
+        components::fill_array(exec, cc_sizes(),
+                               static_cast<size_type>(num_nodes), IndexType{1});
+    }
+
+    void bucket_sort_input()
+    {
+        GKO_FUNCTION_SCOPEGUARD(bucket_sort_input);
+        auto it =
+            detail::make_zip_iterator(in_edge_sources(), in_edge_targets());
+        auto out_it =
+            detail::make_zip_iterator(out_edge_sources(), out_edge_targets());
+        auto ws = bucketsort_workspace_view();
+        bucket_ranges = bucket_sort<num_buckets>(
+            it, it + num_edges(), out_it,
+            [](auto edge) {
+                using std::get;
+                return get_edge_level(edge.template get<0>(),
+                                      edge.template get<1>());
+            },
+            ws);
+        output_to_input();
+    }
+
+    irange<IndexType> get_tree_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto begin = tree_ranges[level + 1];
+        const auto end = tree_ranges[level];
+        assert(end >= 0);
+        assert(begin <= end);
+        assert(end <= num_nodes - 1);
+        return irange<IndexType>{begin, end};
+    }
+
+    irange<IndexType> get_inner_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto end = bucket_ranges[level];
+        assert(end >= 0);
+        assert(end <= edge_capacity);
+        return irange<IndexType>{end};
+    }
+
+    irange<IndexType> get_cut_edge_range(int level) const
+    {
+        assert(level >= 0);
+        assert(level < num_levels);
+        const auto begin = bucket_ranges[level];
+        const auto end = bucket_ranges[level + 1];
+        assert(begin >= 0);
+        assert(begin <= end);
+        assert(end <= edge_capacity);
+        return irange<IndexType>{begin, end};
+    }
+
+    template <typename Op>
+    void foreach_edge_in_range_enumerated(irange<IndexType> range, Op op)
+    {
+        const auto srcs = in_edge_sources();
+        const auto tgts = in_edge_targets();
+#pragma omp parallel for
+        for (auto i = range.begin_index(); i < range.end_index(); i++) {
+            op(i - range.begin_index(), srcs[i], tgts[i]);
         }
     }
-    // round up size to the next power of two
-    const auto rounded_up_size =
-        IndexType{1}
-        << (detail::find_highest_bit(static_cast<unsigned_type>(size - 1)) + 1);
-    // insert fill-in edges top-down
-    for (auto block_size = rounded_up_size; block_size > 1; block_size /= 2) {
-        const auto half_block_size = block_size / 2;
-        const auto is_inner_edge = [&](auto e) {
-            assert(e.first < e.second);
-            return e.first / half_block_size == e.second / half_block_size;
-        };
-        const auto is_cut_edge = [&](auto e) {
-            assert(e.first < e.second);
-            return e.first / block_size == e.second / block_size &&
-                   e.first / half_block_size < e.second / half_block_size;
-        };
-        disjoint_sets<IndexType> cc{exec, ssize};
-        for (auto edge : edges) {
-            // join edges inside blocks of size half_block_size
-            if (is_inner_edge(edge)) {
-                cc.join(edge.first, edge.second);
-            }
+
+    template <typename Op>
+    void foreach_edge_in_range(irange<IndexType> range, Op op)
+    {
+        foreach_edge_in_range_enumerated(
+            range, [op](auto, auto src, auto tgt) { op(src, tgt); });
+    }
+
+    template <typename Op>
+    void foreach_tree_edge_in_range(irange<IndexType> range, Op op)
+    {
+        const auto srcs = tree_sources();
+        const auto tgts = tree_targets();
+#pragma omp parallel for
+        for (auto i = range.begin_index(); i < range.end_index(); i++) {
+            op(srcs[i], tgts[i]);
         }
-        // now find the smallest upper node adjacent to a cc in a lower block
-        std::vector<IndexType> mins(size, ssize);
-        for (auto edge : edges) {
-            if (is_cut_edge(edge)) {
-                const auto first_rep = cc.find(edge.first);
-                mins[first_rep] = std::min(mins[first_rep], edge.second);
+    }
+
+    template <typename Op>
+    void foreach_lower_node(int level, Op op)
+    {
+#pragma omp parallel for
+        for (IndexType idx = 0; idx < ceil_num_nodes / 2; idx++) {
+            // we only need to consider nodes where the level'th bit is 0
+            const auto lower_part = idx & ((IndexType{1} << level) - 1);
+            const auto upper_part = idx & ~((IndexType{1} << level) - 1);
+            const auto i = (upper_part << 1) | lower_part;
+            if (i < num_nodes) {
+                op(i);
             }
-        }
-        std::vector<std::pair<IndexType, IndexType>> new_edges;
-        // now add new edges for every one of those cut edges
-        for (auto edge : edges) {
-            if (is_cut_edge(edge)) {
-                const auto first_rep = cc.find(edge.first);
-                const auto min_neighbor = mins[first_rep];
-                if (min_neighbor != edge.second) {
-                    new_edges.emplace_back(min_neighbor, edge.second);
+        };
+    }
+
+    void reset_connected_components()
+    {
+        components::fill_seq_array(exec, cc_parents(),
+                                   static_cast<size_type>(num_nodes));
+    }
+
+    void find_connected_components(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_connected_components);
+        reset_connected_components();
+        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
+        const auto inner_edges = get_inner_edge_range(level);
+        foreach_edge_in_range(inner_edges, [&](auto src, auto tgt) {
+            sets.join(sets.find_relaxed_compressing(src),
+                      sets.find_relaxed_compressing(tgt));
+        });
+    }
+
+    void find_min_cut_neighbors(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_min_cut_neighbors);
+        const auto min_sentinel = num_nodes;
+        const auto cut_edges = get_cut_edge_range(level);
+        const auto mins = cc_mins();
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
+        foreach_edge_in_range(cut_edges, [sets, mins](auto src, auto tgt) {
+            const auto src_rep = sets.find_relaxed_compressing(src);
+            atomic_min(mins + src_rep, tgt);
+        });
+    }
+
+    void add_fill_and_tree_edges(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(add_fill_and_tree_edges);
+        const auto cut_edges = get_cut_edge_range(level);
+        device_disjoint_sets<const IndexType> sets{cc_parents(), num_nodes};
+        const auto fill_srcs = fill_edge_sources();
+        const auto fill_tgts = fill_edge_targets();
+        const auto mins = cc_mins();
+        foreach_edge_in_range_enumerated(
+            cut_edges, [&](auto i, auto src, auto tgt) {
+                const auto src_rep = sets.find_weak(src);
+                const auto min_node = mins[src_rep];
+                // we may have min_node == tgt, but that will get filtered out
+                // in the sorting step
+                fill_srcs[i] = min_node;
+                fill_tgts[i] = tgt;
+            });
+        const auto out_srcs = tree_sources();
+        const auto out_tgts = tree_targets();
+        foreach_lower_node(level, [&](auto i) {
+            if (sets.is_representative_weak(i)) {
+                const auto min = mins[i];
+                if (min < num_nodes) {
+                    const auto out_idx = atomic_inc(tree_counter);
+                    out_srcs[out_idx] = i;
+                    out_tgts[out_idx] = min;
+                }
+            }
+        });
+        tree_ranges[level] = tree_counter;
+    }
+
+    void find_tree_connected_components(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_connected_components);
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto srcs = tree_sources();
+        const auto tgts = tree_targets();
+        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
+        foreach_tree_edge_in_range(tree_edges, [&sets](auto src, auto tgt) {
+            sets.join(sets.find_weak(src), sets.find_weak(tgt));
+        });
+    }
+
+    void update_tree_node_levels(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_tree_node_levels);
+        const auto levels = tree_levels;
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        device_disjoint_sets<const IndexType> sets{parents, num_nodes};
+        foreach_lower_node(level, [&](IndexType i) {
+            const auto min_sentinel = num_nodes;
+            // for every node in a CC that gets connected to an upper node,
+            // update the level using that upper node's level
+            const auto rep = sets.find_weak(i);
+            const auto min = mins[rep];
+            if (min < min_sentinel) {
+                levels[i] += levels[min] + 1;
+            }
+        });
+    }
+
+    void update_cc_sizes(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
+        const auto sizes = cc_sizes();
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        const auto tree_edges = get_tree_edge_range(level);
+        device_disjoint_sets<const IndexType> sets{parents, num_nodes};
+        foreach_tree_edge_in_range(
+            tree_edges, [sets, mins, sizes](auto lower, auto upper) {
+                const auto upper_rep = sets.find_weak(upper);
+                atomic_add(sizes[upper_rep], sizes[lower]);
+            });
+    }
+
+    void find_tree_min_cut_neighbors(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
+        const auto min_sentinel = num_nodes;
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto mins = cc_mins();
+        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
+            // set mins[source] = target for every tree edge in that level
+            // because we set source = i and target = mins[i] before
+            mins[src] = tgt;
+        });
+    }
+
+    void bucket_sort_fill_edges(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(bucket_sort_fill_edges);
+        const auto cut_edges = get_cut_edge_range(level);
+        const auto inner_edges = get_inner_edge_range(level);
+        auto sort_workspace = bucketsort_workspace_view();
+        std::fill_n(sort_workspace.get_data(), sort_workspace.get_size(), 0);
+        std::array<IndexType, num_buckets + 1> fill_bucket_ranges{};
+        const auto in_srcs = in_edge_sources();
+        const auto in_tgts = in_edge_targets();
+        const auto fill_srcs = fill_edge_sources();
+        const auto fill_tgts = fill_edge_targets();
+        const auto out_srcs = out_edge_sources();
+        const auto out_tgts = out_edge_targets();
+        const auto counts = sort_workspace.get_data();
+#pragma omp parallel
+        {
+            const auto tid = static_cast<IndexType>(omp_get_thread_num());
+            const auto num_threads = omp_get_num_threads();
+            const auto fill_work_per_thread =
+                static_cast<IndexType>(ceildiv(cut_edges.size(), num_threads));
+            const auto local_fill_begin =
+                std::min(tid * fill_work_per_thread, cut_edges.size());
+            const auto local_fill_end = std::min(
+                local_fill_begin + fill_work_per_thread, cut_edges.size());
+            const auto merge_work_per_thread = static_cast<IndexType>(
+                ceildiv(inner_edges.size(), num_threads));
+            const auto local_merge_begin =
+                std::min(tid * merge_work_per_thread, inner_edges.size()) +
+                inner_edges.begin_index();
+            const auto local_merge_end =
+                std::min(local_merge_begin + merge_work_per_thread,
+                         inner_edges.size()) +
+                inner_edges.begin_index();
+            const auto local_counts = counts + tid * num_buckets;
+            for (auto i : irange{local_fill_begin, local_fill_end}) {
+                const auto src = fill_srcs[i];
+                const auto tgt = fill_tgts[i];
+                // fill edges may contain self-loops (which allow us to avoid
+                // atomics)
+                if (src != tgt) {
+                    const auto bucket = get_edge_level(src, tgt);
+                    assert(bucket >= 0);
+                    assert(bucket < level);
+                    local_counts[bucket]++;
+                }
+            }
+#pragma omp barrier
+#pragma omp single
+            {
+                std::array<IndexType, num_buckets> offsets{};
+                for (int tid = 0; tid < num_threads; tid++) {
+                    for (int i = 0; i < num_buckets; i++) {
+                        const auto value = counts[tid * num_buckets + i];
+                        counts[tid * num_buckets + i] = offsets[i];
+                        offsets[i] += value;
+                    }
+                }
+                std::copy_n(offsets.begin(), num_buckets,
+                            fill_bucket_ranges.begin());
+                std::exclusive_scan(fill_bucket_ranges.begin(),
+                                    fill_bucket_ranges.end(),
+                                    fill_bucket_ranges.begin(), IndexType{});
+            }
+            for (auto i : irange{local_merge_begin, local_merge_end}) {
+                const auto src = in_srcs[i];
+                const auto tgt = in_tgts[i];
+                const auto lvl = get_edge_level(src, tgt);
+                assert(i >= bucket_ranges[lvl]);
+                assert(i < bucket_ranges[lvl + 1]);
+                const auto rel_pos = i - bucket_ranges[lvl];
+                const auto out_pos =
+                    bucket_ranges[lvl] + fill_bucket_ranges[lvl] + rel_pos;
+                out_srcs[out_pos] = src;
+                out_tgts[out_pos] = tgt;
+            }
+            for (auto i : irange{local_fill_begin, local_fill_end}) {
+                const auto src = fill_srcs[i];
+                const auto tgt = fill_tgts[i];
+                if (src != tgt) {
+                    const auto bucket = get_edge_level(src, tgt);
+                    assert(bucket >= 0);
+                    assert(bucket < level);
+                    // place fill edges after original edges
+                    const auto out_pos = local_counts[bucket]++ +
+                                         fill_bucket_ranges[bucket] +
+                                         bucket_ranges[bucket + 1];
+                    out_srcs[out_pos] = src;
+                    out_tgts[out_pos] = tgt;
                 }
             }
         }
-        edges.insert(edges.end(), new_edges.begin(), new_edges.end());
-    }
-    // compute elimination forest bottom-up
-    disjoint_sets<IndexType> cc{exec, ssize};
-    std::vector<IndexType> subtree_roots(size);
-    std::vector<std::pair<IndexType, IndexType>> tree_edges;
-    std::iota(subtree_roots.begin(), subtree_roots.end(), IndexType{});
-    for (IndexType block_size = 2; block_size <= rounded_up_size;
-         block_size *= 2) {
-        std::vector<IndexType> mins(size, ssize);
-        const auto half_block_size = block_size / 2;
-        const auto is_inner_edge = [&](auto e) {
-            assert(e.first < e.second);
-            return e.first / half_block_size == e.second / half_block_size;
-        };
-        const auto is_cut_edge = [&](auto e) {
-            assert(e.first < e.second);
-            return e.first / block_size == e.second / block_size &&
-                   e.first / half_block_size < e.second / half_block_size;
-        };
-        // reproduce CC again, this time with subtree roots
-        for (auto edge : edges) {
-            if (is_inner_edge(edge)) {
-                const auto first_rep = cc.find(edge.first);
-                const auto second_rep = cc.find(edge.second);
-                const auto combined_rep = cc.join(first_rep, second_rep);
-                subtree_roots[combined_rep] = std::max(
-                    subtree_roots[first_rep], subtree_roots[second_rep]);
-            }
+        for (int i = 0; i <= num_buckets; i++) {
+            bucket_ranges[i] += fill_bucket_ranges[i];
         }
-        for (auto edge : edges) {
-            if (is_cut_edge(edge)) {
-                const auto first_rep = cc.find(edge.first);
-                mins[first_rep] = std::min(mins[first_rep], edge.second);
-            }
-        }
-        for (auto node : irange{ssize}) {
-            // for every connected component: insert an edge from its root to
-            // the minimal adjacent node
-            if ((node / half_block_size) % 2 == 0 &&
-                cc.is_representative(node)) {
-                tree_edges.emplace_back(subtree_roots[node], mins[node]);
-            }
+        // all edges >= level were filtered out
+        for (int i = level + 1; i <= num_buckets; i++) {
+            bucket_ranges[i] = bucket_ranges[level];
         }
     }
-    // translate to parents
+
+    void run()
+    {
+        bucket_sort_input();
+        // now the input is sorted by the level at which they become cut edges
+        for (int level = num_levels - 1; level >= 0; level--) {
+            // this level considers block of size 2^level
+            // every even block is lower, every odd block is upper (0-based)
+            // we consider connected components inside the blocks and
+            // cut edges between an even block and its following odd block
+            OperationScopeGuard guard{"level" + std::to_string(level), exec};
+            // first compute connected components of all edges inside the blocks
+            // these edges have at most level - 1
+            find_connected_components(level);
+            // then we find the smallest node from an odd block adjacent to each
+            // even block's connected component with cut edges at level
+            find_min_cut_neighbors(level);
+            // then we add fill edges and tree edges with this information
+            add_fill_and_tree_edges(level);
+            // and insert the new fill edges sorted according to their level
+            // additionally, we throw away all edges at level or higher
+            bucket_sort_fill_edges(level);
+            // finally we swap the double buffer
+            output_to_input();
+        }
+        // bottom-up add edges to assemble the tree
+        reset_connected_components();
+        for (int level = 0; level < num_levels; level++) {
+            OperationScopeGuard guard{"tree_level" + std::to_string(level),
+                                      exec};
+            // first reconstruct the cut edge minima from the tree edges
+            find_tree_min_cut_neighbors(level);
+            // for every CC in this level, update using cc_min's level
+            update_tree_node_levels(level);
+            // before actually connecting the CCs, add the size of each lower CC
+            // to its upper CC if they are getting connected
+            update_cc_sizes(level);
+            // build connected components with the tree edges from this level
+            // to advance to the next level
+            find_tree_connected_components(level);
+        }
+    }
+
+    std::shared_ptr<const DefaultExecutor> exec;
+    IndexType num_nodes;
+    IndexType edge_capacity;
+    int num_levels;
+    int num_threads;
+    IndexType ceil_num_nodes;
+    IndexType tree_counter;
+    combined_workspace<IndexType> workspace;
+    std::array<IndexType, num_buckets + 1> bucket_ranges;
+    std::array<IndexType, num_buckets + 1> tree_ranges;
+    bool flip;
+    IndexType* tree_levels;
+};
+
+
+template <typename IndexType>
+void compute(std::shared_ptr<const DefaultExecutor> exec,
+             const IndexType* row_ptrs, const IndexType* cols, size_type usize,
+             gko::factorization::elimination_forest<IndexType>& forest)
+{
+    using unsigned_type = std::make_unsigned_t<IndexType>;
+    const auto size = static_cast<IndexType>(usize);
+    auto [targets, sources] =
+        extract_lower_triangular(exec, row_ptrs, cols, size);
+    const auto num_edges = static_cast<IndexType>(sources.get_size());
+    elimination_forest_algorithm_state<IndexType> state{
+        exec, size, num_edges, forest.levels.get_data()};
+    state.init(sources, targets);
+    state.run();
+    auto num_tree_edges = state.tree_counter;
     const auto parents = forest.parents.get_data();
-    std::fill_n(parents, ssize, ssize);
-    for (auto tree_edge : tree_edges) {
-        assert(parents[tree_edge.first] == ssize);
-        parents[tree_edge.first] = tree_edge.second;
+    const auto srcs = state.tree_sources();
+    const auto tgts = state.tree_targets();
+    components::fill_array(exec, parents, static_cast<size_type>(size), size);
+#pragma omp parallel for
+    for (IndexType i = 0; i < num_tree_edges; i++) {
+        parents[srcs[i]] = tgts[i];
     }
 }
 
