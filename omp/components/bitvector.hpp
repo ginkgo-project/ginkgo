@@ -80,8 +80,8 @@ from_sorted_indices(
 #pragma omp parallel num_threads(num_threads)
     {
         const auto tid = omp_get_thread_num();
-        const auto begin = std::min(tid * work_per_thread, count);
-        const auto end = std::min(begin + work_per_thread, count);
+        const auto begin = std::min<index_type>(tid * work_per_thread, count);
+        const auto end = std::min<index_type>(begin + work_per_thread, count);
         if (begin < end) {
             const auto first_block = it[begin] / block_size;
             const auto last_block = it[end - 1] / block_size;
