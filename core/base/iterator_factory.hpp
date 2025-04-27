@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -702,6 +702,145 @@ permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
 {
     return permute_iterator<IteratorType, PermutationFn>{std::move(it),
                                                          std::move(perm)};
+}
+
+
+/**
+ * A transform_iterator is a read-only iterator that wraps an existing iterator
+ * and applies a transformation to that iterator's value before returning it on
+ * dereference.
+ */
+template <typename IteratorType, typename TransformFn>
+class transform_iterator {
+public:
+    using difference_type =
+        typename std::iterator_traits<IteratorType>::difference_type;
+    using value_type = decltype(std::declval<TransformFn>()(
+        std::declval<
+            typename std::iterator_traits<IteratorType>::reference>()));
+    using pointer = value_type*;
+    using reference = value_type&;
+    using iterator_category = std::random_access_iterator_tag;
+
+    constexpr transform_iterator() = default;
+
+    constexpr explicit transform_iterator(IteratorType it,
+                                          TransformFn transform)
+        : it_{std::move(it)}, transform_{std::move(transform)}
+    {}
+
+    constexpr transform_iterator& operator+=(difference_type i)
+    {
+        it_ += i;
+        return *this;
+    }
+
+    constexpr transform_iterator& operator-=(difference_type i)
+    {
+        it_ -= i;
+        return *this;
+    }
+
+    constexpr transform_iterator& operator++()
+    {
+        it_++;
+        return *this;
+    }
+
+    constexpr transform_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    constexpr transform_iterator& operator--()
+    {
+        it_--;
+        return *this;
+    }
+
+    constexpr transform_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    constexpr transform_iterator operator+(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp += i;
+        return tmp;
+    }
+
+    constexpr friend transform_iterator operator+(
+        difference_type i, const transform_iterator& iter)
+    {
+        return iter + i;
+    }
+
+    constexpr transform_iterator operator-(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp -= i;
+        return tmp;
+    }
+
+    constexpr difference_type operator-(const transform_iterator& other) const
+    {
+        return this->it_ - other.it_;
+    }
+
+    constexpr value_type operator*() const { return transform_(*it_); }
+
+    constexpr value_type operator[](difference_type i) const
+    {
+        return *(*this + i);
+    }
+
+    constexpr bool operator==(const transform_iterator& other) const
+    {
+        return this->it_ == other.it_;
+    }
+
+    constexpr bool operator!=(const transform_iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    constexpr bool operator<(const transform_iterator& other) const
+    {
+        return this->it_ < other.it_;
+    }
+
+    constexpr bool operator<=(const transform_iterator& other) const
+    {
+        return this->it_ <= other.it_;
+    }
+
+    constexpr bool operator>(const transform_iterator& other) const
+    {
+        return !(*this <= other);
+    }
+
+    constexpr bool operator>=(const transform_iterator& other) const
+    {
+        return !(*this < other);
+    }
+
+private:
+    IteratorType it_;
+    copy_assignable<TransformFn> transform_;
+};
+
+
+template <typename IteratorType, typename TransformFn>
+transform_iterator<IteratorType, TransformFn> make_transform_iterator(
+    IteratorType it, TransformFn transform)
+{
+    return transform_iterator<IteratorType, TransformFn>{std::move(it),
+                                                         std::move(transform)};
 }
 
 
