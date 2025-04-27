@@ -13,6 +13,7 @@
 #include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/components/combined_workspace.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -42,11 +43,19 @@ void sort_edges(std::shared_ptr<const DefaultExecutor> exec, IndexType* sources,
 // doi: 10.1145/3581784.3607093
 template <typename IndexType>
 struct mst_state {
-    static size_type storage_requirement(IndexType num_nodes,
-                                         IndexType num_edges)
+    static std::vector<size_type> storage_sizes(size_type num_nodes,
+                                                size_type num_edges)
     {
-        return 6 * static_cast<size_type>(num_edges) +
-               2 * static_cast<size_type>(num_nodes);
+        return {
+            num_edges,  // in/out_sources
+            num_edges,  // in/out_targets
+            num_edges,  // in/out_edge_ids
+            num_edges,  // out/in_sources
+            num_edges,  // out/in_targets
+            num_edges,  // out/in_edge_ids
+            num_nodes,  // min_edges
+            num_nodes   // parents
+        };
     }
 
     mst_state(std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
@@ -61,45 +70,59 @@ struct mst_state {
           counter2_{},
           input_sources_{input_sources},
           input_targets_{input_targets},
-          work_array_{exec, storage_requirement(num_nodes, num_edges)},
+          workspace_{exec, storage_sizes(num_nodes, num_edges)},
           tree_sources_{tree_sources},
           tree_targets_{tree_targets},
           flip_{}
     {
-        reset(input_sources, input_targets_, num_edges_);
+        tree_counter() = 0;
+        output_counter() = 0;
+        components::fill_array(exec_, min_edges(),
+                               static_cast<size_type>(num_nodes_),
+                               min_edge_sentinel);
+        components::fill_seq_array(exec_, parents(),
+                                   static_cast<size_type>(num_nodes_));
+        exec_->copy(num_edges_, input_sources_, output_wl_sources());
+        exec_->copy(num_edges_, input_targets_, output_wl_targets());
+        components::fill_seq_array(exec_, output_wl_edge_ids(),
+                                   static_cast<size_type>(num_edges_));
+        output_counter() = num_edges_;
+        output_to_input();
     }
 
-    const IndexType* input_worklist()
+    const IndexType* input_wl_sources()
     {
-        return work_array_.get_const_data() + (flip_ ? 3 * num_edges_ : 0);
+        return workspace_.get_pointer(flip_ ? 3 : 0);
     }
-
-    IndexType* output_worklist()
-    {
-        return work_array_.get_data() + (flip_ ? 0 : 3 * num_edges_);
-    }
-
-    const IndexType* input_wl_sources() { return input_worklist(); }
 
     const IndexType* input_wl_targets()
     {
-        return input_wl_sources() + num_edges_;
+        return workspace_.get_pointer(flip_ ? 4 : 1);
     }
 
     const IndexType* input_wl_edge_ids()
     {
-        return input_wl_targets() + num_edges_;
+        return workspace_.get_pointer(flip_ ? 5 : 2);
     }
 
-    IndexType* output_wl_sources() { return output_worklist(); }
+    IndexType* output_wl_sources()
+    {
+        return workspace_.get_pointer(flip_ ? 0 : 3);
+    }
 
-    IndexType* output_wl_targets() { return output_wl_sources() + num_edges_; }
+    IndexType* output_wl_targets()
+    {
+        return workspace_.get_pointer(flip_ ? 1 : 4);
+    }
 
-    IndexType* output_wl_edge_ids() { return output_wl_targets() + num_edges_; }
+    IndexType* output_wl_edge_ids()
+    {
+        return workspace_.get_pointer(flip_ ? 2 : 5);
+    }
 
-    IndexType* parents() { return work_array_.get_data() + 6 * num_edges_; }
+    IndexType* parents() { return workspace_.get_pointer(6); }
 
-    IndexType* min_edges() { return parents() + num_nodes_; }
+    IndexType* min_edges() { return workspace_.get_pointer(7); }
 
     IndexType& tree_counter() { return tree_counter_; }
 
@@ -116,31 +139,6 @@ struct mst_state {
     IndexType input_size() { return input_counter(); }
 
     IndexType tree_size() { return tree_counter(); }
-
-    void reset(IndexType* new_input_sources, IndexType* new_input_targets,
-               IndexType new_num_edges)
-    {
-        if (new_num_edges > num_edges_) {
-            num_edges_ = new_num_edges;
-            work_array_.resize_and_reset(
-                storage_requirement(num_nodes_, num_edges_));
-        }
-        input_sources_ = new_input_sources;
-        input_targets_ = new_input_targets;
-        tree_counter() = 0;
-        output_counter() = 0;
-        components::fill_array(exec_, min_edges(),
-                               static_cast<size_type>(num_nodes_),
-                               min_edge_sentinel);
-        components::fill_seq_array(exec_, parents(),
-                                   static_cast<size_type>(num_nodes_));
-        exec_->copy(num_edges_, input_sources_, output_wl_sources());
-        exec_->copy(num_edges_, input_targets_, output_wl_targets());
-        components::fill_seq_array(exec_, output_wl_edge_ids(),
-                                   static_cast<size_type>(num_edges_));
-        output_counter() = num_edges_;
-        output_to_input();
-    }
 
     void find_min_edges()
     {
@@ -244,7 +242,7 @@ struct mst_state {
     IndexType* input_targets_;
     IndexType* tree_sources_;
     IndexType* tree_targets_;
-    array<IndexType> work_array_;
+    combined_workspace<IndexType> workspace_;
     bool flip_;
 };
 

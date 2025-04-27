@@ -447,13 +447,6 @@ struct mst_state {
         };
     }
 
-    static size_type storage_requirement(size_type num_nodes,
-                                         size_type num_edges)
-    {
-        return combined_workspace<IndexType>::get_total_size(
-            storage_sizes(num_nodes, num_edges));
-    }
-
     mst_state(std::shared_ptr<const DefaultExecutor> exec, size_type num_nodes,
               size_type num_edges, IndexType* input_sources,
               IndexType* input_targets, IndexType* tree_sources,
