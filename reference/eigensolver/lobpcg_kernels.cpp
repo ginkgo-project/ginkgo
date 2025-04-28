@@ -4,6 +4,7 @@
 
 #include "core/eigensolver/lobpcg_kernels.hpp"
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "reference/base/blas_bindings.hpp"
@@ -65,6 +66,16 @@ void symm_eig(std::shared_ptr<const ReferenceExecutor> exec,
                       e_vals->get_data(), work, &fp_buffer_num_elems, iwork,
                       &int_buffer_num_elems);
     } else {  // Complex data type
+
+        // LAPACK expects column-major data, so we need to take the conjugate
+        // of the input matrix (same as performing A = A^T)
+        ValueType* data = a->get_values();
+        for (int32 row = 0; row < n; ++row) {
+            for (int32 col = 0; col < n; ++col) {
+                data[row * lda + col] = conj(data[row * lda + col]);
+            }
+        }
+
         int32 fp_buffer_num_elems;
         int32 rfp_buffer_num_elems;
         int32 int_buffer_num_elems;
@@ -151,6 +162,18 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
                       b->get_values(), &ldb, e_vals->get_data(), work,
                       &fp_buffer_num_elems, iwork, &int_buffer_num_elems);
     } else {  // Complex data type
+
+        // LAPACK expects column-major data, so we need to take the conjugate
+        // of the input matrices (same as performing A = A^T)
+        ValueType* a_data = a->get_values();
+        ValueType* b_data = b->get_values();
+        for (int32 row = 0; row < n; ++row) {
+            for (int32 col = 0; col < n; ++col) {
+                a_data[row * lda + col] = conj(a_data[row * lda + col]);
+                b_data[row * lda + col] = conj(b_data[row * lda + col]);
+            }
+        }
+
         int32 fp_buffer_num_elems;
         int32 rfp_buffer_num_elems;
         int32 int_buffer_num_elems;
