@@ -687,9 +687,22 @@ struct elimination_forest_algorithm_state {
         const auto tree_edges = get_tree_edge_range(level);
         const auto srcs = tree_sources.get();
         const auto tgts = tree_targets.get();
-        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
-        foreach_tree_edge_in_range(tree_edges, [&sets](auto src, auto tgt) {
-            sets.join(sets.find_weak(src), sets.find_weak(tgt));
+        const auto parents = cc_parents();
+        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
+            assert((src & (IndexType{1} << level)) == 0);
+            assert((tgt & (IndexType{1} << level)) != 0);
+            // src must be the CC representative
+            assert(parents[src] == src);
+            // parents should be path-compressed
+            assert(parents[parents[tgt]] == parents[tgt]);
+            // add the CC of src to the CC of tgt
+            parents[src] = parents[tgt];
+        });
+        foreach_lower_node(level, [&](auto i) {
+            assert((i & (IndexType{1} << level)) == 0);
+            parents[i] = parents[parents[i]];
+            // the path should now be fully compressed
+            assert(parents[parents[i]] == parents[i]);
         });
     }
 
@@ -699,12 +712,12 @@ struct elimination_forest_algorithm_state {
         const auto levels = tree_levels;
         const auto* parents = cc_parents();
         const auto* mins = cc_mins();
-        device_disjoint_sets<const IndexType> sets{parents, num_nodes};
         foreach_lower_node(level, [&](IndexType i) {
             const auto min_sentinel = num_nodes;
             // for every node in a CC that gets connected to an upper node,
             // update the level using that upper node's level
-            const auto rep = sets.find_weak(i);
+            assert(parents[parents[i]] == parents[i]);
+            const auto rep = parents[i];
             const auto min = mins[rep];
             if (min < min_sentinel) {
                 levels[i] += levels[min] + 1;
@@ -719,12 +732,11 @@ struct elimination_forest_algorithm_state {
         const auto* parents = cc_parents();
         const auto* mins = cc_mins();
         const auto tree_edges = get_tree_edge_range(level);
-        device_disjoint_sets<const IndexType> sets{parents, num_nodes};
-        foreach_tree_edge_in_range(
-            tree_edges, [sets, mins, sizes](auto lower, auto upper) {
-                const auto upper_rep = sets.find_weak(upper);
-                atomic_add(sizes[upper_rep], sizes[lower]);
-            });
+        foreach_tree_edge_in_range(tree_edges, [&](auto lower, auto upper) {
+            assert(parents[parents[upper]] == parents[upper]);
+            auto upper_rep = parents[upper];
+            atomic_add(sizes[upper_rep], sizes[lower]);
+        });
     }
 
     void find_tree_min_cut_neighbors(int level)
