@@ -90,11 +90,6 @@ TYPED_TEST(Lobpcg, KernelSymmEig)
 
     if constexpr (gko::is_complex_s<value_type>::value) {
         small_a_copy = gko::clone(this->small_a_cmplx);
-        // The kernel expects column-major, so transpose the matrices
-        auto small_a_t =
-            gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
-        this->small_a_cmplx = small_a_t;
-
         small_a = this->small_a_cmplx;
     } else {
         small_a_copy = gko::clone(this->small_a_r);
@@ -104,9 +99,9 @@ TYPED_TEST(Lobpcg, KernelSymmEig)
     gko::kernels::reference::lobpcg::symm_eig(this->exec, small_a.get(),
                                               &(this->small_e_vals), &work);
 
-    // On exit, the eigenvectors will be stored in the A
-    // matrix. We create submatrices for the vectors
-    // to check that A * x = lambda * x for each vector.
+    // On exit, the eigenvectors will be stored in the rows of the A matrix.
+    // We create submatrices for the vectors to check that A * x = lambda * x
+    // for each vector.
     for (gko::size_type i = 0; i < this->small_e_vals.get_size(); i++) {
         auto evec = gko::share(Mtx::create(
             this->exec, gko::dim<2>{this->small_e_vals.get_size(), 1},
@@ -149,21 +144,14 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     auto work = gko::array<char>(this->exec, 1);
     std::shared_ptr<Mtx> small_a;
     std::shared_ptr<Mtx> small_b;
-
+    // Both A and B will be overwritten by the LAPACK call; store copies for
+    // the final check.
     std::shared_ptr<Mtx> small_a_copy;
     std::shared_ptr<Mtx> small_b_copy;
 
     if constexpr (gko::is_complex_s<value_type>::value) {
         small_a_copy = gko::clone(this->small_a_cmplx);
         small_b_copy = gko::clone(this->small_b_cmplx);
-        // The kernel expects column-major, so transpose the matrices
-        auto small_a_t =
-            gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
-        auto small_b_t =
-            gko::share(gko::as<Mtx>(this->small_b_cmplx->transpose()));
-        this->small_a_cmplx = small_a_t;
-        this->small_b_cmplx = small_b_t;
-
         small_a = this->small_a_cmplx;
         small_b = this->small_b_cmplx;
     } else {
@@ -176,9 +164,9 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     gko::kernels::reference::lobpcg::symm_generalized_eig(
         this->exec, small_a.get(), small_b.get(), &(this->small_e_vals), &work);
 
-    // On exit, the eigenvectors will be stored in the A
-    // matrix. We create submatrices for the vectors
-    // to check that A * x = lambda * B * x for each vector.
+    // On exit, the eigenvectors will be stored in the rows of the A matrix.
+    // We create submatrices for the vectors to check that
+    // A * x = lambda * B * x for each vector.
     for (gko::size_type i = 0; i < this->small_e_vals.get_size(); i++) {
         auto evec = gko::share(Mtx::create(
             this->exec, gko::dim<2>{this->small_e_vals.get_size(), 1},
@@ -196,7 +184,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
         } else {
             lambda = lambda_r;
         }
-        // A*x = lambda * B * x;
+        // A * x = lambda * B * x;
         auto a_x = Mtx::create(this->exec,
                                gko::dim<2>{this->small_e_vals.get_size(), 1});
         auto lambda_b_x = Mtx::create(

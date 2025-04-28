@@ -6,6 +6,7 @@
 
 #include <limits>
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "common/cuda_hip/base/blas_bindings.hpp"
@@ -26,6 +27,36 @@ constexpr int default_block_size = 512;
 
 
 namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void matrix_conj(
+    const int32 n, ValueType* a, const int32 a_stride)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / n;
+    const auto col = tidx % n;
+    const ValueType zero = gko::zero<ValueType>();
+    if (row < n && col < n) {
+        a[row * a_stride + col] = conj(a[row * a_stride + col]);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void two_matrix_conj(
+    const int32 n, ValueType* a, const int32 a_stride, ValueType* b,
+    const int32 b_stride)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / n;
+    const auto col = tidx % n;
+    const ValueType zero = gko::zero<ValueType>();
+    if (row < n && col < n) {
+        a[row * a_stride + col] = conj(a[row * a_stride + col]);
+        b[row * b_stride + col] = conj(b[row * b_stride + col]);
+    }
+}
 
 
 template <typename ValueType>
@@ -64,8 +95,19 @@ void symm_eig(std::shared_ptr<const DefaultExecutor> exec,
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
-    int32 n = static_cast<int32>(a->get_size()[1]);  // column-major
+    int32 n = static_cast<int32>(a->get_size()[0]);
     int32 lda = static_cast<int32>(a->get_stride());
+    // The dev_lapack routine expects column-major data, so we take the
+    // conjugate to perform A = A^T.
+    if constexpr (gko::is_complex_s<ValueType>::value) {
+        const auto grid_dim = ceildiv(n * n, default_block_size);
+        if (grid_dim > 0) {
+            kernel::matrix_conj<<<grid_dim, default_block_size, 0,
+                                  exec->get_stream()>>>(
+                n, as_device_type(a->get_values()), lda);
+        }
+    }
+
     int32 fp_buffer_num_elems;
     dev_lapack::syevd_buffersize(handle, LAPACK_EIG_VECTOR, LAPACK_FILL_LOWER,
                                  n, a->get_values(), lda, e_vals->get_data(),
@@ -119,9 +161,22 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
-    int32 n = static_cast<int32>(a->get_size()[1]);  // column-major
+
+    int32 n = static_cast<int32>(a->get_size()[0]);
     int32 lda = static_cast<int32>(a->get_stride());
     int32 ldb = static_cast<int32>(b->get_stride());
+    // The dev_lapack routine expects column-major data, so we take the
+    // conjugate to perform A = A^T.
+    if constexpr (gko::is_complex_s<ValueType>::value) {
+        const auto grid_dim = ceildiv(n * n, default_block_size);
+        if (grid_dim > 0) {
+            kernel::two_matrix_conj<<<grid_dim, default_block_size, 0,
+                                      exec->get_stream()>>>(
+                n, as_device_type(a->get_values()), lda,
+                as_device_type(b->get_values()), ldb);
+        }
+    }
+
     int32 fp_buffer_num_elems;
     dev_lapack::sygvd_buffersize(handle, LAPACK_EIG_TYPE_1, LAPACK_EIG_VECTOR,
                                  LAPACK_FILL_LOWER, n, a->get_values(), lda,

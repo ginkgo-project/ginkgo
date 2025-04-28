@@ -101,21 +101,10 @@ TYPED_TEST(Lobpcg, KernelSymmEigIsEquivalentToRef)
     auto refwork = gko::array<char>(this->ref, 1);
     auto d_work = gko::array<char>(this->exec, 1);
 
-    std::shared_ptr<Mtx> d_small_a_copy;
-
     if constexpr (gko::is_complex_s<value_type>::value) {
-        auto small_a_t =
-            gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
-        this->small_a_cmplx = small_a_t;
         this->small_a = this->small_a_cmplx;
-
-        d_small_a_copy = gko::clone(this->d_small_a_cmplx);
-        auto d_small_a_t =
-            gko::share(gko::as<Mtx>(this->d_small_a_cmplx->transpose()));
-        this->d_small_a_cmplx = d_small_a_t;
         this->d_small_a = this->d_small_a_cmplx;
     } else {
-        d_small_a_copy = gko::clone(this->d_small_a_r);
         this->small_a = this->small_a_r;
         this->d_small_a = this->d_small_a_r;
     }
@@ -171,35 +160,12 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
     auto refwork = gko::array<char>(this->ref, 1);
     auto d_work = gko::array<char>(this->exec, 1);
 
-    std::shared_ptr<Mtx> d_small_a_copy;
-    std::shared_ptr<Mtx> d_small_b_copy;
-
     if constexpr (gko::is_complex_s<value_type>::value) {
-        auto small_a_t =
-            gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
-        auto small_b_t =
-            gko::share(gko::as<Mtx>(this->small_b_cmplx->transpose()));
-        this->small_a_cmplx = small_a_t;
-        this->small_b_cmplx = small_b_t;
-
         this->small_a = this->small_a_cmplx;
         this->small_b = this->small_b_cmplx;
-
-
-        d_small_a_copy = gko::clone(this->d_small_a_cmplx);
-        d_small_b_copy = gko::clone(this->d_small_b_cmplx);
-        auto d_small_a_t =
-            gko::share(gko::as<Mtx>(this->d_small_a_cmplx->transpose()));
-        auto d_small_b_t =
-            gko::share(gko::as<Mtx>(this->d_small_b_cmplx->transpose()));
-        this->d_small_a_cmplx = d_small_a_t;
-        this->d_small_b_cmplx = d_small_b_t;
-
         this->d_small_a = this->d_small_a_cmplx;
         this->d_small_b = this->d_small_b_cmplx;
     } else {
-        d_small_a_copy = gko::clone(this->d_small_a_r);
-        d_small_b_copy = gko::clone(this->d_small_b_r);
         this->small_a = this->small_a_r;
         this->small_b = this->small_b_r;
         this->d_small_a = this->d_small_a_r;
