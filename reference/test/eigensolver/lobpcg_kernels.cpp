@@ -10,7 +10,9 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/test/utils.hpp"
 #include "reference/base/lapack_bindings.hpp"
@@ -88,7 +90,7 @@ TYPED_TEST(Lobpcg, KernelSymmEig)
 
     if constexpr (gko::is_complex_s<value_type>::value) {
         small_a_copy = gko::clone(this->small_a_cmplx);
-        // LAPACK expects column-major, so transpose the matrices
+        // The kernel expects column-major, so transpose the matrices
         auto small_a_t =
             gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
         this->small_a_cmplx = small_a_t;
@@ -154,7 +156,7 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
     if constexpr (gko::is_complex_s<value_type>::value) {
         small_a_copy = gko::clone(this->small_a_cmplx);
         small_b_copy = gko::clone(this->small_b_cmplx);
-        // LAPACK expects column-major, so transpose the matrices
+        // The kernel expects column-major, so transpose the matrices
         auto small_a_t =
             gko::share(gko::as<Mtx>(this->small_a_cmplx->transpose()));
         auto small_b_t =
@@ -208,4 +210,66 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEig)
 
         GKO_ASSERT_MTX_NEAR(a_x, lambda_b_x, r<value_type>::value);
     }
+}
+
+
+TYPED_TEST(Lobpcg, KernelBOrthonormalize)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using CsrMtx = gko::matrix::Csr<value_type, std::int32_t>;
+
+    auto work = gko::array<char>(this->exec, 1);
+    std::shared_ptr<Mtx> small_a;
+    // Test with two kinds of B operator: Identity, and a Csr matrix
+    auto id = gko::matrix::Identity<value_type>::create(
+        this->exec, this->small_a_r->get_size()[0]);
+    std::shared_ptr<CsrMtx> small_b_csr =
+        gko::share(CsrMtx::create(this->exec, this->small_a_r->get_size()));
+    // Create rectangular submatrix for testing
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = this->small_a_cmplx->create_submatrix(
+            gko::span{0, this->small_a_cmplx->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->small_b_cmplx->convert_to(small_b_csr);
+    } else {
+        small_a = this->small_a_r->create_submatrix(
+            gko::span{0, this->small_a_r->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->small_b_r->convert_to(small_b_csr);
+    }
+    auto small_a_copy = gko::clone(small_a);
+
+    // First, test with Identity operator as B
+    gko::kernels::reference::lobpcg::b_orthonormalize(this->exec, small_a.get(),
+                                                      id.get(), &work);
+    // On exit, small_a should now be orthonormalized,
+    // i.e., small_a^H * small_a = I.
+    auto aH_a = Mtx::create(this->exec, gko::dim<2>{small_a->get_size()[1],
+                                                    small_a->get_size()[1]});
+    auto after_ortho_H = gko::as<Mtx>(small_a->conj_transpose());
+    after_ortho_H->apply(small_a, aH_a);
+    // Check if applying aH_a to the orthonormalized a^H leaves it unchanged
+    auto result = Mtx::create(this->exec, after_ortho_H->get_size());
+    aH_a->apply(after_ortho_H, result);
+    GKO_ASSERT_MTX_NEAR(result, after_ortho_H, r<value_type>::value);
+
+    // Now, test with Csr matrix operator as B
+    gko::kernels::reference::lobpcg::b_orthonormalize(
+        this->exec, small_a_copy.get(), small_b_csr.get(), &work);
+    // On exit, small_a_copy should now be B-orthonormalized,
+    // i.e., small_a_copy^H * small_b_csr * small_a_copy = I.
+    auto b_a = Mtx::create(
+        this->exec,
+        gko::dim<2>{small_b_csr->get_size()[0], small_a_copy->get_size()[1]});
+    small_b_csr->apply(small_a_copy, b_a);
+    auto aH_b_a = Mtx::create(
+        this->exec,
+        gko::dim<2>{small_a_copy->get_size()[1], small_a_copy->get_size()[1]});
+    auto after_b_ortho_H = gko::as<Mtx>(small_a_copy->conj_transpose());
+    after_b_ortho_H->apply(b_a, aH_b_a);
+    // Check if applying aH_b_a to the B-orthonormalized a^H leaves it unchanged
+    result = Mtx::create(this->exec, after_b_ortho_H->get_size());
+    aH_b_a->apply(after_b_ortho_H, result);
+    GKO_ASSERT_MTX_NEAR(result, after_b_ortho_H, r<value_type>::value);
 }

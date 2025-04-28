@@ -114,6 +114,32 @@ GKO_BIND_CUBLAS_GEAM(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_GEAM
 
 
+#define GKO_BIND_CUBLAS_TRMM(ValueType, CublasName)                          \
+    inline void trmm(cublasHandle_t handle, cublasSideMode_t side,           \
+                     cublasFillMode_t uplo, cublasOperation_t trans,         \
+                     cublasDiagType_t diag, int m, int n,                    \
+                     const ValueType* alpha, const ValueType* a, int lda,    \
+                     const ValueType* b, int ldb, ValueType* c, int ldc)     \
+    {                                                                        \
+        GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
+            CublasName(handle, side, uplo, trans, diag, m, n,                \
+                       as_culibs_type(alpha), as_culibs_type(a), lda,        \
+                       as_culibs_type(b), ldb, as_culibs_type(c), ldc));     \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUBLAS_TRMM(float, cublasStrmm);
+GKO_BIND_CUBLAS_TRMM(double, cublasDtrmm);
+GKO_BIND_CUBLAS_TRMM(std::complex<float>, cublasCtrmm);
+GKO_BIND_CUBLAS_TRMM(std::complex<double>, cublasZtrmm);
+template <typename ValueType>
+GKO_BIND_CUBLAS_TRMM(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUBLAS_TRMM
+
+
 #define GKO_BIND_CUBLAS_SCAL(ValueType, CublasName)                          \
     inline void scal(cublasHandle_t handle, int n, const ValueType* alpha,   \
                      ValueType* x, int incx)                                 \
@@ -236,6 +262,12 @@ using namespace cublas;
 #define BLAS_OP_N CUBLAS_OP_N
 #define BLAS_OP_T CUBLAS_OP_T
 #define BLAS_OP_C CUBLAS_OP_C
+
+#define BLAS_SIDE_LEFT CUBLAS_SIDE_LEFT
+#define BLAS_SIDE_RIGHT CUBLAS_SIDE_RIGHT
+
+#define BLAS_DIAG_UNIT CUBLAS_DIAG_UNIT
+#define BLAS_DIAG_NONUNIT CUBLAS_DIAG_NON_UNIT
 
 
 }  // namespace blas

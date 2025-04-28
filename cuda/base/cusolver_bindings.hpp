@@ -160,6 +160,76 @@ GKO_BIND_CUSOLVER_SYGVD(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSOLVER_SYGVD
 
 
+#define GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(ValueType, CusolverName)            \
+    inline void potrf_buffersize(cusolverDnHandle_t handle,                    \
+                                 cublasFillMode_t uplo, int32 n, ValueType* a, \
+                                 int32 lda, int32* buffer_num_elems)           \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSOLVER_ERRORS(CusolverName(                            \
+            handle, uplo, n, as_culibs_type(a), lda, buffer_num_elems));       \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(float, cusolverDnSpotrf_bufferSize);
+GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(double, cusolverDnDpotrf_bufferSize);
+GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(std::complex<float>,
+                                   cusolverDnCpotrf_bufferSize);
+GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(std::complex<double>,
+                                   cusolverDnZpotrf_bufferSize);
+template <typename ValueType>
+GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUSOLVER_POTRF_BUFFERSIZE
+
+
+#define GKO_BIND_CUSOLVER_POTRF(ValueType, CusolverName)                     \
+    inline void potrf(cusolverDnHandle_t handle, cublasFillMode_t uplo,      \
+                      int32 n, ValueType* a, int32 lda, ValueType* work,     \
+                      int32 buffer_num_elems, int32* dev_info)               \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSOLVER_ERRORS(                                       \
+            CusolverName(handle, uplo, n, as_culibs_type(a), lda,            \
+                         as_culibs_type(work), buffer_num_elems, dev_info)); \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSOLVER_POTRF(float, cusolverDnSpotrf);
+GKO_BIND_CUSOLVER_POTRF(double, cusolverDnDpotrf);
+GKO_BIND_CUSOLVER_POTRF(std::complex<float>, cusolverDnCpotrf);
+GKO_BIND_CUSOLVER_POTRF(std::complex<double>, cusolverDnZpotrf);
+template <typename ValueType>
+GKO_BIND_CUSOLVER_POTRF(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUSOLVER_POTRF
+
+
+#define GKO_BIND_CUSOLVER_POTRS(ValueType, CusolverName)                     \
+    inline void potrs(cusolverDnHandle_t handle, cublasFillMode_t uplo,      \
+                      int32 n, int32 nrhs, ValueType* a, int32 lda,          \
+                      ValueType* b, int32 ldb, int32* dev_info)              \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSOLVER_ERRORS(                                       \
+            CusolverName(handle, uplo, n, nrhs, as_culibs_type(a), lda,      \
+                         as_culibs_type(b), ldb, dev_info));                 \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSOLVER_POTRS(float, cusolverDnSpotrs);
+GKO_BIND_CUSOLVER_POTRS(double, cusolverDnDpotrs);
+GKO_BIND_CUSOLVER_POTRS(std::complex<float>, cusolverDnCpotrs);
+GKO_BIND_CUSOLVER_POTRS(std::complex<double>, cusolverDnZpotrs);
+template <typename ValueType>
+GKO_BIND_CUSOLVER_POTRS(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_CUSOLVER_POTRS
+
+
 }  // namespace cusolver
 
 

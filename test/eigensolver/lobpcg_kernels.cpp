@@ -10,7 +10,9 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -19,6 +21,7 @@
 template <typename ValueType>
 class Lobpcg : public CommonTestFixture {
 protected:
+    using value_type = ValueType;
     using rc_value_type = gko::remove_complex<value_type>;
     using cmplx_value_type = gko::to_complex<rc_value_type>;
     using Mtx_r = gko::matrix::Dense<rc_value_type>;
@@ -242,4 +245,64 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigIsEquivalentToRef)
         }
     }
     GKO_ASSERT_MTX_NEAR(this->d_small_a, this->small_a, tol);
+}
+
+
+TYPED_TEST(Lobpcg, KernelBOrthonormalizeIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using CsrMtx = gko::matrix::Csr<value_type, std::int32_t>;
+
+    auto refwork = gko::array<char>(this->ref, 1);
+    auto d_work = gko::array<char>(this->exec, 1);
+
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> d_small_a;
+
+    // Test with two kinds of B operator: Identity, and a Csr matrix
+    auto id = gko::matrix::Identity<value_type>::create(
+        this->ref, this->small_a_r->get_size()[0]);
+    auto d_id = gko::matrix::Identity<value_type>::create(
+        this->exec, this->small_a_r->get_size()[0]);
+    std::shared_ptr<CsrMtx> small_b_csr =
+        gko::share(CsrMtx::create(this->ref, this->small_a_r->get_size()));
+    std::shared_ptr<CsrMtx> d_small_b_csr =
+        gko::share(CsrMtx::create(this->exec, this->small_a_r->get_size()));
+    // Create rectangular submatrix for testing
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = this->small_a_cmplx->create_submatrix(
+            gko::span{0, this->small_a_cmplx->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->small_b_cmplx->convert_to(small_b_csr);
+        d_small_a = this->d_small_a_cmplx->create_submatrix(
+            gko::span{0, this->d_small_a_cmplx->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->d_small_b_cmplx->convert_to(d_small_b_csr);
+    } else {
+        small_a = this->small_a_r->create_submatrix(
+            gko::span{0, this->small_a_r->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->small_b_r->convert_to(small_b_csr);
+        d_small_a = this->d_small_a_r->create_submatrix(
+            gko::span{0, this->d_small_a_r->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        this->d_small_b_r->convert_to(d_small_b_csr);
+    }
+    auto small_a_copy = gko::clone(small_a);
+    auto d_small_a_copy = gko::clone(d_small_a);
+
+    // First, test with Identity operator as B
+    gko::kernels::reference::lobpcg::b_orthonormalize(this->ref, small_a.get(),
+                                                      id.get(), &refwork);
+    gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::b_orthonormalize(
+        this->exec, d_small_a.get(), d_id.get(), &d_work);
+    GKO_ASSERT_MTX_NEAR(small_a, d_small_a, r<value_type>::value);
+
+    // Now, test with Csr matrix operator as B
+    gko::kernels::reference::lobpcg::b_orthonormalize(
+        this->ref, small_a_copy.get(), small_b_csr.get(), &refwork);
+    gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::b_orthonormalize(
+        this->exec, d_small_a_copy.get(), d_small_b_csr.get(), &d_work);
+    GKO_ASSERT_MTX_NEAR(small_a_copy, d_small_a_copy, r<value_type>::value);
 }
