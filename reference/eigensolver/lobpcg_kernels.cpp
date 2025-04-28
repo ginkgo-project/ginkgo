@@ -6,6 +6,7 @@
 
 #include <ginkgo/core/base/types.hpp>
 
+#include "reference/base/blas_bindings.hpp"
 #include "reference/base/lapack_bindings.hpp"
 
 #if GKO_HAVE_LAPACK
@@ -36,7 +37,7 @@ void symm_eig(std::shared_ptr<const ReferenceExecutor> exec,
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
-    const int32 n = static_cast<int32>(a->get_size()[1]);  // column-major
+    const int32 n = static_cast<int32>(a->get_size()[0]);
     const int32 lda = static_cast<int32>(a->get_stride());
     const char job = LAPACK_EIG_VECTOR;
     const char uplo = LAPACK_FILL_LOWER;
@@ -119,7 +120,7 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
-    const int32 n = static_cast<int32>(a->get_size()[1]);  // column-major
+    const int32 n = static_cast<int32>(a->get_size()[0]);
     const int32 lda = static_cast<int32>(a->get_stride());
     const int32 ldb = static_cast<int32>(b->get_stride());
     const int32 itype = 1;
@@ -186,6 +187,61 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL);
+
+
+template <typename ValueType>
+void b_orthonormalize(std::shared_ptr<const ReferenceExecutor> exec,
+                      matrix::Dense<ValueType>* a, LinOp* b,
+                      array<char>* workspace)  // (unused; for [cu/hip]SOLVER)
+{
+    constexpr auto max = std::numeric_limits<int32>::max();
+    if (a->get_size()[0] > max) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(int32)));
+    }
+    if (a->get_stride() > max) {
+        throw OverflowError(__FILE__, __LINE__,
+                            name_demangling::get_type_name(typeid(int32)));
+    }
+    const int32 lda = static_cast<int32>(a->get_stride());
+
+    // Compute A^H * B * A
+    auto b_a = matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{b->get_size()[0], a->get_size()[1]});
+    b->apply(a, b_a);
+    auto aH_b_a = matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{a->get_size()[1], a->get_size()[1]});
+    gko::as<matrix::Dense<ValueType>>(a->conj_transpose())->apply(b_a, aH_b_a);
+
+    const int32 n = static_cast<int32>(aH_b_a->get_size()[0]);
+    const int32 ldaH_b_a = static_cast<int32>(aH_b_a->get_stride());
+
+    // Cholesky
+    // Since LAPACK expects column-major, on exit, we will have
+    // L such that LL^H = A^T, i.e., the complex conjugate of the
+    // lower Cholesky factor, in column-major order.
+    const char uplo = LAPACK_FILL_LOWER;
+    lapack::potrf(&uplo, &n, aH_b_a->get_values(), &ldaH_b_a);
+
+    // Invert the Cholesky factor: on exit, have conj(L)^{-1}
+    const char diag = LAPACK_DIAG_NONUNIT;
+    lapack::trtri(&uplo, &diag, &n, aH_b_a->get_values(), &ldaH_b_a);
+
+    // A = A * (L^{-1})^H
+    // Since A is seen by BLAS as column-major, the operation
+    // A^T_{ij} = M_{ik} A^T_{kj}, with M = conj(L)^{-1} (col-major),
+    // is equivalent to A_{ji} = A_{jk} M^T_{ki} =
+    // A = A * L^{-H} (in row-major order).
+    const char side = BLAS_SIDE_LEFT;
+    const ValueType alpha = gko::one<ValueType>();
+    const char transa = BLAS_OP_N;
+    const int32 m = static_cast<int32>(a->get_size()[0]);
+    // m & n swapped because of interpreting as col-major
+    blas::trmm(&side, &uplo, &transa, &diag, &n, &m, &alpha,
+               aH_b_a->get_const_values(), &ldaH_b_a, a->get_values(), &lda);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_LOBPCG_B_ORTHONORMALIZE_KERNEL);
 
 
 }  // namespace lobpcg

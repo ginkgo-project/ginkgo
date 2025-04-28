@@ -64,6 +64,36 @@ void zhegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
             const std::int32_t* ldb, double* w, std::complex<double>* work,
             std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+
+
+// Cholesky factorization
+void spotrf(const char* uplo, const std::int32_t* n, float* A,
+            const std::int32_t* lda, std::int32_t* info);
+
+void dpotrf(const char* uplo, const std::int32_t* n, double* A,
+            const std::int32_t* lda, std::int32_t* info);
+
+void cpotrf(const char* uplo, const std::int32_t* n, std::complex<float>* A,
+            const std::int32_t* lda, std::int32_t* info);
+
+void zpotrf(const char* uplo, const std::int32_t* n, std::complex<double>* A,
+            const std::int32_t* lda, std::int32_t* info);
+
+
+// Triangular matrix inverse
+void strtri(const char* uplo, const char* diag, const std::int32_t* n, float* A,
+            const std::int32_t* lda, std::int32_t* info);
+
+void dtrtri(const char* uplo, const char* diag, const std::int32_t* n,
+            double* A, const std::int32_t* lda, std::int32_t* info);
+
+void ctrtri(const char* uplo, const char* diag, const std::int32_t* n,
+            std::complex<float>* A, const std::int32_t* lda,
+            std::int32_t* info);
+
+void ztrtri(const char* uplo, const char* diag, const std::int32_t* n,
+            std::complex<double>* A, const std::int32_t* lda,
+            std::int32_t* info);
 }
 
 
@@ -364,11 +394,59 @@ inline void hegvd(const int32* itype, const char* jobz, const char* uplo,
 #undef GKO_BIND_HEGVD
 
 
+#define GKO_BIND_POTRF(ValueType, LapackName)                                  \
+    inline void potrf(const char* uplo, const int32* n, ValueType* a,          \
+                      const int32* lda)                                        \
+    {                                                                          \
+        int32 info;                                                            \
+        GKO_ASSERT_NO_LAPACK_ERRORS(LapackName(uplo, n, a, lda, &info), info); \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_POTRF(float, spotrf);
+GKO_BIND_POTRF(double, dpotrf);
+GKO_BIND_POTRF(std::complex<float>, cpotrf);
+GKO_BIND_POTRF(std::complex<double>, zpotrf);
+template <typename ValueType>
+inline void potrf(const char* uplo, const int32* n, ValueType* a,
+                  const int32* lda) GKO_NOT_IMPLEMENTED;
+
+#undef GKO_BIND_POTRF
+
+
+#define GKO_BIND_TRTRI(ValueType, LapackName)                                 \
+    inline void trtri(const char* uplo, const char* diag, const int32* n,     \
+                      ValueType* a, const int32* lda)                         \
+    {                                                                         \
+        int32 info;                                                           \
+        GKO_ASSERT_NO_LAPACK_ERRORS(LapackName(uplo, diag, n, a, lda, &info), \
+                                    info);                                    \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_TRTRI(float, strtri);
+GKO_BIND_TRTRI(double, dtrtri);
+GKO_BIND_TRTRI(std::complex<float>, ctrtri);
+GKO_BIND_TRTRI(std::complex<double>, ztrtri);
+template <typename ValueType>
+inline void trtri(const char* uplo, const char* diag, const int32* n,
+                  ValueType* a, const int32* lda) GKO_NOT_IMPLEMENTED;
+
+#undef GKO_BIND_TRTRI
+
+
 #define LAPACK_EIG_VECTOR 'V'
 #define LAPACK_EIG_NOVECTOR 'N'
 
 #define LAPACK_FILL_UPPER 'U'
 #define LAPACK_FILL_LOWER 'L'
+
+#define LAPACK_DIAG_UNIT 'U'
+#define LAPACK_DIAG_NONUNIT 'N'
 
 
 }  // namespace lapack

@@ -32,11 +32,19 @@ namespace lobpcg {
         array<char>* workspace)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES               \
-    template <typename ValueType>                  \
-    GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL(ValueType); \
-    template <typename ValueType>                  \
-    GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(ValueType)
+#define GKO_DECLARE_LOBPCG_B_ORTHONORMALIZE_KERNEL(_type)              \
+    void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::Dense<_type>* a, LinOp* b,           \
+                          array<char>* workspace)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                           \
+    template <typename ValueType>                              \
+    GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL(ValueType);             \
+    template <typename ValueType>                              \
+    GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL(ValueType); \
+    template <typename ValueType>                              \
+    GKO_DECLARE_LOBPCG_B_ORTHONORMALIZE_KERNEL(ValueType)
 
 
 }  // namespace lobpcg
