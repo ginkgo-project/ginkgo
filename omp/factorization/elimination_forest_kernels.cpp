@@ -17,6 +17,7 @@
 #include "core/base/intrinsics.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/combined_workspace.hpp"
+#include "core/components/double_buffer.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -124,7 +125,16 @@ struct mst_state {
           workspace_{exec, storage_sizes(num_nodes, num_edges)},
           tree_sources_{tree_sources},
           tree_targets_{tree_targets},
-          flip_{}
+          worklists_sources{workspace_.get_pointer(0),
+                            workspace_.get_pointer(3),
+                            static_cast<size_type>(num_edges)},
+          worklists_targets{workspace_.get_pointer(1),
+                            workspace_.get_pointer(4),
+                            static_cast<size_type>(num_edges)},
+          worklists_edge_ids{workspace_.get_pointer(2),
+                             workspace_.get_pointer(5),
+                             static_cast<size_type>(num_edges)},
+          counters{&counter1_, &counter2_, 1}
     {
         tree_counter() = 0;
         output_counter() = 0;
@@ -141,35 +151,17 @@ struct mst_state {
         output_to_input();
     }
 
-    const IndexType* input_wl_sources()
-    {
-        return workspace_.get_pointer(flip_ ? 3 : 0);
-    }
+    const IndexType* input_wl_sources() { return worklists_sources.get(); }
 
-    const IndexType* input_wl_targets()
-    {
-        return workspace_.get_pointer(flip_ ? 4 : 1);
-    }
+    const IndexType* input_wl_targets() { return worklists_targets.get(); }
 
-    const IndexType* input_wl_edge_ids()
-    {
-        return workspace_.get_pointer(flip_ ? 5 : 2);
-    }
+    const IndexType* input_wl_edge_ids() { return worklists_edge_ids.get(); }
 
-    IndexType* output_wl_sources()
-    {
-        return workspace_.get_pointer(flip_ ? 0 : 3);
-    }
+    IndexType* output_wl_sources() { return worklists_sources.get_other(); }
 
-    IndexType* output_wl_targets()
-    {
-        return workspace_.get_pointer(flip_ ? 1 : 4);
-    }
+    IndexType* output_wl_targets() { return worklists_targets.get_other(); }
 
-    IndexType* output_wl_edge_ids()
-    {
-        return workspace_.get_pointer(flip_ ? 2 : 5);
-    }
+    IndexType* output_wl_edge_ids() { return worklists_edge_ids.get_other(); }
 
     IndexType* parents() { return workspace_.get_pointer(6); }
 
@@ -177,13 +169,16 @@ struct mst_state {
 
     IndexType& tree_counter() { return tree_counter_; }
 
-    const IndexType& input_counter() { return (flip_ ? counter1_ : counter2_); }
+    const IndexType& input_counter() { return *counters.get(); }
 
-    IndexType& output_counter() { return (flip_ ? counter2_ : counter1_); }
+    IndexType& output_counter() { return *counters.get_other(); }
 
     void output_to_input()
     {
-        flip_ = !flip_;
+        worklists_sources.swap();
+        worklists_targets.swap();
+        worklists_edge_ids.swap();
+        counters.swap();
         output_counter() = 0;
     }
 
@@ -294,7 +289,10 @@ struct mst_state {
     IndexType* tree_sources_;
     IndexType* tree_targets_;
     combined_workspace<IndexType> workspace_;
-    bool flip_;
+    double_buffer<IndexType> worklists_sources;
+    double_buffer<IndexType> worklists_targets;
+    double_buffer<IndexType> worklists_edge_ids;
+    double_buffer<IndexType> counters;
 };
 
 
@@ -390,9 +388,24 @@ struct elimination_forest_algorithm_state {
           num_threads{static_cast<int>(omp_get_max_threads())},
           ceil_num_nodes{IndexType{1} << num_levels},
           workspace{exec, workspace_sizes(num_nodes, num_edges)},
+          worklists_sources{workspace.get_pointer(0), workspace.get_pointer(2),
+                            static_cast<size_type>(edge_capacity)},
+          worklists_targets{workspace.get_pointer(1), workspace.get_pointer(3),
+                            static_cast<size_type>(edge_capacity)},
+          tree_sources{workspace.get_pointer(4), workspace.get_pointer(6),
+                       static_cast<size_type>(num_nodes - 1)},
+          tree_targets{workspace.get_pointer(5), workspace.get_pointer(7),
+                       static_cast<size_type>(num_nodes - 1)},
+          euler_walk{workspace.get_pointer(8), workspace.get_pointer(9),
+                     static_cast<size_type>(2 * num_nodes - 1)},
+          euler_sizes{workspace.get_pointer(10), workspace.get_pointer(11),
+                      static_cast<size_type>(num_nodes)},
+          euler_first{workspace.get_pointer(12), workspace.get_pointer(13),
+                      static_cast<size_type>(num_nodes)},
+          cc_sizes{workspace.get_pointer(17), workspace.get_pointer(18),
+                   static_cast<size_type>(num_nodes)},
           bucket_ranges{},
           tree_ranges{},
-          flip{},
           tree_levels{tree_levels}
     {
         bucket_ranges.back() = num_edges;
@@ -415,17 +428,23 @@ struct elimination_forest_algorithm_state {
             edge_capacity,      // 1: buf1_targets
             edge_capacity,      // 2: buf2_sources
             edge_capacity,      // 3: buf2_targets
-            num_nodes - 1,      // 4: tree_sources
-            num_nodes - 1,      // 5: tree_targets
-            2 * num_nodes - 1,  // 6: euler_walk1
-            2 * num_nodes - 1,  // 7: euler_walk2
-            num_nodes,          // 8: euler_first1
-            num_nodes,          // 9: euler_first2
-            num_nodes,          // 10: cc_parents
-            num_nodes,          // 11: cc_mins
-            num_nodes,          // 12: cc_sizes
+            num_nodes - 1,      // 4: tree_sources1
+            num_nodes - 1,      // 5: tree_targets1
+            num_nodes - 1,      // 6: tree_sources2
+            num_nodes - 1,      // 7: tree_targets2
+            2 * num_nodes - 1,  // 8: euler_walk1
+            2 * num_nodes - 1,  // 9: euler_walk2
+            num_nodes,          // 10: euler_sizes1
+            num_nodes,          // 11: euler_sizes2
+            num_nodes,          // 12: euler_first1
+            num_nodes,          // 13: euler_first2
+            num_nodes,          // 14: euler_last
+            num_nodes,          // 15: cc_parents
+            num_nodes,          // 16: cc_mins
+            num_nodes,          // 17: cc_sizes1
+            num_nodes,          // 18: cc_sizes2
             bucket_sort_workspace_size<num_buckets>(
-                edge_capacity),  // 13: bucketsort_workspace
+                edge_capacity),  // 19: bucketsort_workspace
         };
     }
 
@@ -436,63 +455,44 @@ struct elimination_forest_algorithm_state {
             workspace_sizes(num_nodes, num_edges));
     }
 
-    IndexType* buf1_edge_sources() { return workspace.get_pointer(0); }
+    IndexType* euler_last() { return workspace.get_pointer(14); }
 
-    IndexType* buf1_edge_targets() { return workspace.get_pointer(1); }
+    IndexType* cc_parents() { return workspace.get_pointer(15); }
 
-    IndexType* buf2_edge_sources() { return workspace.get_pointer(2); }
+    IndexType* cc_mins() { return workspace.get_pointer(16); }
 
-    IndexType* buf2_edge_targets() { return workspace.get_pointer(3); }
-
-    IndexType* tree_sources() { return workspace.get_pointer(4); }
-
-    IndexType* tree_targets() { return workspace.get_pointer(5); }
-
-    IndexType* cc_parents() { return workspace.get_pointer(10); }
-
-    IndexType* cc_mins() { return workspace.get_pointer(11); }
-
-    IndexType* cc_sizes() { return workspace.get_pointer(12); }
-
-    IndexType* bucketsort_workspace() { return workspace.get_pointer(13); }
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(19); }
 
     array<IndexType> bucketsort_workspace_view()
     {
-        return workspace.get_view(13);
+        return workspace.get_view(19);
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
 
-    const IndexType* in_edge_sources()
-    {
-        return flip ? buf2_edge_sources() : buf1_edge_sources();
-    }
+    const IndexType* in_edge_sources() { return worklists_sources.get(); }
 
-    const IndexType* in_edge_targets()
-    {
-        return flip ? buf2_edge_targets() : buf1_edge_targets();
-    }
+    const IndexType* in_edge_targets() { return worklists_targets.get(); }
+
+    IndexType* out_edge_sources() { return worklists_sources.get_other(); }
+
+    IndexType* out_edge_targets() { return worklists_targets.get_other(); }
 
     IndexType* fill_edge_sources()
     {
-        return (flip ? buf2_edge_sources() : buf1_edge_sources()) + num_edges();
+        return worklists_sources.get() + num_edges();
     }
 
     IndexType* fill_edge_targets()
     {
-        return (flip ? buf2_edge_targets() : buf1_edge_targets()) + num_edges();
+        return worklists_targets.get() + num_edges();
     }
 
-    IndexType* out_edge_sources()
+    void output_to_input()
     {
-        return flip ? buf1_edge_sources() : buf2_edge_sources();
+        worklists_sources.swap();
+        worklists_targets.swap();
     }
-    IndexType* out_edge_targets()
-    {
-        return flip ? buf1_edge_targets() : buf2_edge_targets();
-    }
-
-    void output_to_input() { flip = !flip; }
 
     void init(const array<IndexType>& sources, const array<IndexType>& ends)
     {
@@ -507,7 +507,7 @@ struct elimination_forest_algorithm_state {
         output_to_input();
         components::fill_array(exec, tree_levels,
                                static_cast<size_type>(num_nodes), IndexType{});
-        components::fill_array(exec, cc_sizes(),
+        components::fill_array(exec, cc_sizes.get(),
                                static_cast<size_type>(num_nodes), IndexType{1});
     }
 
@@ -585,8 +585,8 @@ struct elimination_forest_algorithm_state {
     template <typename Op>
     void foreach_tree_edge_in_range(irange<IndexType> range, Op op)
     {
-        const auto srcs = tree_sources();
-        const auto tgts = tree_targets();
+        const auto srcs = tree_sources.get();
+        const auto tgts = tree_targets.get();
 #pragma omp parallel for
         for (auto i = range.begin_index(); i < range.end_index(); i++) {
             op(srcs[i], tgts[i]);
@@ -658,8 +658,8 @@ struct elimination_forest_algorithm_state {
                 fill_srcs[i] = min_node;
                 fill_tgts[i] = tgt;
             });
-        const auto out_srcs = tree_sources();
-        const auto out_tgts = tree_targets();
+        const auto out_srcs = tree_sources.get();
+        const auto out_tgts = tree_targets.get();
         foreach_lower_node(level, [&](auto i) {
             if (sets.is_representative_weak(i)) {
                 const auto min = mins[i];
@@ -673,12 +673,20 @@ struct elimination_forest_algorithm_state {
         tree_ranges[level] = tree_counter;
     }
 
+    void sort_new_tree_edges(int level)
+    {
+        const auto it =
+            detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
+        const auto tree_range = get_tree_edge_range(level);
+        std::sort(it + tree_range.begin_index(), it + tree_range.end_index());
+    }
+
     void find_tree_connected_components(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(find_tree_connected_components);
         const auto tree_edges = get_tree_edge_range(level);
-        const auto srcs = tree_sources();
-        const auto tgts = tree_targets();
+        const auto srcs = tree_sources.get();
+        const auto tgts = tree_targets.get();
         device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
         foreach_tree_edge_in_range(tree_edges, [&sets](auto src, auto tgt) {
             sets.join(sets.find_weak(src), sets.find_weak(tgt));
@@ -707,7 +715,7 @@ struct elimination_forest_algorithm_state {
     void update_cc_sizes(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
-        const auto sizes = cc_sizes();
+        const auto sizes = cc_sizes.get();
         const auto* parents = cc_parents();
         const auto* mins = cc_mins();
         const auto tree_edges = get_tree_edge_range(level);
@@ -856,6 +864,8 @@ struct elimination_forest_algorithm_state {
             // and insert the new fill edges sorted according to their level
             // additionally, we throw away all edges at level or higher
             bucket_sort_fill_edges(level);
+            // and sort all new tree edges by (target, source)
+            sort_new_tree_edges(level);
             // finally we swap the double buffer
             output_to_input();
         }
@@ -885,9 +895,16 @@ struct elimination_forest_algorithm_state {
     IndexType ceil_num_nodes;
     IndexType tree_counter;
     combined_workspace<IndexType> workspace;
+    double_buffer<IndexType> worklists_sources;
+    double_buffer<IndexType> worklists_targets;
+    double_buffer<IndexType> tree_sources;
+    double_buffer<IndexType> tree_targets;
+    double_buffer<IndexType> euler_walk;
+    double_buffer<IndexType> euler_sizes;
+    double_buffer<IndexType> euler_first;
+    double_buffer<IndexType> cc_sizes;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     std::array<IndexType, num_buckets + 1> tree_ranges;
-    bool flip;
     IndexType* tree_levels;
 };
 
@@ -908,8 +925,8 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     state.run();
     auto num_tree_edges = state.tree_counter;
     const auto parents = forest.parents.get_data();
-    const auto srcs = state.tree_sources();
-    const auto tgts = state.tree_targets();
+    const auto srcs = state.tree_sources.get();
+    const auto tgts = state.tree_targets.get();
     components::fill_array(exec, parents, static_cast<size_type>(size), size);
 #pragma omp parallel for
     for (IndexType i = 0; i < num_tree_edges; i++) {
