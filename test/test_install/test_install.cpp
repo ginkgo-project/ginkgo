@@ -478,6 +478,12 @@ int main()
         check_solver<Solver>(exec, A_raw, b, x);
     }
 
+    // core/solver/pipe_cg.hpp
+    {
+        using Solver = gko::solver::PipeCg<>;
+        check_solver<Solver>(exec, A_raw, b, x);
+    }
+
     // core/solver/gcr.hpp
     {
         using Solver = gko::solver::Gcr<>;
