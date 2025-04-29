@@ -32,7 +32,7 @@ namespace kernels {
 namespace omp {
 namespace elimination_forest {
 
-
+#if 0
 struct OperationScopeGuard : Operation {
     void run(std::shared_ptr<const OmpExecutor> exec) const override
         GKO_NOT_IMPLEMENTED;
@@ -75,8 +75,12 @@ struct OperationScopeGuard : Operation {
     std::string name;
     std::shared_ptr<const Executor> exec;
 };
-
-#define GKO_FUNCTION_SCOPEGUARD(_name) \
+#else
+struct OperationScopeGuard {
+    OperationScopeGuard(std::string str, std::shared_ptr<const Executor>){};
+};
+#endif
+#define GKO_FUNCTION_SCOPEGUARD(_name)  // \
     OperationScopeGuard guard { #_name, exec }
 
 
@@ -402,8 +406,8 @@ struct elimination_forest_algorithm_state {
                       static_cast<size_type>(num_nodes)},
           euler_first{workspace.get_pointer(12), workspace.get_pointer(13),
                       static_cast<size_type>(num_nodes)},
-          cc_sizes{workspace.get_pointer(17), workspace.get_pointer(18),
-                   static_cast<size_type>(num_nodes)},
+          cc_parents{workspace.get_pointer(15), workspace.get_pointer(16),
+                     static_cast<size_type>(num_nodes)},
           bucket_ranges{},
           tree_ranges{},
           tree_levels{tree_levels}
@@ -439,10 +443,10 @@ struct elimination_forest_algorithm_state {
             num_nodes,          // 12: euler_first1
             num_nodes,          // 13: euler_first2
             num_nodes,          // 14: euler_last
-            num_nodes,          // 15: cc_parents
-            num_nodes,          // 16: cc_mins
-            num_nodes,          // 17: cc_sizes1
-            num_nodes,          // 18: cc_sizes2
+            num_nodes,          // 15: cc_parents1
+            num_nodes,          // 16: cc_parents2
+            num_nodes,          // 17: cc_mins
+            num_nodes,          // 18: cc_sizes
             bucket_sort_workspace_size<num_buckets>(
                 edge_capacity),  // 19: bucketsort_workspace
         };
@@ -457,9 +461,9 @@ struct elimination_forest_algorithm_state {
 
     IndexType* euler_last() { return workspace.get_pointer(14); }
 
-    IndexType* cc_parents() { return workspace.get_pointer(15); }
+    IndexType* cc_mins() { return workspace.get_pointer(17); }
 
-    IndexType* cc_mins() { return workspace.get_pointer(16); }
+    IndexType* cc_sizes() { return workspace.get_pointer(18); }
 
     IndexType* bucketsort_workspace() { return workspace.get_pointer(19); }
 
@@ -502,12 +506,20 @@ struct elimination_forest_algorithm_state {
         std::copy_n(sources.get_const_data(), sources.get_size(),
                     out_edge_sources());
         std::copy_n(ends.get_const_data(), ends.get_size(), out_edge_targets());
+        components::fill_seq_array(exec, euler_walk.get(),
+                                   static_cast<size_type>(num_nodes));
+        components::fill_seq_array(exec, euler_first.get(),
+                                   static_cast<size_type>(num_nodes));
+        components::fill_seq_array(exec, euler_last(),
+                                   static_cast<size_type>(num_nodes));
+        components::fill_array(exec, euler_sizes.get(),
+                               static_cast<size_type>(num_nodes), IndexType{1});
         tree_counter = 0;
         bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
         output_to_input();
         components::fill_array(exec, tree_levels,
                                static_cast<size_type>(num_nodes), IndexType{});
-        components::fill_array(exec, cc_sizes.get(),
+        components::fill_array(exec, cc_sizes(),
                                static_cast<size_type>(num_nodes), IndexType{1});
     }
 
@@ -594,6 +606,15 @@ struct elimination_forest_algorithm_state {
     }
 
     template <typename Op>
+    void foreach_node(int level, Op op)
+    {
+#pragma omp parallel for
+        for (IndexType i = 0; i < num_nodes; i++) {
+            op(i);
+        };
+    }
+
+    template <typename Op>
     void foreach_lower_node(int level, Op op)
     {
 #pragma omp parallel for
@@ -610,7 +631,7 @@ struct elimination_forest_algorithm_state {
 
     void reset_connected_components()
     {
-        components::fill_seq_array(exec, cc_parents(),
+        components::fill_seq_array(exec, cc_parents.get(),
                                    static_cast<size_type>(num_nodes));
     }
 
@@ -618,7 +639,7 @@ struct elimination_forest_algorithm_state {
     {
         GKO_FUNCTION_SCOPEGUARD(find_connected_components);
         reset_connected_components();
-        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
+        device_disjoint_sets<IndexType> sets{cc_parents.get(), num_nodes};
         const auto inner_edges = get_inner_edge_range(level);
         foreach_edge_in_range(inner_edges, [&](auto src, auto tgt) {
             sets.join(sets.find_relaxed_compressing(src),
@@ -634,7 +655,7 @@ struct elimination_forest_algorithm_state {
         const auto mins = cc_mins();
         components::fill_array(exec, cc_mins(),
                                static_cast<size_type>(num_nodes), min_sentinel);
-        device_disjoint_sets<IndexType> sets{cc_parents(), num_nodes};
+        device_disjoint_sets<IndexType> sets{cc_parents.get(), num_nodes};
         foreach_edge_in_range(cut_edges, [sets, mins](auto src, auto tgt) {
             const auto src_rep = sets.find_relaxed_compressing(src);
             atomic_min(mins + src_rep, tgt);
@@ -645,7 +666,7 @@ struct elimination_forest_algorithm_state {
     {
         GKO_FUNCTION_SCOPEGUARD(add_fill_and_tree_edges);
         const auto cut_edges = get_cut_edge_range(level);
-        device_disjoint_sets<const IndexType> sets{cc_parents(), num_nodes};
+        device_disjoint_sets<const IndexType> sets{cc_parents.get(), num_nodes};
         const auto fill_srcs = fill_edge_sources();
         const auto fill_tgts = fill_edge_targets();
         const auto mins = cc_mins();
@@ -788,37 +809,40 @@ struct elimination_forest_algorithm_state {
         const auto tree_edges = get_tree_edge_range(level);
         const auto srcs = tree_sources.get();
         const auto tgts = tree_targets.get();
-        const auto parents = cc_parents();
+        const auto old_parents = cc_parents.get();
+        const auto new_parents = cc_parents.get_other();
         foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
             assert((src & (IndexType{1} << level)) == 0);
             assert((tgt & (IndexType{1} << level)) != 0);
             // src must be the CC representative
-            assert(parents[src] == src);
+            assert(old_parents[src] == src);
             // parents should be path-compressed
-            assert(parents[parents[tgt]] == parents[tgt]);
+            assert(old_parents[old_parents[tgt]] == old_parents[tgt]);
             // add the CC of src to the CC of tgt
-            parents[src] = parents[tgt];
+            new_parents[src] = old_parents[tgt];
         });
-        foreach_lower_node(level, [&](auto i) {
-            assert((i & (IndexType{1} << level)) == 0);
-            parents[i] = parents[parents[i]];
-            // the path should now be fully compressed
-            assert(parents[parents[i]] == parents[i]);
+        foreach_node(level, [&](auto i) {
+            new_parents[i] = old_parents[old_parents[i]];
         });
+#ifndef NDEBUG
+        foreach_node(level, [&](auto i) {
+            assert(new_parents[new_parents[i]] == new_parents[i]);
+        });
+#endif
     }
 
     void update_tree_node_levels(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(update_tree_node_levels);
         const auto levels = tree_levels;
-        const auto* parents = cc_parents();
+        const auto* old_parents = cc_parents.get();
         const auto* mins = cc_mins();
         foreach_lower_node(level, [&](IndexType i) {
             const auto min_sentinel = num_nodes;
             // for every node in a CC that gets connected to an upper node,
             // update the level using that upper node's level
-            assert(parents[parents[i]] == parents[i]);
-            const auto rep = parents[i];
+            assert(old_parents[old_parents[i]] == old_parents[i]);
+            const auto rep = old_parents[i];
             const auto min = mins[rep];
             if (min < min_sentinel) {
                 levels[i] += levels[min] + 1;
@@ -829,9 +853,8 @@ struct elimination_forest_algorithm_state {
     void update_cc_sizes(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
-        const auto sizes = cc_sizes.get();
-        const auto new_sizes = cc_sizes.get();
-        const auto* parents = cc_parents();
+        const auto sizes = cc_sizes();
+        const auto* parents = cc_parents.get();
         const auto* mins = cc_mins();
         const auto tree_edges = get_tree_edge_range(level);
 #pragma omp parallel for
@@ -841,6 +864,38 @@ struct elimination_forest_algorithm_state {
             assert(parents[parents[upper]] == parents[upper]);
             auto upper_rep = parents[upper];
             atomic_add(sizes[upper_rep], sizes[lower]);
+        });
+    }
+
+    void update_euler_walks(int level)
+    {
+        const auto parents = cc_parents();
+        const auto set_sizes = cc_sizes();
+        const auto new_walk_sizes = euler_sizes.get_other();
+        const auto old_walk_first = euler_sizes.get();
+        const auto new_walk_first = euler_first.get_other();
+        const auto tree_edges = get_tree_edge_range(level);
+        // first figure out the location for all new connected components
+#pragma omp parallel for
+        for (IndexType i = 0; i < num_nodes; i++) {
+            if (parents[i] == i) {
+                new_walk_sizes[i] = 2 * set_sizes[i] - 1;
+            } else {
+                new_walk_sizes[i] = 0;
+            }
+        }
+        components::prefix_sum_nonnegative(exec, new_walk_sizes,
+                                           static_cast<size_type>(num_nodes));
+        // every representative now knows its location
+#pragma omp parallel for
+        for (IndexType i = 0; i < num_nodes; i++) {
+            if (parents[i] == i) {
+                new_walk_first[i] = new_walk_sizes[i];
+            }
+        }
+        // next figure out the same thing for all lower CCs
+        foreach_lower_node(level, [&](auto i) {
+
         });
     }
 
@@ -892,14 +947,16 @@ struct elimination_forest_algorithm_state {
                                       exec};
             // first reconstruct the cut edge minima from the tree edges
             find_tree_min_cut_neighbors(level);
+            // build connected components with the tree edges from this level
+            // to advance to the next level
+            find_tree_connected_components(level);
             // for every CC in this level, update using cc_min's level
             update_tree_node_levels(level);
             // before actually connecting the CCs, add the size of each lower CC
             // to its upper CC if they are getting connected
             update_cc_sizes(level);
-            // build connected components with the tree edges from this level
-            // to advance to the next level
-            find_tree_connected_components(level);
+            // swap old/new double buffer
+            cc_parents.swap();
         }
     }
 
@@ -918,7 +975,7 @@ struct elimination_forest_algorithm_state {
     double_buffer<IndexType> euler_walk;
     double_buffer<IndexType> euler_sizes;
     double_buffer<IndexType> euler_first;
-    double_buffer<IndexType> cc_sizes;
+    double_buffer<IndexType> cc_parents;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     std::array<IndexType, num_buckets + 1> tree_ranges;
     IndexType* tree_levels;
