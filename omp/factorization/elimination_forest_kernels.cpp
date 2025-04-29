@@ -673,87 +673,6 @@ struct elimination_forest_algorithm_state {
         tree_ranges[level] = tree_counter;
     }
 
-    void sort_new_tree_edges(int level)
-    {
-        const auto it =
-            detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
-        const auto tree_range = get_tree_edge_range(level);
-        std::sort(it + tree_range.begin_index(), it + tree_range.end_index());
-    }
-
-    void find_tree_connected_components(int level)
-    {
-        GKO_FUNCTION_SCOPEGUARD(find_tree_connected_components);
-        const auto tree_edges = get_tree_edge_range(level);
-        const auto srcs = tree_sources.get();
-        const auto tgts = tree_targets.get();
-        const auto parents = cc_parents();
-        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
-            assert((src & (IndexType{1} << level)) == 0);
-            assert((tgt & (IndexType{1} << level)) != 0);
-            // src must be the CC representative
-            assert(parents[src] == src);
-            // parents should be path-compressed
-            assert(parents[parents[tgt]] == parents[tgt]);
-            // add the CC of src to the CC of tgt
-            parents[src] = parents[tgt];
-        });
-        foreach_lower_node(level, [&](auto i) {
-            assert((i & (IndexType{1} << level)) == 0);
-            parents[i] = parents[parents[i]];
-            // the path should now be fully compressed
-            assert(parents[parents[i]] == parents[i]);
-        });
-    }
-
-    void update_tree_node_levels(int level)
-    {
-        GKO_FUNCTION_SCOPEGUARD(update_tree_node_levels);
-        const auto levels = tree_levels;
-        const auto* parents = cc_parents();
-        const auto* mins = cc_mins();
-        foreach_lower_node(level, [&](IndexType i) {
-            const auto min_sentinel = num_nodes;
-            // for every node in a CC that gets connected to an upper node,
-            // update the level using that upper node's level
-            assert(parents[parents[i]] == parents[i]);
-            const auto rep = parents[i];
-            const auto min = mins[rep];
-            if (min < min_sentinel) {
-                levels[i] += levels[min] + 1;
-            }
-        });
-    }
-
-    void update_cc_sizes(int level)
-    {
-        GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
-        const auto sizes = cc_sizes.get();
-        const auto* parents = cc_parents();
-        const auto* mins = cc_mins();
-        const auto tree_edges = get_tree_edge_range(level);
-        foreach_tree_edge_in_range(tree_edges, [&](auto lower, auto upper) {
-            assert(parents[parents[upper]] == parents[upper]);
-            auto upper_rep = parents[upper];
-            atomic_add(sizes[upper_rep], sizes[lower]);
-        });
-    }
-
-    void find_tree_min_cut_neighbors(int level)
-    {
-        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
-        const auto min_sentinel = num_nodes;
-        components::fill_array(exec, cc_mins(),
-                               static_cast<size_type>(num_nodes), min_sentinel);
-        const auto tree_edges = get_tree_edge_range(level);
-        const auto mins = cc_mins();
-        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
-            // set mins[source] = target for every tree edge in that level
-            // because we set source = i and target = mins[i] before
-            mins[src] = tgt;
-        });
-    }
-
     void bucket_sort_fill_edges(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(bucket_sort_fill_edges);
@@ -853,6 +772,91 @@ struct elimination_forest_algorithm_state {
         for (int i = level + 1; i <= num_buckets; i++) {
             bucket_ranges[i] = bucket_ranges[level];
         }
+    }
+
+    void sort_new_tree_edges(int level)
+    {
+        const auto it =
+            detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
+        const auto tree_range = get_tree_edge_range(level);
+        std::sort(it + tree_range.begin_index(), it + tree_range.end_index());
+    }
+
+    void find_tree_connected_components(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_connected_components);
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto srcs = tree_sources.get();
+        const auto tgts = tree_targets.get();
+        const auto parents = cc_parents();
+        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
+            assert((src & (IndexType{1} << level)) == 0);
+            assert((tgt & (IndexType{1} << level)) != 0);
+            // src must be the CC representative
+            assert(parents[src] == src);
+            // parents should be path-compressed
+            assert(parents[parents[tgt]] == parents[tgt]);
+            // add the CC of src to the CC of tgt
+            parents[src] = parents[tgt];
+        });
+        foreach_lower_node(level, [&](auto i) {
+            assert((i & (IndexType{1} << level)) == 0);
+            parents[i] = parents[parents[i]];
+            // the path should now be fully compressed
+            assert(parents[parents[i]] == parents[i]);
+        });
+    }
+
+    void update_tree_node_levels(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_tree_node_levels);
+        const auto levels = tree_levels;
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        foreach_lower_node(level, [&](IndexType i) {
+            const auto min_sentinel = num_nodes;
+            // for every node in a CC that gets connected to an upper node,
+            // update the level using that upper node's level
+            assert(parents[parents[i]] == parents[i]);
+            const auto rep = parents[i];
+            const auto min = mins[rep];
+            if (min < min_sentinel) {
+                levels[i] += levels[min] + 1;
+            }
+        });
+    }
+
+    void update_cc_sizes(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(update_cc_sizes);
+        const auto sizes = cc_sizes.get();
+        const auto new_sizes = cc_sizes.get();
+        const auto* parents = cc_parents();
+        const auto* mins = cc_mins();
+        const auto tree_edges = get_tree_edge_range(level);
+#pragma omp parallel for
+        for (IndexType i = 0; i < num_nodes; i++) {
+        }
+        foreach_tree_edge_in_range(tree_edges, [&](auto lower, auto upper) {
+            assert(parents[parents[upper]] == parents[upper]);
+            auto upper_rep = parents[upper];
+            atomic_add(sizes[upper_rep], sizes[lower]);
+        });
+    }
+
+    void find_tree_min_cut_neighbors(int level)
+    {
+        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
+        const auto min_sentinel = num_nodes;
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto mins = cc_mins();
+        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
+            // set mins[source] = target for every tree edge in that level
+            // because we set source = i and target = mins[i] before
+            mins[src] = tgt;
+        });
     }
 
     void run()
