@@ -831,7 +831,7 @@ public:
 
 private:
     IteratorType it_;
-    copy_assignable<TransformFn> transform_;
+    TransformFn transform_;
 };
 
 
