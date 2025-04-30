@@ -24,6 +24,7 @@
 #include "core/factorization/elimination_forest_kernels.hpp"
 #include "omp/components/atomic.hpp"
 #include "omp/components/disjoint_sets.hpp"
+#include "omp/components/prefix_sum.hpp"
 #include "omp/components/sorting.hpp"
 
 
@@ -447,7 +448,7 @@ struct elimination_forest_algorithm_state {
             num_nodes,          // 11: euler_sizes2
             num_nodes,          // 12: euler_first1
             num_nodes,          // 13: euler_first2
-            num_nodes,          // 14: euler_shifts
+            num_nodes,          // 14: euler_delta
             num_nodes,          // 15: euler_last
             num_nodes,          // 16: cc_parents1
             num_nodes,          // 17: cc_parents2
@@ -464,6 +465,8 @@ struct elimination_forest_algorithm_state {
         return combined_workspace<IndexType>::get_total_size(
             workspace_sizes(num_nodes, num_edges));
     }
+
+    IndexType* euler_delta() { return workspace.get_pointer(14); }
 
     IndexType* euler_last() { return workspace.get_pointer(15); }
 
@@ -890,6 +893,33 @@ struct elimination_forest_algorithm_state {
         });
     }
 
+    void prefix_sum_tree_edges(int level)
+    {
+        const auto srcs = tree_sources.get();
+        const auto tgts = tree_targets.get();
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto deltas = euler_delta();
+        const auto parents = cc_parents.get();
+        const auto sizes = euler_sizes.get();
+#pragma omp parallel for
+        for (auto i = tree_edges.begin_index(); i < tree_edges.end_index();
+             i++) {
+            const auto src = srcs[i];
+            assert(parents[src] == src);
+            // attaching this subtree means inserting Euler walk and one entry
+            // for the edge target
+            deltas[i] = sizes[src] + 1;
+        }
+        // then compute a prefix sum how much each node gets shifted in the
+        // Euler walk inside each CC. The prefix sum tells us how far after
+        // euler_first[target] + 1 the subtree Euler walk starts.
+        components::segmented_prefix_sum(
+            exec,
+            detail::make_transform_iterator(tgts + tree_edges.begin_index(),
+                                            [&](auto i) { return parents[i]; }),
+            deltas, static_cast<size_type>(tree_edges.size()));
+    }
+
     void update_euler_walks(int level)
     {
         const auto parents = cc_parents();
@@ -981,7 +1011,7 @@ struct elimination_forest_algorithm_state {
             // source in secondary order.
             sort_tree_edges_by_euler_first(level);
             // Then compute a prefix sum over the edges to figure out deltas
-            // prefix_sum_tree_edges(level);
+            prefix_sum_tree_edges(level);
             // swap old/new double buffer
             cc_parents.swap();
         }
