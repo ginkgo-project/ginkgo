@@ -406,7 +406,7 @@ struct elimination_forest_algorithm_state {
                       static_cast<size_type>(num_nodes)},
           euler_first{workspace.get_pointer(12), workspace.get_pointer(13),
                       static_cast<size_type>(num_nodes)},
-          cc_parents{workspace.get_pointer(15), workspace.get_pointer(16),
+          cc_parents{workspace.get_pointer(16), workspace.get_pointer(17),
                      static_cast<size_type>(num_nodes)},
           bucket_ranges{},
           tree_ranges{},
@@ -421,6 +421,11 @@ struct elimination_forest_algorithm_state {
         assert(src != tgt);
         return gko::detail::find_highest_bit(static_cast<unsigned_type>(src) ^
                                              static_cast<unsigned_type>(tgt));
+    }
+
+    static bool is_upper_node(IndexType i, int level)
+    {
+        return (i & (IndexType{1} << level));
     }
 
     static std::vector<size_type> workspace_sizes(size_type num_nodes,
@@ -442,13 +447,14 @@ struct elimination_forest_algorithm_state {
             num_nodes,          // 11: euler_sizes2
             num_nodes,          // 12: euler_first1
             num_nodes,          // 13: euler_first2
-            num_nodes,          // 14: euler_last
-            num_nodes,          // 15: cc_parents1
-            num_nodes,          // 16: cc_parents2
-            num_nodes,          // 17: cc_mins
-            num_nodes,          // 18: cc_sizes
+            num_nodes,          // 14: euler_shifts
+            num_nodes,          // 15: euler_last
+            num_nodes,          // 16: cc_parents1
+            num_nodes,          // 17: cc_parents2
+            num_nodes,          // 18: cc_mins
+            num_nodes,          // 19: cc_sizes
             bucket_sort_workspace_size<num_buckets>(
-                edge_capacity),  // 19: bucketsort_workspace
+                edge_capacity),  // 20: bucketsort_workspace
         };
     }
 
@@ -459,17 +465,17 @@ struct elimination_forest_algorithm_state {
             workspace_sizes(num_nodes, num_edges));
     }
 
-    IndexType* euler_last() { return workspace.get_pointer(14); }
+    IndexType* euler_last() { return workspace.get_pointer(15); }
 
-    IndexType* cc_mins() { return workspace.get_pointer(17); }
+    IndexType* cc_mins() { return workspace.get_pointer(18); }
 
-    IndexType* cc_sizes() { return workspace.get_pointer(18); }
+    IndexType* cc_sizes() { return workspace.get_pointer(19); }
 
-    IndexType* bucketsort_workspace() { return workspace.get_pointer(19); }
+    IndexType* bucketsort_workspace() { return workspace.get_pointer(20); }
 
     array<IndexType> bucketsort_workspace_view()
     {
-        return workspace.get_view(19);
+        return workspace.get_view(20);
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
@@ -795,12 +801,23 @@ struct elimination_forest_algorithm_state {
         }
     }
 
-    void sort_new_tree_edges(int level)
+    void sort_tree_edges_by_euler_first(int level)
     {
         const auto it =
             detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
         const auto tree_range = get_tree_edge_range(level);
-        std::sort(it + tree_range.begin_index(), it + tree_range.end_index());
+        // Sorting order: We need to have deltas inside each CC only, so we can
+        // do a scan_by_key. This means we can just sort by euler_first of the
+        // mins, since that also establishes a relative order between different
+        // mins in the same CC. The edge sources can be ordered normally, since
+        // they are all CC representatives/roots
+        std::sort(it + tree_range.begin_index(), it + tree_range.end_index(),
+                  [old_first = euler_first.get()](auto lhs, auto rhs) {
+                      return std::tie(old_first[lhs.template get<0>()],
+                                      lhs.template get<1>()) <
+                             std::tie(old_first[rhs.template get<0>()],
+                                      rhs.template get<1>());
+                  });
     }
 
     void find_tree_connected_components(int level)
@@ -809,8 +826,11 @@ struct elimination_forest_algorithm_state {
         const auto tree_edges = get_tree_edge_range(level);
         const auto srcs = tree_sources.get();
         const auto tgts = tree_targets.get();
-        const auto old_parents = cc_parents.get();
+        const auto* old_parents = cc_parents.get();
         const auto new_parents = cc_parents.get_other();
+        // copy over old parent nodes
+        foreach_node(level, [&](auto i) { new_parents[i] = old_parents[i]; });
+        // update new links
         foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
             assert((src & (IndexType{1} << level)) == 0);
             assert((tgt & (IndexType{1} << level)) != 0);
@@ -821,9 +841,12 @@ struct elimination_forest_algorithm_state {
             // add the CC of src to the CC of tgt
             new_parents[src] = old_parents[tgt];
         });
-        foreach_node(level, [&](auto i) {
-            new_parents[i] = old_parents[old_parents[i]];
+        // path-compress every lower node, since those are the only ones in CCs
+        // that got joined to another CC
+        foreach_lower_node(level, [&](auto i) {
+            new_parents[i] = new_parents[new_parents[i]];
         });
+        // check for path-compressedness of all nodes
 #ifndef NDEBUG
         foreach_node(level, [&](auto i) {
             assert(new_parents[new_parents[i]] == new_parents[i]);
@@ -935,8 +958,6 @@ struct elimination_forest_algorithm_state {
             // and insert the new fill edges sorted according to their level
             // additionally, we throw away all edges at level or higher
             bucket_sort_fill_edges(level);
-            // and sort all new tree edges by (target, source)
-            sort_new_tree_edges(level);
             // finally we swap the double buffer
             output_to_input();
         }
@@ -955,6 +976,12 @@ struct elimination_forest_algorithm_state {
             // before actually connecting the CCs, add the size of each lower CC
             // to its upper CC if they are getting connected
             update_cc_sizes(level);
+            // then we can get to computing the Euler walk: first sort the edges
+            // such that they are grouped by new CC in ascending order, and by
+            // source in secondary order.
+            sort_tree_edges_by_euler_first(level);
+            // Then compute a prefix sum over the edges to figure out deltas
+            // prefix_sum_tree_edges(level);
             // swap old/new double buffer
             cc_parents.swap();
         }

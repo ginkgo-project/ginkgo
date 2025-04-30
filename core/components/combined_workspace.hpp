@@ -17,7 +17,7 @@
 namespace gko {
 
 // This can be enabled for debugging purposes
-#if 0
+#if 1
 
 template <typename IndexType>
 struct combined_workspace {
