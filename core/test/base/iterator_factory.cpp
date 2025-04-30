@@ -522,10 +522,36 @@ TYPED_TEST_SUITE(TransformIterator, gko::test::ComplexAndPODTypes,
                  TypenameNameGenerator);
 
 
+struct identity_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return v;
+    }
+};
+
+
+template <typename T>
+struct scale_transform {
+    T operator()(T v) const { return scale * v; }
+
+    T scale;
+};
+
+
+struct double_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return T{2} * v;
+    }
+};
+
+
 TYPED_TEST(TransformIterator, EmptyIterator)
 {
     auto test_iter = gko::detail::make_transform_iterator<TypeParam*>(
-        nullptr, [](TypeParam v) { return v; });
+        nullptr, identity_transform{});
 
     ASSERT_NO_THROW((void)std::find(test_iter, test_iter, TypeParam{}));
 }
@@ -535,8 +561,8 @@ TYPED_TEST(TransformIterator, CopyingWithIdentityFunction)
 {
     std::vector<TypeParam> vec{6, 2, 5, 2, 4};
     std::vector<TypeParam> result;
-    auto test_iter = gko::detail::make_transform_iterator(
-        vec.begin(), [](TypeParam v) { return v; });
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), identity_transform{});
 
     std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
 
@@ -551,7 +577,7 @@ TYPED_TEST(TransformIterator, CopyingWithStatefulFunctor)
     std::vector<TypeParam> ref{18, 6, 15, 6, 12};
     std::vector<TypeParam> result;
     auto test_iter = gko::detail::make_transform_iterator(
-        vec.begin(), [scale](TypeParam v) { return scale * v; });
+        vec.begin(), scale_transform<TypeParam>{scale});
 
     std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
 
@@ -562,7 +588,7 @@ TYPED_TEST(TransformIterator, CopyingWithStatefulFunctor)
 TYPED_TEST(TransformIterator, IncreasingIterator)
 {
     std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto transform = [](TypeParam v) { return TypeParam{2} * v; };
+    auto transform = double_transform{};
 
     auto test_iter =
         gko::detail::make_transform_iterator(vec.begin(), transform);
@@ -623,7 +649,7 @@ TYPED_TEST(TransformIterator, IncreasingIterator)
 TYPED_TEST(TransformIterator, DecreasingIterator)
 {
     std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto transform = [](TypeParam v) { return TypeParam{2} * v; };
+    auto transform = double_transform{};
 
     auto test_iter =
         gko::detail::make_transform_iterator(vec.begin(), transform);

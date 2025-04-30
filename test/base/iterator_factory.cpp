@@ -64,6 +64,15 @@ TEST_F(IteratorFactory, KernelRunsZipIterator)
 }
 
 
+struct transformation {
+    template <typename T>
+    GKO_KERNEL T operator()(T v) const
+    {
+        return -v;
+    }
+};
+
+
 // nvcc doesn't like device lambdas declared in complex classes, move it out
 void run_transform_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
                             gko::array<int>& in_array,
@@ -72,8 +81,8 @@ void run_transform_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
     gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec, [] GKO_KERNEL(auto i, auto it, auto out) { out[i] = it[i]; },
         in_array.get_size(),
-        gko::detail::make_transform_iterator(
-            in_array.get_data(), [] GKO_KERNEL(auto v) { return -v; }),
+        gko::detail::make_transform_iterator(in_array.get_data(),
+                                             transformation{}),
         out_array);
 }
 
