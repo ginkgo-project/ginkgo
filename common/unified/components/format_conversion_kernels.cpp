@@ -8,6 +8,7 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/components/bitvector.hpp"
+#include "core/base/index_range.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
@@ -26,7 +27,7 @@ void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_elements = exec->copy_val_to_host(ptrs + num_blocks);
     // transform the ptrs to a bitvector in unary delta encoding, i.e.
     // every row with n elements is encoded as 1 0 ... n times ... 0
-    auto it = detail::make_transform_iterator(
+    auto it = gko::detail::make_transform_iterator(
         index_iterator<IndexType>{0},
         [ptrs] GKO_KERNEL(IndexType i) -> RowPtrType { return ptrs[i] + i; });
     auto bv = bitvector::from_sorted_indices(exec, it, num_blocks,
