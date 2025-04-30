@@ -20,6 +20,14 @@ namespace components {
 
 
 template <typename IndexType, typename RowPtrType>
+struct convert_ptrs_to_idxs_functor {
+    GKO_KERNEL RowPtrType operator()(IndexType i) const { return ptrs[i] + i; }
+
+    const RowPtrType* ptrs;
+};
+
+
+template <typename IndexType, typename RowPtrType>
 void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
                           const RowPtrType* ptrs, size_type num_blocks,
                           IndexType* idxs)
@@ -29,7 +37,8 @@ void convert_ptrs_to_idxs(std::shared_ptr<const DefaultExecutor> exec,
     // every row with n elements is encoded as 1 0 ... n times ... 0
     auto it = gko::detail::make_transform_iterator(
         index_iterator<IndexType>{0},
-        [ptrs] GKO_KERNEL(IndexType i) -> RowPtrType { return ptrs[i] + i; });
+        convert_ptrs_to_idxs_functor<IndexType, RowPtrType>{ptrs});
+
     auto bv = bitvector::from_sorted_indices(exec, it, num_blocks,
                                              num_blocks + num_elements);
     run_kernel(
