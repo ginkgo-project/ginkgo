@@ -21,13 +21,17 @@ namespace bitvector {
 template <typename IndexType, typename DevicePredicate>
 gko::bitvector<IndexType> from_predicate(
     std::shared_ptr<const DefaultExecutor> exec, IndexType size,
-    DevicePredicate device_predicate)
+    DevicePredicate device_predicate,
+    array<typename device_bitvector<IndexType>::storage_type>&& bit_array = {},
+    array<IndexType>&& rank_array = {})
 {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
     constexpr auto block_size = device_bitvector<IndexType>::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
-    array<storage_type> bit_array{exec, num_blocks};
-    array<IndexType> rank_array{exec, num_blocks};
+    bit_array.set_executor(exec);
+    bit_array.resize_and_reset(num_blocks);
+    rank_array.set_executor(exec);
+    rank_array.resize_and_reset(num_blocks);
     const auto bits = bit_array.get_data();
     const auto ranks = rank_array.get_data();
 #pragma omp parallel for
@@ -63,15 +67,21 @@ gko::bitvector<typename std::iterator_traits<IndexIterator>::value_type>
 from_sorted_indices(
     std::shared_ptr<const DefaultExecutor> exec, IndexIterator it,
     typename std::iterator_traits<IndexIterator>::difference_type count,
-    typename std::iterator_traits<IndexIterator>::value_type size)
+    typename std::iterator_traits<IndexIterator>::value_type size,
+    array<typename device_bitvector<typename std::iterator_traits<
+        IndexIterator>::value_type>::storage_type>&& bit_array = {},
+    array<typename std::iterator_traits<IndexIterator>::value_type>&&
+        rank_array = {})
 {
     using index_type = typename std::iterator_traits<IndexIterator>::value_type;
     using bv = device_bitvector<index_type>;
     using storage_type = typename bv::storage_type;
     constexpr auto block_size = bv::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
-    array<storage_type> bit_array{exec, num_blocks};
-    array<index_type> rank_array{exec, num_blocks};
+    bit_array.set_executor(exec);
+    bit_array.resize_and_reset(num_blocks);
+    rank_array.set_executor(exec);
+    rank_array.resize_and_reset(num_blocks);
     const auto bits = bit_array.get_data();
     const auto ranks = rank_array.get_data();
     components::fill_array(exec, bits, num_blocks, storage_type{});

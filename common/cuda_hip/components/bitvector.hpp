@@ -63,23 +63,30 @@ __global__ __launch_bounds__(default_block_size) void from_predicate(
 template <typename IndexType, typename DevicePredicate>
 gko::bitvector<IndexType> from_predicate(
     std::shared_ptr<const DefaultExecutor> exec, IndexType size,
-    DevicePredicate device_predicate)
+    DevicePredicate device_predicate,
+    array<typename device_bitvector<IndexType>::storage_type>&& bit_array = {},
+    array<IndexType>&& rank_array = {})
 {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
     constexpr auto block_size = device_bitvector<IndexType>::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
-    array<storage_type> bits{exec, num_blocks};
-    array<IndexType> ranks{exec, num_blocks};
+    bit_array.set_executor(exec);
+    bit_array.resize_and_reset(num_blocks);
+    rank_array.set_executor(exec);
+    rank_array.resize_and_reset(num_blocks);
     if (num_blocks > 0) {
         const auto num_threadblocks =
             ceildiv(num_blocks, default_block_size / block_size);
         kernel::from_predicate<<<num_threadblocks, default_block_size, 0,
                                  exec->get_stream()>>>(
-            size, bits.get_data(), ranks.get_data(), device_predicate);
-        components::prefix_sum_nonnegative(exec, ranks.get_data(), num_blocks);
+            size, bit_array.get_data(), rank_array.get_data(),
+            device_predicate);
+        components::prefix_sum_nonnegative(exec, rank_array.get_data(),
+                                           num_blocks);
     }
 
-    return gko::bitvector<IndexType>{std::move(bits), std::move(ranks), size};
+    return gko::bitvector<IndexType>{std::move(bit_array),
+                                     std::move(rank_array), size};
 }
 
 
@@ -139,37 +146,50 @@ gko::bitvector<typename std::iterator_traits<IndexIterator>::value_type>
 from_sorted_indices(
     std::shared_ptr<const DefaultExecutor> exec, IndexIterator it,
     typename std::iterator_traits<IndexIterator>::difference_type count,
-    typename std::iterator_traits<IndexIterator>::value_type size)
+    typename std::iterator_traits<IndexIterator>::value_type size,
+    array<typename device_bitvector<typename std::iterator_traits<
+        IndexIterator>::value_type>::storage_type>&& bit_array = {},
+    array<typename std::iterator_traits<IndexIterator>::value_type>&&
+        rank_array = {},
+    array<typename device_bitvector<typename std::iterator_traits<
+        IndexIterator>::value_type>::storage_type>&& bit_compact_array = {},
+    array<typename std::iterator_traits<IndexIterator>::value_type>&&
+        bit_position_array = {})
 {
     using index_type = typename std::iterator_traits<IndexIterator>::value_type;
     using storage_type = typename device_bitvector<index_type>::storage_type;
     constexpr auto block_size = device_bitvector<index_type>::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
     const auto policy = thrust_policy(exec);
-    array<storage_type> bits_compact{exec, num_blocks};
-    array<index_type> bits_position{exec, num_blocks};
-    array<storage_type> bits{exec, num_blocks};
-    array<index_type> ranks{exec, num_blocks};
+    bit_array.set_executor(exec);
+    bit_array.resize_and_reset(num_blocks);
+    rank_array.set_executor(exec);
+    rank_array.resize_and_reset(num_blocks);
+    bit_compact_array.set_executor(exec);
+    bit_compact_array.resize_and_reset(num_blocks);
+    bit_position_array.set_executor(exec);
+    bit_position_array.resize_and_reset(num_blocks);
     const auto block_it = thrust::make_transform_iterator(
         it, bitvector_block_functor<index_type>{size});
     const auto bit_it = thrust::make_transform_iterator(
         it, bitvector_bit_functor<index_type>{});
-    auto out_pos_it = bits_position.get_data();
-    auto out_bit_it = bits_compact.get_data();
+    auto out_pos_it = bit_position_array.get_data();
+    auto out_bit_it = bit_compact_array.get_data();
     auto [out_pos_end, out_bit_end] = thrust::reduce_by_key(
         policy, block_it, block_it + count, bit_it, out_pos_it, out_bit_it,
         thrust::equal_to<index_type>{}, bitvector_or_functor<storage_type>{});
     assert(thrust::is_sorted(policy, out_pos_it, out_pos_end));
     const auto out_size = out_pos_end - out_pos_it;
-    thrust::fill_n(policy, bits.get_data(), num_blocks, 0);
+    thrust::fill_n(policy, bit_array.get_data(), num_blocks, 0);
     thrust::scatter(policy, out_bit_it, out_bit_it + out_size, out_pos_it,
-                    bits.get_data());
+                    bit_array.get_data());
     const auto rank_it = thrust::make_transform_iterator(
-        bits.get_const_data(), bitvector_popcnt_functor<index_type>{});
+        bit_array.get_const_data(), bitvector_popcnt_functor<index_type>{});
     thrust::exclusive_scan(policy, rank_it, rank_it + num_blocks,
-                           ranks.get_data(), index_type{});
+                           rank_array.get_data(), index_type{});
 
-    return gko::bitvector<index_type>{std::move(bits), std::move(ranks), size};
+    return gko::bitvector<index_type>{std::move(bit_array),
+                                      std::move(rank_array), size};
 }
 
 
