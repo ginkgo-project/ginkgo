@@ -24,6 +24,7 @@ public:
      * Returns the block index and bitmask belonging to a specific bit index.
      *
      * @param i  the bit index
+     *
      * @returns a pair consisting of the block index and bitmask for this bit.
      */
     constexpr static std::pair<index_type, storage_type> get_block_and_mask(
@@ -47,24 +48,25 @@ public:
     {}
 
     /** Returns the number of bits stored in this bitvector. */
-    constexpr index_type size() const { return size_; }
+    constexpr index_type get_size() const { return size_; }
 
     /** Returns the number of words (of type storage_type) in this bitvector. */
-    constexpr index_type num_blocks() const
+    constexpr index_type get_num_blocks() const
     {
-        return (this->size() + block_size - 1) / block_size;
+        return (this->get_size() + block_size - 1) / block_size;
     }
 
     /**
      * Returns whether the bit at the given index is set.
      *
      * @param i  the index in range [0, size())
+     *
      * @return true if the bit is set, false otherwise.
      */
-    constexpr bool get(index_type i) const
+    constexpr bool operator[](index_type i) const
     {
         assert(i >= 0);
-        assert(i < size());
+        assert(i < get_size());
         const auto block = i / block_size;
         const auto local = i % block_size;
         return bool((bits_[block] >> local) & 1);
@@ -74,13 +76,14 @@ public:
      * Returns the rank of the given index.
      *
      * @param i  the index in range [0, size())
+     *
      * @return the rank of the given index, i.e. the number of 1 bits set
      *         before the corresponding bit (exclusive).
      */
-    constexpr index_type rank(index_type i) const
+    constexpr index_type get_rank(index_type i) const
     {
         assert(i >= 0);
-        assert(i < size());
+        assert(i < get_size());
         const auto [block, mask] = get_block_and_mask(i);
         const auto prefix_mask = mask - 1;
         return ranks_[block] + detail::popcount(prefix_mask & bits_[block]);
@@ -90,13 +93,14 @@ public:
      * Returns the inclusive rank of the given index.
      *
      * @param i  the index in range [0, size())
+     *
      * @return the rank of the given index, i.e. the number of 1 bits set
      *         up to and including the corresponding bit (inclusive).
      */
-    constexpr index_type rank_inclusive(index_type i) const
+    constexpr index_type get_rank_inclusive(index_type i) const
     {
         assert(i >= 0);
-        assert(i < size());
+        assert(i < get_size());
         const auto [block, mask] = get_block_and_mask(i);
         const auto prefix_mask = mask - 1 | mask;
         return ranks_[block] + detail::popcount(prefix_mask & bits_[block]);

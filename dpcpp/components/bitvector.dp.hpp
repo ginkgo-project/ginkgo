@@ -44,6 +44,7 @@ gko::bitvector<IndexType> from_predicate(
                 mask |= bit << local_i;
             };
             if (base_i + block_size <= size) {
+#pragma unroll
                 for (int local_i = 0; local_i < block_size; local_i++) {
                     local_op(local_i);
                 }
