@@ -86,7 +86,7 @@ gko::bitvector<IndexType> from_predicate(
 template <typename IndexType>
 struct bitvector_bit_functor {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
-    __device__ storage_type operator()(IndexType i)
+    constexpr storage_type operator()(IndexType i) const
     {
         return device_bitvector<IndexType>::get_block_and_mask(i).second;
     }
@@ -96,7 +96,7 @@ struct bitvector_bit_functor {
 template <typename IndexType>
 struct bitvector_or_functor {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
-    __device__ storage_type operator()(storage_type a, storage_type b)
+    constexpr storage_type operator()(storage_type a, storage_type b) const
     {
         // https://github.com/ROCm/rocThrust/issues/352
 #ifndef GKO_COMPILING_HIP
@@ -113,7 +113,7 @@ struct bitvector_block_functor {
     // workaround for ROCm 4.5 bug
     using result_type = IndexType;
     constexpr static auto block_size = device_bitvector<IndexType>::block_size;
-    __device__ IndexType operator()(IndexType i)
+    constexpr IndexType operator()(IndexType i) const
     {
         assert(i >= 0);
         assert(i < size);
@@ -127,7 +127,7 @@ struct bitvector_block_functor {
 template <typename IndexType>
 struct bitvector_popcnt_functor {
     using storage_type = typename device_bitvector<IndexType>::storage_type;
-    __device__ IndexType operator()(storage_type mask)
+    constexpr IndexType operator()(storage_type mask) const
     {
         return gko::detail::popcount(mask);
     }
