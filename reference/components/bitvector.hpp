@@ -51,9 +51,9 @@ from_sorted_indices(
     using index_type = typename std::iterator_traits<IndexIterator>::value_type;
     using storage_type = typename device_bitvector<index_type>::storage_type;
     constexpr auto block_size = device_bitvector<index_type>::block_size;
-    const auto num_blocks = ceildiv(size, block_size);
-    array<storage_type> bits{exec, static_cast<size_type>(num_blocks)};
-    array<index_type> ranks{exec, static_cast<size_type>(num_blocks)};
+    const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
+    array<storage_type> bits{exec, num_blocks};
+    array<index_type> ranks{exec, num_blocks};
     std::fill_n(bits.get_data(), num_blocks, 0);
     assert(std::is_sorted(it, it + count));
     for (auto i : irange{count}) {
@@ -63,8 +63,8 @@ from_sorted_indices(
         assert((bits.get_data()[block] & mask) == 0);
         bits.get_data()[block] |= mask;
     }
-    index_type rank{};
-    for (auto i : irange{num_blocks}) {
+    index_type rank{0};
+    for (auto i : irange{static_cast<index_type>(num_blocks)}) {
         ranks.get_data()[i] = rank;
         rank += gko::detail::popcount(bits.get_const_data()[i]);
     }
