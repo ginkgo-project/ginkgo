@@ -63,7 +63,7 @@ TYPED_TEST(Bitvector, ComputeBitsAndRanks)
     for (auto size : this->sizes) {
         SCOPED_TRACE(size);
         for (auto num_values :
-             {index_type{}, size / 10, size / 4, size / 2, size}) {
+             {index_type{0}, size / 10, size / 4, size / 2, size}) {
             SCOPED_TRACE(num_values);
             auto values = this->create_random_values(num_values, size);
             num_values = values.size();
@@ -75,26 +75,27 @@ TYPED_TEST(Bitvector, ComputeBitsAndRanks)
 
             // check bits and ranks are correct
             ASSERT_EQ(bv.get_size(), size);
-            ASSERT_EQ(dbv.size(), size);
+            ASSERT_EQ(dbv.get_size(), size);
             ASSERT_EQ(bv.get_num_blocks(), num_blocks);
-            ASSERT_EQ(dbv.num_blocks(), num_blocks);
+            ASSERT_EQ(dbv.get_num_blocks(), num_blocks);
             auto it = values.begin();
             index_type rank{};
             for (auto i : gko::irange{size}) {
                 const auto block = i / block_size;
                 const auto local = i % block_size;
-                ASSERT_EQ(dbv.rank(i), rank);
+                ASSERT_EQ(dbv.get_rank(i), rank);
                 if (it != values.end() && *it == i) {
                     ASSERT_TRUE(bool(bv.get_bits()[block] &
                                      (storage_type{1} << local)));
-                    ASSERT_TRUE(dbv.get(i));
+                    ASSERT_TRUE(dbv[i]);
                     ++rank;
                     ++it;
                 } else {
                     ASSERT_FALSE(bool(bv.get_bits()[block] &
                                       (storage_type{1} << local)));
-                    ASSERT_FALSE(dbv.get(i));
+                    ASSERT_FALSE(dbv[i]);
                 }
+                ASSERT_EQ(dbv.get_rank_inclusive(i), rank);
             }
         }
     }

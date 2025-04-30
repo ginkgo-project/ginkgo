@@ -65,9 +65,10 @@ gko::bitvector<IndexType> from_predicate(
     std::shared_ptr<const DefaultExecutor> exec, IndexType size,
     DevicePredicate device_predicate)
 {
+    using storage_type = typename device_bitvector<IndexType>::storage_type;
     constexpr auto block_size = device_bitvector<IndexType>::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
-    array<uint32> bits{exec, num_blocks};
+    array<storage_type> bits{exec, num_blocks};
     array<IndexType> ranks{exec, num_blocks};
     if (num_blocks > 0) {
         const auto num_threadblocks =

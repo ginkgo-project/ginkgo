@@ -60,18 +60,14 @@ protected:
         ASSERT_EQ(bv.get_size(), dbv.get_size());
         const auto num_blocks =
             static_cast<gko::size_type>(bv.get_num_blocks());
-        const auto bits =
-            gko::detail::array_const_cast(gko::make_const_array_view(
-                bv.get_executor(), num_blocks, bv.get_bits()));
-        const auto dbits =
-            gko::detail::array_const_cast(gko::make_const_array_view(
-                dbv.get_executor(), num_blocks, dbv.get_bits()));
-        const auto ranks =
-            gko::detail::array_const_cast(gko::make_const_array_view(
-                bv.get_executor(), num_blocks, bv.get_ranks()));
-        const auto dranks =
-            gko::detail::array_const_cast(gko::make_const_array_view(
-                dbv.get_executor(), num_blocks, dbv.get_ranks()));
+        const auto bits = gko::make_const_array_view(bv.get_executor(),
+                                                     num_blocks, bv.get_bits());
+        const auto dbits = gko::make_const_array_view(
+            dbv.get_executor(), num_blocks, dbv.get_bits());
+        const auto ranks = gko::make_const_array_view(
+            bv.get_executor(), num_blocks, bv.get_ranks());
+        const auto dranks = gko::make_const_array_view(
+            dbv.get_executor(), num_blocks, dbv.get_ranks());
         GKO_ASSERT_ARRAY_EQ(bits, dbits);
         GKO_ASSERT_ARRAY_EQ(ranks, dranks);
     }
@@ -162,13 +158,13 @@ void run_device(std::shared_ptr<const gko::EXEC_TYPE> exec,
     gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto bv, auto output_bool, auto output_rank) {
-            output_bool[i] = bv.get(i);
-            output_rank[i] = bv.rank(i);
+            output_bool[i] = bv[i];
+            output_rank[i] = bv.get_rank(i);
         },
-        dbv.size(), dbv, doutput_bools, doutput_ranks);
-    for (auto i : gko::irange{bv.size()}) {
-        output_bools.get_data()[i] = bv.get(i);
-        output_ranks.get_data()[i] = bv.rank(i);
+        dbv.get_size(), dbv, doutput_bools, doutput_ranks);
+    for (auto i : gko::irange{bv.get_size()}) {
+        output_bools.get_data()[i] = bv[i];
+        output_ranks.get_data()[i] = bv.get_rank(i);
     }
 }
 

@@ -26,7 +26,7 @@ gko::bitvector<IndexType> from_predicate(
     using storage_type = typename device_bitvector<IndexType>::storage_type;
     constexpr auto block_size = device_bitvector<IndexType>::block_size;
     const auto num_blocks = static_cast<size_type>(ceildiv(size, block_size));
-    array<uint32> bit_array{exec, num_blocks};
+    array<storage_type> bit_array{exec, num_blocks};
     array<IndexType> rank_array{exec, num_blocks};
     const auto bits = bit_array.get_data();
     const auto ranks = rank_array.get_data();
@@ -39,6 +39,7 @@ gko::bitvector<IndexType> from_predicate(
             mask |= bit << local_i;
         };
         if (base_i + block_size <= size) {
+#pragma unroll
             for (int local_i = 0; local_i < block_size; local_i++) {
                 local_op(local_i);
             }
@@ -85,7 +86,7 @@ from_sorted_indices(
         if (begin < end) {
             const auto first_block = it[begin] / block_size;
             const auto last_block = it[end - 1] / block_size;
-            storage_type word{};
+            storage_type mask{0};
             auto block = first_block;
             for (auto i : irange{begin, end}) {
                 const auto value = it[i];
@@ -95,17 +96,17 @@ from_sorted_indices(
                     assert(new_block > block);
                     if (block == first_block) {
 #pragma omp atomic
-                        bits[block] |= word;
+                        bits[block] |= mask;
                     } else {
-                        bits[block] = word;
+                        bits[block] = mask;
                     }
-                    word = 0;
+                    mask = 0;
                     block = new_block;
                 }
-                word |= storage_type{1} << local;
+                mask |= storage_type{1} << local;
             }
 #pragma omp atomic
-            bits[last_block] |= word;
+            bits[last_block] |= mask;
         }
     }
 #pragma omp parallel for
