@@ -12,10 +12,12 @@
 #include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "common/unified/components/bitvector.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
 #include "core/base/iterator_factory.hpp"
+#include "core/components/bitvector.hpp"
 #include "core/components/combined_workspace.hpp"
 #include "core/components/double_buffer.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -409,6 +411,14 @@ struct elimination_forest_algorithm_state {
                       static_cast<size_type>(num_nodes)},
           cc_parents{workspace.get_pointer(16), workspace.get_pointer(17),
                      static_cast<size_type>(num_nodes)},
+          mins_sorting{workspace.get_pointer(0), workspace.get_pointer(1),
+                       static_cast<size_type>(num_nodes)},
+          cc_rep_sorting{workspace.get_pointer(2), workspace.get_pointer(3),
+                         static_cast<size_type>(num_nodes)},
+          num_mins{},
+          num_cc_reps{},
+          cc_bv{{}, {}, 0},
+          min_bv{{}, {}, 0},
           bucket_ranges{},
           tree_ranges{},
           tree_levels{tree_levels}
@@ -433,6 +443,15 @@ struct elimination_forest_algorithm_state {
                                                   size_type num_edges)
     {
         const auto edge_capacity = 2 * num_edges;
+        static_assert(sizeof(typename bitvector<IndexType>::storage_type) <=
+                      sizeof(IndexType));
+        const auto bitvector_storage_scale =
+            sizeof(IndexType) /
+            sizeof(typename bitvector<IndexType>::storage_type);
+        const auto euler_bitvector_block_count =
+            gko::bitvector<IndexType>::get_num_blocks(2 * num_nodes - 1);
+        const auto cc_bitvector_block_count =
+            gko::bitvector<IndexType>::get_num_blocks(num_nodes);
         return {
             edge_capacity,      // 0: buf1_sources
             edge_capacity,      // 1: buf1_targets
@@ -456,6 +475,12 @@ struct elimination_forest_algorithm_state {
             num_nodes,          // 19: cc_sizes
             bucket_sort_workspace_size<num_buckets>(
                 edge_capacity),  // 20: bucketsort_workspace
+            euler_bitvector_block_count +
+                (euler_bitvector_block_count + bitvector_storage_scale - 1) /
+                    bitvector_storage_scale,  // 21: euler_bitvector_storage
+            cc_bitvector_block_count +
+                (cc_bitvector_block_count + bitvector_storage_scale - 1) /
+                    bitvector_storage_scale,  // 22: cc_bitvector_storage
         };
     }
 
@@ -479,6 +504,41 @@ struct elimination_forest_algorithm_state {
     array<IndexType> bucketsort_workspace_view()
     {
         return workspace.get_view(20);
+    }
+
+    array<IndexType> euler_bitvector_ranks()
+    {
+        const auto num_blocks = static_cast<size_type>(
+            gko::bitvector<IndexType>::get_num_blocks(2 * num_nodes - 1));
+        return make_array_view(exec, num_blocks, workspace.get_pointer(21));
+    }
+
+    array<typename gko::bitvector<IndexType>::storage_type>
+    euler_bitvector_bits()
+    {
+        const auto num_blocks = static_cast<size_type>(
+            gko::bitvector<IndexType>::get_num_blocks(2 * num_nodes - 1));
+        return make_array_view(
+            exec, num_blocks,
+            reinterpret_cast<typename gko::bitvector<IndexType>::storage_type*>(
+                workspace.get_pointer(21) + num_blocks));
+    }
+
+    array<IndexType> cc_bitvector_ranks()
+    {
+        const auto num_blocks = static_cast<size_type>(
+            gko::bitvector<IndexType>::get_num_blocks(num_nodes));
+        return make_array_view(exec, num_blocks, workspace.get_pointer(22));
+    }
+
+    array<typename gko::bitvector<IndexType>::storage_type> cc_bitvector_bits()
+    {
+        const auto num_blocks = static_cast<size_type>(
+            gko::bitvector<IndexType>::get_num_blocks(num_nodes));
+        return make_array_view(
+            exec, num_blocks,
+            reinterpret_cast<typename gko::bitvector<IndexType>::storage_type*>(
+                workspace.get_pointer(22) + num_blocks));
     }
 
     IndexType num_edges() const { return bucket_ranges.back(); }
@@ -521,6 +581,9 @@ struct elimination_forest_algorithm_state {
                                    static_cast<size_type>(num_nodes));
         components::fill_seq_array(exec, euler_last(),
                                    static_cast<size_type>(num_nodes));
+        components::fill_seq_array(exec, cc_rep_sorting.get(),
+                                   static_cast<size_type>(num_nodes));
+        num_cc_reps = num_nodes;
         components::fill_array(exec, euler_sizes.get(),
                                static_cast<size_type>(num_nodes), IndexType{1});
         tree_counter = 0;
@@ -583,6 +646,12 @@ struct elimination_forest_algorithm_state {
         assert(begin <= end);
         assert(end <= edge_capacity);
         return irange<IndexType>{begin, end};
+    }
+
+    void sort(double_buffer<IndexType> data, IndexType size)
+    {
+        assert(size <= data.size);
+        std::sort(data.get(), data.get() + size);
     }
 
     template <typename Op>
@@ -804,23 +873,19 @@ struct elimination_forest_algorithm_state {
         }
     }
 
-    void sort_tree_edges_by_euler_first(int level)
+    void find_tree_min_cut_neighbors(int level)
     {
-        const auto it =
-            detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
-        const auto tree_range = get_tree_edge_range(level);
-        // Sorting order: We need to have deltas inside each CC only, so we can
-        // do a scan_by_key. This means we can just sort by euler_first of the
-        // mins, since that also establishes a relative order between different
-        // mins in the same CC. The edge sources can be ordered normally, since
-        // they are all CC representatives/roots
-        std::sort(it + tree_range.begin_index(), it + tree_range.end_index(),
-                  [old_first = euler_first.get()](auto lhs, auto rhs) {
-                      return std::tie(old_first[lhs.template get<0>()],
-                                      lhs.template get<1>()) <
-                             std::tie(old_first[rhs.template get<0>()],
-                                      rhs.template get<1>());
-                  });
+        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
+        const auto min_sentinel = num_nodes;
+        components::fill_array(exec, cc_mins(),
+                               static_cast<size_type>(num_nodes), min_sentinel);
+        const auto tree_edges = get_tree_edge_range(level);
+        const auto mins = cc_mins();
+        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
+            // set mins[source] = target for every tree edge in that level
+            // because we set source = i and target = mins[i] before
+            mins[src] = tgt;
+        });
     }
 
     void find_tree_connected_components(int level)
@@ -855,6 +920,18 @@ struct elimination_forest_algorithm_state {
             assert(new_parents[new_parents[i]] == new_parents[i]);
         });
 #endif
+        // update the list of CC reps
+        auto out_it = std::copy_if(cc_rep_sorting.get(),
+                                   cc_rep_sorting.get() + num_cc_reps,
+                                   cc_rep_sorting.get_other(),
+                                   [&](auto i) { return new_parents[i] == i; });
+        num_cc_reps =
+            static_cast<IndexType>(out_it - cc_rep_sorting.get_other());
+        // and their corresponding bitvector
+        // TODO don't need this, since we already have the sorted sequence
+        cc_bv = bitvector::from_sorted_indices(
+            exec, cc_rep_sorting.get_other(), num_cc_reps, num_nodes,
+            cc_bitvector_bits(), cc_bitvector_ranks());
     }
 
     void update_tree_node_levels(int level)
@@ -883,14 +960,52 @@ struct elimination_forest_algorithm_state {
         const auto* parents = cc_parents.get();
         const auto* mins = cc_mins();
         const auto tree_edges = get_tree_edge_range(level);
-#pragma omp parallel for
-        for (IndexType i = 0; i < num_nodes; i++) {
-        }
         foreach_tree_edge_in_range(tree_edges, [&](auto lower, auto upper) {
             assert(parents[parents[upper]] == parents[upper]);
             auto upper_rep = parents[upper];
             atomic_add(sizes[upper_rep], sizes[lower]);
         });
+    }
+
+    void sort_tree_edges_by_euler_first(int level)
+    {
+        const auto it =
+            detail::make_zip_iterator(tree_targets.get(), tree_sources.get());
+        const auto tree_range = get_tree_edge_range(level);
+        // Sorting order: We need to have deltas inside each CC only, so we can
+        // do a scan_by_key. This means we can just sort by euler_first of the
+        // mins, since that also establishes a relative order between different
+        // mins in the same CC. The edge sources can be ordered normally, since
+        // they are all CC representatives/roots
+        std::sort(it + tree_range.begin_index(), it + tree_range.end_index(),
+                  [old_first = euler_first.get()](auto lhs, auto rhs) {
+                      return std::tie(old_first[lhs.template get<0>()],
+                                      lhs.template get<1>()) <
+                             std::tie(old_first[rhs.template get<0>()],
+                                      rhs.template get<1>());
+                  });
+    }
+
+    void extract_mins(int level)
+    {
+        const auto tree_edges = get_tree_edge_range(level);
+        // since the tree edges are sorted by their target euler_first
+        // they are also grouped by their target, so we can extract unique edges
+        // with std::unique
+        auto out_it = std::unique(tree_targets.get() + tree_edges.begin_index(),
+                                  tree_targets.get() + tree_edges.end_index(),
+                                  mins_sorting.get());
+        num_mins =
+            static_cast<IndexType>(std::distance(mins_sorting.get(), out_it));
+#pragma omp parallel for
+        for (IndexType i = 0; i < num_mins; i++) {
+            // and then map the mins to their euler_first
+            mins_sorting[i] = euler_first[mins_sorting[i]];
+        }
+        sort(mins_sorting, num_mins);
+        min_bv = bitvector::from_sorted_indices(
+            exec, mins_sorting.get(), num_mins, 2 * num_nodes - 1,
+            euler_bitvector_bits(), euler_bitvector_ranks());
     }
 
     void prefix_sum_tree_edges(int level)
@@ -918,11 +1033,17 @@ struct elimination_forest_algorithm_state {
             detail::make_transform_iterator(tgts + tree_edges.begin_index(),
                                             [&](auto i) { return parents[i]; }),
             deltas, static_cast<size_type>(tree_edges.size()));
+#pragma omp parallel for
+        for (auto i = tree_edges.begin_index(); i < tree_edges.end_index();
+             i++) {
+            const auto delta =
+        }
     }
 
     void update_euler_walks(int level)
     {
         const auto parents = cc_parents();
+        const auto new_reps = cc_rep_sorting.get_other();
         const auto set_sizes = cc_sizes();
         const auto new_walk_sizes = euler_sizes.get_other();
         const auto old_walk_first = euler_sizes.get();
@@ -930,44 +1051,22 @@ struct elimination_forest_algorithm_state {
         const auto tree_edges = get_tree_edge_range(level);
         // first figure out the location for all new connected components
 #pragma omp parallel for
-        for (IndexType i = 0; i < num_nodes; i++) {
-            if (parents[i] == i) {
-                new_walk_sizes[i] = 2 * set_sizes[i] - 1;
-            } else {
-                new_walk_sizes[i] = 0;
-            }
+        for (IndexType i = 0; i < num_cc_reps; i++) {
+            auto rep = new_reps[i];
+            assert(parents[rep] == rep);
+            new_walk_sizes[i] = 2 * set_sizes[rep] - 1;
         }
         components::prefix_sum_nonnegative(exec, new_walk_sizes,
-                                           static_cast<size_type>(num_nodes));
+                                           static_cast<size_type>(num_cc_reps));
         // every representative now knows its location
 #pragma omp parallel for
-        for (IndexType i = 0; i < num_nodes; i++) {
-            if (parents[i] == i) {
-                new_walk_first[i] = new_walk_sizes[i];
-            }
+        for (IndexType i = 0; i < num_cc_reps; i++) {
+            auto rep = new_reps[i];
+            new_walk_first[rep] = new_walk_sizes[i];
         }
-        // next figure out the same thing for all lower CCs
-        foreach_lower_node(level, [&](auto i) {
-
-        });
     }
 
-    void find_tree_min_cut_neighbors(int level)
-    {
-        GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
-        const auto min_sentinel = num_nodes;
-        components::fill_array(exec, cc_mins(),
-                               static_cast<size_type>(num_nodes), min_sentinel);
-        const auto tree_edges = get_tree_edge_range(level);
-        const auto mins = cc_mins();
-        foreach_tree_edge_in_range(tree_edges, [&](auto src, auto tgt) {
-            // set mins[source] = target for every tree edge in that level
-            // because we set source = i and target = mins[i] before
-            mins[src] = tgt;
-        });
-    }
-
-    void run()
+    void compute_tree_edges()
     {
         bucket_sort_input();
         // now the input is sorted by the level at which they become cut edges
@@ -991,6 +1090,10 @@ struct elimination_forest_algorithm_state {
             // finally we swap the double buffer
             output_to_input();
         }
+    }
+
+    void assemble_euler_walk_levels()
+    {
         // bottom-up add edges to assemble the tree
         reset_connected_components();
         for (int level = 0; level < num_levels; level++) {
@@ -1017,6 +1120,12 @@ struct elimination_forest_algorithm_state {
         }
     }
 
+    void run()
+    {
+        compute_tree_edges();
+        assemble_euler_walk_levels();
+    }
+
     std::shared_ptr<const DefaultExecutor> exec;
     IndexType num_nodes;
     IndexType edge_capacity;
@@ -1033,6 +1142,13 @@ struct elimination_forest_algorithm_state {
     double_buffer<IndexType> euler_sizes;
     double_buffer<IndexType> euler_first;
     double_buffer<IndexType> cc_parents;
+    // these structures are only used once we start assembling data
+    double_buffer<IndexType> mins_sorting;
+    double_buffer<IndexType> cc_rep_sorting;
+    IndexType num_mins;
+    IndexType num_cc_reps;
+    gko::bitvector<IndexType> cc_bv;
+    gko::bitvector<IndexType> min_bv;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     std::array<IndexType, num_buckets + 1> tree_ranges;
     IndexType* tree_levels;
