@@ -27,6 +27,7 @@ jobs:
           - {compiler: "dpcpp", build_type: "Release", name: "intel/dpcpp/release/shared", mixed: "ON", half: "ON", bfloat16: "OFF"}
           - {compiler: "icpx", build_type: "Release", name: "intel/icpx/release/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
           - {compiler: "icpx", build_type: "Release", name: "intel/icpx/release/shared-bfloat16", mixed: "ON", half: "OFF", bfloat16: "ON"}
+          - {compiler: "icpx", build_type: "Release", name: "intel/icpx/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [gpu_intel]
 
