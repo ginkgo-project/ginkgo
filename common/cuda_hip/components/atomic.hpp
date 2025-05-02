@@ -157,11 +157,11 @@ GKO_BIND_ATOMIC_ADD(double);
 GKO_BIND_ATOMIC_ADD(__half);
 #endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700))
 
-#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700))
+#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))
 // CUDA supports 16-bit __nv_bfloat16 floating-point atomicAdd on devices
 // of compute capability 8.x and higher.
 GKO_BIND_ATOMIC_ADD(__nv_bfloat16);
-#endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700))
+#endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))
 
 #if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 // CUDA supports 32-bit __half2 floating-point atomicAdd on
