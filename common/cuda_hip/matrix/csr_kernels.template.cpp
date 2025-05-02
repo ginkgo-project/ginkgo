@@ -2091,9 +2091,19 @@ bool load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
-    // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+// not support 16 bit atomic
+#if !defined(CUDA_VERSION)
     if constexpr (sizeof(remove_complex<OutputValueType>) == sizeof(int16)) {
+        return false;
+    } else
+#else
+    auto compute_capability = as<CudaExecutor>(exec)->get_major_version() * 10 +
+                              as<CudaExecutor>(exec)->get_minor_version();
+    if (compute_capability < 70 &&
+        std::is_same_v<remove_complex<OutputValueType>, half>) {
+        return false;
+    } else if (compute_capability < 80 &&
+               std::is_same_v<remove_complex<OutputValueType>, bfloat16>) {
         return false;
     } else
 #endif
