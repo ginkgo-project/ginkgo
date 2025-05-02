@@ -175,6 +175,8 @@ build/amd/nompi/clang/rocm45/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/amd/nompi/clang/rocm45/debug/shared:
   extends:
@@ -212,6 +214,8 @@ build/amd/nompi/clang/rocm514/release/shared:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 # without omp
 build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
@@ -248,6 +252,8 @@ build/nocuda/nompi/clang/core/release/shared:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda/nompi/gcc/omp/release/shared:
   extends:
@@ -258,6 +264,8 @@ build/nocuda/nompi/gcc/omp/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda/openmpi/clang/omp/debug/static:
   extends:
@@ -300,6 +308,8 @@ build/nocuda/nompi/gcc/omp/release/static:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda-nomixed/nompi/clang/omp/release/static:
   extends:
