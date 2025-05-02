@@ -8,6 +8,12 @@
 #include <climits>
 #include <cmath>
 
+#if GINKGO_DPCPP_MAJOR_VERSION < 7 || \
+    (GINKGO_DPCPP_MAJOR_VERSION == 7 && GINKGO_DPCPP_MINOR_VERSION < 1)
+// bit_cast.hpp became self-contained during SYCL 7.0
+// ref: https://github.com/intel/llvm/pull/9684
+#include <sycl/detail/defines_elementary.hpp>
+#endif
 #include <sycl/bit_cast.hpp>
 #include <sycl/half_type.hpp>
 
