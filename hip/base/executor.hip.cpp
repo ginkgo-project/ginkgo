@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,9 @@
 #include "common/cuda_hip/base/runtime.hpp"
 #include "hip/base/device.hpp"
 #include "hip/base/hipblas_handle.hpp"
+#if GKO_HAVE_LAPACK
+#include "hip/base/hipsolver_handle.hpp"
+#endif
 #include "hip/base/hipsparse_handle.hpp"
 #include "hip/base/scoped_device_id.hip.hpp"
 
@@ -260,6 +263,14 @@ void HipExecutor::init_handles()
                 detail::hip_scoped_device_id_guard g(id);
                 kernels::hip::hipsparse::destroy_hipsparse_handle(handle);
             });
+#if GKO_HAVE_LAPACK
+        this->hipsolver_handle_ = handle_manager<hipsolverDnContext>(
+            kernels::hip::hipsolver::init(this->get_stream()),
+            [id](hipsolverDnContext* handle) {
+                detail::hip_scoped_device_id_guard g(id);
+                kernels::hip::hipsolver::destroy_hipsolver_handle(handle);
+            });
+#endif
     }
 }
 

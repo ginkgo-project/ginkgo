@@ -642,6 +642,15 @@ inline size_type get_num_batch_items(const T& obj)
 
 
 /**
+ * Instantiates a HipsolverError.
+ *
+ * @param errcode  The error code returned from the hipSOLVER routine.
+ */
+#define GKO_HIPSOLVER_ERROR(_errcode) \
+    ::gko::HipsolverError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a HipfftError.
  *
  * @param errcode  The error code returned from the hipFFT routine.
@@ -702,6 +711,20 @@ inline size_type get_num_batch_items(const T& obj)
         auto _errcode = _hipsparse_call;                \
         if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
             throw GKO_HIPSPARSE_ERROR(_errcode);        \
+        }                                               \
+    } while (false)
+
+
+/**
+ * Asserts that a hipSOLVER library call completed without errors.
+ *
+ * @param _hipsolver_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPSOLVER_ERRORS(_hipsolver_call) \
+    do {                                                \
+        auto _errcode = _hipsolver_call;                \
+        if (_errcode != HIPSOLVER_STATUS_SUCCESS) {     \
+            throw GKO_HIPSOLVER_ERROR(_errcode);        \
         }                                               \
     } while (false)
 

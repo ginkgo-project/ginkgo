@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,10 +9,16 @@
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>
 #include <hipsparse/hipsparse.h>
+#if GKO_HAVE_LAPACK
+#include <hipsolver/hipsolver.h>
+#endif
 #else
 #include <hipblas.h>
 #include <hiprand.h>
 #include <hipsparse.h>
+#if GKO_HAVE_LAPACK
+#include <hipsolver.h>
+#endif
 #endif
 
 
@@ -68,6 +74,20 @@ TEST(AssertNoHipsparseErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSPARSE_ERRORS(HIPSPARSE_STATUS_SUCCESS));
 }
+
+
+#if GKO_HAVE_LAPACK
+TEST(AssertNoHipsolverErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_HIPSOLVER_ERRORS(1), gko::HipsolverError);
+}
+
+
+TEST(AssertNoHipsolverErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSOLVER_ERRORS(HIPSOLVER_STATUS_SUCCESS));
+}
+#endif
 
 
 }  // namespace

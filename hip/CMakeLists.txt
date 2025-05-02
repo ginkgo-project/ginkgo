@@ -120,6 +120,9 @@ endif()
 if(GINKGO_HAVE_ROCTX)
     target_link_libraries(ginkgo_hip PRIVATE roc::roctx)
 endif()
+if(GINKGO_BUILD_LAPACK)
+    target_link_libraries(ginkgo_hip PRIVATE roc::hipsolver)
+endif()
 
 target_compile_options(
     ginkgo_hip

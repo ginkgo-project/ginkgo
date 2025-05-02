@@ -153,6 +153,16 @@ TEST(HipError, ReturnsHipsparseError)
 }
 
 
+#if GKO_HAVE_LAPACK
+void throws_hipsolver_error() { throw GKO_HIPSOLVER_ERROR(0); }
+
+TEST(HipError, ReturnsHipsolverError)
+{
+    ASSERT_THROW(throws_hipsolver_error(), gko::HipsolverError);
+}
+#endif
+
+
 void throws_hipfft_error() { throw GKO_HIPFFT_ERROR(0); }
 
 TEST(HipError, ReturnsHipfftError)

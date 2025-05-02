@@ -127,6 +127,16 @@ TEST(ExceptionClasses, HipsparseErrorReturnsCorrectWhatMessage)
 }
 
 
+#if GKO_HAVE_LAPACK
+TEST(ExceptionClasses, HipsolverErrorReturnsCorrectWhatMessage)
+{
+    gko::HipsolverError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+#endif
+
+
 TEST(ExceptionClasses, HipfftErrorReturnsCorrectWhatMessage)
 {
     gko::HipfftError error("test_file.cpp", 123, "test_func", 1);

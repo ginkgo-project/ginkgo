@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,6 +128,32 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_GEAM
 
 
+#define GKO_BIND_HIPBLAS_TRMM(ValueType, HipblasName)                        \
+    inline void trmm(hipblasHandle_t handle, hipblasSideMode_t side,         \
+                     hipblasFillMode_t uplo, hipblasOperation_t trans,       \
+                     hipblasDiagType_t diag, int m, int n,                   \
+                     const ValueType* alpha, const ValueType* a, int lda,    \
+                     const ValueType* b, int ldb, ValueType* c, int ldc)     \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPBLAS_ERRORS(                                        \
+            HipblasName(handle, side, uplo, trans, diag, m, n,               \
+                        as_hipblas_type(alpha), as_hipblas_type(a), lda,     \
+                        as_hipblas_type(b), ldb, as_hipblas_type(c), ldc));  \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPBLAS_TRMM(float, hipblasStrmm);
+GKO_BIND_HIPBLAS_TRMM(double, hipblasDtrmm);
+GKO_BIND_HIPBLAS_TRMM(std::complex<float>, hipblasCtrmm);
+GKO_BIND_HIPBLAS_TRMM(std::complex<double>, hipblasZtrmm);
+template <typename ValueType>
+GKO_BIND_HIPBLAS_TRMM(ValueType, detail::not_implemented);
+
+#undef GKO_BIND_HIPBLAS_TRMM
+
+
 #define GKO_BIND_HIPBLAS_SCAL(ValueType, HipblasName)                        \
     inline void scal(hipblasHandle_t handle, int n, const ValueType* alpha,  \
                      ValueType* x, int incx)                                 \
@@ -254,6 +280,12 @@ using namespace hipblas;
 #define BLAS_OP_N HIPBLAS_OP_N
 #define BLAS_OP_T HIPBLAS_OP_T
 #define BLAS_OP_C HIPBLAS_OP_C
+
+#define BLAS_SIDE_LEFT HIPBLAS_SIDE_LEFT
+#define BLAS_SIDE_RIGHT HIPBLAS_SIDE_RIGHT
+
+#define BLAS_DIAG_UNIT HIPBLAS_DIAG_UNIT
+#define BLAS_DIAG_NONUNIT HIPBLAS_DIAG_NON_UNIT
 
 
 }  // namespace blas

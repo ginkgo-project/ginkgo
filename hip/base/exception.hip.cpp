@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,10 +11,16 @@
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>
 #include <hipsparse/hipsparse.h>
+#if GKO_HAVE_LAPACK
+#include <hipsolver/hipsolver.h>
+#endif
 #else
 #include <hipblas.h>
 #include <hiprand.h>
 #include <hipsparse.h>
+#if GKO_HAVE_LAPACK
+#include <hipsolver.h>
+#endif
 #endif
 
 
@@ -104,6 +110,31 @@ std::string HipsparseError::get_error(int64 error_code)
     return "Unknown error";
 
 #undef GKO_REGISTER_HIPSPARSE_ERROR
+}
+
+
+std::string HipsolverError::get_error(int64 error_code)
+{
+#if GKO_HAVE_LAPACK
+#define GKO_REGISTER_HIPSOLVER_ERROR(error_name)        \
+    if (error_code == static_cast<int64>(error_name)) { \
+        return #error_name;                             \
+    }
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_SUCCESS);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_NOT_INITIALIZED);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_ALLOC_FAILED);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_INVALID_VALUE);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_ARCH_MISMATCH);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_EXECUTION_FAILED);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_INTERNAL_ERROR);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
+    GKO_REGISTER_HIPSOLVER_ERROR(HIPSOLVER_STATUS_NOT_SUPPORTED);
+    return "Unknown error";
+
+#undef GKO_REGISTER_HIPSOLVER_ERROR
+#else
+    return "Ginkgo must be built with LAPACK support to enable hipSOLVER";
+#endif
 }
 
 
