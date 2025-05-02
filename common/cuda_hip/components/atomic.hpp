@@ -163,6 +163,28 @@ GKO_BIND_ATOMIC_ADD(__half);
 GKO_BIND_ATOMIC_ADD(__nv_bfloat16);
 #endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800))
 
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
+#define GKO_BIND_UNSUPPORT_ATOMIC_ADD(ValueType)     \
+    __forceinline__ __device__ ValueType atomic_add( \
+        ValueType* __restrict__ addr, ValueType val) \
+    {                                                \
+        asm("trap;");                                \
+        return val;                                  \
+    }
+
+// CUDA only provides the __CUDA_ARCH__ on the device code, so we can not
+// have compile time guard from host side. Providing an unsupported
+// implementation for atomic operation. This is only for the compilation purpose
+// and the implementation should not rely on this to throw an error.
+GKO_BIND_UNSUPPORT_ATOMIC_ADD(__half);
+// compute capability 7.x and higher already supported 16-bit atomicCAS, so
+// __nv_bfloat16 can also rely on it before compute capability 8.x.
+GKO_BIND_UNSUPPORT_ATOMIC_ADD(__nv_bfloat16);
+
+#undef GKO_BIND_UNSUPPORT_ATOMIC_ADD
+#endif  // defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
+
 #if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
 // CUDA supports 32-bit __half2 floating-point atomicAdd on
 // devices of compute capability 6.x and higher. note: The atomicity of the
