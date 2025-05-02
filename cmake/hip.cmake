@@ -32,6 +32,9 @@ find_package(hipsparse REQUIRED)
 find_package(rocrand REQUIRED)
 find_package(rocthrust REQUIRED)
 find_package(ROCTX)
+if(GINKGO_BUILD_LAPACK)
+    find_package(hipsolver REQUIRED)
+endif()
 
 if(GINKGO_HIP_AMD_UNSAFE_ATOMIC)
     set(CMAKE_HIP_FLAGS

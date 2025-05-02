@@ -125,7 +125,7 @@ void symm_eig(std::shared_ptr<const DefaultExecutor> exec,
 
         int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         if (host_info != 0) {
-            throw GKO_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
         }
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
@@ -196,7 +196,7 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
 
         int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         if (host_info != 0) {
-            throw GKO_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
         }
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
@@ -260,7 +260,7 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
 
         int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         if (host_info != 0) {
-            throw GKO_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
         }
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;
@@ -287,7 +287,7 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
 
         int32 host_info = exec->copy_val_to_host(dev_info.get_data());
         if (host_info != 0) {
-            throw GKO_CUSOLVER_ERROR(CUSOLVER_STATUS_INTERNAL_ERROR);
+            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
         }
     } catch (std::exception& e) {
         std::cout << e.what() << std::endl;

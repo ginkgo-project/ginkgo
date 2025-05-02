@@ -23,6 +23,8 @@ struct hipblasContext;
 
 struct hipsparseContext;
 
+struct hipsolverDnContext;
+
 #if GINKGO_HIP_PLATFORM_HCC
 struct ihipStream_t;
 struct ihipEvent_t;

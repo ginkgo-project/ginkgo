@@ -1901,6 +1901,20 @@ public:
         return hipsparse_handle_.get();
     }
 
+    /**
+     * Get the hipsolver handle for this executor
+     *
+     * @return  the hipsolver handle (hipsolverDnContext*) for this executor
+     */
+    hipsolverDnContext* get_dev_lapack_handle() const
+    {
+#if GKO_HAVE_LAPACK
+        return hipsolver_handle_.get();
+#else
+        return nullptr;
+#endif
+    }
+
     GKO_HIP_STREAM_STRUCT* get_stream() const { return stream_; }
 
 protected:
@@ -1946,6 +1960,7 @@ private:
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<hipblasContext> hipblas_handle_;
     handle_manager<hipsparseContext> hipsparse_handle_;
+    handle_manager<hipsolverDnContext> hipsolver_handle_;
     std::shared_ptr<HipAllocatorBase> alloc_;
     GKO_HIP_STREAM_STRUCT* stream_;
 };
