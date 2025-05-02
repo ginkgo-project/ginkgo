@@ -214,7 +214,7 @@ build/amd/nompi/clang/rocm514/release/shared:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    ENABLE_HALF: "OFF"
+    ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
 
 # without omp
@@ -264,7 +264,7 @@ build/nocuda/nompi/gcc/omp/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
-    ENABLE_HALF: "OFF"
+    ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
 
 build/nocuda/openmpi/clang/omp/debug/static:
