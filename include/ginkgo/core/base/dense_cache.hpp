@@ -99,6 +99,10 @@ struct DenseCache {
 };
 
 
+// helper to access private member for testing
+class GenericDenseCacheAccessor;
+
+
 /**
  * Manages a workspace to give Dense Vector with different value_type. The
  * workspace is buffered and reused internally to avoid repeated allocations.
@@ -110,6 +114,8 @@ struct DenseCache {
  *            not be copied when the outer object gets copied.
  */
 struct GenericDenseCache {
+    friend class GenericDenseCacheAccessor;
+
     GenericDenseCache() = default;
     ~GenericDenseCache() = default;
     GenericDenseCache(const GenericDenseCache&);
@@ -131,6 +137,10 @@ private:
 };
 
 
+// helper to access private member for testing.
+class ScalarCacheAccessor;
+
+
 /**
  * Manages a map to store Dense Scalar with different value_type by a
  * user-specified value. The workspace is buffered and reused internally to
@@ -142,6 +152,8 @@ private:
  *            not be copied when the outer object gets copied.
  */
 struct ScalarCache {
+    friend class ScalarCacheAccessor;
+
     ScalarCache(std::shared_ptr<const Executor> executor, double scalar_value);
     ~ScalarCache() = default;
     ScalarCache(const ScalarCache& other);

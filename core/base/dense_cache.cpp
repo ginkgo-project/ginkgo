@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/dense_cache_accessor.hpp"
 
 namespace gko {
 namespace detail {
@@ -35,6 +36,13 @@ void DenseCache<ValueType>::init_from(
         vec->get_executor() != template_vec->get_executor()) {
         vec = matrix::Dense<ValueType>::create_with_config_of(template_vec);
     }
+}
+
+
+const array<char>& GenericDenseCacheAccessor::get_workspace(
+    const GenericDenseCache& cache)
+{
+    return cache.workspace;
 }
 
 
@@ -73,6 +81,26 @@ std::shared_ptr<matrix::Dense<ValueType>> GenericDenseCache::get(
         make_array_view(exec, size[0] * size[1],
                         reinterpret_cast<ValueType*>(workspace.get_data())),
         size[1]);
+}
+
+
+std::shared_ptr<const Executor> ScalarCacheAccessor::get_executor(
+    const ScalarCache& cache)
+{
+    return cache.exec;
+}
+
+
+double ScalarCacheAccessor::get_value(const ScalarCache& cache)
+{
+    return cache.value;
+}
+
+
+const std::map<std::string, std::shared_ptr<const gko::LinOp>>&
+ScalarCacheAccessor::get_scalars(const ScalarCache& cache)
+{
+    return cache.scalars;
 }
 
 
