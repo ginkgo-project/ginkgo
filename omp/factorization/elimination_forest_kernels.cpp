@@ -567,15 +567,16 @@ struct elimination_forest_algorithm_state {
         worklists_targets.swap();
     }
 
-    void init(const array<IndexType>& sources, const array<IndexType>& ends)
+    void init(const array<IndexType>& sources, const array<IndexType>& targets)
     {
         GKO_FUNCTION_SCOPEGUARD(init);
-        assert(sources.get_size() == ends.get_size());
+        assert(sources.get_size() == targets.get_size());
         assert(sources.get_size() <= edge_capacity);
         std::copy_n(sources.get_const_data(), sources.get_size(),
                     out_edge_sources());
-        std::copy_n(ends.get_const_data(), ends.get_size(), out_edge_targets());
-        components::fill_seq_array(exec, euler_walk.get(),
+        std::copy_n(targets.get_const_data(), targets.get_size(),
+                    out_edge_targets());
+        /*components::fill_seq_array(exec, euler_walk.get(),
                                    static_cast<size_type>(num_nodes));
         components::fill_seq_array(exec, euler_first.get(),
                                    static_cast<size_type>(num_nodes));
@@ -585,14 +586,16 @@ struct elimination_forest_algorithm_state {
                                    static_cast<size_type>(num_nodes));
         num_cc_reps = num_nodes;
         components::fill_array(exec, euler_sizes.get(),
-                               static_cast<size_type>(num_nodes), IndexType{1});
+                               static_cast<size_type>(num_nodes),
+        IndexType{1});*/
         tree_counter = 0;
         bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
         output_to_input();
-        components::fill_array(exec, tree_levels,
+        /*components::fill_array(exec, tree_levels,
                                static_cast<size_type>(num_nodes), IndexType{});
         components::fill_array(exec, cc_sizes(),
-                               static_cast<size_type>(num_nodes), IndexType{1});
+                               static_cast<size_type>(num_nodes),
+        IndexType{1});*/
     }
 
     void bucket_sort_input()
@@ -1036,7 +1039,7 @@ struct elimination_forest_algorithm_state {
 #pragma omp parallel for
         for (auto i = tree_edges.begin_index(); i < tree_edges.end_index();
              i++) {
-            const auto delta =
+            // const auto delta =
         }
     }
 
@@ -1123,7 +1126,7 @@ struct elimination_forest_algorithm_state {
     void run()
     {
         compute_tree_edges();
-        assemble_euler_walk_levels();
+        // assemble_euler_walk_levels();
     }
 
     std::shared_ptr<const DefaultExecutor> exec;

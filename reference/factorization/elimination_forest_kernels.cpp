@@ -210,7 +210,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
     const auto ssize = static_cast<IndexType>(size);
     compute_elimination_forest_parent_impl(exec, row_ptrs, cols, ssize,
                                            forest.parents.get_data());
-    compute_elimination_forest_children_impl(
+    /*compute_elimination_forest_children_impl(
         forest.parents.get_const_data(), ssize, forest.child_ptrs.get_data(),
         forest.children.get_data());
     compute_elimination_forest_traversal_impl(
@@ -221,7 +221,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
         forest.postorder.get_data(), forest.inv_postorder.get_data());
     compute_elimination_forest_postorder_parent_impl(
         forest.parents.get_const_data(), forest.inv_postorder.get_const_data(),
-        ssize, forest.postorder_parents.get_data());
+        ssize, forest.postorder_parents.get_data());*/
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELIMINATION_FOREST_COMPUTE);

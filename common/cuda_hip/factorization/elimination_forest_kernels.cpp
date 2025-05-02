@@ -938,10 +938,11 @@ struct elimination_forest_algorithm_state {
         exec->copy_from(exec->get_master(), 1, &zero, tree_counter());
         bucket_ranges.back() = static_cast<IndexType>(sources.get_size());
         output_to_input();
-        components::fill_array(exec, tree_levels,
+        /*components::fill_array(exec, tree_levels,
                                static_cast<size_type>(num_nodes), IndexType{});
         components::fill_array(exec, cc_sizes(),
-                               static_cast<size_type>(num_nodes), IndexType{1});
+                               static_cast<size_type>(num_nodes),
+        IndexType{1});*/
     }
 
     void bucket_sort_input()
@@ -1278,7 +1279,7 @@ struct elimination_forest_algorithm_state {
             // finally we swap the double buffer
             output_to_input();
         }
-        // bottom-up add edges to assemble the tree
+        /*// bottom-up add edges to assemble the tree
         reset_connected_components();
         for (int level = 0; level < num_levels; level++) {
             OperationScopeGuard guard{"tree_level" + std::to_string(level),
@@ -1293,7 +1294,7 @@ struct elimination_forest_algorithm_state {
             // build connected components with the tree edges from this level
             // to advance to the next level
             find_tree_connected_components(level);
-        }
+        }*/
     }
 
     std::shared_ptr<const DefaultExecutor> exec;
