@@ -170,8 +170,18 @@ GKO_BIND_ATOMIC_ADD(__nv_bfloat16);
 // elements; the entire __half2 is not guaranteed to be atomic as a single
 // 32-bit access.
 GKO_BIND_ATOMIC_ADD(__half2);
-GKO_BIND_ATOMIC_ADD(__nv_bfloat162);
 #endif  // !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
+
+#if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 800)) || \
+    !(defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+// CUDA supports 32-bit __half2 floating-point atomicAdd natively on
+// devices of compute capability 8.x and higher or cuda version is later
+// than 12.2. note: The atomicity of the
+// __nv_bfloat162 add operation is guaranteed separately for each of the two
+// __nv_bfloat16 elements; the entire __nv_bfloat162 is not guaranteed to be
+// atomic as a single 32-bit access.
+GKO_BIND_ATOMIC_ADD(__nv_bfloat162);
+#endif
 
 
 #endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
