@@ -73,6 +73,28 @@ public:
     }
 
     /**
+     * join, but in shared memory
+     */
+    __device__ __forceinline__ IndexType join_shared(IndexType x, IndexType y)
+    {
+        check_index(x);
+        check_index(y);
+        auto new_rep = max(x, y);
+        auto old_rep = min(x, y);
+        auto old_parent =
+            atomic_cas_relaxed_shared(parents_ + old_rep, old_rep, new_rep);
+        while (old_parent != old_rep && old_rep != new_rep) {
+            old_rep = old_parent;
+            if (old_rep > new_rep) {
+                thrust::swap(old_rep, new_rep);
+            }
+            old_parent =
+                atomic_cas_relaxed_shared(parents_ + old_rep, old_rep, new_rep);
+        }
+        return new_rep;
+    }
+
+    /**
      * Return the representative of the set containing the given element.
      * This function is only safe in read-only contexts.
      */
@@ -149,6 +171,25 @@ public:
                 cur = parent;
                 parent = grandparent;
                 grandparent = load_relaxed_local(parents_ + parent);
+            }
+        }
+        return parent;
+    }
+
+    /** find_relaxed_compressing, but in shared memory */
+    __device__ __forceinline__ IndexType
+    find_relaxed_compressing_shared(IndexType x) const
+    {
+        check_index(x);
+        auto cur = x;
+        auto parent = load_relaxed_shared(parents_ + cur);
+        if (cur != parent) {
+            auto grandparent = load_relaxed_shared(parents_ + parent);
+            while (grandparent != parent) {
+                store_relaxed_shared(parents_ + cur, grandparent);
+                cur = parent;
+                parent = grandparent;
+                grandparent = load_relaxed_shared(parents_ + parent);
             }
         }
         return parent;

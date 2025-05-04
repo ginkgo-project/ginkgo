@@ -11,9 +11,11 @@
 
 #ifdef GKO_COMPILING_CUDA
 #include <cub/device/device_radix_sort.cuh>
+#include <cub/warp/warp_scan.cuh>
 #define GKO_ASSERT_NO_CUB_ERRORS(expr) GKO_ASSERT_NO_CUDA_ERRORS(expr)
 #else
 #include <hipcub/device/device_radix_sort.hpp>
+#include <hipcub/warp/warp_scan.hpp>
 namespace cub = hipcub;
 #define GKO_ASSERT_NO_CUB_ERRORS(expr) GKO_ASSERT_NO_HIP_ERRORS(expr)
 #endif
@@ -907,7 +909,227 @@ __device__
 
 
 template <int basecase_size, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void basecase(
+__global__ __launch_bounds__(default_block_size) void basecase_parallel(
+    IndexType* __restrict__ edge_sources, IndexType* __restrict__ edge_targets,
+    IndexType* __restrict__ tmp_sources, IndexType* __restrict__ tmp_targets,
+    IndexType* __restrict__ fill_sources, IndexType* __restrict__ fill_targets,
+    IndexType num_nodes, const IndexType* __restrict__ basecase_ranges,
+    IndexType* __restrict__ cc_parents, IndexType* __restrict__ cc_sizes,
+    IndexType* __restrict__ tree_sources, IndexType* __restrict__ tree_targets,
+    IndexType* __restrict__ tree_counter)
+{
+    constexpr static int num_levels = ceil_log2_constexpr(basecase_size);
+    const auto block = static_cast<int>(blockIdx.x);
+    const auto tid = static_cast<int>(threadIdx.x);
+    const auto edges_begin = basecase_ranges[block];
+    const auto edges_end = basecase_ranges[block + 1];
+    constexpr auto block_size = default_block_size;
+    __shared__ typename cub::WarpScan<int>::TempStorage sh_scan;
+    __shared__ int sh_ranges[num_levels + 1];
+    __shared__ int sh_fill_ranges[num_levels + 1];
+    __shared__ int sh_sort_counters[num_levels + 1];  // + 1 for self-loops
+    __shared__ int sh_tree_counter;
+    __shared__ int sh_parents[basecase_size];
+    __shared__ int sh_mins[basecase_size];
+    __shared__ short sh_tree_sources[basecase_size - 1];
+    __shared__ short sh_tree_targets[basecase_size - 1];
+    cub::WarpScan<int> scan{sh_scan};
+    if (tid == 0) {
+        sh_tree_counter = 0;
+        sh_ranges[0] = 0;
+        sh_fill_ranges[0] = 0;
+    }
+    for (auto i = tid; i < num_levels; i += block_size) {
+        sh_sort_counters[i] = 0;
+    }
+    __syncthreads();
+    // bucket sort edges again
+    // count first
+    for (auto i = edges_begin + tid; i < edges_end; i += block_size) {
+        const auto src = static_cast<int>(edge_sources[i] % basecase_size);
+        const auto tgt = static_cast<int>(edge_targets[i] % basecase_size);
+        const auto bucket = get_edge_level(src, tgt);
+        atomic_add_relaxed_shared(sh_sort_counters + bucket, 1);
+    }
+    __syncthreads();
+    // use a single warp to compute the prefix sum over sh_ranges
+    if (tid < config::warp_size) {
+        static_assert(config::warp_size >= num_levels);
+        auto count = tid < num_levels ? sh_sort_counters[tid] : 0;
+        int result{};
+        int total{};
+        scan.ExclusiveSum(count, result, total);
+        if (tid < num_levels) {
+            sh_ranges[tid + 1] = result + count;
+            sh_sort_counters[tid] = result;
+        }
+    }
+    __syncthreads();
+    // then distribute edges
+    for (auto i = edges_begin + tid; i < edges_end; i += block_size) {
+        const auto src = static_cast<int>(edge_sources[i] % basecase_size);
+        const auto tgt = static_cast<int>(edge_targets[i] % basecase_size);
+        const auto bucket = get_edge_level(src, tgt);
+        const auto out_idx =
+            atomic_add_relaxed_shared(sh_sort_counters + bucket, 1) +
+            edges_begin;
+        assert(out_idx >= edges_begin);
+        assert(out_idx < edges_end);
+        tmp_sources[out_idx] = src;
+        tmp_targets[out_idx] = tgt;
+    }
+    __syncthreads();
+    // now we're ready to execute the basecase
+    // we wrote to tmp_sources, so we already flipped
+    bool flip = true;
+    const auto in_src = [&](int i) {
+        assert(i >= 0);
+        assert(i < edges_end - edges_begin);
+        return static_cast<int>(
+            (flip ? tmp_sources : edge_sources)[i + edges_begin]);
+    };
+    const auto in_tgt = [&](int i) {
+        assert(i >= 0);
+        assert(i < edges_end - edges_begin);
+        return static_cast<int>(
+            (flip ? tmp_targets : edge_targets)[i + edges_begin]);
+    };
+    const auto out_src = [&](int i, int val) {
+        assert(i >= 0);
+        assert(i < edges_end - edges_begin);
+        (flip ? edge_sources : tmp_sources)[i + edges_begin] = val;
+    };
+    const auto out_tgt = [&](int i, int val) {
+        assert(i >= 0);
+        assert(i < edges_end - edges_begin);
+        (flip ? edge_targets : tmp_targets)[i + edges_begin] = val;
+    };
+    disjoint_sets<int> sets{sh_parents, basecase_size};
+    for (int level = num_levels - 1; level >= 0; level--) {
+        const auto inner_edges = irange{0, sh_ranges[level]};
+        const auto cut_edges = irange{sh_ranges[level], sh_ranges[level + 1]};
+        // reset connected components and min array
+        for (int i = tid; i < basecase_size; i += block_size) {
+            sh_parents[i] = i;
+            sh_mins[i] = basecase_size;
+        }
+        // reset atomic counters
+        for (int i = tid; i < num_levels; i += block_size) {
+            sh_sort_counters[i] = 0;
+        }
+        __syncthreads();
+        // find connected components
+        for (auto i = inner_edges.begin_index() + tid;
+             i < inner_edges.end_index(); i += block_size) {
+            const auto src = in_src(i);
+            const auto tgt = in_tgt(i);
+            assert(src != tgt);
+            assert(get_edge_level(src, tgt) < level);
+            sets.join_shared(sets.find_relaxed_compressing_shared(src),
+                             sets.find_relaxed_compressing_shared(tgt));
+        }
+        __syncthreads();
+        // find mins
+        for (auto i = cut_edges.begin_index() + tid; i < cut_edges.end_index();
+             i += block_size) {
+            const auto src = in_src(i);
+            const auto tgt = in_tgt(i);
+            const auto src_rep = sets.find_relaxed_compressing_shared(src);
+            assert(src != tgt);
+            assert(get_edge_level(src, tgt) == level);
+            atomic_min_relaxed_shared(sh_mins + src_rep, tgt);
+        }
+        __syncthreads();
+        // add fill edges
+        for (auto i = cut_edges.begin_index() + tid; i < cut_edges.end_index();
+             i += block_size) {
+            const auto src = in_src(i);
+            const auto tgt = in_tgt(i);
+            const auto src_rep = sets.find_weak(src);
+            const auto min_node = sh_mins[src_rep];
+            if (min_node != tgt) {
+                const auto bucket = get_edge_level(min_node, tgt);
+                atomic_add_relaxed_shared(sh_sort_counters + bucket, 1);
+            }
+            assert(min_node == tgt || get_edge_level(min_node, tgt) < level);
+            fill_sources[i + edges_begin] = min_node;
+            fill_targets[i + edges_begin] = tgt;
+        }
+        // add tree edges
+        for (int i = tid; i < basecase_size; i += block_size) {
+            if (sets.is_representative_weak(i)) {
+                const auto min = sh_mins[i];
+                if (min < basecase_size) {
+                    const auto out_idx =
+                        atomic_add_relaxed_shared(&sh_tree_counter, 1);
+                    assert(get_edge_level(i, min) == level);
+                    sh_tree_sources[out_idx] = i;
+                    sh_tree_targets[out_idx] = min;
+                }
+            }
+        }
+        __syncthreads();
+        // use a single warp to compute the prefix sum over sh_fill_ranges
+        if (tid < config::warp_size) {
+            auto count = tid < num_levels ? sh_sort_counters[tid] : 0;
+            int result{};
+            int total{};
+            scan.ExclusiveSum(count, result, total);
+            if (tid < num_levels) {
+                sh_fill_ranges[tid + 1] = result + count;
+                sh_sort_counters[tid] = result;
+            }
+        }
+        __syncthreads();
+        for (auto i = inner_edges.begin_index() + tid;
+             i < inner_edges.end_index(); i += block_size) {
+            const auto src = in_src(i);
+            const auto tgt = in_tgt(i);
+            const auto bucket = get_edge_level(src, tgt);
+            const auto out_idx =
+                i - inner_edges.begin_index() + sh_fill_ranges[bucket];
+            out_src(out_idx, src);
+            out_tgt(out_idx, tgt);
+        }
+        for (auto i = cut_edges.begin_index() + tid; i < cut_edges.end_index();
+             i += block_size) {
+            const auto src = static_cast<int>(fill_sources[i + edges_begin]);
+            const auto tgt = static_cast<int>(fill_targets[i + edges_begin]);
+            if (src != tgt) {
+                const auto bucket = get_edge_level(src, tgt);
+                const auto out_idx =
+                    atomic_add_relaxed_shared(sh_sort_counters + bucket, 1) +
+                    sh_ranges[bucket + 1];
+                out_src(out_idx, src);
+                out_tgt(out_idx, tgt);
+            }
+        }
+        __syncthreads();
+        for (int i = tid + 1; i <= num_levels; i += block_size) {
+            sh_ranges[i] += sh_fill_ranges[i];
+        }
+        for (int i = level + 1 + tid; i <= num_levels; i += block_size) {
+            sh_ranges[i] = inner_edges.end_index() + sh_fill_ranges[level];
+        }
+        __syncthreads();
+        flip = !flip;
+    }
+    // copy back tree edges to global memory
+    __shared__ IndexType tree_base;
+    const auto basecase_base = block * basecase_size;
+    if (tid == 0) {
+        tree_base = atomic_add_relaxed(tree_counter, sh_tree_counter);
+    }
+    __syncthreads();
+    for (int i = tid; i < sh_tree_counter; i += block_size) {
+        tree_sources[i + tree_base] = sh_tree_sources[i] + basecase_base;
+        tree_targets[i + tree_base] = sh_tree_targets[i] + basecase_base;
+    }
+}
+
+
+template <int basecase_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void basecase_sequential(
     const IndexType* __restrict__ edge_sources,
     const IndexType* __restrict__ edge_targets, IndexType num_nodes,
     const IndexType* __restrict__ basecase_ranges,
@@ -950,8 +1172,6 @@ __global__ __launch_bounds__(default_block_size) void basecase(
         if (local_rep != local_i) {
             local_cc_sizes.set(local_rep, local_cc_sizes.get(local_rep) + 1);
         }
-        // store global parent
-        cc_parents[i] = local_rep == local_rep + basecase_base;
         // the local version uses parent[i] = i to denote roots
         local_edge_count += local_parent != local_i ? 1 : 0;
     }
@@ -981,7 +1201,7 @@ __global__ __launch_bounds__(default_block_size) void basecase(
 template <typename IndexType>
 struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
-    constexpr static int basecase_level = 4;
+    constexpr static int basecase_level = 10;
     constexpr static int basecase_size = 1 << basecase_level;
     elimination_forest_algorithm_state(
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
@@ -1028,6 +1248,8 @@ struct elimination_forest_algorithm_state {
             num_basecases + 2,  // 15: basecase_ranges
             bucket_sort_workspace_size<num_buckets>(
                 edge_capacity),  // 16: bucketsort_workspace
+            edge_capacity,       // 17: buf3_sources
+            edge_capacity,       // 18: buf3_targets
         };
     }
 
@@ -1045,6 +1267,10 @@ struct elimination_forest_algorithm_state {
     IndexType* buf2_edge_sources() { return workspace.get_pointer(2); }
 
     IndexType* buf2_edge_targets() { return workspace.get_pointer(3); }
+
+    IndexType* buf3_edge_sources() { return workspace.get_pointer(17); }
+
+    IndexType* buf3_edge_targets() { return workspace.get_pointer(18); }
 
     IndexType* tree_sources() { return workspace.get_pointer(4); }
 
@@ -1071,15 +1297,19 @@ struct elimination_forest_algorithm_state {
 
     IndexType num_edges() const { return bucket_ranges.back(); }
 
-    const IndexType* in_edge_sources()
+    IndexType* in_edge_sources_mutable()
     {
         return flip ? buf2_edge_sources() : buf1_edge_sources();
     }
 
-    const IndexType* in_edge_targets()
+    IndexType* in_edge_targets_mutable()
     {
         return flip ? buf2_edge_targets() : buf1_edge_targets();
     }
+
+    const IndexType* in_edge_sources() { return in_edge_sources_mutable(); }
+
+    const IndexType* in_edge_targets() { return in_edge_targets_mutable(); }
 
     IndexType* fill_edge_sources()
     {
@@ -1351,9 +1581,9 @@ struct elimination_forest_algorithm_state {
         auto predicate =
             [level] __device__(thrust::tuple<IndexType, IndexType> edge) {
                 const auto src = thrust::get<0>(edge);
-                const auto end = thrust::get<1>(edge);
-                assert(src == end || kernel::get_edge_level(src, end) < level);
-                return src != end;
+                const auto tgt = thrust::get<1>(edge);
+                assert(src == tgt || kernel::get_edge_level(src, tgt) < level);
+                return src != tgt;
             };
         assert(cut_edge_range.size() <= edge_capacity);
         // compute number of fill edges added to each level
@@ -1441,19 +1671,30 @@ struct elimination_forest_algorithm_state {
             ceildiv(num_edges() + 1, default_block_size);
         const auto num_basecases =
             static_cast<IndexType>(ceildiv(num_nodes, basecase_size));
-        const auto num_basecase_blocks =
-            ceildiv(num_basecases, default_block_size);
-        reset_connected_components();
         kernel::compute_basecase_ranges<basecase_size>
             <<<num_edge_p1_blocks, default_block_size, 0, exec->get_stream()>>>(
                 in_edge_sources(), in_edge_targets(), num_basecases,
                 num_edges(), basecase_ranges());
-        kernel::basecase<basecase_size>
-            <<<num_basecase_blocks, default_block_size, 0,
-               exec->get_stream()>>>(in_edge_sources(), in_edge_targets(),
-                                     num_nodes, basecase_ranges(), cc_parents(),
-                                     cc_sizes(), tree_sources(), tree_targets(),
-                                     tree_counter());
+        constexpr bool parallel = true;
+        if constexpr (parallel) {
+            kernel::basecase_parallel<basecase_size>
+                <<<num_basecases, default_block_size, 0, exec->get_stream()>>>(
+                    in_edge_sources_mutable(), in_edge_targets_mutable(),
+                    out_edge_sources(), out_edge_targets(), buf3_edge_sources(),
+                    buf3_edge_targets(), num_nodes, basecase_ranges(),
+                    cc_parents(), cc_sizes(), tree_sources(), tree_targets(),
+                    tree_counter());
+        } else {
+            const auto num_basecase_blocks =
+                ceildiv(num_basecases, default_block_size);
+            reset_connected_components();
+            kernel::basecase_sequential<basecase_size>
+                <<<num_basecase_blocks, default_block_size, 0,
+                   exec->get_stream()>>>(
+                    in_edge_sources(), in_edge_targets(), num_nodes,
+                    basecase_ranges(), cc_parents(), cc_sizes(), tree_sources(),
+                    tree_targets(), tree_counter());
+        }
     }
 
     void run()

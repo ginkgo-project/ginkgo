@@ -153,6 +153,14 @@ __device__ __forceinline__ ValueType atomic_min_relaxed(ValueType* ptr,
 
 
 template <typename ValueType>
+__device__ __forceinline__ ValueType atomic_min_relaxed_shared(ValueType* ptr,
+                                                               ValueType value)
+{
+    return atomic_min_relaxed(ptr, value);
+}
+
+
+template <typename ValueType>
 __device__ __forceinline__ ValueType atomic_max_relaxed(ValueType* ptr,
                                                         ValueType value)
 {
@@ -168,6 +176,15 @@ __device__ __forceinline__ ValueType atomic_cas_relaxed(ValueType* ptr,
     __atomic_compare_exchange_n(ptr, &old_val, new_val, false, __ATOMIC_RELAXED,
                                 __ATOMIC_RELAXED);
     return old_val;
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ ValueType
+atomic_cas_relaxed_shared(ValueType* ptr, ValueType old_val, ValueType new_val)
+{
+    // no special optimization available for threadblock-local atomic CAS
+    return atomic_cas_relaxed(ptr, old_val, new_val);
 }
 
 
