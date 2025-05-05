@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,6 @@ namespace matrix {
  *
  * @ingroup permutation
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation final

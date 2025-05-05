@@ -61,7 +61,6 @@ class Partition;
  * @ingroup dist_vector
  * @ingroup distributed
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = double>
 class Vector

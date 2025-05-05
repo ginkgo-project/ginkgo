@@ -1,0 +1,139 @@
+# Citing Ginkgo
+
+The main Ginkgo paper describing Ginkgo's purpose, design and interface is
+available through the following reference:
+
+``` bibtex
+@article{ginkgo-toms-2022,
+title = {{Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing}},
+volume = {48},
+copyright = {All rights reserved},
+issn = {0098-3500},
+shorttitle = {Ginkgo},
+url = {https://doi.org/10.1145/3480935},
+doi = {10.1145/3480935},
+number = {1},
+urldate = {2022-02-17},
+journal = {ACM Transactions on Mathematical Software},
+author = {Anzt, Hartwig and Cojean, Terry and Flegar, Goran and Göbel, Fritz and Grützmacher, Thomas and Nayak, Pratik and Ribizel, Tobias and Tsai, Yuhsiang Mike and Quintana-Ortí, Enrique S.},
+month = feb,
+year = {2022},
+keywords = {ginkgo, healthy software lifecycle, High performance computing, multi-core and manycore architectures},
+pages = {2:1--2:33}
+}
+```
+
+Multiple topical papers exist on Ginkgo and its algorithms. The following papers
+can be used to cite specific aspects of the Ginkgo project.
+
+## The Ginkgo Software
+
+The Ginkgo software itself was reviewed and has a paper published in the Journal
+of Open Source Software, which can be cited with the following reference:
+
+```bibtex
+@article{GinkgoJoss2020,
+  doi = {10.21105/joss.02260},
+  url = {https://doi.org/10.21105/joss.02260},
+  year = {2020},
+  publisher = {The Open Journal},
+  volume = {5},
+  number = {52},
+  pages = {2260},
+  author = {Hartwig Anzt and Terry Cojean and Yen-Chen Chen and Goran Flegar and Fritz G\"{o}bel and Thomas Gr\"{u}tzmacher and Pratik Nayak and Tobias Ribizel and Yu-Hsiang Tsai},
+  title = {Ginkgo: A high performance numerical linear algebra library},
+  journal = {Journal of Open Source Software}
+}
+```
+
+## On Portability
+
+``` bibtex
+@misc{tsai2020amdportability,
+    title={Preparing Ginkgo for AMD GPUs -- A Testimonial on Porting CUDA Code to HIP},
+    author={Yuhsiang M. Tsai and Terry Cojean and Tobias Ribizel and Hartwig Anzt},
+    year={2020},
+    eprint={2006.14290},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
+
+## On Software Sustainability
+
+``` bibtex
+@inproceedings{anzt2019pasccb,
+author = {Anzt, Hartwig and Chen, Yen-Chen and Cojean, Terry and Dongarra, Jack and Flegar, Goran and Nayak, Pratik and Quintana-Ort\'{\i}, Enrique S. and Tsai, Yuhsiang M. and Wang, Weichung},
+title = {Towards Continuous Benchmarking: An Automated Performance Evaluation Framework for High Performance Software},
+year = {2019},
+isbn = {9781450367707},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3324989.3325719},
+doi = {10.1145/3324989.3325719},
+booktitle = {Proceedings of the Platform for Advanced Scientific Computing Conference},
+articleno = {9},
+numpages = {11},
+keywords = {interactive performance visualization, healthy software lifecycle, continuous integration, automated performance benchmarking},
+location = {Zurich, Switzerland},
+series = {PASC ’19}
+}
+```
+
+## On SpMV or solvers performance
+
+``` bibtex
+@InProceedings{tsai2020amdspmv,
+author="Tsai, Yuhsiang M.
+and Cojean, Terry
+and Anzt, Hartwig",
+editor="Sadayappan, Ponnuswamy
+and Chamberlain, Bradford L.
+and Juckeland, Guido
+and Ltaief, Hatem",
+title="Sparse Linear Algebra on AMD and NVIDIA GPUs -- The Race Is On",
+booktitle="High Performance Computing",
+year="2020",
+publisher="Springer International Publishing",
+address="Cham",
+pages="309--327",
+abstract="Efficiently processing sparse matrices is a central and performance-critical part of many scientific simulation codes. Recognizing the adoption of manycore accelerators in HPC, we evaluate in this paper the performance of the currently best sparse matrix-vector product (SpMV) implementations on high-end GPUs from AMD and NVIDIA. Specifically, we optimize SpMV kernels for the CSR, COO, ELL, and HYB format taking the hardware characteristics of the latest GPU technologies into account. We compare for 2,800 test matrices the performance of our kernels against AMD's hipSPARSE library and NVIDIA's cuSPARSE library, and ultimately assess how the GPU technologies from AMD and NVIDIA compare in terms of SpMV performance.",
+isbn="978-3-030-50743-5"
+}
+
+@article{anzt2020spmv,
+author = {Anzt, Hartwig and Cojean, Terry and Yen-Chen, Chen and Dongarra, Jack and Flegar, Goran and Nayak, Pratik and Tomov, Stanimire and Tsai, Yuhsiang M. and Wang, Weichung},
+title = {Load-Balancing Sparse Matrix Vector Product Kernels on GPUs},
+year = {2020},
+issue_date = {March 2020},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {7},
+number = {1},
+issn = {2329-4949},
+url = {https://doi.org/10.1145/3380930},
+doi = {10.1145/3380930},
+journal = {ACM Trans. Parallel Comput.},
+month = mar,
+articleno = {2},
+numpages = {26},
+keywords = {irregular matrices, GPUs, Sparse Matrix Vector Product (SpMV)}
+}
+```
+
+```bibtex
+@misc{tsai2020evaluating,
+    title={Evaluating the Performance of NVIDIA's A100 Ampere GPU for Sparse Linear Algebra Computations},
+    author={Yuhsiang Mike Tsai and Terry Cojean and Hartwig Anzt},
+    year={2020},
+    eprint={2008.08478},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
+
+:::{toctree}
+self
+Ginkgo White Paper <https://www.arxiv-vanity.com/papers/2006.16852>
+Slides and Outreach <https://github.com/ginkgo-project/outreach>
+:::

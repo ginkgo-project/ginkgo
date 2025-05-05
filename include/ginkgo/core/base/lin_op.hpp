@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -677,7 +677,6 @@ public:
  * A LinOp implementing this interface can be preconditioned.
  *
  * @ingroup precond
- * @ingroup LinOp
  */
 class Preconditionable {
 public:

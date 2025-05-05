@@ -30,7 +30,7 @@ implemented for NVIDIA, AMD and Intel GPUs.
 
 # Prerequisites
 
-### Linux and Mac OS
+### Linux and macOS
 
 For Ginkgo core library:
 
@@ -97,7 +97,7 @@ The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_
 
 In these environments, two problems can be encountered, the solution for which is described in the
-[windows section in INSTALL.md](INSTALL.md#building-ginkgo-in-windows):
+[windows section in install.md](doc/user-guide/install.md#building-ginkgo-in-windows):
 * `ld: error: export ordinal too large` needs the compilation flag `-O1`
 * `cc1plus.exe: out of memory allocating 65536 bytes` requires a modification of the environment
 
@@ -120,7 +120,7 @@ modules depending on your machine environment (present of CUDA, ...). You can
 also explicitly compile with the OpenMP, CUDA, HIP or DPC++(SYCL) modules enabled to
 run the examples with these executors.
 
-Please refer to the [Installation page](./INSTALL.md) for more details.
+Please refer to the [Installation page](doc/user-guide/install.md) for more details.
 
 Tip: After installation, in your CMake project, Ginkgo can be added with `find_package(Ginkgo)` and the the target that is exported is `Ginkgo::ginkgo`.
 An example can be found in the [`test_install`](test/test_install/CMakeLists.txt).
@@ -140,7 +140,7 @@ Various examples are available for you to understand and play with Ginkgo within
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
 with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/).
 
-More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
+More details about this can be found in the [benchmarking.md page](doc/user-guide/benchmarking.md)
 
 # Bug reports and Support
 
@@ -148,7 +148,7 @@ If you have any questions about using Ginkgo, please use [Github discussions](ht
 
 If you would like to request a feature, or have encountered a bug, please [create an issue](https://github.com/ginkgo-project/ginkgo/issues/new). Please be sure to describe your problem and provide as much information as possible.
 
-You can also send an email to [Ginkgo's main email address](mailto:ginkgo.library@gmail.com).
+You can also email [Ginkgo's main email address](mailto:ginkgo.library@gmail.com).
 
 # Licensing
 
@@ -157,12 +157,12 @@ to the project are added under this license.
 
 Depending on the configuration options used when building Ginkgo, third party
 software may be pulled as additional dependencies, which have their own
-licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
+licensing conditions. Refer to [about-licensing.md](doc/user-guide/about-licensing.md) for
 details.
 
 # Contributing to Ginkgo
 
-We are glad that that you would like to contribute to Ginkgo and we are happy to help you with any questions you may have.
+We are glad that you would like to contribute to Ginkgo, and we are happy to help you with any questions you may have.
 
 If you are contributing for the first time, please add yourself to the list of external contributors with the following info
 
@@ -181,7 +181,7 @@ license, as specified in the repository's LICENSE file.
 
 #### Contribution Guidelines
 
-When contributing to Ginkgo, to ease the review process, please follow the guidelines mentioned in [CONTRIBUTING.md](CONTRIBUTING.md).
+When contributing to Ginkgo, to ease the review process, please follow the guidelines mentioned in [contributing.md](doc/user-guide/contributing.md).
 
 It also contains other general recommendations such as writing proper commit messages, understanding Ginkgo's library design, relevant C++ information etc.
 
@@ -211,5 +211,4 @@ pages = {2:1--2:33}
 }
 ```
 
-For more information on topical subjects, please refer to the [CITING.md
-page](CITING.md).
+For more information on topical subjects, please refer to the [citing.md page](doc/user-guide/citing.md).

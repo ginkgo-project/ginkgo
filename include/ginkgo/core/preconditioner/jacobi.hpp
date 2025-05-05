@@ -181,7 +181,6 @@ struct block_interleaved_storage_scheme {
  *
  * @ingroup jacobi
  * @ingroup precond
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,

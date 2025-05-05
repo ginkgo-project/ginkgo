@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,9 +38,7 @@ namespace matrix {
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 class Fft : public EnableLinOp<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
@@ -136,9 +134,7 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 class Fft2 : public EnableLinOp<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
@@ -248,9 +244,7 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 class Fft3 : public EnableLinOp<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,

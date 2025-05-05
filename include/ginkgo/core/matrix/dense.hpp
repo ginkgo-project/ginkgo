@@ -82,7 +82,6 @@ class SparsityCsr;
  *       is often suitable to store vectors, and sets of vectors.
  * @ingroup dense
  * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Dense
@@ -1559,7 +1558,7 @@ make_const_dense_view(VecPtr&& vector)
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1597,7 +1596,7 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1627,7 +1626,7 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(
@@ -1675,7 +1674,7 @@ std::unique_ptr<Matrix> initialize(
  *                     including the Executor, which is passed as the first
  *                     argument
  *
- * @ingroup LinOp
+ * @ingroup mat_formats
  */
 template <typename Matrix, typename... TArgs>
 std::unique_ptr<Matrix> initialize(

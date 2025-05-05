@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,9 +100,7 @@ class MultigridState;
  * the coarsest level (the coarsest solver), and its level counts is N (N
  * multigrid level generation).
  *
- * @ingroup Multigrid
  * @ingroup solvers
- * @ingroup LinOp
  */
 class Multigrid : public EnableLinOp<Multigrid>,
                   public EnableSolverBase<Multigrid>,

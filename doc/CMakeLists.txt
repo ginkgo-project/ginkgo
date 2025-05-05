@@ -1,24 +1,56 @@
-cmake_minimum_required(VERSION 3.16)
-include(helpers.cmake)
-find_package(Doxygen REQUIRED)
-find_package(Perl REQUIRED)
-option(GINKGO_DOC_GENERATE_PDF "Generate PDF documentation" OFF)
-option(GINKGO_DOC_GENERATE_DEV "Generate internal documentation" OFF)
-option(GINKGO_DOC_GENERATE_EXAMPLES "Generate example documentation" ON)
-if(GINKGO_DOC_GENERATE_EXAMPLES)
-    add_subdirectory(examples)
+add_subdirectory(doxygen)
+
+find_program(sphinx-build NAMES sphinx-build REQUIRED)
+find_program(doxysphinx NAMES doxysphinx REQUIRED)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/conf.py.in
+    ${CMAKE_CURRENT_BINARY_DIR}/conf.py
+    @ONLY
+)
+
+# Copy to the sphinx sources in the build directory
+# These have to be actual copies, since sphinx (or myst) can't
+# resolve (symbolic) links to files outside the sphinx source
+# directory
+file(
+    COPY index.md _static _templates developer-guide user-guide
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Create symlinks for top-level files referenced by documentation
+# Here links are fine, since those files are not part of the documentation,
+# they are just referenced
+file(
+    CREATE_LINK ${Ginkgo_SOURCE_DIR}/LICENSE ${Ginkgo_BINARY_DIR}/LICENSE
+    SYMBOLIC
+)
+
+if(DEFINED ENV{READTHEDOCS_OUTPUT})
+    set(GINKGO_SPHINX_BUILD_DIR $ENV{READTHEDOCS_OUTPUT}/html)
+else()
+    set(GINKGO_SPHINX_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/html)
 endif()
 
-set(default_predefined_macros "GKO_HAVE_PAPI_SDE=1 GINKGO_BUILD_MPI=1")
+add_custom_target(
+    doxysphinx
+    ALL
+    COMMAND
+        "${doxysphinx}" build --doxygen_cwd ${CMAKE_CURRENT_BINARY_DIR}/doxygen/
+        ${CMAKE_CURRENT_BINARY_DIR} ${GINKGO_SPHINX_BUILD_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/doxygen/Doxyfile
+    DEPENDS doxygen
+    COMMENT "Generating .rst files from doxygen documentation"
+    VERBATIM
+)
 
-if(GINKGO_DOC_GENERATE_PDF)
-    find_package(LATEX COMPONENTS PDFLATEX REQUIRED)
-endif()
-
-ginkgo_doc_gen(usr Doxyfile-usr.in OFF USR_DOC.md)
-if(GINKGO_DOC_GENERATE_DEV)
-    ginkgo_doc_gen(dev Doxyfile-dev.in OFF DEV_DOC.md)
-endif()
-if(GINKGO_DOC_GENERATE_PDF)
-    ginkgo_doc_gen(pdf Doxyfile-pdf.in ON PDF_DOC.md)
-endif()
+add_custom_target(
+    sphinx-doc
+    ALL
+    COMMAND
+        "${sphinx-build}" -j auto -b html --quiet ${CMAKE_CURRENT_BINARY_DIR}
+        ${GINKGO_SPHINX_BUILD_DIR}
+    DEPENDS doxysphinx
+    COMMENT "Generating sphinx documentation"
+    VERBATIM
+)
