@@ -5,8 +5,13 @@
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
 
 #include <cstring>
+#include <fstream>
 #include <limits>
 #include <memory>
+#include <string>
+#include <vector>
+
+#include <parmetis.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -20,6 +25,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/factorization/cholesky.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/reorder/amd.hpp>
@@ -31,13 +37,19 @@
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/distributed/dd_matrix_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/distributed/preconditioner/bddc_kernels.hpp"
+#include "ginkgo/core/base/array.hpp"
+#include "ginkgo/core/base/composition.hpp"
+#include "ginkgo/core/base/device_matrix_data.hpp"
 #include "ginkgo/core/base/types.hpp"
+#include "ginkgo/core/distributed/dd_matrix.hpp"
+#include "ginkgo/core/matrix/identity.hpp"
 #include "ginkgo/core/matrix/permutation.hpp"
 
 
@@ -58,6 +70,7 @@ GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(filter_non_owning_idxs,
                        distributed_dd_matrix::filter_non_owning_idxs);
+GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 }  // namespace
@@ -170,7 +183,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     restriction_->apply(dense_b, buf_2_);
     local_buf_2_->permute(permutation_, local_buf_1_,
                           matrix::permute_mode::rows);
-    auto interm = gko::share(clone(local_buf_1_));
+    local_buf_4_->copy_from(local_buf_1_);
 
     if (parameters_.reordering) {
         interior_1_->permute(reorder_II_, interior_2_,
@@ -190,26 +203,31 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     }
 
     A_BI->apply(interior_2_, bndry_3_);
-    interior_3_->fill(zero<ValueType>());
+    A_II_->apply(interior_2_, interior_3_);
+    // interior_3_->fill(zero<ValueType>());
     local_buf_3_->permute(permutation_, local_buf_2_,
                           matrix::permute_mode::inverse_rows);
     prolongation_->apply(buf_2_, dense_x);
     restriction_->apply(dense_x, buf_2_);
     local_buf_2_->permute(permutation_, local_buf_3_,
                           matrix::permute_mode::rows);
-    bndry_1_->add_scaled(neg_one_, bndry_3_);
-    interior_1_->fill(zero<ValueType>());
+    // bndry_1_->add_scaled(neg_one_, bndry_3_);
+    // interior_1_->fill(zero<ValueType>());
+    local_buf_1_->copy_from(local_buf_4_);
+    local_buf_1_->add_scaled(neg_one_, local_buf_3_);
     weights_->apply(local_buf_1_, local_buf_2_);
 
     // Coarse grid correction
-    phi_t_->apply(bndry_2_, local_coarse_buf_1_);
+    // phi_t_->apply(bndry_2_, local_coarse_buf_1_);
+    phi_t_->apply(local_buf_2_, local_coarse_buf_1_);
     coarse_prolongation_->apply(broken_coarse_buf_1_, coarse_buf_1_);
     if (coarse_solver_->apply_uses_initial_guess()) {
         coarse_buf_2_->fill(zero<ValueType>());
     }
     coarse_solver_->apply(coarse_buf_1_, coarse_buf_2_);
     coarse_restriction_->apply(coarse_buf_2_, broken_coarse_buf_1_);
-    phi_->apply(local_coarse_buf_1_, bndry_1_);
+    // phi_->apply(local_coarse_buf_1_, bndry_1_);
+    phi_->apply(local_coarse_buf_1_, local_buf_1_);
 
     // Substructure correction
     if (parameters_.reordering) {
@@ -231,20 +249,26 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         schur_buf_2_->fill(zero<ValueType>());
     }
     schur_solver_->apply(schur_buf_1_, schur_buf_2_);
-    constraints_t_->apply(neg_one_, schur_buf_2_, one_, dual_2_);
-    if (parameters_.reordering) {
-        dual_2_->permute(reorder_LL_, dual_3_, matrix::permute_mode::rows);
-        if (local_solver_->apply_uses_initial_guess()) {
-            dual_4_->fill(zero<ValueType>());
-        }
-        local_solver_->apply(dual_3_, dual_4_);
-        dual_4_->permute(reorder_LL_, dual_3_,
-                         matrix::permute_mode::inverse_rows);
-        dual_1_->add_scaled(one_, dual_3_);
-    } else {
-        local_solver_->apply(one_, dual_2_, one_, dual_1_);
-    }
-    interior_1_->fill(zero<ValueType>());
+    schur_interm_->apply(neg_one_, schur_buf_2_, one_, dual_3_);
+    dual_1_->add_scaled(one_, dual_3_);
+    // constraints_t_->apply(neg_one_, schur_buf_2_, one_, dual_2_);
+    // if (parameters_.reordering) {
+    //     dual_2_->permute(reorder_LL_, dual_3_, matrix::permute_mode::rows);
+    //     if (local_solver_->apply_uses_initial_guess()) {
+    //         dual_2_->fill(zero<ValueType>());
+    //     }
+    //     local_solver_->apply(dual_3_, dual_2_);
+    //     dual_2_->permute(reorder_LL_, dual_3_,
+    //     matrix::permute_mode::inverse_rows); dual_1_->add_scaled(one_,
+    //     dual_3_);
+    // } else {
+    //     if (local_solver_->apply_uses_initial_guess()) {
+    //         dual_3_->fill(zero<ValueType>());
+    //     }
+    //     local_solver_->apply(dual_2_, dual_3_);
+    //     dual_1_->add_scaled(one_, dual_3_);
+    // }
+    // interior_1_->fill(zero<ValueType>());
     weights_->apply(local_buf_1_, local_buf_2_);
     local_buf_2_->permute(permutation_, local_buf_1_,
                           matrix::permute_mode::inverse_rows);
@@ -254,8 +278,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
                           matrix::permute_mode::rows);
 
     // Static condensation 2
-    local_buf_1_->copy_from(interm);
+    local_buf_1_->copy_from(local_buf_4_);
+    local_buf_1_->add_scaled(one_, local_buf_4_);
     A_IB->apply(neg_one_, bndry_2_, one_, interior_1_);
+    A_II_->apply(neg_one_, interior_2_, one_, interior_1_);
     if (parameters_.reordering) {
         interior_1_->permute(reorder_II_, interior_2_,
                              matrix::permute_mode::rows);
@@ -342,6 +368,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto reordered_system_matrix =
         as<local_mtx>(dd_system_matrix->get_local_matrix())
             ->permute(permutation_, matrix::permute_mode::symmetric);
+    size_type local_size = reordered_system_matrix->get_size()[0];
     auto local_labels = as<local_real_vec>(labels->get_local_vector())
                             ->permute(permutation_, matrix::permute_mode::rows);
 
@@ -386,8 +413,20 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         auto A_II_reordered = share(A_II->permute(reorder_II_));
         std::swap(A_II, A_II_reordered);
     }
-    local_solver_ = parameters_.local_solver->generate(A_LL);
-    inner_solver_ = parameters_.local_solver->generate(A_II);
+    A_II_ = clone(A_II);
+    if (A_II->get_size()[0] > 0) {
+        inner_solver_ = parameters_.local_solver->generate(A_II);
+    } else {
+        inner_solver_ =
+            gko::matrix::Identity<ValueType>::create(exec, A_II->get_size()[0]);
+    }
+    if (A_LL->get_size()[0] > 0) {
+        local_solver_ = parameters_.local_solver->generate(A_LL);
+    } else {
+        local_solver_ =
+            gko::matrix::Identity<ValueType>::create(exec, A_LL->get_size()[0]);
+    }
+
 
     // Set up constraints for faces and edges.
     // One row per constraint, one column per degree of freedom that is not a
@@ -414,10 +453,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     // saddle point problem
     // | A_LL C^T |
     // | C    0   |.
-    auto schur_rhs = local_vec::create(exec);
+    auto schur_rhs = gko::share(local_vec::create(exec));
     schur_rhs->copy_from(constraints_t_);
-    auto schur_interm = local_vec::create(
-        exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_dual});
+    auto schur_interm = gko::share(local_vec::create(
+        exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_dual}));
     if (parameters_.reordering) {
         schur_rhs->permute(reorder_LL_, schur_interm,
                            matrix::permute_mode::rows);
@@ -432,17 +471,24 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                               matrix::permute_mode::inverse_rows);
         std::swap(schur_rhs, schur_interm);
     }
+    schur_interm_ = clone(schur_interm);
     auto schur_complement =
         share(local_vec::create(exec, dim<2>{n_dual, n_dual}));
     constraints_->apply(schur_interm, schur_complement);
     // schur_solver_ = parameters_.local_solver->generate(schur_complement);
-    schur_solver_ =
-        gko::experimental::solver::Direct<ValueType, LocalIndexType>::build()
-            .with_factorization(gko::experimental::factorization::Cholesky<
-                                    ValueType, LocalIndexType>::build()
-                                    .on(exec))
-            .on(exec)
-            ->generate(schur_complement);
+    if (schur_complement->get_size()[0] > 0) {
+        schur_solver_ =
+            gko::experimental::solver::Direct<ValueType,
+                                              LocalIndexType>::build()
+                .with_factorization(gko::experimental::factorization::Lu<
+                                        ValueType, LocalIndexType>::build()
+                                        .on(exec))
+                .on(exec)
+                ->generate(schur_complement);
+    } else {
+        schur_solver_ = gko::matrix::Identity<ValueType>::create(
+            exec, schur_complement->get_size()[0]);
+    }
 
     // Compute the harmonic extension coefficients Phi and the contribution to
     // the coarse system Lambda
@@ -553,9 +599,194 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto coarse_matrix =
         share(DdMatrix<ValueType, int, int>::create(exec, comm));
     coarse_matrix->read_distributed(coarse_contribution, coarse_partition);
-    coarse_solver_ = parameters_.coarse_solver->generate(coarse_matrix);
     coarse_restriction_ = coarse_matrix->get_restriction();
     coarse_prolongation_ = coarse_matrix->get_prolongation();
+
+    if (parameters_.repartition_coarse) {
+        // Go through host with ParMETIS
+        auto host_coarse = coarse_contribution.copy_to_host();
+        int n_coarse_entries = host_coarse.nonzeros.size();
+        std::vector<int> elmdist(comm.size() + 1);
+        std::iota(elmdist.begin(), elmdist.end(), 0);
+        std::vector<int> eptr{0, static_cast<int>(n_constraints)};
+        std::vector<int> eind(n_constraints);
+        for (size_type i = 0; i < n_constraints; i++) {
+            eind[i] = coarse_global_idxs.get_const_data()[i];
+        }
+        int elmwgt = 0;
+        int numflag = 0;
+        int ncon = 1;
+        int ncommonnodes = 2;
+        array<size_type> local_sizes{exec, num_parts};
+        comm.all_gather(exec, &local_size, 1, local_sizes.get_data(), 1);
+        int min_size = local_size;
+        for (size_type i = 0; i < num_parts; i++) {
+            min_size = std::min(
+                min_size, static_cast<int>(local_sizes.get_const_data()[i]));
+        }
+        int nparts = std::pow(
+            2,
+            std::ceil(std::log(std::ceil(
+                          static_cast<remove_complex<ValueType>>(
+                              n_global_interfaces) /
+                          static_cast<remove_complex<ValueType>>(min_size))) /
+                      std::log(2)));
+        std::cout << "RANK " << comm.rank() << ": " << local_size << ", "
+                  << min_size << ", " << n_global_interfaces << " ==> "
+                  << nparts << std::endl;
+        // int nparts = std::pow(2, std::floor(std::log(comm.size() / 2) /
+        // std::log(2)));
+        std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
+        std::vector<float> ubvec(ncon, 1.05);
+        int options = 0;
+        int edgecut;
+        int new_part = comm.rank();
+        MPI_Comm commptr = comm.get();
+
+        int ret = ParMETIS_V3_PartMeshKway(
+            elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
+            &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
+            &options, &edgecut, &new_part, &commptr);
+
+        // Gather mapping of coarse elements (contributions of original ranks)
+        // to assigned ranks
+        std::vector<int> new_parts(comm.size());
+        comm.all_gather(exec, &new_part, 1, new_parts.data(), 1);
+        comm.synchronize();
+
+        // This coarse element has n_constraints nodes
+        int elem_size = n_constraints;
+        int elem_cnt = 0;
+        for (auto p : new_parts) {
+            if (p == comm.rank()) {
+                elem_cnt++;
+            }
+        }
+
+        // Gather nonzero counts of the contributions
+        std::vector<int> elem_sizes(elem_cnt);
+        comm.i_send(exec, &n_coarse_entries, 1, new_part, 0);
+        size_type i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, elem_sizes.data() + i, 1, j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+
+        // Send contributions to new owners
+        std::vector<int> elem_offsets(elem_cnt + 1, 0);
+        std::partial_sum(elem_sizes.begin(), elem_sizes.end(),
+                         elem_offsets.begin() + 1);
+
+        std::vector<int> send_row_idxs(n_coarse_entries);
+        std::vector<int> send_col_idxs(n_coarse_entries);
+        std::vector<ValueType> send_values(n_coarse_entries);
+        for (size_type i = 0; i < n_coarse_entries; i++) {
+            send_row_idxs[i] = host_coarse.nonzeros[i].row;
+            send_col_idxs[i] = host_coarse.nonzeros[i].column;
+            send_values[i] = host_coarse.nonzeros[i].value;
+        }
+        std::vector<int> recv_row_idxs(elem_offsets.back());
+        std::vector<int> recv_col_idxs(elem_offsets.back());
+        std::vector<ValueType> recv_values(elem_offsets.back());
+
+        comm.i_send(exec, send_row_idxs.data(), n_coarse_entries, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_row_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_col_idxs.data(), n_coarse_entries, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_col_idxs.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+        comm.i_send(exec, send_values.data(), n_coarse_entries, new_part, 0);
+        i = 0;
+        for (size_type j = 0; j < comm.size(); j++) {
+            auto p = new_parts[j];
+            if (p == comm.rank()) {
+                comm.recv(exec, recv_values.data() + elem_offsets[i],
+                          elem_sizes[i], j, 0);
+                i++;
+            }
+        }
+        comm.synchronize();
+
+        // Assemble coarse contributions on new owners
+        matrix_data<ValueType, int> complete_coarse_data(host_coarse.size);
+        for (size_type i = 0; i < elem_offsets.back(); i++) {
+            complete_coarse_data.nonzeros.emplace_back(
+                recv_row_idxs[i], recv_col_idxs[i], recv_values[i]);
+        }
+        complete_coarse_data.sum_duplicates();
+
+        // Build new partition for the coarse solver
+        // First, we need a mapping from dofs to ranks. We map the owning
+        // interfaces from old owners to the rank they were mapped to by
+        // ParMETIS.
+        gko::array<int> mapping{exec, host_coarse.size[0]};
+        for (size_type i = 0; i < num_parts; i++) {
+            for (size_type idx = owning_interfaces.get_const_data()[i];
+                 idx < owning_interfaces.get_const_data()[i + 1]; idx++) {
+                mapping.get_data()[idx] = new_parts[i];
+            }
+        }
+
+        // Use this mapping to create partition for the redistributed coarse
+        // matrix.
+        auto new_partition = share(
+            Partition<int, int>::build_from_mapping(exec, mapping, num_parts));
+
+        // Build Identity mapping from old to new coarse partition
+        array<int> row_idxs{exec, host_coarse.size[0]};
+        exec->run(bddc::make_fill_seq_array(row_idxs.get_data(),
+                                            host_coarse.size[0]));
+        array<int> col_idxs{exec, host_coarse.size[0]};
+        col_idxs = row_idxs;
+        array<ValueType> vals{exec, host_coarse.size[0]};
+        vals.fill(one<ValueType>());
+        device_matrix_data<ValueType, int> id_data{exec, host_coarse.size,
+                                                   row_idxs, col_idxs, vals};
+        auto map_to_new =
+            share(Matrix<ValueType, int, int>::create(exec, comm));
+        map_to_new->read_distributed(id_data, new_partition, coarse_partition);
+        auto map_from_new =
+            share(Matrix<ValueType, int, int>::create(exec, comm));
+        map_from_new->read_distributed(id_data, coarse_partition,
+                                       new_partition);
+
+        // Read coarse matrix with new partition and set up coarse solver
+        auto complete_coarse_matrix =
+            share(DdMatrix<ValueType, int, int>::create(exec, comm));
+        complete_coarse_matrix->read_distributed(complete_coarse_data,
+                                                 new_partition);
+        auto coarse_solver =
+            share(parameters_.coarse_solver->generate(complete_coarse_matrix));
+
+        // Set up global coarse solver as composition of
+        // - Mapping to the new partition
+        // - coarse solver
+        // - Mapping back to original partition
+        coarse_solver_ = gko::Composition<ValueType>::create(
+            map_from_new, coarse_solver, map_to_new);
+    } else {
+        coarse_solver_ = parameters_.coarse_solver->generate(coarse_matrix);
+    }
 
     array<int> coarse_non_owning_row_idxs{exec};
     array<int> coarse_non_owning_col_idxs{exec};
@@ -571,17 +802,18 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto coarse_permutation =
         matrix::Permutation<int>::create(exec, std::move(coarse_local_idxs));
 
-    phi_ = phi->create_submatrix(
-                  gko::span{n_inner_idxs, n_inner_idxs + n_face_idxs +
-                                              n_edge_idxs + n_vertices},
-                  gko::span{0, n_constraints})
-               ->permute(coarse_permutation,
-                         matrix::permute_mode::inverse_columns);
+    // phi_ = phi->create_submatrix(
+    //               gko::span{n_inner_idxs, n_inner_idxs + n_face_idxs +
+    //                                           n_edge_idxs + n_vertices},
+    //               gko::span{0, n_constraints})
+    //            ->permute(coarse_permutation,
+    //                      matrix::permute_mode::inverse_columns);
+    phi_ =
+        phi->permute(coarse_permutation, matrix::permute_mode::inverse_columns);
     phi_t_ = as<local_vec>(phi_->transpose());
 
     // Create Work space buffers
     size_type broken_size = dd_system_matrix->get_restriction()->get_size()[0];
-    size_type local_size = reordered_system_matrix->get_size()[0];
     buf_1_ =
         vec::create(exec, comm, dim<2>{broken_size, 1}, dim<2>{local_size, 1});
     buf_2_ = vec::create_with_config_of(buf_1_);
@@ -629,17 +861,21 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                  1}));
     prolongation_->apply(global_diag_vec, diag_buf);
     restriction_->apply(diag_buf, global_diag_vec);
-    auto global_diag = diag::create_const(
-        exec, local_size,
-        make_const_array_view(exec, local_size,
-                              global_diag_vec->get_const_local_values()));
-    global_diag->inverse_apply(local_diag_local_vec, local_buf_1_);
-    local_buf_1_->permute(permutation_, local_buf_2_,
-                          matrix::permute_mode::rows);
+    if (local_size > 0) {
+        auto global_diag = diag::create_const(
+            exec, local_size,
+            make_const_array_view(exec, local_size,
+                                  global_diag_vec->get_const_local_values()));
+        global_diag->inverse_apply(local_diag_local_vec, local_buf_1_);
+        local_buf_1_->permute(permutation_, local_buf_2_,
+                              matrix::permute_mode::rows);
 
-    weights_ = clone(diag::create(
-        exec, local_size,
-        make_array_view(exec, local_size, local_buf_2_->get_values())));
+        weights_ = clone(diag::create(
+            exec, local_size,
+            make_array_view(exec, local_size, local_buf_2_->get_values())));
+    } else {
+        weights_ = gko::matrix::Identity<ValueType>::create(exec, local_size);
+    }
 
     interior_1_ =
         local_buf_1_->create_submatrix(span{0, n_inner_idxs}, span{0, 1});
@@ -674,6 +910,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{0, 1});
     dual_3_ = local_buf_3_->create_submatrix(
         span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
+    local_buf_4_ = local_vec::create_with_config_of(local_buf_1_);
     dual_4_ = clone(dual_3_);
     primal_3_ = local_buf_3_->create_submatrix(
         span{n_inner_idxs + n_edge_idxs + n_face_idxs,
@@ -681,6 +918,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         span{0, 1});
     schur_buf_1_ = local_vec::create(exec, dim<2>{n_dual, 1});
     schur_buf_2_ = local_vec::create_with_config_of(schur_buf_1_);
+
+    if (dynamic_cast<const gko::solver::IterativeBase*>(local_solver_.get())) {
+        if (parameters_.local_criterion) {
+            auto iter_local =
+                std::const_pointer_cast<gko::solver::IterativeBase>(
+                    as<gko::solver::IterativeBase>(local_solver_));
+            iter_local->set_stop_criterion_factory(parameters_.local_criterion);
+            auto iter_inner =
+                std::const_pointer_cast<gko::solver::IterativeBase>(
+                    as<gko::solver::IterativeBase>(inner_solver_));
+            iter_inner->set_stop_criterion_factory(parameters_.local_criterion);
+        }
+    }
 }
 
 

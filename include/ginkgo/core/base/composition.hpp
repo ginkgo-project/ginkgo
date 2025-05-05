@@ -12,6 +12,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
+#include "ginkgo/core/distributed/vector.hpp"
+
 
 namespace gko {
 
@@ -165,6 +167,10 @@ protected:
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
+    mutable std::shared_ptr<gko::experimental::distributed::Vector<ValueType>>
+        INTERM1 = 0;
+    mutable std::shared_ptr<gko::experimental::distributed::Vector<ValueType>>
+        INTERM2 = 0;
     mutable array<ValueType> storage_;
 };
 

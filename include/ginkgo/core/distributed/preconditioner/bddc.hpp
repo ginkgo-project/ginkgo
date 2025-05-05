@@ -10,6 +10,8 @@
 
 #include <ginkgo/config.hpp>
 
+#include "ginkgo/core/base/types.hpp"
+
 
 #if GINKGO_BUILD_MPI
 
@@ -110,6 +112,11 @@ public:
          * Use of Face constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(faces, true);
+
+        std::shared_ptr<const stop::CriterionFactory>
+            GKO_DEFERRED_FACTORY_PARAMETER(local_criterion);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(repartition_coarse, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -194,7 +201,7 @@ private:
     std::shared_ptr<local_real_mtx> constraints_t_;
     std::shared_ptr<local_vec> phi_;
     std::shared_ptr<local_vec> phi_t_;
-    std::shared_ptr<diag> weights_;
+    std::shared_ptr<LinOp> weights_;
     std::shared_ptr<vec> buf_1_;
     std::shared_ptr<vec> buf_2_;
     std::shared_ptr<vec> coarse_buf_1_;
@@ -215,6 +222,7 @@ private:
     std::shared_ptr<local_vec> dual_3_;
     std::shared_ptr<local_vec> dual_4_;
     std::shared_ptr<local_vec> primal_3_;
+    std::shared_ptr<local_vec> local_buf_4_;
     std::shared_ptr<local_vec> schur_buf_1_;
     std::shared_ptr<local_vec> schur_buf_2_;
     std::shared_ptr<vec> broken_coarse_buf_1_;
@@ -227,11 +235,13 @@ private:
     std::shared_ptr<const local_mtx> A_PP;
     std::shared_ptr<const local_mtx> A_IB;
     std::shared_ptr<const local_mtx> A_BI;
+    std::shared_ptr<const local_mtx> A_II_;
     std::shared_ptr<const LinOp> one_;
     std::shared_ptr<const LinOp> neg_one_;
     std::shared_ptr<const LinOp> zero_;
     std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_LL_;
     std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_II_;
+    std::shared_ptr<local_vec> schur_interm_;
 };
 
 
