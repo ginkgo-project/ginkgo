@@ -4,12 +4,21 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+
+
+using CollCommType =
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+    gko::experimental::mpi::DenseCommunicator;
+#else
+    gko::experimental::mpi::NeighborhoodCommunicator;
+#endif
 
 
 template <typename IndexType>
@@ -41,10 +50,8 @@ protected:
         this->ref, this->comm.size(), this->comm.size() * 3);
     map_type imap = map_type{ref, part, comm.rank(),
                              create_recv_connections()[comm.rank()]};
-    std::shared_ptr<gko::experimental::mpi::NeighborhoodCommunicator>
-        coll_comm =
-            std::make_shared<gko::experimental::mpi::NeighborhoodCommunicator>(
-                this->comm, imap);
+    std::shared_ptr<CollCommType> coll_comm =
+        std::make_shared<CollCommType>(this->comm, imap);
 };
 
 TYPED_TEST_SUITE(RowGatherer, gko::test::IndexTypes, TypenameNameGenerator);
@@ -64,9 +71,7 @@ TYPED_TEST(RowGatherer, CanConstructWithEmptyCollectiveCommAndIndexMap)
 {
     using RowGatherer = typename TestFixture::row_gatherer_type;
     using IndexMap = typename TestFixture::map_type;
-    auto coll_comm =
-        std::make_shared<gko::experimental::mpi::NeighborhoodCommunicator>(
-            this->comm);
+    auto coll_comm = std::make_shared<CollCommType>(this->comm);
     auto map = IndexMap{this->ref};
 
     auto rg = RowGatherer::create(this->ref, coll_comm, map);
@@ -96,8 +101,7 @@ TYPED_TEST(RowGatherer, CanCopy)
     auto copy = gko::clone(rg);
 
     GKO_ASSERT_EQUAL_DIMENSIONS(rg, copy);
-    auto copy_coll_comm = std::dynamic_pointer_cast<
-        const gko::experimental::mpi::NeighborhoodCommunicator>(
+    auto copy_coll_comm = std::dynamic_pointer_cast<const CollCommType>(
         copy->get_collective_communicator());
     ASSERT_EQ(*this->coll_comm, *copy_coll_comm);
     auto send_idxs = gko::make_const_array_view(
