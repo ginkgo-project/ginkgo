@@ -128,8 +128,6 @@ protected:
 };
 
 
-// TEST_F(PipeCg, tst) { GTEST_ASSERT_EQ(0, 1); }
-
 TEST_F(PipeCg, PipeCgInitialize1IsEquivalentToRef)
 {
     initialize_data();
@@ -139,9 +137,9 @@ TEST_F(PipeCg, PipeCgInitialize1IsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::initialize_1(
         exec, d_b.get(), d_r.get(), d_prev_rho.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_rho, rho, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_r, r, 0);
+    GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 0);
+    GKO_ASSERT_MTX_NEAR(d_rho, rho, 0);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
@@ -159,11 +157,11 @@ TEST_F(PipeCg, PipeCgInitialize2IsEquivalentToRef)
         this->d_g.get(), this->d_beta.get(), this->d_z.get(), this->d_w.get(),
         this->d_m.get(), this->d_n.get(), this->d_delta.get());
 
-    GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_q, q, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_f, f, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_g, g, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_p, p, 0);
+    GKO_ASSERT_MTX_NEAR(d_q, q, 0);
+    GKO_ASSERT_MTX_NEAR(d_f, f, 0);
+    GKO_ASSERT_MTX_NEAR(d_g, g, 0);
+    GKO_ASSERT_MTX_NEAR(d_beta, beta, 0);
 }
 
 

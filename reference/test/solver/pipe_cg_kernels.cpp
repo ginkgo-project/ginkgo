@@ -177,7 +177,6 @@ TYPED_TEST(PipeCg, KernelStep1)
     this->small_beta->at(0) = 8;
     this->small_beta->at(1) = 3;
     this->small_stop.get_data()[0].reset();
-    this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::pipe_cg::step_1(
@@ -237,7 +236,6 @@ TYPED_TEST(PipeCg, KernelStep2)
     this->small_beta->at(1) = 3;
     this->small_delta->at(0) = 5;
     this->small_delta->at(1) = 6;
-    this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[0].reset();
     this->small_stop.get_data()[1] = this->stopped;
 
@@ -320,12 +318,6 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{2.0, 1.5}, {2.0, 1.5}}),
-                        r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(this->small_q, l({{2.0, 1.5}, {2.0, 1.5}}),
-                        r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(this->small_f, l({{2.0, 1.5}, {2.0, 1.5}}),
-                        r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(this->small_g, l({{2.0, 1.5}, {2.0, 1.5}}),
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{2.0, 1.5}, {2.0, 1.5}}),
                         r<value_type>::value);
