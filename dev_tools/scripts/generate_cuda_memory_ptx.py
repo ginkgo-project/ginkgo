@@ -54,6 +54,8 @@ types = [type_desc(ptx_type_suffix=".s32", val_constraint="r", name="int32"),
          type_desc(ptx_type_suffix=".s64", val_constraint="l", name="int64"),
          type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
          type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+# I assume these will be also deleted if no double support
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="gko::custom_double"),
          type_desc(ptx_type_suffix=".u32", val_constraint="r", name="uint32"),
          type_desc(ptx_type_suffix=".u64", val_constraint="l", name="uint64")]
 operations = [operation(fn_op_suffix="_add", ptx_op_suffix=".add", supports_float=True, supports_signed=True),
@@ -217,7 +219,10 @@ __device__ __forceinline__ {t.name} atomic_cas{o.fn_loadstore_suffix}{s.fn_suffi
 
 # vectorized relaxed loads for thrust::complex
 types = [type_desc(ptx_type_suffix=".f32", val_constraint="f", name="float"),
-         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double")]
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="double"),
+         # I assume these will be also deleted if no double support
+         type_desc(ptx_type_suffix=".f64", val_constraint="d", name="gko::custom_double")
+         ]
 for s in memory_spaces:
     for t in types:
         const_ptr_expr = s.ptr_expr.format(

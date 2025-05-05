@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,8 @@ class truncated;
 
 
 class half;
+
+class custom_double;
 
 
 namespace detail {
@@ -91,6 +93,16 @@ struct basic_float_traits<double> {
     static constexpr int exponent_bits = 11;
     static constexpr bool rounds_to_nearest = true;
 };
+
+template <>
+struct basic_float_traits<custom_double> {
+    using type = custom_double;
+    static constexpr int sign_bits = 1;
+    static constexpr int significand_bits = 52;
+    static constexpr int exponent_bits = 11;
+    static constexpr bool rounds_to_nearest = true;
+};
+
 
 template <typename FloatType, std::size_t NumComponents,
           std::size_t ComponentId>

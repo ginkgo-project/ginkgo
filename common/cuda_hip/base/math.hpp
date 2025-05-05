@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@
 
 
 #include "common/cuda_hip/base/thrust_macro.hpp"
-
+#include "core/base/custom_double.hpp"
 
 namespace gko {
 
@@ -67,6 +67,14 @@ struct device_numeric_limits<__half> {
     }
 };
 
+template <>
+GKO_INLINE constexpr custom_double one<custom_double>()
+{
+    constexpr auto bits = static_cast<uint64>(
+        0b0'01111111111'0000000000000000000000000000000000000000000000000000ull);
+    return custom_double::create_from_bits(bits);
+}
+
 
 namespace detail {
 
@@ -95,6 +103,9 @@ struct is_complex_impl<thrust::complex<T>> : public std::true_type {};
 template <>
 struct is_complex_or_scalar_impl<__half> : public std::true_type {};
 
+template <>
+struct is_complex_or_scalar_impl<gko::custom_double> : public std::true_type {};
+
 template <typename T>
 struct is_complex_or_scalar_impl<thrust::complex<T>>
     : public is_complex_or_scalar_impl<T> {};
@@ -122,6 +133,30 @@ template <>
 GKO_ATTRIBUTES GKO_INLINE __half abs<__half>(const complex<__half>& z)
 {
     return abs(static_cast<complex<float>>(z));
+}
+
+
+template <>
+GKO_ATTRIBUTES GKO_INLINE complex<gko::custom_double> sqrt<gko::custom_double>(
+    const complex<gko::custom_double>& a)
+{
+    auto result =
+        sqrt(complex<double>(gko::custom_double::custom_to_native(a.real()),
+                             gko::custom_double::custom_to_native(a.imag())));
+    return complex<gko::custom_double>(
+        gko::custom_double::to_custom(result.real()),
+        gko::custom_double::to_custom(result.imag()));
+}
+
+
+template <>
+GKO_ATTRIBUTES GKO_INLINE gko::custom_double abs<gko::custom_double>(
+    const complex<gko::custom_double>& z)
+{
+    auto result =
+        abs(complex<double>(gko::custom_double::custom_to_native(z.real()),
+                            gko::custom_double::custom_to_native(z.imag())));
+    return gko::custom_double::to_custom(result);
 }
 
 
@@ -183,6 +218,33 @@ __device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
     return is_finite(value.real()) && is_finite(value.imag());
 }
 
+
+__device__ __forceinline__ bool is_nan(const gko::custom_double& val)
+{
+    return is_nan(gko::custom_double::custom_to_native(val));
+}
+
+__device__ __forceinline__ bool is_nan(
+    const thrust::complex<gko::custom_double>& val)
+{
+    return is_nan(val.real()) || is_nan(val.imag());
+}
+
+__device__ __forceinline__ gko::custom_double abs(const gko::custom_double& val)
+{
+    return custom_double::to_custom(abs(custom_double::custom_to_native(val)));
+}
+
+__device__ __forceinline__ gko::custom_double sqrt(
+    const gko::custom_double& val)
+{
+    return custom_double::to_custom(sqrt(custom_double::custom_to_native(val)));
+}
+
+__device__ __forceinline__ bool is_finite(const gko::custom_double& value)
+{
+    return is_finite(custom_double::custom_to_native(value));
+}
 #endif
 
 
