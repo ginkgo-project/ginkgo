@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,6 +77,16 @@ TEST(ExceptionClasses, CusparseErrorReturnsCorrectWhatMessage)
 }
 
 
+#if GKO_HAVE_LAPACK
+TEST(ExceptionClasses, CusolverErrorReturnsCorrectWhatMessage)
+{
+    gko::CusolverError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+#endif
+
+
 TEST(ExceptionClasses, CufftErrorReturnsCorrectWhatMessage)
 {
     gko::CufftError error("test_file.cpp", 123, "test_func", 1);
@@ -123,6 +133,16 @@ TEST(ExceptionClasses, HipfftErrorReturnsCorrectWhatMessage)
     std::string expected = "test_file.cpp:123: test_func: ";
     ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
 }
+
+
+#if GKO_HAVE_LAPACK
+TEST(ExceptionClasses, LapackErrorReturnsCorrectWhatMessage)
+{
+    gko::LapackError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+#endif
 
 
 TEST(ExceptionClasses, DimensionMismatchReturnsCorrectWhatMessage)

@@ -20,6 +20,7 @@ target_sources(
         distributed/partition_helpers_kernels.cpp
         distributed/partition_kernels.cpp
         distributed/vector_kernels.cpp
+        eigensolver/lobpcg_kernels.cpp
         factorization/cholesky_kernels.cpp
         factorization/elimination_forest_kernels.cpp
         factorization/factorization_kernels.cpp
@@ -73,6 +74,9 @@ target_sources(
         stop/residual_norm_kernels.cpp
 )
 
+if(GINKGO_BUILD_LAPACK)
+    target_link_libraries(ginkgo_reference PUBLIC LAPACK::LAPACK)
+endif()
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
 target_compile_definitions(
     ginkgo_reference

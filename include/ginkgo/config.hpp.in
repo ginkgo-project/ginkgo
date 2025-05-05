@@ -115,6 +115,12 @@
 // clang-format on
 
 
+/* Is LAPACK available? */
+// clang-format off
+#define GKO_HAVE_LAPACK @GINKGO_HAVE_LAPACK@
+// clang-format on
+
+
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@

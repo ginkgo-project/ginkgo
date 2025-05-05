@@ -25,6 +25,7 @@
 #include "core/distributed/partition_helpers_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
+#include "core/eigensolver/lobpcg_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -717,6 +718,19 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_2_KERNEL);
 
 
 }  // namespace minres
+
+
+#if GKO_HAVE_LAPACK
+namespace lobpcg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_LOBPCG_SYMM_GENERALIZED_EIG_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_LOBPCG_B_ORTHONORMALIZE_KERNEL);
+
+
+}  // namespace lobpcg
+#endif
 
 
 namespace sparsity_csr {
