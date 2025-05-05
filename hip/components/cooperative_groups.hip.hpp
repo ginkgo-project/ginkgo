@@ -339,6 +339,26 @@ public:
 
 #undef GKO_ENABLE_SHUFFLE_OPERATION_HALF
 
+// hip does not support 16bit shuffle directly
+#define GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(_name, SelectorType)     \
+    __device__ __forceinline__ device_type<bfloat16> _name(            \
+        const device_type<bfloat16>& var, SelectorType selector) const \
+    {                                                                  \
+        uint32 u;                                                      \
+        memcpy(&u, &var, sizeof(device_type<bfloat16>));               \
+        u = static_cast<const Group*>(this)->_name(u, selector);       \
+        device_type<bfloat16> result;                                  \
+        memcpy(&result, &u, sizeof(device_type<bfloat16>));            \
+        return result;                                                 \
+    }
+
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl, int32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_up, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_down, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_xor, int32)
+
+#undef GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16
+
 
 private:
     template <typename ShuffleOperator, typename ValueType,
