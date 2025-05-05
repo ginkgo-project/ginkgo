@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,8 @@
 #include <iterator>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/components/fill_array_kernels.hpp"
@@ -188,17 +190,46 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            if (operators_.size() > 1) {
-                operators_[0]->apply(
-                    apply_inner_operators(operators_, storage_, dense_b),
-                    dense_x);
-            } else {
-                operators_[0]->apply(dense_b, dense_x);
-            }
-        },
-        b, x);
+    if (dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            x)) {
+        auto exec = x->get_executor();
+        auto comm = as<experimental::distributed::Vector<ValueType>>(x)
+                        ->get_communicator();
+        if (!dynamic_cast<experimental::distributed::Vector<ValueType>*>(
+                INTERM1.get())) {
+            INTERM1 =
+                share(experimental::distributed::Vector<ValueType>::create(
+                    exec, comm,
+                    dim<2>{as<experimental::distributed::Matrix<
+                               ValueType, int, int>>(operators_[2])
+                               ->get_size()[0],
+                           1},
+                    dim<2>{as<experimental::distributed::Matrix<
+                               ValueType, int, int>>(operators_[2])
+                               ->get_local_matrix()
+                               ->get_size()[0],
+                           1}));
+            INTERM2 = share(clone(INTERM1));
+        }
+        operators_[2]->apply(b, INTERM1);
+        if (operators_[1]->apply_uses_initial_guess()) {
+            INTERM2->fill(zero<ValueType>());
+        }
+        operators_[1]->apply(INTERM1, INTERM2);
+        operators_[0]->apply(INTERM2, x);
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                if (operators_.size() > 1) {
+                    operators_[0]->apply(
+                        apply_inner_operators(operators_, storage_, dense_b),
+                        dense_x);
+                } else {
+                    operators_[0]->apply(dense_b, dense_x);
+                }
+            },
+            b, x);
+    }
 }
 
 
@@ -206,18 +237,49 @@ template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                         const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            if (operators_.size() > 1) {
-                operators_[0]->apply(
-                    dense_alpha,
-                    apply_inner_operators(operators_, storage_, dense_b),
-                    dense_beta, dense_x);
-            } else {
-                operators_[0]->apply(dense_alpha, dense_b, dense_beta, dense_x);
-            }
-        },
-        alpha, b, beta, x);
+    if (dynamic_cast<const ConvertibleTo<experimental::distributed::Vector<>>*>(
+            x)) {
+        auto exec = x->get_executor();
+        auto comm = as<experimental::distributed::Vector<ValueType>>(x)
+                        ->get_communicator();
+        if (!dynamic_cast<experimental::distributed::Vector<ValueType>*>(
+                INTERM1.get())) {
+            INTERM1 =
+                share(experimental::distributed::Vector<ValueType>::create(
+                    exec, comm,
+                    dim<2>{as<experimental::distributed::Matrix<
+                               ValueType, int, int>>(operators_[2])
+                               ->get_size()[0],
+                           1},
+                    dim<2>{as<experimental::distributed::Matrix<
+                               ValueType, int, int>>(operators_[2])
+                               ->get_local_matrix()
+                               ->get_size()[0],
+                           1}));
+            INTERM2 = share(clone(INTERM1));
+        }
+        operators_[2]->apply(b, INTERM1);
+        if (operators_[1]->apply_uses_initial_guess()) {
+            INTERM2->fill(zero<ValueType>());
+        }
+        operators_[1]->apply(INTERM1, INTERM2);
+        operators_[0]->apply(alpha, INTERM2, beta, x);
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                if (operators_.size() > 1) {
+                    operators_[0]->apply(
+                        dense_alpha,
+                        apply_inner_operators(operators_, storage_, dense_b),
+                        dense_beta, dense_x);
+                } else {
+                    operators_[0]->apply(dense_alpha, dense_b, dense_beta,
+                                         dense_x);
+                }
+            },
+            alpha, b, beta, x);
+    }
 }
 
 

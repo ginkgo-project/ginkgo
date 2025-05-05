@@ -207,6 +207,10 @@ if(GINKGO_HAVE_METIS)
     target_link_libraries(${ginkgo_core} PRIVATE METIS::METIS)
 endif()
 
+if(GINKGO_HAVE_PARMETIS)
+    target_link_libraries(${ginkgo_core} PRIVATE ParMETIS::ParMETIS)
+endif()
+
 if(GINKGO_BUILD_MPI)
     target_link_libraries(${ginkgo_core} PUBLIC MPI::MPI_CXX)
 endif()
