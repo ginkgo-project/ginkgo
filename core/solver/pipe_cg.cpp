@@ -197,6 +197,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // delta = dot(w, z)
         w->compute_conj_dot(z, delta, reduction_tmp);
         // check
+        ++iter;
         bool all_stopped =
             stop_criterion->update()
                 .num_iterations(iter)
@@ -210,7 +211,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (all_stopped) {
             break;
         }
-        ++iter;
         // tmp = rho / prev_rho
         // beta = delta - |tmp|^2 * beta
         // p = z + tmp * p
