@@ -382,7 +382,28 @@ __device__ __forceinline__ bool is_finite(
     return is_finite(value.real()) && is_finite(value.imag());
 }
 
+#if defined(GKO_COMPILING_HIP) && HIP_VERSION < 60200000
 
+
+// hip_bfloat16 does not have a constexpr constructor from int
+template <>
+GKO_INLINE vendor_bf16 one<vendor_bf16>()
+{
+    vendor_bf16 val;
+    val.data = static_cast<uint16>(0b0'01111111'0000000u);
+    return val;
+}
+
+// hip_bfloat16 does not have an implicit conversion from float
+template <>
+GKO_INLINE thrust::complex<vendor_bf16> one<thrust::complex<vendor_bf16>>()
+{
+    thrust::complex<vendor_bf16> val(one<vendor_bf16>());
+    return val;
+}
+
+
+#endif
 #endif  // GINKGO_ENABLE_BFLOAT16
 #endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
 
