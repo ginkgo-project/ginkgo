@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", , bfloat16: "OFF"}
+          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
           - {shared: "OFF", build_type: "Release", name: "omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
           - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
           - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}

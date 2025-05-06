@@ -26,13 +26,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: .github/check-wiki-changelog.sh
-  
-  spell-check:
-    name: Spell Check with Typos
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check for typos
-        uses: crate-ci/typos@master
-        with:
-          config: .github/_typos.toml
