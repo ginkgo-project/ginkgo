@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -250,11 +250,18 @@ public:
      */
     CusparseError(const std::string& file, int line, const std::string& func,
                   int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
+        : Error(file, line, func + ": " + get_error(error_code)),
+          err_code(error_code)
     {}
+
+    /**
+     * Returns the error code
+     */
+    int64 get_error_code() const noexcept { return err_code; }
 
 private:
     static std::string get_error(int64 error_code);
+    const int64 err_code;
 };
 
 

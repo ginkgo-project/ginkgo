@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -208,13 +208,31 @@ void spgemm_work_estimation(cusparseHandle_t handle, const ValueType* alpha,
                             cusparseSpMatDescr_t b_descr, const ValueType* beta,
                             cusparseSpMatDescr_t c_descr,
                             cusparseSpGEMMDescr_t spgemm_descr,
+                            cusparseSpGEMMAlg_t spgemm_alg,
                             size_type& buffer1_size, void* buffer1)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_workEstimation(
         handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
         CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
-        c_descr, cuda_data_type<ValueType>(), CUSPARSE_SPGEMM_DEFAULT,
-        spgemm_descr, &buffer1_size, buffer1));
+        c_descr, cuda_data_type<ValueType>(), spgemm_alg, spgemm_descr,
+        &buffer1_size, buffer1));
+}
+
+template <typename ValueType>
+void spgemm_estimate_memory(cusparseHandle_t handle, const ValueType* alpha,
+                            cusparseSpMatDescr_t a_descr,
+                            cusparseSpMatDescr_t b_descr, const ValueType* beta,
+                            cusparseSpMatDescr_t c_descr,
+                            cusparseSpGEMMDescr_t spgemm_descr,
+                            cusparseSpGEMMAlg_t spgemm_alg,
+                            float chunk_fraction, size_type& buffer3_size,
+                            void* buffer3, size_type* buffer2_size)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_estimateMemory(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
+        c_descr, cuda_data_type<ValueType>(), spgemm_alg, spgemm_descr,
+        chunk_fraction, &buffer3_size, buffer3, buffer2_size));
 }
 
 
@@ -222,14 +240,15 @@ template <typename ValueType>
 void spgemm_compute(cusparseHandle_t handle, const ValueType* alpha,
                     cusparseSpMatDescr_t a_descr, cusparseSpMatDescr_t b_descr,
                     const ValueType* beta, cusparseSpMatDescr_t c_descr,
-                    cusparseSpGEMMDescr_t spgemm_descr, void* buffer1,
+                    cusparseSpGEMMDescr_t spgemm_descr,
+                    cusparseSpGEMMAlg_t spgemm_alg, void* buffer1,
                     size_type& buffer2_size, void* buffer2)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_compute(
         handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
         CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
-        c_descr, cuda_data_type<ValueType>(), CUSPARSE_SPGEMM_DEFAULT,
-        spgemm_descr, &buffer2_size, buffer2));
+        c_descr, cuda_data_type<ValueType>(), spgemm_alg, spgemm_descr,
+        &buffer2_size, buffer2));
 }
 
 
@@ -237,13 +256,13 @@ template <typename ValueType>
 void spgemm_copy(cusparseHandle_t handle, const ValueType* alpha,
                  cusparseSpMatDescr_t a_descr, cusparseSpMatDescr_t b_descr,
                  const ValueType* beta, cusparseSpMatDescr_t c_descr,
-                 cusparseSpGEMMDescr_t spgemm_descr)
+                 cusparseSpGEMMDescr_t spgemm_descr,
+                 cusparseSpGEMMAlg_t spgemm_alg)
 {
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseSpGEMM_copy(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                            CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr,
-                            b_descr, beta, c_descr, cuda_data_type<ValueType>(),
-                            CUSPARSE_SPGEMM_DEFAULT, spgemm_descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_copy(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
+        c_descr, cuda_data_type<ValueType>(), spgemm_alg, spgemm_descr));
 }
 
 
