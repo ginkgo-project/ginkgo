@@ -871,6 +871,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
         template _macro(std::complex<float>, std::complex<bfloat16>));         \
     GKO_ADAPT_BF(template <> _macro(                                           \
         std::complex<double>, std::complex<bfloat16>) GKO_NOT_IMPLEMENTED);    \
+    GKO_ADAPT_BF(GKO_ADAPT_HF(template _macro(bfloat16, float16)));            \
+    GKO_ADAPT_HF(GKO_ADAPT_BF(template _macro(float16, bfloat16)));            \
+    GKO_ADAPT_BF(GKO_ADAPT_HF(                                                 \
+        template _macro(std::complex<bfloat16>, std::complex<float16>)));      \
+    GKO_ADAPT_HF(GKO_ADAPT_BF(                                                 \
+        template _macro(std::complex<float16>, std::complex<bfloat16>)));      \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                      \
