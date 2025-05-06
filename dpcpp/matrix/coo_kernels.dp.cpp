@@ -336,7 +336,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_ncols = b->get_size()[1];
 
     // not support 16 bit atomic
-    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::float16>) {
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
         GKO_NOT_SUPPORTED(c);
     } else {
         if (nwarps > 0) {
