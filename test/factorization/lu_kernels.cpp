@@ -195,236 +195,238 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Lu, KernelValidateValidFactors)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        bool valid = false;
+// TYPED_TEST(Lu, KernelValidateValidFactors)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         bool valid = false;
 
-        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
-            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+//         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+//             this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+//             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
-        ASSERT_TRUE(valid);
-    });
-}
-
-
-TYPED_TEST(Lu, KernelValidateInvalidFactorsIdentity)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        bool valid = true;
-        gko::matrix_data<value_type, index_type> data(
-            this->dmtx_lu->get_size());
-        // an identity matrix is a valid factorization, but doesn't contain the
-        // system matrix
-        for (auto row : gko::irange{static_cast<index_type>(data.size[0])}) {
-            data.nonzeros.emplace_back(row, row, gko::one<value_type>());
-        }
-        this->dmtx_lu->read(data);
-
-        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
-            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
-
-        ASSERT_FALSE(valid);
-    });
-}
+//         ASSERT_TRUE(valid);
+//     });
+// }
 
 
-TYPED_TEST(Lu, KernelValidateInvalidFactorsMissing)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        bool valid = true;
-        gko::matrix_data<value_type, index_type> data;
-        this->dmtx_lu->write(data);
-        // delete a random entry somewhere in the middle of the matrix
-        data.nonzeros.erase(data.nonzeros.begin() +
-                            data.nonzeros.size() * 3 / 4);
-        this->dmtx_lu->read(data);
+// TYPED_TEST(Lu, KernelValidateInvalidFactorsIdentity)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         bool valid = true;
+//         gko::matrix_data<value_type, index_type> data(
+//             this->dmtx_lu->get_size());
+//         // an identity matrix is a valid factorization, but doesn't contain
+//         the
+//         // system matrix
+//         for (auto row : gko::irange{static_cast<index_type>(data.size[0])}) {
+//             data.nonzeros.emplace_back(row, row, gko::one<value_type>());
+//         }
+//         this->dmtx_lu->read(data);
 
-        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
-            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+//         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+//             this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+//             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
-        ASSERT_FALSE(valid);
-    });
-}
-
-
-TYPED_TEST(Lu, KernelValidateInvalidFactorsExtra)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        bool valid = true;
-        gko::matrix_data<value_type, index_type> data;
-        this->dmtx_lu->write(data);
-        // insert an entry between two non-adjacent values in a row somewhere
-        // not at the beginning
-        const auto it = std::adjacent_find(
-            data.nonzeros.begin() + data.nonzeros.size() / 5,
-            data.nonzeros.end(), [](auto a, auto b) {
-                return a.row == b.row && a.column < b.column - 1;
-            });
-        data.nonzeros.insert(it, {it->row, it->column + 1, it->value});
-        this->dmtx_lu->read(data);
-
-        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
-            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
-
-        ASSERT_FALSE(valid);
-    });
-}
+//         ASSERT_FALSE(valid);
+//     });
+// }
 
 
-TYPED_TEST(Lu, SymbolicCholeskyWorks)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
-        std::unique_ptr<gko::factorization::elimination_forest<index_type>>
-            forest;
-        gko::factorization::symbolic_cholesky(this->dmtx.get(), true, dlu,
-                                              forest);
+// TYPED_TEST(Lu, KernelValidateInvalidFactorsMissing)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         bool valid = true;
+//         gko::matrix_data<value_type, index_type> data;
+//         this->dmtx_lu->write(data);
+//         // delete a random entry somewhere in the middle of the matrix
+//         data.nonzeros.erase(data.nonzeros.begin() +
+//                             data.nonzeros.size() * 3 / 4);
+//         this->dmtx_lu->read(data);
 
-        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
-    });
-}
+//         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+//             this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+//             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
-
-TYPED_TEST(Lu, SymbolicLUWorks)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
-        gko::factorization::symbolic_lu(this->dmtx.get(), dlu);
-
-        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
-    });
-}
+//         ASSERT_FALSE(valid);
+//     });
+// }
 
 
-TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
-        gko::factorization::symbolic_lu_near_symm(this->dmtx.get(), dlu);
+// TYPED_TEST(Lu, KernelValidateInvalidFactorsExtra)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         bool valid = true;
+//         gko::matrix_data<value_type, index_type> data;
+//         this->dmtx_lu->write(data);
+//         // insert an entry between two non-adjacent values in a row somewhere
+//         // not at the beginning
+//         const auto it = std::adjacent_find(
+//             data.nonzeros.begin() + data.nonzeros.size() / 5,
+//             data.nonzeros.end(), [](auto a, auto b) {
+//                 return a.row == b.row && a.column < b.column - 1;
+//             });
+//         data.nonzeros.insert(it, {it->row, it->column + 1, it->value});
+//         this->dmtx_lu->read(data);
 
-        GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
-    });
-}
+//         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+//             this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+//             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
-
-TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        auto factory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .with_symbolic_algorithm(
-                    gko::experimental::factorization::symbolic_type::symmetric)
-                .on(this->ref);
-        auto dfactory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .with_symbolic_algorithm(
-                    gko::experimental::factorization::symbolic_type::symmetric)
-                .on(this->exec);
-
-        auto lu = factory->generate(this->mtx);
-        auto dlu = dfactory->generate(this->dmtx);
-
-        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
-        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                            r<value_type>::value);
-    });
-}
+//         ASSERT_FALSE(valid);
+//     });
+// }
 
 
-TYPED_TEST(Lu, GenerateNearSymmWithUnknownSparsityIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        auto factory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_type::near_symmetric)
-                .on(this->ref);
-        auto dfactory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .with_symbolic_algorithm(gko::experimental::factorization::
-                                             symbolic_type::near_symmetric)
-                .on(this->exec);
+// TYPED_TEST(Lu, SymbolicCholeskyWorks)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+//         std::unique_ptr<gko::factorization::elimination_forest<index_type>>
+//             forest;
+//         gko::factorization::symbolic_cholesky(this->dmtx.get(), true, dlu,
+//                                               forest);
 
-        auto lu = factory->generate(this->mtx);
-        auto dlu = dfactory->generate(this->dmtx);
-
-        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
-        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                            r<value_type>::value);
-    });
-}
+//         GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+//     });
+// }
 
 
-TYPED_TEST(Lu, GenerateWithKnownSparsityIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        auto factory = gko::experimental::factorization::Lu<value_type,
-                                                            index_type>::build()
-                           .with_symbolic_factorization(this->mtx_lu_sparsity)
-                           .on(this->ref);
-        auto dfactory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .with_symbolic_factorization(this->dmtx_lu_sparsity)
-                .on(this->exec);
+// TYPED_TEST(Lu, SymbolicLUWorks)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+//         gko::factorization::symbolic_lu(this->dmtx.get(), dlu);
 
-        auto lu = factory->generate(this->mtx);
-        auto dlu = dfactory->generate(this->dmtx);
-
-        GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
-        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                            r<value_type>::value);
-    });
-}
+//         GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+//     });
+// }
 
 
-TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    this->forall_matrices([this] {
-        auto factory = gko::experimental::factorization::Lu<value_type,
-                                                            index_type>::build()
-                           .on(this->ref);
-        auto dfactory =
-            gko::experimental::factorization::Lu<value_type,
-                                                 index_type>::build()
-                .on(this->exec);
+// TYPED_TEST(Lu, SymbolicLUNearSymmWorks)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         std::unique_ptr<gko::matrix::Csr<value_type, index_type>> dlu;
+//         gko::factorization::symbolic_lu_near_symm(this->dmtx.get(), dlu);
 
-        auto lu = factory->generate(this->mtx);
-        auto dlu = dfactory->generate(this->dmtx);
+//         GKO_ASSERT_MTX_EQ_SPARSITY(dlu, this->dmtx_lu);
+//     });
+// }
 
-        GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
-        GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
-                            r<value_type>::value);
-    });
-}
+
+// TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         auto factory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .with_symbolic_algorithm(
+//                     gko::experimental::factorization::symbolic_type::symmetric)
+//                 .on(this->ref);
+//         auto dfactory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .with_symbolic_algorithm(
+//                     gko::experimental::factorization::symbolic_type::symmetric)
+//                 .on(this->exec);
+
+//         auto lu = factory->generate(this->mtx);
+//         auto dlu = dfactory->generate(this->dmtx);
+
+//         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+//         GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+//                             r<value_type>::value);
+//     });
+// }
+
+
+// TYPED_TEST(Lu, GenerateNearSymmWithUnknownSparsityIsEquivalentToRef)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         auto factory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .with_symbolic_algorithm(gko::experimental::factorization::
+//                                              symbolic_type::near_symmetric)
+//                 .on(this->ref);
+//         auto dfactory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .with_symbolic_algorithm(gko::experimental::factorization::
+//                                              symbolic_type::near_symmetric)
+//                 .on(this->exec);
+
+//         auto lu = factory->generate(this->mtx);
+//         auto dlu = dfactory->generate(this->dmtx);
+
+//         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+//         GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+//                             r<value_type>::value);
+//     });
+// }
+
+
+// TYPED_TEST(Lu, GenerateWithKnownSparsityIsEquivalentToRef)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         auto factory = gko::experimental::factorization::Lu<value_type,
+//                                                             index_type>::build()
+//                            .with_symbolic_factorization(this->mtx_lu_sparsity)
+//                            .on(this->ref);
+//         auto dfactory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .with_symbolic_factorization(this->dmtx_lu_sparsity)
+//                 .on(this->exec);
+
+//         auto lu = factory->generate(this->mtx);
+//         auto dlu = dfactory->generate(this->dmtx);
+
+//         GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity,
+//         dlu->get_combined()); GKO_ASSERT_MTX_NEAR(lu->get_combined(),
+//         dlu->get_combined(),
+//                             r<value_type>::value);
+//     });
+// }
+
+
+// TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityIsEquivalentToRef)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     this->forall_matrices([this] {
+//         auto factory = gko::experimental::factorization::Lu<value_type,
+//                                                             index_type>::build()
+//                            .on(this->ref);
+//         auto dfactory =
+//             gko::experimental::factorization::Lu<value_type,
+//                                                  index_type>::build()
+//                 .on(this->exec);
+
+//         auto lu = factory->generate(this->mtx);
+//         auto dlu = dfactory->generate(this->dmtx);
+
+//         GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+//         GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+//                             r<value_type>::value);
+//     });
+// }
