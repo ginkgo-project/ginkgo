@@ -261,7 +261,7 @@ class Matrix
     : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
                                   LocalIndexType, GlobalIndexType>>,
 #endif
@@ -293,7 +293,7 @@ public:
 
     void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Matrix<previous_precision<previous_precision<ValueType>>,
                         LocalIndexType, GlobalIndexType>;
     using ConvertibleTo<
@@ -323,7 +323,7 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     * @param assembly_type  The mode of assembly.
+     * @param x  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */

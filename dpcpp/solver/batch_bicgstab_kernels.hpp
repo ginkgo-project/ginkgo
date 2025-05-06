@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -64,9 +64,9 @@ __dpct_inline__ void initialize(
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     // r = b - A*x
-    advanced_apply(static_cast<ValueType>(-1.0), mat_global_entry,
-                   x_shared_entry, static_cast<ValueType>(1.0), r_shared_entry,
-                   item_ct1);
+    // before icpx 2025.0.1, unary on bfloat16 rvalue will return float
+    advanced_apply(static_cast<ValueType>(-one<ValueType>()), mat_global_entry,
+                   x_shared_entry, one<ValueType>(), r_shared_entry, item_ct1);
     item_ct1.barrier(sycl::access::fence_space::global_and_local);
 
     if (sg_id == 0) {

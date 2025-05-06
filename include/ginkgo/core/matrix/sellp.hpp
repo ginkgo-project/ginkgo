@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,7 +42,7 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
               public ConvertibleTo<
                   Sellp<next_precision<next_precision<ValueType>>, IndexType>>,
 #endif
@@ -83,7 +83,7 @@ public:
 
     void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
 
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Sellp<previous_precision<previous_precision<ValueType>>,
                        IndexType>;
     using ConvertibleTo<Sellp<next_precision<next_precision<ValueType>>,

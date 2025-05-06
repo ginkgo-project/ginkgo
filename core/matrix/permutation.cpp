@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -268,8 +268,8 @@ void dispatch_dense(const LinOp* op, Functor fn)
     using matrix::Dense;
     using std::complex;
     run<Dense,
-#if GINKGO_ENABLE_HALF
-        gko::half, std::complex<gko::half>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+        gko::float16, std::complex<gko::float16>,
 #endif
         double, float, std::complex<double>, std::complex<float>>(op, fn);
 }

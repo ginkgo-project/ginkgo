@@ -4,6 +4,7 @@ ginkgo_create_test(array EXECUTABLE_NAME array_test) # array collides with C++ s
 ginkgo_create_test(batch_dim)
 ginkgo_create_test(batch_lin_op)
 ginkgo_create_test(batch_multi_vector)
+ginkgo_create_test(bfloat16)
 ginkgo_create_test(block_operator)
 ginkgo_create_test(combination)
 ginkgo_create_test(composition)

@@ -41,9 +41,21 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto array) {
-            if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+#if defined(GKO_COMPILING_HIP) && HIP_VERSION < 60200000
+            if constexpr (std::is_same_v<remove_complex<ValueType>, bfloat16>) {
+                // hip_bfloat16 does not have implicit conversion, so the
+                // thrust<hip_bfloat16> can not be from float. Also,
+                // hip_bfloat16 does not have operator=(float) before 5.4. Thus,
+                // we cast twice via float before 6.2
+                array[idx] = static_cast<hip_bfloat16>(static_cast<float>(idx));
+
+            } else
+#endif
+                if constexpr (std::is_same_v<remove_complex<ValueType>,
+                                             float16>) {
                 // __half can not be from int64_t
-                array[idx] = static_cast<long long>(idx);
+                // __hip_bfloat16 can not be from long long
+                array[idx] = static_cast<float>(idx);
             } else {
                 array[idx] = idx;
             }

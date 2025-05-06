@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/matrix/row_gatherer.hpp"
 
-#include <ginkgo/core/base/half.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
@@ -66,8 +66,8 @@ template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
     run<Dense,
-#if GINKGO_ENABLE_HALF
-        gko::half, std::complex<gko::half>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+        gko::float16, std::complex<gko::float16>,
 #endif
         float, double, std::complex<float>, std::complex<double>>(
         in, [&](auto gather) { gather->row_gather(&row_idxs_, out); });
@@ -78,8 +78,8 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
                                         const LinOp* beta, LinOp* out) const
 {
     run<Dense,
-#if GINKGO_ENABLE_HALF
-        gko::half, std::complex<gko::half>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+        gko::float16, std::complex<gko::float16>,
 #endif
         float, double, std::complex<float>, std::complex<double>>(
         in,

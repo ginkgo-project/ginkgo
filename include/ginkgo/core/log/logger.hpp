@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,8 +17,6 @@
 
 
 namespace gko {
-
-class half;
 
 /* Eliminate circular dependencies the hard way */
 template <typename ValueType>
@@ -580,6 +578,10 @@ protected:
         const array<int>& iters, const array<float>& residual_norms) const
     {}
 
+
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+
+
     /**
      * Batch solver's event that records the iteration count and the residual
      * norm.
@@ -588,8 +590,13 @@ protected:
      * @param residual_norms  the array storing the residual norms.
      */
     virtual void on_batch_solver_completed(
-        const array<int>& iters, const array<gko::half>& residual_norms) const
+        const array<int>& iters,
+        const array<gko::float16>& residual_norms) const
     {}
+
+
+#endif
+
 
 public:
 #undef GKO_LOGGER_REGISTER_EVENT

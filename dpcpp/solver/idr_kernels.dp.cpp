@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -606,7 +606,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
             reinterpret_cast<real_type*>(subspace_vectors->get_values());
         auto n =
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
-        using rand_type = std::conditional_t<std::is_same_v<real_type, half>,
+        using rand_type = std::conditional_t<std::is_same_v<real_type, float16>,
                                              float, real_type>;
         n = is_complex<ValueType>() ? 2 * n : n;
         exec->get_queue()->submit([&](sycl::handler& cgh) {
@@ -674,7 +674,7 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
     for (size_type i = 0; i < k; i++) {
         const auto p_i = as_device_type(p->get_const_values()) + i * p_stride;
         // not support 16 bit atomic
-        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+        if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             GKO_NOT_SUPPORTED(alpha);
         } else {
             if (nrhs > 1 || is_complex<ValueType>()) {
@@ -728,7 +728,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     for (size_type i = k; i < subspace_dim; i++) {
         const auto p_i = p->get_const_values() + i * p_stride;
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
-        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
+        if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             GKO_NOT_SUPPORTED(m_i);
         } else {
             if (nrhs > 1 || is_complex<ValueType>()) {

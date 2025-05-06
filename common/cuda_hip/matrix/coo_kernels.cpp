@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -269,7 +269,7 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
 
 // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
         GKO_NOT_SUPPORTED(c);
     } else
 #endif
@@ -320,7 +320,7 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
 
     // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<ValueType>, gko::half>) {
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
         GKO_NOT_SUPPORTED(c);
     } else
 #endif

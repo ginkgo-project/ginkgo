@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -272,38 +272,43 @@ __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, bool spd)
 {
-    auto general_solve = [spd](IndexType num_elems,
-                               ValueType* __restrict__ local_row,
-                               group::thread_block_tile<subwarp_size>& subwarp,
-                               size_type rhs_one_idx) {
-        const int local_id = subwarp.thread_rank();
-        ValueType rhs =
-            local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
-        size_type perm = local_id;
-        auto pivoted = subwarp.thread_rank() >= num_elems;
-        auto status = true;
-        for (size_type i = 0; i < num_elems; i++) {
-            const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
-            if (local_id == piv) {
-                pivoted = true;
+    // __device__ is important to hip. Without __device__, hip might consider it
+    // is a normal function first such that it ends up some ambiguous sqrt from
+    // the system header for bfloat16. Using __device__ helps only search the
+    // device part and we will not use float/long double from the system for
+    // bfloat16.
+    auto general_solve =
+        [spd] __device__(IndexType num_elems, ValueType* __restrict__ local_row,
+                         group::thread_block_tile<subwarp_size> & subwarp,
+                         size_type rhs_one_idx) {
+            const int local_id = subwarp.thread_rank();
+            ValueType rhs =
+                local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
+            size_type perm = local_id;
+            auto pivoted = subwarp.thread_rank() >= num_elems;
+            auto status = true;
+            for (size_type i = 0; i < num_elems; i++) {
+                const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
+                if (local_id == piv) {
+                    pivoted = true;
+                }
+                if (local_id == i) {
+                    perm = piv;
+                }
+
+                apply_gauss_jordan_transform_with_rhs<subwarp_size>(
+                    subwarp, piv, i, local_row, &rhs, status);
             }
-            if (local_id == i) {
-                perm = piv;
+
+            ValueType sol = subwarp.shfl(rhs, perm);
+
+            if (spd) {
+                auto diag = subwarp.shfl(sol, num_elems - 1);
+                sol /= sqrt(diag);
             }
 
-            apply_gauss_jordan_transform_with_rhs<subwarp_size>(
-                subwarp, piv, i, local_row, &rhs, status);
-        }
-
-        ValueType sol = subwarp.shfl(rhs, perm);
-
-        if (spd) {
-            auto diag = subwarp.shfl(sol, num_elems - 1);
-            sol /= sqrt(diag);
-        }
-
-        return sol;
-    };
+            return sol;
+        };
 
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,

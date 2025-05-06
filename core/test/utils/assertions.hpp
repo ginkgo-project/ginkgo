@@ -673,10 +673,10 @@ template <typename T, typename U>
 
 
 template <>
-::testing::AssertionResult values_near<gko::half, gko::half>(
+::testing::AssertionResult values_near<gko::float16, gko::float16>(
     const std::string& first_expression, const std::string& second_expression,
-    const std::string& tolerance_expression, gko::half val1, gko::half val2,
-    double abs_error)
+    const std::string& tolerance_expression, gko::float16 val1,
+    gko::float16 val2, double abs_error)
 {
     using T = float32;
     const double diff = abs(T{val1} - T{val2});
@@ -693,10 +693,11 @@ template <>
 
 
 template <>
-::testing::AssertionResult values_near<std::complex<half>, std::complex<half>>(
+::testing::AssertionResult
+values_near<std::complex<float16>, std::complex<float16>>(
     const std::string& first_expression, const std::string& second_expression,
-    const std::string& tolerance_expression, std::complex<half> val1,
-    std::complex<half> val2, double abs_error)
+    const std::string& tolerance_expression, std::complex<float16> val1,
+    std::complex<float16> val2, double abs_error)
 {
     using T = std::complex<float32>;
     const double diff = abs(T{val1} - T{val2});

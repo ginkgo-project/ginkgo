@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,8 +20,8 @@ template <typename Fn>
 auto dispatch_dense(Fn&& fn, LinOp* v)
 {
     return run<matrix::Dense, float, double,
-#if GINKGO_ENABLE_HALF
-               half, std::complex<half>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+               float16, std::complex<float16>,
 #endif
                std::complex<float>, std::complex<double>>(v,
                                                           std::forward<Fn>(fn));

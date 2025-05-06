@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -84,6 +84,9 @@ struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
 template <>
 struct is_complex_or_scalar_impl<half> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<bfloat16> : std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<std::complex<T>>
@@ -311,12 +314,15 @@ struct next_precision_base_impl<std::complex<T>> {
 };
 
 
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+
+
 template <typename T>
 struct next_precision_impl {};
 
 
 template <>
-struct next_precision_impl<gko::half> {
+struct next_precision_impl<gko::float16> {
     using type = float;
 };
 
@@ -327,13 +333,16 @@ struct next_precision_impl<float> {
 
 template <>
 struct next_precision_impl<double> {
-    using type = gko::half;
+    using type = gko::float16;
 };
 
 template <typename T>
 struct next_precision_impl<std::complex<T>> {
     using type = std::complex<typename next_precision_impl<T>::type>;
 };
+
+
+#endif
 
 
 template <typename T>
@@ -351,6 +360,7 @@ struct reduce_precision_impl<double> {
     using type = float;
 };
 
+// for block jacobi
 template <>
 struct reduce_precision_impl<float> {
     using type = half;
@@ -372,6 +382,7 @@ struct increase_precision_impl<float> {
     using type = double;
 };
 
+// for block jacobi
 template <>
 struct increase_precision_impl<half> {
     using type = float;
@@ -433,7 +444,7 @@ using previous_precision_base = next_precision_base<T>;
 /**
  * Obtains the next type in the singly-linked precision list with half.
  */
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename T>
 using next_precision = typename detail::next_precision_impl<T>::type;
 
@@ -637,6 +648,13 @@ GKO_INLINE constexpr half one<half>()
 {
     constexpr auto bits = static_cast<uint16>(0b0'01111'0000000000u);
     return half::create_from_bits(bits);
+}
+
+template <>
+GKO_INLINE constexpr bfloat16 one<bfloat16>()
+{
+    constexpr auto bits = static_cast<uint16>(0b0'01111111'0000000u);
+    return bfloat16::create_from_bits(bits);
 }
 
 
@@ -949,6 +967,12 @@ GKO_INLINE gko::half abs(const std::complex<gko::half>& x)
     return static_cast<gko::half>(abs(std::complex<float>(x)));
 }
 
+GKO_INLINE gko::bfloat16 abs(const std::complex<gko::bfloat16>& x)
+{
+    // Using float abs not sqrt on norm to avoid overflow
+    return static_cast<gko::bfloat16>(abs(std::complex<float>(x)));
+}
+
 
 using std::sqrt;
 
@@ -960,6 +984,17 @@ GKO_INLINE gko::half sqrt(gko::half a)
 GKO_INLINE std::complex<gko::half> sqrt(std::complex<gko::half> a)
 {
     return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
+}
+
+GKO_INLINE gko::bfloat16 sqrt(gko::bfloat16 a)
+{
+    return gko::bfloat16(std::sqrt(float(a)));
+}
+
+GKO_INLINE std::complex<gko::bfloat16> sqrt(std::complex<gko::bfloat16> a)
+{
+    return std::complex<gko::bfloat16>(sqrt(std::complex<float>(
         static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 

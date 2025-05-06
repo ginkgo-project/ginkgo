@@ -15,7 +15,6 @@
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -329,8 +328,8 @@ using RealValueTypesBase =
 #endif
 
 using RealValueTypes = ::testing::Types<
-#if GINKGO_ENABLE_HALF
-    gko::half,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+    gko::float16,
 #endif
 #if !GINKGO_DPCPP_SINGLE_MODE
     double,
@@ -359,7 +358,7 @@ using PODTypesBase = merge_type_list_t<RealValueTypesBase, IntegerTypes>;
 
 using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
-using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypesBase>;
+using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
 
 using ValueIndexTypesBase =
     cartesian_type_product_t<ValueTypesBase, IndexTypes>;
@@ -478,8 +477,8 @@ struct TupleTypenameNameGenerator {
 
 
 #define SKIP_IF_HALF(type)                                                   \
-    if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
-        GTEST_SKIP() << "Skip due to half mode";                             \
+    if (std::is_same<gko::remove_complex<type>, gko::float16>::value) {      \
+        GTEST_SKIP() << "Skip due to float16 mode";                          \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
