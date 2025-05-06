@@ -33,8 +33,23 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) =
-                static_cast<device_type<OutValueType>>(input(row, col));
+#if defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000
+            if constexpr (sizeof(remove_complex<InValueType>) ==
+                              sizeof(int16) &&
+                          sizeof(remove_complex<OutValueType>) ==
+                              sizeof(int16)) {
+                if constexpr (is_complex<InValueType>()) {
+                    output(row, col) = static_cast<device_type<OutValueType>>(
+                        static_cast<device_type<std::complex<float>>>(
+                            input(row, col)));
+                } else {
+                    output(row, col) = static_cast<device_type<OutValueType>>(
+                        static_cast<device_type<float>>(input(row, col)));
+                }
+            } else
+#endif
+                output(row, col) =
+                    static_cast<device_type<OutValueType>>(input(row, col));
         },
         input->get_size(), input, output);
 }

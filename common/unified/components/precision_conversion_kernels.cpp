@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,21 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-            out[idx] = static_cast<device_type<TargetType>>(in[idx]);
+#if defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000
+            if constexpr (sizeof(remove_complex<SourceType>) == sizeof(int16) &&
+                          sizeof(remove_complex<TargetType>) == sizeof(int16)) {
+                if constexpr (is_complex<SourceType>()) {
+                    out[idx] = static_cast<device_type<TargetType>>(
+                        static_cast<device_type<std::complex<float>>>(in[idx]));
+                } else {
+                    out[idx] = static_cast<device_type<TargetType>>(
+                        static_cast<device_type<float>>(in[idx]));
+                }
+            } else
+#endif
+            {
+                out[idx] = static_cast<device_type<TargetType>>(in[idx]);
+            }
         },
         size, in, out);
 }
