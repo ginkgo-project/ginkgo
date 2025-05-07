@@ -20,7 +20,8 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-#if defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000
+#if defined(GKO_COMPILING_DPCPP) || \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
             if constexpr (sizeof(remove_complex<SourceType>) == sizeof(int16) &&
                           sizeof(remove_complex<TargetType>) == sizeof(int16)) {
                 if constexpr (is_complex<SourceType>()) {

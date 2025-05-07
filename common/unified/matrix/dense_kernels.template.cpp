@@ -33,7 +33,8 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-#if defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000
+#if defined(GKO_COMPILING_DPCPP) || \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
             if constexpr (sizeof(remove_complex<InValueType>) ==
                               sizeof(int16) &&
                           sizeof(remove_complex<OutValueType>) ==
@@ -48,8 +49,10 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
                 }
             } else
 #endif
+            {
                 output(row, col) =
                     static_cast<device_type<OutValueType>>(input(row, col));
+            }
         },
         input->get_size(), input, output);
 }
@@ -453,8 +456,24 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-            gathered(row, col) =
-                static_cast<device_type<OutputType>>(orig(rows[row], col));
+#if defined(GKO_COMPILING_DPCPP) || \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
+            if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16) &&
+                          sizeof(remove_complex<OutputType>) == sizeof(int16)) {
+                if constexpr (is_complex<ValueType>()) {
+                    gathered(row, col) = static_cast<device_type<OutputType>>(
+                        static_cast<device_type<std::complex<float>>>(
+                            orig(rows[row], col)));
+                } else {
+                    gathered(row, col) = static_cast<device_type<OutputType>>(
+                        static_cast<device_type<float>>(orig(rows[row], col)));
+                }
+            } else
+#endif
+            {
+                gathered(row, col) =
+                    static_cast<device_type<OutputType>>(orig(rows[row], col));
+            }
         },
         row_collection->get_size(), orig, row_idxs, row_collection);
 }
