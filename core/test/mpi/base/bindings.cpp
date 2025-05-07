@@ -395,6 +395,7 @@ TYPED_TEST(MpiBindings, CanAccumulateValues)
 {
     // one-side accumlation only supports native type
     SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -445,6 +446,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
 {
     // one-side accumlation only supports native type
     SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -624,6 +626,7 @@ TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 {
     // one-side accumlation only supports native type
     SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -672,6 +675,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 {
     // one-side accumlation only supports native type
     SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -727,6 +731,7 @@ TYPED_TEST(MpiBindings, CanFetchAndOperate)
 {
     // one-side operation only supports native type
     SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();

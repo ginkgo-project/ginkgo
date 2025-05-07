@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,8 @@ class truncated;
 
 
 class half;
+
+class bfloat16;
 
 
 namespace detail {
@@ -298,7 +300,9 @@ public:
     // caused by something else in jacobi or isai.
     constexpr half() noexcept : data_(0){};
 
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, bfloat16>>>
     half(const T& val) : data_(0)
     {
         this->float2half(static_cast<float>(val));
@@ -345,6 +349,8 @@ public:
     // Do operation with different type
     // If it is floating point, using floating point as type.
     // If it is integer, using half as type
+    // Note: we do not define the operation with bfloat16, which is already
+    // defined in bfloat16.hpp
 #define HALF_FRIEND_OPERATOR(_op, _opeq)                                   \
     template <typename T>                                                  \
     friend std::enable_if_t<                                               \
@@ -464,15 +470,19 @@ public:
         : real_(real), imag_(imag)
     {}
 
-    template <typename T, typename U,
-              typename = std::enable_if_t<std::is_scalar<T>::value &&
-                                          std::is_scalar<U>::value>>
+    template <
+        typename T, typename U,
+        typename = std::enable_if_t<
+            (std::is_scalar<T>::value || std::is_same_v<T, gko::bfloat16>)&&(
+                std::is_scalar<U>::value || std::is_same_v<U, gko::bfloat16>)>>
     explicit complex(const T& real, const U& imag)
         : real_(static_cast<value_type>(real)),
           imag_(static_cast<value_type>(imag))
     {}
 
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, gko::bfloat16>>>
     complex(const T& real)
         : real_(static_cast<value_type>(real)),
           imag_(static_cast<value_type>(0.f))
@@ -480,7 +490,9 @@ public:
 
     // When using complex(real, imag), MSVC with CUDA try to recognize the
     // complex is a member not constructor.
-    template <typename T, typename = std::enable_if_t<std::is_scalar<T>::value>>
+    template <typename T,
+              typename = std::enable_if_t<std::is_scalar<T>::value ||
+                                          std::is_same_v<T, gko::bfloat16>>>
     explicit complex(const complex<T>& other)
         : real_(static_cast<value_type>(other.real())),
           imag_(static_cast<value_type>(other.imag()))

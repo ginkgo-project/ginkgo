@@ -111,7 +111,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        if (!std::is_same<real_type, gko::float16>::value) {
+        if (!std::is_same<real_type, gko::float16>::value &&
+            !std::is_same<real_type, gko::bfloat16>::value) {
             // There is no guarantee of this condition. We disable this check in
             // float16.
             ASSERT_NEAR(res_log_array[i],
@@ -188,7 +189,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     // 0.7 for error check, so it is not really useful for testing. We skip the
     // bfloat16 for this check.
     // TODO: figure out a suitible test for different precision.
-    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
     const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
@@ -308,6 +309,8 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     // distribution, the solver can not solve the hpd matrix even with single
     // precision
     SKIP_IF_HALF(value_type);
+    // TODO: the tol here is already smaller than epsilon of bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     const real_type tol = 1e-5;
     const int max_iters = 1000;
     auto solver_factory =

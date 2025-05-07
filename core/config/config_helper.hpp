@@ -213,7 +213,8 @@ get_value(const pnode& config)
  */
 template <typename ValueType>
 inline std::enable_if_t<std::is_floating_point<ValueType>::value ||
-                            std::is_same<ValueType, float16>::value,
+                            std::is_same<ValueType, float16>::value ||
+                            std::is_same<ValueType, bfloat16>::value,
                         ValueType>
 get_value(const pnode& config)
 {

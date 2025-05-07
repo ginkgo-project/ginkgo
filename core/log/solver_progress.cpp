@@ -247,13 +247,21 @@ private:
         run<gko::matrix::Dense<double>, gko::matrix::Dense<float>,
             gko::matrix::Dense<std::complex<double>>,
             gko::matrix::Dense<std::complex<float>>,
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
             gko::matrix::Dense<gko::float16>,
             gko::matrix::Dense<std::complex<gko::float16>>,
             gko::WritableToMatrixData<gko::float16, int32>,
             gko::WritableToMatrixData<std::complex<gko::float16>, int32>,
             gko::WritableToMatrixData<gko::float16, int64>,
             gko::WritableToMatrixData<std::complex<gko::float16>, int64>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            gko::matrix::Dense<gko::bfloat16>,
+            gko::matrix::Dense<std::complex<gko::bfloat16>>,
+            gko::WritableToMatrixData<gko::bfloat16, int32>,
+            gko::WritableToMatrixData<std::complex<gko::bfloat16>, int32>,
+            gko::WritableToMatrixData<gko::bfloat16, int64>,
+            gko::WritableToMatrixData<std::complex<gko::bfloat16>, int64>,
 #endif
             // fallback for other matrix types
             gko::WritableToMatrixData<double, int32>,

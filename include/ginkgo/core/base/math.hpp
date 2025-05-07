@@ -10,6 +10,7 @@
 #include <complex>
 #include <cstdlib>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -314,35 +315,50 @@ struct next_precision_base_impl<std::complex<T>> {
 };
 
 
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+/**
+ * Find the type step-away from the T in the template pack.
+ * step >= 0, find the next type in the list
+ * step <  0, find the previous type in the list
+ */
+template <typename T, int step, typename Visited, typename... Rest>
+struct find_precision_list_impl;
 
-
-template <typename T>
-struct next_precision_impl {};
-
-
-template <>
-struct next_precision_impl<gko::float16> {
-    using type = float;
+template <typename T, int step, typename... Visited, typename U,
+          typename... Rest>
+struct find_precision_list_impl<T, step, std::tuple<Visited...>, U, Rest...> {
+    using type =
+        typename find_precision_list_impl<T, step, std::tuple<Visited..., U>,
+                                          Rest...>::type;
 };
 
-template <>
-struct next_precision_impl<float> {
-    using type = double;
-};
-
-template <>
-struct next_precision_impl<double> {
-    using type = gko::float16;
-};
-
-template <typename T>
-struct next_precision_impl<std::complex<T>> {
-    using type = std::complex<typename next_precision_impl<T>::type>;
+template <typename T, int step, typename... Visited, typename... Rest>
+struct find_precision_list_impl<T, step, std::tuple<Visited...>, T, Rest...> {
+    using tuple = std::tuple<T, Rest..., Visited...>;
+    constexpr static auto tuple_size =
+        static_cast<int>(std::tuple_size_v<tuple>);
+    // It turns the first part into positive when step is negative
+    constexpr static int index = (tuple_size + step % tuple_size) % tuple_size;
+    using type = std::tuple_element_t<index, tuple>;
 };
 
 
+template <typename T, int step = 1>
+struct find_precision_impl {
+    using type = typename find_precision_list_impl<T, step, std::tuple<>,
+#if GINKGO_ENABLE_HALF
+                                                   half,
 #endif
+#if GINKGO_ENABLE_BFLOAT16
+                                                   bfloat16,
+#endif
+                                                   float, double>::type;
+};
+
+
+template <typename T, int step>
+struct find_precision_impl<std::complex<T>, step> {
+    using type = std::complex<typename find_precision_impl<T, step>::type>;
+};
 
 
 template <typename T>
@@ -441,23 +457,20 @@ using next_precision_base = typename detail::next_precision_base_impl<T>::type;
 template <typename T>
 using previous_precision_base = next_precision_base<T>;
 
+
 /**
- * Obtains the next type in the singly-linked precision list with half.
+ * Obtains the next `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
  */
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+template <typename T, int step = 1>
+using next_precision = typename detail::find_precision_impl<T, step>::type;
 
-template <typename T>
-using previous_precision = next_precision<next_precision<T>>;
-#else
-// fallback to float/double list
-template <typename T>
-using next_precision = next_precision_base<T>;
-
-template <typename T>
-using previous_precision = previous_precision_base<T>;
-#endif
+/**
+ * Obtains the previous `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
+ */
+template <typename T, int step = 1>
+using previous_precision = typename detail::find_precision_impl<T, -step>::type;
 
 
 /**

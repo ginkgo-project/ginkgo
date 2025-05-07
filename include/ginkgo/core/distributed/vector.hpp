@@ -68,7 +68,10 @@ class Vector
     : public EnableLinOp<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<next_precision<ValueType>>>>,
+      public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
@@ -176,17 +179,25 @@ public:
     void move_to(Vector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Vector<previous_precision<previous_precision<ValueType>>>;
-    using ConvertibleTo<
-        Vector<next_precision<next_precision<ValueType>>>>::convert_to;
-    using ConvertibleTo<
-        Vector<next_precision<next_precision<ValueType>>>>::move_to;
+    friend class Vector<previous_precision<ValueType, 2>>;
+    using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(Vector<next_precision<next_precision<ValueType>>>* result)
-        const override;
+    void convert_to(
+        Vector<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(
-        Vector<next_precision<next_precision<ValueType>>>* result) override;
+    void move_to(Vector<next_precision<ValueType, 2>>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Vector<previous_precision<ValueType, 3>>;
+    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::move_to;
+
+    void convert_to(
+        Vector<next_precision<ValueType, 3>>* result) const override;
+
+    void move_to(Vector<next_precision<ValueType, 3>>* result) override;
 #endif
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
@@ -707,11 +718,22 @@ struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
     }
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    using snd_source_type = experimental::distributed::Vector<
-        previous_precision<previous_precision<ValueType>>>;
+    using snd_source_type =
+        experimental::distributed::Vector<previous_precision<ValueType, 2>>;
 
     static std::unique_ptr<target_type> create_empty(
         const snd_source_type* source)
+    {
+        return target_type::create(source->get_executor(),
+                                   source->get_communicator());
+    }
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    using trd_source_type =
+        experimental::distributed::Vector<previous_precision<ValueType, 3>>;
+
+    static std::unique_ptr<target_type> create_empty(
+        const trd_source_type* source)
     {
         return target_type::create(source->get_executor(),
                                    source->get_communicator());

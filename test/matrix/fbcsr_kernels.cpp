@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,9 +128,10 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
-        // FBCSR on accelerator does not have half precision apply through
-        // vendor libraries.
+        // FBCSR on accelerator does not have half/bfloat16 precision apply
+        // through vendor libraries.
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -155,9 +156,10 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
     if (this->exec->get_master() != this->exec) {
-        // FBCSR on accelerator does not have half precision apply through
-        // vendor libraries.
+        // FBCSR on accelerator does not have half/bfloat16 precision apply
+        // through vendor libraries.
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -183,9 +185,10 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
-        // FBCSR on accelerator does not have half precision apply through
-        // vendor libraries.
+        // FBCSR on accelerator does not have half/bfloat16 precision apply
+        // through vendor libraries.
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =
@@ -218,9 +221,10 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     if (this->exec->get_master() != this->exec) {
-        // FBCSR on accelerator does not have half precision apply through
-        // vendor libraries.
+        // FBCSR on accelerator does not have half/bfloat16 precision apply
+        // through vendor libraries.
         SKIP_IF_HALF(value_type);
+        SKIP_IF_BFLOAT16(value_type);
     }
     auto drand = gko::clone(this->exec, this->rsorted);
     auto x =

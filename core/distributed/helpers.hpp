@@ -159,13 +159,21 @@ auto run_matrix(T* linop, F&& f, Args&&... args)
         with_same_constness_t<Matrix<float, int32, int32>, T>,
         with_same_constness_t<Matrix<float, int32, int64>, T>,
         with_same_constness_t<Matrix<float, int64, int64>, T>,
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
         with_same_constness_t<Matrix<float16, int32, int32>, T>,
         with_same_constness_t<Matrix<float16, int32, int64>, T>,
         with_same_constness_t<Matrix<float16, int64, int64>, T>,
         with_same_constness_t<Matrix<std::complex<float16>, int32, int32>, T>,
         with_same_constness_t<Matrix<std::complex<float16>, int32, int64>, T>,
         with_same_constness_t<Matrix<std::complex<float16>, int64, int64>, T>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        with_same_constness_t<Matrix<bfloat16, int32, int32>, T>,
+        with_same_constness_t<Matrix<bfloat16, int32, int64>, T>,
+        with_same_constness_t<Matrix<bfloat16, int64, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int32, int32>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int32, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int64, int64>, T>,
 #endif
         with_same_constness_t<Matrix<std::complex<double>, int32, int32>, T>,
         with_same_constness_t<Matrix<std::complex<double>, int32, int64>, T>,

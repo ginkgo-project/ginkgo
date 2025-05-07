@@ -40,9 +40,11 @@ TYPE_STRING_OVERLOAD(void, "void");
 TYPE_STRING_OVERLOAD(double, "float64");
 TYPE_STRING_OVERLOAD(float, "float32");
 TYPE_STRING_OVERLOAD(float16, "float16");
+TYPE_STRING_OVERLOAD(bfloat16, "bfloat16");
 TYPE_STRING_OVERLOAD(std::complex<double>, "complex<float64>");
 TYPE_STRING_OVERLOAD(std::complex<float>, "complex<float32>");
 TYPE_STRING_OVERLOAD(std::complex<float16>, "complex<float16>");
+TYPE_STRING_OVERLOAD(std::complex<bfloat16>, "complex<bfloat16>");
 TYPE_STRING_OVERLOAD(int32, "int32");
 TYPE_STRING_OVERLOAD(int64, "int64");
 

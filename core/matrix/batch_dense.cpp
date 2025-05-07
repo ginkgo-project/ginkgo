@@ -262,7 +262,7 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Dense<ValueType>::convert_to(
-    Dense<next_precision<next_precision<ValueType>>>* result) const
+    Dense<next_precision<ValueType, 2>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -270,8 +270,25 @@ void Dense<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(
-    Dense<next_precision<next_precision<ValueType>>>* result)
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 2>>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<ValueType, 3>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }

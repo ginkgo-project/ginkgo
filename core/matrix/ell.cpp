@@ -175,7 +175,7 @@ void Ell<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(
-    Ell<next_precision<next_precision<ValueType>>, IndexType>* result) const
+    Ell<next_precision<ValueType, 2>, IndexType>* result) const
 {
     result->values_ = this->values_;
     result->col_idxs_ = this->col_idxs_;
@@ -187,7 +187,29 @@ void Ell<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(
-    Ell<next_precision<next_precision<ValueType>>, IndexType>* result)
+    Ell<next_precision<ValueType, 2>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::convert_to(
+    Ell<next_precision<ValueType, 3>, IndexType>* result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->num_stored_elements_per_row_ = this->num_stored_elements_per_row_;
+    result->stride_ = this->stride_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::move_to(
+    Ell<next_precision<ValueType, 3>, IndexType>* result)
 {
     this->convert_to(result);
 }

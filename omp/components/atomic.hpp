@@ -84,6 +84,40 @@ inline void atomic_add(float16& out, float16 val)
 }
 
 
+template <>
+inline void atomic_add(bfloat16& out, bfloat16 val)
+{
+#ifdef __NVCOMPILER
+// NVC++ uses atomic capture on uint16 leads the following error.
+// use of undefined value '%L.B*' br label %L.B* !llvm.loop !*, !dbg !*
+#pragma omp critical
+    {
+        out += val;
+    }
+#else
+    static_assert(
+        sizeof(bfloat16) == sizeof(uint16_t) &&
+            std::alignment_of_v<uint16_t> == std::alignment_of_v<bfloat16>,
+        "half does not fulfill the requirement of reinterpret_cast to half or "
+        "vice versa.");
+    // It is undefined behavior with reinterpret_cast, but we do not have any
+    // workaround when the #omp atomic does not support custom precision
+    uint16_t* address_as_converter = reinterpret_cast<uint16_t*>(&out);
+    uint16_t old = *address_as_converter;
+    uint16_t assumed;
+    do {
+        assumed = old;
+        auto answer = copy_cast<uint16_t>(copy_cast<bfloat16>(assumed) + val);
+#pragma omp atomic capture
+        {
+            old = *address_as_converter;
+            *address_as_converter = (old == assumed) ? answer : old;
+        }
+    } while (assumed != old);
+#endif
+}
+
+
 // There is an error in Clang 17 which prevents us from merging the
 // implementation of double and float. The compiler will throw an error if the
 // templated version is implemented. GCC doesn't throw an error.
@@ -112,6 +146,14 @@ inline void store(int64* addr, int64 val)
 }
 
 inline void store(float16* addr, float16 val)
+{
+    auto uint_addr = copy_cast<uint16_t*>(addr);
+    auto uint_val = copy_cast<uint16_t>(val);
+#pragma omp atomic write
+    *uint_addr = uint_val;
+}
+
+inline void store(bfloat16* addr, bfloat16 val)
 {
     auto uint_addr = copy_cast<uint16_t*>(addr);
     auto uint_val = copy_cast<uint16_t>(val);
@@ -168,6 +210,15 @@ inline float16 load(float16* addr)
 #pragma omp atomic read
     uint_val = *uint_addr;
     return copy_cast<float16>(uint_val);
+}
+
+inline bfloat16 load(bfloat16* addr)
+{
+    uint16_t uint_val;
+    auto uint_addr = copy_cast<uint16_t*>(addr);
+#pragma omp atomic read
+    uint_val = *uint_addr;
+    return copy_cast<bfloat16>(uint_val);
 }
 
 template <typename T>

@@ -140,6 +140,7 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);

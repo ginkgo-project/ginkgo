@@ -299,7 +299,7 @@ void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Vector<ValueType>::convert_to(
-    Vector<next_precision<next_precision<ValueType>>>* result) const
+    Vector<next_precision<ValueType, 2>>* result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -309,8 +309,27 @@ void Vector<ValueType>::convert_to(
 
 
 template <typename ValueType>
-void Vector<ValueType>::move_to(
-    Vector<next_precision<next_precision<ValueType>>>* result)
+void Vector<ValueType>::move_to(Vector<next_precision<ValueType, 2>>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType>
+void Vector<ValueType>::convert_to(
+    Vector<next_precision<ValueType, 3>>* result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->set_size(this->get_size());
+    this->get_local_vector()->convert_to(&result->local_);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::move_to(Vector<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }

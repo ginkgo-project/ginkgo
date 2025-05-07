@@ -225,7 +225,7 @@ void Hybrid<ValueType, IndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
-    Hybrid<next_precision<next_precision<ValueType>>, IndexType>* result) const
+    Hybrid<next_precision<ValueType, 2>, IndexType>* result) const
 {
     this->ell_->convert_to(result->ell_.get());
     this->coo_->convert_to(result->coo_.get());
@@ -238,7 +238,30 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(
-    Hybrid<next_precision<next_precision<ValueType>>, IndexType>* result)
+    Hybrid<next_precision<ValueType, 2>, IndexType>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Hybrid<next_precision<ValueType, 3>, IndexType>* result) const
+{
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
+    // TODO set strategy correctly
+    // There is no way to correctly clone the strategy like in
+    // Csr::convert_to
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(
+    Hybrid<next_precision<ValueType, 3>, IndexType>* result)
 {
     this->convert_to(result);
 }

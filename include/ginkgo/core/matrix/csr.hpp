@@ -104,8 +104,10 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<
-                Csr<next_precision<next_precision<ValueType>>, IndexType>>,
+            public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+            public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
@@ -703,18 +705,27 @@ public:
     void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Csr<previous_precision<previous_precision<ValueType>>,
-                     IndexType>;
+    friend class Csr<previous_precision<ValueType, 2>, IndexType>;
     using ConvertibleTo<
-        Csr<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+        Csr<next_precision<ValueType, 2>, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>::move_to;
+
+    void convert_to(
+        Csr<next_precision<ValueType, 2>, IndexType>* result) const override;
+
+    void move_to(Csr<next_precision<ValueType, 2>, IndexType>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Csr<previous_precision<ValueType, 3>, IndexType>;
     using ConvertibleTo<
-        Csr<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+        Csr<next_precision<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
-                        result) const override;
+    void convert_to(
+        Csr<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<next_precision<ValueType>>, IndexType>*
-                     result) override;
+    void move_to(Csr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

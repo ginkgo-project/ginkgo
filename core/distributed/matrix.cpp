@@ -307,8 +307,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<next_precision<next_precision<value_type>>, local_index_type,
-           global_index_type>* result) const
+    Matrix<next_precision<value_type, 2>, local_index_type, global_index_type>*
+        result) const
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -326,8 +326,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<next_precision<next_precision<value_type>>, local_index_type,
-           global_index_type>* result)
+    Matrix<next_precision<value_type, 2>, local_index_type, global_index_type>*
+        result)
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
@@ -343,6 +343,48 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     this->set_size({});
 }
 #endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
+    Matrix<next_precision<value_type, 3>, local_index_type, global_index_type>*
+        result) const
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->local_mtx_->copy_from(this->local_mtx_.get());
+    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
+    result->gather_idxs_ = this->gather_idxs_;
+    result->send_offsets_ = this->send_offsets_;
+    result->recv_offsets_ = this->recv_offsets_;
+    result->recv_sizes_ = this->recv_sizes_;
+    result->send_sizes_ = this->send_sizes_;
+    result->imap_ = this->imap_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
+    Matrix<next_precision<value_type, 3>, local_index_type, global_index_type>*
+        result)
+{
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->local_mtx_->move_from(this->local_mtx_.get());
+    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
+    result->gather_idxs_ = std::move(this->gather_idxs_);
+    result->send_offsets_ = std::move(this->send_offsets_);
+    result->recv_offsets_ = std::move(this->recv_offsets_);
+    result->recv_sizes_ = std::move(this->recv_sizes_);
+    result->send_sizes_ = std::move(this->send_sizes_);
+    result->imap_ = std::move(this->imap_);
+    result->set_size(this->get_size());
+    this->set_size({});
+}
+#endif
+
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(

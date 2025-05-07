@@ -70,7 +70,7 @@ option(
     OFF
 )
 option(GINKGO_ENABLE_HALF "Enable the use of half precision" ON)
-option(GINKGO_ENABLE_BFLOAT16 "Enable the use of bfloat16 precision" OFF)
+option(GINKGO_ENABLE_BFLOAT16 "Enable the use of bfloat16 precision" ON)
 # We do not support half precision in MSVC and msys2 (MINGW).
 if(MSVC OR MINGW)
     message(
@@ -90,9 +90,7 @@ if(MSVC OR MINGW)
         FORCE
     )
 endif()
-if(GINKGO_ENABLE_HALF AND GINKGO_ENABLE_BFLOAT16)
-    message(FATAL_ERROR "We do not support half and bfloat16 at the same time.")
-endif()
+
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt"

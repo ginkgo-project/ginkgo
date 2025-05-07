@@ -606,8 +606,10 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
             reinterpret_cast<real_type*>(subspace_vectors->get_values());
         auto n =
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride();
-        using rand_type = std::conditional_t<std::is_same_v<real_type, float16>,
-                                             float, real_type>;
+        using rand_type =
+            std::conditional_t<std::is_same_v<real_type, float16> ||
+                                   std::is_same_v<real_type, bfloat16>,
+                               float, real_type>;
         n = is_complex<ValueType>() ? 2 * n : n;
         exec->get_queue()->submit([&](sycl::handler& cgh) {
             cgh.parallel_for(sycl::range<1>(n), [=](sycl::item<1> idx) {

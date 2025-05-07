@@ -328,8 +328,11 @@ using RealValueTypesBase =
 #endif
 
 using RealValueTypes = ::testing::Types<
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF
     gko::float16,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    gko::bfloat16,
 #endif
 #if !GINKGO_DPCPP_SINGLE_MODE
     double,
@@ -484,5 +487,12 @@ struct TupleTypenameNameGenerator {
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+#define SKIP_IF_BFLOAT16(type)                                               \
+    if (std::is_same<gko::remove_complex<type>, gko::bfloat16>::value) {     \
+        GTEST_SKIP() << "Skip due to bfloat16 mode";                         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_
