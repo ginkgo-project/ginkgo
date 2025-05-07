@@ -120,6 +120,20 @@ bool has_unique_ptrs(const gko::array<IndexType>& row_ptrs,
     return result;
 }
 
+template <typename IndexType>
+bool has_unique_perm_idxs(const gko::array<IndexType>& permutation_)
+{
+    const auto host_perm_idxs = make_temporary_clone(
+        permutation_.get_executor()->get_master(), &permutation_);
+
+    const auto size = host_perm_idxs->get_size();
+    std::unordered_set<IndexType> unique_ptrs(
+        host_perm_idxs->get_const_data(),
+        host_perm_idxs->get_const_data() + size);
+
+    return unique_ptrs.size() == size;
+}
+
 // template <typename ValueType, typename IndexType>
 // bool has_non_zero_diagonal(const gko::array<IndexType>& row_ptrs,
 //                            const gko::array<IndexType> col_idxs,

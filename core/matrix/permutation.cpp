@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/matrix/permutation_kernels.hpp"
 
 
@@ -93,6 +94,13 @@ std::ostream& operator<<(std::ostream& stream, permute_mode mode)
         return stream << "inverse_symmetric";
     }
     return stream;
+}
+
+template <typename IndexType>
+void Permutation<IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::has_unique_perm_idxs(permutation_),
+                 "Permutation indices must be unique");
 }
 
 
