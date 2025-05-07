@@ -93,6 +93,7 @@ template <typename T>
 struct is_complex_or_scalar_impl<gko::complex<T>>
     : public is_complex_or_scalar_impl<T> {};
 
+
 }  // namespace detail
 
 
