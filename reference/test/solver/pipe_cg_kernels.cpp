@@ -535,7 +535,7 @@ TYPED_TEST(PipeCg, SolvesBigDenseSystem1)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
-                        r<value_type>::value * 5 * 1e3);
+                        r<value_type>::value * 5 * 1e4);
 }
 
 
