@@ -489,7 +489,7 @@ struct TupleTypenameNameGenerator {
 
 #define SKIP_IF_BFLOAT16(type)                                               \
     if (std::is_same<gko::remove_complex<type>, gko::bfloat16>::value) {     \
-        GTEST_SKIP() << "Skip due to float16 mode";                          \
+        GTEST_SKIP() << "Skip due to bfloat16 mode";                         \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \

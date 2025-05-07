@@ -405,6 +405,8 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
     // the internal vector t will be too large in the first run and then out of
     // the half precision range.
     SKIP_IF_HALF(value_type);
+    // for OSX
+    SKIP_IF_BFLOAT16(value_type);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
                               {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
