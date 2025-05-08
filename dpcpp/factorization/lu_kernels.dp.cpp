@@ -138,9 +138,6 @@ void factorize(
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
         scheduler.wait(dep);
-        sg.barrier();
-        sycl::atomic_fence(sycl::memory_order::acq_rel,
-                           sycl::memory_scope::device);
         const auto val = vals[lower_nz];
         const auto diag = vals[diag_idx];
         const auto scale = val / diag;
@@ -165,8 +162,6 @@ void factorize(
         }
     }
     scheduler.mark_ready();
-    sg.barrier();
-    sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 }
 
 template <bool full_fillin, typename ValueType, typename IndexType>
@@ -259,8 +254,6 @@ void symbolic_factorize_simple(
         const auto dep = factor_cols[lower_nz];
         const auto dep_end = factor_row_ptrs[dep + 1];
         scheduler.wait(dep);
-        sycl::atomic_fence(sycl::memory_order::acq_rel,
-                           sycl::memory_scope::device);
         // read the diag entry after we are sure it was written.
         const auto diag_idx = diag_idxs[dep];
         if (factor_vals[lower_nz] == one<float>()) {
@@ -278,7 +271,6 @@ void symbolic_factorize_simple(
         }
     }
     scheduler.mark_ready();
-    sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
     IndexType row_nnz{};
     for (auto nz = factor_begin + lane; nz < factor_end;
          nz += config::warp_size) {
