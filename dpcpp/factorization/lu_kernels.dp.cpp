@@ -113,53 +113,60 @@ void factorize(
         syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
     scheduler_t scheduler(dep_storage, sh_dep_storage, item_ct1);
     const auto row = scheduler.get_work_id();
-    if (row < num_rows) {
-        const auto warp = group::tiled_partition<config::warp_size>(
-            group::this_thread_block(item_ct1));
-        const auto lane = warp.thread_rank();
-        const auto row_begin = row_ptrs[row];
-        const auto row_diag = diag_idxs[row];
-        const auto row_end = row_ptrs[row + 1];
-        gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
-            row_ptrs, cols,      storage_offsets,
-            storage,  row_descs, static_cast<size_type>(row)};
-        // if (item_ct1.get_local_id(2) % config::warp_size == 0) {
-        //     sycl::ext::oneapi::experimental::printf(FMT, 2, row);
-        // }
-        // for each lower triangular entry: eliminate with corresponding row
-        for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
-            const auto dep = cols[lower_nz];
-            // we can load the value before synchronizing because the following
-            // updates only go past the diagonal of the dependency row, i.e. at
-            // least column dep + 1
-            const auto diag_idx = diag_idxs[dep];
-            const auto dep_end = row_ptrs[dep + 1];
-            scheduler.wait(dep);
-            const auto val = vals[lower_nz];
-            const auto diag = vals[diag_idx];
-            const auto scale = val / diag;
-            if (lane == 0) {
-                vals[lower_nz] = scale;
-            }
-            // subtract all entries past the diagonal
-            for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
-                 upper_nz += config::warp_size) {
-                const auto upper_col = cols[upper_nz];
-                const auto upper_val = vals[upper_nz];
-                if constexpr (full_fillin) {
-                    const auto output_pos =
-                        lookup.lookup_unsafe(upper_col) + row_begin;
-                    vals[output_pos] -= scale * upper_val;
-                } else {
-                    const auto pos = lookup[upper_col];
-                    if (pos != invalid_index<IndexType>()) {
-                        vals[row_begin + pos] -= scale * upper_val;
-                    }
+    auto sg = item_ct1.get_sub_group();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto warp = group::tiled_partition<config::warp_size>(
+        group::this_thread_block(item_ct1));
+    const auto lane = warp.thread_rank();
+    const auto row_begin = row_ptrs[row];
+    const auto row_diag = diag_idxs[row];
+    const auto row_end = row_ptrs[row + 1];
+    gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+        row_ptrs, cols,      storage_offsets,
+        storage,  row_descs, static_cast<size_type>(row)};
+    // if (item_ct1.get_local_id(2) % config::warp_size == 0) {
+    //     sycl::ext::oneapi::experimental::printf(FMT, 2, row);
+    // }
+    // for each lower triangular entry: eliminate with corresponding row
+    for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
+        const auto dep = cols[lower_nz];
+        // we can load the value before synchronizing because the following
+        // updates only go past the diagonal of the dependency row, i.e. at
+        // least column dep + 1
+        const auto diag_idx = diag_idxs[dep];
+        const auto dep_end = row_ptrs[dep + 1];
+        scheduler.wait(dep);
+        sg.barrier();
+        sycl::atomic_fence(sycl::memory_order::acq_rel,
+                           sycl::memory_scope::device);
+        const auto val = vals[lower_nz];
+        const auto diag = vals[diag_idx];
+        const auto scale = val / diag;
+        if (lane == 0) {
+            vals[lower_nz] = scale;
+        }
+        // subtract all entries past the diagonal
+        for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
+             upper_nz += config::warp_size) {
+            const auto upper_col = cols[upper_nz];
+            const auto upper_val = vals[upper_nz];
+            if constexpr (full_fillin) {
+                const auto output_pos =
+                    lookup.lookup_unsafe(upper_col) + row_begin;
+                vals[output_pos] -= scale * upper_val;
+            } else {
+                const auto pos = lookup[upper_col];
+                if (pos != invalid_index<IndexType>()) {
+                    vals[row_begin + pos] -= scale * upper_val;
                 }
             }
         }
-        scheduler.mark_ready();
     }
+    scheduler.mark_ready();
+    sg.barrier();
+    sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 }
 
 template <bool full_fillin, typename ValueType, typename IndexType>
@@ -170,6 +177,15 @@ void factorize(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
                ValueType* vals, syncfree_storage dep_storage,
                size_type num_rows)
 {
+    /*
+using size_query = sycl::info::kernel::max_work_group_size;
+using num_query = sycl::info::kernel::max_num_work_groups;
+
+auto bundle = sycl::get_kernel_bundle(queue->get_context());
+auto kernel = bundle.get_kernel<class kernel::factorize<full_filllin, ValueType,
+IndexType>>(); auto wg_size = kernel.get_info<size_query>(*queue); auto num_wg =
+kernel.get_info<num_query>(*queue, wg_size); gtd::cout << "wg_size " << wg_size
+<< " num_wg " << num_wg << std::endl;*/
     queue->submit([&](sycl::handler& cgh) {
         sycl::local_accessor<
             typename syncfree_scheduler<default_block_size, config::warp_size,
@@ -243,6 +259,8 @@ void symbolic_factorize_simple(
         const auto dep = factor_cols[lower_nz];
         const auto dep_end = factor_row_ptrs[dep + 1];
         scheduler.wait(dep);
+        sycl::atomic_fence(sycl::memory_order::acq_rel,
+                           sycl::memory_scope::device);
         // read the diag entry after we are sure it was written.
         const auto diag_idx = diag_idxs[dep];
         if (factor_vals[lower_nz] == one<float>()) {
@@ -260,6 +278,7 @@ void symbolic_factorize_simple(
         }
     }
     scheduler.mark_ready();
+    sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
     IndexType row_nnz{};
     for (auto nz = factor_begin + lane; nz < factor_end;
          nz += config::warp_size) {

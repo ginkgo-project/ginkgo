@@ -73,28 +73,28 @@ protected:
                                   gko::matrices::location_ani1_lu_mtx);
             fn();
         }
-        //         {
-        //             SCOPED_TRACE("ani1_amd");
-        //             this->initialize_data(gko::matrices::location_ani1_amd_mtx,
-        //                                   gko::matrices::location_ani1_amd_lu_mtx);
-        //             fn();
-        //         }
-        //         {
-        // #ifndef GINKGO_FAST_TESTS
-        //             SCOPED_TRACE("ani4");
-        //             this->initialize_data(gko::matrices::location_ani4_mtx,
-        //                                   gko::matrices::location_ani4_lu_mtx);
-        //             fn();
-        // #endif
-        //         }
-        //         {
-        // #ifndef GINKGO_FAST_TESTS
-        //             SCOPED_TRACE("ani4_amd");
-        //             this->initialize_data(gko::matrices::location_ani4_amd_mtx,
-        //                                   gko::matrices::location_ani4_amd_lu_mtx);
-        //             fn();
-        // #endif
-        //         }
+        {
+            SCOPED_TRACE("ani1_amd");
+            this->initialize_data(gko::matrices::location_ani1_amd_mtx,
+                                  gko::matrices::location_ani1_amd_lu_mtx);
+            fn();
+        }
+        {
+#ifndef GINKGO_FAST_TESTS
+            SCOPED_TRACE("ani4");
+            this->initialize_data(gko::matrices::location_ani4_mtx,
+                                  gko::matrices::location_ani4_lu_mtx);
+            fn();
+#endif
+        }
+        {
+#ifndef GINKGO_FAST_TESTS
+            SCOPED_TRACE("ani4_amd");
+            this->initialize_data(gko::matrices::location_ani4_amd_mtx,
+                                  gko::matrices::location_ani4_amd_lu_mtx);
+            fn();
+#endif
+        }
     }
 
     gko::size_type num_rows;
