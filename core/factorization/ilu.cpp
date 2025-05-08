@@ -100,7 +100,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     std::shared_ptr<const matrix_type> ilu;
     // Compute LU factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||
-        exec == exec->get_master()) {
+        exec == exec->get_master() ||
+        std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
         const auto nnz = local_system_matrix->get_num_stored_elements();
         const auto num_rows = local_system_matrix->get_size()[0];
         auto factors = share(
