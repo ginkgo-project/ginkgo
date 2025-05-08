@@ -65,52 +65,59 @@ __dpct_inline__ ValueType store_generic(ValueType* ptr, ValueType value)
 }
 
 
-// template <typename ValueType, typename AddType>
-// __dpct_inline__ ValueType atomic_add_relaxed(ValueType* ptr,
-//                                                         AddType value)
-// {
-//     return __atomic_fetch_add(ptr, value, __ATOMIC_RELAXED);
-// }
+template <typename ValueType, typename AddType>
+__dpct_inline__ ValueType atomic_add_relaxed(ValueType* ptr, AddType value)
+{
+    sycl::atomic_ref<ValueType, sycl::memory_order::relaxed,
+                     sycl::memory_scope::device>
+        obj(*ptr);
+    return obj.fetch_add(value);
+}
 
 
-// template <typename ValueType>
-// __dpct_inline__ ValueType atomic_min_relaxed(ValueType* ptr,
-//                                                         ValueType value)
-// {
-//     return __atomic_fetch_min(ptr, value, __ATOMIC_RELAXED);
-// }
+template <typename ValueType>
+__dpct_inline__ ValueType atomic_min_relaxed(ValueType* ptr, ValueType value)
+{
+    sycl::atomic_ref<ValueType, sycl::memory_order::relaxed,
+                     sycl::memory_scope::device>
+        obj(*ptr);
+    return obj.fetch_min(value);
+}
 
 
-// template <typename ValueType>
-// __dpct_inline__ ValueType atomic_max_relaxed(ValueType* ptr,
-//                                                         ValueType value)
-// {
-//     return __atomic_fetch_max(ptr, value, __ATOMIC_RELAXED);
-// }
+template <typename ValueType>
+__dpct_inline__ ValueType atomic_max_relaxed(ValueType* ptr, ValueType value)
+{
+    sycl::atomic_ref<ValueType, sycl::memory_order::relaxed,
+                     sycl::memory_scope::device>
+        obj(*ptr);
+    return obj.fetch_max(value);
+}
 
 
-// template <typename ValueType>
-// __dpct_inline__ ValueType atomic_cas_relaxed(ValueType* ptr,
-//                                                         ValueType old_val,
-//                                                         ValueType new_val)
-// {
-//     __atomic_compare_exchange_n(ptr, &old_val, new_val, false,
-//     __ATOMIC_RELAXED,
-//                                 __ATOMIC_RELAXED);
-//     return old_val;
-// }
+template <typename ValueType>
+__dpct_inline__ ValueType atomic_cas_relaxed(ValueType* ptr, ValueType old_val,
+                                             ValueType new_val)
+{
+    sycl::atomic_ref<ValueType, sycl::memory_order::relaxed,
+                     sycl::memory_scope::device>
+        obj(*ptr);
+    old_val = obj.exchange(new_val);
+    return old_val;
+}
 
 
-// template <typename ValueType>
-// __dpct_inline__ ValueType atomic_cas_relaxed_local(ValueType* ptr,
-//                                                               ValueType
-//                                                               old_val,
-//                                                               ValueType
-//                                                               new_val)
-// {
-//     // no special optimization available for threadblock-local atomic CAS
-//     return atomic_cas_relaxed(ptr, old_val, new_val);
-// }
+template <typename ValueType>
+__dpct_inline__ ValueType atomic_cas_relaxed_local(ValueType* ptr,
+                                                   ValueType old_val,
+                                                   ValueType new_val)
+{
+    sycl::atomic_ref<ValueType, sycl::memory_order::relaxed,
+                     sycl::memory_scope::device>
+        obj(*ptr);
+    old_val = obj.exchange(new_val);
+    return old_val;
+}
 
 
 template <typename ValueType>
@@ -135,7 +142,7 @@ __dpct_inline__ ValueType load_relaxed_local(const ValueType* ptr)
 {
     return load_generic<sycl::memory_order::relaxed,
                         sycl::memory_scope::work_item,
-                        sycl::access::address_space::private_space>(ptr);
+                        sycl::access::address_space::local_space>(ptr);
 }
 
 
@@ -160,7 +167,7 @@ __dpct_inline__ ValueType load_acquire_local(const ValueType* ptr)
 {
     return load_generic<sycl::memory_order::acq_rel,
                         sycl::memory_scope::work_item,
-                        sycl::access::address_space::private_space>(ptr);
+                        sycl::access::address_space::local_space>(ptr);
 }
 
 
@@ -184,7 +191,7 @@ template <typename ValueType>
 __dpct_inline__ void store_relaxed_local(ValueType* ptr, ValueType value)
 {
     store_generic<sycl::memory_order::relaxed, sycl::memory_scope::work_item,
-                  sycl::access::address_space::private_space>(ptr, value);
+                  sycl::access::address_space::local_space>(ptr, value);
 }
 
 
@@ -208,7 +215,7 @@ template <typename ValueType>
 __dpct_inline__ void store_release_local(ValueType* ptr, ValueType value)
 {
     store_generic<sycl::memory_order::acq_rel, sycl::memory_scope::work_item,
-                  sycl::access::address_space::private_space>(ptr, value);
+                  sycl::access::address_space::local_space>(ptr, value);
 }
 
 
