@@ -77,10 +77,10 @@ template <typename IndexType>
 __dpct_inline__ IndexType mst_find_relaxed(const IndexType* parents,
                                            IndexType node)
 {
-    auto parent = load_relaxed_local(parents + node);
+    auto parent = load_relaxed(parents + node);
     while (parent != node) {
         node = parent;
-        parent = load_relaxed_local(parents + node);
+        parent = load_relaxed(parents + node);
     };
     return parent;
 }
@@ -90,7 +90,7 @@ template <typename IndexType>
 __dpct_inline__ void guarded_atomic_min(IndexType* ptr, IndexType value)
 {
     // only execute the atomic if we know that it might have an effect
-    if (load_relaxed_local(ptr) > value) {
+    if (load_relaxed(ptr) > value) {
         atomic_min_relaxed(ptr, value);
     }
     sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
@@ -194,8 +194,8 @@ void mst_reset_min_edges(const IndexType* __restrict__ in_sources,
     const auto target = in_targets[i];
     // we could write the values non-atomically, but this makes race checkers
     // happier without a performance penalty (hopefully, thanks to _local)
-    store_relaxed_local(min_edge + source, sentinel);
-    store_relaxed_local(min_edge + target, sentinel);
+    store_relaxed(min_edge + source, sentinel);
+    store_relaxed(min_edge + target, sentinel);
 }
 
 GKO_ENABLE_DEFAULT_HOST(mst_reset_min_edges, mst_reset_min_edges);
@@ -274,23 +274,27 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // output row array, to be used in conjunction with out_cols in COO storage
     array<IndexType> out_row_array{exec, size};
     const auto out_rows = out_row_array.get_data();
+    std::cout << "initilize" << std::endl;
     // initialize worklist1 with forward edges
     {
         const auto num_blocks = ceildiv(nnz, default_block_size);
         kernel::mst_initialize_worklist(
             num_blocks, default_block_size, 0, exec->get_queue(), rows, cols,
             nnz, wl1_source, wl1_target, wl1_edge_id, wl1_counter);
+        exec->synchronize();
     }
     auto wl1_size = get_wl1_size();
     while (wl1_size > 0) {
         clear_wl2();
         // attach each node to its smallest adjacent non-cycle edge
         {
+            std::cout << "find_minimum" << std::endl;
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
             kernel::mst_find_minimum(
                 num_blocks, default_block_size, 0, exec->get_queue(),
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, wl2_source, wl2_target, wl2_edge_id, wl2_counter);
+            exec->synchronize();
         }
         clear_wl1();
         swap_wl1_wl2();
@@ -298,13 +302,18 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         if (wl1_size > 0) {
             // join minimal edges
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
+            std::cout << "join edges" << std::endl;
             kernel::mst_join_edges(
                 num_blocks, default_block_size, 0, exec->get_queue(),
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, rows, cols, out_rows, out_cols, output_counter);
+            exec->synchronize();
+            std::cout << "reset edges" << std::endl;
             kernel::mst_reset_min_edges(num_blocks, default_block_size, 0,
                                         exec->get_queue(), wl1_source,
                                         wl1_target, wl1_size, min_edges);
+            exec->synchronize();
+            std::cout << "finiish" << std::endl;
         }
     }
     const auto num_mst_edges = exec->copy_val_to_host(output_counter);
