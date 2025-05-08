@@ -33,7 +33,7 @@ namespace dpcpp {
  */
 template <sycl::memory_order memorder, sycl::memory_scope scope,
           sycl::access::address_space space =
-              sycl::access::address_space::generic_space,
+              sycl::access::address_space::global_space,
           typename ValueType>
 __dpct_inline__ ValueType load_generic(const ValueType* ptr)
 {
@@ -56,7 +56,7 @@ __dpct_inline__ ValueType load_generic(const ValueType* ptr)
  */
 template <sycl::memory_order memorder, sycl::memory_scope scope,
           sycl::access::address_space space =
-              sycl::access::address_space::generic_space,
+              sycl::access::address_space::global_space,
           typename ValueType>
 __dpct_inline__ ValueType store_generic(ValueType* ptr, ValueType value)
 {
@@ -124,18 +124,16 @@ __dpct_inline__ ValueType load_relaxed(const ValueType* ptr)
 template <typename ValueType>
 __dpct_inline__ ValueType load_relaxed_shared(const ValueType* ptr)
 {
-    return load_generic<sycl::memory_order::relaxed,
-                        sycl::memory_scope::work_group,
-                        sycl::access::address_space::local_space>(ptr);
+    return load_generic<sycl::memory_order::relaxed, sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>(ptr);
 }
 
 
 template <typename ValueType>
 __dpct_inline__ ValueType load_relaxed_local(const ValueType* ptr)
 {
-    return load_generic<sycl::memory_order::relaxed,
-                        sycl::memory_scope::work_group,
-                        sycl::access::address_space::local_space>(ptr);
+    return load_generic<sycl::memory_order::relaxed, sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>(ptr);
 }
 
 
@@ -149,18 +147,16 @@ __dpct_inline__ ValueType load_acquire(const ValueType* ptr)
 template <typename ValueType>
 __dpct_inline__ ValueType load_acquire_shared(const ValueType* ptr)
 {
-    return load_generic<sycl::memory_order::acq_rel,
-                        sycl::memory_scope::work_group,
-                        sycl::access::address_space::local_space>(ptr);
+    return load_generic<sycl::memory_order::acq_rel, sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>(ptr);
 }
 
 
 template <typename ValueType>
 __dpct_inline__ ValueType load_acquire_local(const ValueType* ptr)
 {
-    return load_generic<sycl::memory_order::acq_rel,
-                        sycl::memory_scope::work_group,
-                        sycl::access::address_space::local_space>(ptr);
+    return load_generic<sycl::memory_order::acq_rel, sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>(ptr);
 }
 
 
@@ -175,16 +171,16 @@ __dpct_inline__ void store_relaxed(ValueType* ptr, ValueType value)
 template <typename ValueType>
 __dpct_inline__ void store_relaxed_shared(ValueType* ptr, ValueType value)
 {
-    store_generic<sycl::memory_order::relaxed, sycl::memory_scope::work_group,
-                  sycl::access::address_space::local_space>(ptr, value);
+    store_generic<sycl::memory_order::relaxed, sycl::memory_scope::device,
+                  sycl::access::address_space::global_space>(ptr, value);
 }
 
 
 template <typename ValueType>
 __dpct_inline__ void store_relaxed_local(ValueType* ptr, ValueType value)
 {
-    store_generic<sycl::memory_order::relaxed, sycl::memory_scope::work_group,
-                  sycl::access::address_space::local_space>(ptr, value);
+    store_generic<sycl::memory_order::relaxed, sycl::memory_scope::device,
+                  sycl::access::address_space::global_space>(ptr, value);
 }
 
 
@@ -199,16 +195,16 @@ __dpct_inline__ void store_release(ValueType* ptr, ValueType value)
 template <typename ValueType>
 __dpct_inline__ void store_release_shared(ValueType* ptr, ValueType value)
 {
-    store_generic<sycl::memory_order::acq_rel, sycl::memory_scope::work_group,
-                  sycl::access::address_space::local_space>(ptr, value);
+    store_generic<sycl::memory_order::acq_rel, sycl::memory_scope::device,
+                  sycl::access::address_space::global_space>(ptr, value);
 }
 
 
 template <typename ValueType>
 __dpct_inline__ void store_release_local(ValueType* ptr, ValueType value)
 {
-    store_generic<sycl::memory_order::acq_rel, sycl::memory_scope::work_group,
-                  sycl::access::address_space::local_space>(ptr, value);
+    store_generic<sycl::memory_order::acq_rel, sycl::memory_scope::device,
+                  sycl::access::address_space::global_space>(ptr, value);
 }
 
 

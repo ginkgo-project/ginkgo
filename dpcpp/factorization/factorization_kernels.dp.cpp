@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <oneapi/dpl/algorithm>
+
 #include "core/factorization/factorization_kernels.hpp"
 
 #include <sycl/sycl.hpp>
@@ -9,12 +11,15 @@
 #include <ginkgo/core/base/array.hpp>
 
 #include "core/base/array_access.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/base/helper.hpp"
 #include "dpcpp/base/math.hpp"
+#include "dpcpp/base/onedpl.hpp"
 #include "dpcpp/base/types.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -408,6 +413,78 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
+template <typename IndexType>
+void symbolic_validate(const IndexType* __restrict__ mtx_row_ptrs,
+                       const IndexType* __restrict__ mtx_cols,
+                       const IndexType* __restrict__ factor_row_ptrs,
+                       const IndexType* __restrict__ factor_cols,
+                       size_type size,
+                       const IndexType* __restrict__ storage_offsets,
+                       const int64* __restrict__ row_descs,
+                       const int32* __restrict__ storage,
+                       bool* __restrict__ found, bool* __restrict__ missing,
+                       sycl::nd_item<3> item_ct1)
+{
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>(item_ct1);
+    if (row >= size) {
+        return;
+    }
+    const auto warp = group::tiled_partition<config::warp_size>(
+        group::this_thread_block(item_ct1));
+    const auto lane = warp.thread_rank();
+    gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+        factor_row_ptrs, factor_cols, storage_offsets,
+        storage,         row_descs,   static_cast<size_type>(row)};
+    const auto mtx_begin = mtx_row_ptrs[row];
+    const auto mtx_end = mtx_row_ptrs[row + 1];
+    const auto factor_begin = factor_row_ptrs[row];
+    const auto factor_end = factor_row_ptrs[row + 1];
+    bool local_missing = false;
+    const auto mark_found = [&](IndexType col) {
+        const auto local_idx = lookup[col];
+        const auto idx = local_idx + factor_begin;
+        if (local_idx == invalid_index<IndexType>()) {
+            local_missing = true;
+            return;
+        }
+        found[idx] = true;
+    };
+    // check the original matrix is part of the factors
+    for (auto nz = mtx_begin + lane; nz < mtx_end; nz += config::warp_size) {
+        mark_found(mtx_cols[nz]);
+    }
+    // check the diagonal is part of the factors
+    if (lane == 0) {
+        mark_found(row);
+    }
+    // check it is a valid factorization
+    for (auto nz = factor_begin; nz < factor_end; nz++) {
+        const auto dep = factor_cols[nz];
+        if (dep >= row) {
+            continue;
+        }
+        // for every lower triangular entry
+        const auto dep_begin = factor_row_ptrs[dep];
+        const auto dep_end = factor_row_ptrs[dep + 1];
+        for (auto dep_nz = dep_begin + lane; dep_nz < dep_end;
+             dep_nz += config::warp_size) {
+            const auto col = factor_cols[dep_nz];
+            // check every upper triangular entry thereof is part of the
+            // factorization
+            if (col > dep) {
+                mark_found(col);
+            }
+        }
+    }
+    local_missing = warp.any(local_missing);
+    if (lane == 0) {
+        missing[row] = local_missing;
+    }
+}
+
+GKO_ENABLE_DEFAULT_HOST(symbolic_validate, symbolic_validate);
+
+
 }  // namespace kernel
 
 
@@ -595,8 +672,38 @@ void symbolic_validate(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* system_matrix,
     const matrix::Csr<ValueType, IndexType>* factors,
-    const matrix::csr::lookup_data<IndexType>& factors_lookup,
-    bool& valid) GKO_NOT_IMPLEMENTED;
+    const matrix::csr::lookup_data<IndexType>& factors_lookup, bool& valid)
+{
+    const auto size = system_matrix->get_size()[0];
+    const auto row_ptrs = system_matrix->get_const_row_ptrs();
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto factor_row_ptrs = factors->get_const_row_ptrs();
+    const auto factor_col_idxs = factors->get_const_col_idxs();
+    // this stores for each factor nonzero whether it occurred as part of the
+    // factorization.
+    array<bool> found(exec, factors->get_num_stored_elements());
+    components::fill_array(exec, found.get_data(), found.get_size(), false);
+    // this stores for each row whether there were any elements missing
+    array<bool> missing(exec, size);
+    components::fill_array(exec, missing.get_data(), missing.get_size(), false);
+    if (size > 0) {
+        const auto num_blocks =
+            ceildiv(size, default_block_size / config::warp_size);
+        kernel::symbolic_validate(
+            num_blocks, default_block_size, 0, exec->get_queue(), row_ptrs,
+            col_idxs, factor_row_ptrs, factor_col_idxs, size,
+            factors_lookup.storage_offsets.get_const_data(),
+            factors_lookup.row_descs.get_const_data(),
+            factors_lookup.storage.get_const_data(), found.get_data(),
+            missing.get_data());
+    }
+    valid = std::all_of(onedpl_policy(exec), found.get_const_data(),
+                        found.get_const_data() + found.get_size(),
+                        [](auto a) { return a; }) &&
+            !std::any_of(onedpl_policy(exec), missing.get_const_data(),
+                         missing.get_const_data() + missing.get_size(),
+                         [](auto a) { return a; });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL);
