@@ -46,13 +46,13 @@ struct transposed_type_impl<LinOp, void> {
     using type = LinOp;
 };
 
-
 // return the same type when Type is the precision format.
 // it is used in ILU.
 template <typename Type>
 struct transposed_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
     using type = Type;
 };
+
 
 template <typename Type>
 using transposed_type = typename transposed_type_impl<Type>::type;

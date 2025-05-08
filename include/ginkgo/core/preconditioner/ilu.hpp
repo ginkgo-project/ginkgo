@@ -108,7 +108,8 @@ typename Ilu::parameters_type ilu_parse(
  * @ingroup LinOp
  */
 template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
-          typename USolverTypeOrValueType = solver::UpperTrs<>,
+          typename USolverTypeOrValueType =
+              gko::detail::transposed_type<LSolverTypeOrValueType>,
           bool ReverseApply = false, typename IndexType = int32>
 class Ilu
     : public EnableLinOp<Ilu<LSolverTypeOrValueType, USolverTypeOrValueType,
