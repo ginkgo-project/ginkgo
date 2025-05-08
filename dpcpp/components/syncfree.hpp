@@ -97,6 +97,9 @@ public:
         }
         group::tiled_partition<subwarp_size>(group::this_thread_block(group_))
             .sync();
+        // ensure the data is visible again
+        sycl::atomic_fence(sycl::memory_order::acq_rel,
+                           sycl::memory_scope::device);
     }
 
     __dpct_inline__ bool peek(IndexType dependency)
@@ -124,6 +127,8 @@ public:
             // notify other blocks
             store_relaxed(global.status + get_work_id(), 1);
         }
+        sycl::atomic_fence(sycl::memory_order::acq_rel,
+                           sycl::memory_scope::device);
     }
 
 private:
