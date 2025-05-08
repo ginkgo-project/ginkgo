@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,6 +15,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+
+#include "dpcpp/solver/common_trs_kernels.dp.hpp"
 
 
 namespace gko {
@@ -40,7 +42,8 @@ void generate(std::shared_ptr<const DpcppExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
-              const size_type num_rhs) GKO_NOT_IMPLEMENTED;
+              const size_type num_rhs)
+{}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
@@ -56,8 +59,10 @@ void solve(std::shared_ptr<const DpcppExecutor> exec,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+{
+    sptrsv_naive_caching<true>(exec, matrix, unit_diag, b, x);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
