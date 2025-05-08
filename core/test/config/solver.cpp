@@ -22,6 +22,7 @@
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/minres.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -123,6 +124,15 @@ struct Fcg
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"solver::Fcg"}}};
+    }
+};
+
+
+struct PipeCg : SolverConfigTest<gko::solver::PipeCg<float>,
+                                 gko::solver::PipeCg<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"solver::PipeCg"}}};
     }
 };
 
@@ -513,9 +523,9 @@ protected:
 
 
 using SolverTypes =
-    ::testing::Types<::Cg, ::Fcg, ::Cgs, ::Bicg, ::Bicgstab, ::Ir, ::Idr, ::Gcr,
-                     ::Gmres, ::CbGmres, ::Minres, ::Direct, ::LowerTrs,
-                     ::UpperTrs>;
+    ::testing::Types<::Cg, ::Fcg, ::Cgs, ::PipeCg, ::Bicg, ::Bicgstab, ::Ir,
+                     ::Idr, ::Gcr, ::Gmres, ::CbGmres, ::Minres, ::Direct,
+                     ::LowerTrs, ::UpperTrs>;
 
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);

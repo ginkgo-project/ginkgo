@@ -73,6 +73,7 @@
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
+#include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
@@ -595,6 +596,18 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);
 
 
 }  // namespace fcg
+
+
+namespace pipe_cg {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_2_KERNEL);
+
+
+}  // namespace pipe_cg
 
 
 namespace bicgstab {

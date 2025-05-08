@@ -42,6 +42,7 @@ enum class LinOpFactoryType : int {
     Bicg,
     Bicgstab,
     Fcg,
+    PipeCg,
     Cgs,
     Ir,
     Idr,

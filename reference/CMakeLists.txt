@@ -61,6 +61,7 @@ target_sources(
         solver/chebyshev_kernels.cpp
         solver/common_gmres_kernels.cpp
         solver/fcg_kernels.cpp
+        solver/pipe_cg_kernels.cpp
         solver/gcr_kernels.cpp
         solver/gmres_kernels.cpp
         solver/idr_kernels.cpp

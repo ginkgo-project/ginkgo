@@ -23,6 +23,7 @@ configuration_map generate_config_map()
             {"solver::Bicg", parse<LinOpFactoryType::Bicg>},
             {"solver::Bicgstab", parse<LinOpFactoryType::Bicgstab>},
             {"solver::Fcg", parse<LinOpFactoryType::Fcg>},
+            {"solver::PipeCg", parse<LinOpFactoryType::PipeCg>},
             {"solver::Cgs", parse<LinOpFactoryType::Cgs>},
             {"solver::Ir", parse<LinOpFactoryType::Ir>},
             {"solver::Idr", parse<LinOpFactoryType::Idr>},
