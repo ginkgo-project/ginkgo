@@ -401,28 +401,21 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            if constexpr (std::is_same_v<l_solver_type, LinOp>) {
-                // use LowerTrs as the default
-                l_solver_ = generate_default_solver<
-                    solver::LowerTrs<value_type, index_type>>(exec, l_factor);
-            } else {
-                l_solver_ =
-                    generate_default_solver<l_solver_type>(exec, l_factor);
-            }
+            // when l_solver_type is LinOp, use LowerTrs as the default one
+            l_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<l_solver_type, LinOp>,
+                solver::LowerTrs<value_type, index_type>, l_solver_type>>(
+                exec, l_factor);
             // If comp contains both factors: use the transposed factor to
             // avoid transposing twice
             if (comp->get_operators().size() == 2) {
                 auto lh_factor = comp->get_operators()[1];
                 GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
-                if constexpr (std::is_same_v<lh_solver_type, LinOp>) {
-                    // use UpperTrs as the default
-                    lh_solver_ = generate_default_solver<
-                        solver::UpperTrs<value_type, index_type>>(exec,
-                                                                  lh_factor);
-                } else {
-                    lh_solver_ = generate_default_solver<lh_solver_type>(
-                        exec, lh_factor);
-                }
+                // when lh_solver_type is LinOp, use UpperTrs as the default one
+                lh_solver_ = generate_default_solver<std::conditional_t<
+                    std::is_same_v<lh_solver_type, LinOp>,
+                    solver::UpperTrs<value_type, index_type>, lh_solver_type>>(
+                    exec, lh_factor);
             } else {
                 lh_solver_ = as<lh_solver_type>(
                     as<Transposable>(l_solver_)->conj_transpose());

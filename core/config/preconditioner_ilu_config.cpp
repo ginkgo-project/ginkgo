@@ -45,10 +45,10 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
         config.get("u_solver_type_or_value_type")) {
         GKO_INVALID_STATE(
             "preconditioner::Ilu only allows value_type from "
-            "l_solver_type_or_value_type/u_solver_type_or_value_type. To "
-            "avoid type confusion between these types and value_type, "
-            "l_solver_type_or_value_type/u_solver_type_or_value_type uses "
-            "the value_type directly.");
+            "l_solver_type_or_value_type/u_solver_type_or_value_type. Please "
+            "use value_type key to set the value type used by the "
+            "preconditioner and the l_lover or u_solver key to set the solvers "
+            "used for the lower and upper triangular systems.");
     }
     bool reverse_apply = false;
     if (auto& obj = config.get("reverse_apply")) {
