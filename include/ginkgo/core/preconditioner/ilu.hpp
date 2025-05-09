@@ -467,24 +467,20 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            if constexpr (std::is_same_v<l_solver_type, LinOp>) {
-                l_solver_ = generate_default_solver<
-                    solver::LowerTrs<value_type, index_type>>(exec, l_factor);
-            } else {
-                l_solver_ =
-                    generate_default_solver<l_solver_type>(exec, l_factor);
-            }
+            // when l_solver_type is LinOp, use LowerTrs as the default one
+            l_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<l_solver_type, LinOp>,
+                solver::LowerTrs<value_type, index_type>, l_solver_type>>(
+                exec, l_factor);
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
         }
         if (!parameters_.u_solver_factory) {
-            if constexpr (std::is_same_v<u_solver_type, LinOp>) {
-                u_solver_ = generate_default_solver<
-                    solver::LowerTrs<value_type, index_type>>(exec, u_factor);
-            } else {
-                u_solver_ =
-                    generate_default_solver<u_solver_type>(exec, u_factor);
-            }
+            // when u_solver_type is LinOp, use UpperTrs as the default one
+            u_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<u_solver_type, LinOp>,
+                solver::UpperTrs<value_type, index_type>, u_solver_type>>(
+                exec, u_factor);
         } else {
             u_solver_ = parameters_.u_solver_factory->generate(u_factor);
         }

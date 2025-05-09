@@ -27,9 +27,9 @@ parse<gko::config::LinOpFactoryType::Ic>(const gko::config::pnode& config,
     if (config.get("l_solver_type_or_value_type")) {
         GKO_INVALID_STATE(
             "preconditioner::Ic only allows value_type from "
-            "l_solver_type_or_value_type. To avoid type confusion between "
-            "these types and value_type, l_solver_type_or_value_type uses "
-            "the value_type directly.");
+            "l_solver_type_or_value_type. Please use value_type key to set the "
+            "value type used by the preconditioner and the l_lover  key to set "
+            "the solvers used for the lower triangular systems.");
     }
     return gko::config::dispatch<gko::LinOpFactory, gko::preconditioner::Ic>(
         config, context, updated,

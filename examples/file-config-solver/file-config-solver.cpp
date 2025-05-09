@@ -85,9 +85,9 @@ int main(int argc, char* argv[])
     // cg.json: simple-solver
     // blockjacobi-cg.json: preconditioned-solver
     // ir.json: iterative-refinement
-    // parilu.json: ilu-preconditioned-solver (by using factoization parameter
-    //              directly) Ilu only support the value_type variant for parse.
-    //              We need to give the l_solver/u_solver directly
+    // parilu.json: ilu-preconditioned-solver (by using factorization parameter
+    //              directly) Ilu only supports the value_type variant for
+    //              parse.
     // pgm-multigrid-cg.json: multigrid-preconditioned-solver (set
     //                        min_coarse_rows additionally due to this small
     //                        example matrix)
