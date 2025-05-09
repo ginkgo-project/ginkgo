@@ -18,26 +18,26 @@
 .use_gko_cuda110-mvapich-gnu9-llvm9:
   image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
   tags:
-    - tum
     - nvidia-gpus-p100
+    - tum
 
 .use_gko_cuda114-openmpi-gnu10-llvm12:
   image: ginkgohub/cuda:114-openmpi-gnu10-llvm12
   tags:
-    - tum
     - nvidia-gpus-p100
+    - tum
 
 .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16:
   image: ginkgohub/nvhpc:233-cuda120-openmpi-gnu12-llvm16
   tags:
-    - tum
     - nvidia-gpus
+    - tum
 
 .use_gko_nvhpc227-cuda117-openmpi-gnu11-llvm14:
   image: ginkgohub/nvhpc:227-cuda117-openmpi-gnu11-llvm14
   tags:
-    - tum
     - nvidia-gpus-p100
+    - tum
 
 .use_gko-rocm45-nompi-gnu8-llvm8:
   image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
@@ -51,17 +51,49 @@
     - private_ci
     - amd-gpu
 
-.use_gko-oneapi-igpu:
+# the image is focal which seems not to support A770
+.use_gko-oneapi-gpu:
   image: ginkgohub/oneapi:latest
   tags:
     - intel-gpus
+    - tum
 
-.use_gko-oneapi20231-igpu:
+# the image is focal which seems not to support A770
+.use_gko-oneapi20231-gpu:
   image: ginkgohub/spack-oneapi:20231-openmpi
   tags:
     - intel-gpus
+    - tum
 
-.use_gko-oneapi-dgpu:
-  image: ginkgohub/oneapi:latest
+
+# contains "s" so it uses tum now
+.use_tum-nvidia:
+  image: rocky_tum
+  tags:
+    - nvidia-gpus
+    - tum
+
+.use_tum-amd:
+  image: rocky_tum
+  tags:
+    - amd-gpus
+    - tum
+
+.use_tum-intel:
+  image: rocky_tum_intel
   tags:
     - intel-gpus
+    - tum
+
+# This gets the gpu without fp64 native support
+.use_tum-intel-fp32:
+  image: rocky_tum_intel
+  tags:
+    - intel-fp32-gpus
+    - tum
+
+.use_tum-cpu:
+  image: rocky_tum
+  tags:
+    - cpu
+    - tum
