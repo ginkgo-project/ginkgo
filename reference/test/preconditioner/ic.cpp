@@ -104,10 +104,12 @@ TYPED_TEST(Ic, BuildsSymmetricTwoFactor)
 {
     auto precond = this->ic_pre_factory->generate(this->l_lh_composition);
 
-    // the first factor should be identical, the second not as it was transposed
+    // the first factor should be identical, the second should also be identical
+    // as we generate the transposed_solver on the second factor directly if it
+    // is provided.
     ASSERT_EQ(precond->get_l_solver()->get_system_matrix().get(),
               this->l_factor.get());
-    ASSERT_NE(precond->get_lh_solver()->get_system_matrix().get(),
+    ASSERT_EQ(precond->get_lh_solver()->get_system_matrix().get(),
               this->lh_factor.get());
 }
 

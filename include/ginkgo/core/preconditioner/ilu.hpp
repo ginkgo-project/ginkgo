@@ -468,8 +468,8 @@ protected:
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
             if constexpr (std::is_same_v<l_solver_type, LinOp>) {
-                // linop can not have a default factory generation
-                GKO_NOT_IMPLEMENTED;
+                l_solver_ = generate_default_solver<
+                    solver::LowerTrs<value_type, index_type>>(exec, l_factor);
             } else {
                 l_solver_ =
                     generate_default_solver<l_solver_type>(exec, l_factor);
@@ -479,8 +479,8 @@ protected:
         }
         if (!parameters_.u_solver_factory) {
             if constexpr (std::is_same_v<u_solver_type, LinOp>) {
-                // linop can not have a default factory generation
-                GKO_NOT_IMPLEMENTED;
+                u_solver_ = generate_default_solver<
+                    solver::LowerTrs<value_type, index_type>>(exec, u_factor);
             } else {
                 u_solver_ =
                     generate_default_solver<u_solver_type>(exec, u_factor);
