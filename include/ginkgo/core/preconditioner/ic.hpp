@@ -401,24 +401,21 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            if constexpr (std::is_same_v<l_solver_type, LinOp>) {
-                // linop can not have a default factory generation
-                GKO_NOT_IMPLEMENTED;
-            } else {
-                l_solver_ =
-                    generate_default_solver<l_solver_type>(exec, l_factor);
-                // If comp contains both factors: use the transposed factor to
-                // avoid transposing twice
-                if (comp->get_operators().size() == 2) {
-                    auto lh_factor = comp->get_operators()[1];
-                    GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
-                    lh_solver_ = as<lh_solver_type>(
-                        as<Transposable>(l_solver_)->conj_transpose());
-                } else {
-                    lh_solver_ = as<lh_solver_type>(
-                        as<Transposable>(l_solver_)->conj_transpose());
-                }
+            // when l_solver_type is LinOp, use LowerTrs as the default one
+            l_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<l_solver_type, LinOp>,
+                solver::LowerTrs<value_type, index_type>, l_solver_type>>(
+                exec, l_factor);
+            // If comp contains both factors: We only check the dimension from
+            // the second factor. However, we still use the l_solver^H not
+            // generate the solver on L^H to preserve the Hermitian property of
+            // this preconditioner. LSolver(L)^H is not always LSolver^H(L^H).
+            if (comp->get_operators().size() == 2) {
+                auto lh_factor = comp->get_operators()[1];
+                GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
             }
+            lh_solver_ = as<lh_solver_type>(
+                as<Transposable>(l_solver_)->conj_transpose());
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
             lh_solver_ = as<lh_solver_type>(
