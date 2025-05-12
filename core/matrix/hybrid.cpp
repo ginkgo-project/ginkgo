@@ -42,8 +42,8 @@ GKO_REGISTER_OPERATION(compute_coo_row_ptrs, hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
-                       components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(prefix_sum_nonnegative,
+                                          components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
