@@ -70,6 +70,9 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 #if GINKGO_ENABLE_HALF
         half, std::complex<half>,
 #endif
+#if GINKGO_ENABLE_BFLOAT16
+        bfloat16, std::complex<bfloat16>,
+#endif
         double, float, std::complex<double>, std::complex<float>>(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
