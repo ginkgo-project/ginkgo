@@ -79,8 +79,8 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                 typename std::decay_t<decltype(*b_global)>::value_type;
             // dispatch local vector with the same precision as the global
             // vector
-            ::gko::precision_dispatch<ValueType>(
-                [&](auto* x_local) {
+            distributed::precision_dispatch<ValueType>(
+                [&](auto* x_global) {
                     auto b_local = b_global->get_local_vector();
 
                     dim<2> send_size(coll_comm_->get_send_size(),
@@ -103,7 +103,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                         send_size[1]);
                     b_local->row_gather(&send_idxs_, send_buffer);
 
-                    auto recv_ptr = x_local->get_values();
+                    auto recv_ptr = x_global->get_local_values();
                     auto send_ptr = send_buffer->get_values();
 
                     b_local->get_executor()->synchronize();
@@ -134,6 +134,16 @@ RowGatherer<LocalIndexType>::get_collective_communicator() const
 }
 
 
+template <typename T>
+T global_add(std::shared_ptr<const Executor> exec,
+             const mpi::communicator& comm, const T& value)
+{
+    T result;
+    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
+    return result;
+}
+
+
 template <typename LocalIndexType>
 template <typename GlobalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(
@@ -142,7 +152,9 @@ RowGatherer<LocalIndexType>::RowGatherer(
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : EnablePolymorphicObject<RowGatherer>(exec),
       DistributedBase(coll_comm->get_base_communicator()),
-      size_(dim<2>{imap.get_non_local_size(), imap.get_global_size()}),
+      size_(dim<2>{global_add(exec, coll_comm->get_base_communicator(),
+                              imap.get_non_local_size()),
+                   imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_workspace_(exec),

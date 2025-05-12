@@ -133,6 +133,8 @@ public:
      *
      * @note The coll_comm and imap have to be compatible. The coll_comm must
      *       send and recv exactly as many rows as the imap defines.
+     * @note This is a collective operation, all participating processes have
+     *       to execute this operation.
      *
      * @return  a shared_ptr to the created distributed::RowGatherer
      */

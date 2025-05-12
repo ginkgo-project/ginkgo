@@ -44,6 +44,15 @@ protected:
                 gko::array<gko::int64>{ref, {8, 12, 13, 14}}};
     }
 
+    gko::size_type recv_connections_size()
+    {
+        gko::size_type size = 0;
+        for (auto& recv_connections : create_recv_connections()) {
+            size += recv_connections.get_size();
+        }
+        return size;
+    }
+
     std::shared_ptr<gko::Executor> ref = gko::ReferenceExecutor::create();
     gko::experimental::mpi::communicator comm = MPI_COMM_WORLD;
     std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
@@ -86,9 +95,7 @@ TYPED_TEST(RowGatherer, CanConstructFromCollectiveCommAndIndexMap)
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
 
-    int rank = this->comm.rank();
-    auto recv_connections = this->create_recv_connections()[rank];
-    gko::dim<2> size{recv_connections.get_size(), 18};
+    gko::dim<2> size{this->recv_connections_size(), 18};
     GKO_ASSERT_EQUAL_DIMENSIONS(rg, size);
 }
 
