@@ -572,7 +572,11 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectors)
 
     this->dist_mat->apply(this->x, this->y);
 
-    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+    auto eps = std::is_same_v<value_type, gko::bfloat16> ||
+                       std::is_same_v<value_type, std::complex<gko::bfloat16>>
+                   ? r<value_type>::value
+                   : gko::remove_complex<value_type>{0.0};
+    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], eps);
 }
 
 

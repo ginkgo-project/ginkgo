@@ -274,11 +274,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->local_mtx_->copy_from(this->local_mtx_.get());
     result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
-    result->gather_idxs_ = this->gather_idxs_;
-    result->send_offsets_ = this->send_offsets_;
-    result->recv_offsets_ = this->recv_offsets_;
-    result->recv_sizes_ = this->recv_sizes_;
-    result->send_sizes_ = this->send_sizes_;
+    result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -293,11 +289,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
                result->get_communicator().size());
     result->local_mtx_->move_from(this->local_mtx_.get());
     result->non_local_mtx_->move_from(this->non_local_mtx_.get());
-    result->gather_idxs_ = std::move(this->gather_idxs_);
-    result->send_offsets_ = std::move(this->send_offsets_);
-    result->recv_offsets_ = std::move(this->recv_offsets_);
-    result->recv_sizes_ = std::move(this->recv_sizes_);
-    result->send_sizes_ = std::move(this->send_sizes_);
+    result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
