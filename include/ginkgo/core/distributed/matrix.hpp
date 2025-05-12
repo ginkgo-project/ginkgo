@@ -19,6 +19,7 @@
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -699,8 +700,8 @@ private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
     index_map<local_index_type, global_index_type> imap_;
     gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
+    detail::VectorCache<value_type> recv_buffer_;
+    detail::VectorCache<value_type> host_recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };
