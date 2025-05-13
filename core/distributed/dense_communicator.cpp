@@ -111,12 +111,12 @@ request DenseCommunicator::i_all_to_all_v_impl(
 
 
 std::unique_ptr<CollectiveCommunicator>
-DenseCommunicator::create_with_same_type(
-    communicator base, const distributed::index_map_variant& imap) const
+DenseCommunicator::create_with_same_type(communicator base,
+                                         index_map_ptr imap) const
 {
     return std::visit(
-        [base](const auto& imap) {
-            return std::make_unique<DenseCommunicator>(base, imap);
+        [base](const auto* imap) {
+            return std::make_unique<DenseCommunicator>(base, *imap);
         },
         imap);
 }

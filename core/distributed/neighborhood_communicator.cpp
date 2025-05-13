@@ -157,13 +157,13 @@ request NeighborhoodCommunicator::i_all_to_all_v_impl(
 
 
 std::unique_ptr<CollectiveCommunicator>
-NeighborhoodCommunicator::create_with_same_type(
-    communicator base, const distributed::index_map_variant& imap) const
+NeighborhoodCommunicator::create_with_same_type(communicator base,
+                                                index_map_ptr imap) const
 {
     return std::visit(
-        [base](const auto& imap) {
+        [base](const auto* imap) {
             return std::unique_ptr<CollectiveCommunicator>(
-                new NeighborhoodCommunicator(base, imap));
+                new NeighborhoodCommunicator(base, *imap));
         },
         imap);
 }

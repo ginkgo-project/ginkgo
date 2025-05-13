@@ -11,9 +11,10 @@
 
 #if GINKGO_BUILD_MPI
 
+#include <variant>
 
 #include <ginkgo/core/base/mpi.hpp>
-#include <ginkgo/core/distributed/index_map_fwd.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 
 
 namespace gko {
@@ -29,6 +30,14 @@ namespace mpi {
  */
 class CollectiveCommunicator {
 public:
+    /**
+     * All allowed index_map types (as const *)
+     */
+    using index_map_ptr =
+        std::variant<const distributed::index_map<int32, int32>*,
+                     const distributed::index_map<int32, int64>*,
+                     const distributed::index_map<int64, int64>*>;
+
     virtual ~CollectiveCommunicator() = default;
 
     explicit CollectiveCommunicator(communicator base = MPI_COMM_NULL);
@@ -73,8 +82,7 @@ public:
      * @return  a CollectiveCommunicator with the same dynamic type
      */
     [[nodiscard]] virtual std::unique_ptr<CollectiveCommunicator>
-    create_with_same_type(communicator base,
-                          const distributed::index_map_variant& imap) const = 0;
+    create_with_same_type(communicator base, index_map_ptr imap) const = 0;
 
     /**
      * Creates a CollectiveCommunicator with the inverse communication pattern
@@ -87,16 +95,16 @@ public:
     create_inverse() const = 0;
 
     /**
-     * Get the total number of received elements this communication patterns
-     * expects.
+     * Get the number of elements received by this process within this
+     * communication pattern.
      *
      * @return  number of received elements.
      */
     [[nodiscard]] virtual comm_index_type get_recv_size() const = 0;
 
     /**
-     * Get the total number of sent elements this communication patterns
-     * expects.
+     * Get the number of elements sent by this process within this communication
+     * pattern.
      *
      * @return  number of sent elements.
      */

@@ -18,6 +18,8 @@
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
+#include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -689,33 +691,17 @@ protected:
                     std::shared_ptr<LinOp> local_linop,
                     std::shared_ptr<LinOp> non_local_linop);
 
-    /**
-     * Starts a non-blocking communication of the values of b that are shared
-     * with other processors.
-     *
-     * @param local_b  The full local vector to be communicated. The subset of
-     *                 shared values is automatically extracted.
-     * @return  MPI request for the non-blocking communication.
-     */
-    mpi::request communicate(const local_vector_type* local_b) const;
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
 private:
+    std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
     index_map<local_index_type, global_index_type> imap_;
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
-    array<local_index_type> gather_idxs_;
     gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> host_send_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
-    gko::detail::DenseCache<value_type> send_buffer_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
+    detail::VectorCache<value_type> recv_buffer_;
+    detail::VectorCache<value_type> host_recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };

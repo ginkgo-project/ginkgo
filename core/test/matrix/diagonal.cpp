@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,6 +66,16 @@ TYPED_TEST(Diagonal, CanBeEmpty)
 {
     using Diag = typename TestFixture::Diag;
     auto diag = Diag::create(this->exec);
+
+    this->assert_empty(diag.get());
+}
+
+
+TYPED_TEST(Diagonal, CanBeEmptyFromArray)
+{
+    using Diag = typename TestFixture::Diag;
+    using value_type = typename Diag::value_type;
+    auto diag = Diag::create(this->exec, 0, gko::array<value_type>{this->exec});
 
     this->assert_empty(diag.get());
 }

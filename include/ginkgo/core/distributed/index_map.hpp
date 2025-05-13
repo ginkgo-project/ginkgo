@@ -90,7 +90,7 @@ public:
      * @param index_space_v  the index space in which the passed-in local
      *                       indices are defined
      *
-     * @return  the mapped global indices. Any local index, that is not in the
+     * @return  the mapped global indices. Any local index that is not in the
      *          specified index space is mapped to invalid_index
      */
     array<GlobalIndexType> map_to_global(
@@ -98,7 +98,7 @@ public:
         index_space index_space_v) const;
 
     /**
-     * \brief get size of index_space::local
+     * \brief get size of the global index space
      */
     size_type get_global_size() const;
 
