@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,21 +100,52 @@ int main(int argc, char* argv[])
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
     const RealValueType reduction_factor{1e-7};
-    auto solver_gen =
-        cg::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(20u),
-                           gko::stop::ResidualNorm<ValueType>::build()
+
+    exec->add_logger(gko::log::ProfilerHook::create_summary());
+
+    using Gmres64 = gko::solver::Gmres<gko::float64>;
+    using Gmres32 = gko::solver::Gmres<gko::float32>;
+    using Ir16 = gko::solver::Ir<gko::float16>;
+
+    auto A_16 = gko::share(gko::matrix::Csr<gko::float16>::create(exec));
+    auto A_32 = gko::share(gko::matrix::Csr<gko::float32>::create(exec));
+    A->convert_to(A_16);
+    A->convert_to(A_32);
+
+    auto ir16 =
+        Ir16::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2))
+            .with_solver(gko::preconditioner::Ilu<gko::float16>::build()
+                             .with_factorization(
+                                 gko::factorization::Ilu<gko::float16>::build()
+                                     .with_algorithm(
+                                         gko::factorization::
+                                             incomplete_algorithm::syncfree)))
+            .on(exec)
+            ->generate(A_16);
+    auto gmres32_16 =
+        Gmres32::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4))
+            .with_flexible(true)
+            .with_generated_preconditioner(std::move(ir16))
+            .on(exec)
+            ->generate(A_16);
+    auto gmres32 =
+        Gmres32::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(8))
+            .with_flexible(true)
+            .with_generated_preconditioner(std::move(gmres32_16))
+            .on(exec)
+            ->generate(A_32);
+    auto solver =
+        Gmres64::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(10),
+                           gko::stop::ResidualNorm<gko::float64>::build()
                                .with_reduction_factor(reduction_factor))
-            .on(exec);
-    // Generate the solver from the matrix. The solver factory built in the
-    // previous step takes a "matrix"(a gko::LinOp to be more general) as an
-    // input. In this case we provide it with a full matrix that we previously
-    // read, but as the solver only effectively uses the apply() method within
-    // the provided "matrix" object, you can effectively create a gko::LinOp
-    // class with your own apply implementation to accomplish more tasks. We
-    // will see an example of how this can be done in the custom-matrix-format
-    // example
-    auto solver = solver_gen->generate(A);
+            .with_flexible(true)
+            .with_generated_preconditioner(std::move(gmres32))
+            .on(exec)
+            ->generate(A);
 
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied
     // to a right hand side, b to
