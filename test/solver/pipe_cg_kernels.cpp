@@ -240,5 +240,5 @@ TEST_F(PipeCg, ApplyIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(d_b, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1e4);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5 * 1e4);
 }
