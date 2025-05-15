@@ -7,6 +7,8 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/allocator.hpp"
+
 
 namespace gko {
 namespace experimental {
@@ -15,11 +17,11 @@ namespace mpi {
 
 /**
  * @brief Computes the inverse envelope (target-ids, sizes) for a given
- *        one-sided communication pattern.
+ *        one-directional communication pattern.
  *
  * @param exec the executor, this will always use the host executor
  * @param comm communicator
- * @param ids target ids of the one-sided operation
+ * @param ids target ids of the one-directional operation
  * @param sizes number of elements send to each id
  *
  * @return the inverse envelope consisting of the target-ids and the sizes
@@ -31,15 +33,13 @@ communicate_inverse_envelope(std::shared_ptr<const Executor> exec,
                              const std::vector<comm_index_type>& sizes)
 {
     auto host_exec = exec->get_master();
-    std::vector<comm_index_type> inverse_sizes_full(comm.size());
-    window<comm_index_type> window(host_exec, inverse_sizes_full.data(),
-                                   inverse_sizes_full.size(), comm,
-                                   sizeof(comm_index_type), MPI_INFO_ENV);
-    window.fence();
+    vector<comm_index_type> inverse_sizes_full(comm.size(), {host_exec});
+    vector<comm_index_type> send_inverse_sizes(comm.size(), {host_exec});
     for (int i = 0; i < ids.size(); ++i) {
-        window.put(host_exec, sizes.data() + i, 1, ids[i], comm.rank(), 1);
+        send_inverse_sizes[ids[i]] = sizes[i];
     }
-    window.fence();
+    comm.all_to_all(host_exec, send_inverse_sizes.data(), 1,
+                    inverse_sizes_full.data(), 1);
 
     std::vector<comm_index_type> inverse_sizes;
     std::vector<comm_index_type> inverse_ids;
