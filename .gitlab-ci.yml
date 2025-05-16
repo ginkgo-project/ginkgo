@@ -20,7 +20,7 @@ packaging/spack/trigger:
   stage: packaging
   image: ubuntu:latest
   tags:
-    - private_ci
+    - status-jobs
   variables:
     GIT_STRATEGY: none
   script:
@@ -37,8 +37,8 @@ packaging/spack/rocm:
     name: ecpe4s/e4s-base-rocm:24.11
     entrypoint: [""]
   tags:
-    - private_ci
-    - nla-gpu
+    - tum
+    - amd-gpus
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
@@ -53,8 +53,8 @@ packaging/spack/cuda:
     name: ecpe4s/e4s-base-cuda:24.11
     entrypoint: [""]
   tags:
-    - private_ci
-    - nvidia-gpu
+    - tum
+    - nvidia-gpus
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
@@ -69,6 +69,7 @@ packaging/spack/sycl:
     name: ecpe4s/e4s-base-oneapi:24.11
     entrypoint: [""]
   tags:
+    - tum
     - intel-gpus
   variables:
     GIT_STRATEGY: none
