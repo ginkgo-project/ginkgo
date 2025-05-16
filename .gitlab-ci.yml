@@ -662,9 +662,6 @@ cudamemcheck:
     - .default_variables
     - .deploy_condition
     - .use_gko_cuda110-mvapich-gnu9-llvm9
-  tags:
-    - private_ci
-    - nvidia-gpu
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
       -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck
