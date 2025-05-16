@@ -37,8 +37,7 @@ packaging/spack/rocm:
     name: ecpe4s/e4s-base-rocm:24.11
     entrypoint: [""]
   tags:
-    - tum
-    - amd-gpus
+    - nla-gpu
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
