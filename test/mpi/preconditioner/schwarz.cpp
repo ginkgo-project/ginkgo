@@ -43,6 +43,7 @@ protected:
         1, decltype(ValueLocalGlobalIndexType())>::type;
     using global_index_type = typename std::tuple_element<
         2, decltype(ValueLocalGlobalIndexType())>::type;
+    using csr = gko::matrix::Csr<value_type, local_index_type>;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -81,7 +82,11 @@ protected:
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 8}));
 
-        dist_mat = dist_mtx_type::create(exec, comm);
+        // the default non-local matrix uses Coo, which does not support half
+        // precision on HIP and DPCPP because of atomic
+        dist_mat = dist_mtx_type::create(
+            exec, comm, csr::create(exec),
+            csr::create(exec, std::make_shared<typename csr::classical>()));
         dist_mat->read_distributed(mat_input, row_part);
         non_dist_mat = non_dist_matrix_type::create(exec);
         non_dist_mat->read(mat_input);
