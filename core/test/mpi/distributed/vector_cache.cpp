@@ -359,10 +359,9 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithSize)
 {
     using value_type = typename TestFixture::value_type;
 
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    // only initialize when knowning the type
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     ASSERT_NE(buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(buffer->get_size(), this->default_global_size);
@@ -376,14 +375,16 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithSize)
 TYPED_TEST(GenericVectorCache, SecondInitWithSameSizeIsNoOp)
 {
     using value_type = typename TestFixture::value_type;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     auto array_ptr =
         generic_accessor::get_workspace(this->cache).get_const_data();
     auto array_size = generic_accessor::get_workspace(this->cache).get_size();
 
-    auto second_buffer = this->cache.template get<value_type>(this->comm);
+    auto second_buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     ASSERT_NE(second_buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(),
@@ -402,17 +403,17 @@ TYPED_TEST(GenericVectorCache, SecondInitWithSameSizeIsNoOp)
 TYPED_TEST(GenericVectorCache, SecondInitWithTheSmallEqSizeIsNoOp)
 {
     using value_type = typename TestFixture::value_type;
-    gko::dim<2> second_local_size{1, 1};
-    gko::dim<2> second_global_size{this->num_ranks, 1};
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    gko::dim<2> second_local_size(1, 1);
+    gko::dim<2> second_global_size(this->num_ranks, 1);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     auto array_ptr =
         generic_accessor::get_workspace(this->cache).get_const_data();
     auto array_size = generic_accessor::get_workspace(this->cache).get_size();
 
-    this->cache.init(this->ref, second_global_size, second_local_size);
-    auto second_buffer = this->cache.template get<value_type>(this->comm);
+    auto second_buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, second_global_size, second_local_size);
 
     ASSERT_NE(second_buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), second_global_size);
@@ -430,18 +431,18 @@ TYPED_TEST(GenericVectorCache, SecondInitWithTheSmallEqSizeIsNoOp)
 TYPED_TEST(GenericVectorCache, SecondInitWithTheLargerSizeRecreate)
 {
     using value_type = typename TestFixture::value_type;
-    gko::dim<2> second_local_size{this->rank + 2, 3};
-    gko::dim<2> second_global_size{this->num_ranks * (this->num_ranks + 3) / 2,
-                                   3};
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    gko::dim<2> second_local_size(this->rank + 2, 3);
+    gko::dim<2> second_global_size(this->num_ranks * (this->num_ranks + 3) / 2,
+                                   3);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     auto array_ptr =
         generic_accessor::get_workspace(this->cache).get_const_data();
     auto array_size = generic_accessor::get_workspace(this->cache).get_size();
 
-    this->cache.init(this->ref, second_global_size, second_local_size);
-    auto second_buffer = this->cache.template get<value_type>(this->comm);
+    auto second_buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, second_global_size, second_local_size);
 
     ASSERT_NE(second_buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(), second_global_size);
@@ -460,14 +461,16 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithSizeAndType)
 {
     using value_type = typename TestFixture::value_type;
     using another_type = gko::next_precision<value_type>;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     auto array_ptr =
         generic_accessor::get_workspace(this->cache).get_const_data();
     auto array_size = generic_accessor::get_workspace(this->cache).get_size();
 
-    auto second_buffer = this->cache.template get<another_type>(this->comm);
+    auto second_buffer = this->cache.template get<another_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     ASSERT_NE(second_buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(),
@@ -497,16 +500,16 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithDifferentExecutor)
 {
     using value_type = typename TestFixture::value_type;
     auto another_ref = gko::ReferenceExecutor::create();
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     auto array_ptr =
         generic_accessor::get_workspace(this->cache).get_const_data();
     auto array_size = generic_accessor::get_workspace(this->cache).get_size();
 
-    this->cache.init(another_ref, this->default_global_size,
-                     this->default_local_size);
-    auto second_buffer = this->cache.template get<value_type>(this->comm);
+    auto second_buffer = this->cache.template get<value_type>(
+        another_ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     ASSERT_NE(second_buffer, nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(second_buffer->get_size(),
@@ -524,9 +527,9 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithDifferentExecutor)
 TYPED_TEST(GenericVectorCache, WorkspaceIsNotCopied)
 {
     using value_type = typename TestFixture::value_type;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     gko::experimental::distributed::detail::GenericVectorCache cache(
         this->cache);
@@ -539,9 +542,9 @@ TYPED_TEST(GenericVectorCache, WorkspaceIsNotCopied)
 TYPED_TEST(GenericVectorCache, WorkspaceIsNotMoved)
 {
     using value_type = typename TestFixture::value_type;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
 
     gko::experimental::distributed::detail::GenericVectorCache cache(
         std::move(this->cache));
@@ -554,9 +557,9 @@ TYPED_TEST(GenericVectorCache, WorkspaceIsNotMoved)
 TYPED_TEST(GenericVectorCache, WorkspaceIsNotCopyAssigned)
 {
     using value_type = typename TestFixture::value_type;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     gko::experimental::distributed::detail::GenericVectorCache cache;
 
     cache = this->cache;
@@ -569,9 +572,9 @@ TYPED_TEST(GenericVectorCache, WorkspaceIsNotCopyAssigned)
 TYPED_TEST(GenericVectorCache, WorkspaceIsNotMoveAssigned)
 {
     using value_type = typename TestFixture::value_type;
-    this->cache.init(this->ref, this->default_global_size,
-                     this->default_local_size);
-    auto buffer = this->cache.template get<value_type>(this->comm);
+    auto buffer = this->cache.template get<value_type>(
+        this->ref, this->comm, this->default_global_size,
+        this->default_local_size);
     gko::experimental::distributed::detail::GenericVectorCache cache;
 
     cache = std::move(this->cache);
