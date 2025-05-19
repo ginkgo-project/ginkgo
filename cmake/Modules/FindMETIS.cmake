@@ -80,13 +80,20 @@ if(METIS_INCLUDE_DIR)
         PATH_SUFFIXES lib lib64
     )
     if(METIS_VERSION VERSION_GREATER_EQUAL 5.0)
-        find_library(
-            METIS_GKLIB_LIBRARY
-            GKlib
-            HINTS ${METIS_DIR}
-            ENV METIS_DIR
-            PATH_SUFFIXES lib lib64
-        )
+        include(CheckLibraryExists)
+        check_library_exists(${METIS_LIBRARY} gk_getopt "" METIS_HAVE_GKLIB)
+        if(METIS_HAVE_GKLIB)
+            # set it to a non-empty value to satisfy find_package_handle_standard_args
+            set(METIS_GKLIB_LIBRARY libGKlib.so)
+        else()
+            find_library(
+                METIS_GKLIB_LIBRARY
+                GKlib
+                HINTS ${METIS_DIR}
+                ENV METIS_DIR
+                PATH_SUFFIXES lib lib64
+            )
+        endif()
     else()
         # set it to a non-empty value to satisfy find_package_handle_standard_args
         set(METIS_GKLIB_LIBRARY libGKlib.so)
@@ -120,7 +127,7 @@ if(METIS_FOUND)
                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
                 IMPORTED_LOCATION "${METIS_LIBRARIES}"
         )
-        if(METIS_VERSION VERSION_GREATER_EQUAL 5.0)
+        if(METIS_VERSION VERSION_GREATER_EQUAL 5.0 AND NOT METIS_HAVE_GKLIB)
             add_library(METIS::GKlib UNKNOWN IMPORTED)
             set_target_properties(
                 METIS::GKlib
