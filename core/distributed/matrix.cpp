@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/matrix.hpp"
 
+#include <utility>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/assembly.hpp>
@@ -416,21 +418,28 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 }
 
 
-template <typename LocalIndexType>
-void init_recv_buffers(std::shared_ptr<const Executor> exec,
-                       const RowGatherer<LocalIndexType>* row_gatherer,
-                       size_type num_cols,
-                       const detail::GenericVectorCache& buffer,
-                       const detail::GenericVectorCache& host_buffer)
+template <typename ValueType, typename LocalIndexType>
+std::pair<std::shared_ptr<Vector<ValueType>>,
+          std::shared_ptr<Vector<ValueType>>>
+init_recv_buffers(std::shared_ptr<const Executor> exec,
+                  const RowGatherer<LocalIndexType>* row_gatherer,
+                  size_type num_cols, const detail::GenericVectorCache& buffer,
+                  const detail::GenericVectorCache& host_buffer)
 {
+    auto comm =
+        row_gatherer->get_collective_communicator()->get_base_communicator();
     auto global_recv_dim =
         dim<2>{static_cast<size_type>(row_gatherer->get_size()[0]), num_cols};
     auto local_recv_dim = dim<2>{
         static_cast<size_type>(
             row_gatherer->get_collective_communicator()->get_recv_size()),
         num_cols};
-    buffer.init(exec, global_recv_dim, local_recv_dim);
-    host_buffer.init(exec->get_master(), global_recv_dim, local_recv_dim);
+
+    auto vector = buffer.template get<ValueType>(exec, comm, global_recv_dim,
+                                                 local_recv_dim);
+    auto host_vector = host_buffer.template get<ValueType>(
+        exec->get_master(), comm, global_recv_dim, local_recv_dim);
+    return std::make_pair(vector, host_vector);
 }
 
 
@@ -455,11 +464,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
             auto exec = this->get_executor();
             auto comm = this->get_communicator();
-            init_recv_buffers(exec, row_gatherer_.get(), dense_b->get_size()[1],
-                              recv_buffer_, host_recv_buffer_);
-            auto host_recv_vector =
-                host_recv_buffer_.template get<b_value_type>(comm);
-            auto recv_vector = recv_buffer_.template get<b_value_type>(comm);
+            auto [recv_vector, host_recv_vector] =
+                init_recv_buffers<b_value_type>(
+                    exec, row_gatherer_.get(), dense_b->get_size()[1],
+                    recv_buffer_, host_recv_buffer_);
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
@@ -503,11 +511,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
             auto exec = this->get_executor();
             auto comm = this->get_communicator();
-            init_recv_buffers(exec, row_gatherer_.get(), dense_b->get_size()[1],
-                              recv_buffer_, host_recv_buffer_);
-            auto host_recv_vector =
-                host_recv_buffer_.template get<b_value_type>(comm);
-            auto recv_vector = recv_buffer_.template get<b_value_type>(comm);
+            auto [recv_vector, host_recv_vector] =
+                init_recv_buffers<b_value_type>(
+                    exec, row_gatherer_.get(), dense_b->get_size()[1],
+                    recv_buffer_, host_recv_buffer_);
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
@@ -552,10 +559,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
         make_const_array_view(exec, n_local_cols,
                               scaling_factors_ptr->get_const_local_values()));
 
-    init_recv_buffers(exec, row_gatherer_.get(), scaling_factors->get_size()[1],
-                      recv_buffer_, host_recv_buffer_);
-    auto host_recv_vector = host_recv_buffer_.template get<ValueType>(comm);
-    auto recv_vector = recv_buffer_.template get<ValueType>(comm);
+    auto [recv_vector, host_recv_vector] = init_recv_buffers<ValueType>(
+        exec, row_gatherer_.get(), scaling_factors->get_size()[1], recv_buffer_,
+        host_recv_buffer_);
     auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                         ? host_recv_vector.get()
                         : recv_vector.get();
