@@ -97,6 +97,65 @@ public:
 };
 
 
+// helper to access private member for testing
+class GenericVectorCacheAccessor;
+
+
+/**
+ * Manages a distributed vector with different value_type that is buffered and
+ * reused internally to avoid repeated allocations. Copying an instance will
+ * only yield an empty object since copying the cached vector would not make
+ * sense. The stored object is always mutable, so the cache can be used in a
+ * const-context.
+ *
+ * @internal  The struct is present to wrap cache-like buffer storage that will
+ *            not be copied when the outer object gets copied.
+ */
+class GenericVectorCache {
+public:
+    friend class GenericVectorCacheAccessor;
+
+    GenericVectorCache() = default;
+    ~GenericVectorCache() = default;
+    GenericVectorCache(const GenericVectorCache&);
+    GenericVectorCache(GenericVectorCache&&) noexcept;
+    GenericVectorCache& operator=(const GenericVectorCache&);
+    GenericVectorCache& operator=(GenericVectorCache&&) noexcept;
+
+    /**
+     * Initializes the buffered vector configuration.
+     *
+     * @param exec  Executor associated with the buffered vector
+     * @param global_size  Global size of the buffered vector
+     * @param local_size  Processor-local size of the buffered vector, uses
+     *                    local_size[1] as the stride
+     */
+    void init(std::shared_ptr<const Executor> exec, dim<2> global_size,
+              dim<2> local_size) const;
+
+    /**
+     * Pointer access to the underlying vector with specific type.
+     * Initializes the buffered vector, if
+     * - the current vector is null,
+     * - the sizes differ,
+     * - the executor differs.
+     *
+     * @param comm  Communicator associated with the buffered vector
+     *
+     * @return  Pointer to the vector view.
+     */
+    template <typename ValueType>
+    std::shared_ptr<Vector<ValueType>> get(
+        gko::experimental::mpi::communicator comm) const;
+
+private:
+    mutable array<char> workspace;
+    mutable std::shared_ptr<const Executor> exec_;
+    mutable dim<2> global_size_;
+    mutable dim<2> local_size_;
+};
+
+
 }  // namespace detail
 }  // namespace distributed
 }  // namespace experimental
