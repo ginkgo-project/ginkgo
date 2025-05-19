@@ -14,13 +14,16 @@ Also, check https://github.com/ginkgo-project/ginkgo/wiki/Contributing-guideline
 
 Please delete the unrelevant entries in the followings.
 -->
-## Creating new classes
+## Creating/Modifying classes 
 - [ ] have entries in test/test_install
-## Creating new functions
+- [ ] If it is a LinOpFactory, add the corresponding key in `core/config/registry.cpp:generate_config_map`
+- [ ] If any changes are introduced in LinOpFactory parameters, add the changes into the corresponding parse function
+## Creating/Modifying functions
 - [ ] have the corresponding tests
 ## Introducing new files
 - [ ] ensure they are be added in corresponding CMakeLists.txt
-## Creating new kernels
+## Creating/Modifying kernels
 - [ ] have the corresponding entries in core/device_hooks/common_kernels.inc.cpp
+- [ ] check whether the changes are also required for different backend
 ## Being a new contributor introducing new stuff or performance improvement
-- [ ] add yourself into contributors.txt with `LastName FirstName <email> affliation` in alphabetical order
+- [ ] add yourself into contributors.txt with `LastName FirstName <email> affiliation` in alphabetical order
