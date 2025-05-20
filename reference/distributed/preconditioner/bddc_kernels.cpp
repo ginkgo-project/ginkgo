@@ -7,14 +7,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
 
-#include "core/base/allocator.hpp"
-#include "core/base/device_matrix_data_kernels.hpp"
-#include "core/base/extended_float.hpp"
-#include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
-#include "reference/distributed/partition_helpers.hpp"
 
 
 namespace gko {
@@ -56,10 +51,12 @@ size_type min_rank(std::vector<ValueType>& key, size_type n_significand_bits)
 template <typename ValueType, typename IndexType>
 void classify_dofs(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* labels, comm_index_type local_part,
+    matrix::Dense<ValueType>* labels, const array<IndexType>& tags,
+    comm_index_type local_part,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
     array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
-    array<ValueType>& unique_labels, array<ValueType>& owning_labels,
+    array<ValueType>& unique_labels, array<IndexType>& unique_tags,
+    array<ValueType>& owning_labels, array<IndexType>& owning_tags,
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
@@ -71,7 +68,8 @@ void classify_dofs(
     auto local_labels = labels->get_const_values();
     auto n_rows = labels->get_size()[0];
     auto n_cols = labels->get_size()[1];
-    std::map<std::vector<uint_type>, size_type> occurences;
+    std::map<std::pair<std::vector<uint_type>, IndexType>, IndexType>
+        occurences;
     std::vector<uint_type> key(n_cols, zero<ValueType>());
     uint_type int_key;
     n_inner_idxs = 0;
@@ -86,7 +84,8 @@ void classify_dofs(
         size_type n_ranks = 0;
         std::memcpy(key.data(), local_labels + n_cols * i,
                     n_cols * sizeof(uint_type));
-        occurences[key]++;
+        auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+        occurences[keypair]++;
         for (size_type j = 0; j < n_cols; j++) {
             n_ranks += gko::detail::popcount(key[j]);
         }
@@ -101,14 +100,14 @@ void classify_dofs(
                     ? experimental::distributed::preconditioner::dof_type::face
                     : experimental::distributed::preconditioner::dof_type::
                           inactive;
-            if (occurences[key] == 1) {
+            if (occurences[keypair] == 1) {
                 n_faces++;
             }
         } else {
             n_edge_idxs++;
             dof_types.get_data()[i] =
                 experimental::distributed::preconditioner::dof_type::edge;
-            if (occurences[key] == 1) {
+            if (occurences[keypair] == 1) {
                 n_edges++;
             }
         }
@@ -119,7 +118,8 @@ void classify_dofs(
             experimental::distributed::preconditioner::dof_type::edge) {
             std::memcpy(key.data(), local_labels + n_cols * i,
                         n_cols * sizeof(uint_type));
-            if (occurences[key] == 1) {
+            auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+            if (occurences[keypair] == 1) {
                 n_vertices++;
                 n_edges--;
                 n_edge_idxs--;
@@ -128,6 +128,15 @@ void classify_dofs(
             } else if (!use_edges) {
                 dof_types.get_data()[i] = experimental::distributed::
                     preconditioner::dof_type::inactive;
+                // } else if (occurences[key] > 2) {
+                //     n_vertices++;
+                //     n_edge_idxs--;
+                //     dof_types.get_data()[i] =
+                //     experimental::distributed::preconditioner::dof_type::vertex;
+                //     occurences[key] *= -1;
+                //     for (size_type j = 0; j < n_cols; j++) {
+                //         labels->at(i, j) *= -1;
+                //     }
             }
         }
     }
@@ -140,7 +149,7 @@ void classify_dofs(
 
     std::iota(permutation_array.get_data(),
               permutation_array.get_data() + n_rows, 0);
-    auto comp = [dof_types, local_labels, n_cols](auto a, auto b) {
+    auto comp = [dof_types, local_labels, tags, n_cols](auto a, auto b) {
         if (dof_types.get_const_data()[a] == dof_types.get_const_data()[b]) {
             uint_type int_a, int_b;
             if (dof_types.get_const_data()[a] ==
@@ -155,6 +164,9 @@ void classify_dofs(
                 if (int_a != int_b) {
                     return int_a < int_b;
                 }
+            }
+            if (tags.get_const_data()[a] != tags.get_const_data()[b]) {
+                return tags.get_const_data()[a] < tags.get_const_data()[b];
             }
             return false;
         }
@@ -174,16 +186,37 @@ void classify_dofs(
         size_type row = permutation_array.get_const_data()[start_idx];
         std::memcpy(key.data(), local_labels + n_cols * row,
                     n_cols * sizeof(uint_type));
-        interface_sizes.get_data()[i] = occurences[key];
+        auto keypair = std::make_pair(key, tags.get_const_data()[row]);
+        auto occ = occurences[keypair];
+        interface_sizes.get_data()[i] = occ > 0 ? occ : -occ - 1;
         unique_label_idxs.emplace_back(row);
         if (min_rank(key, n_significand_bits) == local_part) {
+            if (local_part == 1) {
+                auto t = dof_types.get_const_data()[row];
+                std::string kind = t == gko::experimental::distributed::
+                                               preconditioner::dof_type::edge
+                                       ? "EDGE"
+                                   : t == gko::experimental::distributed::
+                                               preconditioner::dof_type::face
+                                       ? "FACE"
+                                   : t == gko::experimental::distributed::
+                                               preconditioner::dof_type::vertex
+                                       ? "VERTEX"
+                                       : "INACTIVE";
+                std::cout << "OWNING INTERFACE WITH TAG "
+                          << tags.get_const_data()[row] << " OF TYPE " << kind
+                          << std::endl;
+            }
             n_owning_interfaces++;
             owning_label_idxs.emplace_back(row);
         }
-        while (labels_eq(
-            n_cols, local_labels + row * n_cols,
-            local_labels +
-                permutation_array.get_const_data()[start_idx] * n_cols)) {
+        while (labels_eq(n_cols, local_labels + row * n_cols,
+                         local_labels +
+                             permutation_array.get_const_data()[start_idx] *
+                                 n_cols) &&
+               tags.get_const_data()[row] ==
+                   tags.get_const_data()[permutation_array
+                                             .get_const_data()[start_idx]]) {
             start_idx++;
             if (start_idx == n_rows) {
                 break;
@@ -192,18 +225,32 @@ void classify_dofs(
     }
 
     unique_labels.resize_and_reset(n_constraints * n_cols);
+    unique_tags.resize_and_reset(n_constraints);
     for (size_type i = 0; i < n_constraints; i++) {
         size_type idx = unique_label_idxs[i];
         std::memcpy(unique_labels.get_data() + i * n_cols,
                     local_labels + n_cols * idx, n_cols * sizeof(uint_type));
+        unique_tags.get_data()[i] = tags.get_const_data()[idx];
     }
 
     owning_labels.resize_and_reset(n_owning_interfaces * n_cols);
+    owning_tags.resize_and_reset(n_owning_interfaces);
     for (size_type i = 0; i < n_owning_interfaces; i++) {
         size_type idx = owning_label_idxs[i];
         std::memcpy(owning_labels.get_data() + i * n_cols,
                     local_labels + n_cols * idx, n_cols * sizeof(uint_type));
+        owning_tags.get_data()[i] = tags.get_const_data()[idx];
+        if (local_part == 0) {
+            std::cout << owning_tags.get_const_data()[i] << std::endl;
+        }
     }
+
+    std::cout << "RANK " << local_part << " CORNERS: " << n_vertices
+              << ", EDGES: " << n_edges << " / " << n_edge_idxs
+              << ", FACES: " << n_faces << " / " << n_face_idxs
+              << ", CONSTRAINTS: " << n_constraints
+              << ", OWNING: " << n_owning_interfaces
+              << ", UNIQUE: " << unique_label_idxs.size() << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
@@ -261,9 +308,10 @@ template <typename ValueType, typename IndexType>
 void build_coarse_contribution(
     std::shared_ptr<const DefaultExecutor> exec,
     const array<remove_complex<ValueType>>& local_labels,
+    const array<IndexType>& local_tags,
     const array<remove_complex<ValueType>>& global_labels,
-    const matrix::Dense<ValueType>* lambda,
-    device_matrix_data<ValueType, int>& coarse_contribution,
+    const array<IndexType>& global_tags, const matrix::Dense<ValueType>* lambda,
+    device_matrix_data<ValueType, IndexType>& coarse_contribution,
     array<IndexType>& permutation_array)
 {
     auto local_size = lambda->get_size()[0];
@@ -278,7 +326,9 @@ void build_coarse_contribution(
     for (size_type i = 0; i < local_size; i++) {
         for (size_type j = 0; j < global_size; j++) {
             if (labels_eq(n_cols, local_label_vals + n_cols * i,
-                          global_label_vals + n_cols * j)) {
+                          global_label_vals + n_cols * j) &&
+                local_tags.get_const_data()[i] ==
+                    global_tags.get_const_data()[j]) {
                 local_to_global[i] = j;
                 break;
             }

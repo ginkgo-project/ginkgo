@@ -117,6 +117,11 @@ public:
             GKO_DEFERRED_FACTORY_PARAMETER(local_criterion);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(repartition_coarse, false);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(constant_nullspace, false);
+
+        std::map<GlobalIndexType, LocalIndexType> GKO_FACTORY_PARAMETER_VECTOR(
+            tags);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -180,6 +185,12 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    void solve_inner(std::shared_ptr<local_vec> b,
+                     std::shared_ptr<local_vec> x) const;
+
+    void solve_local(std::shared_ptr<local_vec> b,
+                     std::shared_ptr<local_vec> x) const;
+
 private:
     /**
      * Sets the solver operator used as the local solver.
@@ -242,6 +253,18 @@ private:
     std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_LL_;
     std::shared_ptr<const matrix::Permutation<LocalIndexType>> reorder_II_;
     std::shared_ptr<local_vec> schur_interm_;
+    std::shared_ptr<local_vec> II_nsp_1;
+    std::shared_ptr<local_vec> LL_nsp_1;
+    std::shared_ptr<local_vec> II_nsp_2;
+    std::shared_ptr<local_vec> LL_nsp_2;
+    std::shared_ptr<local_vec> II_scal_1;
+    std::shared_ptr<local_vec> II_scal_2;
+    std::shared_ptr<local_vec> II_scal_3;
+    std::shared_ptr<local_vec> LL_scal_1;
+    std::shared_ptr<local_vec> LL_scal_2;
+    std::shared_ptr<local_vec> LL_scal_3;
+    std::shared_ptr<vec> nsp;
+    std::shared_ptr<local_vec> n_op;
 };
 
 

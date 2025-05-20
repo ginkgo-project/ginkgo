@@ -25,11 +25,13 @@ namespace kernels {
 #define GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType)                        \
     void classify_dofs(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<ValueType>* labels, comm_index_type local_part,    \
+        matrix::Dense<ValueType>* labels, const array<IndexType>& tags,        \
+        comm_index_type local_part,                                            \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
         array<IndexType>& permutation_array,                                   \
         array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \
-        array<ValueType>& owning_labels, size_type& n_inner_idxs,              \
+        array<IndexType>& unique_tags, array<ValueType>& owning_labels,        \
+        array<IndexType>& owning_tags, size_type& n_inner_idxs,                \
         size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices, \
         size_type& n_faces, size_type& n_edges, size_type& n_constraints,      \
         int& n_owning_interfaces, bool use_faces, bool use_edges)
@@ -49,13 +51,15 @@ namespace kernels {
                           matrix::Dense<ValueType>* lambda_rhs)
 
 
-#define GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType, IndexType) \
-    void build_coarse_contribution(                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                \
-        const array<remove_complex<ValueType>>& local_labels,       \
-        const array<remove_complex<ValueType>>& global_labels,      \
-        const matrix::Dense<ValueType>* lambda,                     \
-        device_matrix_data<ValueType, int>& coarse_contribution,    \
+#define GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType, IndexType)    \
+    void build_coarse_contribution(                                    \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        const array<remove_complex<ValueType>>& local_labels,          \
+        const array<IndexType>& local_tags,                            \
+        const array<remove_complex<ValueType>>& global_labels,         \
+        const array<IndexType>& global_tags,                           \
+        const matrix::Dense<ValueType>* lambda,                        \
+        device_matrix_data<ValueType, IndexType>& coarse_contribution, \
         array<IndexType>& permutation_array)
 
 
