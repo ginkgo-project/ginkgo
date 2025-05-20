@@ -423,7 +423,8 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
         GKO_NOT_SUPPORTED(in);
     }
 #else
-    precision_dispatch<ValueType>(fn, in, out);
+    // avoid ambiguous
+    distributed::precision_dispatch<ValueType>(fn, in, out);
 #endif
 }
 
