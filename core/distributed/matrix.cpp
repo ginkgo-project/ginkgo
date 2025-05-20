@@ -438,12 +438,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
-    distributed::precision_dispatch_real_complex<ValueType>(
+    distributed::mixed_precision_dispatch_real_complex<ValueType>(
         [this](const auto dense_b, auto dense_x) {
-            auto x_exec = dense_x->get_executor();
             using x_value_type =
                 typename std::decay_t<decltype(*dense_x)>::value_type;
-            auto local_x = gko::matrix::Dense<ValueType>::create(
+            using b_value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            auto x_exec = dense_x->get_executor();
+            auto local_x = gko::matrix::Dense<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,
@@ -456,8 +458,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             init_recv_buffers(exec, row_gatherer_.get(), dense_b->get_size()[1],
                               recv_buffer_, host_recv_buffer_);
             auto host_recv_vector =
-                host_recv_buffer_.template get<ValueType>(comm);
-            auto recv_vector = recv_buffer_.template get<ValueType>(comm);
+                host_recv_buffer_.template get<b_value_type>(comm);
+            auto recv_vector = recv_buffer_.template get<b_value_type>(comm);
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
@@ -481,13 +483,17 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    distributed::precision_dispatch_real_complex<ValueType>(
-        [this](const auto local_alpha, const auto dense_b,
-               const auto local_beta, auto dense_x) {
-            const auto x_exec = dense_x->get_executor();
+    distributed::mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](const auto dense_b, auto dense_x) {
             using x_value_type =
                 typename std::decay_t<decltype(*dense_x)>::value_type;
-            auto local_x = gko::matrix::Dense<ValueType>::create(
+            using b_value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            const auto x_exec = dense_x->get_executor();
+            auto local_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+            auto local_beta =
+                gko::make_temporary_conversion<x_value_type>(beta);
+            auto local_x = gko::matrix::Dense<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,
@@ -500,24 +506,24 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             init_recv_buffers(exec, row_gatherer_.get(), dense_b->get_size()[1],
                               recv_buffer_, host_recv_buffer_);
             auto host_recv_vector =
-                host_recv_buffer_.template get<ValueType>(comm);
-            auto recv_vector = recv_buffer_.template get<ValueType>(comm);
+                host_recv_buffer_.template get<b_value_type>(comm);
+            auto recv_vector = recv_buffer_.template get<b_value_type>(comm);
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
             auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-            local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
-                              local_beta, local_x);
+            local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
+                              local_beta.get(), local_x);
             req.wait();
 
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
             }
             non_local_mtx_->apply(
-                local_alpha, recv_vector->get_local_vector(),
+                local_alpha.get(), recv_vector->get_local_vector(),
                 one_scalar_.template get<x_value_type>().get(), local_x);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 
