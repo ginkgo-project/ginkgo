@@ -39,7 +39,8 @@ DEFINE_string(
     "A comma-separated list of solvers to run. "
     "Supported values are: bicgstab, bicg, cb_gmres_keep, "
     "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
-    "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, direct, fcg, gmres, idr, "
+    "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, direct, fcg, pipe_cg, "
+    "gmres, idr, "
     "lower_trs, minres, near_symm_direct, upper_trs, spd_direct, symm_direct, "
     "overhead");
 
@@ -189,6 +190,9 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             exec, precond, max_iters);
     } else if (description == "fcg") {
         return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(
+            exec, precond, max_iters);
+    } else if (description == "pipe_cg") {
+        return add_criteria_precond_finalize<gko::solver::PipeCg<etype>>(
             exec, precond, max_iters);
     } else if (description == "idr") {
         return add_criteria_precond_finalize(
