@@ -382,7 +382,7 @@ The supported environment variables are described in the following list:
     library formats (cuSPARSE with `cusparse_` prefix or hipSPARSE with `hipsparse_`
     prefix) can be used as well. Multiple options can be passed. The default is
     `csr,coo,ell,hybrid,sellp`.
-* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
+* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,pipe_cg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
     - the solvers which should be benchmarked. Multiple options can be passed.
     The default is `bicgstab,cg,cgs,fcg,gmres,idr`. Note that `lower/upper_trs`
     by default don't use a preconditioner, as they are by default exact direct
