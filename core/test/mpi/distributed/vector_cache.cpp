@@ -480,7 +480,7 @@ TYPED_TEST(GenericVectorCache, GenericCanInitWithSizeAndType)
     ASSERT_EQ(second_buffer->get_communicator(), this->comm);
     ASSERT_EQ(second_buffer->get_executor(), this->ref);
     if (sizeof(another_type) > sizeof(value_type)) {
-        // the requring workspace will be bigger if the type is larger.
+        // the requiring workspace will be bigger if the type is larger.
         ASSERT_NE(
             array_ptr,
             generic_accessor::get_workspace(this->cache).get_const_data());
