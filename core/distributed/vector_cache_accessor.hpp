@@ -6,13 +6,12 @@
 #define GKO_CORE_DISTRIBUTED_VECTOR_CACHE_ACCESSOR_HPP_
 
 
-#include <iostream>
-#include <map>
-#include <string>
-
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
+
+
+#if GINKGO_BUILD_MPI
 
 
 namespace gko {
@@ -25,7 +24,9 @@ namespace detail {
 class GenericVectorCacheAccessor {
 public:
     // access to the workspace
-    static const array<char>& get_workspace(const GenericVectorCache& cache);
+    static const array<char>& get_workspace(
+        const gko::experimental::distributed::detail::GenericVectorCache&
+            cache);
 };
 
 
@@ -35,4 +36,5 @@ public:
 }  // namespace gko
 
 
+#endif
 #endif  // GKO_CORE_DISTRIBUTED_VECTOR_CACHE_ACCESSOR_HPP_

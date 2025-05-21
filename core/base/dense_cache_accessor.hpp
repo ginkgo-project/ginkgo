@@ -6,7 +6,6 @@
 #define GKO_CORE_BASE_DENSE_CACHE_ACCESSOR_HPP_
 
 
-#include <iostream>
 #include <map>
 #include <string>
 
