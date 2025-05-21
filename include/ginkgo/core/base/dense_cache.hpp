@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,12 +6,21 @@
 #define GKO_PUBLIC_CORE_BASE_DENSE_CACHE_HPP_
 
 
+#include <map>
 #include <memory>
+#include <string>
 
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
 
 namespace gko {
+
+
+class LinOp;
+
+
 namespace matrix {
 
 
@@ -87,6 +96,83 @@ struct DenseCache {
      * @return  Pointer to the stored vector.
      */
     matrix::Dense<ValueType>* get() const { return vec.get(); }
+};
+
+
+// helper to access private member for testing
+class GenericDenseCacheAccessor;
+
+
+/**
+ * Manages a workspace to give Dense Vector with different value_type. The
+ * workspace is buffered and reused internally to avoid repeated allocations.
+ * Copying an instance will only yield an empty object since copying the cached
+ * vector would not make sense. The stored object is always mutable, so the
+ * cache can be used in a const-context.
+ *
+ * @internal  The struct is present to wrap cache-like buffer storage that will
+ *            not be copied when the outer object gets copied.
+ */
+struct GenericDenseCache {
+    friend class GenericDenseCacheAccessor;
+
+    GenericDenseCache() = default;
+    ~GenericDenseCache() = default;
+    GenericDenseCache(const GenericDenseCache&);
+    GenericDenseCache(GenericDenseCache&&) noexcept;
+    GenericDenseCache& operator=(const GenericDenseCache&);
+    GenericDenseCache& operator=(GenericDenseCache&&) noexcept;
+
+    /**
+     * Pointer access to the underlying vector with specific type.
+     *
+     * @return  Pointer to the vector view.
+     */
+    template <typename ValueType>
+    std::shared_ptr<matrix::Dense<ValueType>> get(
+        std::shared_ptr<const Executor> exec, dim<2> size) const;
+
+private:
+    mutable array<char> workspace;
+};
+
+
+// helper to access private member for testing.
+class ScalarCacheAccessor;
+
+
+/**
+ * Manages a map to store Dense Scalar with different value_type by a
+ * user-specified value. The workspace is buffered and reused internally to
+ * avoid repeated allocations. Copying an instance will only yield an empty
+ * object since copying the cached vector would not make sense. The stored
+ * object is always mutable, so the cache can be used in a const-context.
+ *
+ * @internal  The struct is present to wrap cache-like buffer storage that will
+ *            not be copied when the outer object gets copied.
+ */
+struct ScalarCache {
+    friend class ScalarCacheAccessor;
+
+    ScalarCache(std::shared_ptr<const Executor> executor, double scalar_value);
+    ~ScalarCache() = default;
+    ScalarCache(const ScalarCache& other);
+    ScalarCache(ScalarCache&& other) noexcept;
+    ScalarCache& operator=(const ScalarCache& other);
+    ScalarCache& operator=(ScalarCache&& other) noexcept;
+
+    /**
+     * Pointer access to the underlying vector with specific type.
+     *
+     * @return  Pointer to the vector view.
+     */
+    template <typename ValueType>
+    std::shared_ptr<const matrix::Dense<ValueType>> get() const;
+
+private:
+    std::shared_ptr<const Executor> exec;
+    double value;
+    mutable std::map<std::string, std::shared_ptr<const gko::LinOp>> scalars;
 };
 
 

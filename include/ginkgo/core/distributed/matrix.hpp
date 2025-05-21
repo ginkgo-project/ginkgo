@@ -699,9 +699,9 @@ protected:
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
     index_map<local_index_type, global_index_type> imap_;
-    gko::detail::DenseCache<value_type> one_scalar_;
-    detail::VectorCache<value_type> recv_buffer_;
-    detail::VectorCache<value_type> host_recv_buffer_;
+    gko::detail::ScalarCache one_scalar_;
+    detail::GenericVectorCache recv_buffer_;
+    detail::GenericVectorCache host_recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };

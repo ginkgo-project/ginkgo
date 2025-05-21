@@ -62,8 +62,6 @@ DEBUG: end   copy
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: end   copy(<typename>)
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
 DEBUG: begin distributed_matrix::separate_local_nonlocal
@@ -148,6 +146,8 @@ DEBUG: begin advanced_apply(<typename>)
 DEBUG: begin csr::advanced_spmv
 DEBUG: end   csr::advanced_spmv
 DEBUG: end   advanced_apply(<typename>)
+DEBUG: begin dense::fill
+DEBUG: end   dense::fill
 DEBUG: begin advanced_apply(<typename>)
 DEBUG: begin csr::advanced_spmv
 DEBUG: end   csr::advanced_spmv
