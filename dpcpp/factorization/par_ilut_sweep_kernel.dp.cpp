@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -108,7 +108,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
                        ut_vals[ut_idx + ut_col_begin];
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(ut_row == row);
+            auto found_transp = group::ballot(subwarp, ut_row == row);
             if (found_transp) {
                 ut_nz =
                     subwarp.shfl(ut_idx + ut_col_begin, ffs(found_transp) - 1);

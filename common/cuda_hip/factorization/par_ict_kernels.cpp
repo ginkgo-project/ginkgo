@@ -12,6 +12,7 @@
 
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/merging.hpp"
@@ -75,8 +76,8 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_nnz(
             IndexType llh_col, IndexType out_nz, bool valid) {
             auto col = min(a_col, llh_col);
             // count the number of unique elements being merged
-            count +=
-                popcnt(subwarp.ballot(col <= row && a_col != llh_col && valid));
+            count += popcnt(group::ballot(
+                subwarp, col <= row && a_col != llh_col && valid));
             return true;
         });
     if (subwarp.thread_rank() == 0) {
@@ -149,7 +150,8 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         auto llh_cur_val = subwarp.shfl(llh_val, merge_result.b_idx);
         auto valid = out_begin + lane < out_size;
         // check if the previous thread has matching columns
-        auto equal_mask = subwarp.ballot(a_cur_col == llh_cur_col && valid);
+        auto equal_mask =
+            group::ballot(subwarp, a_cur_col == llh_cur_col && valid);
         auto prev_equal_mask = equal_mask << 1 | skip_first;
         skip_first = bool(equal_mask >> (subwarp_size - 1));
         auto prev_equal = bool(prev_equal_mask & lanemask_eq);
@@ -179,7 +181,7 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         // determine which threads will write output to L
         auto use_l = l_cur_col == r_col;
         auto do_write = !prev_equal && valid && r_col <= row;
-        auto l_new_advance_mask = subwarp.ballot(do_write);
+        auto l_new_advance_mask = group::ballot(subwarp, do_write);
         // store values
         if (do_write) {
             auto diag = l_vals[l_row_ptrs[r_col + 1] - 1];
@@ -192,7 +194,7 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         // advance *_begin offsets
         auto a_advance = merge_result.a_advance;
         auto llh_advance = merge_result.b_advance;
-        auto l_advance = popcnt(subwarp.ballot(do_write && use_l));
+        auto l_advance = popcnt(group::ballot(subwarp, do_write && use_l));
         auto l_new_advance = popcnt(l_new_advance_mask);
         a_begin += a_advance;
         llh_begin += llh_advance;
@@ -295,7 +297,7 @@ __global__ __launch_bounds__(default_block_size) void ict_sweep(
                        conj(load_relaxed(l_vals + (lh_idx + lh_col_begin)));
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(lh_row == row);
+            auto found_transp = group::ballot(subwarp, lh_row == row);
             if (found_transp) {
                 lh_nz =
                     subwarp.shfl(lh_idx + lh_col_begin, ffs(found_transp) - 1);

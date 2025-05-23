@@ -203,7 +203,7 @@ void add_missing_diagonal_elements(
                     thread_is_active ? old_col_idxs[old_idx] : IndexType{};
                 // automatically false if thread is not active
                 bool diagonal_add_required = !diagonal_added && row < col_idx;
-                auto ballot = subwarp_grp.ballot(diagonal_add_required);
+                auto ballot = group::ballot(subwarp_grp, diagonal_add_required);
 
                 if (ballot) {
                     auto first_subwarp_idx = ffs(ballot) - 1;

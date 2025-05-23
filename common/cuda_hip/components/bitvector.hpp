@@ -49,7 +49,7 @@ __global__ __launch_bounds__(default_block_size) void from_predicate(
         group::tiled_partition<block_size>(group::this_thread_block());
     const auto i = static_cast<IndexType>(subwarp_base + subwarp.thread_rank());
     const auto bit = i < size ? predicate(i) : false;
-    const auto mask = subwarp.ballot(bit);
+    const auto mask = group::ballot(subwarp, bit);
     if (subwarp.thread_rank() == 0) {
         bits[subwarp_id] = mask;
         popcounts[subwarp_id] = gko::detail::popcount(mask);

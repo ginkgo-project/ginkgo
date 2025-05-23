@@ -609,7 +609,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
         a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
         [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
             bool valid) {
-            count += popcnt(subwarp.ballot(a_col != b_col && valid));
+            count += popcnt(group::ballot(subwarp, a_col != b_col && valid));
             return true;
         });
 
@@ -657,7 +657,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
         [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
             IndexType, bool valid) {
             auto c_col = min(a_col, b_col);
-            auto equal_mask = subwarp.ballot(a_col == b_col && valid);
+            auto equal_mask = group::ballot(subwarp, a_col == b_col && valid);
             // check if the elements in the previous merge step are
             // equal
             auto prev_equal_mask = equal_mask << 1 | skip_first;
