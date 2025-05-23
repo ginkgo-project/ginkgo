@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -374,6 +374,28 @@ __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
     const Group& g)
 {
     return cooperative_groups::tiled_partition<Size>(g);
+}
+
+
+/**
+ * During cuda12.2 - cuda12.4, compiler might have some optimization issue on
+ * ballot on H100. The ballot result on subwarp might keep the result from the
+ * other subwarp in the same warp. For example with subwarp size = 8, subwarp 0
+ * will get the result from (subwarp 3, subwarp 2, subwarp 1, subwarp 0),
+ * subwarp 1 will get the result from (subwarp 3, subwarp 2, subwarp 1), and so
+ * on so forth. They are shifted but not masked. cuda 12.1.1 and cuda 12.5.1
+ * does not have the issue.
+ */
+template <typename Group>
+__device__ __forceinline__ auto ballot(const Group& g, int predicate)
+{
+#if CUDA_VERSION >= 12020 && CUDA_VERSION < 12051
+    constexpr auto subwarp_mask =
+        ~config::lane_mask_type{} >> (config::warp_size - g.size());
+    return subwarp_mask & g.ballot(predicate);
+#else
+    return g.ballot(predicate);
+#endif
 }
 
 
