@@ -156,10 +156,11 @@ __dpct_inline__ void generic_generate(
                 i_col_idxs + i_row_begin, i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
-                    rhs_one_idx += popcnt(subwarp.ballot(
+                    rhs_one_idx += popcnt(group::ballot(
+                        subwarp,
                         valid &&
-                        i_col_idxs[i_transposed_row_begin + m_idx] < row &&
-                        col == row));
+                            i_col_idxs[i_transposed_row_begin + m_idx] < row &&
+                            col == row));
                 });
         }
 

@@ -143,7 +143,7 @@ __global__ __launch_bounds__(default_block_size) void symbolic_factorize(
         const auto next_node =
             nz < lower_end - 1 ? postorder_cols[nz + 1] : diag_postorder;
         bool pred = node < next_node;
-        auto mask = subwarp.ballot(pred);
+        auto mask = group::ballot(subwarp, pred);
         while (mask) {
             if (pred) {
                 const auto out_nz = out_base + popcnt(mask & prefix_mask);
@@ -152,7 +152,7 @@ __global__ __launch_bounds__(default_block_size) void symbolic_factorize(
                 pred = node < next_node;
             }
             out_base += popcnt(mask);
-            mask = subwarp.ballot(pred);
+            mask = group::ballot(subwarp, pred);
         }
     }
     // add diagonal entry

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -120,9 +120,9 @@ __global__ void cg_ballot(bool* s)
 {
     auto group =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
-    test_assert(s, group.ballot(false) == 0);
-    test_assert(s, group.ballot(true) == ~config::lane_mask_type{});
-    test_assert(s, group.ballot(threadIdx.x < 4) == 0xf);
+    test_assert(s, group::ballot(group, false) == 0);
+    test_assert(s, group::ballot(group, true) == ~config::lane_mask_type{});
+    test_assert(s, group::ballot(group, threadIdx.x < 4) == 0xf);
 }
 
 
@@ -223,17 +223,18 @@ __global__ void cg_subwarp_ballot(bool* s)
     auto group =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     auto i = group.thread_rank();
-    test_assert(s, !test_grp || group.ballot(!test_grp) == 0);
-    test_assert(s, !test_grp || group.ballot(test_grp) == full_mask);
-    test_assert(s, !test_grp || group.ballot(i < 4 || !test_grp) == 0xf);
+    test_assert(s, !test_grp || group::ballot(group, !test_grp) == 0);
+    test_assert(s, !test_grp || group::ballot(group, test_grp) == full_mask);
+    test_assert(s,
+                !test_grp || group::ballot(group, i < 4 || !test_grp) == 0xf);
     if (test_grp) {
-        test_assert(s, group.ballot(false) == 0);
-        test_assert(s, group.ballot(true) == full_mask);
-        test_assert(s, group.ballot(i < 4) == 0xf);
+        test_assert(s, group::ballot(group, false) == 0);
+        test_assert(s, group::ballot(group, true) == full_mask);
+        test_assert(s, group::ballot(group, i < 4) == 0xf);
     } else {
-        test_assert(s, group.ballot(true) == full_mask);
-        test_assert(s, group.ballot(i < 4) == 0xf);
-        test_assert(s, group.ballot(false) == 0);
+        test_assert(s, group::ballot(group, true) == full_mask);
+        test_assert(s, group::ballot(group, i < 4) == 0xf);
+        test_assert(s, group::ballot(group, false) == 0);
     }
 }
 

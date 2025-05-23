@@ -10,6 +10,7 @@
 
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/merging.hpp"
@@ -105,7 +106,7 @@ __global__ __launch_bounds__(default_block_size) void sweep(
                        load_relaxed(ut_vals + (ut_idx + ut_col_begin));
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(ut_row == row);
+            auto found_transp = group::ballot(subwarp, ut_row == row);
             if (found_transp) {
                 ut_nz =
                     subwarp.shfl(ut_idx + ut_col_begin, ffs(found_transp) - 1);
