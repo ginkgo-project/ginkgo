@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -113,14 +113,17 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     // for each lower triangular entry: eliminate with corresponding row
     for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
         const auto dep = cols[lower_nz];
-        // we can load the value before synchronizing because the following
-        // updates only go past the diagonal of the dependency row, i.e. at
-        // least column dep + 1
-        const auto val = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
         scheduler.wait(dep);
+        // We need to load vals after synchronize.
+        // the next lower_nz might be modified if the dep row has the same col
+        // as next lower_nz's col.
+        const auto val = vals[lower_nz];
         const auto diag = vals[diag_idx];
+        // we need sync to ensure all threads get the data before assigning to
+        // scale.
+        warp.sync();
         const auto scale = val / diag;
         if (lane == 0) {
             vals[lower_nz] = scale;
