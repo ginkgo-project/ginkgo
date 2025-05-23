@@ -248,7 +248,7 @@ template <typename ValueType, typename VectorType>
 void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
                         VectorType* krylov_bases, VectorType* next_krylov,
                         matrix::Dense<ValueType>* hessenberg_aux,
-                        matrix::Dense<ValueType>* one_op,
+                        const matrix::Dense<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
                         size_type num_rhs, size_type local_num_rows)
 {
