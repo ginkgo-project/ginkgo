@@ -386,12 +386,13 @@ __device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
  * on so forth. They are shifted but not masked. cuda 12.1.1 and cuda 12.5.1
  * does not have the issue.
  */
-template <typename Group>
-__device__ __forceinline__ auto ballot(const Group& g, int predicate)
+template <unsigned Size, typename Parent>
+__device__ __forceinline__ auto ballot(const thread_block_tile<Size, Parent>& g,
+                                       int predicate)
 {
 #if CUDA_VERSION >= 12020 && CUDA_VERSION < 12051
     constexpr auto subwarp_mask =
-        ~config::lane_mask_type{} >> (config::warp_size - g.size());
+        ~config::lane_mask_type{} >> (config::warp_size - Size);
     return subwarp_mask & g.ballot(predicate);
 #else
     return g.ballot(predicate);
