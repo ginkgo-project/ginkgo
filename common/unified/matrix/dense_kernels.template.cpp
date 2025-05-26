@@ -33,18 +33,23 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
-            if constexpr (sizeof(remove_complex<InValueType>) ==
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using source_type =
+                std::remove_cv_t<std::decay_t<decltype(input(0, 0))>>;
+            using target_type =
+                std::remove_cv_t<std::decay_t<decltype(output(0, 0))>>;
+            if constexpr (sizeof(remove_complex<source_type>) ==
                               sizeof(int16) &&
-                          sizeof(remove_complex<OutValueType>) ==
+                          sizeof(remove_complex<target_type>) ==
                               sizeof(int16)) {
-                if constexpr (is_complex<InValueType>()) {
-                    output(row, col) = static_cast<device_type<OutValueType>>(
+                if constexpr (is_complex<source_type>()) {
+                    output(row, col) = static_cast<device_type<target_type>>(
                         static_cast<device_type<std::complex<float>>>(
                             input(row, col)));
                 } else {
-                    output(row, col) = static_cast<device_type<OutValueType>>(
+                    output(row, col) = static_cast<device_type<target_type>>(
                         static_cast<device_type<float>>(input(row, col)));
                 }
             } else
@@ -456,16 +461,23 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
-            if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16) &&
-                          sizeof(remove_complex<OutputType>) == sizeof(int16)) {
-                if constexpr (is_complex<ValueType>()) {
-                    gathered(row, col) = static_cast<device_type<OutputType>>(
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using source_type =
+                std::remove_cv_t<std::decay_t<decltype(orig(0, 0))>>;
+            using target_type =
+                std::remove_cv_t<std::decay_t<decltype(gathered(0, 0))>>;
+            if constexpr (sizeof(remove_complex<source_type>) ==
+                              sizeof(int16) &&
+                          sizeof(remove_complex<target_type>) ==
+                              sizeof(int16)) {
+                if constexpr (is_complex<source_type>()) {
+                    gathered(row, col) = static_cast<device_type<target_type>>(
                         static_cast<device_type<std::complex<float>>>(
                             orig(rows[row], col)));
                 } else {
-                    gathered(row, col) = static_cast<device_type<OutputType>>(
+                    gathered(row, col) = static_cast<device_type<target_type>>(
                         static_cast<device_type<float>>(orig(rows[row], col)));
                 }
             } else

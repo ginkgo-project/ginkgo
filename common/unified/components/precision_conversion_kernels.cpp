@@ -20,15 +20,25 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
-            if constexpr (sizeof(remove_complex<SourceType>) == sizeof(int16) &&
-                          sizeof(remove_complex<TargetType>) == sizeof(int16)) {
-                if constexpr (is_complex<SourceType>()) {
-                    out[idx] = static_cast<device_type<TargetType>>(
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            // need to use the type from lambda not template type directly
+            // because cuda still checks the function availability in unused
+            // branch like no constexpr.
+            using source_type = std::remove_cv_t<
+                std::remove_pointer_t<std::decay_t<decltype(in)>>>;
+            using target_type = std::remove_cv_t<
+                std::remove_pointer_t<std::decay_t<decltype(out)>>>;
+            if constexpr (sizeof(remove_complex<source_type>) ==
+                              sizeof(int16) &&
+                          sizeof(remove_complex<target_type>) ==
+                              sizeof(int16)) {
+                if constexpr (is_complex<source_type>()) {
+                    out[idx] = static_cast<device_type<target_type>>(
                         static_cast<device_type<std::complex<float>>>(in[idx]));
                 } else {
-                    out[idx] = static_cast<device_type<TargetType>>(
+                    out[idx] = static_cast<device_type<target_type>>(
                         static_cast<device_type<float>>(in[idx]));
                 }
             } else
