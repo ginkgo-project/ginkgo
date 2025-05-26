@@ -43,10 +43,15 @@ namespace csr {
 
 
 /**
- * Computes the begin offsets into A and B for the specific diagonal
+ * Computes the begin offsets into A (the number of rows) and B (the number of
+ * stored element), which intersect the diagonal line. The diagonal line is
+ * formed by the reaching point with the `diagonal` step from the starting
+ * point.
  *
- * @param diagonal  the diagonal to search
- * @param end_row_offsets  the ending of row offsets of A
+ * @param diagonal  the diagonal line to search
+ * @param row_end_ptrs  the pointer to the ending of row offset of A.
+ *                     row_end_ptrs[i] gives the ending in the value/column
+ * array for row_i.
  * @param a_len  the length of A (the number of rows)
  * @param b_len  the length of B (the number of stored elements)
  *
@@ -55,7 +60,7 @@ namespace csr {
  */
 template <typename IndexType>
 inline std::pair<IndexType, IndexType> merge_path_search(
-    const IndexType diagonal, const IndexType* end_row_offsets,
+    const IndexType diagonal, const IndexType* row_end_ptrs,
     const IndexType a_len, const IndexType b_len)
 {
     auto x_min = std::max(diagonal - b_len, zero<IndexType>());
@@ -63,7 +68,7 @@ inline std::pair<IndexType, IndexType> merge_path_search(
 
     while (x_min < x_max) {
         auto x_pivot = x_min + ((x_max - x_min) / 2);
-        if (end_row_offsets[x_pivot] <= (diagonal - x_pivot - 1)) {
+        if (row_end_ptrs[x_pivot] <= (diagonal - x_pivot - 1)) {
             x_min = x_pivot + 1;  // Contract range up A (down B)
         } else {
             x_max = x_pivot;  // Contract range down A (up B)
@@ -99,17 +104,17 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto num_rows = static_cast<IndexType>(a->get_size()[0]);
     const auto nnz = static_cast<IndexType>(a->get_num_stored_elements());
     const auto num_threads = static_cast<IndexType>(omp_get_max_threads());
-    // Merge list A: row end offsets
-    const IndexType* row_end_offsets = row_ptrs + 1;
+    // Merge list A: row end ptr
+    const IndexType* row_end_ptrs = row_ptrs + 1;
     // Merge path total length
     const auto num_merge_items = num_rows + nnz;
     // Merge items per thread
     const auto items_per_thread =
         static_cast<IndexType>(ceildiv(num_merge_items, num_threads));
-    array<IndexType> row_carry_out{exec, num_threads};
-    array<arithmetic_type> value_carry_out{exec, num_threads};
-    auto row_carry_out_ptr = row_carry_out.get_data();
-    auto value_carry_out_ptr = value_carry_out.get_data();
+    array<IndexType> row_carry_over(exec, num_threads);
+    array<arithmetic_type> value_carry_over(exec, num_threads);
+    auto row_carry_over_ptr = row_carry_over.get_data();
+    auto value_carry_over_ptr = value_carry_over.get_data();
 
     // TODO: parallelize with number of cols, too.
     for (size_type j = 0; j < c->get_size()[1]; ++j) {
@@ -123,14 +128,14 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
             const auto end_diagonal =
                 std::min(start_diagonal + items_per_thread, num_merge_items);
 
-            auto [x, y] = merge_path_search(start_diagonal, row_end_offsets,
-                                            num_rows, nnz);
+            auto [x, y] =
+                merge_path_search(start_diagonal, row_end_ptrs, num_rows, nnz);
             auto [end_x, end_y] =
-                merge_path_search(end_diagonal, row_end_offsets, num_rows, nnz);
+                merge_path_search(end_diagonal, row_end_ptrs, num_rows, nnz);
             // Consume merge items, whole rows first
             for (; x < end_x; x++) {
                 auto sum = zero<arithmetic_type>();
-                for (; y < row_end_offsets[x]; y++) {
+                for (; y < row_end_ptrs[x]; y++) {
                     arithmetic_type val = a_vals(y);
                     auto col = col_idxs[y];
                     sum += val * b_vals(col, j);
@@ -146,17 +151,17 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
                 sum += val * b_vals(col, j);
             }
 
-            // Save carry-outs
-            row_carry_out_ptr[tid] = end_x;
-            value_carry_out_ptr[tid] = alpha_op(sum);
+            // Save carry over
+            row_carry_over_ptr[tid] = end_x;
+            value_carry_over_ptr[tid] = alpha_op(sum);
         }
 
-        // Carry-out fix-up (rows spanning multiple threads)
-        // The last thread does not carry out partial result becaust it must
-        // compute the result till the last row end.
+        // Carry over fix-up (rows spanning multiple threads)
+        // The carry over from thread `tid` to `tid + 1` is added by the thread
+        // `tid`, thus the last thread has no work.
         for (IndexType tid = 0; tid < num_threads - 1; tid++) {
-            if (row_carry_out_ptr[tid] < num_rows) {
-                c_vals(row_carry_out_ptr[tid], j) += value_carry_out_ptr[tid];
+            if (row_carry_over_ptr[tid] < num_rows) {
+                c_vals(row_carry_over_ptr[tid], j) += value_carry_over_ptr[tid];
             }
         }
     }
