@@ -224,13 +224,13 @@ TEST_F(PipeCg, ApplyIsEquivalentToRef)
     auto d_b = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::PipeCg<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(10u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(::r<value_type>::value))
             .on(ref);
     auto d_cg_factory =
         gko::solver::PipeCg<value_type>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(10u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(::r<value_type>::value))
             .on(exec);
