@@ -195,6 +195,65 @@ struct is_complex_or_scalar_impl<thrust::complex<T>>
     : public is_complex_or_scalar_impl<T> {};
 
 
+template <>
+struct highest_precision_impl<__half, vendor_bf16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, __half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__half, float> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<float, __half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<__half, double> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<double, __half> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, float> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<float, vendor_bf16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, double> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<double, vendor_bf16> {
+    using type = double;
+};
+
+
+template <typename T1, typename T2>
+struct highest_precision_impl<GKO_THRUST_QUALIFIER::complex<T1>,
+                              GKO_THRUST_QUALIFIER::complex<T2>> {
+    using type = GKO_THRUST_QUALIFIER::complex<
+        typename highest_precision_impl<T1, T2>::type>;
+};
+
+
 }  // namespace detail
 }  // namespace gko
 
