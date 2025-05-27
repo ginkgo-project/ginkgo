@@ -38,8 +38,12 @@ TYPED_TEST(HigestPrecision, DeviceShouldBeSameAsHost)
     using first_type = typename TestFixture::first_type;
     using second_type = typename TestFixture::second_type;
 
-    ::testing::StaticAssertTypeEq<
-        gko::highest_precision<device_type<first_type>,
-                               device_type<second_type>>,
-        device_type<gko::highest_precision<first_type, second_type>>>();
+    // use std::is_same_v not StaticAssertTypeEq here. StaticAssertTypeEq shows
+    // the final types are mismatched, so it is hard to know which pair is
+    // failed.
+    ASSERT_TRUE(
+        (std::is_same_v<
+            gko::highest_precision<device_type<first_type>,
+                                   device_type<second_type>>,
+            device_type<gko::highest_precision<first_type, second_type>>>));
 }
