@@ -36,22 +36,14 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
 #if defined(GKO_COMPILING_DPCPP) ||                            \
     (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
     (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
-            using source_type =
-                std::remove_cv_t<std::decay_t<decltype(input(0, 0))>>;
-            using target_type =
-                std::remove_cv_t<std::decay_t<decltype(output(0, 0))>>;
-            if constexpr (sizeof(remove_complex<source_type>) ==
+            using bridge_type =
+                device_type<highest_precision<InValueType, OutValueType>>;
+            if constexpr (sizeof(remove_complex<InValueType>) ==
                               sizeof(int16) &&
-                          sizeof(remove_complex<target_type>) ==
+                          sizeof(remove_complex<OutValueType>) ==
                               sizeof(int16)) {
-                if constexpr (is_complex<source_type>()) {
-                    output(row, col) = static_cast<device_type<target_type>>(
-                        static_cast<device_type<std::complex<float>>>(
-                            input(row, col)));
-                } else {
-                    output(row, col) = static_cast<device_type<target_type>>(
-                        static_cast<device_type<float>>(input(row, col)));
-                }
+                output(row, col) = static_cast<device_type<OutValueType>>(
+                    static_cast<bridge_type>(input(row, col)));
             } else
 #endif
             {
@@ -464,22 +456,12 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
 #if defined(GKO_COMPILING_DPCPP) ||                            \
     (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
     (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
-            using source_type =
-                std::remove_cv_t<std::decay_t<decltype(orig(0, 0))>>;
-            using target_type =
-                std::remove_cv_t<std::decay_t<decltype(gathered(0, 0))>>;
-            if constexpr (sizeof(remove_complex<source_type>) ==
-                              sizeof(int16) &&
-                          sizeof(remove_complex<target_type>) ==
-                              sizeof(int16)) {
-                if constexpr (is_complex<source_type>()) {
-                    gathered(row, col) = static_cast<device_type<target_type>>(
-                        static_cast<device_type<std::complex<float>>>(
-                            orig(rows[row], col)));
-                } else {
-                    gathered(row, col) = static_cast<device_type<target_type>>(
-                        static_cast<device_type<float>>(orig(rows[row], col)));
-                }
+            using bridge_type =
+                device_type<highest_precision<ValueType, OutputType>>;
+            if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16) &&
+                          sizeof(remove_complex<OutputType>) == sizeof(int16)) {
+                gathered(row, col) = static_cast<device_type<OutputType>>(
+                    static_cast<bridge_type>(orig(rows[row], col)));
             } else
 #endif
             {
