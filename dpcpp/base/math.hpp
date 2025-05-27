@@ -93,6 +93,55 @@ template <typename T>
 struct is_complex_or_scalar_impl<gko::complex<T>>
     : public is_complex_or_scalar_impl<T> {};
 
+template <>
+struct highest_precision_impl<sycl::half, vendor_bf16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, sycl::half> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, float> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<float, vendor_bf16> {
+    using type = float;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, double> {
+    using type = double;
+};
+
+template <>
+struct highest_precision_impl<double, vendor_bf16> {
+    using type = double;
+};
+
+
+template <typename T1, typename T2>
+struct highest_precision_impl<gko::complex<T1>, gko::complex<T2>> {
+    using type = typename complex_helper<
+        typename highest_precision_impl<T1, T2>::type>::type;
+};
+
+template <typename T1, typename T2>
+struct highest_precision_impl<std::complex<T1>, gko::complex<T2>> {
+    using type = typename complex_helper<
+        typename highest_precision_impl<T1, T2>::type>::type;
+};
+
+template <typename T1, typename T2>
+struct highest_precision_impl<gko::complex<T1>, std::complex<T2>> {
+    using type = typename complex_helper<
+        typename highest_precision_impl<T1, T2>::type>::type;
+};
+
 
 }  // namespace detail
 
