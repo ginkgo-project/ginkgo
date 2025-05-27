@@ -42,12 +42,138 @@ namespace omp {
 namespace csr {
 
 
+/**
+ * Computes the begin offsets into A (the number of rows) and B (the number of
+ * stored element), which intersect the diagonal line. The diagonal line is
+ * formed by the reaching point with the `diagonal` step from the starting
+ * point.
+ *
+ * @param diagonal  the diagonal line to search
+ * @param row_end_ptrs  the pointer to the ending of row offset of A.
+ *                     row_end_ptrs[i] gives the ending in the value/column
+ * array for row_i.
+ * @param a_len  the length of A (the number of rows)
+ * @param b_len  the length of B (the number of stored elements)
+ *
+ * @return a pair which contains (x, y) coordinate where diagonal intersects the
+ * merge path
+ */
+template <typename IndexType>
+inline std::pair<IndexType, IndexType> merge_path_search(
+    const IndexType diagonal, const IndexType* row_end_ptrs,
+    const IndexType a_len, const IndexType b_len)
+{
+    auto x_min = std::max(diagonal - b_len, zero<IndexType>());
+    auto x_max = std::min(diagonal, a_len);
+
+    while (x_min < x_max) {
+        auto x_pivot = x_min + ((x_max - x_min) / 2);
+        if (row_end_ptrs[x_pivot] <= (diagonal - x_pivot - 1)) {
+            x_min = x_pivot + 1;  // Contract range up A (down B)
+        } else {
+            x_max = x_pivot;  // Contract range down A (up B)
+        }
+    }
+
+    return std::make_pair(std::min(x_min, a_len), diagonal - x_min);
+}
+
+
 template <typename MatrixValueType, typename InputValueType,
-          typename OutputValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          typename OutputValueType, typename IndexType, typename AlphaOp,
+          typename BetaOp>
+void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
+                const matrix::Csr<MatrixValueType, IndexType>* a,
+                const matrix::Dense<InputValueType>* b,
+                matrix::Dense<OutputValueType>* c, AlphaOp alpha_op,
+                BetaOp beta_op)
+{
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
+    auto row_ptrs = a->get_const_row_ptrs();
+    auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    // Merge-SpMV variables
+    const auto num_rows = static_cast<IndexType>(a->get_size()[0]);
+    const auto nnz = static_cast<IndexType>(a->get_num_stored_elements());
+    const auto num_threads = static_cast<IndexType>(omp_get_max_threads());
+    // Merge list A: row end ptr
+    const IndexType* row_end_ptrs = row_ptrs + 1;
+    // Merge path total length
+    const auto num_merge_items = num_rows + nnz;
+    // Merge items per thread
+    const auto items_per_thread =
+        static_cast<IndexType>(ceildiv(num_merge_items, num_threads));
+    array<IndexType> row_carry_over(exec, num_threads);
+    array<arithmetic_type> value_carry_over(exec, num_threads);
+    auto row_carry_over_ptr = row_carry_over.get_data();
+    auto value_carry_over_ptr = value_carry_over.get_data();
+
+    // TODO: parallelize with number of cols, too.
+    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+        // TODO: It uses static from the observation of the previous
+        // experiments. Check it with different system and different kinds of
+        // schedule.
+#pragma omp parallel for schedule(static)
+        for (IndexType tid = 0; tid < num_threads; tid++) {
+            const auto start_diagonal =
+                std::min(items_per_thread * tid, num_merge_items);
+            const auto end_diagonal =
+                std::min(start_diagonal + items_per_thread, num_merge_items);
+
+            auto [x, y] =
+                merge_path_search(start_diagonal, row_end_ptrs, num_rows, nnz);
+            auto [end_x, end_y] =
+                merge_path_search(end_diagonal, row_end_ptrs, num_rows, nnz);
+            // Consume merge items, whole rows first
+            for (; x < end_x; x++) {
+                auto sum = zero<arithmetic_type>();
+                for (; y < row_end_ptrs[x]; y++) {
+                    arithmetic_type val = a_vals(y);
+                    auto col = col_idxs[y];
+                    sum += val * b_vals(col, j);
+                }
+                c_vals(x, j) = alpha_op(sum) + beta_op(c_vals(x, j));
+            }
+
+            // Consume partial portion of thread's last row
+            auto sum = zero<arithmetic_type>();
+            for (; y < end_y; y++) {
+                arithmetic_type val = a_vals(y);
+                auto col = col_idxs[y];
+                sum += val * b_vals(col, j);
+            }
+
+            // Save carry over
+            row_carry_over_ptr[tid] = end_x;
+            value_carry_over_ptr[tid] = alpha_op(sum);
+        }
+
+        // Carry over fix-up (rows spanning multiple threads)
+        // The carry over from thread `tid` to `tid + 1` is added by the thread
+        // `tid`, thus the last thread has no work.
+        for (IndexType tid = 0; tid < num_threads - 1; tid++) {
+            if (row_carry_over_ptr[tid] < num_rows) {
+                c_vals(row_carry_over_ptr[tid], j) += value_carry_over_ptr[tid];
+            }
+        }
+    }
+}
+
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType, typename Function>
+void classical_spmv(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Csr<MatrixValueType, IndexType>* a,
+                    const matrix::Dense<InputValueType>* b,
+                    matrix::Dense<OutputValueType>* c, Function lambda)
 {
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
@@ -72,8 +198,28 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 
                 sum += val * b_vals(col, j);
             }
-            c_vals(row, j) = sum;
+            c_vals(row, j) = lambda(sum, c_vals(row, j));
         }
+    }
+}
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
+{
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        merge_spmv(
+            exec, a, b, c, [](auto val) { return val; },
+            [](auto) { return zero<arithmetic_type>(); });
+    } else {
+        classical_spmv(exec, a, b, c, [](auto sum, auto) { return sum; });
     }
 }
 
@@ -92,29 +238,22 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 {
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
-
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
     auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
     auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
-
-    const auto a_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
-    const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-#pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            auto sum = is_zero(vbeta) ? zero(vbeta) : c_vals(row, j) * vbeta;
-            for (size_type k = row_ptrs[row];
-                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-                arithmetic_type val = a_vals(k);
-                auto col = col_idxs[k];
-                sum += valpha * val * b_vals(col, j);
-            }
-            c_vals(row, j) = sum;
-        }
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        merge_spmv(
+            exec, a, b, c, [valpha](auto val) { return valpha * val; },
+            [vbeta](auto val) {
+                return is_zero(vbeta) ? zero(vbeta) : val * vbeta;
+            });
+    } else {
+        classical_spmv(exec, a, b, c, [valpha, vbeta](auto sum, auto orig_val) {
+            auto scaled_orig_val =
+                is_zero(vbeta) ? zero(vbeta) : orig_val * vbeta;
+            return valpha * sum + scaled_orig_val;
+        });
     }
 }
 
