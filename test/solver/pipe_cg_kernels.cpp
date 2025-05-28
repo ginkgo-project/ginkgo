@@ -165,7 +165,7 @@ TEST_F(PipeCg, PipeCgInitialize2IsEquivalentToRef)
 }
 
 
-TEST_F(PipeCg, CgStep1IsEquivalentToRef)
+TEST_F(PipeCg, PipeCgStep1IsEquivalentToRef)
 {
     initialize_data();
 
@@ -186,7 +186,7 @@ TEST_F(PipeCg, CgStep1IsEquivalentToRef)
 }
 
 
-TEST_F(PipeCg, CgStep2IsEquivalentToRef)
+TEST_F(PipeCg, PipeCgStep2IsEquivalentToRef)
 {
     initialize_data();
 

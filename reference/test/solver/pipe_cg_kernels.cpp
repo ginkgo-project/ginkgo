@@ -553,9 +553,7 @@ TYPED_TEST(PipeCg, SolvesBigDenseSystem2)
 
     solver->apply(b, x);
 
-    // TODO: the tolerance is too big. We might need to design better tests by
-    // generating matrices with specific condition numbers and eigenvalue
-    // distributions and defining vectors with controlled vector norms.
+    // TODO: the tolerance is too big.
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 2 * 1e5);
 }
