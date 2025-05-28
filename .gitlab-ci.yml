@@ -64,7 +64,7 @@ release/latest/gcc:
     BUILD_TYPE: "Release"
     BUILD_OMP: "ON"
   tags:
-    - private_ci
+    - tum
     - cpu
 
 
@@ -85,7 +85,7 @@ release/latest/clang:
     BUILD_OMP: "ON"
     CXX_COMPILER: "clang++"
   tags:
-    - private_ci
+    - tum
     - cpu
 
 
@@ -94,7 +94,7 @@ release/latest/cuda:
     - .default_variables
     - .build_template
   stage: build
-  image: nvidia/cuda:12.6.3-devel-ubuntu24.04
+  image: nvidia/cuda:12.9.0-devel-ubuntu24.04
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
@@ -106,14 +106,14 @@ release/latest/cuda:
     BUILD_CUDA: "ON"
     CUDA_ARCH_STR: "-DCMAKE_CUDA_ARCHITECTURES=80"
   tags:
-    - nvidia-gpu
+    - nvidia-gpus
 
 
 release/latest/rocm:
   extends:
     - .default_variables
     - .build_template
-  image: rocm/dev-ubuntu-24.04:6.3-complete
+  image: rocm/dev-ubuntu-24.04:6.4.1-complete
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
@@ -132,7 +132,7 @@ release/latest/oneapi:
   extends:
     - .default_variables
     - .build_template
-  image: intel/oneapi-hpckit:2025.0.0-0-devel-ubuntu24.04
+  image: intel/oneapi-hpckit:2025.1.3-0-devel-ubuntu24.04
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
@@ -144,5 +144,4 @@ release/latest/oneapi:
     BUILD_SYCL: "ON"
     CXX_COMPILER: "icpx"
   tags:
-    - private_ci
-    - cpu
+    - intel-gpus
