@@ -13,7 +13,7 @@
 
 
 template <typename TwoTypes>
-class HigestPrecision : public ::testing::Test {
+class HighestPrecision : public ::testing::Test {
 public:
     using first_type =
         typename std::tuple_element<0, decltype(TwoTypes())>::type;
@@ -27,13 +27,13 @@ using TwoValueTypes = gko::test::merge_type_list_t<
     gko::test::cartesian_type_product_t<gko::test::ComplexValueTypes,
                                         gko::test::ComplexValueTypes>>;
 
-TYPED_TEST_SUITE(HigestPrecision, TwoValueTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(HighestPrecision, TwoValueTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
 using device_type = gko::kernels::GKO_DEVICE_NAMESPACE::device_type<T>;
 
-TYPED_TEST(HigestPrecision, DeviceShouldBeSameAsHost)
+TYPED_TEST(HighestPrecision, DeviceShouldBeSameAsHost)
 {
     using first_type = typename TestFixture::first_type;
     using second_type = typename TestFixture::second_type;

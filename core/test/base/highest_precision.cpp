@@ -90,7 +90,7 @@ TEST(HighestPrecision, DoubleCombinations)
 
 
 template <typename TwoRealType>
-class ComplexHigestPrecision : public ::testing::Test {
+class ComplexHighestPrecision : public ::testing::Test {
 public:
     using first_type =
         typename std::tuple_element<0, decltype(TwoRealType())>::type;
@@ -102,11 +102,11 @@ using TwoRealType =
     gko::test::cartesian_type_product_t<gko::test::RealValueTypes,
                                         gko::test::RealValueTypes>;
 
-TYPED_TEST_SUITE(ComplexHigestPrecision, TwoRealType,
+TYPED_TEST_SUITE(ComplexHighestPrecision, TwoRealType,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(ComplexHigestPrecision, ComplexBasedOnReal)
+TYPED_TEST(ComplexHighestPrecision, ComplexBasedOnReal)
 {
     using first_type = typename TestFixture::first_type;
     using second_type = typename TestFixture::second_type;
