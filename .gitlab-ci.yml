@@ -53,13 +53,12 @@ release/latest/gcc:
     - .default_variables
     - .build_template
   stage: build
-  image: archlinux
+  image: mkochkit/ginkgo-release:gcc-latest
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - pacman -Sy --noconfirm git gcc cmake ninja python3
   variables:
     BUILD_TYPE: "Release"
     BUILD_OMP: "ON"
@@ -73,13 +72,12 @@ release/latest/clang:
     - .default_variables
     - .build_template
   stage: build
-  image: archlinux
+  image: mkochkit/ginkgo-release:clang-latest
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - pacman -Sy --noconfirm git clang openmp cmake ninja python3
   variables:
     BUILD_TYPE: "Release"
     BUILD_OMP: "ON"
@@ -94,13 +92,12 @@ release/latest/cuda:
     - .default_variables
     - .build_template
   stage: build
-  image: nvidia/cuda:12.9.0-devel-ubuntu24.04
+  image: mkochkit/ginkgo-release:cuda-latest
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - apt update && apt install -y git cmake ninja-build python3
   variables:
     BUILD_TYPE: "Release"
     BUILD_CUDA: "ON"
@@ -113,14 +110,13 @@ release/latest/rocm:
   extends:
     - .default_variables
     - .build_template
-  image: rocm/dev-ubuntu-24.04:6.4.1-complete
+  image: mkochkit/ginkgo-release:rocm-latest
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
     - export CMAKE_PREFIX_PATH=/opt/rocm
-    - apt update && apt install -y git cmake ninja-build python3
   variables:
     BUILD_TYPE: "Release"
     BUILD_HIP: "ON"
@@ -132,13 +128,12 @@ release/latest/oneapi:
   extends:
     - .default_variables
     - .build_template
-  image: intel/oneapi-hpckit:2025.1.3-0-devel-ubuntu24.04
+  image: mkochkit/ginkgo-release:oneapi-latest
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - apt update && apt install -y ninja-build
   variables:
     BUILD_TYPE: "Release"
     BUILD_SYCL: "ON"
