@@ -33,20 +33,17 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using bridge_type =
+                device_type<highest_precision<InValueType, OutValueType>>;
             if constexpr (sizeof(remove_complex<InValueType>) ==
                               sizeof(int16) &&
                           sizeof(remove_complex<OutValueType>) ==
                               sizeof(int16)) {
-                if constexpr (is_complex<InValueType>()) {
-                    output(row, col) = static_cast<device_type<OutValueType>>(
-                        static_cast<device_type<std::complex<float>>>(
-                            input(row, col)));
-                } else {
-                    output(row, col) = static_cast<device_type<OutValueType>>(
-                        static_cast<device_type<float>>(input(row, col)));
-                }
+                output(row, col) = static_cast<device_type<OutValueType>>(
+                    static_cast<bridge_type>(input(row, col)));
             } else
 #endif
             {
@@ -456,18 +453,15 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using bridge_type =
+                device_type<highest_precision<ValueType, OutputType>>;
             if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16) &&
                           sizeof(remove_complex<OutputType>) == sizeof(int16)) {
-                if constexpr (is_complex<ValueType>()) {
-                    gathered(row, col) = static_cast<device_type<OutputType>>(
-                        static_cast<device_type<std::complex<float>>>(
-                            orig(rows[row], col)));
-                } else {
-                    gathered(row, col) = static_cast<device_type<OutputType>>(
-                        static_cast<device_type<float>>(orig(rows[row], col)));
-                }
+                gathered(row, col) = static_cast<device_type<OutputType>>(
+                    static_cast<bridge_type>(orig(rows[row], col)));
             } else
 #endif
             {

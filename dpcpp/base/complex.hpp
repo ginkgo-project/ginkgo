@@ -365,7 +365,7 @@ public:
         return *this;
     }
 
-#define COMPLEX_HALF_OPERATOR(_op, _opeq)                               \
+#define COMPLEX_BFLOAT16_OPERATOR(_op, _opeq)                           \
     friend complex operator _op(const complex& lhf, const complex& rhf) \
     {                                                                   \
         auto a = lhf;                                                   \
@@ -373,12 +373,36 @@ public:
         return a;                                                       \
     }
 
-    COMPLEX_HALF_OPERATOR(+, +=)
-    COMPLEX_HALF_OPERATOR(-, -=)
-    COMPLEX_HALF_OPERATOR(*, *=)
-    COMPLEX_HALF_OPERATOR(/, /=)
+    COMPLEX_BFLOAT16_OPERATOR(+, +=)
+    COMPLEX_BFLOAT16_OPERATOR(-, -=)
+    COMPLEX_BFLOAT16_OPERATOR(*, *=)
+    COMPLEX_BFLOAT16_OPERATOR(/, /=)
 
-#undef COMPLEX_HALF_OPERATOR
+#undef COMPLEX_BFLOAT16_OPERATOR
+
+// before 2024.2, the operation from sycl bfloat16 is too general such that the
+// operation between complex and real will use bfloat16 operation. Thus, we need
+// to provide here with higher priority in lookup.
+#define REAL_BFLOAT16_OPERATOR(_op, _opeq)                                 \
+    friend complex operator _op(const complex& lhf, const value_type& rhf) \
+    {                                                                      \
+        auto a = lhf;                                                      \
+        a _opeq rhf;                                                       \
+        return a;                                                          \
+    }                                                                      \
+    friend complex operator _op(const value_type& lhf, const complex& rhf) \
+    {                                                                      \
+        complex a = lhf;                                                   \
+        a _opeq rhf;                                                       \
+        return a;                                                          \
+    }
+
+    REAL_BFLOAT16_OPERATOR(+, +=)
+    REAL_BFLOAT16_OPERATOR(-, -=)
+    REAL_BFLOAT16_OPERATOR(*, *=)
+    REAL_BFLOAT16_OPERATOR(/, /=)
+
+#undef REAL_BFLOAT16_OPERATOR
 
     complex operator-() const { return complex(-real_, -imag_); }
 

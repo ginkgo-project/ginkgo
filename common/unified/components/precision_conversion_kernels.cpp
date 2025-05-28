@@ -20,17 +20,15 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-#if defined(GKO_COMPILING_DPCPP) || \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000)
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using bridge_type =
+                device_type<highest_precision<SourceType, TargetType>>;
             if constexpr (sizeof(remove_complex<SourceType>) == sizeof(int16) &&
                           sizeof(remove_complex<TargetType>) == sizeof(int16)) {
-                if constexpr (is_complex<SourceType>()) {
-                    out[idx] = static_cast<device_type<TargetType>>(
-                        static_cast<device_type<std::complex<float>>>(in[idx]));
-                } else {
-                    out[idx] = static_cast<device_type<TargetType>>(
-                        static_cast<device_type<float>>(in[idx]));
-                }
+                out[idx] = static_cast<device_type<TargetType>>(
+                    static_cast<bridge_type>(in[idx]));
             } else
 #endif
             {
