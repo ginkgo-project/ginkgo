@@ -264,21 +264,8 @@ std::vector<std::string> workspace_traits<PipeCg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r",
-        "z",
-        "p",
-        "w",
-        "m",
-        "n"
-        "q",
-        "f",
-        "g"
-        "beta",
-        "delta",
-        "prev_rho",
-        "rho",
-        "one",
-        "minus_one",
+        "r", "z",    "p",     "w",        "m",   "n",   "q",         "f",
+        "g", "beta", "delta", "prev_rho", "rho", "one", "minus_one",
     };
 }
 
