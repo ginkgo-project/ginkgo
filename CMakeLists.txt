@@ -161,8 +161,8 @@ option(
     ${PAPI_SDE_FOUND}
 )
 option(
-    GINKGO_DPCPP_SINGLE_MODE
-    "Do not compile double kernels for the DPC++ backend."
+    GINKGO_SYCL_SINGLE_MODE
+    "Do not compile double kernels for the DPC++(SYCL) backend."
     OFF
 )
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
@@ -202,6 +202,10 @@ if(${GINKGO_SPLIT_LIBRARY_NUM} LESS 1)
 endif()
 gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
 gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
+gko_rename_cache(
+    GINKGO_DPCPP_SINGLE_MODE GINKGO_SYCL_SINGLE_MODE BOOL
+    "Do not compile double kernels for the DPC++(SYCL) backend."
+)
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
