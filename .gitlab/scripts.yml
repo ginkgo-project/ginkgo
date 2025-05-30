@@ -149,6 +149,12 @@
       fi
     - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
     - export CXX_COMPILER_PATH=$(which ${CXX_COMPILER})
+    # rocm is built on the system not the spack gcc it only raise issue when linking test_install_hip due to different compiler
+    # LIBRARY_PATH only helps the compilation search not the linking search
+    # It requires cmake 3.21
+    - if [[ "${CXX_COMPILER_PATH}" =~ ^/storage.*g\+\+ ]] && [[ "${BUILD_HIP}" == "ON" ]] && [[ "${CXX_COMPILER}" = "g++" ]]; then
+      export HIPFLAGS="--gcc-toolchain=${CXX_COMPILER_PATH%/*/*}";
+      fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
@@ -167,26 +173,11 @@
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
-    
-    # spack does not add LD_LIBRARY_PATH now. Compiling Ginkgo without omp, it might take the system libstdc++.
-    # only load it when the current gcc is newer than the system one
-    # - | 
-    #   if [[ "${CXX_COMPILER_PATH}" =~ ^/storage.*g\+\+ ]]; then
-    #     export CXX_SOURCE=${CXX_COMPILER_PATH%/*/*}
-    #     export SYSTEM_VERSION=$(echo ${CXX_SOURCE} | sed -E 's~.*/gcc-([0-9\.]+)/.*~\1~g')
-    #     export CURRENT_VERSION=$(echo ${CXX_SOURCE} | sed -E 's~.*/gcc-([0-9\.]+)-.*~\1~g')
-    #     echo "SYSTEM ${SYSTEM_VERSION} CURRENT ${CURRENT_VERSION}"
-    #     if printf '%s\n%s\n' "$CURRENT_VERSION" "$SYSTEM_VERSION" | sort --check=quiet --version-sort; then
-    #       echo "CURRENT ${CURRENT_VERSION} <= SYSTEM ${SYSTEM_VERSION}, so we do not do anything"
-    #     else
-    #       echo "CURRENT ${CURRENT_VERSION} > SYSTEM ${SYSTEM_VERSION}, so we add path to LD_LIBRARY_PATH"
-    #       export LD_LIBRARY_PATH=${CXX_SOURCE}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-    #     fi
-    #   fi 
     # just set a lower value of parallel for sycl too many file open
-    - if [[ "${BUILD_SYCL}" == "ON" ]]; then
-        export NUM_CORES=16;
-      fi
+    # - if [[ "${BUILD_SYCL}" == "ON" ]]; then
+    #     export NUM_CORES=16;
+    #   fi
+    - echo "-j${NUM_CORES} -l${CI_LOAD_LIMIT}"
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
@@ -194,15 +185,9 @@
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_exportbuild
     # cuda module from spack does not add LD_LIBRARY_PATH
-    # - if [[ "${BUILD_CUDA}" == "ON" ]]; then
-    #   export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
-    #   fi
-    # rocm is built on the system not the spack gcc it only raise issue when linking test_install_hip due to different compiler
-    # LIBRARY_PATH only helps the compilation search not the linking search
-    # It requires cmake 3.21
-    # - if [[ "${CXX_COMPILER_PATH}" =~ ^/storage.*g\+\+ ]] && [[ "${BUILD_HIP}" == "ON" ]] && [[ "${CXX_COMPILER}" = "g++" ]]; then
-    #   export HIPFLAGS="--gcc-toolchain=${CXX_COMPILER_PATH%/*/*}";
-    #   fi
+    - if [[ "${BUILD_CUDA}" == "ON" ]]; then
+      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
+      fi
     - ninja test_install
     - pushd test/test_install
     - ninja install
