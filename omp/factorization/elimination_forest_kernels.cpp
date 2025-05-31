@@ -382,6 +382,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 struct elimination_forest_algorithm_state {
     constexpr static int num_buckets = CHAR_BIT * sizeof(IndexType) - 1;
+    constexpr static int log2_parallelism = 8;
+    constexpr static int parallelism = 1 << log2_parallelism;
     elimination_forest_algorithm_state(
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_nodes,
         IndexType num_edges, IndexType* tree_levels)
@@ -876,6 +878,108 @@ struct elimination_forest_algorithm_state {
         }
     }
 
+    // sort edges in preparation of base case
+    void sort_edges()
+    {
+        array<IndexType> tmp{exec};
+        constexpr auto num_sort_buckets = parallelism;
+        auto in_it =
+            detail::make_zip_iterator(in_edge_targets(), in_edge_sources());
+        auto out_it =
+            detail::make_zip_iterator(out_edge_targets(), out_edge_sources());
+        basecase_ranges = bucket_sort<num_sort_buckets>(
+            in_it, in_it + num_edges(), out_it,
+            [&](auto edge) {
+                return edge.template get<0>() >>
+                       (std::max(log2_parallelism, num_levels) -
+                        log2_parallelism);
+            },
+            tmp);
+#pragma omp parallel for
+        for (int i = 0; i < num_sort_buckets; i++) {
+            std::sort(out_it + basecase_ranges[i],
+                      out_it + basecase_ranges[i + 1]);
+        }
+        assert(std::is_sorted(out_it, out_it + num_edges()));
+    }
+
+    void basecase()
+    {
+        const auto parents = cc_parents.get();
+        const auto roots = cc_parents.get_other();
+        const auto srcs = in_edge_sources();
+        const auto tgts = in_edge_targets();
+#pragma omp parallel for
+        for (IndexType case_i = 0; case_i < parallelism; case_i++) {
+            const auto begin = basecase_ranges[case_i];
+            const auto end = basecase_ranges[case_i];
+            std::fill(parents + begin, parents + end, end);
+            std::iota(roots + begin, roots + end, begin);
+            auto set_find = [&](const auto i) {
+                auto cur = i;
+                while (parents[cur] < end) {
+                    cur = parents[cur];
+                }
+                auto rep = cur;
+                cur = i;
+                while (parents[cur] != rep) {
+                    const auto p = parents[cur];
+                    parents[cur] = rep;
+                    cur = p;
+                }
+                return rep;
+            };
+            auto set_join = [](const auto i, const auto j) {
+                assert(set_find(i) == i);
+                assert(set_find(j) == j);
+            };
+            const auto unattached = num_nodes;
+            auto row = begin;
+            auto row_rep = row;
+            for (auto i : irange{begin, end}) {
+                const auto new_row = tgts[i];
+                const auto col = srcs[i];
+                if (new_row != row) {
+                    row = new_row;
+                    row_rep = row;
+                }
+                const auto col_rep = set_find(col);
+                const auto col_root = roots[col_rep];
+                if (col_rep == col_root && col_root != row) {
+                }
+            }
+        }
+        /*
+        disjoint_sets<IndexType> subtrees{host_exec, num_rows};
+        array<IndexType> subtree_root_array{host_exec,
+                                            static_cast<size_type>(num_rows)};
+        // pseudo-root one past the last row to deal with disconnected matrices
+        const auto unattached = num_rows;
+        auto subtree_root = subtree_root_array.get_data();
+        for (IndexType row = 0; row < num_rows; row++) {
+            // so far the row is an unattached singleton subtree
+            subtree_root[row] = row;
+            parent[row] = unattached;
+            auto row_rep = row;
+            for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
+                const auto col = cols[nz];
+                // for each lower triangular entry
+                if (col < row) {
+                    // find the subtree it is contained in
+                    const auto col_rep = subtrees.find(col);
+                    const auto col_root = subtree_root[col_rep];
+                    // if it is not yet attached, put it below row
+                    // and make row its new root
+                    if (parent[col_root] == unattached && col_root != row) {
+                        parent[col_root] = row;
+                        row_rep = subtrees.join(row_rep, col_rep);
+                        subtree_root[row_rep] = row;
+                    }
+                }
+            }
+        }*/
+    }
+
     void find_tree_min_cut_neighbors(int level)
     {
         GKO_FUNCTION_SCOPEGUARD(find_tree_min_cut_neighbors);
@@ -1154,6 +1258,7 @@ struct elimination_forest_algorithm_state {
     gko::bitvector<IndexType> min_bv;
     std::array<IndexType, num_buckets + 1> bucket_ranges;
     std::array<IndexType, num_buckets + 1> tree_ranges;
+    std::array<IndexType, parallelism + 1> basecase_ranges;
     IndexType* tree_levels;
 };
 
