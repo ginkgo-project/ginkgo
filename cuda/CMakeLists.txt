@@ -1,25 +1,4 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-function(split_list_average input_list num_parts)
-    message("${input_list}")
-    message("${${input_list}}")
-    list(LENGTH ${input_list} total_length)
-    message("${input_list} contains ${total_length}")
-    message("generate total ${num_parts}")
-    foreach(i RANGE 1 ${num_parts})
-        message("generate ${i}")
-        math(EXPR start "${total_length} * (${i} - 1) / ${num_parts}")
-        math(EXPR end "${total_length} * ${i} / ${num_parts} - 1")
-        message("${start} - ${end}")
-        set(part "")
-        foreach(j RANGE ${start} ${end})
-            list(GET ${input_list} ${j} item)
-            list(APPEND part ${item})
-        endforeach()
-        set(part_list_var ${input_list}_${i})
-        set(${part_list_var} ${part} PARENT_SCOPE)
-    endforeach()
-endfunction()
-
 function(configure_cuda target source_list)
     target_sources(${target} PRIVATE ${${source_list}})
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
@@ -146,6 +125,7 @@ set(CUDA_SOURCES
     ${GKO_CUDA_HIP_COMMON_SOURCES}
     ${GKO_CUDA_JACOBI_SOURCES}
 )
+include(${PROJECT_SOURCE_DIR}/cmake/split.cmake)
 # We still configure it ginkgo_cuda library not interface library when spliting library to reduce the effort in pkgconfig
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 if(${GINKGO_SPLIT_LIBRARY_NUM} GREATER 1)
