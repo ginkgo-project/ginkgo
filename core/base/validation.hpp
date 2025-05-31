@@ -20,7 +20,7 @@ namespace validation {
 #define GKO_VALIDATE(_expression, _message)                                 \
     if (!(_expression)) {                                                   \
         throw gko::InvalidData(__FILE__, __LINE__, typeid(decltype(*this)), \
-                               _message);                                   \
+                               _message " (" #_expression ")");             \
     }
 
 
@@ -40,82 +40,101 @@ bool is_finite_scalar(const std::complex<ValueType>& value)
 template <typename IndexType>
 bool is_sorted(const gko::array<IndexType>& row_ptrs)
 {
-    const auto host_row_ptrs =
-        make_temporary_clone(row_ptrs.get_executor()->get_master(), &row_ptrs);
-    return std::is_sorted(
-        host_row_ptrs->get_const_data(),
-        host_row_ptrs->get_const_data() + host_row_ptrs->get_size());
+    const auto host_row_ptrs = row_ptrs.copy_to_host();
+    return std::is_sorted(host_row_ptrs.begin(), host_row_ptrs.end());
 }
 
 
 template <typename IndexType>
 bool is_within_bounds(const gko::array<IndexType>& col_idxs,
-                      const std::int64_t& lower_bound,
-                      const size_t& upper_bound)
+                      const IndexType upper_bound)
 {
-    const auto host_col_idxs =
-        make_temporary_clone(col_idxs.get_executor()->get_master(), &col_idxs);
-    const auto [min, max] = std::minmax_element(
-        host_col_idxs->get_const_data(),
-        host_col_idxs->get_const_data() + host_col_idxs->get_size());
-    return *min >= lower_bound && *max < upper_bound;
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    const auto [min, max] =
+        std::minmax_element(host_col_idxs.begin(), host_col_idxs.end());
+
+    return *min >= 0 && *max < upper_bound;
+}
+
+
+template <typename IndexType>
+bool ell_has_unique_idxs(const gko::array<IndexType>& col_idxs,
+                         const IndexType num_rows, const size_type nnz,
+                         const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        std::unordered_set<IndexType> unique_idxs;
+        for (size_type j = 0; j < nnz; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx == -1) {
+                continue;
+            }
+            if (idx != -1 && idx < num_rows) {
+                if (!unique_idxs.insert(idx).second) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 
 template <typename IndexType>
 bool ell_is_within_bounds(const gko::array<IndexType>& col_idxs,
-                          const std::int64_t& lower_bound,
-                          const size_t& upper_bound)
+                          const IndexType num_rows, const size_type nnz,
+                          const size_type stride)
 {
-    const auto host_col_idxs =
-        make_temporary_clone(col_idxs.get_executor()->get_master(), &col_idxs);
-    const auto [min, max] = std::minmax_element(
-        host_col_idxs->get_const_data(),
-        host_col_idxs->get_const_data() + host_col_idxs->get_size());
-    return (*min >= lower_bound || *min == -1) &&
-           *max < upper_bound;  //-1 for padding? Probably.
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        bool padding = false;
+        for (size_type j = 0; j < nnz; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx == -1) {
+                padding = true;
+            } else if (padding) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 
 template <typename ValueType>
 bool is_finite(const gko::array<ValueType>& values)
 {
-    const auto host_values =
-        make_temporary_clone(values.get_executor()->get_master(), &values);
-
-    for (size_t i = 0; i < host_values->get_size(); ++i) {
-        if (!is_finite_scalar(host_values->get_const_data()[i])) {
+    const auto host_values = values.copy_to_host();
+    for (size_t i = 0; i < host_values.size(); ++i) {
+        if (!is_finite_scalar(host_values[i])) {
             return false;
         }
     }
-
     return true;
 }
 
 
 template <typename IndexType>
-bool has_unique_ptrs(const gko::array<IndexType>& row_ptrs,
-                     const gko::array<IndexType>& col_idxs)
+bool has_unique_columns(const gko::array<IndexType>& row_ptrs,
+                        const gko::array<IndexType>& col_idxs)
 {
-    const auto host_row_ptrs =
-        make_temporary_clone(row_ptrs.get_executor()->get_master(), &row_ptrs);
-    const auto host_col_idxs =
-        make_temporary_clone(col_idxs.get_executor()->get_master(), &col_idxs);
+    const auto host_row_ptrs = row_ptrs.copy_to_host();
+    const auto host_col_idxs = col_idxs.copy_to_host();
 
-    const auto num_rows_ = host_row_ptrs->get_size() - 1;
-    const auto row_ptrs_ = host_row_ptrs->get_const_data();
-    const auto col_idxs_ = host_col_idxs->get_const_data();
-
+    const auto num_rows_ = host_row_ptrs.size() - 1;
     bool result = true;
 
     for (IndexType row = 0; row < num_rows_; row++) {
-        const auto begin = row_ptrs_[row];
-        const auto end = row_ptrs_[row + 1];
+        const auto begin = host_row_ptrs[row];
+        const auto end = host_row_ptrs[row + 1];
         const auto size = end - begin;
-        std::unordered_set<IndexType> unique_ptrs(col_idxs_ + begin,
-                                                  col_idxs_ + end);
+        std::unordered_set<IndexType> unique_ptrs(host_col_idxs.begin() + begin,
+                                                  host_col_idxs.begin() + end);
 
-        result = result && unique_ptrs.size() == size;
+        if (unique_ptrs.size() < size) {
+            return false;
+        }
     }
     return result;
 }
@@ -123,58 +142,23 @@ bool has_unique_ptrs(const gko::array<IndexType>& row_ptrs,
 template <typename IndexType>
 bool has_unique_perm_idxs(const gko::array<IndexType>& permutation_)
 {
-    const auto host_perm_idxs = make_temporary_clone(
-        permutation_.get_executor()->get_master(), &permutation_);
+    const auto host_perm_idxs = permutation_.copy_to_host();
+    const auto size = host_perm_idxs.size();
+    std::unordered_set<IndexType> unique_ptrs(host_perm_idxs.begin(),
+                                              host_perm_idxs.end());
 
-    const auto size = host_perm_idxs->get_size();
-    std::unordered_set<IndexType> unique_ptrs(
-        host_perm_idxs->get_const_data(),
-        host_perm_idxs->get_const_data() + size);
+    if (unique_ptrs.size() < size) {
+        return false;
+    }
 
-    return unique_ptrs.size() == size;
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
+        if (unique_ptrs.find(i) == unique_ptrs.end()) {
+            return false;
+        }
+    }
+
+    return true;
 }
-
-// template <typename ValueType, typename IndexType>
-// bool has_non_zero_diagonal(const gko::array<IndexType>& row_ptrs,
-//                            const gko::array<IndexType> col_idxs,
-//                            const gko::array<ValueType>& values)
-// {
-//     const auto host_row_ptrs =
-//         make_temporary_clone(row_ptrs.get_executor()->get_master(),
-//         &row_ptrs);
-//     const auto host_col_idxs =
-//         make_temporary_clone(col_idxs.get_executor()->get_master(),
-//         &col_idxs);
-//     const auto host_values =
-//         make_temporary_clone(values.get_executor()->get_master(), &values);
-
-//     const auto num_rows = host_row_ptrs->get_size() - 1;
-//     const auto row_ptrs = host_row_ptrs->get_const_data();
-//     const auto col_idxs = host_col_idxs->get_const_data();
-//     const auto values = host_values->get_const_data();
-
-//     if(row_ptrs->get_size() != col_idxs->get_size())
-//     {
-//         return false;
-//     }
-
-//     if (values->get_size() > num_rows * (num_rows -1))  //pigeonhole
-//     principle
-//     {
-//         return true;
-//     }
-
-//     for (IndexType i = 0; i < num_rows; i++)
-//     {
-//         if (row_ptrs[i] == row_ptrs[i + 1])
-//         {
-//             return false;
-//         }
-
-//     }
-
-//     return ;
-// }
 
 }  // namespace validation
 }  // namespace gko

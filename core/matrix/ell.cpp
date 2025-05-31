@@ -60,10 +60,14 @@ void Ell<ValueType, IndexType>::validate_data() const
 {
     GKO_VALIDATE(validation::is_finite(values_),
                  "matrix must contain only finite values");
-
-    GKO_VALIDATE(
-        validation::ell_is_within_bounds(col_idxs_, 0, this->get_size()[1]),
-        "col_idxs must be within bounds");
+    GKO_VALIDATE(validation::ell_has_unique_idxs(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                     num_stored_elements_per_row_, stride_),
+                 "col_idxs must be within bounds");
+    GKO_VALIDATE(validation::ell_is_within_bounds(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                     num_stored_elements_per_row_, stride_),
+                 "col_idxs must be within bounds");
 }
 
 

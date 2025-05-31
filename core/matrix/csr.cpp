@@ -110,19 +110,15 @@ void Csr<ValueType, IndexType>::validate_data() const
 {
     GKO_VALIDATE(validation::is_sorted(row_ptrs_),
                  "row_ptrs must be non-descending");
-
-    GKO_VALIDATE(validation::is_within_bounds(row_ptrs_, 0,
-                                              this->get_num_stored_elements()),
+    GKO_VALIDATE(validation::is_within_bounds(
+                     row_ptrs_, static_cast<IndexType>(this->get_size()[0])),
                  "row_ptrs must be within bounds");
-
-    GKO_VALIDATE(
-        validation::is_within_bounds(col_idxs_, 0, this->get_size()[1]),
-        "col_idxs must be within bounds");
-
+    GKO_VALIDATE(validation::is_within_bounds(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[1])),
+                 "col_idxs must be within bounds");
     GKO_VALIDATE(validation::is_finite(values_),
                  "matrix must contain only finite values");
-
-    GKO_VALIDATE(validation::has_unique_ptrs(row_ptrs_, col_idxs_),
+    GKO_VALIDATE(validation::has_unique_columns(row_ptrs_, col_idxs_),
                  "each row of col_idxs must contain unique values");
 }
 
