@@ -87,11 +87,13 @@ public:
         if (get_lane() == 0) {
             if (dep_block == block_id) {
                 // wait for a local dependency
-                while (!load_relaxed_shared(local.status + dep_local)) {
+                // while (!load_relaxed_shared(local.status + dep_local)) {
+                while (!load_acquire_shared(local.status + dep_local)) {
                 }
             } else {
                 // wait for a global dependency
-                while (!load_relaxed(global.status + dependency)) {
+                // while (!load_relaxed(global.status + dependency)) {
+                while (!load_acquire(global.status + dependency)) {
                 }
             }
         }
@@ -123,12 +125,12 @@ public:
         if (get_lane() == 0) {
             const auto sh_id = get_work_id() % (block_size / subwarp_size);
             // notify local warps
-            store_relaxed_shared(local.status + sh_id, 1);
+            // store_relaxed_shared(local.status + sh_id, 1);
+            store_release_shared(local.status + sh_id, 1);
             // notify other blocks
-            store_relaxed(global.status + get_work_id(), 1);
+            // store_relaxed(global.status + get_work_id(), 1);
+            store_release(global.status + get_work_id(), 1);
         }
-        sycl::atomic_fence(sycl::memory_order::acq_rel,
-                           sycl::memory_scope::device);
     }
 
 private:
