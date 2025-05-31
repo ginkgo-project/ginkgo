@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -206,6 +206,9 @@ public:
 
     /** @return one past the last index in this range. */
     constexpr index_type end_index() const { return *this->end(); }
+
+    /** @return the number of indices in this range, i.e. end - begin. */
+    constexpr index_type size() const { return end_index() - begin_index(); }
 
     /**
      * Compares two ranges for equality.

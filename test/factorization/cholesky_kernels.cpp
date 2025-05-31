@@ -24,6 +24,7 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/utils/matrix_utils.hpp"
+#include "ginkgo/core/base/types.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/common_fixture.hpp"
 
@@ -201,6 +202,35 @@ TYPED_TEST(CholeskySymbolic, KernelComputeSkeletonTree)
 }
 
 
+TYPED_TEST(CholeskySymbolic, KernelComputeEliminationForest)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    for (const auto& pair : this->matrices) {
+        SCOPED_TRACE(pair.first);
+        const auto& mtx = pair.second;
+        // check for correctness: is mtx symmetric?
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx, gko::as<matrix_type>(mtx->transpose()));
+        const auto dmtx = gko::clone(this->exec, mtx);
+        const auto size = mtx->get_size()[0];
+        const auto ssize = static_cast<index_type>(size);
+        elimination_forest forest{this->ref, ssize};
+        elimination_forest dforest{this->exec, ssize};
+
+        gko::kernels::reference::elimination_forest::compute(
+            this->ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            size, forest);
+        gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::compute(
+            this->exec, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+            size, dforest);
+
+        GKO_ASSERT_ARRAY_EQ(forest.parents, dforest.parents);
+        GKO_ASSERT_ARRAY_EQ(forest.levels, dforest.levels);
+    }
+}
+
+
 TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
 {
     using matrix_type = typename TestFixture::matrix_type;
@@ -305,13 +335,12 @@ TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
         std::unique_ptr<elimination_forest> forest;
         gko::factorization::symbolic_cholesky(mtx.get(), true, factors, forest);
         const auto dfactors = gko::clone(this->exec, factors);
-        elimination_forest dforest{this->exec,
-                                   static_cast<index_type>(mtx->get_size()[0])};
+        gko::array<index_type> dparents{this->exec, mtx->get_size()[0]};
 
         gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::from_factor(
-            this->exec, dfactors.get(), dforest);
+            this->exec, dfactors.get(), dparents.get_data());
 
-        this->assert_equal_forests(*forest, dforest);
+        GKO_ASSERT_ARRAY_EQ(forest->parents, dparents);
     }
 }
 
@@ -472,14 +501,13 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
             this->ref, this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_const_data(),
-            transpose_idxs.get_const_data(), *this->forest,
-            this->mtx_chol.get(), true, tmp);
+            transpose_idxs.get_const_data(), this->mtx_chol.get(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::factorize(
             this->exec, this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_const_data(),
-            dtranspose_idxs.get_const_data(), *this->dforest,
-            this->dmtx_chol.get(), true, dtmp);
+            dtranspose_idxs.get_const_data(), this->dmtx_chol.get(), true,
+            dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
                             r<value_type>::value);

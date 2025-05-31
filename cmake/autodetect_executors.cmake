@@ -7,7 +7,7 @@ set(GINKGO_HAS_HIP OFF)
 include(CheckLanguage)
 
 if(NOT DEFINED GINKGO_BUILD_OMP)
-    find_package(OpenMP 3.0)
+    find_package(OpenMP 4.0)
     if(OpenMP_CXX_FOUND)
         message(STATUS "Enabling OpenMP executor")
         set(GINKGO_HAS_OMP ON)

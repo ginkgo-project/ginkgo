@@ -17,6 +17,19 @@ namespace kernels {
 namespace omp {
 
 
+template <typename T>
+T atomic_inc(T& counter)
+{
+    T result{};
+#pragma omp atomic capture
+    {
+        result = counter;
+        ++counter;
+    }
+    return result;
+}
+
+
 template <typename ValueType,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
 void atomic_add(ValueType& out, ValueType val)
@@ -189,7 +202,7 @@ inline double load(double* addr)
 
 inline int32 load(int32* addr)
 {
-    float val;
+    int32 val;
 #pragma omp atomic read
     val = *addr;
     return val;
@@ -197,7 +210,7 @@ inline int32 load(int32* addr)
 
 inline int64 load(int64* addr)
 {
-    float val;
+    int64 val;
 #pragma omp atomic read
     val = *addr;
     return val;
@@ -226,6 +239,25 @@ inline std::complex<T> load(std::complex<T>* addr)
 {
     auto values = reinterpret_cast<T*>(addr);
     return {load(values + 0), load(values + 1)};
+}
+
+
+template <typename T>
+inline T atomic_cas(T* addr, T old_value, T new_value)
+{
+    __atomic_compare_exchange_n(addr, &old_value, new_value, false,
+                                __ATOMIC_RELAXED, __ATOMIC_RELAXED);
+    return old_value;
+}
+
+
+template <typename T>
+inline void atomic_min(T* addr, T value)
+{
+    auto old_value = load(addr);
+    while (old_value > value) {
+        old_value = atomic_cas(addr, old_value, value);
+    }
 }
 
 

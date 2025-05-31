@@ -25,6 +25,11 @@ struct elimination_forest {
           child_ptrs{host_exec, static_cast<size_type>(size + 2)},
           children{host_exec, static_cast<size_type>(size)},
           postorder{host_exec, static_cast<size_type>(size)},
+          levels{host_exec, static_cast<size_type>(size)},
+          euler_walk{host_exec, 2 * static_cast<size_type>(size) - 1},
+          euler_levels{host_exec, 2 * static_cast<size_type>(size) - 1},
+          euler_first{host_exec, static_cast<size_type>(size)},
+          euler_last{host_exec, static_cast<size_type>(size)},
           inv_postorder{host_exec, static_cast<size_type>(size)},
           postorder_parents{host_exec, static_cast<size_type>(size)}
     {}
@@ -35,6 +40,11 @@ struct elimination_forest {
     array<IndexType> child_ptrs;
     array<IndexType> children;
     array<IndexType> postorder;
+    array<IndexType> levels;
+    array<IndexType> euler_walk;
+    array<IndexType> euler_levels;
+    array<IndexType> euler_first;
+    array<IndexType> euler_last;
     array<IndexType> inv_postorder;
     array<IndexType> postorder_parents;
 };

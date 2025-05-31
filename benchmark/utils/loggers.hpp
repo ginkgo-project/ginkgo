@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,14 +44,12 @@ struct JsonSummaryWriter : gko::log::ProfilerHook::SummaryWriter,
             [this](auto visit,
                    const gko::log::ProfilerHook::nested_summary_entry& node,
                    std::string prefix) -> void {
-            auto exclusive = node.elapsed;
             auto new_prefix = prefix + node.name + "::";
             for (const auto& child : node.children) {
                 visit(visit, child, new_prefix);
-                exclusive -= child.elapsed;
             }
             (*object)[prefix + node.name] =
-                exclusive.count() * 1e-9 / repetitions;
+                node.elapsed.count() * 1e-9 / repetitions;
         };
         // we don't need to annotate the total
         for (const auto& child : root.children) {
