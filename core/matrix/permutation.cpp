@@ -26,6 +26,13 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 
 }  // namespace permutation
 
+template <typename IndexType>
+void Permutation<IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::has_unique_perm_idxs(permutation_),
+                 "Permutation indices must be unique");
+}
+
 
 void validate_permute_dimensions(dim<2> size, dim<2> permutation_size,
                                  permute_mode mode)
@@ -94,13 +101,6 @@ std::ostream& operator<<(std::ostream& stream, permute_mode mode)
         return stream << "inverse_symmetric";
     }
     return stream;
-}
-
-template <typename IndexType>
-void Permutation<IndexType>::validate_data() const
-{
-    GKO_VALIDATE(validation::has_unique_perm_idxs(permutation_),
-                 "Permutation indices must be unique");
 }
 
 
