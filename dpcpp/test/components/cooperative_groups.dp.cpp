@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -186,9 +186,11 @@ void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
     auto active = gko::detail::mask<sg_size, config::lane_mask_type>();
     auto i = int(group.thread_rank());
 
-    s[i] = group.ballot(false) == 0;
-    s[i + sg_size] = group.ballot(true) == (~config::lane_mask_type{} & active);
-    s[i + sg_size * 2] = group.ballot(item_ct1.get_local_id(2) < 4) == 0xf;
+    s[i] = group::ballot(group, false) == 0;
+    s[i + sg_size] =
+        group::ballot(group, true) == (~config::lane_mask_type{} & active);
+    s[i + sg_size * 2] =
+        group::ballot(group, item_ct1.get_local_id(2) < 4) == 0xf;
 }
 
 GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(cg_ballot, cg_ballot)

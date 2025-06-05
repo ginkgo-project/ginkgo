@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -443,6 +443,14 @@ private:
 __dpct_inline__ grid_group this_grid(sycl::nd_item<3>& group)
 {
     return grid_group(group);
+}
+
+
+// just provide the same interface as cuda/hip
+template <typename Group>
+__dpct_inline__ auto ballot(const Group& g, int predicate)
+{
+    return g.ballot(predicate);
 }
 
 

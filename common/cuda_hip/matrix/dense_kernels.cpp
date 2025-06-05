@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -80,8 +80,8 @@ __launch_bounds__(default_block_size) void count_nonzero_blocks_per_row(
             local_nonzero |=
                 col < num_cols && is_nonzero(source[row * stride + col]);
         }
-        auto nonzero_mask =
-            warp.ballot(local_nonzero) | (first_block_nonzero ? 1u : 0u);
+        auto nonzero_mask = group::ballot(warp, local_nonzero) |
+                            (first_block_nonzero ? 1u : 0u);
         // only consider threads in the current block
         const auto first_thread = block_base_col - base_col;
         const auto last_thread = first_thread + block_size;
@@ -103,7 +103,8 @@ __launch_bounds__(default_block_size) void count_nonzero_blocks_per_row(
         // if we need to store something for the next iteration
         if ((base_col + config::warp_size) % block_size != 0) {
             // check whether the last block (incomplete) in this warp is nonzero
-            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            auto local_block_nonzero_mask =
+                group::ballot(warp, local_mask != 0u);
             bool last_block_nonzero =
                 (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
             first_block_nonzero = last_block_nonzero;
@@ -156,8 +157,8 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
             local_nonzero |=
                 col < num_cols && is_nonzero(source[row * stride + col]);
         }
-        auto nonzero_mask =
-            warp.ballot(local_nonzero) | (first_block_nonzero ? 1u : 0u);
+        auto nonzero_mask = group::ballot(warp, local_nonzero) |
+                            (first_block_nonzero ? 1u : 0u);
         // only consider threads in the current block
         const auto first_thread = block_base_col - base_col;
         const auto last_thread = first_thread + block_size;
@@ -173,8 +174,8 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
                                     : ((one_mask << last_thread) - 1u);
         const auto block_mask = upper_mask & lower_mask;
         const auto local_mask = nonzero_mask & block_mask;
-        const auto block_nonzero_mask =
-            warp.ballot(local_mask && (block_local_col == block_size - 1));
+        const auto block_nonzero_mask = group::ballot(
+            warp, local_mask && (block_local_col == block_size - 1));
 
         // count how many Fbcsr blocks come before the Fbcsr block handled by
         // the local group of threads
@@ -197,7 +198,8 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
         // if we need to store something for the next iteration
         if ((base_col + config::warp_size) % block_size != 0) {
             // check whether the last block (incomplete) in this warp is nonzero
-            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            auto local_block_nonzero_mask =
+                group::ballot(warp, local_mask != 0u);
             bool last_block_nonzero =
                 (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
             first_block_nonzero = last_block_nonzero;
@@ -229,7 +231,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
             const auto col = i + warp.thread_rank();
             const auto pred =
                 col < num_cols ? is_nonzero(source[stride * row + col]) : false;
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto out_idx = base_out_idx + popcnt(mask & lane_prefix_mask);
             if (pred) {
                 values[out_idx] = source[stride * row + col];
@@ -260,7 +262,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
             const auto col = i + warp.thread_rank();
             const auto pred =
                 col < num_cols ? is_nonzero(source[stride * row + col]) : false;
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto out_idx = base_out_idx + popcnt(mask & lane_prefix_mask);
             if (pred) {
                 values[out_idx] = source[stride * row + col];
@@ -290,7 +292,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sparsity_csr(
             const auto col = i + warp.thread_rank();
             const auto pred =
                 col < num_cols ? is_nonzero(source[stride * row + col]) : false;
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto out_idx = base_out_idx + popcnt(mask & lane_prefix_mask);
             if (pred) {
                 col_idxs[out_idx] = col;
@@ -321,7 +323,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
             const auto pred =
                 col < num_cols ? is_nonzero(source[source_stride * row + col])
                                : false;
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto out_idx =
                 row + (base_out_idx + popcnt(mask & lane_prefix_mask)) *
                           result_stride;
@@ -364,7 +366,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
             const auto pred =
                 col < num_cols ? is_nonzero(source[source_stride * row + col])
                                : false;
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto cur_out_idx =
                 base_out_idx + popcnt(mask & lane_prefix_mask);
             if (pred) {
@@ -415,7 +417,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
             const auto val = checked_load(source + stride * row, col, num_cols,
                                           zero<ValueType>());
             const auto pred = is_nonzero(val);
-            const auto mask = warp.ballot(pred);
+            const auto mask = group::ballot(warp, pred);
             const auto idx = base_idx + popcnt(mask & prefix_mask) * slice_size;
             if (pred) {
                 values[idx] = val;

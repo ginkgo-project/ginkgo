@@ -515,6 +515,29 @@ private:
 __device__ inline grid_group this_grid() { return {}; }
 
 
+/**
+ * During cuda12.2 - cuda12.4, compiler might have some optimization issue on
+ * ballot on H100. The ballot result on subwarp might keep the result from the
+ * other subwarp in the same warp. For example with subwarp size = 8, subwarp 0
+ * will get the result from (subwarp 3, subwarp 2, subwarp 1, subwarp 0),
+ * subwarp 1 will get the result from (subwarp 3, subwarp 2, subwarp 1), and so
+ * on so forth. They are shifted but not masked. cuda 12.1.1 and cuda 12.5.1
+ * does not have the issue.
+ */
+template <unsigned Size>
+__device__ __forceinline__ auto ballot(const thread_block_tile<Size>& g,
+                                       int predicate)
+{
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 12020 && CUDA_VERSION < 12051
+    constexpr auto subwarp_mask =
+        ~config::lane_mask_type{} >> (config::warp_size - Size);
+    return subwarp_mask & g.ballot(predicate);
+#else
+    return g.ballot(predicate);
+#endif
+}
+
+
 }  // namespace group
 }  // namespace hip
 }  // namespace kernels
