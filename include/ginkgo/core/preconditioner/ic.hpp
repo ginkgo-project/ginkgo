@@ -425,10 +425,16 @@ protected:
                        const Composition<next_precision<value_type>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next precision" << std::endl;
-        } else if (auto comp2 = std::dynamic_pointer_cast<const Composition<
-                       next_precision<next_precision<value_type>>>>(fact)) {
+        } else if (auto comp2 = std::dynamic_pointer_cast<
+                       const Composition<next_precision<value_type, 2>>>(
+                       fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next next precision" << std::endl;
+        } else if (auto comp2 = std::dynamic_pointer_cast<
+                       const Composition<next_precision<value_type, 3>>>(
+                       fact)) {
+            l_factor = comp2->get_operators()[0];
+            std::cout << "generation on next next next precision" << std::endl;
         } else {
             GKO_NOT_SUPPORTED(fact);
         }
