@@ -178,6 +178,11 @@ public:
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
+     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     */
+    void validate_data() const;
+
+    /**
      * Creates an uninitialized Permutation arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
