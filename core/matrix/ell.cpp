@@ -63,7 +63,7 @@ void Ell<ValueType, IndexType>::validate_data() const
     GKO_VALIDATE(validation::ell_has_unique_idxs(
                      col_idxs_, static_cast<IndexType>(this->get_size()[0]),
                      num_stored_elements_per_row_, stride_),
-                 "col_idxs must be within bounds");
+                 "col_idxs must contain unique indices");
     GKO_VALIDATE(validation::ell_is_within_bounds(
                      col_idxs_, static_cast<IndexType>(this->get_size()[0]),
                      num_stored_elements_per_row_, stride_),
