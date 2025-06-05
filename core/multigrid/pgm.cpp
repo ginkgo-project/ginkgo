@@ -481,9 +481,44 @@ void Pgm<ValueType, IndexType>::generate()
             // keep the same precision data in fine_op
             this->set_fine_op(pgm_op);
         }
-        auto result = this->generate_local(pgm_op);
-        this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
-                                  std::get<2>(result));
+        if constexpr (!std::is_same_v<ValueType, double> &&
+                      !is_complex<ValueType>()) {
+            if (parameters_.use_double) {
+                auto pgm_double =
+                    Pgm<double>::build()
+                        .with_max_iterations(parameters_.max_iterations)
+                        .with_max_unassigned_ratio(
+                            parameters_.max_unassigned_ratio)
+                        .with_deterministic(parameters_.deterministic)
+                        .with_skip_sorting(parameters_.skip_sorting)
+                        .on(exec)
+                        ->generate(system_matrix_);
+                auto prolong_row_gather =
+                    as<gko::matrix::RowGatherer<IndexType>>(
+                        pgm_double->get_prolong_op());
+                agg_.resize_and_reset(prolong_row_gather->get_size()[1]);
+                exec->copy_from(exec, agg_.get_size(),
+                                prolong_row_gather->get_const_row_idxs(),
+                                agg_.get_data());
+                auto coarse_matrix = generate_coarse(
+                    exec, pgm_op.get(),
+                    static_cast<IndexType>(prolong_row_gather->get_size()[1]),
+                    agg_);
+                auto restrict_sparsity =
+                    share(matrix::SparsityCsr<ValueType, IndexType>::create(
+                        exec, gko::dim<2>{prolong_row_gather->get_size()[1],
+                                          pgm_op->get_size()[1]}));
+                as<ConvertibleTo<matrix::SparsityCsr<ValueType, IndexType>>>(
+                    pgm_double->get_restrict_op())
+                    ->convert_to(restrict_sparsity);
+                this->set_multigrid_level(pgm_double->get_prolong_op(),
+                                          coarse_matrix, restrict_sparsity);
+            }
+        } else {
+            auto result = this->generate_local(pgm_op);
+            this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
+                                      std::get<2>(result));
+        }
     }
 }
 

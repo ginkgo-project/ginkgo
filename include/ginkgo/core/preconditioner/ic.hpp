@@ -9,6 +9,7 @@
 #include <memory>
 #include <type_traits>
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -425,17 +426,22 @@ protected:
                        const Composition<next_precision<value_type>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next precision" << std::endl;
-        } else if (auto comp2 = std::dynamic_pointer_cast<
-                       const Composition<next_precision<value_type, 2>>>(
-                       fact)) {
+        }
+#if GKO_ENABLE_HALF || GKO_ENABLE_BFLOAT16
+        else if (auto comp2 = std::dynamic_pointer_cast<
+                     const Composition<next_precision<value_type, 2>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next next precision" << std::endl;
-        } else if (auto comp2 = std::dynamic_pointer_cast<
-                       const Composition<next_precision<value_type, 3>>>(
-                       fact)) {
+        }
+#endif
+#if GKO_ENABLE_HALF && GKO_ENABLE_BFLOAT16
+        else if (auto comp2 = std::dynamic_pointer_cast<
+                     const Composition<next_precision<value_type, 3>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next next next precision" << std::endl;
-        } else {
+        }
+#endif
+        else {
             GKO_NOT_SUPPORTED(fact);
         }
         GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
@@ -483,8 +489,12 @@ protected:
                 cache_.intermediate =
                     matrix::Dense<value_type>::create(this->get_executor());
             } else if (parameters_.precision == "float16") {
+#if GINKGO_ENABLE_HALF
                 cache_.intermediate =
                     matrix::Dense<gko::half>::create(this->get_executor());
+#else
+                GKO_NOT_SUPPORTED(parameters_.precision);
+#endif
             } else if (parameters_.precision == "float32") {
                 cache_.intermediate =
                     matrix::Dense<float>::create(this->get_executor());

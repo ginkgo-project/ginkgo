@@ -591,6 +591,41 @@ void Vector<ValueType>::compute_norm1(ptr_param<LinOp> result,
 
 
 template <typename ValueType>
+void Vector<ValueType>::compute_infinite_norm(ptr_param<LinOp> result) const
+{
+    array<char> tmp{this->get_executor()};
+    this->compute_infinite_norm(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_infinite_norm(ptr_param<LinOp> result,
+                                              array<char>& tmp) const
+{
+    using NormVector = typename local_vector_type::absolute_type;
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
+    this->get_local_vector()->compute_infinite_norm(dense_res.get());
+    exec->synchronize();
+    auto norm_max_op = gko::experimental::mpi::max<remove_complex<ValueType>>();
+    if (mpi::requires_host_buffer(exec, comm)) {
+        host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_norm_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
+                        static_cast<int>(this->get_size()[1]),
+                        norm_max_op.get_op());
+        dense_res->copy_from(host_norm_buffer_.get());
+    } else {
+        comm.all_reduce(exec, dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]),
+                        norm_max_op.get_op());
+    }
+}
+
+
+template <typename ValueType>
 void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 {
     array<char> tmp{this->get_executor()};
