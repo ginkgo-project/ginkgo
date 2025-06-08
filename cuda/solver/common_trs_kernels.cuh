@@ -390,6 +390,34 @@ is_nan_exact(const T& value)
     return value_bytes == nan_bytes;
 }
 
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__half>(const __half& value)
+{
+    using type = typename float_to_unsigned_impl<__half>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::half
+    auto nan_value = nan<gko::half>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
+
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__nv_bfloat16>(
+    const __nv_bfloat16& value)
+{
+    using type = typename float_to_unsigned_impl<__nv_bfloat16>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::bfloat16
+    auto nan_value = nan<gko::bfloat16>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
 
 /**
  * Checks if any component of the complex value matches the quiet NaN with
