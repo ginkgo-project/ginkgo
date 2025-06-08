@@ -514,6 +514,9 @@ void Pgm<ValueType, IndexType>::generate()
                 this->set_multigrid_level(pgm_double->get_prolong_op(),
                                           coarse_matrix, restrict_sparsity);
             }
+            auto result = this->generate_local(pgm_op);
+            this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
+                                      std::get<2>(result));
         } else {
             auto result = this->generate_local(pgm_op);
             this->set_multigrid_level(std::get<0>(result), std::get<1>(result),

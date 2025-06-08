@@ -128,7 +128,7 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
-        bool GKO_FACTORY_PARAMETER_SCALAR(use_double, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(use_double, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
