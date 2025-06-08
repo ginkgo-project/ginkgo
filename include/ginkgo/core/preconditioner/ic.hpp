@@ -427,14 +427,14 @@ protected:
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next precision" << std::endl;
         }
-#if GKO_ENABLE_HALF || GKO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
         else if (auto comp2 = std::dynamic_pointer_cast<
                      const Composition<next_precision<value_type, 2>>>(fact)) {
             l_factor = comp2->get_operators()[0];
             std::cout << "generation on next next precision" << std::endl;
         }
 #endif
-#if GKO_ENABLE_HALF && GKO_ENABLE_BFLOAT16
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
         else if (auto comp2 = std::dynamic_pointer_cast<
                      const Composition<next_precision<value_type, 3>>>(fact)) {
             l_factor = comp2->get_operators()[0];
