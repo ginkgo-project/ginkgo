@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,8 +49,8 @@ std::shared_ptr<const gko::LinOpFactory> generate_inner(
                 .with_factorization(
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
-                        .with_iterations(10u)
-                        .on(exec->get_master()))
+                        .with_iterations(30u)
+                        .on(exec))
                 .with_l_solver_factory(
                     lower_trs::build()
                         .with_algorithm(
@@ -64,8 +64,8 @@ std::shared_ptr<const gko::LinOpFactory> generate_inner(
                 .with_factorization(
                     gko::factorization::ParIct<ValueType, int>::build()
                         .with_fill_in_limit(smoother_real_parameter)
-                        .with_iterations(10u)
-                        .on(exec->get_master()))
+                        .with_iterations(30u)
+                        .on(exec))
                 .with_l_solver_factory(
                     ir::build()
                         .with_solver(gko::share(
@@ -212,8 +212,8 @@ int main(int argc, char* argv[])
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1.0e-8;
 
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(1000000u).on(exec));
+    auto iter_stop =
+        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_reduction_factor(tolerance)
                                    .on(exec));
