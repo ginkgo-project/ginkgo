@@ -390,6 +390,34 @@ is_nan_exact(const T& value)
     return value_bytes == nan_bytes;
 }
 
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__half>(const __half& value)
+{
+    using type = typename float_to_unsigned_impl<__half>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::half
+    auto nan_value = nan<gko::half>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
+
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__nv_bfloat16>(
+    const __nv_bfloat16& value)
+{
+    using type = typename float_to_unsigned_impl<__nv_bfloat16>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::bfloat16
+    auto nan_value = nan<gko::bfloat16>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
 
 /**
  * Checks if any component of the complex value matches the quiet NaN with
@@ -474,9 +502,15 @@ __global__ void sptrsv_naive_caching_kernel(
                 val = load_relaxed_shared(x_s + dependency_shid))) {
             }
         } else {
+            // We must check the original type because is_nan_exact checks one
+            // kind of quiet_NaN from gko::nan. Different precision may use the
+            // different kind of quiet_NaN and the casting result is not clear
+            // because the quiet_NaN is not specified by IEEE.
+            auto output_val = zero<ValueType>();
             while (is_nan_exact(
-                val = load_relaxed(x + dependency * x_stride + rhs))) {
+                output_val = load_relaxed(x + dependency * x_stride + rhs))) {
             }
+            val = static_cast<SharedValueType>(output_val);
         }
 
         sum += val * static_cast<SharedValueType>(vals[i]);
