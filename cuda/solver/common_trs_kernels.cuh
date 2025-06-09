@@ -502,9 +502,15 @@ __global__ void sptrsv_naive_caching_kernel(
                 val = load_relaxed_shared(x_s + dependency_shid))) {
             }
         } else {
+            // We must check the original type because is_nan_exact checks one
+            // kind of quiet_NaN from gko::nan. Different precision may use the
+            // different kind of quiet_NaN and the casting result is not clear
+            // because the quiet_NaN is not specified by IEEE.
+            auto output_val = zero<ValueType>();
             while (is_nan_exact(
-                val = load_relaxed(x + dependency * x_stride + rhs))) {
+                output_val = load_relaxed(x + dependency * x_stride + rhs))) {
             }
+            val = static_cast<SharedValueType>(output_val);
         }
 
         sum += val * static_cast<SharedValueType>(vals[i]);
