@@ -23,24 +23,22 @@ GaussSeidel<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = GaussSeidel::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "symmetric", allowed_keys)) {
+    if (auto& obj = decorator.get("symmetric")) {
         params.with_symmetric(config::get_value<bool>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("l_solver")) {
         params.with_l_solver(config::parse_or_get_factory<const LinOpFactory>(
             obj, context, td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "u_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("u_solver")) {
         params.with_u_solver(config::parse_or_get_factory<const LinOpFactory>(
             obj, context, td_for_child));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
 
     return params;
 }

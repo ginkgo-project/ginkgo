@@ -40,10 +40,9 @@ typename Bicg<ValueType>::parameters_type Bicg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Bicg<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    config::common_solver_parse(params, config, context, td_for_child,
-                                allowed_keys);
-    config::check_allowed_keys(config, allowed_keys);
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
+
     return params;
 }
 

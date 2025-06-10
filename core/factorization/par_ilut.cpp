@@ -168,36 +168,29 @@ ParIlut<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = factorization::ParIlut<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj =
-            config::get_config_node(config, "iterations", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("iterations")) {
         params.with_iterations(config::get_value<size_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "approximate_select",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("approximate_select")) {
         params.with_approximate_select(config::get_value<bool>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "deterministic_sample",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("deterministic_sample")) {
         params.with_deterministic_sample(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "fill_in_limit", allowed_keys)) {
+    if (auto& obj = decorator.get("fill_in_limit")) {
         params.with_fill_in_limit(config::get_value<double>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "l_strategy", allowed_keys)) {
+    if (auto& obj = decorator.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "u_strategy", allowed_keys)) {
+    if (auto& obj = decorator.get("u_strategy")) {
         params.with_u_strategy(config::get_strategy<matrix_type>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

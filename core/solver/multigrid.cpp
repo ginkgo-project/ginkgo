@@ -613,40 +613,36 @@ typename Multigrid::parameters_type Multigrid::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Multigrid::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = config::get_config_node(config, "criteria", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("criteria")) {
         params.with_criteria(
             config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "mg_level", allowed_keys)) {
+    if (auto& obj = decorator.get("mg_level")) {
         params.with_mg_level(
             config::parse_or_get_factory_vector<const gko::LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "pre_smoother", allowed_keys)) {
+    if (auto& obj = decorator.get("pre_smoother")) {
         params.with_pre_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "post_smoother", allowed_keys)) {
+    if (auto& obj = decorator.get("post_smoother")) {
         params.with_post_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "mid_smoother", allowed_keys)) {
+    if (auto& obj = decorator.get("mid_smoother")) {
         params.with_mid_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "post_uses_pre", allowed_keys)) {
+    if (auto& obj = decorator.get("post_uses_pre")) {
         params.with_post_uses_pre(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "mid_case", allowed_keys)) {
+    if (auto& obj = decorator.get("mid_case")) {
         auto str = obj.get_string();
         if (str == "both") {
             params.with_mid_case(multigrid::mid_smooth_type::both);
@@ -660,21 +656,18 @@ typename Multigrid::parameters_type Multigrid::parse(
             GKO_INVALID_CONFIG_VALUE("mid_smooth_type", str);
         }
     }
-    if (auto& obj =
-            config::get_config_node(config, "max_levels", allowed_keys)) {
+    if (auto& obj = decorator.get("max_levels")) {
         params.with_max_levels(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "min_coarse_rows", allowed_keys)) {
+    if (auto& obj = decorator.get("min_coarse_rows")) {
         params.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "coarsest_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("coarsest_solver")) {
         params.with_coarsest_solver(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "cycle", allowed_keys)) {
+    if (auto& obj = decorator.get("cycle")) {
         auto str = obj.get_string();
         if (str == "v") {
             params.with_cycle(multigrid::cycle::v);
@@ -686,29 +679,24 @@ typename Multigrid::parameters_type Multigrid::parse(
             GKO_INVALID_CONFIG_VALUE("cycle", str);
         }
     }
-    if (auto& obj =
-            config::get_config_node(config, "kcycle_base", allowed_keys)) {
+    if (auto& obj = decorator.get("kcycle_base")) {
         params.with_kcycle_base(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "kcycle_rel_tol", allowed_keys)) {
+    if (auto& obj = decorator.get("kcycle_rel_tol")) {
         params.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "smoother_relax", allowed_keys)) {
+    if (auto& obj = decorator.get("smoother_relax")) {
         params.with_smoother_relax(
             config::get_value<std::complex<double>>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "smoother_iters", allowed_keys)) {
+    if (auto& obj = decorator.get("smoother_iters")) {
         params.with_smoother_iters(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "default_initial_guess",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

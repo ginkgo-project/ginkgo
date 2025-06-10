@@ -38,31 +38,28 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Ir<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = config::get_config_node(config, "criteria", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("criteria")) {
         params.with_criteria(
             config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "solver", allowed_keys)) {
+    if (auto& obj = decorator.get("solver")) {
         params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
             obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "generated_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("generated_solver")) {
         params.with_generated_solver(
             config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = config::get_config_node(config, "relaxation_factor",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("relaxation_factor")) {
         params.with_relaxation_factor(config::get_value<ValueType>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "default_initial_guess",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

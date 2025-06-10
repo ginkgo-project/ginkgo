@@ -115,15 +115,14 @@ parse_minimal_criteria(const pnode& config, const registry& context,
 
     // Although it can still be caught in the following map, it gives consistent
     // error exception when some keys are not allowed.
-    std::set<std::string> allowed_keys{"time",
-                                       "iteration",
-                                       "relative_residual_norm",
-                                       "initial_residual_norm",
-                                       "absolute_residual_norm",
-                                       "relative_implicit_residual_norm",
-                                       "initial_implicit_residual_norm",
-                                       "absolute_implicit_residual_norm"};
-    check_allowed_keys(config, allowed_keys);
+    // We use additional scope such that we check it before the following map
+    // throw exception
+    {
+        config_decorator decorator(config);
+        for (const auto& it : criterion_map) {
+            decorator.get(it.first);
+        }
+    }
 
     std::vector<deferred_factory_parameter<const stop::CriterionFactory>> res;
     for (const auto& it : config.get_map()) {
@@ -161,14 +160,25 @@ parse_or_get_criteria(const pnode& config, const registry& context,
         "or an map.");
 }
 
-void check_allowed_keys(const pnode& config,
-                        const std::set<std::string>& allowed_keys)
+config_decorator::config_decorator(
+    const pnode& config, const std::set<std::string>& additional_allowed_keys)
+    : allowed_keys_(additional_allowed_keys), config_(config)
 {
-    if (config.get_tag() != pnode::tag_t::map) {
+    // we allow value_type in all class such that they can change their
+    // own/child value_type
+    allowed_keys_.insert("value_type");
+    // type for choose the class
+    allowed_keys_.insert("type");
+}
+
+
+config_decorator::~config_decorator() noexcept(false)
+{
+    if (config_.get_tag() != pnode::tag_t::map) {
         // we only check the key in the map
         return;
     }
-    const auto& map = config.get_map();
+    const auto& map = config_.get_map();
     auto set_output = [](auto& set) {
         std::string output = "[";
         for (const auto& item : set) {
@@ -178,25 +188,19 @@ void check_allowed_keys(const pnode& config,
         return output;
     };
     for (const auto& item : map) {
-        if (item.first == "value_type" || item.first == "type") {
-            // We always allow value_type in any class and use type to choose
-            // the class
-            continue;
-        }
-        auto search = allowed_keys.find(item.first);
+        auto search = allowed_keys_.find(item.first);
         GKO_THROW_IF_INVALID(
-            search != allowed_keys.end(),
+            search != allowed_keys_.end(),
             item.first + " is not a allowed key. The allowed keys here is " +
-                set_output(allowed_keys));
+                set_output(allowed_keys_));
     }
 }
 
 
-const pnode& get_config_node(const pnode& config, const std::string& key,
-                             std::set<std::string>& allowed_keys)
+const pnode& config_decorator::get(const std::string& key)
 {
-    allowed_keys.insert(key);
-    return config.get(key);
+    allowed_keys_.insert(key);
+    return config_.get(key);
 }
 
 }  // namespace config

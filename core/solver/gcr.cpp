@@ -43,14 +43,12 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gcr<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    config::common_solver_parse(params, config, context, td_for_child,
-                                allowed_keys);
-    if (auto& obj =
-            config::get_config_node(config, "krylov_dim", allowed_keys)) {
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
+    if (auto& obj = decorator.get("krylov_dim")) {
         params.with_krylov_dim(config::get_value<size_type>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 
