@@ -62,7 +62,7 @@ Supported systems and requirements:
 
 ### Summary of previous deprecations
 
-+ The `Executor::run` overload without a name as first parameter has been deprecated [#1667](https://github.com/ginkgo-project/ginkgo/pull/1667)
++ The `Executor::run` overload without a name as the first parameter has been deprecated [#1667](https://github.com/ginkgo-project/ginkgo/pull/1667)
 + The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface.
 + The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`.
 + The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`.
@@ -77,7 +77,7 @@ Supported systems and requirements:
 + The class `MachineTopology` is deprecated in favor of `machine_topology`.
 + Logger constructors and create functions with the `executor` parameter.
 + The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
-+ Logger events for solvers and criterion without the additional `implicit_tau_sq` parameter.
++ Logger events for solvers and criteria without the additional `implicit_tau_sq` parameter.
 + The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
 + `array::get_num_elems()` has been renamed to `get_size()`
 + `matrix_data::ensure_row_major_order()` has been renamed to `sort_row_major()`
@@ -89,7 +89,7 @@ Supported systems and requirements:
 
 + Add a pipelined CG solver [#1824](https://github.com/ginkgo-project/ginkgo/pull/1824), [#1838](https://github.com/ginkgo-project/ginkgo/pull/1838), [#1859](https://github.com/ginkgo-project/ginkgo/pull/1859)
 + Add Coo Transpose/Conj-Transpose [#1816](https://github.com/ginkgo-project/ginkgo/pull/1816)
-+ Add chebyshev iteration solver [#1289](https://github.com/ginkgo-project/ginkgo/pull/1289)
++ Add Chebyshev iteration solver [#1289](https://github.com/ginkgo-project/ginkgo/pull/1289)
 + Add a two-level Schwarz preconditioner [#1431](https://github.com/ginkgo-project/ginkgo/pull/1431)
 + Add simplified configuration for stopping criteria [#1613](https://github.com/ginkgo-project/ginkgo/pull/1613)
 + Add an example to show the distributed multigrid usage [#1769](https://github.com/ginkgo-project/ginkgo/pull/1769)
@@ -101,8 +101,8 @@ Supported systems and requirements:
 + Add local-to-global index mapping [#1707](https://github.com/ginkgo-project/ginkgo/pull/1707)
 + Add Minres solver [#975](https://github.com/ginkgo-project/ginkgo/pull/975)
 + Add `array::copy_to_host` utility function [#1835](https://github.com/ginkgo-project/ginkgo/pull/1835)
-+ Add bfloat16 support and corresponding MPI function [#1825](https://github.com/ginkgo-project/ginkgo/pull/1825), [#1827](https://github.com/ginkgo-project/ginkgo/pull/1827)
-+ Add mixed precision support for distributed matrix when the underlying matrix also support mixed precision [#1819](https://github.com/ginkgo-project/ginkgo/pull/1819).
++ Add bfloat16 support and corresponding MPI functions [#1825](https://github.com/ginkgo-project/ginkgo/pull/1825), [#1827](https://github.com/ginkgo-project/ginkgo/pull/1827)
++ Add mixed precision support for distributed matrix when the underlying matrix also supports mixed precision [#1819](https://github.com/ginkgo-project/ginkgo/pull/1819).
 + Add distributed RowGatherer which is used by the distributed matrix to handle the communication [#1589](https://github.com/ginkgo-project/ginkgo/pull/1589)
 + Add complex type support for Dense transpose and Fbcsr on AMD GPUs [#1839](https://github.com/ginkgo-project/ginkgo/pull/1839)
 + Add OMP implementation for Merge-Path CSR [#1810](https://github.com/ginkgo-project/ginkgo/pull/1810)
@@ -111,7 +111,7 @@ Supported systems and requirements:
 
 + Improve performance of factorization validation in benchmarks [#1766](https://github.com/ginkgo-project/ginkgo/pull/1766)
 + Allow the ValueType additionally in precondition Ic [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828). Note. It introduces the behavior changes for config usage. Please take a look at the behavior changes section.
-+ Avoid refill the constant scalar in the workspace in each apply [#1846](https://github.com/ginkgo-project/ginkgo/pull/1846)
++ Avoid refilling the constant scalar in the workspace in each apply [#1846](https://github.com/ginkgo-project/ginkgo/pull/1846)
 
 ### Fixes
 
