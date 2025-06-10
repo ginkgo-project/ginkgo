@@ -43,25 +43,21 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Idr<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    config::common_solver_parse(params, config, context, td_for_child,
-                                allowed_keys);
-    if (auto& obj =
-            config::get_config_node(config, "subspace_dim", allowed_keys)) {
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
+    if (auto& obj = decorator.get("subspace_dim")) {
         params.with_subspace_dim(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "kappa", allowed_keys)) {
+    if (auto& obj = decorator.get("kappa")) {
         params.with_kappa(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "deterministic", allowed_keys)) {
+    if (auto& obj = decorator.get("deterministic")) {
         params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "complex_subspace", allowed_keys)) {
+    if (auto& obj = decorator.get("complex_subspace")) {
         params.with_complex_subspace(config::get_value<bool>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

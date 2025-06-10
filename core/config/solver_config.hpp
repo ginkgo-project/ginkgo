@@ -19,20 +19,18 @@ namespace config {
 
 
 template <typename SolverParam>
-void common_solver_parse(SolverParam& params, const pnode& config,
-                         const registry& context, type_descriptor td_for_child,
-                         std::set<std::string>& allowed_keys)
+void common_solver_parse(SolverParam& params, config_decorator& decorator,
+                         const registry& context, type_descriptor td_for_child)
 {
-    if (auto& obj =
-            get_config_node(config, "generated_preconditioner", allowed_keys)) {
+    if (auto& obj = decorator.get("generated_preconditioner")) {
         params.with_generated_preconditioner(
             gko::config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = get_config_node(config, "criteria", allowed_keys)) {
+    if (auto& obj = decorator.get("criteria")) {
         params.with_criteria(
             gko::config::parse_or_get_criteria(obj, context, td_for_child));
     }
-    if (auto& obj = get_config_node(config, "preconditioner", allowed_keys)) {
+    if (auto& obj = decorator.get("preconditioner")) {
         params.with_preconditioner(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));

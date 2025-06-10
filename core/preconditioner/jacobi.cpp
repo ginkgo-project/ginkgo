@@ -64,17 +64,14 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj =
-            config::get_config_node(config, "max_block_size", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("max_block_size")) {
         params.with_max_block_size(config::get_value<uint32>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "max_block_stride", allowed_keys)) {
+    if (auto& obj = decorator.get("max_block_stride")) {
         params.with_max_block_stride(config::get_value<uint32>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
     // No array support
@@ -86,19 +83,17 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
     // storage_optimization_type is not public. It uses precision_reduction
     // as input. It allows value and array input, but we only support the value
     // input [x, y] -> one precision_reduction (value mode)
-    if (auto& obj = config::get_config_node(config, "storage_optimization",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("storage_optimization")) {
         params.with_storage_optimization(
             config::get_value<precision_reduction>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "accuracy", allowed_keys)) {
+    if (auto& obj = decorator.get("accuracy")) {
         params.with_accuracy(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "aggregate_l1", allowed_keys)) {
+    if (auto& obj = decorator.get("aggregate_l1")) {
         params.with_aggregate_l1(config::get_value<bool>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

@@ -67,19 +67,16 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gmres<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    config::common_solver_parse(params, config, context, td_for_child,
-                                allowed_keys);
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
 
-    if (auto& obj =
-            config::get_config_node(config, "krylov_dim", allowed_keys)) {
+    if (auto& obj = decorator.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "flexible", allowed_keys)) {
+    if (auto& obj = decorator.get("flexible")) {
         params.with_flexible(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "ortho_method", allowed_keys)) {
+    if (auto& obj = decorator.get("ortho_method")) {
         auto str = obj.get_string();
         gmres::ortho_method ortho;
         if (str == "mgs") {
@@ -93,7 +90,7 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
         }
         params.with_ortho_method(ortho);
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

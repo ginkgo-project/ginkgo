@@ -102,31 +102,26 @@ Isai<IsaiType, ValueType, IndexType>::parse(
 {
     auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
     // isai_type is allowed to select the instantiation.
-    std::set<std::string> allowed_keys{"isai_type"};
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    config::config_decorator decorator(config, {"isai_type"});
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "sparsity_power", allowed_keys)) {
+    if (auto& obj = decorator.get("sparsity_power")) {
         params.with_sparsity_power(config::get_value<int>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "excess_limit", allowed_keys)) {
+    if (auto& obj = decorator.get("excess_limit")) {
         params.with_excess_limit(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "excess_solver_factory",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("excess_solver_factory")) {
         params.with_excess_solver_factory(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "excess_solver_reduction",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("excess_solver_reduction")) {
         params.with_excess_solver_reduction(
             config::get_value<remove_complex<ValueType>>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

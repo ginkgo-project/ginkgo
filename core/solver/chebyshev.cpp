@@ -51,9 +51,9 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Chebyshev<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    common_solver_parse(params, config, context, td_for_child, allowed_keys);
-    if (auto& obj = config::get_config_node(config, "foci", allowed_keys)) {
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
+    if (auto& obj = decorator.get("foci")) {
         auto arr = obj.get_array();
         if (arr.size() != 2) {
             GKO_INVALID_CONFIG_VALUE("foci", "must contain two elements");
@@ -62,12 +62,11 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
             gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(0)),
             gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(1)));
     }
-    if (auto& obj = config::get_config_node(config, "default_initial_guess",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("default_initial_guess")) {
         params.with_default_initial_guess(
             gko::config::get_value<solver::initial_guess_mode>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

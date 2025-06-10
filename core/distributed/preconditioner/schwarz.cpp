@@ -48,40 +48,33 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Schwarz::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = config::get_config_node(config, "generated_local_solver",
-                                            allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("generated_local_solver")) {
         params.with_generated_local_solver(
             config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj =
-            config::get_config_node(config, "local_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("local_solver")) {
         params.with_local_solver(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "l1_smoother", allowed_keys)) {
+    if (auto& obj = decorator.get("l1_smoother")) {
         params.with_l1_smoother(obj.get_boolean());
     }
-    if (auto& obj =
-            config::get_config_node(config, "coarse_level", allowed_keys)) {
+    if (auto& obj = decorator.get("coarse_level")) {
         params.with_coarse_level(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "coarse_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("coarse_solver")) {
         params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "coarse_weight", allowed_keys)) {
+    if (auto& obj = decorator.get("coarse_weight")) {
         params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
     }
 
-    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

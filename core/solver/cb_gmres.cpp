@@ -165,15 +165,12 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::CbGmres<ValueType>::build();
-    std::set<std::string> allowed_keys;
-    config::common_solver_parse(params, config, context, td_for_child,
-                                allowed_keys);
-    if (auto& obj =
-            config::get_config_node(config, "krylov_dim", allowed_keys)) {
+    config::config_decorator decorator(config);
+    config::common_solver_parse(params, decorator, context, td_for_child);
+    if (auto& obj = decorator.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "storage_precision",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("storage_precision")) {
         auto get_storage_precision = [](std::string str) {
             using gko::solver::cb_gmres::storage_precision;
             if (str == "keep") {
@@ -193,7 +190,7 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
         };
         params.with_storage_precision(get_storage_precision(obj.get_string()));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

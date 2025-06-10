@@ -28,7 +28,7 @@ typename Ilu::parameters_type ilu_parse(
 {
     auto params = Ilu::build();
     // reverse_apply is used for determining the Ilu type
-    std::set<std::string> allowed_keys{"reverse_apply"};
+    config::config_decorator decorator(config, {"reverse_apply"});
 
     using l_solver_type = typename Ilu::l_solver_type;
     using u_solver_type = typename Ilu::u_solver_type;
@@ -37,23 +37,22 @@ typename Ilu::parameters_type ilu_parse(
     static_assert(std::is_same_v<u_solver_type, LinOp>,
                   "only support ILU parse when u_solver_type is LinOp.");
 
-    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config::get_config_node(config, "u_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("u_solver")) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "factorization", allowed_keys)) {
+    if (auto& obj = decorator.get("factorization")) {
         params.with_factorization(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

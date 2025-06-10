@@ -27,17 +27,16 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = Direct<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = config::get_config_node(config, "num_rhs", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "factorization", allowed_keys)) {
+    if (auto& obj = decorator.get("factorization")) {
         params.with_factorization(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 
