@@ -15,10 +15,10 @@ Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.10.0.
 This release brings new features such as:
-- Support for bfloat16 precision. The type `gko::bloat16` can now be selected in most instances as the value type
+- Support for bfloat16 precision. The type `gko::bfloat16` can now be selected in most instances as the value type
   of a matrix, solver, preconditioner, etc. If the selected backend supports bfloat16 as a native type, the native type
-  is used within the kernels, otherwise an overhead might occur. The new behavior is enabled by default, but it can be
-  turned off during configuration.
+  is used within the kernels, otherwise they may incur a conversion overhead. The new behavior is enabled by default, but it can be
+  turned off during CMake configuration.
 - Mixed precision support in our distributed matrix, provided the underlying matrix formats support mixed precision.
 - New pipelined CG solver. This specialization of the CG solver is suitable to reduce the communication overhead in
   large scale distributed computations.
@@ -53,12 +53,12 @@ Supported systems and requirements:
 ### Behavior changes
 
 + A cmake format style has been added to uniformize formatting for CMake files. [#1755](https://github.com/ginkgo-project/ginkgo/pull/1755)
-+ The file config for preconditioner Ic and Ilu only takes `value_type` not the `l_solver_type` or `u_solver_type` [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811), [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828)
++ The file config for preconditioner Ic and Ilu now only takes `value_type`, not `l_solver_type` or `u_solver_type`  parameters [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811), [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828)
 + The distributed matrix now uses collective neighborhood communication if possible [#1589](https://github.com/ginkgo-project/ginkgo/pull/1589)
 
 ### Deprecations
 
-+ The `experimental::EnableDistributedLinOp` has been removed, `EnableLinOp` can be used instead [#1751](https://github.com/ginkgo-project/ginkgo/pull/1751).
++ The `experimental::EnableDistributedLinOp` mixin has been removed, `EnableLinOp` can be used instead [#1751](https://github.com/ginkgo-project/ginkgo/pull/1751).
 
 ### Summary of previous deprecations
 
@@ -93,9 +93,9 @@ Supported systems and requirements:
 + Add a two-level Schwarz preconditioner [#1431](https://github.com/ginkgo-project/ginkgo/pull/1431)
 + Add simplified configuration for stopping criteria [#1613](https://github.com/ginkgo-project/ginkgo/pull/1613)
 + Add an example to show the distributed multigrid usage [#1769](https://github.com/ginkgo-project/ginkgo/pull/1769)
-+ Add enable half in MPI [#1759](https://github.com/ginkgo-project/ginkgo/pull/1759)
-+ Add yaml-cpp reader for config file in extension [#1677](https://github.com/ginkgo-project/ginkgo/pull/1677)
-+ Add sequential and distributed L1-Jacobi [#1310](https://github.com/ginkgo-project/ginkgo/pull/1310), [#1806](https://github.com/ginkgo-project/ginkgo/pull/1806)
++ Add half precision support for MPI [#1759](https://github.com/ginkgo-project/ginkgo/pull/1759)
++ Add yaml-cpp reader to parse config files in YAML format [#1677](https://github.com/ginkgo-project/ginkgo/pull/1677)
++ Add local and distributed L1-Jacobi [#1310](https://github.com/ginkgo-project/ginkgo/pull/1310), [#1806](https://github.com/ginkgo-project/ginkgo/pull/1806)
 + Add reusable permutation and transpose operations [#1338](https://github.com/ginkgo-project/ginkgo/pull/1338)
 + Add collective communication interface and dense/neighborhood implementation of the interface [#1780](https://github.com/ginkgo-project/ginkgo/pull/1780)
 + Add local-to-global index mapping [#1707](https://github.com/ginkgo-project/ginkgo/pull/1707)
@@ -110,12 +110,12 @@ Supported systems and requirements:
 ### Improvements
 
 + Improve performance of factorization validation in benchmarks [#1766](https://github.com/ginkgo-project/ginkgo/pull/1766)
-+ Allow the ValueType additionally in precondition Ic [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828). Note. It introduces the behavior changes for config usage. Please take a look at the behavior changes section.
++ Allow specifying a ValueType instead of a full SolverType in preconditioners Ic [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828). Note. It introduces the behavior changes for config usage. Please take a look at the behavior changes section.
 + Avoid refilling the constant scalar in the workspace in each apply [#1846](https://github.com/ginkgo-project/ginkgo/pull/1846)
 
 ### Fixes
 
-+ Fix the oneMKL GEMM issue on zero-sized matrix [#1756](https://github.com/ginkgo-project/ginkgo/pull/1756)
++ Fix an oneMKL GEMM issue on zero-sized matrix [#1756](https://github.com/ginkgo-project/ginkgo/pull/1756)
 + Fix error with ILU/IC generation and default algorithm on OpenMP [#1783](https://github.com/ginkgo-project/ginkgo/pull/1783), [#1855](https://github.com/ginkgo-project/ginkgo/pull/1855)
 + Avoid NaN values being propagated through multiplications with zero scalars in linear combination apply and simple BLAS operations [#1573](https://github.com/ginkgo-project/ginkgo/pull/1573)
 + Fix IR `move` operation [#1812](https://github.com/ginkgo-project/ginkgo/pull/1812)
@@ -123,9 +123,9 @@ Supported systems and requirements:
 + Fix COO unsupported exception on an empty matrix with 16bit precision [#1843](https://github.com/ginkgo-project/ginkgo/pull/1843)
 + Fix METIS detection when GKLib is linked into the METIS library [#1847](https://github.com/ginkgo-project/ginkgo/pull/1847)
 + Fix bfloat16 issue on CUDA before cuda 12.2 and oneAPI before oneAPI 2024.2 [#1848](https://github.com/ginkgo-project/ginkgo/pull/1848)
-+ Fix wrong ballot result from H100 with CUDA 12.2 - 12.4 [#1849](https://github.com/ginkgo-project/ginkgo/pull/1849)
-+ Fix the race condition in LU factorization [#1850](https://github.com/ginkgo-project/ginkgo/pull/1850)
-+ Fix the 16bit-precision NaN check in triangular solve [#1860](https://github.com/ginkgo-project/ginkgo/pull/1860)
++ Work around compiler bug related to warp ballot on H100 GPUs with CUDA 12.2 - 12.4 [#1849](https://github.com/ginkgo-project/ginkgo/pull/1849)
++ Fix a race condition in LU factorization [#1850](https://github.com/ginkgo-project/ginkgo/pull/1850)
++ Fix the 16bit precision NaN check in triangular solve [#1860](https://github.com/ginkgo-project/ginkgo/pull/1860)
 
 ## Version 1.9.0
 
