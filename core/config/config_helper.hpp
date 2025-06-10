@@ -316,14 +316,30 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
 }
 
 
-// It is to check whether the keys of config (map type) are mentioned in
-// allowed_keys. If not, it will throw an error message.
-void check_allowed_keys(const pnode& config,
-                        const std::set<std::string>& allowed_keys);
+/**
+ * This is a decroator on top of config node. When we try to get a node by a
+ * key, it registers the keys as the allowed_keys. When this object is
+ * destroyed, it will check whether the config node only contains the key in
+ * allowed_keys. If some key is not in allowed_keys, it will throw an exception.
+ */
+class config_decorator {
+public:
+    config_decorator(const pnode& config,
+                     const std::set<std::string>& additional_allowed_keys = {});
 
-// using this to append the available option to the set.
-const pnode& get_config_node(const pnode& config, const std::string& key,
-                             std::set<std::string>& allowed_keys);
+    // we allow exception here because we only use it in function not class.
+    ~config_decorator() noexcept(false);
+
+    config_decorator(const config_decorator&) = delete;
+
+    config_decorator& operator=(const config_decorator&) = delete;
+
+    const pnode& get(const std::string& key);
+
+private:
+    std::set<std::string> allowed_keys_;
+    const pnode& config_;
+};
 
 
 }  // namespace config

@@ -30,11 +30,10 @@ deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Time::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = get_config_node(config, "time_limit", allowed_keys)) {
+    config_decorator decorator(config);
+    if (auto& obj = decorator.get("time_limit")) {
         params.with_time_limit(get_value<long long int>(obj));
     }
-    check_allowed_keys(config, allowed_keys);
     return params;
 }
 
@@ -43,11 +42,10 @@ deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Iteration::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = get_config_node(config, "max_iters", allowed_keys)) {
+    config_decorator decorator(config);
+    if (auto& obj = decorator.get("max_iters")) {
         params.with_max_iters(get_value<size_type>(obj));
     }
-    check_allowed_keys(config, allowed_keys);
     return params;
 }
 
@@ -74,17 +72,15 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        std::set<std::string> allowed_keys;
+        config_decorator decorator(config);
         auto params = stop::ResidualNorm<ValueType>::build();
-        if (auto& obj =
-                get_config_node(config, "reduction_factor", allowed_keys)) {
+        if (auto& obj = decorator.get("reduction_factor")) {
             params.with_reduction_factor(
                 get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = get_config_node(config, "baseline", allowed_keys)) {
+        if (auto& obj = decorator.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
-        check_allowed_keys(config, allowed_keys);
         return params;
     }
 };
@@ -109,17 +105,15 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        std::set<std::string> allowed_keys;
+        config_decorator decorator(config);
         auto params = stop::ImplicitResidualNorm<ValueType>::build();
-        if (auto& obj =
-                get_config_node(config, "reduction_factor", allowed_keys)) {
+        if (auto& obj = decorator.get("reduction_factor")) {
             params.with_reduction_factor(
                 get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = get_config_node(config, "baseline", allowed_keys)) {
+        if (auto& obj = decorator.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
-        check_allowed_keys(config, allowed_keys);
         return params;
     }
 };

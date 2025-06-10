@@ -56,21 +56,17 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::type_descriptor& td_for_child)
 {
     auto params = factorization::Ic<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj =
-            config::get_config_node(config, "l_strategy", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "both_factors", allowed_keys)) {
+    if (auto& obj = decorator.get("both_factors")) {
         params.with_both_factors(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "algorithm", allowed_keys)) {
+    if (auto& obj = decorator.get("algorithm")) {
         using gko::factorization::incomplete_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {
@@ -81,7 +77,6 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
             GKO_INVALID_CONFIG_VALUE("algorithm", str);
         }
     }
-    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

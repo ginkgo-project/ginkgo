@@ -45,17 +45,14 @@ Cholesky<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Cholesky<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj = config::get_config_node(config, "symbolic_factorization",
-                                            allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("symbolic_factorization")) {
         params.with_symbolic_factorization(
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
     return params;
 }
 

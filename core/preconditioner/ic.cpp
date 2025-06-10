@@ -27,24 +27,23 @@ typename Ic::parameters_type ic_parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Ic::build();
-    std::set<std::string> allowed_keys;
+    config::config_decorator decorator(config);
 
     using l_solver_type = typename Ic::l_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,
                   "only support IC parse when l_solver_type is LinOp.");
 
-    if (auto& obj = config::get_config_node(config, "l_solver", allowed_keys)) {
+    if (auto& obj = decorator.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj =
-            config::get_config_node(config, "factorization", allowed_keys)) {
+    if (auto& obj = decorator.get("factorization")) {
         params.with_factorization(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 

@@ -166,24 +166,20 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::type_descriptor& td_for_child)
 {
     auto params = Pgm<ValueType, IndexType>::build();
-    std::set<std::string> allowed_keys;
-    if (auto& obj =
-            config::get_config_node(config, "max_iterations", allowed_keys)) {
+    config::config_decorator decorator(config);
+    if (auto& obj = decorator.get("max_iterations")) {
         params.with_max_iterations(config::get_value<unsigned>(obj));
     }
-    if (auto& obj = config::get_config_node(config, "max_unassigned_ratio",
-                                            allowed_keys)) {
+    if (auto& obj = decorator.get("max_unassigned_ratio")) {
         params.with_max_unassigned_ratio(config::get_value<double>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "deterministic", allowed_keys)) {
+    if (auto& obj = decorator.get("deterministic")) {
         params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj =
-            config::get_config_node(config, "skip_sorting", allowed_keys)) {
+    if (auto& obj = decorator.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    config::check_allowed_keys(config, allowed_keys);
+
     return params;
 }
 
