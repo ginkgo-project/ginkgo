@@ -17,20 +17,7 @@
 #include "test/utils/common_fixture.hpp"
 
 
-class IteratorFactory : public CommonTestFixture {
-public:
-    IteratorFactory()
-        : key_array{exec, {6, 2, 3, 8, 1, 0, 2}},
-          value_array{exec, {9, 5, 7, 2, 4, 7, 2}},
-          expected_key_array{ref, {7, 1, 2, 2, 3, 6, 8}},
-          expected_value_array{ref, {7, 4, 2, 5, 7, 9, 2}}
-    {}
-
-    gko::array<int> key_array;
-    gko::array<int> value_array;
-    gko::array<int> expected_key_array;
-    gko::array<int> expected_value_array;
-};
+class IteratorFactory : public CommonTestFixture {};
 
 
 // nvcc doesn't like device lambdas declared in complex classes, move it out
@@ -65,8 +52,48 @@ void run_zip_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
 
 TEST_F(IteratorFactory, KernelRunsZipIterator)
 {
+    gko::array<int> key_array{exec, {6, 2, 3, 8, 1, 0, 2}};
+    gko::array<int> value_array{exec, {9, 5, 7, 2, 4, 7, 2}};
+    gko::array<int> expected_key_array{ref, {7, 1, 2, 2, 3, 6, 8}};
+    gko::array<int> expected_value_array{ref, {7, 4, 2, 5, 7, 9, 2}};
+
     run_zip_iterator(exec, key_array, value_array);
 
     GKO_ASSERT_ARRAY_EQ(key_array, expected_key_array);
     GKO_ASSERT_ARRAY_EQ(value_array, expected_value_array);
+}
+
+
+struct transformation {
+    template <typename T>
+    GKO_KERNEL T operator()(T v) const
+    {
+        return -v;
+    }
+};
+
+
+// nvcc doesn't like device lambdas declared in complex classes, move it out
+void run_transform_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
+                            gko::array<int>& in_array,
+                            gko::array<int>& out_array)
+{
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec, [] GKO_KERNEL(auto i, auto it, auto out) { out[i] = it[i]; },
+        in_array.get_size(),
+        gko::detail::make_transform_iterator(in_array.get_data(),
+                                             transformation{}),
+        out_array);
+}
+
+
+TEST_F(IteratorFactory, KernelRunsTransformIterator)
+{
+    gko::array<int> in_array{exec, {6, 2, 3, 8, 1, 0, 2}};
+    gko::array<int> out_array{exec, in_array.get_size()};
+    gko::array<int> ref_array{ref, {-6, -2, -3, -8, -1, -0, -2}};
+
+    run_transform_iterator(exec, in_array, out_array);
+
+    GKO_ASSERT_ARRAY_EQ(out_array, ref_array);
 }
