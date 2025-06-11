@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/cgs.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -42,8 +41,8 @@ typename Cgs<ValueType>::parameters_type Cgs<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Cgs<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
 
     return params;
 }

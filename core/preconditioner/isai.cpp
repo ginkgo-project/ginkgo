@@ -6,8 +6,6 @@
 
 #include <functional>
 #include <memory>
-#include <set>
-#include <string>
 #include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -102,22 +100,22 @@ Isai<IsaiType, ValueType, IndexType>::parse(
 {
     auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
     // isai_type is allowed to select the instantiation.
-    config::config_decorator decorator(config, {"isai_type"});
-    if (auto& obj = decorator.get("skip_sorting")) {
+    config::config_check_decorator config_check(config, {"isai_type"});
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("sparsity_power")) {
+    if (auto& obj = config_check.get("sparsity_power")) {
         params.with_sparsity_power(config::get_value<int>(obj));
     }
-    if (auto& obj = decorator.get("excess_limit")) {
+    if (auto& obj = config_check.get("excess_limit")) {
         params.with_excess_limit(config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("excess_solver_factory")) {
+    if (auto& obj = config_check.get("excess_solver_factory")) {
         params.with_excess_solver_factory(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    if (auto& obj = decorator.get("excess_solver_reduction")) {
+    if (auto& obj = config_check.get("excess_solver_reduction")) {
         params.with_excess_solver_reduction(
             config::get_value<remove_complex<ValueType>>(obj));
     }

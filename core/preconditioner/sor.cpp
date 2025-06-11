@@ -4,9 +4,6 @@
 
 #include "ginkgo/core/preconditioner/sor.hpp"
 
-#include <set>
-#include <string>
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -44,23 +41,23 @@ Sor<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::type_descriptor& td_for_child)
 {
     auto params = Sor::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("skip_sorting")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("symmetric")) {
+    if (auto& obj = config_check.get("symmetric")) {
         params.with_symmetric(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("relaxation_factor")) {
+    if (auto& obj = config_check.get("relaxation_factor")) {
         params.with_relaxation_factor(
             config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = decorator.get("l_solver")) {
+    if (auto& obj = config_check.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("u_solver")) {
+    if (auto& obj = config_check.get("u_solver")) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));

@@ -4,7 +4,6 @@
 
 #include "core/config/stop_config.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -30,8 +29,8 @@ deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Time::build();
-    config_decorator decorator(config);
-    if (auto& obj = decorator.get("time_limit")) {
+    config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("time_limit")) {
         params.with_time_limit(get_value<long long int>(obj));
     }
     return params;
@@ -42,8 +41,8 @@ deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Iteration::build();
-    config_decorator decorator(config);
-    if (auto& obj = decorator.get("max_iters")) {
+    config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("max_iters")) {
         params.with_max_iters(get_value<size_type>(obj));
     }
     return params;
@@ -72,13 +71,13 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        config_decorator decorator(config);
+        config_check_decorator config_check(config);
         auto params = stop::ResidualNorm<ValueType>::build();
-        if (auto& obj = decorator.get("reduction_factor")) {
+        if (auto& obj = config_check.get("reduction_factor")) {
             params.with_reduction_factor(
                 get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = decorator.get("baseline")) {
+        if (auto& obj = config_check.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
         return params;
@@ -105,13 +104,13 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
-        config_decorator decorator(config);
+        config_check_decorator config_check(config);
         auto params = stop::ImplicitResidualNorm<ValueType>::build();
-        if (auto& obj = decorator.get("reduction_factor")) {
+        if (auto& obj = config_check.get("reduction_factor")) {
             params.with_reduction_factor(
                 get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = decorator.get("baseline")) {
+        if (auto& obj = config_check.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
         return params;

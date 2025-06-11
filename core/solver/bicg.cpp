@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/bicg.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -40,8 +39,8 @@ typename Bicg<ValueType>::parameters_type Bicg<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Bicg<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
 
     return params;
 }

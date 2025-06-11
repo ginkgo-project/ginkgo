@@ -5,8 +5,6 @@
 #include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 #include <memory>
-#include <set>
-#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -48,30 +46,30 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Schwarz::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("generated_local_solver")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("generated_local_solver")) {
         params.with_generated_local_solver(
             config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = decorator.get("local_solver")) {
+    if (auto& obj = config_check.get("local_solver")) {
         params.with_local_solver(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));
     }
-    if (auto& obj = decorator.get("l1_smoother")) {
+    if (auto& obj = config_check.get("l1_smoother")) {
         params.with_l1_smoother(obj.get_boolean());
     }
-    if (auto& obj = decorator.get("coarse_level")) {
+    if (auto& obj = config_check.get("coarse_level")) {
         params.with_coarse_level(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("coarse_solver")) {
+    if (auto& obj = config_check.get("coarse_solver")) {
         params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("coarse_weight")) {
+    if (auto& obj = config_check.get("coarse_weight")) {
         params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
     }
 
