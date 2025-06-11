@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/chebyshev.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -51,9 +50,9 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Chebyshev<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
-    if (auto& obj = decorator.get("foci")) {
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("foci")) {
         auto arr = obj.get_array();
         if (arr.size() != 2) {
             GKO_INVALID_CONFIG_VALUE("foci", "must contain two elements");
@@ -62,7 +61,7 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
             gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(0)),
             gko::config::get_value<detail::coeff_type<ValueType>>(arr.at(1)));
     }
-    if (auto& obj = decorator.get("default_initial_guess")) {
+    if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             gko::config::get_value<solver::initial_guess_mode>(obj));
     }

@@ -5,7 +5,6 @@
 #include "ginkgo/core/solver/multigrid.hpp"
 
 #include <complex>
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -613,36 +612,36 @@ typename Multigrid::parameters_type Multigrid::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Multigrid::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("criteria")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("criteria")) {
         params.with_criteria(
             config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("mg_level")) {
+    if (auto& obj = config_check.get("mg_level")) {
         params.with_mg_level(
             config::parse_or_get_factory_vector<const gko::LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("pre_smoother")) {
+    if (auto& obj = config_check.get("pre_smoother")) {
         params.with_pre_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("post_smoother")) {
+    if (auto& obj = config_check.get("post_smoother")) {
         params.with_post_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("mid_smoother")) {
+    if (auto& obj = config_check.get("mid_smoother")) {
         params.with_mid_smoother(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("post_uses_pre")) {
+    if (auto& obj = config_check.get("post_uses_pre")) {
         params.with_post_uses_pre(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("mid_case")) {
+    if (auto& obj = config_check.get("mid_case")) {
         auto str = obj.get_string();
         if (str == "both") {
             params.with_mid_case(multigrid::mid_smooth_type::both);
@@ -656,18 +655,18 @@ typename Multigrid::parameters_type Multigrid::parse(
             GKO_INVALID_CONFIG_VALUE("mid_smooth_type", str);
         }
     }
-    if (auto& obj = decorator.get("max_levels")) {
+    if (auto& obj = config_check.get("max_levels")) {
         params.with_max_levels(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("min_coarse_rows")) {
+    if (auto& obj = config_check.get("min_coarse_rows")) {
         params.with_min_coarse_rows(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("coarsest_solver")) {
+    if (auto& obj = config_check.get("coarsest_solver")) {
         params.with_coarsest_solver(
             config::parse_or_get_factory_vector<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("cycle")) {
+    if (auto& obj = config_check.get("cycle")) {
         auto str = obj.get_string();
         if (str == "v") {
             params.with_cycle(multigrid::cycle::v);
@@ -679,20 +678,20 @@ typename Multigrid::parameters_type Multigrid::parse(
             GKO_INVALID_CONFIG_VALUE("cycle", str);
         }
     }
-    if (auto& obj = decorator.get("kcycle_base")) {
+    if (auto& obj = config_check.get("kcycle_base")) {
         params.with_kcycle_base(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("kcycle_rel_tol")) {
+    if (auto& obj = config_check.get("kcycle_rel_tol")) {
         params.with_kcycle_rel_tol(gko::config::get_value<double>(obj));
     }
-    if (auto& obj = decorator.get("smoother_relax")) {
+    if (auto& obj = config_check.get("smoother_relax")) {
         params.with_smoother_relax(
             config::get_value<std::complex<double>>(obj));
     }
-    if (auto& obj = decorator.get("smoother_iters")) {
+    if (auto& obj = config_check.get("smoother_iters")) {
         params.with_smoother_iters(config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("default_initial_guess")) {
+    if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }

@@ -5,9 +5,6 @@
 #ifndef GKO_CORE_CONFIG_TRISOLVER_CONFIG_HPP_
 #define GKO_CORE_CONFIG_TRISOLVER_CONFIG_HPP_
 
-#include <set>
-#include <string>
-
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -21,17 +18,17 @@ namespace config {
 
 template <typename SolverParam>
 inline void common_trisolver_parse(SolverParam& params,
-                                   config_decorator& decorator,
+                                   config_check_decorator& config_check,
                                    const registry& context,
                                    type_descriptor td_for_child)
 {
-    if (auto& obj = decorator.get("num_rhs")) {
+    if (auto& obj = config_check.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("unit_diagonal")) {
+    if (auto& obj = config_check.get("unit_diagonal")) {
         params.with_unit_diagonal(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("algorithm")) {
+    if (auto& obj = config_check.get("algorithm")) {
         using gko::solver::trisolve_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {

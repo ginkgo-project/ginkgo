@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/ir.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -38,24 +37,24 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Ir<ValueType>::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("criteria")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("criteria")) {
         params.with_criteria(
             config::parse_or_get_factory_vector<const stop::CriterionFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("solver")) {
+    if (auto& obj = config_check.get("solver")) {
         params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
             obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("generated_solver")) {
+    if (auto& obj = config_check.get("generated_solver")) {
         params.with_generated_solver(
             config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = decorator.get("relaxation_factor")) {
+    if (auto& obj = config_check.get("relaxation_factor")) {
         params.with_relaxation_factor(config::get_value<ValueType>(obj));
     }
-    if (auto& obj = decorator.get("default_initial_guess")) {
+    if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }

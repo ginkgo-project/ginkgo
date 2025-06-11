@@ -4,9 +4,6 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
-#include <set>
-#include <string>
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -166,17 +163,17 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::type_descriptor& td_for_child)
 {
     auto params = Pgm<ValueType, IndexType>::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("max_iterations")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("max_iterations")) {
         params.with_max_iterations(config::get_value<unsigned>(obj));
     }
-    if (auto& obj = decorator.get("max_unassigned_ratio")) {
+    if (auto& obj = config_check.get("max_unassigned_ratio")) {
         params.with_max_unassigned_ratio(config::get_value<double>(obj));
     }
-    if (auto& obj = decorator.get("deterministic")) {
+    if (auto& obj = config_check.get("deterministic")) {
         params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
 

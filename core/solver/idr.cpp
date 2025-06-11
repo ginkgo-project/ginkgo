@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/idr.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -43,18 +42,18 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Idr<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
-    if (auto& obj = decorator.get("subspace_dim")) {
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("subspace_dim")) {
         params.with_subspace_dim(config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("kappa")) {
+    if (auto& obj = config_check.get("kappa")) {
         params.with_kappa(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = decorator.get("deterministic")) {
+    if (auto& obj = config_check.get("deterministic")) {
         params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("complex_subspace")) {
+    if (auto& obj = config_check.get("complex_subspace")) {
         params.with_complex_subspace(config::get_value<bool>(obj));
     }
 

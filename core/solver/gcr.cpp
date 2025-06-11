@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/gcr.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -43,9 +42,9 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gcr<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
-    if (auto& obj = decorator.get("krylov_dim")) {
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("krylov_dim")) {
         params.with_krylov_dim(config::get_value<size_type>(obj));
     }
 
