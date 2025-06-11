@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/cb_gmres.hpp"
 
-#include <set>
 #include <string>
 #include <type_traits>
 
@@ -165,12 +164,12 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::CbGmres<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
-    if (auto& obj = decorator.get("krylov_dim")) {
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("storage_precision")) {
+    if (auto& obj = config_check.get("storage_precision")) {
         auto get_storage_precision = [](std::string str) {
             using gko::solver::cb_gmres::storage_precision;
             if (str == "keep") {

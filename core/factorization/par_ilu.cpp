@@ -5,8 +5,6 @@
 #include "ginkgo/core/factorization/par_ilu.hpp"
 
 #include <memory>
-#include <set>
-#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -51,17 +49,17 @@ ParIlu<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = factorization::ParIlu<ValueType, IndexType>::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("iterations")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("iterations")) {
         params.with_iterations(config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("l_strategy")) {
+    if (auto& obj = config_check.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj = decorator.get("u_strategy")) {
+    if (auto& obj = config_check.get("u_strategy")) {
         params.with_u_strategy(config::get_strategy<matrix_type>(obj));
     }
 

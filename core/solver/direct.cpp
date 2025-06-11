@@ -5,7 +5,6 @@
 #include "ginkgo/core/solver/direct.hpp"
 
 #include <memory>
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -27,11 +26,11 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = Direct<ValueType, IndexType>::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("num_rhs")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("factorization")) {
+    if (auto& obj = config_check.get("factorization")) {
         params.with_factorization(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));

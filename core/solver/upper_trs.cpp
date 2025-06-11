@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -44,8 +43,8 @@ UpperTrs<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = UpperTrs<ValueType, IndexType>::build();
-    config::config_decorator decorator(config);
-    config::common_trisolver_parse(params, decorator, context, td_for_child);
+    config::config_check_decorator config_check(config);
+    config::common_trisolver_parse(params, config_check, context, td_for_child);
 
     return params;
 }

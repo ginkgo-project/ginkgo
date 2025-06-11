@@ -118,9 +118,9 @@ parse_minimal_criteria(const pnode& config, const registry& context,
     // We use additional scope such that we check it before the following map
     // throw exception
     {
-        config_decorator decorator(config);
+        config_check_decorator config_check(config);
         for (const auto& it : criterion_map) {
-            decorator.get(it.first);
+            config_check.get(it.first);
         }
     }
 
@@ -160,7 +160,7 @@ parse_or_get_criteria(const pnode& config, const registry& context,
         "or an map.");
 }
 
-config_decorator::config_decorator(
+config_check_decorator::config_check_decorator(
     const pnode& config, const std::set<std::string>& additional_allowed_keys)
     : allowed_keys_(additional_allowed_keys), config_(config)
 {
@@ -172,7 +172,7 @@ config_decorator::config_decorator(
 }
 
 
-config_decorator::~config_decorator() noexcept(false)
+config_check_decorator::~config_check_decorator() noexcept(false)
 {
     if (config_.get_tag() != pnode::tag_t::map) {
         // we only check the key in the map
@@ -197,7 +197,7 @@ config_decorator::~config_decorator() noexcept(false)
 }
 
 
-const pnode& config_decorator::get(const std::string& key)
+const pnode& config_check_decorator::get(const std::string& key)
 {
     allowed_keys_.insert(key);
     return config_.get(key);

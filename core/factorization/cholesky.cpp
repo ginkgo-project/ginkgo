@@ -4,9 +4,6 @@
 
 #include "ginkgo/core/factorization/cholesky.hpp"
 
-#include <set>
-#include <string>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -45,12 +42,12 @@ Cholesky<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Cholesky<ValueType, IndexType>::build();
-    config::config_decorator decorator(config);
-    if (auto& obj = decorator.get("symbolic_factorization")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("symbolic_factorization")) {
         params.with_symbolic_factorization(
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
-    if (auto& obj = decorator.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
     return params;

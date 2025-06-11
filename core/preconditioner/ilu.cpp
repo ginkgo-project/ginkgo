@@ -4,9 +4,6 @@
 
 #include "ginkgo/core/preconditioner/ilu.hpp"
 
-#include <set>
-#include <string>
-
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -28,7 +25,7 @@ typename Ilu::parameters_type ilu_parse(
 {
     auto params = Ilu::build();
     // reverse_apply is used for determining the Ilu type
-    config::config_decorator decorator(config, {"reverse_apply"});
+    config::config_check_decorator config_check(config, {"reverse_apply"});
 
     using l_solver_type = typename Ilu::l_solver_type;
     using u_solver_type = typename Ilu::u_solver_type;
@@ -37,17 +34,17 @@ typename Ilu::parameters_type ilu_parse(
     static_assert(std::is_same_v<u_solver_type, LinOp>,
                   "only support ILU parse when u_solver_type is LinOp.");
 
-    if (auto& obj = decorator.get("l_solver")) {
+    if (auto& obj = config_check.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("u_solver")) {
+    if (auto& obj = config_check.get("u_solver")) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = decorator.get("factorization")) {
+    if (auto& obj = config_check.get("factorization")) {
         params.with_factorization(
             config::parse_or_get_factory<const LinOpFactory>(obj, context,
                                                              td_for_child));

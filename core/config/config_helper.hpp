@@ -322,17 +322,18 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
  * destroyed, it will check whether the config node only contains the key in
  * allowed_keys. If some key is not in allowed_keys, it will throw an exception.
  */
-class config_decorator {
+class config_check_decorator {
 public:
-    config_decorator(const pnode& config,
-                     const std::set<std::string>& additional_allowed_keys = {});
+    config_check_decorator(
+        const pnode& config,
+        const std::set<std::string>& additional_allowed_keys = {});
 
     // we allow exception here because we only use it in function not class.
-    ~config_decorator() noexcept(false);
+    ~config_check_decorator() noexcept(false);
 
-    config_decorator(const config_decorator&) = delete;
+    config_check_decorator(const config_check_decorator&) = delete;
 
-    config_decorator& operator=(const config_decorator&) = delete;
+    config_check_decorator& operator=(const config_check_decorator&) = delete;
 
     const pnode& get(const std::string& key);
 

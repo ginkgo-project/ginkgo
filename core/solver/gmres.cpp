@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/solver/gmres.hpp"
 
-#include <set>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -67,16 +66,16 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gmres<ValueType>::build();
-    config::config_decorator decorator(config);
-    config::common_solver_parse(params, decorator, context, td_for_child);
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
 
-    if (auto& obj = decorator.get("krylov_dim")) {
+    if (auto& obj = config_check.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = decorator.get("flexible")) {
+    if (auto& obj = config_check.get("flexible")) {
         params.with_flexible(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = decorator.get("ortho_method")) {
+    if (auto& obj = config_check.get("ortho_method")) {
         auto str = obj.get_string();
         gmres::ortho_method ortho;
         if (str == "mgs") {
