@@ -427,6 +427,11 @@ public:
         return non_local_mtx_;
     }
 
+    index_map<local_index_type, global_index_type> get_index_map() const
+    {
+        return imap_;
+    };
+
     /**
      * Copy constructs a Matrix.
      *
