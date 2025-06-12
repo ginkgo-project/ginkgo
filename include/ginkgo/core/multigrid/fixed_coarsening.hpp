@@ -115,6 +115,16 @@ protected:
 
     void generate();
 
+    /**
+     * This function generates the local matrix coarsening operators.
+     *
+     * @return a tuple with prolongation, coarse, and restriction linop
+     */
+    std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
+               std::shared_ptr<LinOp>>
+    generate_local(
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
 };
