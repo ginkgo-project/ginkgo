@@ -547,6 +547,18 @@ TYPED_TEST(Preconditioner, CreateDefault)
 }
 
 
+TYPED_TEST(Preconditioner, ThrowWhenKeyIsNotAllowed)
+{
+    using Config = typename TestFixture::Config;
+    auto pnode_map = Config::setup_base();
+    pnode_map["invalid_key"] = pnode{""};
+    auto config = pnode(pnode_map);
+
+    ASSERT_THROW(parse(config, this->reg, this->td).on(this->exec),
+                 gko::InvalidStateError);
+}
+
+
 TYPED_TEST(Preconditioner, ExplicitTemplate)
 {
     using Config = typename TestFixture::Config;

@@ -45,12 +45,12 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
 {
     auto params =
         experimental::factorization::Lu<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("symbolic_factorization")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("symbolic_factorization")) {
         params.with_symbolic_factorization(
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
-    if (auto& obj = config.get("symbolic_algorithm")) {
+    if (auto& obj = config_check.get("symbolic_algorithm")) {
         auto str = obj.get_string();
         if (str == "general") {
             params.with_symbolic_algorithm(symbolic_type::general);
@@ -62,7 +62,7 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
             GKO_INVALID_CONFIG_VALUE("symbolic_type", str);
         }
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
 

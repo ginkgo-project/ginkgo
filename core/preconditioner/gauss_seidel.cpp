@@ -1,8 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
+#include "ginkgo/core/preconditioner/gauss_seidel.hpp"
+
 #include <ginkgo/core/preconditioner/sor.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -19,23 +20,22 @@ GaussSeidel<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = GaussSeidel::build();
-
-    if (auto& obj = config.get("skip_sorting")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("symmetric")) {
+    if (auto& obj = config_check.get("symmetric")) {
         params.with_symmetric(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("l_solver")) {
-        params.with_l_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+    if (auto& obj = config_check.get("l_solver")) {
+        params.with_l_solver(config::parse_or_get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
     }
-    if (auto& obj = config.get("u_solver")) {
-        params.with_u_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+    if (auto& obj = config_check.get("u_solver")) {
+        params.with_u_solver(config::parse_or_get_factory<const LinOpFactory>(
+            obj, context, td_for_child));
     }
+
 
     return params;
 }
