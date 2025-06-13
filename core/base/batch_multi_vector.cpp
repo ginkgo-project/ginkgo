@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -296,10 +296,10 @@ void MultiVector<ValueType>::move_to(
 }
 
 
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
-    MultiVector<next_precision<next_precision<ValueType>>>* result) const
+    MultiVector<next_precision<ValueType, 2>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -308,7 +308,26 @@ void MultiVector<ValueType>::convert_to(
 
 template <typename ValueType>
 void MultiVector<ValueType>::move_to(
-    MultiVector<next_precision<next_precision<ValueType>>>* result)
+    MultiVector<next_precision<ValueType, 2>>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType>
+void MultiVector<ValueType>::convert_to(
+    MultiVector<next_precision<ValueType, 3>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::move_to(
+    MultiVector<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }

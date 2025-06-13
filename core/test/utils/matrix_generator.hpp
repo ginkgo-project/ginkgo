@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -664,7 +664,7 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
                 // half.
                 using pow_type = std::conditional_t<
                     std::is_same<gko::remove_complex<ValueType>,
-                                 gko::half>::value,
+                                 gko::float16>::value,
                     std::conditional_t<gko::is_complex<ValueType>(),
                                        std::complex<float>, float>,
                     ValueType>;

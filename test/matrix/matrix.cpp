@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -130,7 +130,7 @@ struct CsrWithDefaultStrategy : CsrBase {
 
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
 
 
 struct CsrWithClassicalStrategy : CsrBase {
@@ -176,6 +176,14 @@ struct CsrWithMergePathStrategy : CsrBase {
             mtx->get_strategy().get()));
     }
 };
+
+
+#endif
+
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
+
 
 struct CsrWithSparselibStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
@@ -827,8 +835,11 @@ protected:
 using MatrixTypes = ::testing::Types<
     DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-    defined(GKO_COMPILING_DPCPP)
+    defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
     CsrWithClassicalStrategy, CsrWithMergePathStrategy,
+#endif
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
     CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
     CsrWithAutomaticalStrategy,
 #endif
@@ -873,6 +884,29 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
             mtx.dev->apply(alpha.dev, b.dev, alpha.dev, x.dev);
 
             GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol());
+        });
+    });
+}
+
+
+TYPED_TEST(Matrix, AdvancedSpMVWithZerosIgnoresNaNs)
+{
+    using value_type = typename TestFixture::value_type;
+    using Scalar = gko::matrix::Dense<value_type>;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->forall_vector_scenarios(mtx, [&](auto b, auto x) {
+            x.dev->fill(gko::nan<value_type>());
+            auto alpha =
+                gko::initialize<Scalar>({gko::one<value_type>()}, this->exec);
+            auto beta =
+                gko::initialize<Scalar>({gko::zero<value_type>()}, this->exec);
+            auto expected_x = x.dev->clone();
+
+            mtx.dev->apply(alpha, b.dev, beta, x.dev);
+            mtx.dev->apply(b.dev, expected_x);
+
+            // can't use 0 tolerance here because of Hybrid
+            GKO_ASSERT_MTX_NEAR(x.dev, expected_x, this->tol());
         });
     });
 }

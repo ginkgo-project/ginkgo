@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -370,6 +370,19 @@ public:
          */
         gko::array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
                                                             nullptr);
+
+        /**
+         * Use L1 Jacboi, which is introduced in the paper A. H. Baker et al.
+         * "Multigrid smoothers for ultraparallel computing." This paper
+         * discusses this type of smoother with the following matrix property.
+         * $ A_{ii} \geq \theta \sum_{j \in \text{off diagonal block}} |A_{ij}|,
+         * \theta \geq 0 $
+         * If it is true, it generates the preconditioner on A +
+         * Diag(sum_{k in off-diagonal block of i} |A_ik|) instead of A. We
+         * aggregate the absolute value of the entries with the same row in the
+         * off-diagonal block into the diagonal value.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(aggregate_l1, false);
 
     private:
         // See documentation of storage_optimization parameter for details about

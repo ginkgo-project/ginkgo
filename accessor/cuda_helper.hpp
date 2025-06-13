@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,11 +19,15 @@
 
 struct __half;
 
+struct __nv_bfloat16;
+
 
 namespace gko {
 
 
 class half;
+
+class bfloat16;
 
 
 namespace acc {
@@ -38,6 +42,11 @@ struct cuda_type {
 template <>
 struct cuda_type<gko::half> {
     using type = __half;
+};
+
+template <>
+struct cuda_type<gko::bfloat16> {
+    using type = __nv_bfloat16;
 };
 
 // Unpack cv and reference / pointer qualifiers

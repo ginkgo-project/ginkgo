@@ -7,4 +7,3 @@ right-hand side and an initial guess. The preconditioned CG solver is enhanced
 with a block-Jacobi preconditioner that optimizes the storage format for the 
 distinct inverted diagonal blocks to the numerical requirements. The example
 features the iteration count and runtime of the CG solver.</h3>
-

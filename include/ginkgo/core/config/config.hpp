@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -87,8 +87,33 @@ class pnode;
  *    interpreted as a 1-element array. This means the following configurations
  *    are equivalent if the key expects an array value: `"<key>": [{object}]`
  *    and `"<key>": {object}`.
+ * 9. The stopping criteria for a solver can alternatively be defined through a
+ *    simple key-value map, where each key corresponds to a single criterion.
+ *    The available keys are:
+ *    - "iteration": <integer>, corresponds to gko::stop::Iteration
+ *    - "relative_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ResidualNorm build with gko::stop::mode::rhs_norm
+ *    - "initial_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ResidualNorm build with gko::stop::mode::initial_resnorm
+ *    - "absolute_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ResidualNorm build with gko::stop::mode::absolute
+ *    - "relative_implicit_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ImplicitResidualNorm build with gko::stop::mode::rhs_norm
+ *    - "initial_implicit_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ImplicitResidualNorm build with
+ *      gko::stop::mode::initial_resnorm
+ *    - "absolute_implicit_residual_norm": <floating point>, corresponds to
+ *      gko::stop::ImplicitResidualNorm build with gko::stop::mode::absolute
+ *    - "time": <integer>, corresponds to gko::stop::Time
+ *    The simplified definition also allows for setting the `ValueType` template
+ *    parameter as discussed in 4. and 5.
  *
- * All configurations need to specify the resulting type by the field:
+ * @note The formatting for the example snippets is oriented on the JSON format.
+ *       For all supported configuration formats check the headers in
+ *       extension/config
+ *
+ * All configurations (except the simplified stopping criteria) need to specify
+ * the resulting type by the field:
  * ```
  * "type": "some_supported_ginkgo_type"
  * ```
@@ -115,6 +140,14 @@ class pnode;
  * criteria with maximal 10 iterations, and a ResidualNorm criteria with a
  * reduction factor of 1e-6.
  *
+ * The criteria parameter can alternatively be defined as
+ * ```
+ * "criteria": {
+ *   "iteration": 10,
+ *   "relative_residual_norm": 1e-6
+ * }
+ * ```
+ *
  * By default, the factory will use the value type double, and index type
  * int32 when creating templated types. This can be changed by passing in a
  * type_descriptor. For example:
@@ -126,20 +159,20 @@ class pnode;
  * will lead to a GMRES solver that uses `float` as its value type.
  * Additionally, the config can be used to set these types through the fields:
  * ```
- * value_type: "some_value_type"
+ * "value_type": "some_value_type"
  * ```
  * These types take precedence over the type descriptor and they are used for
  * every created object beginning from the config level they are defined on and
  * every deeper nested level, until a new type is defined. So, considering the
  * following example
  * ```
- * type: "solver::Ir",
- * value_type: "float32"
- * solver: {
- *   type: "solver::Gmres",
- *   preconditioner: {
- *     type: "preconditioner::Jacobi"
- *     value_type: "float64"
+ * "type": "solver::Ir",
+ * "value_type": "float32"
+ * "solver": {
+ *   "type": "solver::Gmres",
+ *   "preconditioner": {
+ *     "type": "preconditioner::Jacobi"
+ *     "value_type": "float64"
  *   }
  * }
  * ```
@@ -150,15 +183,13 @@ class pnode;
  *                base.
  * @param context  The registry which stores the building function map and the
  *                 storage for generated objects.
- * @param type_descriptor  The default value and index type. If any object that
- *                         is created as part of this configuration has a
- *                         templated type, then the value and/or index type from
- *                         the descriptor will be used. Any definition of the
- *                         value and/or index type within the config will take
- *                         precedence over the descriptor. If `void` is used for
- *                         one or both of the types, then the corresponding type
- *                         has to be defined in the config, otherwise the
- *                         parsing will fail.
+ * @param td  The default value and index type. If any object that
+ *            is created as part of this configuration has a templated type,
+ *            then the value and/or index type from the descriptor will be used.
+ *            Any definition of the value and/or index type within the config
+ *            will take precedence over the descriptor. If `void` is used for
+ *            one or both of the types, then the corresponding type has to be
+ *            defined in the config, otherwise the parsing will fail.
  *
  * @return a deferred_factory_parameter which creates an LinOpFactory after
  *         `.on(exec)` is called on it.

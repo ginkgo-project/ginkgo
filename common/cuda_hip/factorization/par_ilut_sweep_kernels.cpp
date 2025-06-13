@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/merging.hpp"
@@ -105,7 +106,7 @@ __global__ __launch_bounds__(default_block_size) void sweep(
                        load_relaxed(ut_vals + (ut_idx + ut_col_begin));
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(ut_row == row);
+            auto found_transp = group::ballot(subwarp, ut_row == row);
             if (found_transp) {
                 ut_nz =
                     subwarp.shfl(ut_idx + ut_col_begin, ffs(found_transp) - 1);
@@ -155,7 +156,7 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
     auto num_blocks = ceildiv(total_nnz, block_size);
     if (num_blocks > 0) {
 #ifdef GKO_COMPILING_HIP
-        if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+        if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             // HIP does not support 16bit atomic operation
             GKO_NOT_SUPPORTED(a);
         } else

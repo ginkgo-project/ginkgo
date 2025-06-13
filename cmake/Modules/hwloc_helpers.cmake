@@ -24,19 +24,22 @@
 
 macro(ginkgo_set_required_test_lib_link name)
     set(CMAKE_REQUIRED_INCLUDES "${${name}${STATIC}_INCLUDE_DIRS}")
-    if (${name}${STATIC}_CFLAGS_OTHER)
+    if(${name}${STATIC}_CFLAGS_OTHER)
         set(REQUIRED_FLAGS_COPY "${${name}${STATIC}_CFLAGS_OTHER}")
         set(REQUIRED_FLAGS)
         set(REQUIRED_DEFINITIONS)
         foreach(_flag ${REQUIRED_FLAGS_COPY})
-            if (_flag MATCHES "^-D")
+            if(_flag MATCHES "^-D")
                 list(APPEND REQUIRED_DEFINITIONS "${_flag}")
             endif()
             string(REGEX REPLACE "^-D.*" "" _flag "${_flag}")
             list(APPEND REQUIRED_FLAGS "${_flag}")
         endforeach()
     endif()
-    foreach(_var "${REQUIRED_FLAGS_COPY};${REQUIRED_FLAGS};${REQUIRED_LIBRARIES}" )
+    foreach(
+        _var
+        "${REQUIRED_FLAGS_COPY};${REQUIRED_FLAGS};${REQUIRED_LIBRARIES}"
+    )
         if(${_var})
             list(REMOVE_DUPLICATES ${_var})
         endif()
@@ -46,25 +49,43 @@ macro(ginkgo_set_required_test_lib_link name)
     set(CMAKE_REQUIRED_LIBRARIES)
     list(APPEND CMAKE_REQUIRED_LIBRARIES "${${name}${STATIC}_LDFLAGS_OTHER}")
     list(APPEND CMAKE_REQUIRED_LIBRARIES "${${name}${STATIC}_LIBRARIES}")
-    string(REGEX REPLACE "^ -" "-" CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
+    string(
+        REGEX REPLACE
+        "^ -"
+        "-"
+        CMAKE_REQUIRED_LIBRARIES
+        "${CMAKE_REQUIRED_LIBRARIES}"
+    )
 endmacro()
 
 # Modified function from Morse
 macro(ginkgo_check_static_or_dynamic package libraries)
     list(GET ${libraries} 0 _first_lib)
     get_filename_component(_suffix ${_first_lib} EXT)
-    if (NOT _suffix)
-        unset (_lib_path CACHE)
-        find_library(_lib_path ${_first_lib} HINTS ${${package}_LIBDIR} ${${package}_LIBRARY_DIRS} NO_DEFAULT_PATH)
+    if(NOT _suffix)
+        unset(_lib_path CACHE)
+        find_library(
+            _lib_path
+            ${_first_lib}
+            HINTS ${${package}_LIBDIR} ${${package}_LIBRARY_DIRS}
+            NO_DEFAULT_PATH
+        )
         get_filename_component(_suffix ${_lib_path} EXT)
     endif()
-    if (_suffix)
-        if(${_suffix} MATCHES ".so$" OR ${_suffix} MATCHES ".dylib$" OR ${_suffix} MATCHES ".dll$")
+    if(_suffix)
+        if(
+            ${_suffix} MATCHES ".so$"
+            OR ${_suffix} MATCHES ".dylib$"
+            OR ${_suffix} MATCHES ".dll$"
+        )
             set(${package}_STATIC 0)
         elseif(${_suffix} MATCHES ".a$")
             set(${package}_STATIC 1)
         else()
-            message(FATAL_ERROR "${package} library extension not in list .a, .so, .dylib, .dll")
+            message(
+                FATAL_ERROR
+                "${package} library extension not in list .a, .so, .dylib, .dll"
+            )
         endif()
     else()
         message(FATAL_ERROR "${package} could not detect library extension")

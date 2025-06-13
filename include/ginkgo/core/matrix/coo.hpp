@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,15 +49,18 @@ class Hybrid;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-#if GINKGO_ENABLE_HALF
-            public ConvertibleTo<
-                Coo<next_precision<next_precision<ValueType>>, IndexType>>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+            public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+            public ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>,
 #endif
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
+            public Transposable,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Coo, LinOp>;
@@ -80,6 +83,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type = Coo<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
@@ -91,19 +95,28 @@ public:
 
     void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
 
-#if GINKGO_ENABLE_HALF
-    friend class Coo<previous_precision<previous_precision<ValueType>>,
-                     IndexType>;
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+    friend class Coo<previous_precision<ValueType, 2>, IndexType>;
     using ConvertibleTo<
-        Coo<next_precision<next_precision<ValueType>>, IndexType>>::convert_to;
+        Coo<next_precision<ValueType, 2>, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>::move_to;
+
+    void convert_to(
+        Coo<next_precision<ValueType, 2>, IndexType>* result) const override;
+
+    void move_to(Coo<next_precision<ValueType, 2>, IndexType>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Coo<previous_precision<ValueType, 3>, IndexType>;
     using ConvertibleTo<
-        Coo<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+        Coo<next_precision<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
-                        result) const override;
+    void convert_to(
+        Coo<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<next_precision<ValueType>>, IndexType>*
-                     result) override;
+    void move_to(Coo<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
@@ -121,6 +134,10 @@ public:
     void read(device_mat_data&& data) override;
 
     void write(mat_data& data) const override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 

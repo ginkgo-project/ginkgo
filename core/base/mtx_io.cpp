@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <string>
 #include <type_traits>
 
+#include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -759,6 +760,7 @@ static constexpr uint64 binary_format_magic()
     constexpr auto is_int = std::is_same<IndexType, int32>::value;
     constexpr auto is_long = std::is_same<IndexType, int64>::value;
     constexpr auto is_half = std::is_same<ValueType, half>::value;
+    constexpr auto is_bf16 = std::is_same<ValueType, bfloat16>::value;
     constexpr auto is_double = std::is_same<ValueType, double>::value;
     constexpr auto is_float = std::is_same<ValueType, float>::value;
     constexpr auto is_complex_double =
@@ -767,9 +769,12 @@ static constexpr uint64 binary_format_magic()
         std::is_same<ValueType, std::complex<float>>::value;
     constexpr auto is_complex_half =
         std::is_same<ValueType, std::complex<half>>::value;
+    constexpr auto is_complex_bf16 =
+        std::is_same<ValueType, std::complex<bfloat16>>::value;
     static_assert(is_int || is_long, "invalid storage index type");
-    static_assert(is_half || is_complex_half || is_double || is_float ||
-                      is_complex_double || is_complex_float,
+    static_assert(is_bf16 || is_complex_bf16 || is_half || is_complex_half ||
+                      is_double || is_float || is_complex_double ||
+                      is_complex_float,
                   "invalid storage value type");
     constexpr auto index_bit = is_int ? 'I' : 'L';
     constexpr auto value_bit =
@@ -779,7 +784,12 @@ static constexpr uint64 binary_format_magic()
                    ? 'S'
                    : (is_complex_double
                           ? 'Z'
-                          : (is_complex_float ? 'C' : (is_half ? 'H' : 'X'))));
+                          : (is_complex_float
+                                 ? 'C'
+                                 : (is_half ? 'H'
+                                            : (is_complex_half
+                                                   ? 'X'
+                                                   : (is_bf16 ? 'B' : 'Y'))))));
     constexpr uint64 shift = 256;
     constexpr uint64 type_bits = index_bit * shift + value_bit;
     return 'G' +
@@ -889,16 +899,20 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
     }
     DECLARE_OVERLOAD(double, int32)
     DECLARE_OVERLOAD(float, int32)
-    DECLARE_OVERLOAD(half, int32)
+    DECLARE_OVERLOAD(float16, int32)
+    DECLARE_OVERLOAD(bfloat16, int32)
     DECLARE_OVERLOAD(std::complex<double>, int32)
     DECLARE_OVERLOAD(std::complex<float>, int32)
-    DECLARE_OVERLOAD(std::complex<half>, int32)
+    DECLARE_OVERLOAD(std::complex<float16>, int32)
+    DECLARE_OVERLOAD(std::complex<bfloat16>, int32)
     DECLARE_OVERLOAD(double, int64)
     DECLARE_OVERLOAD(float, int64)
-    DECLARE_OVERLOAD(half, int64)
+    DECLARE_OVERLOAD(float16, int64)
+    DECLARE_OVERLOAD(bfloat16, int64)
     DECLARE_OVERLOAD(std::complex<double>, int64)
     DECLARE_OVERLOAD(std::complex<float>, int64)
-    DECLARE_OVERLOAD(std::complex<half>, int64)
+    DECLARE_OVERLOAD(std::complex<float16>, int64)
+    DECLARE_OVERLOAD(std::complex<bfloat16>, int64)
 #undef DECLARE_OVERLOAD
     else
     {

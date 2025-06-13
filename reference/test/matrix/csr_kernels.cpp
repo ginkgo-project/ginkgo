@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -515,6 +515,22 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseVector)
 
     EXPECT_EQ(y->at(0), T{-11.0});
     EXPECT_EQ(y->at(1), T{-1.0});
+}
+
+
+TYPED_TEST(Csr, AppliesLinearCombinationToDenseVectorWithZeroBetaNaN)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({0.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({gko::nan<T>(), gko::nan<T>()}, this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    EXPECT_EQ(y->at(0), T{-13.0});
+    EXPECT_EQ(y->at(1), T{-5.0});
 }
 
 
@@ -2541,6 +2557,21 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
     }
 }
 
+
+TYPED_TEST(Csr, CanComputeRowWiseAbsoluteSum)
+{
+    using value_type = typename TestFixture::value_type;
+    gko::array<value_type> sum(this->exec, this->mtx3_sorted->get_size()[0]);
+    this->create_mtx3(this->mtx3_sorted.get(), this->mtx3_unsorted.get());
+    this->mtx3_sorted->scale(gko::initialize<gko::matrix::Dense<value_type>>(
+        {-gko::one<value_type>()}, this->exec));
+
+    gko::kernels::reference::csr::row_wise_absolute_sum(
+        this->exec, this->mtx3_sorted.get(), sum);
+
+    gko::array<value_type> sum_result(this->exec, {3, 12, 5});
+    GKO_ASSERT_ARRAY_EQ(sum, sum_result);
+}
 
 template <typename ValueIndexType>
 class CsrLookup : public ::testing::Test {

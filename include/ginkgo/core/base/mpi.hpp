@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 
@@ -88,6 +89,17 @@ GKO_REGISTER_MPI_TYPE(unsigned long long, MPI_UNSIGNED_LONG_LONG);
 GKO_REGISTER_MPI_TYPE(float, MPI_FLOAT);
 GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
+#if GINKGO_ENABLE_HALF
+// OpenMPI 5.0 have support from MPIX_C_FLOAT16 and MPICHv3.4a1 MPIX_C_FLOAT16
+// Only OpenMPI support complex float16
+// TODO: use native type when mpi is configured with half feature
+GKO_REGISTER_MPI_TYPE(half, MPI_UNSIGNED_SHORT);
+GKO_REGISTER_MPI_TYPE(std::complex<half>, MPI_FLOAT);
+#endif  // GKO_ENABLE_HALF
+#if GINKGO_ENABLE_BFLOAT16
+GKO_REGISTER_MPI_TYPE(bfloat16, MPI_UNSIGNED_SHORT);
+GKO_REGISTER_MPI_TYPE(std::complex<bfloat16>, MPI_FLOAT);
+#endif  // GKO_ENABLE_BFLOAT16
 GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_FLOAT_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
@@ -368,7 +380,6 @@ public:
         return status;
     }
 
-
 private:
     MPI_Request req_;
 };
@@ -455,6 +466,56 @@ public:
     }
 
     /**
+     * Creates a new communicator and takes ownership of the MPI_Comm.
+     *
+     * The ownership is shared with all mpi::communicator objects that are a
+     * copy from the newly created communicator. The underlying MPI_Comm will be
+     * freed when the last communicator with ownership is destroyed.
+     *
+     * @see communicator(const MPI_Comm&, bool)
+     */
+    static communicator create_owning(const MPI_Comm& comm,
+                                      bool force_host_buffer = false)
+    {
+        communicator comm_out(MPI_COMM_NULL, force_host_buffer);
+        comm_out.comm_.reset(new MPI_Comm(comm), comm_deleter{});
+        return comm_out;
+    }
+
+    /**
+     * Create a copy of a communicator.
+     *
+     * Potential ownership of the underlying MPI_Comm will be shared.
+     */
+    communicator(const communicator& other) = default;
+
+    /**
+     * Move constructor.
+     *
+     * The other communicator will relinquish any potential ownership and use
+     * MPI_COMM_NULL as underlying MPI_Comm after the move operation.
+     */
+    communicator(communicator&& other) { *this = std::move(other); }
+
+    /**
+     * @see communicator(const communicator&)
+     */
+    communicator& operator=(const communicator& other) = default;
+
+    /**
+     * @see communicator(communicator&&)
+     */
+    communicator& operator=(communicator&& other)
+    {
+        if (this != &other) {
+            comm_ = std::exchange(other.comm_,
+                                  std::make_shared<MPI_Comm>(MPI_COMM_NULL));
+            force_host_buffer_ = other.force_host_buffer_;
+        }
+        return *this;
+    }
+
+    /**
      * Return the underlying MPI_Comm object.
      *
      * @return  the MPI_Comm object
@@ -489,10 +550,7 @@ public:
      *
      * @return  if the two comm objects are equal
      */
-    bool operator==(const communicator& rhs) const
-    {
-        return compare(rhs.get());
-    }
+    bool operator==(const communicator& rhs) const { return is_identical(rhs); }
 
     /**
      * Compare two communicator objects for non-equality.
@@ -500,6 +558,47 @@ public:
      * @return  if the two comm objects are not equal
      */
     bool operator!=(const communicator& rhs) const { return !(*this == rhs); }
+
+    /**
+     * Checks if the rhs communicator is identical to this communicator.
+     *
+     * @note If MPI_COMM_NULL is the underlying MPI_COMM of this, then the
+     *       communicator is equal to rhs, iff MPI_COMM_NULL is also the
+     *       underlying MPI_COMM of rhs.
+     *
+     * @return  true if rhs is identical to this
+     */
+    bool is_identical(const communicator& rhs) const
+    {
+        if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
+            return get() == rhs.get();
+        }
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), rhs.get(), &flag));
+        return flag == MPI_IDENT;
+    }
+
+    /**
+     * Checks if the rhs communicator is congruent to this communicator.
+     *
+     * Congruent communicators are defined as having identical rank members and
+     * rank ordering.
+     *
+     * @note If MPI_COMM_NULL is the underlying MPI_COMM of this, then the
+     *       communicator is congruent to rhs, iff MPI_COMM_NULL is also the
+     *       underlying MPI_COMM of rhs.
+     *
+     * @return  true if rhs is congruent to this
+     */
+    bool is_congruent(const communicator& rhs) const
+    {
+        if (get() == MPI_COMM_NULL || rhs.get() == MPI_COMM_NULL) {
+            return get() == rhs.get();
+        }
+        int flag;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), rhs.get(), &flag));
+        return flag == MPI_CONGRUENT;
+    }
 
     /**
      * This function is used to synchronize the ranks in the communicator.
@@ -623,7 +722,7 @@ public:
      * Broadcast data from calling process to all ranks in the communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *
@@ -646,7 +745,7 @@ public:
      * communicator
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to broadcsat
+     * @param buffer  the buffer to broadcast
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
      *
@@ -1467,13 +1566,6 @@ private:
         int size = 1;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(this->get(), &size));
         return size;
-    }
-
-    bool compare(const MPI_Comm& other) const
-    {
-        int flag;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_compare(get(), other, &flag));
-        return flag == MPI_IDENT;
     }
 };
 

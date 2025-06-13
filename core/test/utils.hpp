@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,7 +15,6 @@
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -330,7 +329,10 @@ using RealValueTypesBase =
 
 using RealValueTypes = ::testing::Types<
 #if GINKGO_ENABLE_HALF
-    gko::half,
+    gko::float16,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    gko::bfloat16,
 #endif
 #if !GINKGO_DPCPP_SINGLE_MODE
     double,
@@ -359,33 +361,18 @@ using PODTypesBase = merge_type_list_t<RealValueTypesBase, IntegerTypes>;
 
 using PODTypes = merge_type_list_t<RealValueTypes, IntegerTypes>;
 
-using ComplexAndPODTypesBase =
-    merge_type_list_t<ComplexValueTypesBase, PODTypesBase>;
-
-using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypesBase>;
+using ComplexAndPODTypes = merge_type_list_t<ComplexValueTypes, PODTypes>;
 
 using ValueIndexTypesBase =
     cartesian_type_product_t<ValueTypesBase, IndexTypes>;
 
 using ValueIndexTypes = cartesian_type_product_t<ValueTypes, IndexTypes>;
 
-using RealValueIndexTypesBase =
-    cartesian_type_product_t<RealValueTypesBase, IndexTypes>;
-
 using RealValueIndexTypes =
     cartesian_type_product_t<RealValueTypes, IndexTypes>;
 
-using ComplexValueIndexTypesBase =
-    cartesian_type_product_t<ComplexValueTypesBase, IndexTypes>;
-
 using ComplexValueIndexTypes =
     cartesian_type_product_t<ComplexValueTypes, IndexTypes>;
-
-using TwoValueIndexTypesBase = add_to_cartesian_type_product_t<
-    merge_type_list_t<
-        cartesian_type_product_t<RealValueTypesBase, RealValueTypesBase>,
-        cartesian_type_product_t<ComplexValueTypesBase, ComplexValueTypesBase>>,
-    IndexTypes>;
 
 using TwoValueIndexTypes = add_to_cartesian_type_product_t<
     merge_type_list_t<
@@ -393,8 +380,9 @@ using TwoValueIndexTypes = add_to_cartesian_type_product_t<
         cartesian_type_product_t<ComplexValueTypes, ComplexValueTypes>>,
     IndexTypes>;
 
-using ValueLocalGlobalIndexTypesBase =
-    add_to_cartesian_type_product_left_t<ValueTypesBase, LocalGlobalIndexTypes>;
+
+using ValueLocalGlobalIndexTypes =
+    add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
 
 
 template <typename Precision, typename OutputType>
@@ -492,12 +480,19 @@ struct TupleTypenameNameGenerator {
 
 
 #define SKIP_IF_HALF(type)                                                   \
-    if (std::is_same<gko::remove_complex<type>, gko::half>::value) {         \
-        GTEST_SKIP() << "Skip due to half mode";                             \
+    if (std::is_same<gko::remove_complex<type>, gko::float16>::value) {      \
+        GTEST_SKIP() << "Skip due to float16 mode";                          \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+#define SKIP_IF_BFLOAT16(type)                                               \
+    if (std::is_same<gko::remove_complex<type>, gko::bfloat16>::value) {     \
+        GTEST_SKIP() << "Skip due to bfloat16 mode";                         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

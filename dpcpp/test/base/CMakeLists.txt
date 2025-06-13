@@ -2,4 +2,7 @@ ginkgo_create_dpcpp_test(executor)
 ginkgo_create_dpcpp_test(dim3)
 ginkgo_create_dpcpp_test(kernel_launch)
 # set correct flags for kernel_launch.hpp
-target_compile_definitions(dpcpp_test_base_kernel_launch PRIVATE GKO_COMPILING_DPCPP GKO_DEVICE_NAMESPACE=dpcpp)
+target_compile_definitions(
+    dpcpp_test_base_kernel_launch
+    PRIVATE GKO_COMPILING_DPCPP GKO_DEVICE_NAMESPACE=dpcpp
+)

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -240,6 +240,7 @@ TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};
@@ -262,6 +263,7 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     std::unique_ptr<Csr> l_mtx{};
     std::unique_ptr<Csr> u_mtx{};

@@ -5,6 +5,7 @@ set(UNIFIED_SOURCES
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
     components/precision_conversion_kernels.cpp
+    components/range_minimum_query_kernels.cpp
     components/reduce_array_kernels.cpp
     distributed/assembly_kernels.cpp
     distributed/partition_helpers_kernels.cpp
@@ -24,11 +25,14 @@ set(UNIFIED_SOURCES
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
+    solver/chebyshev_kernels.cpp
     solver/common_gmres_kernels.cpp
     solver/fcg_kernels.cpp
+    solver/pipe_cg_kernels.cpp
     solver/gcr_kernels.cpp
     solver/gmres_kernels.cpp
     solver/ir_kernels.cpp
-    )
+    solver/minres_kernels.cpp
+)
 list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)

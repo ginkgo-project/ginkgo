@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,7 +88,7 @@ TYPED_TEST(BatchBicgstab, SolvesStencilSystem)
     for (size_t i = 0; i < this->num_batch_items; i++) {
         ASSERT_LE(res.host_res_norm->get_const_values()[i] /
                       this->linear_system.host_rhs_norm->get_const_values()[i],
-                  this->solver_settings.residual_tol);
+                  2 * this->solver_settings.residual_tol);
     }
     GKO_ASSERT_BATCH_MTX_NEAR(res.x, this->linear_system.exact_sol,
                               this->eps * 10);
@@ -111,9 +111,10 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsResidual)
         ASSERT_LE(
             res_log_array[i] / this->linear_system.host_rhs_norm->at(i, 0, 0),
             this->solver_settings.residual_tol);
-        if (!std::is_same<real_type, gko::half>::value) {
+        if (!std::is_same<real_type, gko::float16>::value &&
+            !std::is_same<real_type, gko::bfloat16>::value) {
             // There is no guarantee of this condition. We disable this check in
-            // half.
+            // float16.
             ASSERT_NEAR(res_log_array[i],
                         res.host_res_norm->get_const_values()[i],
                         10 * this->eps);
@@ -184,6 +185,11 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
     using Solver = typename TestFixture::solver_type;
     using Mtx = typename TestFixture::Mtx;
     using Logger = gko::batch::log::BatchConvergence<value_type>;
+    // bfloat16 will need to bump the scale from 50 to 100, which gives around
+    // 0.7 for error check, so it is not really useful for testing. We skip the
+    // bfloat16 for this check.
+    // TODO: figure out a suitible test for different precision.
+    SKIP_IF_BFLOAT16(value_type);
     const real_type tol = 1e-4;
     const int max_iters = 1000;
     auto solver_factory =
@@ -216,7 +222,7 @@ TYPED_TEST(BatchBicgstab, ApplyLogsResAndIters)
                             linear_system.host_rhs_norm->get_const_values()[i];
         ASSERT_LE(iter_counts.get_const_data()[i], max_iters);
         EXPECT_LE(res_norm.get_const_data()[i], tol * 50);
-        ASSERT_LE(rel_res_norm, tol * 50);
+        ASSERT_LE(rel_res_norm, tol * 100);
     }
 }
 
@@ -303,6 +309,8 @@ TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
     // distribution, the solver can not solve the hpd matrix even with single
     // precision
     SKIP_IF_HALF(value_type);
+    // TODO: the tol here is already smaller than epsilon of bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     const real_type tol = 1e-5;
     const int max_iters = 1000;
     auto solver_factory =

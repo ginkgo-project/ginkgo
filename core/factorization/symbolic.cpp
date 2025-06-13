@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,8 +15,8 @@
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/lu_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -25,17 +25,18 @@ namespace factorization {
 namespace {
 
 
+GKO_REGISTER_OPERATION(compute_skeleton_tree,
+                       elimination_forest::compute_skeleton_tree);
 GKO_REGISTER_OPERATION(symbolic_count, cholesky::symbolic_count);
 GKO_REGISTER_OPERATION(symbolic, cholesky::symbolic_factorize);
-GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
-GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(symbolic_factorize_simple,
                        lu_factorization::symbolic_factorize_simple);
 GKO_REGISTER_OPERATION(symbolic_factorize_simple_finalize,
                        lu_factorization::symbolic_factorize_simple_finalize);
-GKO_REGISTER_HOST_OPERATION(compute_elim_forest, compute_elim_forest);
+GKO_REGISTER_HOST_OPERATION(compute_elimination_forest,
+                            compute_elimination_forest);
 
 
 }  // namespace
@@ -50,8 +51,7 @@ void symbolic_cholesky(
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     const auto exec = mtx->get_executor();
-    const auto host_exec = exec->get_master();
-    exec->run(make_compute_elim_forest(mtx, forest));
+    exec->run(make_compute_elimination_forest(mtx, forest));
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
@@ -81,6 +81,55 @@ void symbolic_cholesky(
         std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SYMBOLIC_CHOLESKY);
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_cholesky_device(
+    const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
+    std::unique_ptr<elimination_forest<IndexType>>& forest)
+{
+    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
+    const auto exec = mtx->get_executor();
+    const auto num_rows = mtx->get_size()[0];
+    {
+        const auto skeleton =
+            matrix_type::create(exec, mtx->get_size(), num_rows);
+        exec->run(make_compute_skeleton_tree(
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), num_rows,
+            skeleton->get_row_ptrs(), skeleton->get_col_idxs()));
+        exec->run(make_compute_elimination_forest(skeleton.get(), forest));
+    }
+    array<IndexType> row_ptrs{exec, num_rows + 1};
+    array<IndexType> tmp{exec};
+    exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
+    exec->run(make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
+    const auto factor_nnz =
+        static_cast<size_type>(get_element(row_ptrs, num_rows));
+    factors = matrix_type::create(
+        exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
+        array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
+    exec->run(make_symbolic(mtx, *forest, factors.get(), tmp));
+    factors->sort_by_column_index();
+    if (symmetrize) {
+        auto lt_factor = as<matrix_type>(factors->transpose());
+        const auto scalar =
+            initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+        const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
+        lt_factor->apply(scalar, id, scalar, factors);
+    }
+}
+
+
+#define GKO_DECLARE_SYMBOLIC_CHOLESKY_DEVICE(ValueType, IndexType)     \
+    void symbolic_cholesky_device(                                     \
+        const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize, \
+        std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,   \
+        std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SYMBOLIC_CHOLESKY_DEVICE);
 
 
 template <typename ValueType, typename IndexType>
@@ -115,29 +164,15 @@ void symbolic_lu_near_symm(
         symbolic_cholesky(symm_mtx.get(), true, symm_factors, forest);
     }
     // build lookup structure
-    array<IndexType> storage_offsets{exec, size[0] + 1};
-    array<int64> row_descs{exec, size[0]};
+    const auto lookup = matrix::csr::build_lookup(symm_factors.get());
     array<IndexType> diag_idxs{exec, size[0]};
-    const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
-                                  gko::matrix::csr::sparsity_type::full |
-                                  gko::matrix::csr::sparsity_type::hash;
-    exec->run(make_build_lookup_offsets(
-        symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
-        size[0], allowed_sparsity, storage_offsets.get_data()));
-    const auto storage_size =
-        static_cast<size_type>(get_element(storage_offsets, size[0]));
-    array<int32> storage{exec, storage_size};
-    exec->run(make_build_lookup(
-        symm_factors->get_const_row_ptrs(), symm_factors->get_const_col_idxs(),
-        size[0], allowed_sparsity, storage_offsets.get_const_data(),
-        row_descs.get_data(), storage.get_data()));
     // compute "numerical" factorization with 1s and 0s
     array<IndexType> factor_row_ptrs{exec, size[0] + 1};
     exec->run(make_symbolic_factorize_simple(
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        storage_offsets.get_const_data(), row_descs.get_const_data(),
-        storage.get_const_data(), symm_factors.get(),
-        factor_row_ptrs.get_data()));
+        lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        symm_factors.get(), factor_row_ptrs.get_data()));
     // build row pointers from nnz
     exec->run(
         make_prefix_sum_nonnegative(factor_row_ptrs.get_data(), size[0] + 1));

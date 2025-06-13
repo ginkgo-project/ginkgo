@@ -26,15 +26,26 @@
 # ``ROCTX_FOUND``
 #   If false, do not try to use the ROCTX library.
 
-find_path(ROCTX_INCLUDE_DIR NAMES roctx.h HINTS ${ROCTRACER_PATH}/include ${ROCM_PATH}/include/roctracer)
+find_path(
+    ROCTX_INCLUDE_DIR
+    NAMES roctx.h
+    HINTS ${ROCTRACER_PATH}/include ${ROCM_PATH}/include/roctracer
+)
 mark_as_advanced(ROCTX_INCLUDE_DIR)
 
 if(NOT ROCTX_LIBRARY)
-    find_library(ROCTX_LIBRARY NAMES roctx64 HINTS ${ROCTRACER_PATH}/lib ${ROCM_PATH}/lib)
+    find_library(
+        ROCTX_LIBRARY
+        NAMES roctx64
+        HINTS ${ROCTRACER_PATH}/lib ${ROCM_PATH}/lib
+    )
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ROCTX REQUIRED_VARS ROCTX_LIBRARY ROCTX_INCLUDE_DIR)
+find_package_handle_standard_args(
+    ROCTX
+    REQUIRED_VARS ROCTX_LIBRARY ROCTX_INCLUDE_DIR
+)
 
 if(ROCTX_FOUND)
     set(ROCTX_LIBRARIES ${ROCTX_LIBRARY})
@@ -44,12 +55,17 @@ if(ROCTX_FOUND)
 
     if(NOT TARGET roc::roctx)
         add_library(roc::roctx UNKNOWN IMPORTED)
-        set_target_properties(roc::roctx PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${ROCTX_INCLUDE_DIRS}")
+        set_target_properties(
+            roc::roctx
+            PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ROCTX_INCLUDE_DIRS}"
+        )
         if(EXISTS "${ROCTX_LIBRARIES}")
-            set_target_properties(roc::roctx PROPERTIES
-                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                IMPORTED_LOCATION "${ROCTX_LIBRARIES}")
+            set_target_properties(
+                roc::roctx
+                PROPERTIES
+                    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                    IMPORTED_LOCATION "${ROCTX_LIBRARIES}"
+            )
         endif()
     endif()
 endif()

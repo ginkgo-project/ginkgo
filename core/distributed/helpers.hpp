@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -122,15 +122,11 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 {
 #if GINKGO_BUILD_MPI
     if (is_distributed(linop)) {
-        if constexpr (std::is_same_v<remove_complex<ValueType>, half>) {
-            GKO_NOT_SUPPORTED(linop);
-        } else {
-            using type = std::conditional_t<
-                std::is_const<T>::value,
-                const experimental::distributed::Vector<ValueType>,
-                experimental::distributed::Vector<ValueType>>;
-            f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
-        }
+        using type = std::conditional_t<
+            std::is_const<T>::value,
+            const experimental::distributed::Vector<ValueType>,
+            experimental::distributed::Vector<ValueType>>;
+        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
     } else
 #endif
     {
@@ -156,15 +152,35 @@ template <typename T, typename F, typename... Args>
 auto run_matrix(T* linop, F&& f, Args&&... args)
 {
     using namespace gko::experimental::distributed;
-    return run<Matrix<double, int32, int32>, Matrix<double, int32, int64>,
-               Matrix<double, int64, int64>, Matrix<float, int32, int32>,
-               Matrix<float, int32, int64>, Matrix<float, int64, int64>,
-               Matrix<std::complex<double>, int32, int32>,
-               Matrix<std::complex<double>, int32, int64>,
-               Matrix<std::complex<double>, int64, int64>,
-               Matrix<std::complex<float>, int32, int32>,
-               Matrix<std::complex<float>, int32, int64>,
-               Matrix<std::complex<float>, int64, int64>>(
+    return run<
+        with_same_constness_t<Matrix<double, int32, int32>, T>,
+        with_same_constness_t<Matrix<double, int32, int64>, T>,
+        with_same_constness_t<Matrix<double, int64, int64>, T>,
+        with_same_constness_t<Matrix<float, int32, int32>, T>,
+        with_same_constness_t<Matrix<float, int32, int64>, T>,
+        with_same_constness_t<Matrix<float, int64, int64>, T>,
+#if GINKGO_ENABLE_HALF
+        with_same_constness_t<Matrix<float16, int32, int32>, T>,
+        with_same_constness_t<Matrix<float16, int32, int64>, T>,
+        with_same_constness_t<Matrix<float16, int64, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<float16>, int32, int32>, T>,
+        with_same_constness_t<Matrix<std::complex<float16>, int32, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<float16>, int64, int64>, T>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        with_same_constness_t<Matrix<bfloat16, int32, int32>, T>,
+        with_same_constness_t<Matrix<bfloat16, int32, int64>, T>,
+        with_same_constness_t<Matrix<bfloat16, int64, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int32, int32>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int32, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<bfloat16>, int64, int64>, T>,
+#endif
+        with_same_constness_t<Matrix<std::complex<double>, int32, int32>, T>,
+        with_same_constness_t<Matrix<std::complex<double>, int32, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<double>, int64, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<float>, int32, int32>, T>,
+        with_same_constness_t<Matrix<std::complex<float>, int32, int64>, T>,
+        with_same_constness_t<Matrix<std::complex<float>, int64, int64>, T>>(
         linop, std::forward<F>(f), std::forward<Args>(args)...);
 }
 
@@ -214,6 +230,21 @@ create_submatrix_helper(experimental::distributed::Vector<ValueType>* mtx,
 
 
 #endif
+
+
+inline const LinOp* get_local(const LinOp* mtx)
+{
+#if GINKGO_BUILD_MPI
+    if (is_distributed(mtx)) {
+        return run_matrix(mtx, [](auto concrete) {
+            return concrete->get_local_matrix().get();
+        });
+    }
+#endif
+    {
+        return mtx;
+    }
+}
 
 
 }  // namespace detail

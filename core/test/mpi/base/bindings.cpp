@@ -1,8 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -12,19 +13,134 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 
+#include "core/mpi/mpi_op.hpp"
 #include "core/test/utils.hpp"
+
+
+namespace detail {
+
+
+template <typename ValueType>
+inline void min(void* input, void* output, int* len, MPI_Datatype* datatype)
+{
+    ValueType* input_ptr = static_cast<ValueType*>(input);
+    ValueType* output_ptr = static_cast<ValueType*>(output);
+    for (int i = 0; i < *len; i++) {
+        if (input_ptr[i] < output_ptr[i]) {
+            output_ptr[i] = input_ptr[i];
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
+{
+    ValueType* input_ptr = static_cast<ValueType*>(input);
+    ValueType* output_ptr = static_cast<ValueType*>(output);
+    for (int i = 0; i < *len; i++) {
+        if (input_ptr[i] > output_ptr[i]) {
+            output_ptr[i] = input_ptr[i];
+        }
+    }
+}
+
+
+}  // namespace detail
+
+
+using gko::experimental::mpi::op_manager;
+
+
+template <typename ValueType, typename = void>
+class min {};
+
+template <typename ValueType>
+class min<ValueType, std::enable_if_t<gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    MPI_Op get_op() { return MPI_MIN; }
+};
+
+template <typename ValueType>
+class min<ValueType, std::enable_if_t<!gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    min()
+    {
+        op_ = op_manager(
+            []() {
+                MPI_Op* operation = new MPI_Op;
+                MPI_Op_create(&detail::min<ValueType>, 1, operation);
+                return operation;
+            }(),
+            [](MPI_Op* op) {
+                MPI_Op_free(op);
+                delete op;
+            });
+    }
+
+    MPI_Op get_op() { return *op_.get(); }
+
+private:
+    op_manager op_;
+};
+
+
+// ginkgo custom mpi max operation implementation
+template <typename ValueType, typename = void>
+class max {};
+
+template <typename ValueType>
+class max<ValueType, std::enable_if_t<gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    MPI_Op get_op() { return MPI_MAX; }
+};
+
+template <typename ValueType>
+class max<ValueType, std::enable_if_t<!gko::experimental::mpi::detail::
+                                          is_mpi_native<ValueType>::value>> {
+public:
+    max()
+    {
+        op_ = op_manager(
+            []() {
+                MPI_Op* operation = new MPI_Op;
+                MPI_Op_create(&detail::max<ValueType>, 1, operation);
+                return operation;
+            }(),
+            [](MPI_Op* op) {
+                MPI_Op_free(op);
+                delete op;
+            });
+    }
+
+    MPI_Op get_op() { return *op_.get(); }
+
+private:
+    op_manager op_;
+};
 
 
 template <typename T>
 class MpiBindings : public ::testing::Test {
 protected:
     using value_type = T;
-    MpiBindings() : ref(gko::ReferenceExecutor::create()) {}
+    MpiBindings()
+        : ref(gko::ReferenceExecutor::create()),
+          sum_op(gko::experimental::mpi::sum<value_type>()),
+          max_op(max<value_type>()),
+          min_op(min<value_type>())
+    {}
 
     std::shared_ptr<gko::Executor> ref;
+    gko::experimental::mpi::sum<value_type> sum_op;
+    max<value_type> max_op;
+    min<value_type> min_op;
 };
 
-using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypesBase,
+using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypes,
                                                gko::test::IndexTypes>;
 
 TYPED_TEST_SUITE(MpiBindings, TestTypes, TypenameNameGenerator);
@@ -277,6 +393,9 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
 
 TYPED_TEST(MpiBindings, CanAccumulateValues)
 {
+    // one-side accumlation only supports native type
+    SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -325,6 +444,9 @@ TYPED_TEST(MpiBindings, CanAccumulateValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
 {
+    // one-side accumlation only supports native type
+    SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -502,6 +624,9 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
 
 TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 {
+    // one-side accumlation only supports native type
+    SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -548,6 +673,9 @@ TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 
 TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 {
+    // one-side accumlation only supports native type
+    SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -601,6 +729,9 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 
 TYPED_TEST(MpiBindings, CanFetchAndOperate)
 {
+    // one-side operation only supports native type
+    SKIP_IF_HALF(TypeParam);
+    SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
     auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
@@ -696,9 +827,9 @@ TYPED_TEST(MpiBindings, CanReduceValues)
         data = 6;
     }
 
-    comm.reduce(this->ref, &data, &sum, 1, MPI_SUM, 0);
-    comm.reduce(this->ref, &data, &max, 1, MPI_MAX, 0);
-    comm.reduce(this->ref, &data, &min, 1, MPI_MIN, 0);
+    comm.reduce(this->ref, &data, &sum, 1, this->sum_op.get_op(), 0);
+    comm.reduce(this->ref, &data, &max, 1, this->max_op.get_op(), 0);
+    comm.reduce(this->ref, &data, &min, 1, this->min_op.get_op(), 0);
 
     if (my_rank == 0) {
         EXPECT_EQ(sum, TypeParam{16});
@@ -724,9 +855,12 @@ TYPED_TEST(MpiBindings, CanNonBlockingReduceValues)
         data = 6;
     }
 
-    auto req1 = comm.i_reduce(this->ref, &data, &sum, 1, MPI_SUM, 0);
-    auto req2 = comm.i_reduce(this->ref, &data, &max, 1, MPI_MAX, 0);
-    auto req3 = comm.i_reduce(this->ref, &data, &min, 1, MPI_MIN, 0);
+    auto req1 =
+        comm.i_reduce(this->ref, &data, &sum, 1, this->sum_op.get_op(), 0);
+    auto req2 =
+        comm.i_reduce(this->ref, &data, &max, 1, this->max_op.get_op(), 0);
+    auto req3 =
+        comm.i_reduce(this->ref, &data, &min, 1, this->min_op.get_op(), 0);
 
     req1.wait();
     req2.wait();
@@ -755,7 +889,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValues)
         data = 6;
     }
 
-    comm.all_reduce(this->ref, &data, &sum, 1, MPI_SUM);
+    comm.all_reduce(this->ref, &data, &sum, 1, this->sum_op.get_op());
 
     ASSERT_EQ(sum, TypeParam{16});
 }
@@ -777,7 +911,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValuesInPlace)
         data = 6;
     }
 
-    comm.all_reduce(this->ref, &data, 1, MPI_SUM);
+    comm.all_reduce(this->ref, &data, 1, this->sum_op.get_op());
 
     ASSERT_EQ(data, TypeParam{16});
 }
@@ -799,7 +933,8 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValues)
         data = 6;
     }
 
-    auto req = comm.i_all_reduce(this->ref, &data, &sum, 1, MPI_SUM);
+    auto req =
+        comm.i_all_reduce(this->ref, &data, &sum, 1, this->sum_op.get_op());
 
     req.wait();
     ASSERT_EQ(sum, TypeParam{16});
@@ -822,7 +957,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValuesInPlace)
         data = 6;
     }
 
-    auto req = comm.i_all_reduce(this->ref, &data, 1, MPI_SUM);
+    auto req = comm.i_all_reduce(this->ref, &data, 1, this->sum_op.get_op());
 
     req.wait();
     ASSERT_EQ(data, TypeParam{16});
@@ -1438,9 +1573,9 @@ TYPED_TEST(MpiBindings, CanScanValues)
         data = 6;
     }
 
-    comm.scan(this->ref, &data, &sum, 1, MPI_SUM);
-    comm.scan(this->ref, &data, &max, 1, MPI_MAX);
-    comm.scan(this->ref, &data, &min, 1, MPI_MIN);
+    comm.scan(this->ref, &data, &sum, 1, this->sum_op.get_op());
+    comm.scan(this->ref, &data, &max, 1, this->max_op.get_op());
+    comm.scan(this->ref, &data, &min, 1, this->min_op.get_op());
 
     if (my_rank == 0) {
         EXPECT_EQ(sum, TypeParam{3});
@@ -1478,9 +1613,9 @@ TYPED_TEST(MpiBindings, CanNonBlockingScanValues)
         data = 6;
     }
 
-    auto req1 = comm.i_scan(this->ref, &data, &sum, 1, MPI_SUM);
-    auto req2 = comm.i_scan(this->ref, &data, &max, 1, MPI_MAX);
-    auto req3 = comm.i_scan(this->ref, &data, &min, 1, MPI_MIN);
+    auto req1 = comm.i_scan(this->ref, &data, &sum, 1, this->sum_op.get_op());
+    auto req2 = comm.i_scan(this->ref, &data, &max, 1, this->max_op.get_op());
+    auto req3 = comm.i_scan(this->ref, &data, &min, 1, this->min_op.get_op());
 
     req1.wait();
     req2.wait();

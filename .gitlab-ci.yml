@@ -101,12 +101,14 @@ build/cuda110/nompi/gcc/cuda/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_MPI: "OFF"
     BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+    # this is seemingly broken with CUDA 11
+    # EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
 
 # nvhpc and friends
@@ -173,6 +175,8 @@ build/amd/nompi/clang/rocm45/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/amd/nompi/clang/rocm45/debug/shared:
   extends:
@@ -210,6 +214,8 @@ build/amd/nompi/clang/rocm514/release/shared:
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
 
 # without omp
 build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
@@ -246,6 +252,8 @@ build/nocuda/nompi/clang/core/release/shared:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda/nompi/gcc/omp/release/shared:
   extends:
@@ -256,6 +264,8 @@ build/nocuda/nompi/gcc/omp/release/shared:
   variables:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda/openmpi/clang/omp/debug/static:
   extends:
@@ -298,6 +308,8 @@ build/nocuda/nompi/gcc/omp/release/static:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
 
 build/nocuda-nomixed/nompi/clang/omp/release/static:
   extends:
@@ -650,9 +662,6 @@ cudamemcheck:
     - .default_variables
     - .deploy_condition
     - .use_gko_cuda110-mvapich-gnu9-llvm9
-  tags:
-    - private_ci
-    - nvidia-gpu
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
       -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck

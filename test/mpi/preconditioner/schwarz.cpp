@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,9 +20,11 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -30,13 +32,6 @@
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
-
-
-#if GINKGO_DPCPP_SINGLE_MODE
-using solver_value_type = float;
-#else
-using solver_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
 
 
 template <typename ValueLocalGlobalIndexType>
@@ -48,6 +43,7 @@ protected:
         1, decltype(ValueLocalGlobalIndexType())>::type;
     using global_index_type = typename std::tuple_element<
         2, decltype(ValueLocalGlobalIndexType())>::type;
+    using csr = gko::matrix::Csr<value_type, local_index_type>;
     using dist_mtx_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -57,8 +53,12 @@ protected:
         gko::experimental::distributed::preconditioner::Schwarz<
             value_type, local_index_type, global_index_type>;
     using solver_type = gko::solver::Bicgstab<value_type>;
+    using mg_prec_type = gko::solver::Multigrid;
     using local_prec_type =
         gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using coarse_solver_type =
+        gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using coarse_level_type = gko::multigrid::Pgm<value_type, local_index_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using non_dist_matrix_type =
         gko::matrix::Csr<value_type, global_index_type>;
@@ -82,7 +82,11 @@ protected:
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 8}));
 
-        dist_mat = dist_mtx_type::create(exec, comm);
+        // the default non-local matrix uses Coo, which does not support half
+        // precision on HIP and DPCPP because of atomic
+        dist_mat = dist_mtx_type::create(
+            exec, comm, csr::create(exec),
+            csr::create(exec, std::make_shared<typename csr::classical>()));
         dist_mat->read_distributed(mat_input, row_part);
         non_dist_mat = non_dist_matrix_type::create(exec);
         non_dist_mat->read(mat_input);
@@ -99,6 +103,8 @@ protected:
         dist_b->fill(-gko::one<value_type>());
         dist_x = gko::share(gko::clone(exec, dist_result));
         dist_x->fill(gko::zero<value_type>());
+        dist_x2 = gko::share(gko::clone(exec, dist_result));
+        dist_x2->fill(gko::zero<value_type>());
         auto non_dist_result = local_vec_type::create(ref, global_size, nrhs);
         non_dist_result->fill(-gko::one<value_type>());
         non_dist_b = gko::share(gko::clone(exec, non_dist_result));
@@ -107,6 +113,13 @@ protected:
 
         local_solver_factory =
             local_prec_type::build().with_max_block_size(1u).on(exec);
+        coarse_solver_factory =
+            solver_type::build()
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+                .on(exec);
+        pgm_factory = coarse_level_type::build().on(exec);
+        one_ = gko::initialize<local_vec_type>({gko::one<value_type>()},
+                                               this->exec);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
@@ -119,12 +132,16 @@ protected:
     std::shared_ptr<dist_mtx_type> dist_mat;
     std::shared_ptr<dist_vec_type> dist_b;
     std::shared_ptr<dist_vec_type> dist_x;
+    std::shared_ptr<dist_vec_type> dist_x2;
     std::shared_ptr<non_dist_matrix_type> non_dist_mat;
     std::shared_ptr<local_vec_type> non_dist_b;
     std::shared_ptr<local_vec_type> non_dist_x;
+    std::shared_ptr<local_vec_type> one_;
     std::shared_ptr<gko::LinOpFactory> non_dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> dist_solver_factory;
     std::shared_ptr<gko::LinOpFactory> local_solver_factory;
+    std::shared_ptr<gko::LinOpFactory> pgm_factory;
+    std::shared_ptr<gko::LinOpFactory> coarse_solver_factory;
 
     void assert_equal_to_non_distributed_vector(
         std::shared_ptr<dist_vec_type> dist_vec,
@@ -143,8 +160,7 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(SchwarzPreconditioner,
-                 gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(SchwarzPreconditioner, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfInvalidState)
@@ -272,6 +288,48 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditioner)
 }
 
 
+TYPED_TEST(SchwarzPreconditioner, CanApplyTwolevelPreconditioner)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+    using mg_prec = typename TestFixture::mg_prec_type;
+    using dist_vec = typename TestFixture::dist_vec_type;
+
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_coarse_solver(this->coarse_solver_factory)
+                               .with_coarse_level(this->pgm_factory)
+                               .on(this->exec);
+    auto local_precond_factory =
+        prec::build()
+            .with_local_solver(this->local_solver_factory)
+            .on(this->exec);
+    auto mg_precond_factory =
+        mg_prec::build()
+            .with_coarsest_solver(this->coarse_solver_factory)
+            .with_mg_level(this->pgm_factory)
+            .with_post_smoother(nullptr)
+            .with_pre_smoother(nullptr)
+            .with_max_levels(1u)
+            .with_min_coarse_rows(1u)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto precond = precond_factory->generate(this->dist_mat);
+    auto mg_precond = mg_precond_factory->generate(this->dist_mat);
+    auto local_precond = local_precond_factory->generate(this->dist_mat);
+    auto local_dist_x = gko::clone(this->dist_x);
+    local_precond->apply(this->dist_b.get(), local_dist_x.get());
+    mg_precond->apply(this->dist_b.get(), this->dist_x2.get());
+    this->dist_x2->add_scaled(this->one_, local_dist_x);
+
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+
+    GKO_ASSERT_MTX_NEAR(this->dist_x->get_local_vector(),
+                        this->dist_x2->get_local_vector(),
+                        r<value_type>::value);
+}
+
+
 TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
 {
     using value_type = typename TestFixture::value_type;
@@ -293,6 +351,32 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
                    this->dist_x.get());
     local_precond->apply(two.get(), this->non_dist_b.get(), one.get(),
                          this->non_dist_x.get());
+
+    this->assert_equal_to_non_distributed_vector(this->dist_x,
+                                                 this->non_dist_x);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionerWithL1Smoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto non_dist_diag_with_l1 =
+        gko::share(gko::matrix::Diagonal<value_type>::create(
+            this->exec, 8u,
+            gko::array<value_type>(this->exec, {2, 3, 3, 3, 3, 2, 2, 2})));
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_l1_smoother(true)
+                               .on(this->exec);
+    auto local_precond = this->local_solver_factory->generate(
+        gko::copy_and_convert_to<local_matrix_type>(this->exec,
+                                                    non_dist_diag_with_l1));
+    auto precond = precond_factory->generate(this->dist_mat);
+
+    precond->apply(this->dist_b.get(), this->dist_x.get());
+    local_precond->apply(this->non_dist_b.get(), this->non_dist_x.get());
 
     this->assert_equal_to_non_distributed_vector(this->dist_x,
                                                  this->non_dist_x);

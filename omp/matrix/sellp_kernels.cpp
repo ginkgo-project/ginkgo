@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -173,7 +173,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto alpha_val = alpha->at(0, 0);
     const auto beta_val = beta->at(0, 0);
     auto out = [&](auto i, auto j, auto value) {
-        return alpha_val * value + beta_val * c->at(i, j);
+        return is_zero(beta_val) ? alpha_val * value
+                                 : alpha_val * value + beta_val * c->at(i, j);
     };
     if (num_rhs == 1) {
         spmv_small_rhs<1>(exec, a, b, c, out);

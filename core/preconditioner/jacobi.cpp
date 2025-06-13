@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,6 +21,7 @@
 #include "core/base/utils.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 
@@ -45,7 +46,10 @@ GKO_REGISTER_OPERATION(convert_to_dense, jacobi::convert_to_dense);
 GKO_REGISTER_OPERATION(scalar_convert_to_dense,
                        jacobi::scalar_convert_to_dense);
 GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
-
+GKO_REGISTER_OPERATION(scalar_l1, jacobi::scalar_l1);
+GKO_REGISTER_OPERATION(block_l1, jacobi::block_l1);
+GKO_REGISTER_OPERATION(add_diagonal_elements,
+                       factorization::add_diagonal_elements);
 
 }  // anonymous namespace
 }  // namespace jacobi
@@ -85,7 +89,9 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_accuracy(
             gko::config::get_value<remove_complex<ValueType>>(obj));
     }
-
+    if (auto& obj = config.get("aggregate_l1")) {
+        params.with_aggregate_l1(gko::config::get_value<bool>(obj));
+    }
     return params;
 }
 
@@ -326,14 +332,22 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     if (parameters_.max_block_size == 1) {
-        auto diag = share(as<DiagonalLinOpExtractable>(system_matrix)
-                              ->extract_diagonal_linop());
-        auto diag_vt =
-            ::gko::detail::temporary_conversion<matrix::Diagonal<ValueType>>::
-                template create<matrix::Diagonal<previous_precision<ValueType>>,
-                                matrix::Diagonal<previous_precision<
-                                    previous_precision<ValueType>>>>(
-                    diag.get());
+        std::shared_ptr<LinOp> diag = nullptr;
+        if (this->get_parameters().aggregate_l1) {
+            auto csr_mtx = convert_to_with_sorting<const csr_type>(
+                exec, system_matrix, skip_sorting);
+            auto diagonal = share(csr_mtx->extract_diagonal());
+            exec->run(jacobi::make_scalar_l1(csr_mtx.get(), diagonal.get()));
+            diag = diagonal;
+        } else {
+            diag = share(as<DiagonalLinOpExtractable>(system_matrix)
+                             ->extract_diagonal_linop());
+        }
+        auto diag_vt = ::gko::detail::
+            temporary_conversion<matrix::Diagonal<ValueType>>::template create<
+                matrix::Diagonal<previous_precision<ValueType>>,
+                matrix::Diagonal<previous_precision<ValueType, 2>>,
+                matrix::Diagonal<previous_precision<ValueType, 3>>>(diag.get());
         if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);
         }
@@ -344,10 +358,25 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
-        auto csr_mtx = convert_to_with_sorting<csr_type>(exec, system_matrix,
-                                                         skip_sorting);
+        auto csr_mtx = share(convert_to_with_sorting<csr_type>(
+            exec, system_matrix, skip_sorting));
         if (parameters_.block_pointers.get_data() == nullptr) {
             this->detect_blocks(csr_mtx.get());
+        }
+        if (this->get_parameters().aggregate_l1) {
+            // It should be sorted in the convert_to_with_sorting
+            // We only use it to generate the inversed block, so we do not need
+            // to rebuild srow
+            // Note: Does the diagonal make the find_block different?
+            // Because we change the matrix value, we clone it to avoid
+            // overwriting to the original matrix.
+            auto changed_mtx = share(csr_mtx->clone());
+            exec->run(
+                jacobi::make_add_diagonal_elements(changed_mtx.get(), true));
+            // block_pointers has larger size than actual num_blocks_
+            exec->run(jacobi::make_block_l1(
+                num_blocks_, parameters_.block_pointers, changed_mtx.get()));
+            csr_mtx = changed_mtx;
         }
         const auto all_block_opt =
             parameters_.storage_optimization.of_all_blocks;

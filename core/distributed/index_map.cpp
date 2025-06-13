@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@ namespace index_map_kernels {
 
 GKO_REGISTER_OPERATION(build_mapping, index_map::build_mapping);
 GKO_REGISTER_OPERATION(map_to_local, index_map::map_to_local);
+GKO_REGISTER_OPERATION(map_to_global, index_map::map_to_global);
 
 
 }  // namespace index_map_kernels
@@ -86,6 +87,21 @@ array<LocalIndexType> index_map<LocalIndexType, GlobalIndexType>::map_to_local(
         rank_, global_ids, index_space_v, local_ids));
 
     return local_ids;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+array<GlobalIndexType>
+index_map<LocalIndexType, GlobalIndexType>::map_to_global(
+    const array<LocalIndexType>& local_idxs, index_space index_space_v) const
+{
+    array<GlobalIndexType> global_idxs(exec_);
+
+    exec_->run(index_map_kernels::make_map_to_global(
+        to_device_const(partition_.get()), to_device(remote_global_idxs_),
+        rank_, local_idxs, index_space_v, global_idxs));
+
+    return global_idxs;
 }
 
 
@@ -176,7 +192,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
 }
 
 
-#define GKO_DECLARE_INDEX_MAP(_ltype, _gtype) struct index_map<_ltype, _gtype>
+#define GKO_DECLARE_INDEX_MAP(_ltype, _gtype) class index_map<_ltype, _gtype>
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_INDEX_MAP);
 

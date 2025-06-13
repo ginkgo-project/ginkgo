@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 
 
@@ -168,7 +169,7 @@ __forceinline__ __device__ IndexType group_wide_search(IndexType offset,
      */
     auto base_idx = (group_pos - 1) * group.size() + 1;
     auto idx = base_idx + group.thread_rank();
-    auto pos = ffs(group.ballot(idx >= length || p(offset + idx))) - 1;
+    auto pos = ffs(group::ballot(group, idx >= length || p(offset + idx))) - 1;
     return offset + base_idx + pos;
 }
 
@@ -205,7 +206,7 @@ __forceinline__ __device__ IndexType group_ary_search(IndexType offset,
     while (length > group.size()) {
         auto stride = length / group.size();
         auto idx = offset + group.thread_rank() * stride;
-        auto mask = group.ballot(p(idx));
+        auto mask = group::ballot(group, p(idx));
         // if the mask is 0, the partition point is in the last block
         // if the mask is ~0, the partition point is in the first block
         // otherwise, we go to the last block that returned a 0.
@@ -217,7 +218,7 @@ __forceinline__ __device__ IndexType group_ary_search(IndexType offset,
     auto idx = offset + group.thread_rank();
     // if the mask is 0, the partition point is at the end
     // otherwise it is the first set bit
-    auto mask = group.ballot(idx >= end || p(idx));
+    auto mask = group::ballot(group, idx >= end || p(idx));
     auto pos = mask == 0 ? group.size() : ffs(mask) - 1;
     return offset + pos;
 }

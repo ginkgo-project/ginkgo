@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,10 +10,12 @@
 
 #include <cuda.h>
 #include <cublas_v2.h>
+#include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #include <cusparse.h>
 #include <thrust/complex.h>
 
+#include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -120,7 +122,6 @@ struct culibs_type_impl<std::complex<double>> {
     using type = cuDoubleComplex;
 };
 
-
 template <>
 struct culibs_type_impl<half> {
     using type = __half;
@@ -130,6 +131,17 @@ template <>
 struct culibs_type_impl<std::complex<half>> {
     using type = __half2;
 };
+
+template <>
+struct culibs_type_impl<bfloat16> {
+    using type = __nv_bfloat16;
+};
+
+template <>
+struct culibs_type_impl<std::complex<bfloat16>> {
+    using type = __nv_bfloat162;
+};
+
 
 template <typename T>
 struct culibs_type_impl<thrust::complex<T>> {
@@ -166,6 +178,11 @@ struct cuda_type_impl<half> {
     using type = __half;
 };
 
+template <>
+struct cuda_type_impl<bfloat16> {
+    using type = __nv_bfloat16;
+};
+
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
     using type = thrust::complex<typename cuda_type_impl<T>::type>;
@@ -186,6 +203,11 @@ struct cuda_type_impl<__half2> {
     using type = thrust::complex<__half>;
 };
 
+template <>
+struct cuda_type_impl<__nv_bfloat162> {
+    using type = thrust::complex<__nv_bfloat16>;
+};
+
 template <typename T>
 struct cuda_struct_member_type_impl {
     using type = T;
@@ -199,6 +221,11 @@ struct cuda_struct_member_type_impl<std::complex<T>> {
 template <>
 struct cuda_struct_member_type_impl<gko::half> {
     using type = __half;
+};
+
+template <>
+struct cuda_struct_member_type_impl<gko::bfloat16> {
+    using type = __nv_bfloat16;
 };
 
 template <typename ValueType, typename IndexType>
@@ -217,12 +244,14 @@ struct cuda_data_type_impl {};
         constexpr static cudaDataType_t value = _value; \
     }
 
-GKO_CUDA_DATA_TYPE(float16, CUDA_R_16F);
+GKO_CUDA_DATA_TYPE(gko::half, CUDA_R_16F);
+GKO_CUDA_DATA_TYPE(gko::bfloat16, CUDA_R_16BF);
 GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
 GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
+GKO_CUDA_DATA_TYPE(std::complex<gko::half>, CUDA_C_16F);
+GKO_CUDA_DATA_TYPE(std::complex<gko::bfloat16>, CUDA_C_16BF);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
-GKO_CUDA_DATA_TYPE(std::complex<float16>, CUDA_C_16F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 

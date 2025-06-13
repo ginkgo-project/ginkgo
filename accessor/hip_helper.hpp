@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,11 +19,17 @@
 
 struct __half;
 
+struct hip_bfloat16;
+
+struct __hip_bfloat16;
+
 
 namespace gko {
 
 
 class half;
+
+class bfloat16;
 
 
 namespace acc {
@@ -65,6 +71,16 @@ template <>
 struct hip_type<gko::half> {
     using type = __half;
 };
+
+template <>
+struct hip_type<gko::bfloat16> {
+#if HIP_VERSION >= 60200000
+    using type = __hip_bfloat16;
+#else
+    using type = hip_bfloat16;
+#endif
+};
+
 
 // Transform std::complex to thrust::complex
 template <typename T>

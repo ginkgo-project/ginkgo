@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,7 +45,8 @@ namespace kernels {
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, \
                                                              IndexType) \
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,    \
-                        device_matrix_data<ValueType, IndexType>& data)
+                        size_type num_elems, IndexType* row_idxs,       \
+                        IndexType* col_idxs, ValueType* values)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \

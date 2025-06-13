@@ -117,6 +117,8 @@ for i in $(seq 0 $(ssget -n)); do
 done
 ```
 
+For extracting the matrices, `ssget -f -i ${i}` can be used.
+
 ### 3: Running benchmarks manually
 When compiling Ginkgo with the flag `-DGINKGO_BUILD_BENCHMARKS=ON`, a suite of
 executables will be generated depending on the CMake configuration. These
@@ -230,12 +232,12 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](### 6: Available
+collection. For details, see the [available benchmark options](### 7: Available
 benchmark options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
-    benchmark to be ran.
+    benchmark to be run.
 * `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
-    the benchmarks should be ran on.
+    the benchmarks should be run on.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...).
 * `SEGMENTS=<N>` - Split the benchmarked matrix space into `<N>` segments. If
@@ -312,7 +314,7 @@ For the generating the plots in the GPE, here are the steps to go through:
 
 ### 6: Detailed performance analysis and debugging
 
-Detailed performance analysis can be ran by passing the environment variable
+Detailed performance analysis can be run by passing the environment variable
 `DETAILED=1` to the benchmarking script. This detailed run is available for
 solvers and allows to log the internal residual after every iteration as well as
 log the time taken by all operations. These features are also available in the
@@ -336,7 +338,7 @@ benchmarking program itself. For a list of all options, run for example
 
 The supported environment variables are described in the following list:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
-    benchmark to be ran. Default is `spmv`.
+    benchmark to be run. Default is `spmv`.
     *   `spmv` - Runs the sparse matrix-vector product benchmarks on the
                  SuiteSparse collection.
     *   `solver` - Runs the solver benchmarks on the SuiteSparse collection. The
@@ -346,7 +348,7 @@ The supported environment variables are described in the following list:
     *   `preconditioner` - Runs the preconditioner benchmarks on artificially
                  generated block-diagonal matrices.
 * `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
-    the benchmarks should be ran on. Default is `cuda`.
+    the benchmarks should be run on. Default is `cuda`.
 * `SYSTEM_NAME=<name>` - a name which will be used to designate this platform
     (e.g. V100, RadeonVII, ...) and not overwrite previous results. Default is
     `unknown`.
@@ -358,7 +360,7 @@ The supported environment variables are described in the following list:
     Default is `1`.
 * `MATRIX_LIST_FILE=/path/to/matrix_list.file` - allows to list SuiteSparse
     matrix id or name to benchmark. As an example, a matrix list file containing
-    the following will ensure that benchmarks are ran for only those three
+    the following will ensure that benchmarks are run for only those three
     matrices:
     ```
     1903
@@ -382,7 +384,7 @@ The supported environment variables are described in the following list:
     library formats (cuSPARSE with `cusparse_` prefix or hipSPARSE with `hipsparse_`
     prefix) can be used as well. Multiple options can be passed. The default is
     `csr,coo,ell,hybrid,sellp`.
-* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
+* `SOLVERS={bicgstab,bicg,cg,cgs,fcg,pipe_cg,gmres,cb_gmres_{keep,reduce1,reduce2,integer,ireduce1,ireduce2},lower_trs,upper_trs}`
     - the solvers which should be benchmarked. Multiple options can be passed.
     The default is `bicgstab,cg,cgs,fcg,gmres,idr`. Note that `lower/upper_trs`
     by default don't use a preconditioner, as they are by default exact direct
@@ -390,7 +392,7 @@ The supported environment variables are described in the following list:
 * `SOLVERS_PRECISION=<precision>` - the minimal residual reduction before which
     the solver should stop. The default is `1e-6`.
 * `SOLVERS_MAX_ITERATIONS=<number>` - the maximum number of iterations with which
-    a solver should be ran. The default is `10000`.
+    a solver should be run. The default is `10000`.
 * `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
     random values or b = A * (s / |s|)$ with s(idx) = sin(idx) (for complex
     numbers, s(idx) = sin(2*idx) + i * sin(2*idx+1))
@@ -398,7 +400,7 @@ The supported environment variables are described in the following list:
 * `SOLVERS_INITIAL_GUESS={rhs,0,random}` - the initial guess generation of the
     solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`
     generates a random vector as the initial guess.
-* `DETAILED={0,1}` - selects whether detailed benchmarks should be ran. This
+* `DETAILED={0,1}` - selects whether detailed benchmarks should be run. This
     generally provides extra, verbose information at the cost of one or more
     extra benchmark runs. It can be either `0` (off) or `1` (on).
 * `GPU_TIMER={true, false}` - If set to `true`, use the gpu timer, which is
