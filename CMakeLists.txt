@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(
     Ginkgo
     LANGUAGES CXX
-    VERSION 1.10.0
+    VERSION 2.0.0
     DESCRIPTION
         "A numerical linear algebra library targeting many-core architectures"
 )
