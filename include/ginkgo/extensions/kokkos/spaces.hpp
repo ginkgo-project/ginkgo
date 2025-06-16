@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,7 +47,6 @@ template <typename MemorySpace>
 struct compatible_space<MemorySpace, OmpExecutor>
     : compatible_space<MemorySpace, ReferenceExecutor> {};
 #endif
-
 #ifdef KOKKOS_ENABLE_CUDA
 template <typename MemorySpace>
 struct compatible_space<MemorySpace, CudaExecutor> {
@@ -156,6 +155,12 @@ inline std::shared_ptr<Executor> create_default_host_executor()
         return ReferenceExecutor::create();
     }
 #endif
+#ifdef KOKKOS_ENABLE_THREADS
+    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
+                                 Kokkos::Threads>) {
+        return ReferenceExecutor::create();
+    }
+#endif
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::OpenMP>) {
@@ -201,6 +206,11 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<ExecSpace, Kokkos::OpenMP>) {
         return OmpExecutor::create();
+    }
+#endif
+#ifdef KOKKOS_ENABLE_THREADS
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::Threads>) {
+        return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
