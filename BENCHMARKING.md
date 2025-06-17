@@ -13,27 +13,28 @@ performance as what is published on this repository.
 
 To compile the benchmarks, the flag `-DGINKGO_BUILD_BENCHMARKS=ON` has to be set
 during the `cmake` step. In addition, the [`ssget` command-line
-utility](https://github.com/ginkgo-project/ssget) has to be installed on the
-system. The purpose of this file is to explain in detail the capacities of this
-benchmarking suite as well as how to properly setup everything.
+utility](https://github.com/ginkgo-project/ssget) can be installed on the
+system to load matrices. The purpose of this file is to explain in detail 
+the capacities of this benchmarking suite as well as how to properly setup
+everything.
 
 There are two ways to benchmark Ginkgo. When compiling the benchmark suite,
 executables are generated for collecting matrix statistics, running
-sparse-matrix vector product, solvers (possibly distributed) benchmarks. Another
-way to run benchmarks is through the convenience script `run_all_benchmarks.sh`,
-but not all features are exposed through this tool!
+sparse-matrix vector product, solvers (possibly distributed) benchmarks. Thus,
+one can run the needed executable for benchmarking 
+[**manually**](#3-running-benchmarks-manually). Another way to run (almost) 
+[**all benchmarks**](#4-benchmarking-with-make-benchmark-or-run_all_benchmarkssh)
+is through the convenience script `run_all_benchmarks.sh`, but not all features
+are exposed through this tool!
 
 Here is a short description of the content of this file:
-1. Ginkgo setup and best practice guidelines
-2. Installing and using the `ssget` tool to fetch the [SuiteSparse
-   matrices](https://sparse.tamu.edu/).
-3. Running benchmarks manually
-4. Benchmarking with the script utility
-5. How to publish the benchmark results online and use the [Ginkgo Performance
-   Explorer (GPE)](https://ginkgo-project.github.io/gpe/) for performance
-   analysis (optional).
-6. Using the benchmark suite for performance debugging thanks to the loggers.
-7. Available benchmark customization options with the script utility.
+1. [Ginkgo setup and best practice guidelines](#1-ginkgo-setup-and-best-practice-guidelines)
+2. [Using ssget to fetch the matrices](#2-using-ssget-to-fetch-the-matrices)
+3. [Running benchmarks manually](#3-running-benchmarks-manually)
+4. [Benchmarking with `make benchmark` or `run_all_benchmarks.sh`](#4-benchmarking-with-make-benchmark-or-run_all_benchmarkssh)
+5. [Publishing the results on Github and analyze the results with the GPE (optional)](#5-publishing-the-results-on-github-and-analyze-the-results-with-the-gpe-optional)
+6. [Detailed performance analysis and debugging](#6-detailed-performance-analysis-and-debugging)
+7. [Available benchmark options](#7-available-benchmark-options)
 
 
 ### 1: Ginkgo setup and best practice guidelines
@@ -73,12 +74,20 @@ facilitate downloading and extracting matrices from the suitesparse collection.
 When running the benchmarks with the helper script `run_all_benchmarks.sh` (or
 calling `make benchmark`), the `ssget` tool is required.
 
+It's important to note that when running on the Ginkgo cluster, the SuiteSparse
+matrix collection is available in `storage/data/suitesparse/`, so installing 
+`ssget` can be skipped. The script `run_all_benchmarks.sh` mentioned above still
+requires it though.
+
 To install `ssget`, access the repository and copy the file `ssget` into a
 directory present in your `PATH` variable as per the tool's `README.md`
 instructions. The tool can be installed either in a global system path or a
 local directory such as `$HOME/.local/bin`. After installing the tool, it is
 important to review the `ssget` script and configure as needed the variable
 `ARCHIVE_LOCATION` on line 39. This is where the matrices will be stored into.
+As of [PR#7](https://github.com/ginkgo-project/ssget/pull/7), one can also 
+configure the archive location using the `-a` option without modifying the
+script itself. You can also use this script without installing it.
 
 The Ginkgo benchmark can be set to run on only a portion of the SuiteSparse
 matrix collection as we will see in the following section. Please note that the
@@ -119,7 +128,11 @@ done
 
 For extracting the matrices, `ssget -f -i ${i}` can be used.
 
-### 3: Running benchmarks manually
+### 3: Running benchmarks manually 
+
+As mentioned above, one way to run benchmarks is through the executable of
+a certain needed type of benchmarking.
+
 When compiling Ginkgo with the flag `-DGINKGO_BUILD_BENCHMARKS=ON`, a suite of
 executables will be generated depending on the CMake configuration. These
 executables are the backbone of the benchmarking suite. Note that all of these
@@ -171,10 +184,14 @@ case, and many other benchmarks the following minimal input should be provided:
 ```
 The files have to be in matrix market format.
 
-Some benchmarks require some extra fields. For example the solver benchmarks
+Some benchmarks require some extra fields. For example, the **solver benchmarks**
 requires the field `"optimal": {"spmv": "matrix format (such as csr)"}`. This is
 automatically populated when running the `spmv` benchmark which finds the
 optimal (fastest) format among all requested formats.
+
+The `"rhs"` field (right-hand side) is generally optional for the **solver benchmarks**
+if you generate the RHS with the `-rhs_generation` flag (use `--help` with benchmark
+executables if this is unclear).
 
 After writing the necessary data in a JSON file, the benchmark can be called by
 passing in the input via stdin, i.e.
@@ -196,7 +213,7 @@ use the resulting output JSON as input to the `solver` benchmark, and finally
 use the resulting solver JSON output as input to the `preconditioner` benchmark.
 
 
-### 4: Benchmarking overview
+### 4: Benchmarking with `make benchmark` or `run_all_benchmarks.sh`
 
 The benchmark suite is invoked using the `make benchmark` command in the build
 directory. Under the hood, this command simply calls the script
@@ -232,8 +249,9 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](### 7: Available
-benchmark options). Here are the most important options:
+collection. For details, see the 
+[available benchmark options](#7-available-benchmark-options). 
+Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be run.
 * `EXECUTOR={reference,cuda,hip,omp,dpcpp}` - select the executor and platform
