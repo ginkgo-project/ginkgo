@@ -39,8 +39,11 @@ namespace multigrid {
 template <typename ValueType, typename IndexType>
 class Pgm;
 
+template <typename ValueType, typename IndexType>
+class FixedCoarsening;
 
-}
+
+}  // namespace multigrid
 
 
 namespace detail {
@@ -276,6 +279,7 @@ class Matrix
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+    friend class multigrid::FixedCoarsening<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
