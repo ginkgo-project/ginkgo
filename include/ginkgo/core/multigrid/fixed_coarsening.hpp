@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
@@ -114,6 +116,31 @@ protected:
     }
 
     void generate();
+
+#if GINKGO_BUILD_MPI
+    /**
+     * Communicates the non-local map (as global indices)
+     *
+     * @tparam GlobalIndexType  Global index type
+     *
+     * @param matrix  a distributed matrix
+     * @param coarse_partition  the coarse partition to compute the new global
+     *                          indices
+     * @param local_map  the local aggregate indices
+     *
+     * @return  the map for non-local columns. The value are
+     *          in the new global indexing for the coarse matrix
+     */
+    template <typename GlobalIndexType>
+    array<GlobalIndexType> communicate_non_local_map(
+        std::shared_ptr<const experimental::distributed::Matrix<
+            ValueType, IndexType, GlobalIndexType>>
+            matrix,
+        std::shared_ptr<
+            experimental::distributed::Partition<IndexType, GlobalIndexType>>
+            coarse_partition,
+        const array<IndexType>& local_map);
+#endif
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
