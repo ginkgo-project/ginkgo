@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include "core/multigrid/fixed_coarsening_kernels.hpp"
 
 #include <memory>
 
@@ -208,6 +210,101 @@ TYPED_TEST(FixedCoarsening, CanBeCleared)
 
     ASSERT_EQ(mtx, nullptr);
     ASSERT_EQ(coarse, nullptr);
+}
+
+
+TYPED_TEST(FixedCoarsening, Renumber)
+{
+    using index_type = typename TestFixture::index_type;
+    auto invalid = gko::invalid_index<index_type>();
+    auto coarse_rows = gko::array<index_type>(this->exec, {1, 5, 7});
+    gko::array<index_type> coarse_map(this->exec, 8);
+    coarse_map.fill(invalid);
+    gko::array expected_coarse_map(coarse_map);
+    expected_coarse_map.get_data()[1] = 0;
+    expected_coarse_map.get_data()[5] = 1;
+    expected_coarse_map.get_data()[7] = 2;
+
+    gko::kernels::reference::fixed_coarsening::renumber(this->exec, coarse_rows,
+                                                        &coarse_map);
+
+    GKO_ASSERT_ARRAY_EQ(coarse_map, expected_coarse_map);
+}
+
+
+TYPED_TEST(FixedCoarsening, BuildRowPtrs)
+{
+    using index_type = typename TestFixture::index_type;
+    auto invalid = gko::invalid_index<index_type>();
+    auto coarse_rows = gko::array<index_type>(this->exec, {1, 3});
+    gko::size_type nrows = 5;
+    gko::array<index_type> coarse_map(this->exec, nrows);
+    coarse_map.fill(invalid);
+    coarse_map.get_data()[1] = 0;
+    coarse_map.get_data()[3] = 1;
+    // matrix 5 x 5
+    //   *
+    //   *   * *
+    //       *
+    // * * *
+    // *
+    auto original_row_ptrs =
+        gko::array<index_type>(this->exec, {0, 1, 4, 5, 8, 9});
+    auto original_col_idxs =
+        gko::array<index_type>(this->exec, {1, 1, 3, 4, 3, 0, 1, 2, 0});
+    gko::size_type new_nrows = 2;
+    gko::array<index_type> new_row_ptrs(this->exec, new_nrows + 1);
+    auto expected_row_ptrs = gko::array<index_type>(this->exec, {0, 2, 3});
+
+    gko::kernels::reference::fixed_coarsening::build_row_ptrs(
+        this->exec, nrows, original_row_ptrs.get_const_data(),
+        original_col_idxs.get_const_data(), coarse_rows, coarse_map, new_nrows,
+        new_row_ptrs.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(new_row_ptrs, expected_row_ptrs);
+}
+
+
+TYPED_TEST(FixedCoarsening, MapToCoarse)
+{
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    auto invalid = gko::invalid_index<index_type>();
+    auto coarse_rows = gko::array<index_type>(this->exec, {1, 3});
+    gko::size_type nrows = 5;
+    gko::array<index_type> coarse_map(this->exec, nrows);
+    coarse_map.fill(invalid);
+    coarse_map.get_data()[1] = 0;
+    coarse_map.get_data()[3] = 1;
+    // matrix 5 x 5
+    //   *
+    //   *   * *
+    //       *
+    // * * *
+    // *
+    auto original_row_ptrs =
+        gko::array<index_type>(this->exec, {0, 1, 4, 5, 8, 9});
+    auto original_col_idxs =
+        gko::array<index_type>(this->exec, {1, 1, 3, 4, 3, 0, 1, 2, 0});
+    auto original_values = gko::array<value_type>(
+        this->exec, {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0});
+    gko::size_type new_nrows = 2;
+    auto new_row_ptrs = gko::array<index_type>(this->exec, {0, 2, 3});
+    gko::size_type new_nnz = 3;
+    gko::array<index_type> new_col_idxs(this->exec, new_nnz);
+    gko::array<value_type> new_values(this->exec, new_nnz);
+    auto expected_col_idxs = gko::array<index_type>(this->exec, {0, 1, 0});
+    auto expected_values = gko::array<value_type>(this->exec, {2.0, 3.0, 7.0});
+
+
+    gko::kernels::reference::fixed_coarsening::map_to_coarse(
+        this->exec, nrows, original_row_ptrs.get_const_data(),
+        original_col_idxs.get_const_data(), original_values.get_const_data(),
+        coarse_rows, coarse_map, new_nrows, new_row_ptrs.get_const_data(),
+        new_col_idxs.get_data(), new_values.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(new_col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(new_values, expected_values);
 }
 
 
