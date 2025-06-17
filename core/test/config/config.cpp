@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -120,6 +121,26 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
                       ->get_parameters()
                       .preconditioner.get()),
               nullptr);
+}
+
+
+TEST_F(Config, ThrowWhenKeyIsInvalidInCriterion)
+{
+    auto reg = registry();
+    reg.emplace("precond", this->mtx);
+
+    for (const auto& stop :
+         {"Time", "Iteration", "ResidualNorm", "ImplicitResidualNorm"}) {
+        pnode stop_config{
+            {{"type", pnode{stop}}, {"invalid_key", pnode{"no"}}}};
+        pnode p{{{"generated_preconditioner", pnode{"precond"}},
+                 {"criteria", stop_config}}};
+
+        ASSERT_THROW(parse<LinOpFactoryType::Cg>(
+                         p, reg, type_descriptor{"float32", "void"})
+                         .on(this->exec),
+                     gko::InvalidStateError);
+    }
 }
 
 
@@ -253,6 +274,18 @@ TEST_F(Config, GenerateCriteriaFromMinimalConfigWithValueType)
         ASSERT_NE(time, nullptr);
         EXPECT_EQ(time->get_parameters().time_limit, 100ns);
     }
+}
+
+
+TEST_F(Config, MinimalConfigThrowWhenKeyIsInvalid)
+{
+    pnode minimal_stop{{{"time", pnode{100}}, {"invalid", pnode{"no"}}}};
+    pnode p{{{"criteria", minimal_stop}}};
+
+    ASSERT_THROW(parse<LinOpFactoryType::Cg>(p, registry(),
+                                             type_descriptor{"float32", "void"})
+                     .on(this->exec),
+                 gko::InvalidStateError);
 }
 
 

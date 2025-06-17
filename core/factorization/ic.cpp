@@ -54,16 +54,17 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
                                 const config::type_descriptor& td_for_child)
 {
     auto params = factorization::Ic<ValueType, IndexType>::build();
-    if (auto& obj = config.get("l_strategy")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("both_factors")) {
+    if (auto& obj = config_check.get("both_factors")) {
         params.with_both_factors(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("algorithm")) {
+    if (auto& obj = config_check.get("algorithm")) {
         using gko::factorization::incomplete_algorithm;
         auto str = obj.get_string();
         if (str == "sparselib") {

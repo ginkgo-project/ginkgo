@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -540,6 +541,18 @@ TYPED_TEST(Solver, CreateDefault)
     auto ans = Config::default_solver_type::build().on(this->exec);
 
     Config::template validate<true>(res.get(), ans.get());
+}
+
+
+TYPED_TEST(Solver, ThrowWhenKeyIsNotAllowed)
+{
+    using Config = typename TestFixture::Config;
+    auto pnode_map = Config::setup_base();
+    pnode_map["invalid_key"] = pnode{""};
+    auto config = pnode(pnode_map);
+
+    ASSERT_THROW(parse(config, this->reg, this->td).on(this->exec),
+                 gko::InvalidStateError);
 }
 
 

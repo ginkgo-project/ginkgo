@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/config/stop_config.hpp"
+
+#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -19,7 +21,6 @@
 #include "core/config/registry_accessor.hpp"
 #include "core/config/type_descriptor_helper.hpp"
 
-
 namespace gko {
 namespace config {
 
@@ -28,8 +29,9 @@ deferred_factory_parameter<stop::CriterionFactory> configure_time(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Time::build();
-    if (auto& obj = config.get("time_limit")) {
-        params.with_time_limit(gko::config::get_value<long long int>(obj));
+    config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("time_limit")) {
+        params.with_time_limit(get_value<long long int>(obj));
     }
     return params;
 }
@@ -39,8 +41,9 @@ deferred_factory_parameter<stop::CriterionFactory> configure_iter(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto params = stop::Iteration::build();
-    if (auto& obj = config.get("max_iters")) {
-        params.with_max_iters(gko::config::get_value<size_type>(obj));
+    config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("max_iters")) {
+        params.with_max_iters(get_value<size_type>(obj));
     }
     return params;
 }
@@ -68,12 +71,13 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
+        config_check_decorator config_check(config);
         auto params = stop::ResidualNorm<ValueType>::build();
-        if (auto& obj = config.get("reduction_factor")) {
+        if (auto& obj = config_check.get("reduction_factor")) {
             params.with_reduction_factor(
-                gko::config::get_value<remove_complex<ValueType>>(obj));
+                get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = config.get("baseline")) {
+        if (auto& obj = config_check.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
         return params;
@@ -100,12 +104,13 @@ public:
           const gko::config::registry& context,
           const gko::config::type_descriptor& td_for_child)
     {
+        config_check_decorator config_check(config);
         auto params = stop::ImplicitResidualNorm<ValueType>::build();
-        if (auto& obj = config.get("reduction_factor")) {
+        if (auto& obj = config_check.get("reduction_factor")) {
             params.with_reduction_factor(
-                gko::config::get_value<remove_complex<ValueType>>(obj));
+                get_value<remove_complex<ValueType>>(obj));
         }
-        if (auto& obj = config.get("baseline")) {
+        if (auto& obj = config_check.get("baseline")) {
             params.with_baseline(get_mode(obj.get_string()));
         }
         return params;
