@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,6 +19,8 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "core/multigrid/fixed_coarsening_kernels.hpp"
+// #include "core/multigrid/pgm_kernels.hpp"
 
 
 namespace gko {
@@ -29,17 +31,50 @@ namespace {
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
+GKO_REGISTER_OPERATION(build_row_ptrs, fixed_coarsening::build_row_ptrs);
+GKO_REGISTER_OPERATION(renumber, fixed_coarsening::renumber);
+GKO_REGISTER_OPERATION(map_to_coarse, fixed_coarsening::map_to_coarse);
 
 
 }  // anonymous namespace
 }  // namespace fixed_coarsening
 
 
+// selected_rows is the sorted index will be used
+// selected_cols_map gives the new col index from the old col index (invalid)
+template <typename ValueType, typename IndexType>
+std::shared_ptr<matrix::Csr<ValueType, IndexType>> build_coarse_matrix(
+    const matrix::Csr<ValueType, IndexType>* origin, const size_type num_cols,
+    const array<IndexType>& selected_rows,
+    const array<IndexType>& selected_cols_map)
+{
+    auto exec = origin->get_executor();
+    auto coarse = matrix::Csr<ValueType, IndexType>::create(
+        exec, dim<2>{selected_rows.get_size(), num_cols});
+    exec->run(fixed_coarsening::make_build_row_ptrs(
+        origin->get_size()[0], origin->get_const_row_ptrs(),
+        origin->get_const_col_idxs(), selected_rows, selected_cols_map,
+        coarse->get_size()[0], coarse->get_row_ptrs()));
+    auto coarse_nnz = static_cast<size_type>(
+        exec->copy_val_to_host(coarse->get_row_ptrs() + coarse->get_size()[0]));
+    array<ValueType> new_value_array{exec, coarse_nnz};
+    array<IndexType> new_col_idx_array{exec, coarse_nnz};
+    exec->run(fixed_coarsening::make_map_to_coarse(
+        origin->get_size()[0], origin->get_const_row_ptrs(),
+        origin->get_const_col_idxs(), origin->get_const_values(), selected_rows,
+        selected_cols_map, coarse->get_size()[0], coarse->get_const_row_ptrs(),
+        new_col_idx_array.get_data(), new_value_array.get_data()));
+    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{coarse};
+    mtx_builder.get_value_array() = std::move(new_value_array);
+    mtx_builder.get_col_idx_array() = std::move(new_col_idx_array);
+    return coarse;
+}
+
+
 template <typename ValueType, typename IndexType>
 void FixedCoarsening<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
-    using sparsity_type = matrix::SparsityCsr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
@@ -75,14 +110,17 @@ void FixedCoarsening<ValueType, IndexType>::generate()
 
     auto prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 
+    // generate the map from coarse_row. map[i] -> new index
+    // it may gives some additional work for local case, but it gives the
+    // neccessary information for distributed case
+    array<IndexType> coarse_map(exec, fine_dim);
+    coarse_map.fill(invalid_index<IndexType>());
+    exec->run(
+        fixed_coarsening::make_renumber(parameters_.coarse_rows, &coarse_map));
     // TODO: Can be done with submatrix index_set.
-    auto coarse_matrix =
-        share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+    auto coarse_matrix = build_coarse_matrix(
+        fixed_coarsening_op, coarse_dim, parameters_.coarse_rows, coarse_map);
     coarse_matrix->set_strategy(fixed_coarsening_op->get_strategy());
-    auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    tmp->set_strategy(fixed_coarsening_op->get_strategy());
-    fixed_coarsening_op->apply(prolong_op, tmp);
-    restrict_op->apply(tmp, coarse_matrix);
 
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }

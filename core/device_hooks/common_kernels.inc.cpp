@@ -51,6 +51,7 @@
 #include "core/matrix/scaled_permutation_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
+#include "core/multigrid/fixed_coarsening_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
@@ -1120,6 +1121,18 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm
+
+
+namespace fixed_coarsening {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING_RENUMBER_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING_BUILD_ROW_PTRS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FIXED_COARSENING_MAP_TO_COARSE_KERNEL);
+
+
+}  // namespace fixed_coarsening
 
 
 namespace pgm {
