@@ -252,6 +252,11 @@ void FixedCoarsening<ValueType, IndexType>::generate()
             coarse_map.fill(invalid_index<IndexType>());
             exec->run(fixed_coarsening::make_renumber(parameters_.coarse_rows,
                                                       &coarse_map));
+            std::cout << "coarse_map: " << comm.rank() << ":";
+            for (int i = 0; i < local_fine_dim; i++) {
+                std::cout << " " << coarse_map.get_data()[i];
+            }
+            std::cout << std::endl;
             // TODO: Can be done with submatrix index_set.
             auto local_coarse_matrix =
                 build_coarse_matrix(local_op.get(), local_coarse_dim,
@@ -274,12 +279,40 @@ void FixedCoarsening<ValueType, IndexType>::generate()
             auto non_local_cols_map =
                 communicate_non_local_map(matrix, coarse_partition, coarse_map);
 
+            std::cout << "non_local_cols_map: " << comm.rank() << ":";
+            for (int i = 0; i < non_local_cols_map.get_size(); i++) {
+                std::cout << " " << non_local_cols_map.get_data()[i];
+            }
+            std::cout << std::endl;
+            // // remove 0
+            gko::size_type nnz = 0;
+
+            for (int i = 0; i < non_local_cols_map.get_size(); i++) {
+                nnz += non_local_cols_map.get_const_data()[i] !=
+                       invalid_index<global_index_type>();
+            }
+            array<global_index_type> new_map(exec, nnz);
+            int index = 0;
+            for (int i = 0; i < non_local_cols_map.get_size(); i++) {
+                const auto val = non_local_cols_map.get_const_data()[i];
+                if (val != invalid_index<global_index_type>()) {
+                    new_map.get_data()[index] = val;
+                    index++;
+                }
+            }
+            std::cout << "without -1: " << comm.rank() << ":";
+            for (int i = 0; i < new_map.get_size(); i++) {
+                std::cout << " " << new_map.get_data()[i];
+            }
+            std::cout << std::endl;
+            // fflush(stdout);
+            // exit(1);
             // create a coarse index map based on the connection given by
             // the non-local aggregates
             auto coarse_imap =
                 experimental::distributed::index_map<IndexType,
                                                      global_index_type>(
-                    exec, coarse_partition, comm.rank(), non_local_cols_map);
+                    exec, coarse_partition, comm.rank(), new_map);
 
             // a mapping from the fine non-local indices to the coarse
             // non-local indices.
@@ -290,6 +323,11 @@ void FixedCoarsening<ValueType, IndexType>::generate()
                 non_local_cols_map,
                 experimental::distributed::index_space::non_local);
 
+            std::cout << "non_local_map: " << comm.rank() << ":";
+            for (int i = 0; i < non_local_map.get_size(); i++) {
+                std::cout << " " << non_local_map.get_data()[i];
+            }
+            std::cout << std::endl;
             // build csr from row and col map
             // unlike non-distributed version, generate_coarse uses
             // different row and col maps.
@@ -297,8 +335,18 @@ void FixedCoarsening<ValueType, IndexType>::generate()
                 as<const csr_type>(matrix->get_non_local_matrix());
             auto result_non_local_csr = build_coarse_matrix(
                 non_local_csr.get(), coarse_imap.get_non_local_size(),
-                parameters_.coarse_rows, coarse_map);
-
+                parameters_.coarse_rows, non_local_map);
+            std::cout << "result_non_local_csr: " << comm.rank() << ": nnz-"
+                      << result_non_local_csr->get_num_stored_elements()
+                      << ": ";
+            for (int i = 0; i < result_non_local_csr->get_num_stored_elements();
+                 i++) {
+                std::cout << " ("
+                          << result_non_local_csr->get_const_col_idxs()[i]
+                          << ", " << result_non_local_csr->get_const_values()[i]
+                          << ")";
+            }
+            std::cout << std::endl;
 
             // setup the generated linop.
             auto coarse = share(

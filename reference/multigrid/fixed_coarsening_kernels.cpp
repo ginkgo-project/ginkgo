@@ -49,18 +49,27 @@ void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
                     const array<IndexType>& coarse_cols_map,
                     size_type new_nrows, IndexType* new_row_ptrs)
 {
+    std::cout << "build_row_ptrs (";
     for (size_type row = 0; row < new_nrows; row++) {
         auto original_row = coarse_rows.get_const_data()[row];
         GKO_ASSERT(original_row < original_nrows);
         new_row_ptrs[row] = 0;
+        std::cout << "row-" << row << "[";
         for (auto i = original_row_ptrs[original_row];
              i < original_row_ptrs[original_row + 1]; i++) {
             if (coarse_cols_map.get_const_data()[original_col_idxs[i]] !=
                 invalid_index<IndexType>()) {
                 new_row_ptrs[row]++;
             }
+            std::cout << original_col_idxs[i] << "+"
+                      << coarse_cols_map.get_const_data()[original_col_idxs[i]]
+                      << ",";
         }
+        std::cout << "] ";
+        std::cout << row << "->" << new_row_ptrs[row];
     }
+    std::cout << ") ";
+
     components::prefix_sum_nonnegative(exec, new_row_ptrs, new_nrows + 1);
 }
 
