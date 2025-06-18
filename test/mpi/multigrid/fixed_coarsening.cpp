@@ -107,9 +107,7 @@ TYPED_TEST(FixedCoarsening, CanGenerateFromDistributedMatrix)
     I<I<value_type>> res_non_local[] = {
         {{-3, 0, 2, 0}}, {{-3, -1, 0}, {0, 0, -5}}, {{2, -1, 0}, {0, 0, -5}}};
 
-    std::cout << "generate" << std::endl;
     auto result = fixed_coarsening_factory->generate(this->dist_mat);
-    std::cout << "finish" << std::endl;
 
     auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
     GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
@@ -117,4 +115,16 @@ TYPED_TEST(FixedCoarsening, CanGenerateFromDistributedMatrix)
     GKO_ASSERT_MTX_NEAR(
         gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
         res_non_local[rank], r<value_type>::value);
+    auto restrict_op = gko::as<dist_mtx_type>(result->get_restrict_op());
+    I<I<value_type>> restrict_local[] = {
+        {{1, 0}}, {{1, 0}, {0, 1}}, {{0, 1, 0, 0}, {0, 0, 0, 1}}};
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(restrict_op->get_local_matrix()),
+        restrict_local[rank], r<value_type>::value);
+    auto prolong_op = gko::as<dist_mtx_type>(result->get_prolong_op());
+    I<I<value_type>> prolong_local[] = {
+        {{1}, {0}}, {{1, 0}, {0, 1}}, {{0, 0}, {1, 0}, {0, 0}, {0, 1}}};
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(prolong_op->get_local_matrix()),
+        prolong_local[rank], r<value_type>::value);
 }
