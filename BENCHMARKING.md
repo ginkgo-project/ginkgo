@@ -74,11 +74,6 @@ facilitate downloading and extracting matrices from the suitesparse collection.
 When running the benchmarks with the helper script `run_all_benchmarks.sh` (or
 calling `make benchmark`), the `ssget` tool is required.
 
-It's important to note that when running on the Ginkgo cluster, the SuiteSparse
-matrix collection is available in `storage/data/suitesparse/`, so installing 
-`ssget` can be skipped. The script `run_all_benchmarks.sh` mentioned above still
-requires it though.
-
 To install `ssget`, access the repository and copy the file `ssget` into a
 directory present in your `PATH` variable as per the tool's `README.md`
 instructions. The tool can be installed either in a global system path or a
