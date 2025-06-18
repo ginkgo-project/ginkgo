@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include "core/multigrid/fixed_coarsening_kernels.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -88,10 +90,87 @@ protected:
     std::shared_ptr<Csr> system_mtx;
     std::shared_ptr<Csr> d_system_mtx;
 
-    gko::size_type n;
+    // gko::size_type n;
     gko::size_type m;
     gko::size_type c_dim;
 };
+
+
+TEST_F(FixedCoarsening, Renumber)
+{
+    initialize_data(50);
+    gko::array<index_type> coarse_map(this->ref, m);
+    gko::array<index_type> d_coarse_map(this->exec, coarse_map);
+
+    gko::kernels::reference::fixed_coarsening::renumber(this->ref, coarse_rows,
+                                                        &coarse_map);
+    gko::kernels::GKO_DEVICE_NAMESPACE::fixed_coarsening::renumber(
+        this->exec, d_coarse_rows, &d_coarse_map);
+
+    GKO_ASSERT_ARRAY_EQ(d_coarse_map, coarse_map);
+}
+
+
+TEST_F(FixedCoarsening, BuildRowPtrs)
+{
+    gko::size_type coarse_size = 50;
+    initialize_data(coarse_size);
+    gko::array<index_type> coarse_map(this->ref, m);
+    gko::kernels::reference::fixed_coarsening::renumber(this->ref, coarse_rows,
+                                                        &coarse_map);
+    gko::array<index_type> d_coarse_map(this->exec, coarse_map);
+    gko::array<index_type> coarse_row_ptrs(this->ref, coarse_size + 1);
+    gko::array<index_type> d_coarse_row_ptrs(this->exec, coarse_size + 1);
+
+
+    gko::kernels::reference::fixed_coarsening::build_row_ptrs(
+        this->ref, system_mtx->get_size()[0], system_mtx->get_const_row_ptrs(),
+        system_mtx->get_const_col_idxs(), coarse_rows, coarse_map, coarse_size,
+        coarse_row_ptrs.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::fixed_coarsening::build_row_ptrs(
+        this->exec, d_system_mtx->get_size()[0],
+        d_system_mtx->get_const_row_ptrs(), d_system_mtx->get_const_col_idxs(),
+        d_coarse_rows, d_coarse_map, coarse_size, d_coarse_row_ptrs.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(d_coarse_row_ptrs, coarse_row_ptrs);
+}
+
+
+TEST_F(FixedCoarsening, MapToCoarse)
+{
+    gko::size_type coarse_size = 50;
+    initialize_data(coarse_size);
+    gko::array<index_type> coarse_map(this->ref, m);
+    gko::kernels::reference::fixed_coarsening::renumber(this->ref, coarse_rows,
+                                                        &coarse_map);
+    gko::array<index_type> d_coarse_map(this->exec, coarse_map);
+    gko::array<index_type> coarse_row_ptrs(this->ref, coarse_size + 1);
+    gko::kernels::reference::fixed_coarsening::build_row_ptrs(
+        this->ref, system_mtx->get_size()[0], system_mtx->get_const_row_ptrs(),
+        system_mtx->get_const_col_idxs(), coarse_rows, coarse_map, coarse_size,
+        coarse_row_ptrs.get_data());
+    gko::array<index_type> d_coarse_row_ptrs(this->exec, coarse_row_ptrs);
+    auto coarse_nnz = coarse_row_ptrs.get_const_data()[coarse_size];
+    gko::array<index_type> coarse_col_idxs(this->ref, coarse_nnz);
+    gko::array<index_type> d_coarse_col_idxs(this->exec, coarse_nnz);
+    gko::array<value_type> coarse_values(this->ref, coarse_nnz);
+    gko::array<value_type> d_coarse_values(this->exec, coarse_nnz);
+
+    gko::kernels::reference::fixed_coarsening::map_to_coarse(
+        this->ref, system_mtx->get_size()[0], system_mtx->get_const_row_ptrs(),
+        system_mtx->get_const_col_idxs(), system_mtx->get_const_values(),
+        coarse_rows, coarse_map, coarse_size, coarse_row_ptrs.get_const_data(),
+        coarse_col_idxs.get_data(), coarse_values.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::fixed_coarsening::map_to_coarse(
+        this->exec, d_system_mtx->get_size()[0],
+        d_system_mtx->get_const_row_ptrs(), d_system_mtx->get_const_col_idxs(),
+        d_system_mtx->get_const_values(), d_coarse_rows, d_coarse_map,
+        coarse_size, d_coarse_row_ptrs.get_const_data(),
+        d_coarse_col_idxs.get_data(), d_coarse_values.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(d_coarse_col_idxs, coarse_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(d_coarse_values, coarse_values);
+}
 
 
 TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRef)

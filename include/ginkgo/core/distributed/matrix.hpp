@@ -39,8 +39,11 @@ namespace multigrid {
 template <typename ValueType, typename IndexType>
 class Pgm;
 
+template <typename ValueType, typename IndexType>
+class FixedCoarsening;
 
-}
+
+}  // namespace multigrid
 
 
 namespace detail {
@@ -276,6 +279,7 @@ class Matrix
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+    friend class multigrid::FixedCoarsening<ValueType, LocalIndexType>;
 
 
 public:
@@ -426,6 +430,11 @@ public:
     {
         return non_local_mtx_;
     }
+
+    index_map<local_index_type, global_index_type> get_index_map() const
+    {
+        return imap_;
+    };
 
     /**
      * Copy constructs a Matrix.

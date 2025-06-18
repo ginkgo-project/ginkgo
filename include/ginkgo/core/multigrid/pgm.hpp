@@ -49,7 +49,8 @@ namespace multigrid {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
-            public EnableMultigridLevel<ValueType> {
+            public EnableMultigridLevel<ValueType>,
+            public UpdateMatrixValue {
     friend class EnableLinOp<Pgm>;
     friend class EnablePolymorphicObject<Pgm, LinOp>;
 
@@ -149,6 +150,8 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -171,7 +174,8 @@ protected:
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
-          agg_(factory->get_executor(), system_matrix_->get_size()[0])
+          agg_(factory->get_executor(), system_matrix_->get_size()[0]),
+          non_local_map_(factory->get_executor())
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
@@ -221,6 +225,7 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
+    array<IndexType> non_local_map_;
 };
 
 

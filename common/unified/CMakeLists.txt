@@ -19,6 +19,7 @@ set(UNIFIED_SOURCES
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
+    multigrid/fixed_coarsening_kernels.cpp
     multigrid/pgm_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp

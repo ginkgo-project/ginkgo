@@ -177,20 +177,25 @@ void map_to_local(
     if (is == experimental::distributed::index_space::local) {
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-
-            local_ids.get_data()[i] = map_local(gid);
+            local_ids.get_data()[i] = gid == invalid_index<GlobalIndexType>()
+                                          ? invalid_index<LocalIndexType>()
+                                          : map_local(gid);
         }
     }
     if (is == experimental::distributed::index_space::non_local) {
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            local_ids.get_data()[i] = map_non_local(gid);
+            local_ids.get_data()[i] = gid == invalid_index<GlobalIndexType>()
+                                          ? invalid_index<LocalIndexType>()
+                                          : map_non_local(gid);
         }
     }
     if (is == experimental::distributed::index_space::combined) {
         for (size_type i = 0; i < global_ids.get_size(); ++i) {
             auto gid = global_ids.get_const_data()[i];
-            local_ids.get_data()[i] = map_combined(gid);
+            local_ids.get_data()[i] = gid == invalid_index<GlobalIndexType>()
+                                          ? invalid_index<LocalIndexType>()
+                                          : map_combined(gid);
         }
     }
 }
