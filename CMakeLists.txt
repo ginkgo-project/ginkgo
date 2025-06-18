@@ -161,8 +161,8 @@ option(
     ${PAPI_SDE_FOUND}
 )
 option(
-    GINKGO_DPCPP_SINGLE_MODE
-    "Do not compile double kernels for the DPC++ backend."
+    GINKGO_SYCL_SINGLE_MODE
+    "Do not compile double kernels for the DPC++(SYCL) backend."
     OFF
 )
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
@@ -192,8 +192,20 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
+option(
+    GINKGO_SPLIT_LIBRARY_NUM
+    "Split the library into small pieces to reduce the number of symbol/reference in one library. Note. We strongly suggest to use CMAKE to use Ginkgo when the number is larger than 1 because it will introduce several library"
+    1
+)
+if(${GINKGO_SPLIT_LIBRARY_NUM} LESS 1)
+    message(FATAL_ERROR "GINKGO_SPLIT_LIBRARY_NUM must be larger than 0")
+endif()
 gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
 gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
+gko_rename_cache(
+    GINKGO_DPCPP_SINGLE_MODE GINKGO_SYCL_SINGLE_MODE BOOL
+    "Do not compile double kernels for the DPC++(SYCL) backend."
+)
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
