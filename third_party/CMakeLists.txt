@@ -3,10 +3,6 @@ if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)
 endif()
 
-if(NOT GINKGO_DEVEL_TOOLS)
-    add_subdirectory(dummy-hook)
-endif()
-
 if(GINKGO_BUILD_BENCHMARKS)
     if(NOT gflags_FOUND)
         add_subdirectory(gflags)
