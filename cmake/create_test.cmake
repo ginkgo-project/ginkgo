@@ -187,6 +187,7 @@ function(ginkgo_add_test test_name test_target_name)
                 "Disabling test: ${test_target_name}. Only ${MPIEXEC_MAX_NUMPROCS} "
                 "MPI processes available but ${add_test_MPI_SIZE} processes required."
             )
+            return()
         endif()
     else()
         add_test(
