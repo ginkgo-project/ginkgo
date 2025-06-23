@@ -106,7 +106,11 @@ function(ginkgo_add_resource_requirement test_name)
         "${gko_test_single_args}"
         ""
     )
-    if(add_rr_NO_RESOURCES OR (NOT add_rr_RESOURCE_TYPE))
+    if(
+        add_rr_NO_RESOURCES
+        OR (NOT add_rr_RESOURCE_TYPE)
+        OR (add_rr_RESOURCE_TYPE STREQUAL "none")
+    )
         return()
     endif()
 
@@ -366,7 +370,7 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         return()
     endif()
     if(exec STREQUAL reference)
-        set(test_resource_type "")
+        set(test_resource_type none)
     elseif(exec STREQUAL omp)
         set(test_resource_type cpu)
     elseif(exec STREQUAL cuda)
