@@ -929,7 +929,7 @@ struct elimination_forest_algorithm_state {
                 }
                 return rep;
             };
-            auto set_join = [](const auto i, const auto j) {
+            auto set_join = [&](const auto i, const auto j) {
                 assert(set_find(i) == i);
                 assert(set_find(j) == j);
             };
