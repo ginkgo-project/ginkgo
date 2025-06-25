@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,6 +49,8 @@ hand side vector changes when increasing the dimension.
 #include <vector>
 
 #include <ginkgo/ginkgo.hpp>
+
+#include "core/factorization/par_ilut_kernels.hpp"
 
 // Stencil values. Ordering can be seen in the main function
 // Can also be changed by passing additional parameter when executing
@@ -231,11 +233,12 @@ void solve_system(const std::string& executor_string,
     // If the two do not match, Ginkgo will automatically create a copy of the
     // data on `exec` (however, it will not copy the data back once it is done
     // - here this is not important since we are not modifying the matrix).
-    auto matrix = mtx::create(
+    std::cout << "Matrix size: " << dp_2 << ", " << dp_2 << std::endl;
+    auto matrix = gko::share(mtx::create(
         exec, gko::dim<2>(dp_2),
         val_array::view(app_exec, (3 * dp - 2) * (3 * dp - 2), values),
         idx_array::view(app_exec, (3 * dp - 2) * (3 * dp - 2), col_idxs),
-        idx_array::view(app_exec, dp_2 + 1, row_ptrs));
+        idx_array::view(app_exec, dp_2 + 1, row_ptrs)));
 
     // RHS: similar to matrix
     auto b = vec::create(exec, gko::dim<2>(dp_2, 1),
@@ -252,18 +255,100 @@ void solve_system(const std::string& executor_string,
     auto x = vec::create(app_exec, gko::dim<2>(dp_2, 1),
                          val_array::view(app_exec, dp_2, u), 1);
 
+    auto lu_factorization_factory = gko::share(
+        gko::experimental::factorization::Lu<ValueType, IndexType>::build()
+            .with_symbolic_algorithm(
+                gko::experimental::factorization::symbolic_type::general)
+            .on(exec));
+    auto lu_factorization =
+        gko::share(lu_factorization_factory->generate(matrix));
+
+    // Get L matrix so we can find a threshold from its values as a test
+    exec->synchronize();
+    auto lu_factorization_split = lu_factorization->unpack();
+    auto l_factor = lu_factorization_split->get_lower_factor();
+
+    gko::remove_complex<ValueType> res{};
+    gko::array<ValueType> tmp(exec->get_master());
+    gko::array<gko::remove_complex<ValueType>> tmp2(exec->get_master());
+    gko::array<ValueType> dtmp(exec);
+    gko::array<gko::remove_complex<ValueType>> dtmp2(exec);
+    IndexType orig_l_nnz =
+        (matrix->get_num_stored_elements() - dp_2) * 0.5 + dp_2;
+    IndexType rank = l_factor->get_num_stored_elements() - 1.2 * orig_l_nnz;
+    std::cout << "rank = " << rank << std::endl;
+    // Run 10 times to check if result is the same
+    for (int i = 0; i < 10; i++) {
+        tmp.resize_and_reset(1);
+        tmp2.resize_and_reset(1);
+        dtmp.resize_and_reset(1);
+        dtmp2.resize_and_reset(1);
+        if (executor_string == "reference") {
+            std::shared_ptr<gko::ReferenceExecutor> ex(
+                dynamic_cast<gko::ReferenceExecutor*>(exec->get_master().get()),
+                gko::null_deleter<gko::ReferenceExecutor>{});
+            gko::kernels::reference::par_ilut_factorization::threshold_select(
+                ex, l_factor.get(), rank, tmp, tmp2, res);
+        } else if (executor_string == "omp") {
+            std::shared_ptr<gko::OmpExecutor> ex(
+                dynamic_cast<gko::OmpExecutor*>(exec->get_master().get()),
+                gko::null_deleter<gko::OmpExecutor>{});
+            gko::kernels::omp::par_ilut_factorization::threshold_select(
+                ex, l_factor.get(), rank, tmp, tmp2, res);
+        } else if (executor_string == "cuda") {
+            std::shared_ptr<gko::CudaExecutor> ex(
+                dynamic_cast<gko::CudaExecutor*>(exec.get()),
+                gko::null_deleter<gko::CudaExecutor>{});
+            gko::kernels::cuda::par_ilut_factorization::threshold_select(
+                ex, l_factor.get(), rank, dtmp, dtmp2, res);
+            ex->synchronize();
+        } else if (executor_string == "hip") {
+            std::shared_ptr<gko::HipExecutor> ex(
+                dynamic_cast<gko::HipExecutor*>(exec.get()),
+                gko::null_deleter<gko::HipExecutor>{});
+            gko::kernels::hip::par_ilut_factorization::threshold_select(
+                ex, l_factor.get(), rank, dtmp, dtmp2, res);
+            ex->synchronize();
+        } else if (executor_string == "dpcpp") {
+            std::shared_ptr<gko::DpcppExecutor> ex(
+                dynamic_cast<gko::DpcppExecutor*>(exec.get()),
+                gko::null_deleter<gko::DpcppExecutor>{});
+            gko::kernels::dpcpp::par_ilut_factorization::threshold_select(
+                ex, l_factor.get(), rank, dtmp, dtmp2, res);
+            ex->synchronize();
+        }
+        std::cout << "Threshold selected for L factor: " << res << std::endl;
+    }
+
+    // Use the LU factorization as the "preconditioner" (confirm 1 iteration)
+    auto lu_pre_factory = gko::share(
+        gko::experimental::solver::Direct<ValueType, IndexType>::build()
+            .with_factorization(lu_factorization_factory)
+            .with_num_rhs(static_cast<gko::size_type>(1))
+            .on(exec));
+    auto lu_precond = gko::share(lu_pre_factory->generate(lu_factorization));
+
     // Generate solver
     auto solver_gen =
         cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(dp_2),
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_reduction_factor(reduction_factor))
-            .with_preconditioner(bj::build())
+            //            .with_preconditioner(bj::build())
+            .with_generated_preconditioner(lu_precond)
             .on(exec);
-    auto solver = solver_gen->generate(gko::give(matrix));
+    auto solver = solver_gen->generate(matrix);
+    std::shared_ptr<gko::log::Convergence<ValueType>> convergence_logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(convergence_logger);
 
     // Solve system
     solver->apply(b, x);
+
+    std::cout << "Number of iterations "
+              << convergence_logger->get_num_iterations() << std::endl;
+    std::cout << "Convergence status " << std::boolalpha
+              << convergence_logger->has_converged() << std::endl;
 }
 
 
