@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -99,25 +99,27 @@ Isai<IsaiType, ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = preconditioner::Isai<IsaiType, ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    // isai_type is allowed to select the instantiation.
+    config::config_check_decorator config_check(config, {"isai_type"});
+    if (auto& obj = config_check.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("sparsity_power")) {
-        params.with_sparsity_power(gko::config::get_value<int>(obj));
+    if (auto& obj = config_check.get("sparsity_power")) {
+        params.with_sparsity_power(config::get_value<int>(obj));
     }
-    if (auto& obj = config.get("excess_limit")) {
-        params.with_excess_limit(gko::config::get_value<size_type>(obj));
+    if (auto& obj = config_check.get("excess_limit")) {
+        params.with_excess_limit(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("excess_solver_factory")) {
+    if (auto& obj = config_check.get("excess_solver_factory")) {
         params.with_excess_solver_factory(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-    if (auto& obj = config.get("excess_solver_reduction")) {
+    if (auto& obj = config_check.get("excess_solver_reduction")) {
         params.with_excess_solver_reduction(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+            config::get_value<remove_complex<ValueType>>(obj));
     }
+
     return params;
 }
 

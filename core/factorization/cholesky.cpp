@@ -20,7 +20,6 @@
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
-
 namespace gko {
 namespace experimental {
 namespace factorization {
@@ -43,14 +42,14 @@ Cholesky<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Cholesky<ValueType, IndexType>::build();
-    if (auto& obj = config.get("symbolic_factorization")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("symbolic_factorization")) {
         params.with_symbolic_factorization(
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-
     return params;
 }
 

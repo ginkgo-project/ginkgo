@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/gcr.hpp"
+
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -14,12 +16,11 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
-
 namespace gko {
 namespace solver {
 namespace gcr {
@@ -41,10 +42,12 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gcr<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
-    if (auto& obj = config.get("krylov_dim")) {
-        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("krylov_dim")) {
+        params.with_krylov_dim(config::get_value<size_type>(obj));
     }
+
     return params;
 }
 

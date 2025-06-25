@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/direct.hpp"
 
 #include <memory>
+#include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
@@ -25,14 +26,16 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = Direct<ValueType, IndexType>::build();
-    if (auto& obj = config.get("num_rhs")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("factorization")) {
+    if (auto& obj = config_check.get("factorization")) {
         params.with_factorization(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
+
     return params;
 }
 

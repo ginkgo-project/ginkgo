@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -151,26 +151,26 @@ ParIct<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = factorization::ParIct<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("iterations")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("iterations")) {
         params.with_iterations(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("approximate_select")) {
+    if (auto& obj = config_check.get("approximate_select")) {
         params.with_approximate_select(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("deterministic_sample")) {
+    if (auto& obj = config_check.get("deterministic_sample")) {
         params.with_deterministic_sample(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("fill_in_limit")) {
+    if (auto& obj = config_check.get("fill_in_limit")) {
         params.with_fill_in_limit(config::get_value<double>(obj));
     }
-    if (auto& obj = config.get("l_strategy")) {
+    if (auto& obj = config_check.get("l_strategy")) {
         params.with_l_strategy(config::get_strategy<matrix_type>(obj));
     }
-    if (auto& obj = config.get("lt_strategy")) {
+    if (auto& obj = config_check.get("lt_strategy")) {
         params.with_lt_strategy(config::get_strategy<matrix_type>(obj));
     }
     return params;
