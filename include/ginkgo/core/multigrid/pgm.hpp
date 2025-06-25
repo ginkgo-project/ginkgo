@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -194,12 +194,28 @@ protected:
         std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
 #if GINKGO_BUILD_MPI
+    /**
+     * Communicates the non-local aggregates (as global indices)
+     *
+     * @tparam GlobalIndexType  Global index type
+     *
+     * @param matrix  a distributed matrix
+     * @param coarse_partition  the coarse partition to compute the new global
+     *                          indices
+     * @param local_agg  the local aggregate indices
+     *
+     * @return  the aggregates for non-local columns. The aggregated indices are
+     *          in the new global indexing for the coarse matrix
+     */
     template <typename GlobalIndexType>
-    void communicate(std::shared_ptr<const experimental::distributed::Matrix<
-                         ValueType, IndexType, GlobalIndexType>>
-                         matrix,
-                     const array<IndexType>& local_agg,
-                     array<IndexType>& non_local_agg);
+    array<GlobalIndexType> communicate_non_local_agg(
+        std::shared_ptr<const experimental::distributed::Matrix<
+            ValueType, IndexType, GlobalIndexType>>
+            matrix,
+        std::shared_ptr<
+            experimental::distributed::Partition<IndexType, GlobalIndexType>>
+            coarse_partition,
+        const array<IndexType>& local_agg);
 #endif
 
 private:

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,7 @@ using truncated = gko::truncated<T, NumComponents, ComponentId>;
 
 TEST(TruncatedDouble, SplitsDoubleToHalves)
 {
-    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+    double x = create_from_bits<double>("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
 
     auto p1 = static_cast<truncated<double, 2, 0>>(x);
@@ -40,7 +40,7 @@ TEST(TruncatedDouble, SplitsDoubleToHalves)
 
 TEST(TruncatedDouble, AssemblesDoubleFromHalves)
 {
-    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+    double x = create_from_bits<double>("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
     auto p1 = static_cast<truncated<double, 2, 0>>(x);
     auto p2 = static_cast<truncated<double, 2, 1>>(x);
@@ -59,7 +59,7 @@ TEST(TruncatedDouble, AssemblesDoubleFromHalves)
 
 TEST(TruncatedDouble, SplitsDoubleToQuarters)
 {
-    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+    double x = create_from_bits<double>("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
 
     auto p1 = static_cast<truncated<double, 4, 0>>(x);
@@ -76,7 +76,7 @@ TEST(TruncatedDouble, SplitsDoubleToQuarters)
 
 TEST(TruncatedDouble, AssemblesDoubleFromQuarters)
 {
-    double x = create_from_bits("1" "11110100100" "1111" "1000110110110101"
+    double x = create_from_bits<double>("1" "11110100100" "1111" "1000110110110101"
                                 "1100101011010101" "1001011101110111");
     auto p1 = static_cast<truncated<double, 4, 0>>(x);
     auto p2 = static_cast<truncated<double, 4, 1>>(x);
@@ -105,7 +105,7 @@ TEST(TruncatedDouble, AssemblesDoubleFromQuarters)
 
 TEST(TruncatedFloat, SplitsFloatToHalves)
 {
-    float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
+    float x = create_from_bits<float>("1" "11110100" "1001111" "1000110110110101");
 
     auto p1 = static_cast<truncated<float, 2, 0>>(x);
     auto p2 = static_cast<truncated<float, 2, 1>>(x);
@@ -117,7 +117,7 @@ TEST(TruncatedFloat, SplitsFloatToHalves)
 
 TEST(TruncatedFloat, AssemblesFloatFromHalves)
 {
-    float x = create_from_bits("1" "11110100" "1001111" "1000110110110101");
+    float x = create_from_bits<float>("1" "11110100" "1001111" "1000110110110101");
     auto p1 = static_cast<truncated<float, 2, 0>>(x);
     auto p2 = static_cast<truncated<float, 2, 1>>(x);
 

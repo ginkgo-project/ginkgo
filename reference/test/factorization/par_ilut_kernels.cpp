@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -385,14 +385,14 @@ TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneUpper)
 
 TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdLower)
 {
-    this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
+    this->test_filter(this->mtx1_complex, 1.02, this->mtx1_expect_complex_thrm,
                       true);
 }
 
 
 TYPED_TEST(ParIlut, KernelComplexThresholdFilterSomeAtThresholdUpper)
 {
-    this->test_filter(this->mtx1_complex, 1.01, this->mtx1_expect_complex_thrm,
+    this->test_filter(this->mtx1_complex, 1.02, this->mtx1_expect_complex_thrm,
                       false);
 }
 

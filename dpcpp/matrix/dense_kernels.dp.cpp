@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -223,7 +223,8 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b->get_stride() != 0 && c->get_stride() != 0) {
-            if (a->get_size()[1] > 0) {
+            if (a->get_size()[1] > 0 && a->get_const_values() &&
+                b->get_const_values() && c->get_const_values()) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
                     transpose::nontrans, c->get_size()[0], c->get_size()[1],
@@ -253,7 +254,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b->get_stride() != 0 && c->get_stride() != 0) {
-            if (a->get_size()[1] > 0) {
+            if (a->get_size()[1] > 0 && a->get_const_values() &&
+                b->get_const_values() && c->get_const_values()) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
                     transpose::nontrans, c->get_size()[0], c->get_size()[1],

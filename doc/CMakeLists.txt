@@ -11,14 +11,14 @@ endif()
 
 set(default_predefined_macros "GKO_HAVE_PAPI_SDE=1 GINKGO_BUILD_MPI=1")
 
-if (GINKGO_DOC_GENERATE_PDF)
+if(GINKGO_DOC_GENERATE_PDF)
     find_package(LATEX COMPONENTS PDFLATEX REQUIRED)
 endif()
 
 ginkgo_doc_gen(usr Doxyfile-usr.in OFF USR_DOC.md)
-if (GINKGO_DOC_GENERATE_DEV)
+if(GINKGO_DOC_GENERATE_DEV)
     ginkgo_doc_gen(dev Doxyfile-dev.in OFF DEV_DOC.md)
 endif()
-if (GINKGO_DOC_GENERATE_PDF)
+if(GINKGO_DOC_GENERATE_PDF)
     ginkgo_doc_gen(pdf Doxyfile-pdf.in ON PDF_DOC.md)
 endif()

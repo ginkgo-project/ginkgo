@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/batch_utilities.hpp"
@@ -109,6 +110,20 @@ public:
 
 
 template <typename NonzeroIterator>
+auto get_next_value_optional(NonzeroIterator& it, const NonzeroIterator& end,
+                             size_type next_row, size_type next_col)
+    -> std::optional<typename std::decay<decltype(it->value)>::type>
+{
+    if (it != end && it->row == next_row && it->column == next_col) {
+        return std::optional((it++)->value);
+    } else {
+        // monostate
+        return {};
+    }
+}
+
+
+template <typename NonzeroIterator>
 auto get_next_value(NonzeroIterator& it, const NonzeroIterator& end,
                     size_type next_row, size_type next_col) ->
     typename std::decay<decltype(it->value)>::type
@@ -190,11 +205,12 @@ void print_sparsity_pattern(Ostream& os, const MatrixData1& first,
         os << (row % 10);
         for (size_type col = 0; col < first.size[1]; col++) {
             const auto has_first =
-                get_next_value(first_it, end(first.nonzeros), row, col) !=
-                zero<typename MatrixData1::value_type>();
+                get_next_value_optional(first_it, end(first.nonzeros), row, col)
+                    .has_value();
             const auto has_second =
-                get_next_value(second_it, end(second.nonzeros), row, col) !=
-                zero<typename MatrixData2::value_type>();
+                get_next_value_optional(second_it, end(second.nonzeros), row,
+                                        col)
+                    .has_value();
             if (has_first) {
                 if (has_second) {
                     os << '+';
@@ -657,10 +673,10 @@ template <typename T, typename U>
 
 
 template <>
-::testing::AssertionResult values_near<gko::half, gko::half>(
+::testing::AssertionResult values_near<gko::float16, gko::float16>(
     const std::string& first_expression, const std::string& second_expression,
-    const std::string& tolerance_expression, gko::half val1, gko::half val2,
-    double abs_error)
+    const std::string& tolerance_expression, gko::float16 val1,
+    gko::float16 val2, double abs_error)
 {
     using T = float32;
     const double diff = abs(T{val1} - T{val2});
@@ -677,10 +693,11 @@ template <>
 
 
 template <>
-::testing::AssertionResult values_near<std::complex<half>, std::complex<half>>(
+::testing::AssertionResult
+values_near<std::complex<float16>, std::complex<float16>>(
     const std::string& first_expression, const std::string& second_expression,
-    const std::string& tolerance_expression, std::complex<half> val1,
-    std::complex<half> val2, double abs_error)
+    const std::string& tolerance_expression, std::complex<float16> val1,
+    std::complex<float16> val2, double abs_error)
 {
     using T = std::complex<float32>;
     const double diff = abs(T{val1} - T{val2});
@@ -981,6 +998,38 @@ template <typename ValueType>
 {
     return array_equal(first_expression, second_expression, first,
                        array<ValueType>{first.get_executor(), second});
+}
+
+
+template <typename ValueType>
+::testing::AssertionResult segmented_array_equal(
+    const std::string& first_expression, const std::string& second_expression,
+    const segmented_array<ValueType>& first,
+    const segmented_array<ValueType>& second)
+{
+    auto view_first =
+        gko::make_const_array_view(first.get_executor(), first.get_size(),
+                                   first.get_const_flat_data())
+            .copy_to_array();
+    auto view_second =
+        gko::make_const_array_view(second.get_executor(), second.get_size(),
+                                   second.get_const_flat_data())
+            .copy_to_array();
+
+    auto offsets_result =
+        array_equal(first_expression, second_expression, first.get_offsets(),
+                    second.get_offsets());
+    if (offsets_result == ::testing::AssertionFailure()) {
+        return offsets_result << "Offsets of the segmented arrays mismatch";
+    }
+
+    auto buffer_result = array_equal(first_expression, second_expression,
+                                     view_first, view_second);
+    if (buffer_result == ::testing::AssertionFailure()) {
+        return buffer_result << "Buffers of the segmented arrays mismatch";
+    }
+
+    return ::testing::AssertionSuccess();
 }
 
 
@@ -1365,6 +1414,28 @@ T* plain_ptr(T* ptr)
         EXPECT_PRED_FORMAT3(::gko::test::assertions::array_near, _array1, \
                             _array2, _tol);                               \
     }
+
+
+/**
+ * Checks if two `gko::segmented_array`s are equal.
+ *
+ * Both the flat array buffer and the offsets of both arrays are tested
+ * for equality.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::segmented_array_equal().
+ *
+ * @param _array1 first segmented array
+ * @param _array2 second segmented array
+ */
+#define GKO_ASSERT_SEGMENTED_ARRAY_EQ(_array1, _array2)                      \
+    {                                                                        \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::segmented_array_equal,  \
+                            _array1, _array2);                               \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 /**

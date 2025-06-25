@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 
 #include "core/base/utils.hpp"
 #include "dpcpp/base/dpct.hpp"
+#include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/searching.dp.hpp"
 
@@ -94,7 +95,7 @@ __dpct_inline__ detail::merge_result<ValueType> group_merge_step(ValueType a,
     auto a_val = group.shfl(a, a_idx);
     auto b_val = group.shfl(b, b_idx);
     auto cmp = a_val < b_val;
-    auto a_advance = popcnt(group.ballot(cmp));
+    auto a_advance = popcnt(group::ballot(group, cmp));
     auto b_advance = int(group.size()) - a_advance;
 
     return {a_val, b_val, a_idx, b_idx, a_advance, b_advance};
@@ -211,7 +212,7 @@ __dpct_inline__ void group_match(const ValueType* __restrict__ a,
         a, a_size, b, b_size, group,
         [&](IndexType a_idx, ValueType a_val, IndexType b_idx, ValueType b_val,
             IndexType, bool valid) {
-            auto matchmask = group.ballot(a_val == b_val && valid);
+            auto matchmask = group::ballot(group, a_val == b_val && valid);
             match_fn(a_val, a_idx, b_idx, matchmask, a_val == b_val && valid);
             return a_idx < a_size && b_idx < b_size;
         });

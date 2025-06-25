@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,6 +20,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
@@ -38,10 +39,22 @@ namespace preconditioner {
  * generalizes the Block Jacobi preconditioner, incorporating options for
  * different local subdomain solvers and overlaps between the subdomains.
  *
+ * A L1 smoother variant is also available, which updates the local matrix with
+ * the sums of the non-local matrix row sums.
+ *
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
  *
- * @note Currently overlap and coarse grid correction are not supported (TODO).
+ * A Two-level variant is also available. To enable two-level preconditioning,
+ * you need to specify a LinOpFactory that can generate a
+ * multigrid::MultigridLevel and a solver for the coarse level solution.
+ * Currently, only additive coarse correction is supported with an optional
+ * weighting between the local and the coarse solutions, for cases when the
+ * coarse solutions might tend to overcorrect.
+ * - See Smith, Bjorstad, Gropp, Domain Decomposition, 1996, Cambridge
+ * University Press.
+ *
+ * @note Currently overlap is not supported (TODO).
  *
  * @tparam ValueType  precision of matrix element
  * @tparam LocalIndexType  local integer type of the matrix
@@ -89,6 +102,45 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_local_solver, nullptr);
+
+        /**
+         * Enable l1 smoother.
+         *
+         * This creates a diagonal matrix from the row-wise absolute
+         * sum of the non-local matrix entries. The diagonal matrix
+         * is then added to the system matrix when generating the
+         * local solver.
+         *
+         * Note: The L1 smoother will not be used for the coarse level matrix
+         * generation, and the original system matrix will still be used.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(l1_smoother, false);
+
+        /**
+         * Coarse weighting.
+         *
+         * By default the coarse and the local solutions are added together
+         * (when the coarse weight is < 0 or > 1). A weighting can instead be
+         * provided if the coarse solution tends to over-correct.
+         */
+        ValueType GKO_FACTORY_PARAMETER_SCALAR(coarse_weight, ValueType{-1.0});
+
+        /**
+         * Operator factory list to generate the triplet (prolong_op, coarse_op,
+         * restrict_op), `A_c = R * A * P`
+         *
+         * Note: The linop factory must generate the triplet (R, A_c, P). For
+         * example, any coarse level generator from multigrid::MultigridLevel
+         * can be used.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            coarse_level);
+
+        /**
+         * Coarse solver factory.
+         */
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            coarse_solver);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -134,7 +186,8 @@ protected:
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Schwarz>(factory->get_executor(),
                                gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          system_matrix_{system_matrix}
     {
         this->generate(system_matrix);
     }
@@ -161,8 +214,18 @@ private:
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     std::shared_ptr<const LinOp> local_solver_;
+    std::shared_ptr<const LinOp> system_matrix_;
 
+    // Used for advanced apply
     detail::VectorCache<ValueType> cache_;
+    // Used in apply for two-level method
+    detail::VectorCache<ValueType> csol_cache_;
+    detail::VectorCache<ValueType> crhs_cache_;
+
+    std::shared_ptr<const LinOp> coarse_level_;
+    std::shared_ptr<const LinOp> coarse_solver_;
+    std::shared_ptr<const matrix::Dense<ValueType>> coarse_weight_;
+    std::shared_ptr<const matrix::Dense<ValueType>> local_weight_;
 };
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -18,7 +19,18 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
+struct CheckOperationLogger : gko::log::Logger {
+    void on_operation_launched(const gko::Executor*,
+                               const gko::Operation* op) const override
+    {
+        std::string s = op->get_name();
+        if (s.find("sparselib") != std::string::npos) {
+            contains_sparselib = true;
+        }
+    }
+
+    mutable bool contains_sparselib = false;
+};
 
 
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
@@ -147,7 +159,7 @@ protected:
         mtx_csr_small2 = std::move(tmp_csr2);
     }
 
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const Dense> identity;
     std::shared_ptr<const Dense> lower_triangular;
@@ -226,6 +238,40 @@ TYPED_TEST(Ilu, SetUStrategy)
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
     ASSERT_EQ(ilu->get_u_factor()->get_strategy()->get_name(),
               u_strategy->get_name());
+}
+
+
+TYPED_TEST(Ilu, UsesSyncFreeAlgorithm)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto logger = std::make_shared<CheckOperationLogger>();
+    this->ref->add_logger(logger);
+
+    auto fact =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->ref)
+            ->generate(this->mtx_small);
+
+    ASSERT_FALSE(logger->contains_sparselib);
+}
+
+
+TYPED_TEST(Ilu, UsesSparseLibAlgorithm)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto logger = std::make_shared<CheckOperationLogger>();
+    this->ref->add_logger(logger);
+
+    auto fact =
+        gko::factorization::Ilu<value_type, index_type>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::sparselib)
+            .on(this->ref)
+            ->generate(this->mtx_small);
+
+    ASSERT_TRUE(logger->contains_sparselib);
 }
 
 
@@ -565,6 +611,3 @@ TYPED_TEST(Ilu, GenerateForReverseCsrSmall)
     GKO_ASSERT_MTX_NEAR(l_factor, this->small_l_expected, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_factor, this->small_u_expected, r<value_type>::value);
 }
-
-
-}  // namespace

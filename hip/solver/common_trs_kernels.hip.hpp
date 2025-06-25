@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,11 +45,12 @@ struct SolveStruct : gko::solver::SolveStruct {
     csrsv2Info_t solve_info;
     hipsparseSolvePolicy_t policy;
     hipsparseMatDescr_t factor_descr;
-    int factor_work_size;
+    array<char> factor_work_array;
     void* factor_work_vec;
-    SolveStruct(bool is_upper, bool unit_diag)
+    SolveStruct(std::shared_ptr<const Executor> exec, bool is_upper,
+                bool unit_diag)
+        : factor_work_array{exec}
     {
-        factor_work_vec = nullptr;
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateMatDescr(&factor_descr));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(
             hipsparseSetMatIndexBase(factor_descr, HIPSPARSE_INDEX_BASE_ZERO));
@@ -78,10 +79,6 @@ struct SolveStruct : gko::solver::SolveStruct {
         hipsparseDestroyMatDescr(factor_descr);
         if (solve_info) {
             hipsparseDestroyCsrsv2Info(solve_info);
-        }
-        if (factor_work_vec != nullptr) {
-            hipFree(factor_work_vec);
-            factor_work_vec = nullptr;
         }
     }
 };
@@ -114,8 +111,8 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
-        solve_struct =
-            std::make_shared<solver::hip::SolveStruct>(is_upper, unit_diag);
+        solve_struct = std::make_shared<solver::hip::SolveStruct>(
+            exec, is_upper, unit_diag);
         if (auto hip_solve_struct =
                 std::dynamic_pointer_cast<solver::hip::SolveStruct>(
                     solve_struct)) {
@@ -123,20 +120,22 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
 
             {
                 sparselib::pointer_mode_guard pm_guard(handle);
+                int factor_work_size{};
                 sparselib::csrsv2_buffer_size(
                     handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                     matrix->get_size()[0], matrix->get_num_stored_elements(),
                     hip_solve_struct->factor_descr, matrix->get_const_values(),
                     matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                    hip_solve_struct->solve_info,
-                    &hip_solve_struct->factor_work_size);
+                    hip_solve_struct->solve_info, &factor_work_size);
 
                 // allocate workspace
-                if (hip_solve_struct->factor_work_vec != nullptr) {
-                    exec->free(hip_solve_struct->factor_work_vec);
+                if (hip_solve_struct->factor_work_array.get_size() <
+                    factor_work_size) {
+                    hip_solve_struct->factor_work_array.resize_and_reset(
+                        factor_work_size);
+                    hip_solve_struct->factor_work_vec =
+                        hip_solve_struct->factor_work_array.get_data();
                 }
-                hip_solve_struct->factor_work_vec =
-                    exec->alloc<void*>(hip_solve_struct->factor_work_size);
 
                 sparselib::csrsv2_analysis(
                     handle, SPARSELIB_OPERATION_NON_TRANSPOSE,

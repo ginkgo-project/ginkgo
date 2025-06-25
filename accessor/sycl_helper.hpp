@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,21 +16,12 @@
 #include "utils.hpp"
 
 
-// namespace sycl {
-// inline namespace _V1 {
-
-
-// class half;
-
-
-// }
-// }  // namespace sycl
-
-
 namespace gko {
 
 
 class half;
+
+class bfloat16;
 
 
 template <typename V>
@@ -49,6 +40,11 @@ struct sycl_type {
 template <>
 struct sycl_type<gko::half> {
     using type = sycl::half;
+};
+
+template <>
+struct sycl_type<gko::bfloat16> {
+    using type = sycl::ext::oneapi::bfloat16;
 };
 
 // Unpack cv and reference / pointer qualifiers
@@ -77,17 +73,21 @@ struct sycl_type<T&&> {
     using type = typename sycl_type<T>::type&&;
 };
 
-
 // Transform the underlying type of std::complex
 template <typename T>
 struct sycl_type<std::complex<T>> {
     using type = std::complex<typename sycl_type<T>::type>;
 };
 
-
+// handle the complex in gko for half and bfloat16
 template <>
 struct sycl_type<std::complex<gko::half>> {
     using type = gko::complex<typename sycl_type<gko::half>::type>;
+};
+
+template <>
+struct sycl_type<std::complex<gko::bfloat16>> {
+    using type = gko::complex<typename sycl_type<gko::bfloat16>::type>;
 };
 
 

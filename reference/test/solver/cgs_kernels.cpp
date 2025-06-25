@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/solver_progress.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -284,6 +285,12 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>) {
+        // choose the close initial guess for bfloat16. the original initial
+        // guess give quite different gamma after 2 iteration due to accumulated
+        // rounding error.
+        x = gko::initialize<Mtx>({-3.2, -0.8, 3.2}, this->exec);
+    }
 
     solver->apply(b, x);
 
@@ -293,16 +300,23 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
 
 TYPED_TEST(Cgs, SolvesDenseSystemMixed)
 {
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using value_type = typename TestFixture::value_type;
+    using next_type = gko::next_precision<value_type>;
+    using Mtx = gko::matrix::Dense<next_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>) {
+        // choose the close initial guess for bfloat16. the original initial
+        // guess give quite different gamma after 2 iteration due to accumulated
+        // rounding error.
+        x = gko::initialize<Mtx>({-3.2, -0.8, 3.2}, this->exec);
+    }
 
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}),
-                        (r_mixed<value_type, TypeParam>()));
+                        (r_mixed<next_type, value_type>()));
 }
 
 
@@ -360,6 +374,13 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystem)
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>) {
+        // choose the close initial guess for bfloat16. the original initial
+        // guess give quite different gamma after 2 iteration due to accumulated
+        // rounding error.
+        x = gko::initialize<Mtx>(
+            {I<T>{-3.2, 0.8}, I<T>{-0.8, 1.6}, I<T>{3.2, -0.8}}, this->exec);
+    }
 
     solver->apply(b, x);
 
@@ -464,11 +485,23 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>) {
+        // choose the close initial guess for bfloat16. the original initial
+        // guess give quite different gamma after 2 iteration due to accumulated
+        // rounding error.
+        x = gko::initialize<Mtx>(
+            {I<T>{-3.2, 0.8}, I<T>{-0.8, 1.6}, I<T>{3.2, -0.8}}, this->exec);
+    }
 
     solver->apply(alpha, b, beta, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}),
-                        half_tol);
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>) {
+        GKO_ASSERT_MTX_NEAR(x, l({{-4.8, 1.2}, {-1.2, 2.4}, {4.8, -1.2}}),
+                            half_tol);
+    } else {
+        GKO_ASSERT_MTX_NEAR(x, l({{-8.5, 1.0}, {-3.0, 2.0}, {6.0, -5.0}}),
+                            half_tol);
+    }
 }
 
 

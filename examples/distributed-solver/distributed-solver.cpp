@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
+    using pgm = gko::multigrid::Pgm<ValueType, LocalIndexType>;
 
     // Create an MPI communicator get the rank of the calling process.
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
@@ -63,10 +64,13 @@ int main(int argc, char* argv[])
     // - The executor, defaults to reference.
     // - The number of grid points, defaults to 100.
     // - The number of iterations, defaults to 1000.
+    // - One-level, two-level preconditioner, and no preconditioner, defaults to
+    // one-level.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
                       << " [executor] [num_grid_points] [num_iterations] "
+                         "[schwarz_prec_type] "
                       << std::endl;
         }
         std::exit(-1);
@@ -79,6 +83,7 @@ int main(int argc, char* argv[])
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
+    std::string schw_type = argc >= 5 ? argv[4] : "one-level";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -188,20 +193,73 @@ int main(int argc, char* argv[])
 
     // Setup the local block diagonal solver factory.
     auto local_solver = gko::share(bj::build().on(exec));
+    // Setup the coarse solver. If it is more accurate, then the outer
+    // iterations will reduce, but the cost of the coarse solve increases.
+    // The coarse solver can in turn have another Schwarz preconditioner if
+    // needed.
+    auto coarse_solver = gko::share(
+        solver::build()
+            .with_preconditioner(
+                schwarz::build().with_local_solver(local_solver).on(exec))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_reduction_factor(1e-7)
+                    .on(exec))
+            .on(exec));
+
+    auto pgm_fac = gko::share(pgm::build().on(exec));
 
     // Setup the stopping criterion and logger
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
-    auto Ainv = solver::build()
-                    .with_preconditioner(
-                        schwarz::build().with_local_solver(local_solver))
-                    .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(num_iters),
-                        gko::stop::ResidualNorm<ValueType>::build()
-                            .with_reduction_factor(reduction_factor))
-                    .on(exec)
-                    ->generate(A);
+    std::shared_ptr<gko::LinOp> Ainv{};
+    // The benefit of the two-level Schwarz preconditioner is generally
+    // observable (in runtime and in number of iterations) usually for larger
+    // problem sizes and for larger number of ranks.
+    if (schw_type == "two-level") {
+        Ainv =
+            solver::build()
+                .with_preconditioner(schwarz::build()
+                                         .with_local_solver(local_solver)
+                                         .with_coarse_level(pgm_fac)
+                                         .with_coarse_solver(coarse_solver)
+                                         .on(exec))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec))
+                .on(exec)
+                ->generate(A);
+    } else if (schw_type == "one-level") {
+        Ainv =
+            solver::build()
+                .with_preconditioner(
+                    schwarz::build().with_local_solver(local_solver).on(exec))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec))
+                .on(exec)
+                ->generate(A);
+    } else {
+        schw_type = "no-precond";
+        Ainv =
+            solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
+                        exec),
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec))
+                .on(exec)
+                ->generate(A);
+    }
     // Add logger to the generated solver to log the iteration count and
     // residual norm
     Ainv->add_logger(logger);
@@ -219,8 +277,8 @@ int main(int argc, char* argv[])
     ValueType t_end = gko::experimental::mpi::get_walltime();
 
     // Get the residual.
-    auto res_norm = gko::clone(exec->get_master(),
-                               gko::as<vec>(logger->get_residual_norm()));
+    auto res_norm = gko::as<vec>(logger->get_residual_norm());
+    auto host_res = gko::make_temporary_clone(exec->get_master(), res_norm);
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
@@ -228,7 +286,8 @@ int main(int argc, char* argv[])
         // clang-format off
         std::cout << "\nNum rows in matrix: " << num_rows
                   << "\nNum ranks: " << comm.size()
-                  << "\nFinal Res norm: " << res_norm->at(0, 0)
+                  << "\nPrecond type: " << schw_type
+                  << "\nFinal Res norm: " << *host_res->get_const_values()
                   << "\nIteration count: " << logger->get_num_iterations()
                   << "\nInit time: " << t_init_end - t_init
                   << "\nRead time: " << t_read_setup_end - t_init

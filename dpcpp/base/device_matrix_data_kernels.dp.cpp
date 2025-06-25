@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,16 +103,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    device_matrix_data<ValueType, IndexType>& data)
+                    size_type num_elems, IndexType* row_idxs,
+                    IndexType* col_idxs, ValueType* vals)
 {
     auto policy = onedpl_policy(exec);
-    auto input_it = oneapi::dpl::make_zip_iterator(
-        data.get_row_idxs(), data.get_col_idxs(), data.get_values());
-    std::sort(policy, input_it, input_it + data.get_num_stored_elements(),
-              [](auto a, auto b) {
-                  return std::tie(std::get<0>(a), std::get<1>(a)) <
-                         std::tie(std::get<0>(b), std::get<1>(b));
-              });
+    auto input_it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
+    std::sort(policy, input_it, input_it + num_elems, [](auto a, auto b) {
+        return std::tie(std::get<0>(a), std::get<1>(a)) <
+               std::tie(std::get<0>(b), std::get<1>(b));
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

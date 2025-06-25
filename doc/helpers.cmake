@@ -54,6 +54,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         )
     list(APPEND doxygen_base_input
         ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
+        ${PROJECT_BINARY_DIR}/include/ginkgo/ginkgo.hpp
         ${DIR_BASE}/include
         ${MAINPAGE}
         )
@@ -79,6 +80,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         )
     list(APPEND doxygen_depend
         ${PROJECT_BINARY_DIR}/include/ginkgo/config.hpp
+        ${PROJECT_BINARY_DIR}/include/ginkgo/ginkgo.hpp
         )
     if(GINKGO_DOC_GENERATE_EXAMPLES)
         list(APPEND doxygen_depend

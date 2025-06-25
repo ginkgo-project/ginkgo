@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -486,11 +486,19 @@ void abstract_merge_path_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = static_cast<type>(alpha[0]);
     const type beta_val = static_cast<type>(beta[0]);
-    merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
-        [&alpha_val](const type& x) { return alpha_val * x; },
-        [&beta_val](const type& x) { return beta_val * x; }, item_ct1,
-        shared_row_ptrs);
+    if (is_zero(beta_val)) {
+        merge_path_spmv<items_per_thread>(
+            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            [&alpha_val](const type& x) { return alpha_val * x; },
+            [](const type& x) { return zero<type>(); }, item_ct1,
+            shared_row_ptrs);
+    } else {
+        merge_path_spmv<items_per_thread>(
+            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            [&alpha_val](const type& x) { return alpha_val * x; },
+            [&beta_val](const type& x) { return beta_val * x; }, item_ct1,
+            shared_row_ptrs);
+    }
 }
 
 template <int items_per_thread, typename matrix_accessor,
@@ -701,12 +709,21 @@ void abstract_classical_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = static_cast<type>(alpha[0]);
     const type beta_val = static_cast<type>(beta[0]);
-    device_classical_spmv<subgroup_size>(
-        num_rows, val, col_idxs, row_ptrs, b, c,
-        [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
-        },
-        item_ct1);
+    if (is_zero(beta_val)) {
+        device_classical_spmv<subgroup_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val](const type& x, const type& y) {
+                return alpha_val * x;
+            },
+            item_ct1);
+    } else {
+        device_classical_spmv<subgroup_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val, &beta_val](const type& x, const type& y) {
+                return alpha_val * x + beta_val * y;
+            },
+            item_ct1);
+    }
 }
 
 template <size_type subgroup_size, typename matrix_accessor,
@@ -1364,7 +1381,7 @@ bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
     // not support 16 bit atomic
-    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+    if constexpr (sizeof(remove_complex<OutputValueType>) == sizeof(int16)) {
         return false;
     } else {
         if (beta) {
@@ -1419,7 +1436,9 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                 matrix::Dense<ValueType>* c)
 {
     constexpr bool try_sparselib =
-        !is_complex<ValueType>() && !std::is_same<ValueType, gko::half>::value;
+        !is_complex<ValueType>() &&
+        !std::is_same<ValueType, gko::float16>::value &&
+        !std::is_same<ValueType, gko::bfloat16>::value;
     if constexpr (try_sparselib) {
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -325,6 +325,27 @@ private:
                    : invalid_index<IndexType>();
     }
 };
+
+
+template <typename IndexType>
+struct lookup_data {
+    explicit lookup_data(std::shared_ptr<const Executor> exec,
+                         size_type size = 0)
+        : storage_offsets{exec, size + 1}, row_descs{exec, size}, storage{exec}
+    {}
+
+    gko::array<IndexType> storage_offsets;
+    gko::array<gko::int64> row_descs;
+    gko::array<gko::int32> storage;
+};
+
+
+template <typename ValueType, typename IndexType>
+lookup_data<IndexType> build_lookup(
+    const Csr<ValueType, IndexType>* mtx,
+    sparsity_type allowed_sparsity = sparsity_type::full |
+                                     sparsity_type::bitmap |
+                                     sparsity_type::hash);
 
 
 }  // namespace csr

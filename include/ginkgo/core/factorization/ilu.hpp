@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,10 +98,10 @@ public:
 
         /**
          * Select the implementation which is supposed to be used for
-         * the incomplete factorization. This only matters for the CUDA and HIP
-         * executor where the choice is between the Ginkgo (syncfree) and the
-         * cuSPARSE/hipSPARSE/reference (sparselib) implementation. Default is
-         * sparselib.
+         * the incomplete factorization. This only matters for the
+         * CUDA/HIP/REFERENCE executor where the choice is between the Ginkgo
+         * (syncfree) and the cuSPARSE/hipSPARSE/reference (sparselib)
+         * implementation. Default is sparselib.
          */
         incomplete_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, incomplete_algorithm::sparselib);

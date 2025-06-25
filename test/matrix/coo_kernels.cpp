@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -346,4 +346,28 @@ TEST_F(Coo, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto dabs_mtx = dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<value_type>::value);
+}
+
+
+TEST_F(Coo, TransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto dtrans = gko::as<Mtx>(dmtx->transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dtrans, trans);
+    GKO_ASSERT_MTX_NEAR(dtrans, trans, 0.0);
+}
+
+
+TEST_F(Coo, ConjugateTransposeIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto trans = gko::as<Mtx>(mtx->conj_transpose());
+    auto dtrans = gko::as<Mtx>(dmtx->conj_transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dtrans, trans);
+    GKO_ASSERT_MTX_NEAR(dtrans, trans, 0.0);
 }

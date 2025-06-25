@@ -26,19 +26,20 @@
 # ``NUMA_FOUND``
 #   If false, do not try to use the NUMA library.
 
-
 find_path(NUMA_ROOT_DIR NAMES include/numa.h)
 
 find_path(NUMA_INCLUDE_DIR NAMES numa.h HINTS ${NUMA_ROOT_DIR})
 mark_as_advanced(NUMA_INCLUDE_DIR)
-
 
 if(NOT NUMA_LIBRARY)
     find_library(NUMA_LIBRARY NAMES numa HINTS ${NUMA_ROOT_DIR})
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(NUMA REQUIRED_VARS NUMA_LIBRARY NUMA_INCLUDE_DIR)
+find_package_handle_standard_args(
+    NUMA
+    REQUIRED_VARS NUMA_LIBRARY NUMA_INCLUDE_DIR
+)
 
 if(NUMA_FOUND)
     set(NUMA_LIBRARIES ${NUMA_LIBRARY})
@@ -48,12 +49,17 @@ if(NUMA_FOUND)
 
     if(NOT TARGET NUMA::NUMA)
         add_library(NUMA::NUMA UNKNOWN IMPORTED)
-        set_target_properties(NUMA::NUMA PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${NUMA_INCLUDE_DIRS}")
+        set_target_properties(
+            NUMA::NUMA
+            PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${NUMA_INCLUDE_DIRS}"
+        )
         if(EXISTS "${NUMA_LIBRARIES}")
-            set_target_properties(NUMA::NUMA PROPERTIES
-                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                IMPORTED_LOCATION "${NUMA_LIBRARIES}")
+            set_target_properties(
+                NUMA::NUMA
+                PROPERTIES
+                    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                    IMPORTED_LOCATION "${NUMA_LIBRARIES}"
+            )
         endif()
     endif()
 endif()

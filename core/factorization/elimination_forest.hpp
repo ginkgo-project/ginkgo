@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,7 @@ struct elimination_forest {
 
 
 template <typename ValueType, typename IndexType>
-void compute_elim_forest(
+void compute_elimination_forest(
     const matrix::Csr<ValueType, IndexType>* mtx,
     std::unique_ptr<elimination_forest<IndexType>>& forest);
 

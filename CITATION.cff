@@ -28,8 +28,8 @@ authors:
 - family-names: "Tsai"
   given-names: "Yu-Hsiang"
 title: "Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing"
-version: 1.8.0
-date-released: 2024-06-13
+version: 1.9.0
+date-released: 2024-12-09
 url: "https://github.com/ginkgo-project/ginkgo"
 license: BSD-3-Clause
 preferred-citation:

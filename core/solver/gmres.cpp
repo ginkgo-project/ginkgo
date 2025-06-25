@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -196,17 +197,18 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
     auto hessenberg_reduce = hessenberg_iter->create_submatrix(
         span{0, restart_iter + 1}, span{0, num_rhs});
     int message_size = static_cast<int>((restart_iter + 1) * num_rhs);
+    auto sum_op = gko::experimental::mpi::sum<ValueType>();
     if (experimental::mpi::requires_host_buffer(exec, comm)) {
         ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
         host_reduction_buffer.init(exec->get_master(),
                                    hessenberg_reduce->get_size());
         host_reduction_buffer->copy_from(hessenberg_reduce);
         comm.all_reduce(exec->get_master(), host_reduction_buffer->get_values(),
-                        message_size, MPI_SUM);
+                        message_size, sum_op.get_op());
         hessenberg_reduce->copy_from(host_reduction_buffer.get());
     } else {
         comm.all_reduce(exec, hessenberg_reduce->get_values(), message_size,
-                        MPI_SUM);
+                        sum_op.get_op());
     }
 }
 #endif
@@ -246,7 +248,7 @@ template <typename ValueType, typename VectorType>
 void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
                         VectorType* krylov_bases, VectorType* next_krylov,
                         matrix::Dense<ValueType>* hessenberg_aux,
-                        matrix::Dense<ValueType>* one_op,
+                        const matrix::Dense<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
                         size_type num_rhs, size_type local_num_rows)
 {

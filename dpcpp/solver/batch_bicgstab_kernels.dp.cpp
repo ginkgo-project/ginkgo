@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,12 +53,12 @@ public:
         const gko::batch::multi_vector::uniform_batch<sycl_value_type>& x) const
     {
         using real_type = gko::remove_complex<sycl_value_type>;
-        if constexpr (std::is_same_v<ValueType, half>) {
+        if constexpr (std::is_same_v<ValueType, float16>) {
+            static_assert(std::is_same_v<typename StopType::real_type,
+                                         device_type<float16>>,
+                          "fail!");
             static_assert(
-                std::is_same_v<typename StopType::real_type, sycl::half>,
-                "fail!");
-            static_assert(
-                !std::is_same_v<typename StopType::real_type, gko::half>,
+                !std::is_same_v<typename StopType::real_type, float16>,
                 "fail!");
         }
         const size_type num_batch_items = mat.num_batch_items;

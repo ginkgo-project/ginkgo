@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -305,6 +305,11 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
+    // TODO: bfloat16 will lead to exp2(0) for some cases, it might be solved
+    // when we have subnormal support.
+    if (std::is_same<real_type, gko::bfloat16>::value) {
+        GTEST_SKIP() << "Skip due to bfloat16 mode";
+    }
     auto mc64_factory =
         gko::experimental::reorder::Mc64<value_type, index_type>::build()
             .with_strategy(
@@ -386,6 +391,8 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingLargeExampleProduct)
     // to be invalid_index after the kernel such that scale_permute gives
     // segmentation fault.
     SKIP_IF_HALF(value_type);
+    // rounding error for bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     // read input data
     std::ifstream mtx_stream{gko::matrices::location_nontrivial_mc64_example};
     auto mtx = gko::share(gko::read<matrix_type>(mtx_stream, this->ref));

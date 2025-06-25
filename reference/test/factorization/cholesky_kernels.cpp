@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -42,9 +43,7 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           tmp{ref},
           ref_row_nnz{ref},
-          storage_offsets{ref},
-          storage{ref},
-          row_descs{ref}
+          lookup{ref}
     {}
 
     std::unique_ptr<matrix_type> combined_factor(
@@ -93,7 +92,8 @@ protected:
                                        l_factor_ref->get_num_stored_elements());
         combined = matrix_type::create(ref, combined_ref->get_size(),
                                        combined_ref->get_num_stored_elements());
-        gko::factorization::compute_elim_forest(l_factor_ref.get(), forest);
+        gko::factorization::compute_elimination_forest(l_factor_ref.get(),
+                                                       forest);
         // init sparsity lookup
         ref->copy(num_rows + 1, l_factor_ref->get_const_row_ptrs(),
                   l_factor->get_row_ptrs());
@@ -103,8 +103,6 @@ protected:
                   combined->get_row_ptrs());
         ref->copy(combined_ref->get_num_stored_elements(),
                   combined_ref->get_const_col_idxs(), combined->get_col_idxs());
-        storage_offsets.resize_and_reset(num_rows + 1);
-        row_descs.resize_and_reset(num_rows);
 
         ref_row_nnz.resize_and_reset(num_rows);
         const auto ref_row_ptrs = l_factor_ref->get_const_row_ptrs();
@@ -113,17 +111,7 @@ protected:
                 ref_row_ptrs[row + 1] - ref_row_ptrs[row];
         }
 
-        const auto allowed = gko::matrix::csr::sparsity_type::bitmap |
-                             gko::matrix::csr::sparsity_type::full |
-                             gko::matrix::csr::sparsity_type::hash;
-        gko::kernels::reference::csr::build_lookup_offsets(
-            ref, combined->get_const_row_ptrs(), combined->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_data());
-        storage.resize_and_reset(storage_offsets.get_const_data()[num_rows]);
-        gko::kernels::reference::csr::build_lookup(
-            ref, combined->get_const_row_ptrs(), combined->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data());
+        lookup = gko::matrix::csr::build_lookup(combined.get());
     }
 
     void assert_equal_forests(elimination_forest& lhs, elimination_forest& rhs,
@@ -154,6 +142,9 @@ protected:
             fn();
         }
         {
+            // structurally this is the example from Liu 1990
+            // "The Role of Elimination Trees in Sparse Factorization"
+            // https://doi.org/10.1137/0611010.
             SCOPED_TRACE("example");
             this->setup(
                 {{4, 0, 1, 0, 0, 0, 0, 1, 0, 0},
@@ -234,9 +225,7 @@ protected:
     gko::size_type num_rows;
     gko::array<index_type> tmp;
     gko::array<index_type> ref_row_nnz;
-    gko::array<index_type> storage_offsets;
-    gko::array<gko::int32> storage;
-    gko::array<gko::int64> row_descs;
+    gko::matrix::csr::lookup_data<index_type> lookup;
     std::shared_ptr<matrix_type> mtx;
     std::unique_ptr<elimination_forest> forest;
     std::shared_ptr<matrix_type> l_factor;
@@ -249,16 +238,43 @@ TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(Cholesky, KernelSymbolicCount)
+TYPED_TEST(Cholesky, KernelComputeSkeletonTreeIsEquivalentToOriginalMatrix)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
+            auto skeleton = matrix_type::create(
+                this->ref, this->mtx->get_size(), this->mtx->get_size()[0]);
+            std::unique_ptr<elimination_forest> skeleton_forest;
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
+            gko::kernels::reference::elimination_forest::compute_skeleton_tree(
+                this->ref, this->mtx->get_const_row_ptrs(),
+                this->mtx->get_const_col_idxs(), this->mtx->get_size()[0],
+                skeleton->get_row_ptrs(), skeleton->get_col_idxs());
+
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
+            gko::factorization::compute_elimination_forest(skeleton.get(),
+                                                           skeleton_forest);
+
+            this->assert_equal_forests(*skeleton_forest, *this->forest);
+        },
+        true);
+}
+
+
+TYPED_TEST(Cholesky, KernelSymbolicCount)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using elimination_forest = typename TestFixture::elimination_forest;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices(
+        [this] {
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
             gko::array<index_type> row_nnz{this->ref, this->num_rows};
 
             gko::kernels::reference::cholesky::symbolic_count(
@@ -274,13 +290,12 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
 TYPED_TEST(Cholesky, KernelSymbolicFactorize)
 {
     using matrix_type = typename TestFixture::matrix_type;
-    using sparsity_matrix_type = typename TestFixture::sparsity_matrix_type;
     using elimination_forest = typename TestFixture::elimination_forest;
     using index_type = typename TestFixture::index_type;
     this->forall_matrices(
         [this] {
-            gko::factorization::compute_elim_forest(this->mtx.get(),
-                                                    this->forest);
+            gko::factorization::compute_elimination_forest(this->mtx.get(),
+                                                           this->forest);
             gko::kernels::reference::cholesky::symbolic_count(
                 this->ref, this->mtx.get(), *this->forest,
                 this->l_factor->get_row_ptrs(), this->tmp);
@@ -345,7 +360,7 @@ TYPED_TEST(Cholesky, KernelForestFromFactorPlusPostprocessing)
             elimination_forest forest{this->ref,
                                       static_cast<index_type>(this->num_rows)};
 
-            gko::kernels::reference::cholesky::forest_from_factor(
+            gko::kernels::reference::elimination_forest::from_factor(
                 this->ref, combined_factor.get(), forest);
 
             this->assert_equal_forests(forest, *forest_ref);
@@ -369,9 +384,9 @@ TYPED_TEST(Cholesky, KernelInitializeWorks)
 
             gko::kernels::reference::cholesky::initialize(
                 this->ref, this->mtx.get(),
-                this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), this->combined.get());
 
             GKO_ASSERT_MTX_NEAR(this->mtx, this->combined, 0.0);
@@ -413,15 +428,15 @@ TYPED_TEST(Cholesky, KernelFactorizeWorks)
             gko::array<int> tmp{this->ref};
             gko::kernels::reference::cholesky::initialize(
                 this->ref, this->mtx.get(),
-                this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), this->combined.get());
 
             gko::kernels::reference::cholesky::factorize(
-                this->ref, this->storage_offsets.get_const_data(),
-                this->row_descs.get_const_data(),
-                this->storage.get_const_data(), diag_idxs.get_data(),
+                this->ref, this->lookup.storage_offsets.get_const_data(),
+                this->lookup.row_descs.get_const_data(),
+                this->lookup.storage.get_const_data(), diag_idxs.get_data(),
                 transpose_idxs.get_data(), *this->forest, this->combined.get(),
                 true, tmp);
 

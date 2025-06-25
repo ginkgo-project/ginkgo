@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -471,6 +471,21 @@ protected:
             [&] {
                 return matrix::Dense<ValueType>::create(
                     workspace_.get_executor(), dim<2>{1, size});
+            },
+            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+    }
+
+    template <typename ValueType>
+    const matrix::Dense<ValueType>* create_workspace_fixed_scalar(
+        int vector_id, size_type size, ValueType val) const
+    {
+        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
+            vector_id,
+            [&] {
+                auto mat = matrix::Dense<ValueType>::create(
+                    workspace_.get_executor(), dim<2>{1, size});
+                mat->fill(val);
+                return mat;
             },
             typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
     }

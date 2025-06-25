@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -216,6 +216,16 @@ TYPED_TEST(Array, CanBeCopiedToExecutorlessArray)
 
     ASSERT_EQ(a.get_executor(), this->x.get_executor());
     this->assert_equal_to_original_x(a);
+}
+
+
+TYPED_TEST(Array, CanBeCopiedToHost)
+{
+    std::vector<TypeParam> ref{5, 2};
+
+    auto vec = this->x.copy_to_host();
+
+    ASSERT_EQ(vec, ref);
 }
 
 

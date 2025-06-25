@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -332,7 +332,7 @@ void basecase_select(const ValueType* __restrict__ input, IndexType size,
                      IndexType rank, ValueType* __restrict__ out,
                      sycl::nd_item<3> item_ct1, ValueType* sh_local)
 {
-    constexpr auto sentinel = std::numeric_limits<ValueType>::infinity();
+    constexpr auto sentinel = device_numeric_limits<ValueType>::inf();
     ValueType local[basecase_local_size];
 
     for (int i = 0; i < basecase_local_size; ++i) {

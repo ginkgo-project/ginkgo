@@ -19,26 +19,35 @@ function(add_instantiation_files source_dir source_file output_files_var)
     foreach(line IN LISTS file_contents)
         if(line MATCHES "// begin")
             if(begin_location)
-                message(FATAL_ERROR "Duplicate begin in line ${counter}, first found in ${begin_location}")
+                message(
+                    FATAL_ERROR
+                    "Duplicate begin in line ${counter}, first found in ${begin_location}"
+                )
             endif()
             set(begin_location ${counter})
         elseif(line MATCHES "// split")
             if((NOT begin_location) OR end_location)
-                message(FATAL_ERROR "Found split outside begin/end in line ${counter}")
+                message(
+                    FATAL_ERROR
+                    "Found split outside begin/end in line ${counter}"
+                )
             endif()
             list(APPEND split_locations ${counter})
         elseif(line MATCHES "// end")
             if(end_location)
-                message(FATAL_ERROR "Duplicate end in line ${counter}, first found in ${end_location}")
+                message(
+                    FATAL_ERROR
+                    "Duplicate end in line ${counter}, first found in ${end_location}"
+                )
             endif()
             set(end_location ${counter})
         endif()
         math(EXPR counter "${counter} + 1")
     endforeach()
-    if (NOT (begin_location AND end_location AND split_locations))
+    if(NOT (begin_location AND end_location AND split_locations))
         message(FATAL_ERROR "Nothing to split")
     endif()
-    if (begin_location GREATER_EQUAL end_location)
+    if(begin_location GREATER_EQUAL end_location)
         message(FATAL_ERROR "Incorrect begin/end order")
     endif()
     # determine which lines belong to the header and footer
@@ -54,7 +63,13 @@ function(add_instantiation_files source_dir source_file output_files_var)
     # for each range between // begin|split|end pairs
     foreach(range RANGE 0 ${range_count_minus_one})
         # create an output filename
-        string(REGEX REPLACE "(\.hip\.cpp|\.dp\.cpp|\.cpp|\.cu)$" ".${range}\\1" target_file "${source_file}")
+        string(
+            REGEX REPLACE
+            "(\.hip\.cpp|\.dp\.cpp|\.cpp|\.cu)$"
+            ".${range}\\1"
+            target_file
+            "${source_file}"
+        )
         set(target_path "${CMAKE_CURRENT_BINARY_DIR}/${target_file}")
         list(APPEND output_files "${target_path}")
         # extract the range between the comments
@@ -72,10 +87,16 @@ function(add_instantiation_files source_dir source_file output_files_var)
         file(WRITE "${target_path}.tmp" "${content}")
         add_custom_command(
             OUTPUT "${target_path}"
-            COMMAND ${CMAKE_COMMAND} -E copy "${target_path}.tmp" "${target_path}"
-            MAIN_DEPENDENCY "${source_path}")
+            COMMAND
+                ${CMAKE_COMMAND} -E copy "${target_path}.tmp" "${target_path}"
+            MAIN_DEPENDENCY "${source_path}"
+        )
     endforeach()
     # make sure cmake gets called when the source file was updated
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${source_path}")
+    set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS "${source_path}"
+    )
     set(${output_files_var} ${output_files} PARENT_SCOPE)
 endfunction()

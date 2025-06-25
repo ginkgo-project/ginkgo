@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,6 +34,8 @@ protected:
     using default_ilu_prec_type = gko::preconditioner::Ilu<>;
     using ilu_prec_type =
         gko::preconditioner::Ilu<l_solver_type, u_solver_type, false>;
+    using ilu_linop_prec_type =
+        gko::preconditioner::Ilu<value_type, value_type, false>;
     using ilu_rev_prec_type =
         gko::preconditioner::Ilu<l_solver_type, u_solver_type, true>;
     using Composition = gko::Composition<value_type>;
@@ -70,7 +72,14 @@ protected:
           ilu_rev_pre_factory(ilu_rev_prec_type::build()
                                   .with_l_solver(l_factory)
                                   .with_u_solver(u_factory)
-                                  .on(exec))
+                                  .on(exec)),
+          ilu_linop_pre_factory(
+              ilu_linop_prec_type::build()
+                  .with_l_solver(l_factory)
+                  .with_u_solver(u_factory)
+                  .with_factorization(
+                      gko::factorization::ParIlu<value_type>::build())
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -82,6 +91,8 @@ protected:
     std::shared_ptr<typename u_solver_type::Factory> u_factory;
     std::shared_ptr<typename ilu_prec_type::Factory> ilu_pre_factory;
     std::shared_ptr<typename ilu_rev_prec_type::Factory> ilu_rev_pre_factory;
+    std::shared_ptr<typename ilu_linop_prec_type::Factory>
+        ilu_linop_pre_factory;
 };
 
 TYPED_TEST_SUITE(Ilu, gko::test::ValueTypes, TypenameNameGenerator);
@@ -105,6 +116,12 @@ TYPED_TEST(Ilu, BuildsCustomWithoutThrowing)
 TYPED_TEST(Ilu, BuildsCustomWithoutThrowing2)
 {
     ASSERT_NO_THROW(this->ilu_pre_factory->generate(this->mtx));
+}
+
+
+TYPED_TEST(Ilu, BuildsWithLinOpWithoutThrowing)
+{
+    ASSERT_NO_THROW(this->ilu_linop_pre_factory->generate(this->mtx));
 }
 
 
@@ -241,6 +258,64 @@ TYPED_TEST(Ilu, CanBeConjTransposed)
     auto u_transp =
         gko::as<Mtx>(gko::as<Mtx>(transp->get_l_solver()->get_system_matrix())
                          ->conj_transpose());
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_transp);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_transp, 0);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_transp, 0);
+}
+
+
+TYPED_TEST(Ilu, CanBeTransposedWithLinOp)
+{
+    using Ilu = typename TestFixture::ilu_linop_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    using l_solver_type = typename TestFixture::l_solver_type;
+    using u_solver_type = typename TestFixture::u_solver_type;
+    auto ilu = this->ilu_linop_pre_factory->generate(this->l_u_composition);
+    auto l_ref = gko::as<Mtx>(
+        gko::as<l_solver_type>(ilu->get_l_solver())->get_system_matrix());
+    auto u_ref = gko::as<Mtx>(
+        gko::as<u_solver_type>(ilu->get_u_solver())->get_system_matrix());
+
+    auto transp = gko::as<Ilu>(ilu->transpose());
+
+    auto l_transp = gko::as<Mtx>(
+        gko::as<Mtx>(
+            gko::as<u_solver_type>(transp->get_u_solver())->get_system_matrix())
+            ->transpose());
+    auto u_transp = gko::as<Mtx>(
+        gko::as<Mtx>(
+            gko::as<l_solver_type>(transp->get_l_solver())->get_system_matrix())
+            ->transpose());
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_transp);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_transp, 0);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_transp, 0);
+}
+
+
+TYPED_TEST(Ilu, CanBeConjTransposedWithLinOp)
+{
+    using Ilu = typename TestFixture::ilu_linop_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    using l_solver_type = typename TestFixture::l_solver_type;
+    using u_solver_type = typename TestFixture::u_solver_type;
+    auto ilu = this->ilu_linop_pre_factory->generate(this->l_u_composition);
+    auto l_ref = gko::as<Mtx>(
+        gko::as<l_solver_type>(ilu->get_l_solver())->get_system_matrix());
+    auto u_ref = gko::as<Mtx>(
+        gko::as<u_solver_type>(ilu->get_u_solver())->get_system_matrix());
+
+    auto transp = gko::as<Ilu>(ilu->conj_transpose());
+
+    auto l_transp = gko::as<Mtx>(
+        gko::as<Mtx>(
+            gko::as<u_solver_type>(transp->get_u_solver())->get_system_matrix())
+            ->conj_transpose());
+    auto u_transp = gko::as<Mtx>(
+        gko::as<Mtx>(
+            gko::as<l_solver_type>(transp->get_l_solver())->get_system_matrix())
+            ->conj_transpose());
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_transp);
     GKO_ASSERT_MTX_NEAR(l_ref, l_transp, 0);
@@ -397,7 +472,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
 
     preconditioner->apply(alpha_linop, b, beta_linop, x);
 
-    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}), r<TypeParam>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}), r<TypeParam>::value * 2.0);
 }
 
 
@@ -417,7 +492,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
     preconditioner->apply(alpha_linop, b, beta_linop, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-7.0, 2.0, -1.0}),
-                        (r_mixed<TypeParam, typename Mtx::value_type>()));
+                        (r_mixed<TypeParam, typename Mtx::value_type>() * 2.0));
 }
 
 
@@ -447,7 +522,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
     GKO_ASSERT_MTX_NEAR(x,
                         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
                            complex_type{-1.0, 2.0}}),
-                        r<TypeParam>::value);
+                        r<TypeParam>::value * 2.0);
 }
 
 
@@ -478,7 +553,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
         x,
         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
            complex_type{-1.0, 2.0}}),
-        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()));
+        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()) * 2.0);
 }
 
 
@@ -511,6 +586,24 @@ TYPED_TEST(Ilu, SolvesMultipleRhs)
     x->copy_from(b);
     auto preconditioner =
         this->ilu_pre_factory->generate(this->l_u_composition);
+
+    preconditioner->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
+                        r<TypeParam>::value * 1e+1);
+}
+
+
+TYPED_TEST(Ilu, SolvesMultipleRhsWithLinOp)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    const auto b = gko::initialize<Mtx>(
+        {I<T>{1.0, 8.0}, I<T>{3.0, 21.0}, I<T>{6.0, 24.0}}, this->exec);
+    auto x = Mtx::create(this->exec, gko::dim<2>{3, 2});
+    x->copy_from(b);
+    auto preconditioner =
+        this->ilu_linop_pre_factory->generate(this->l_u_composition);
 
     preconditioner->apply(b, x);
 

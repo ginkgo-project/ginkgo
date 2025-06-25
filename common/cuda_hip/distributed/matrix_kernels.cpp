@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -137,11 +137,11 @@ void separate_local_nonlocal(
                    col_range_starting_indices[range_id];
         };
 
-    using input_type = input_type<ValueType, GlobalIndexType>;
+    using input_type = input_type<device_type<ValueType>, GlobalIndexType>;
     auto input_it = thrust::make_zip_iterator(thrust::make_tuple(
         input.get_const_row_idxs(), input.get_const_col_idxs(),
-        input.get_const_values(), row_range_ids.get_const_data(),
-        col_range_ids.get_const_data()));
+        as_device_type(input.get_const_values()),
+        row_range_ids.get_const_data(), col_range_ids.get_const_data()));
 
     // copy and transform local entries into arrays
     local_row_idxs.resize_and_reset(num_local_elements);
@@ -157,9 +157,9 @@ void separate_local_nonlocal(
     thrust::copy_if(
         policy, local_it, local_it + input.get_num_stored_elements(),
         range_ids_it,
-        thrust::make_zip_iterator(thrust::make_tuple(local_row_idxs.get_data(),
-                                                     local_col_idxs.get_data(),
-                                                     local_values.get_data())),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            local_row_idxs.get_data(), local_col_idxs.get_data(),
+            as_device_type(local_values.get_data()))),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -185,7 +185,7 @@ void separate_local_nonlocal(
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
             non_local_row_idxs.get_data(), non_local_col_idxs.get_data(),
-            non_local_values.get_data())),
+            as_device_type(non_local_values.get_data()))),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -194,7 +194,7 @@ void separate_local_nonlocal(
         });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
 
 

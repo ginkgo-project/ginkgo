@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,11 +13,13 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
-#include <ginkgo/core/distributed/lin_op.hpp>
+#include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/vector_cache.hpp>
 
 
 namespace gko {
@@ -257,15 +259,24 @@ class Vector;
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Matrix : public EnableDistributedLinOp<
-                   Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
-               public ConvertibleTo<Matrix<next_precision_base<ValueType>,
-                                           LocalIndexType, GlobalIndexType>>,
-               public DistributedBase {
-    friend class EnableDistributedPolymorphicObject<Matrix, LinOp>;
-    friend class Matrix<next_precision_base<ValueType>, LocalIndexType,
+class Matrix
+    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<
+          Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Matrix<next_precision<ValueType, 2>, LocalIndexType,
+                                  GlobalIndexType>>,
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
+                                  GlobalIndexType>>,
+#endif
+      public DistributedBase {
+    friend class EnablePolymorphicObject<Matrix, LinOp>;
+    friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+
 
 public:
     using value_type = ValueType;
@@ -276,19 +287,48 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableDistributedLinOp<Matrix>::convert_to;
-    using EnableDistributedLinOp<Matrix>::move_to;
-    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
+    using EnableLinOp<Matrix>::convert_to;
+    using EnableLinOp<Matrix>::move_to;
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
-    using ConvertibleTo<Matrix<next_precision_base<ValueType>, LocalIndexType,
+    using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision_base<value_type>, local_index_type,
+    void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision_base<value_type>, local_index_type,
+    void move_to(Matrix<next_precision<value_type>, local_index_type,
                         global_index_type>* result) override;
 
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+    friend class Matrix<previous_precision<ValueType, 2>, LocalIndexType,
+                        GlobalIndexType>;
+    using ConvertibleTo<Matrix<next_precision<value_type, 2>, local_index_type,
+                               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 2>, local_index_type,
+                               global_index_type>>::move_to;
+
+    void convert_to(Matrix<next_precision<value_type, 2>, local_index_type,
+                           global_index_type>* result) const override;
+
+    void move_to(Matrix<next_precision<value_type, 2>, local_index_type,
+                        global_index_type>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Matrix<previous_precision<ValueType, 3>, LocalIndexType,
+                        GlobalIndexType>;
+    using ConvertibleTo<Matrix<next_precision<value_type, 3>, local_index_type,
+                               global_index_type>>::convert_to;
+    using ConvertibleTo<Matrix<next_precision<value_type, 3>, local_index_type,
+                               global_index_type>>::move_to;
+
+    void convert_to(Matrix<next_precision<value_type, 3>, local_index_type,
+                           global_index_type>* result) const override;
+
+    void move_to(Matrix<next_precision<value_type, 3>, local_index_type,
+                        global_index_type>* result) override;
+#endif
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
      * partition.
@@ -302,7 +342,7 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     * @param assembly_type  The mode of assembly.
+     * @param x  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -580,18 +620,39 @@ public:
      * @param local_linop  the local linop
      * @param non_local_linop  the non-local linop
      * @param recv_sizes  the size of non-local receiver
-     * @param recv_offset  the offset of non-local receiver
+     * @param recv_offsets  the offset of non-local receiver
      * @param recv_gather_idxs  the gathering index of non-local receiver
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    [[deprecated(
+        "Please use the overload with an index_map instead.")]] static std::
+        unique_ptr<Matrix>
+        create(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+               dim<2> size, std::shared_ptr<LinOp> local_linop,
+               std::shared_ptr<LinOp> non_local_linop,
+               std::vector<comm_index_type> recv_sizes,
+               std::vector<comm_index_type> recv_offsets,
+               array<local_index_type> recv_gather_idxs);
+
+    /**
+     * Creates distributed matrix with existent local and non-local LinOp and
+     * the corresponding mapping to collect the non-local data from the other
+     * ranks.
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param imap  The index map to define the communication pattern
+     * @param local_linop  the local linop
+     * @param non_local_linop  the non-local linop
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        dim<2> size, std::shared_ptr<LinOp> local_linop,
-        std::shared_ptr<LinOp> non_local_linop,
-        std::vector<comm_index_type> recv_sizes,
-        std::vector<comm_index_type> recv_offsets,
-        array<local_index_type> recv_gather_idxs);
+        index_map<local_index_type, global_index_type> imap,
+        std::shared_ptr<LinOp> local_linop,
+        std::shared_ptr<LinOp> non_local_linop);
 
     /**
      * Scales the columns of the matrix by the respective entries of the vector.
@@ -625,22 +686,10 @@ protected:
                     std::shared_ptr<LinOp> local_linop);
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, dim<2> size,
+                    mpi::communicator comm,
+                    index_map<local_index_type, global_index_type> imap,
                     std::shared_ptr<LinOp> local_linop,
-                    std::shared_ptr<LinOp> non_local_linop,
-                    std::vector<comm_index_type> recv_sizes,
-                    std::vector<comm_index_type> recv_offsets,
-                    array<local_index_type> recv_gather_idxs);
-
-    /**
-     * Starts a non-blocking communication of the values of b that are shared
-     * with other processors.
-     *
-     * @param local_b  The full local vector to be communicated. The subset of
-     *                 shared values is automatically extracted.
-     * @return  MPI request for the non-blocking communication.
-     */
-    mpi::request communicate(const local_vector_type* local_b) const;
+                    std::shared_ptr<LinOp> non_local_linop);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -648,17 +697,11 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
-    array<local_index_type> gather_idxs_;
-    array<global_index_type> non_local_to_global_;
-    gko::detail::DenseCache<value_type> one_scalar_;
-    gko::detail::DenseCache<value_type> host_send_buffer_;
-    gko::detail::DenseCache<value_type> host_recv_buffer_;
-    gko::detail::DenseCache<value_type> send_buffer_;
-    gko::detail::DenseCache<value_type> recv_buffer_;
+    std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
+    index_map<local_index_type, global_index_type> imap_;
+    gko::detail::ScalarCache one_scalar_;
+    detail::GenericVectorCache recv_buffer_;
+    detail::GenericVectorCache host_recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };

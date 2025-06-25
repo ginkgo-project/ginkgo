@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -65,7 +65,8 @@ enum class index_space {
  * \tparam GlobalIndexType  type for global indices
  */
 template <typename LocalIndexType, typename GlobalIndexType = int64>
-struct index_map {
+class index_map {
+public:
     using partition_type = Partition<LocalIndexType, GlobalIndexType>;
 
     /**
@@ -81,8 +82,23 @@ struct index_map {
     array<LocalIndexType> map_to_local(const array<GlobalIndexType>& global_ids,
                                        index_space index_space_v) const;
 
+
     /**
-     * \brief get size of index_space::local
+     * Maps local indices to global indices
+     *
+     * @param local_idxs  the local indices to map
+     * @param index_space_v  the index space in which the passed-in local
+     *                       indices are defined
+     *
+     * @return  the mapped global indices. Any local index that is not in the
+     *          specified index space is mapped to invalid_index
+     */
+    array<GlobalIndexType> map_to_global(
+        const array<LocalIndexType>& local_idxs,
+        index_space index_space_v) const;
+
+    /**
+     * \brief get size of the global index space
      */
     size_type get_global_size() const;
 

@@ -1,0 +1,6 @@
+item: 4
+array:
+    - 3.0
+    - 4.5
+map:
+    bool: false

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,14 +7,12 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
-
-
-namespace {
 
 
 template <typename ValueLocalGlobalIndexType>
@@ -29,6 +27,8 @@ protected:
     using Schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         value_type, local_index_type, global_index_type>;
     using Jacobi = gko::preconditioner::Jacobi<value_type, local_index_type>;
+    using Pgm = gko::multigrid::Pgm<value_type, local_index_type>;
+    using Cg = gko::solver::Cg<value_type>;
     using Mtx =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
@@ -36,10 +36,15 @@ protected:
     SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
           jacobi_factory(Jacobi::build().on(exec)),
+          pgm_factory(Pgm::build().on(exec)),
+          cg_factory(Cg::build().on(exec)),
           mtx(Mtx::create(exec, MPI_COMM_WORLD))
     {
         schwarz = Schwarz::build()
                       .with_local_solver(jacobi_factory)
+                      .with_coarse_level(pgm_factory)
+                      .with_coarse_solver(cg_factory)
+                      .with_coarse_weight(value_type{0.4})
                       .on(exec)
                       ->generate(mtx);
     }
@@ -57,15 +62,23 @@ protected:
         ASSERT_EQ(a->get_size(), b->get_size());
         ASSERT_EQ(a->get_parameters().local_solver,
                   b->get_parameters().local_solver);
+        ASSERT_EQ(a->get_parameters().coarse_level,
+                  b->get_parameters().coarse_level);
+        ASSERT_EQ(a->get_parameters().coarse_solver,
+                  b->get_parameters().coarse_solver);
+        ASSERT_EQ(a->get_parameters().coarse_weight,
+                  b->get_parameters().coarse_weight);
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Schwarz> schwarz;
     std::shared_ptr<typename Jacobi::Factory> jacobi_factory;
+    std::shared_ptr<typename Pgm::Factory> pgm_factory;
+    std::shared_ptr<typename Cg::Factory> cg_factory;
     std::shared_ptr<Mtx> mtx;
 };
 
-TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
@@ -82,6 +95,26 @@ TYPED_TEST(SchwarzFactory, CanSetLocalFactory)
 }
 
 
+TYPED_TEST(SchwarzFactory, CanSetCoarseLevelFactory)
+{
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_level, this->pgm_factory);
+}
+
+
+TYPED_TEST(SchwarzFactory, CanSetCoarseSolverFactory)
+{
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, this->cg_factory);
+}
+
+
+TYPED_TEST(SchwarzFactory, CanSetCoarseWeight)
+{
+    using value_type = typename TestFixture::value_type;
+
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{0.4});
+}
+
+
 TYPED_TEST(SchwarzFactory, CanBeCloned)
 {
     auto schwarz_clone = clone(this->schwarz);
@@ -92,11 +125,20 @@ TYPED_TEST(SchwarzFactory, CanBeCloned)
 
 TYPED_TEST(SchwarzFactory, CanBeCopied)
 {
+    using value_type = typename TestFixture::value_type;
     using Jacobi = typename TestFixture::Jacobi;
+    using Pgm = typename TestFixture::Pgm;
+    using Cg = typename TestFixture::Cg;
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto pgm = gko::share(Pgm::build().on(this->exec));
+    auto cg = gko::share(Cg::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(Jacobi::build())
+                    .with_local_solver(bj)
+                    .with_coarse_level(pgm)
+                    .with_coarse_solver(cg)
+                    .with_coarse_weight(value_type{0.4})
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -108,12 +150,21 @@ TYPED_TEST(SchwarzFactory, CanBeCopied)
 
 TYPED_TEST(SchwarzFactory, CanBeMoved)
 {
+    using value_type = typename TestFixture::value_type;
     using Jacobi = typename TestFixture::Jacobi;
+    using Pgm = typename TestFixture::Pgm;
+    using Cg = typename TestFixture::Cg;
     using Schwarz = typename TestFixture::Schwarz;
     using Mtx = typename TestFixture::Mtx;
     auto tmp = clone(this->schwarz);
+    auto bj = gko::share(Jacobi::build().on(this->exec));
+    auto pgm = gko::share(Pgm::build().on(this->exec));
+    auto cg = gko::share(Cg::build().on(this->exec));
     auto copy = Schwarz::build()
-                    .with_local_solver(Jacobi::build())
+                    .with_local_solver(bj)
+                    .with_coarse_level(pgm)
+                    .with_coarse_solver(cg)
+                    .with_coarse_weight(value_type{0.4})
                     .on(this->exec)
                     ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
 
@@ -125,10 +176,14 @@ TYPED_TEST(SchwarzFactory, CanBeMoved)
 
 TYPED_TEST(SchwarzFactory, CanBeCleared)
 {
+    using value_type = typename TestFixture::value_type;
     this->schwarz->clear();
 
     ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_level, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, nullptr);
+    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{-1});
 }
 
 
@@ -166,6 +221,3 @@ TYPED_TEST(SchwarzFactory, ApplyUsesInitialGuessAsLocalSolver)
     ASSERT_EQ(schwarz_with_jacobi->apply_uses_initial_guess(), false);
     ASSERT_EQ(schwarz_with_cg->apply_uses_initial_guess(), true);
 }
-
-
-}  // namespace

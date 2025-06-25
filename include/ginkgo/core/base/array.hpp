@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -639,6 +639,20 @@ public:
         } else {
             this->clear();
         }
+    }
+
+    /**
+     * Copies the data into an std::vector.
+     *
+     * @return an std::vector containing this array's data.
+     */
+    std::vector<value_type> copy_to_host() const
+    {
+        std::vector<value_type> result(this->get_size());
+        auto view = make_array_view(this->get_executor()->get_master(),
+                                    this->get_size(), result.data());
+        view = *this;
+        return result;
     }
 
     /**

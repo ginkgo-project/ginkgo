@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,7 +50,7 @@ __device__ void abstract_filter_impl(const IndexType* row_ptrs,
     for (IndexType step = 0; step < num_steps; ++step) {
         auto idx = begin + lane + step * subwarp_size;
         auto keep = idx < end && pred(idx, begin, end);
-        auto mask = subwarp.ballot(keep);
+        auto mask = group::ballot(subwarp, keep);
         step_cb(row, idx, keep, popcnt(mask), popcnt(mask & lane_prefix_mask));
     }
     finish_cb(row, lane);

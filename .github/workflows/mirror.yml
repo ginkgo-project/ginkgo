@@ -1,5 +1,8 @@
 name: Mirroring
-on: push
+# When push has condition for branch and path, both are required to be satisfied.
+# Also, Github does not support two push event under on in the same file.
+# We use two files distinguish the developing branches and the main branches carefully.
+on: workflow_call
 
 jobs:
   to_gitlab:

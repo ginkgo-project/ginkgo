@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 

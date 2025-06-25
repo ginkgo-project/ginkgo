@@ -27,7 +27,8 @@ __pycache__
 .vscode
 
 ### Generated header file
-include/config.hpp
+include/ginkgo/config.hpp
+include/ginkgo/ginkgo.hpp
 
 ### C++
 # Prerequisites

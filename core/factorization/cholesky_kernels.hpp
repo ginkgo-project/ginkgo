@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,13 +37,6 @@ namespace kernels {
         const array<IndexType>& tmp_storage)
 
 
-#define GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR(ValueType, IndexType) \
-    void forest_from_factor(                                          \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<ValueType, IndexType>* factors,             \
-        gko::factorization::elimination_forest<IndexType>& forest)
-
-
 #define GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType)                 \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,              \
                     const matrix::Csr<ValueType, IndexType>* mtx,             \
@@ -70,8 +63,6 @@ namespace kernels {
     GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>              \

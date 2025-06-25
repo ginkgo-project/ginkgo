@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -900,6 +900,34 @@ TYPED_TEST(Coo, ApplyAddsScaledToMixedComplex)
 }
 
 
+TYPED_TEST(Coo, Transpose)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto transposed_ans = gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{3.0, 5.0}, I<T>{2.0, 0.0}}, this->exec);
+
+    auto result = gko::as<Mtx>(this->mtx->transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, transposed_ans);
+    GKO_ASSERT_MTX_NEAR(result, transposed_ans, 0.0);
+}
+
+
+TYPED_TEST(Coo, ConjTranspose)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto conj_transposed_ans = gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{3.0, 5.0}, I<T>{2.0, 0.0}}, this->exec);
+
+    auto result = gko::as<Mtx>(this->mtx->conj_transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, conj_transposed_ans);
+    GKO_ASSERT_MTX_NEAR(result, conj_transposed_ans, 0.0);
+}
+
+
 template <typename ValueIndexType>
 class CooComplex : public ::testing::Test {
 protected:
@@ -951,6 +979,46 @@ TYPED_TEST(CooComplex, InplaceAbsolute)
 
     GKO_ASSERT_MTX_NEAR(
         mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
+}
+
+
+TYPED_TEST(CooComplex, Transpose)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Mtx>({{T{1.0, 1.0}, T{3.0, -1.0}, T{2.0, 2.0}},
+                                     {T{0.0, 0.0}, T{5.0, -3.0}, T{0.0, 0.0}}},
+                                    exec);
+    auto transposed_ans = gko::initialize<Mtx>(
+        {I<T>{T{1.0, 1.0}, T{0.0, 0.0}}, I<T>{T{3.0, -1.0}, T{5.0, -3.0}},
+         I<T>{T{2.0, 2.0}, T{0.0, 0.0}}},
+        exec);
+
+    auto result = gko::as<Mtx>(mtx->transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, transposed_ans);
+    GKO_ASSERT_MTX_NEAR(result, transposed_ans, 0.0);
+}
+
+
+TYPED_TEST(CooComplex, ConjTranspose)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::initialize<Mtx>({{T{1.0, 1.0}, T{3.0, -1.0}, T{2.0, 2.0}},
+                                     {T{0.0, 0.0}, T{5.0, -3.0}, T{0.0, 0.0}}},
+                                    exec);
+    auto conj_transposed_ans = gko::initialize<Mtx>(
+        {I<T>{T{1.0, -1.0}, T{0.0, 0.0}}, I<T>{T{3.0, 1.0}, T{5.0, 3.0}},
+         I<T>{T{2.0, -2.0}, T{0.0, 0.0}}},
+        exec);
+
+    auto result = gko::as<Mtx>(mtx->conj_transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, conj_transposed_ans);
+    GKO_ASSERT_MTX_NEAR(result, conj_transposed_ans, 0.0);
 }
 
 

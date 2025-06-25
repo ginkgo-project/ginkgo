@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -119,7 +119,9 @@ GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_GEAM(float, hipblasSgeam);
 GKO_BIND_HIPBLAS_GEAM(double, hipblasDgeam);
-// Hipblas does not provide geam complex version yet.
+GKO_BIND_HIPBLAS_GEAM(std::complex<float>, hipblasCgeam);
+GKO_BIND_HIPBLAS_GEAM(std::complex<double>, hipblasZgeam);
+
 template <typename ValueType>
 GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 

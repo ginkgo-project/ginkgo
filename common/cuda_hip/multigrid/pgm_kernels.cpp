@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,22 +79,6 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
-{
-    auto vals_it = as_device_type(vals);
-    auto it = thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
-    // Because reduce_by_key is not deterministic, so we do not need
-    // stable_sort_by_key
-    // TODO: If we have deterministic reduce_by_key, it should be
-    // stable_sort_by_key
-    thrust::sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 
 
 template <typename ValueType, typename IndexType>

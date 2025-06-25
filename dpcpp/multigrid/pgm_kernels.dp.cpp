@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,25 +68,6 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
-{
-    auto policy = onedpl_policy(exec);
-    auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
-    // Because reduce_by_segment is not deterministic, so we do not need
-    // stable_sort
-    // TODO: If we have deterministic reduce_by_segment, it should be
-    // stable_sort
-    std::sort(policy, it, it + nnz, [](auto a, auto b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
-    });
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
 
 
 template <typename ValueType, typename IndexType>

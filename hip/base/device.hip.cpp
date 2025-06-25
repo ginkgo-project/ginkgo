@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,7 @@ namespace hip {
 void reset_device(int device_id)
 {
     gko::detail::hip_scoped_device_id_guard guard{device_id};
-    hipDeviceReset();
+    (void)hipDeviceReset();
 }
 
 

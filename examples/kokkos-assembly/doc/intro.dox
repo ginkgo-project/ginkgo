@@ -20,4 +20,3 @@ This example show how to use Ginkgo data with Kokkos kernels.
 If this example is built as part of Ginkgo, it is advised to configure Ginkgo with
 `-DGINKGO_WITH_CCACHE=OFF` to prevent incompabilities with Kokkos' compiler wrapper
 for `nvcc`.
-

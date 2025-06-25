@@ -3,4 +3,3 @@
 
 <h3> In this example, we first read in a matrix from a file. The preconditioned CG solver is enhanced
 with a multigrid preconditioner. The example features the generating time and runtime of the CG solver.</h3>
-

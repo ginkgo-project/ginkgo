@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -282,8 +282,8 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
     auto diag = gko::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
                 gko::abs(lower) + gko::abs(upper);
     gko::size_type size = 50;
-    if (std::is_same_v<gko::remove_complex<T>, gko::half>) {
-        // half precision can only handle the inverse of small matrix.
+    if (std::is_same_v<gko::remove_complex<T>, gko::float16>) {
+        // half/bfloat16 precision can only handle the inverse of small matrix.
         size = 5;
     }
 

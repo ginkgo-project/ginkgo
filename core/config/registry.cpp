@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,15 +23,18 @@ configuration_map generate_config_map()
             {"solver::Bicg", parse<LinOpFactoryType::Bicg>},
             {"solver::Bicgstab", parse<LinOpFactoryType::Bicgstab>},
             {"solver::Fcg", parse<LinOpFactoryType::Fcg>},
+            {"solver::PipeCg", parse<LinOpFactoryType::PipeCg>},
             {"solver::Cgs", parse<LinOpFactoryType::Cgs>},
             {"solver::Ir", parse<LinOpFactoryType::Ir>},
             {"solver::Idr", parse<LinOpFactoryType::Idr>},
             {"solver::Gcr", parse<LinOpFactoryType::Gcr>},
             {"solver::Gmres", parse<LinOpFactoryType::Gmres>},
             {"solver::CbGmres", parse<LinOpFactoryType::CbGmres>},
+            {"solver::Minres", parse<LinOpFactoryType::Minres>},
             {"solver::Direct", parse<LinOpFactoryType::Direct>},
             {"solver::LowerTrs", parse<LinOpFactoryType::LowerTrs>},
             {"solver::UpperTrs", parse<LinOpFactoryType::UpperTrs>},
+            {"solver::Chebyshev", parse<LinOpFactoryType::Chebyshev>},
             {"factorization::Ic", parse<LinOpFactoryType::Factorization_Ic>},
             {"factorization::Ilu", parse<LinOpFactoryType::Factorization_Ilu>},
             {"factorization::Cholesky", parse<LinOpFactoryType::Cholesky>},

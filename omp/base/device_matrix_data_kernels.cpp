@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <omp.h>
 
 #include "core/base/allocator.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -133,13 +134,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    device_matrix_data<ValueType, IndexType>& data)
+                    size_type num_elems, IndexType* row_idxs,
+                    IndexType* col_idxs, ValueType* vals)
 {
-    array<matrix_data_entry<ValueType, IndexType>> tmp{
-        exec, data.get_num_stored_elements()};
-    soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_size());
-    aos_to_soa(exec, tmp, data);
+    auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
+    std::stable_sort(it, it + num_elems, [](auto a, auto b) {
+        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

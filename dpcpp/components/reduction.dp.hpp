@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -80,7 +80,11 @@ __dpct_inline__ int choose_pivot(const Group& group, ValueType local_data,
                                  bool is_pivoted)
 {
     using real = remove_complex<ValueType>;
-    real lmag = is_pivoted ? -one<real>() : abs(local_data);
+    // intel SYCL has unary - operation but only accept non-const reference
+    // before 2025.0.1. Thus, it can not accept the temporary value
+    // one<value_type>(), which is rvalue, such that it converts to float first
+    // then take minus.
+    real lmag = is_pivoted ? static_cast<real>(-one<real>()) : abs(local_data);
     const auto pivot = ::gko::kernels::dpcpp::reduce(
         group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);

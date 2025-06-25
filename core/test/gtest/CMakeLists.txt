@@ -1,18 +1,41 @@
 function(add_gtest_main suffix definitions)
     add_library(ginkgo_gtest_main${suffix} STATIC ginkgo_main.cpp resources.cpp)
-    target_link_libraries(ginkgo_gtest_main${suffix} PUBLIC Ginkgo::ginkgo GTest::GTest)
-    target_compile_definitions(ginkgo_gtest_main${suffix} PRIVATE ${definitions})
+    target_link_libraries(
+        ginkgo_gtest_main${suffix}
+        PUBLIC Ginkgo::ginkgo GTest::GTest
+    )
+    target_compile_definitions(
+        ginkgo_gtest_main${suffix}
+        PRIVATE ${definitions}
+    )
     ginkgo_compile_features(ginkgo_gtest_main${suffix})
-    if (GINKGO_BUILD_MPI)
-        add_library(ginkgo_gtest_main_mpi${suffix} STATIC ginkgo_mpi_main.cpp resources.cpp)
-        target_link_libraries(ginkgo_gtest_main_mpi${suffix} PUBLIC Ginkgo::ginkgo GTest::GTest MPI::MPI_CXX)
-        target_compile_definitions(ginkgo_gtest_main_mpi${suffix} PRIVATE ${definitions})
+    if(GINKGO_BUILD_MPI)
+        add_library(
+            ginkgo_gtest_main_mpi${suffix}
+            STATIC
+            ginkgo_mpi_main.cpp
+            resources.cpp
+        )
+        target_link_libraries(
+            ginkgo_gtest_main_mpi${suffix}
+            PUBLIC Ginkgo::ginkgo GTest::GTest MPI::MPI_CXX
+        )
+        target_compile_definitions(
+            ginkgo_gtest_main_mpi${suffix}
+            PRIVATE ${definitions}
+        )
         ginkgo_compile_features(ginkgo_gtest_main_mpi${suffix})
     endif()
-    if (GINKGO_BUILD_OMP)
-        target_link_libraries(ginkgo_gtest_main${suffix} PUBLIC OpenMP::OpenMP_CXX)
-        if (GINKGO_BUILD_MPI)
-            target_link_libraries(ginkgo_gtest_main_mpi${suffix} PUBLIC OpenMP::OpenMP_CXX)
+    if(GINKGO_BUILD_OMP)
+        target_link_libraries(
+            ginkgo_gtest_main${suffix}
+            PUBLIC OpenMP::OpenMP_CXX
+        )
+        if(GINKGO_BUILD_MPI)
+            target_link_libraries(
+                ginkgo_gtest_main_mpi${suffix}
+                PUBLIC OpenMP::OpenMP_CXX
+            )
         endif()
     endif()
 endfunction()
@@ -20,19 +43,19 @@ endfunction()
 add_gtest_main("" "")
 add_library(ginkgo_gtest_main_reference ALIAS ginkgo_gtest_main)
 add_library(ginkgo_gtest_main_cpu ALIAS ginkgo_gtest_main)
-if (GINKGO_BUILD_MPI)
+if(GINKGO_BUILD_MPI)
     add_library(ginkgo_gtest_main_mpi_reference ALIAS ginkgo_gtest_main_mpi)
     add_library(ginkgo_gtest_main_mpi_cpu ALIAS ginkgo_gtest_main_mpi)
 endif()
-if (GINKGO_BUILD_OMP)
+if(GINKGO_BUILD_OMP)
     add_gtest_main("_omp" "GKO_COMPILING_OMP;GKO_DEVICE_NAMESPACE=omp")
 endif()
-if (GINKGO_BUILD_CUDA)
+if(GINKGO_BUILD_CUDA)
     add_gtest_main("_cuda" "GKO_COMPILING_CUDA;GKO_DEVICE_NAMESPACE=cuda")
 endif()
-if (GINKGO_BUILD_HIP)
+if(GINKGO_BUILD_HIP)
     add_gtest_main("_hip" "GKO_COMPILING_HIP;GKO_DEVICE_NAMESPACE=hip")
 endif()
-if (GINKGO_BUILD_SYCL)
+if(GINKGO_BUILD_SYCL)
     add_gtest_main("_dpcpp" "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp")
 endif()

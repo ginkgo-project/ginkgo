@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -320,16 +320,16 @@ public:
 #undef GKO_ENABLE_SHUFFLE_OPERATION
 
 // hip does not support 16bit shuffle directly
-#define GKO_ENABLE_SHUFFLE_OPERATION_HALF(_name, SelectorType)           \
-    __device__ __forceinline__ __half _name(const __half& var,           \
-                                            SelectorType selector) const \
-    {                                                                    \
-        uint32 u;                                                        \
-        memcpy(&u, &var, sizeof(__half));                                \
-        u = static_cast<const Group*>(this)->_name(u, selector);         \
-        __half result;                                                   \
-        memcpy(&result, &u, sizeof(__half));                             \
-        return result;                                                   \
+#define GKO_ENABLE_SHUFFLE_OPERATION_HALF(_name, SelectorType)        \
+    __device__ __forceinline__ device_type<float16> _name(            \
+        const device_type<float16>& var, SelectorType selector) const \
+    {                                                                 \
+        uint32 u;                                                     \
+        memcpy(&u, &var, sizeof(device_type<float16>));               \
+        u = static_cast<const Group*>(this)->_name(u, selector);      \
+        device_type<float16> result;                                  \
+        memcpy(&result, &u, sizeof(device_type<float16>));            \
+        return result;                                                \
     }
 
     GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl, int32)
@@ -338,6 +338,26 @@ public:
     GKO_ENABLE_SHUFFLE_OPERATION_HALF(shfl_xor, int32)
 
 #undef GKO_ENABLE_SHUFFLE_OPERATION_HALF
+
+// hip does not support 16bit shuffle directly
+#define GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(_name, SelectorType)     \
+    __device__ __forceinline__ device_type<bfloat16> _name(            \
+        const device_type<bfloat16>& var, SelectorType selector) const \
+    {                                                                  \
+        uint32 u;                                                      \
+        memcpy(&u, &var, sizeof(device_type<bfloat16>));               \
+        u = static_cast<const Group*>(this)->_name(u, selector);       \
+        device_type<bfloat16> result;                                  \
+        memcpy(&result, &u, sizeof(device_type<bfloat16>));            \
+        return result;                                                 \
+    }
+
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl, int32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_up, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_down, uint32)
+    GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16(shfl_xor, int32)
+
+#undef GKO_ENABLE_SHUFFLE_OPERATION_BFLOAT16
 
 
 private:
@@ -493,6 +513,29 @@ private:
 // using cooperative_groups::this_grid;
 // Instead, use our limited implementation:
 __device__ inline grid_group this_grid() { return {}; }
+
+
+/**
+ * During cuda12.2 - cuda12.4, compiler might have some optimization issue on
+ * ballot on H100. The ballot result on subwarp might keep the result from the
+ * other subwarp in the same warp. For example with subwarp size = 8, subwarp 0
+ * will get the result from (subwarp 3, subwarp 2, subwarp 1, subwarp 0),
+ * subwarp 1 will get the result from (subwarp 3, subwarp 2, subwarp 1), and so
+ * on so forth. They are shifted but not masked. cuda 12.1.1 and cuda 12.5.1
+ * does not have the issue.
+ */
+template <unsigned Size>
+__device__ __forceinline__ auto ballot(const thread_block_tile<Size>& g,
+                                       int predicate)
+{
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 12020 && CUDA_VERSION < 12051
+    constexpr auto subwarp_mask =
+        ~config::lane_mask_type{} >> (config::warp_size - Size);
+    return subwarp_mask & g.ballot(predicate);
+#else
+    return g.ballot(predicate);
+#endif
+}
 
 
 }  // namespace group

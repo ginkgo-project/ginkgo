@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,9 +42,11 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
     : public EnableLinOp<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
-#if GINKGO_ENABLE_HALF
-      public ConvertibleTo<
-          Hybrid<next_precision<next_precision<ValueType>>, IndexType>>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Hybrid<next_precision<ValueType, 2>, IndexType>>,
+#endif
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+      public ConvertibleTo<Hybrid<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
@@ -366,19 +368,32 @@ public:
 
     void move_to(Hybrid<next_precision<ValueType>, IndexType>* result) override;
 
-#if GINKGO_ENABLE_HALF
-    friend class Hybrid<previous_precision<previous_precision<ValueType>>,
-                        IndexType>;
-    using ConvertibleTo<Hybrid<next_precision<next_precision<ValueType>>,
-                               IndexType>>::convert_to;
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+    friend class Hybrid<previous_precision<ValueType, 2>, IndexType>;
     using ConvertibleTo<
-        Hybrid<next_precision<next_precision<ValueType>>, IndexType>>::move_to;
+        Hybrid<next_precision<ValueType, 2>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Hybrid<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(Hybrid<next_precision<next_precision<ValueType>>,
-                           IndexType>* result) const override;
+    void convert_to(
+        Hybrid<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(Hybrid<next_precision<next_precision<ValueType>>, IndexType>*
-                     result) override;
+    void move_to(
+        Hybrid<next_precision<ValueType, 2>, IndexType>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Hybrid<previous_precision<ValueType, 3>, IndexType>;
+    using ConvertibleTo<
+        Hybrid<next_precision<ValueType, 3>, IndexType>>::convert_to;
+    using ConvertibleTo<
+        Hybrid<next_precision<ValueType, 3>, IndexType>>::move_to;
+
+    void convert_to(
+        Hybrid<next_precision<ValueType, 3>, IndexType>* result) const override;
+
+    void move_to(
+        Hybrid<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
     void convert_to(Dense<ValueType>* other) const override;

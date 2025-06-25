@@ -238,6 +238,19 @@ class GkoHalfPrinter:
         self.float_val.fetch_lazy()
         return self.float_val
 
+class GkoBfloat16Printer:
+    "Print a gko::bfloat16"
+
+    def __init__(self, val):
+        # GDB doesn't seem to consider the user-defined conversion in its Value.cast,
+        # so we need to call the conversion operator explicitly
+        address = hex(val.address)
+        self.float_val = gdb.parse_and_eval(f"reinterpret_cast<gko::bfloat16*>({address})->operator float()")
+
+    def to_string(self):
+        self.float_val.fetch_lazy()
+        return self.float_val
+
 
 def lookup_type(val):
     if not str(val.type.unqualified()).startswith('gko::'):

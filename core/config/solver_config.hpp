@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,8 +27,7 @@ inline void common_solver_parse(SolverParam& params, const pnode& config,
     }
     if (auto& obj = config.get("criteria")) {
         params.with_criteria(
-            gko::config::parse_or_get_factory_vector<
-                const stop::CriterionFactory>(obj, context, td_for_child));
+            gko::config::parse_or_get_criteria(obj, context, td_for_child));
     }
     if (auto& obj = config.get("preconditioner")) {
         params.with_preconditioner(

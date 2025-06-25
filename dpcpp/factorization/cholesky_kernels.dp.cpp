@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -140,16 +140,6 @@ void symbolic_factorize(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
-
-
-template <typename ValueType, typename IndexType>
-void forest_from_factor(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType>* factors,
-                        gko::factorization::elimination_forest<IndexType>&
-                            forest) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CHOLESKY_FOREST_FROM_FACTOR);
 
 
 template <typename ValueType, typename IndexType>

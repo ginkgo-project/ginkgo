@@ -1,0 +1,18 @@
+name: Mirroring-Major
+
+# Always mirror the repo on the major branches
+on:
+  push:
+    branches:
+      - 'main'
+      - 'master'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+
+jobs:
+  mirror:
+    name: mirror
+    uses: ./.github/workflows/mirror.yml
+    secrets: inherit

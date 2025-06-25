@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,7 +105,9 @@ void device_matrix_data<ValueType, IndexType>::fill_zero()
 template <typename ValueType, typename IndexType>
 void device_matrix_data<ValueType, IndexType>::sort_row_major()
 {
-    this->values_.get_executor()->run(components::make_sort_row_major(*this));
+    this->values_.get_executor()->run(components::make_sort_row_major(
+        this->get_num_stored_elements(), this->get_row_idxs(),
+        this->get_col_idxs(), this->get_values()));
 }
 
 

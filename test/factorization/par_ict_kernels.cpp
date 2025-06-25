@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,7 +100,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::float16>) {
         // We set the diagonal larger than 1 in half precision to reduce the
         // possibility of resulting inf. It might introduce (a - llh)/diag when
         // the entry is not presented in the original matrix
@@ -140,6 +140,7 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);

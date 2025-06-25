@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/csr_lookup.hpp"
 
 
 namespace gko {
@@ -52,6 +53,15 @@ namespace kernels {
                       matrix::Csr<ValueType, IndexType>* l_factor,            \
                       bool diag_sqrt)
 
+#define GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(ValueType, \
+                                                           IndexType) \
+    void symbolic_validate(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Csr<ValueType, IndexType>* system_matrix,       \
+        const matrix::Csr<ValueType, IndexType>* factors,             \
+        const matrix::csr::lookup_data<IndexType>& factors_lookup,    \
+        bool& valid)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -66,7 +76,9 @@ namespace kernels {
     GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType,      \
                                                            IndexType);     \
     template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(factorization,

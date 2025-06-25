@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -656,10 +656,6 @@ TEST_F(Dense, IsTransposableIntoDenseCrossExecutor)
 }
 
 
-// HIP doesn't support complex in all our supported versions yet
-#ifndef GKO_COMPILING_HIP
-
-
 TEST_F(Dense, IsConjugateTransposable)
 {
     set_up_apply_data();
@@ -690,9 +686,6 @@ TEST_F(Dense, IsConjugateTransposableIntoDenseCrossExecutor)
 
     GKO_ASSERT_MTX_NEAR(dtrans, trans, 0);
 }
-
-
-#endif
 
 
 TEST_F(Dense, CopyRespectsStride)

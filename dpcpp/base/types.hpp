@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,10 +10,12 @@
 
 #include <sycl/half_type.hpp>
 
+#include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "dpcpp/base/bf16_alias.hpp"
 #include "dpcpp/base/complex.hpp"
 
 
@@ -53,14 +55,25 @@ struct sycl_type_impl<half> {
     using type = sycl::half;
 };
 
+template <>
+struct sycl_type_impl<bfloat16> {
+    using type = vendor_bf16;
+};
+
 template <typename T>
 struct sycl_type_impl<std::complex<T>> {
     using type = std::complex<typename sycl_type_impl<T>::type>;
 };
 
+// handle the complex in gko for half and bfloat16
 template <>
 struct sycl_type_impl<std::complex<gko::half>> {
     using type = gko::complex<typename sycl_type_impl<gko::half>::type>;
+};
+
+template <>
+struct sycl_type_impl<std::complex<gko::bfloat16>> {
+    using type = gko::complex<typename sycl_type_impl<gko::bfloat16>::type>;
 };
 
 template <typename ValueType, typename IndexType>

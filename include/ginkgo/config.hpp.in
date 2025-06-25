@@ -37,6 +37,10 @@
 #cmakedefine GKO_HAVE_CXXABI_H
 
 
+/* Is std::size_t the same type as std::uint64_t? */
+#cmakedefine GKO_SIZE_T_IS_UINT64_T
+
+
 /* Should we use all optimizations for Jacobi? */
 #cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
 
@@ -121,10 +125,15 @@
 #cmakedefine01 GINKGO_ENABLE_HALF
 // clang-format on
 
+/* Is bfloat16 operation available ? */
+// clang-format off
+#cmakedefine01 GINKGO_ENABLE_BFLOAT16
+// clang-format on
+
 
 /* Do we need to use blocking communication in our SpMV? */
 // clang-format off
-#cmakedefine GINKGO_FORCE_SPMV_BLOCKING_COMM
+#cmakedefine01 GINKGO_HAVE_OPENMPI_PRE_4_1_X
 // clang-format on
 
 

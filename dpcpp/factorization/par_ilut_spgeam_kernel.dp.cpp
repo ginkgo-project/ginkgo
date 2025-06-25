@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,10 +78,10 @@ void tri_spgeam_nnz(const IndexType* __restrict__ lu_row_ptrs,
             IndexType out_nz, bool valid) {
             auto col = min(a_col, lu_col);
             // count the number of unique elements being merged
-            l_count +=
-                popcnt(subwarp.ballot(col <= row && a_col != lu_col && valid));
-            u_count +=
-                popcnt(subwarp.ballot(col >= row && a_col != lu_col && valid));
+            l_count += popcnt(
+                group::ballot(subwarp, col <= row && a_col != lu_col && valid));
+            u_count += popcnt(
+                group::ballot(subwarp, col >= row && a_col != lu_col && valid));
             return true;
         });
     if (subwarp.thread_rank() == 0) {
@@ -196,7 +196,8 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
         auto lu_cur_val = subwarp.shfl(lu_val, merge_result.b_idx);
         auto valid = out_begin + lane < out_size;
         // check if the previous thread has matching columns
-        auto equal_mask = subwarp.ballot(a_cur_col == lu_cur_col && valid);
+        auto equal_mask =
+            group::ballot(subwarp, a_cur_col == lu_cur_col && valid);
         auto prev_equal_mask = equal_mask << 1 | skip_first;
         skip_first = bool(equal_mask >> (subgroup_size - 1));
         auto prev_equal = bool(prev_equal_mask & lanemask_eq);
@@ -221,9 +222,9 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
         // determine which threads will write output to L or U
         auto use_lpu = lpu_cur_col == r_col;
         auto l_new_advance_mask =
-            subwarp.ballot(r_col <= row && !prev_equal && valid);
+            group::ballot(subwarp, r_col <= row && !prev_equal && valid);
         auto u_new_advance_mask =
-            subwarp.ballot(r_col >= row && !prev_equal && valid);
+            group::ballot(subwarp, r_col >= row && !prev_equal && valid);
         // store values
         if (!prev_equal && valid) {
             auto diag =
@@ -246,7 +247,7 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
         auto a_advance = merge_result.a_advance;
         auto lu_advance = merge_result.b_advance;
         auto lpu_advance =
-            popcnt(subwarp.ballot(use_lpu && !prev_equal && valid));
+            popcnt(group::ballot(subwarp, use_lpu && !prev_equal && valid));
         auto l_new_advance = popcnt(l_new_advance_mask);
         auto u_new_advance = popcnt(u_new_advance_mask);
         a_begin += a_advance;

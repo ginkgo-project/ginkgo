@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,13 +19,11 @@
         GKO_SOLVER_TRAITS::_x, _template->get_size()[1])
 
 
-#define GKO_SOLVER_ONE_MINUS_ONE()                                       \
-    auto one_op = this->template create_workspace_scalar<ValueType>(     \
-        GKO_SOLVER_TRAITS::one, 1);                                      \
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>( \
-        GKO_SOLVER_TRAITS::minus_one, 1);                                \
-    one_op->fill(one<ValueType>());                                      \
-    neg_one_op->fill(-one<ValueType>())
+#define GKO_SOLVER_ONE_MINUS_ONE()                                             \
+    auto one_op = this->template create_workspace_fixed_scalar<ValueType>(     \
+        GKO_SOLVER_TRAITS::one, 1, one<ValueType>());                          \
+    auto neg_one_op = this->template create_workspace_fixed_scalar<ValueType>( \
+        GKO_SOLVER_TRAITS::minus_one, 1, -one<ValueType>())
 
 #define GKO_SOLVER_STOP_REDUCTION_ARRAYS()                      \
     auto& stop_status =                                         \

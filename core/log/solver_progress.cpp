@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -248,12 +248,20 @@ private:
             gko::matrix::Dense<std::complex<double>>,
             gko::matrix::Dense<std::complex<float>>,
 #if GINKGO_ENABLE_HALF
-            gko::matrix::Dense<gko::half>,
-            gko::matrix::Dense<std::complex<gko::half>>,
-            gko::WritableToMatrixData<gko::half, int32>,
-            gko::WritableToMatrixData<std::complex<gko::half>, int32>,
-            gko::WritableToMatrixData<gko::half, int64>,
-            gko::WritableToMatrixData<std::complex<gko::half>, int64>,
+            gko::matrix::Dense<gko::float16>,
+            gko::matrix::Dense<std::complex<gko::float16>>,
+            gko::WritableToMatrixData<gko::float16, int32>,
+            gko::WritableToMatrixData<std::complex<gko::float16>, int32>,
+            gko::WritableToMatrixData<gko::float16, int64>,
+            gko::WritableToMatrixData<std::complex<gko::float16>, int64>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            gko::matrix::Dense<gko::bfloat16>,
+            gko::matrix::Dense<std::complex<gko::bfloat16>>,
+            gko::WritableToMatrixData<gko::bfloat16, int32>,
+            gko::WritableToMatrixData<std::complex<gko::bfloat16>, int32>,
+            gko::WritableToMatrixData<gko::bfloat16, int64>,
+            gko::WritableToMatrixData<std::complex<gko::bfloat16>, int64>,
 #endif
             // fallback for other matrix types
             gko::WritableToMatrixData<double, int32>,

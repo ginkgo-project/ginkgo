@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -143,7 +143,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     auto out_ptr = reinterpret_cast<AbsType*>(tmp1.get_data());
 
 #ifdef GKO_COMPILING_HIP
-    if constexpr (std::is_same<remove_complex<ValueType>, half>::value) {
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
         // HIP does not support 16bit atomic operation
         GKO_NOT_SUPPORTED(m);
     } else

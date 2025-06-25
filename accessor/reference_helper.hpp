@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,7 +13,7 @@
 
 
 // NVC++ disallow a constexpr function has a nonliteral return type like half
-#if defined(__NVCOMPILER) && GINKGO_ENABLE_HALF
+#if defined(__NVCOMPILER) && (GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16)
 
 #define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
 

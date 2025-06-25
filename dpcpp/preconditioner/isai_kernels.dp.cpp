@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -64,7 +64,7 @@ __dpct_inline__ void generic_generate(
     IndexType* __restrict__ excess_nnz, Callable direct_solve,
     sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>* storage)
+                                       subwarps_per_block>& storage)
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row =
@@ -110,9 +110,12 @@ __dpct_inline__ void generic_generate(
         }
 
         // subwarp_size^2 storage per subwarp
+        // before 2024.2, the operation from sycl bfloat16 is too general such
+        // that this pointer shift will have ambiguous issue between built-in
+        // pointer shift and bfloat16 operation.
         auto dense_system_ptr =
-            *storage + (item_ct1.get_local_id(2) / subwarp_size) *
-                           subwarp_size * subwarp_size;
+            &storage[(item_ct1.get_local_id(2) / subwarp_size) * subwarp_size *
+                     subwarp_size];
         // row-major accessor
         auto dense_system = [&](IndexType row, IndexType col) -> ValueType& {
             return dense_system_ptr[row * subwarp_size + col];
@@ -153,10 +156,11 @@ __dpct_inline__ void generic_generate(
                 i_col_idxs + i_row_begin, i_row_size, subwarp,
                 [&](IndexType, IndexType m_idx, IndexType i_idx,
                     config::lane_mask_type, bool valid) {
-                    rhs_one_idx += popcnt(subwarp.ballot(
+                    rhs_one_idx += popcnt(group::ballot(
+                        subwarp,
                         valid &&
-                        i_col_idxs[i_transposed_row_begin + m_idx] < row &&
-                        col == row));
+                            i_col_idxs[i_transposed_row_begin + m_idx] < row &&
+                            col == row));
                 });
         }
 
@@ -198,7 +202,7 @@ void generate_l_inverse(
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>* storage)
+                                       subwarps_per_block>& storage)
 {
     auto trs_solve =
         [](IndexType num_elems, const ValueType* __restrict__ local_row,
@@ -251,7 +255,7 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     generate_l_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, storage_acc_ct1.get_pointer().get());
+                        item_ct1, *storage_acc_ct1.get_pointer());
                 });
     });
 }
@@ -268,7 +272,7 @@ void generate_u_inverse(
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>* storage)
+                                       subwarps_per_block>& storage)
 {
     auto trs_solve = [](IndexType num_elems,
                         const ValueType* __restrict__ local_row,
@@ -321,7 +325,7 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     generate_u_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, storage_acc_ct1.get_pointer().get());
+                        item_ct1, *storage_acc_ct1.get_pointer());
                 });
     });
 }
@@ -338,7 +342,7 @@ void generate_general_inverse(
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, bool spd, sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>* storage)
+                                       subwarps_per_block>& storage)
 {
     auto general_solve = [spd](IndexType num_elems,
                                ValueType* __restrict__ local_row,
@@ -403,7 +407,7 @@ void generate_general_inverse(
                     generate_general_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
-                        item_ct1, storage_acc_ct1.get_pointer().get());
+                        item_ct1, *storage_acc_ct1.get_pointer());
                 });
     });
 }

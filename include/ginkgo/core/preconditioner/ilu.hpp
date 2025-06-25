@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,14 +15,11 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/type_traits.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/preconditioner/isai.hpp>
-#include <ginkgo/core/preconditioner/utils.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -35,19 +32,13 @@ namespace preconditioner {
 namespace detail {
 
 
-template <typename LSolverType, typename USolverType>
+template <typename Type>
 constexpr bool support_ilu_parse =
-    std::is_same<typename USolverType::transposed_type, LSolverType>::value &&
-    (is_instantiation_of<LSolverType, solver::LowerTrs>::value ||
-     is_instantiation_of<LSolverType, solver::Ir>::value ||
-     is_instantiation_of<LSolverType, solver::Gmres>::value ||
-     is_instantiation_of<LSolverType, preconditioner::LowerIsai>::value);
+    std::is_same_v<typename Type::l_solver_type, LinOp>&&
+        std::is_same_v<typename Type::u_solver_type, LinOp>;
 
 
-template <typename Ilu,
-          std::enable_if_t<!support_ilu_parse<typename Ilu::l_solver_type,
-                                              typename Ilu::u_solver_type>>* =
-              nullptr>
+template <typename Ilu, std::enable_if_t<!support_ilu_parse<Ilu>>* = nullptr>
 typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
@@ -56,10 +47,7 @@ typename Ilu::parameters_type ilu_parse(
         "preconditioner::Ilu only supports limited type for parse.");
 }
 
-template <
-    typename Ilu,
-    std::enable_if_t<support_ilu_parse<typename Ilu::l_solver_type,
-                                       typename Ilu::u_solver_type>>* = nullptr>
+template <typename Ilu, std::enable_if_t<support_ilu_parse<Ilu>>* = nullptr>
 typename Ilu::parameters_type ilu_parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child);
@@ -101,11 +89,14 @@ typename Ilu::parameters_type ilu_parse(
  *       uses an internal cache to accelerate multiple (sequential) applies.
  *       Using it in parallel can lead to segmentation faults, wrong results
  *       and other unwanted behavior.
+ * @note The default template during parse is <ValueType, IndexType> not
+ *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
+ *       in parse.
  *
- * @tparam LSolverType  type of the solver used for the L matrix.
- *                      Defaults to solver::LowerTrs
- * @tparam USolverType  type of the solver used for the U matrix
- *                      Defaults to solver::UpperTrs
+ * @tparam LSolverTypeOrValueType  type of the solver or the value type used for
+ *                                 the L matrix. Defaults to solver::LowerTrs
+ * @tparam USolverTypeOrValueType  type of the solver or the value type used for
+ *                                 the U matrix Defaults to solver::UpperTrs
  * @tparam ReverseApply  default behavior (ReverseApply = false) is first to
  *                       solve with L (Ly = b) and then with U (Ux = y).
  *                       When set to true, it will solve first with U, and then
@@ -116,28 +107,35 @@ typename Ilu::parameters_type ilu_parse(
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename LSolverType = solver::LowerTrs<>,
-          typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
-          typename IndexType = int32>
-class Ilu : public EnableLinOp<
-                Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
-            public Transposable {
+template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
+          typename USolverTypeOrValueType =
+              gko::detail::transposed_type<LSolverTypeOrValueType>,
+          bool ReverseApply = false, typename IndexType = int32>
+class Ilu
+    : public EnableLinOp<Ilu<LSolverTypeOrValueType, USolverTypeOrValueType,
+                             ReverseApply, IndexType>>,
+      public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
     static_assert(
-        std::is_same<typename LSolverType::value_type,
-                     typename USolverType::value_type>::value,
+        std::is_same_v<gko::detail::get_value_type<LSolverTypeOrValueType>,
+                       gko::detail::get_value_type<USolverTypeOrValueType>>,
         "Both the L- and the U-solver must use the same `value_type`!");
-    using value_type = typename LSolverType::value_type;
-    using l_solver_type = LSolverType;
-    using u_solver_type = USolverType;
+    using value_type = gko::detail::get_value_type<LSolverTypeOrValueType>;
+    using l_solver_type =
+        std::conditional_t<gko::detail::is_ginkgo_linop<LSolverTypeOrValueType>,
+                           LSolverTypeOrValueType, LinOp>;
+    using u_solver_type =
+        std::conditional_t<gko::detail::is_ginkgo_linop<USolverTypeOrValueType>,
+                           USolverTypeOrValueType, LinOp>;
     static constexpr bool performs_reverse_apply = ReverseApply;
     using index_type = IndexType;
     using transposed_type =
-        Ilu<typename USolverType::transposed_type,
-            typename LSolverType::transposed_type, ReverseApply, IndexType>;
+        Ilu<gko::detail::transposed_type<USolverTypeOrValueType>,
+            gko::detail::transposed_type<LSolverTypeOrValueType>, ReverseApply,
+            IndexType>;
 
     class Factory;
 
@@ -146,13 +144,13 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<const typename l_solver_type::Factory>
+        std::shared_ptr<const gko::detail::factory_type<l_solver_type>>
             l_solver_factory{};
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<const typename u_solver_type::Factory>
+        std::shared_ptr<const gko::detail::factory_type<u_solver_type>>
             u_solver_factory{};
 
         /**
@@ -162,14 +160,21 @@ public:
 
         GKO_DEPRECATED("use with_l_solver instead")
         parameters_type& with_l_solver_factory(
-            deferred_factory_parameter<const typename l_solver_type::Factory>
+            deferred_factory_parameter<
+                const gko::detail::factory_type<l_solver_type>>
                 solver)
         {
             return with_l_solver(std::move(solver));
         }
 
+        /**
+         * When LSolverTypeOrValueType is a concrete solver type, this only
+         * accepts the factory from the same concrete solver type. When
+         * LSolverTypeOrValueType is a value type, it accepts any LinOpFactory.
+         */
         parameters_type& with_l_solver(
-            deferred_factory_parameter<const typename l_solver_type::Factory>
+            deferred_factory_parameter<
+                const gko::detail::factory_type<l_solver_type>>
                 solver)
         {
             this->l_solver_generator = std::move(solver);
@@ -185,14 +190,21 @@ public:
 
         GKO_DEPRECATED("use with_u_solver instead")
         parameters_type& with_u_solver_factory(
-            deferred_factory_parameter<const typename u_solver_type::Factory>
+            deferred_factory_parameter<
+                const gko::detail::factory_type<u_solver_type>>
                 solver)
         {
             return with_u_solver(std::move(solver));
         }
 
+        /**
+         * When USolverTypeOrValueType is a concrete solver type, this only
+         * accepts the factory from the same concrete solver type. When
+         * USolverTypeOrValueType is a value type, it accepts any LinOpFactory.
+         */
         parameters_type& with_u_solver(
-            deferred_factory_parameter<const typename u_solver_type::Factory>
+            deferred_factory_parameter<
+                const gko::detail::factory_type<u_solver_type>>
                 solver)
         {
             this->u_solver_generator = std::move(solver);
@@ -228,10 +240,12 @@ public:
         }
 
     private:
-        deferred_factory_parameter<const typename l_solver_type::Factory>
+        deferred_factory_parameter<
+            const gko::detail::factory_type<l_solver_type>>
             l_solver_generator;
 
-        deferred_factory_parameter<const typename u_solver_type::Factory>
+        deferred_factory_parameter<
+            const gko::detail::factory_type<u_solver_type>>
             u_solver_generator;
 
         deferred_factory_parameter<const LinOpFactory> factorization_generator;
@@ -253,15 +267,16 @@ public:
      *
      * @return parameters
      *
-     * @note only support the following pairs for <l_solver, u_solver>:
-     *       <Ir, Ir>, <Gmres, Gmres>, <LowerTrs, UpperTrs>,
-     *       and <LowerIsai, UpperIsai>
+     * @note only support the following when using <ValueType, ValueType,
+     *       ReverseApply, IndexType> not <LSolverType, USolverType,
+     *       ReverseApply, IndexType> variants
      */
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<value_type, index_type>())
     {
+        // parse is not templated, so we can only use SFINAE later
         return detail::ilu_parse<Ilu>(config, context, td_for_child);
     }
 
@@ -291,11 +306,11 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<typename u_solver_type::transposed_type>(
-                this->get_u_solver()->transpose()));
+            share(as<gko::detail::transposed_type<u_solver_type>>(
+                as<Transposable>(this->get_u_solver())->transpose()));
         transposed->u_solver_ =
-            share(as<typename l_solver_type::transposed_type>(
-                this->get_l_solver()->transpose()));
+            share(as<gko::detail::transposed_type<l_solver_type>>(
+                as<Transposable>(this->get_l_solver())->transpose()));
 
         return std::move(transposed);
     }
@@ -306,11 +321,11 @@ public:
             new transposed_type{this->get_executor()}};
         transposed->set_size(gko::transpose(this->get_size()));
         transposed->l_solver_ =
-            share(as<typename u_solver_type::transposed_type>(
-                this->get_u_solver()->conj_transpose()));
+            share(as<gko::detail::transposed_type<u_solver_type>>(
+                as<Transposable>(this->get_u_solver())->conj_transpose()));
         transposed->u_solver_ =
-            share(as<typename l_solver_type::transposed_type>(
-                this->get_l_solver()->conj_transpose()));
+            share(as<gko::detail::transposed_type<l_solver_type>>(
+                as<Transposable>(this->get_l_solver())->conj_transpose()));
 
         return std::move(transposed);
     }
@@ -438,11 +453,7 @@ protected:
             auto fact = std::shared_ptr<const LinOp>(
                 parameters_.factorization_factory->generate(lin_op));
             // ensure that the result is a composition
-            comp =
-                std::dynamic_pointer_cast<const Composition<value_type>>(fact);
-            if (!comp) {
-                GKO_NOT_SUPPORTED(comp);
-            }
+            comp = as<const Composition<value_type>>(fact);
         }
         if (comp->get_operators().size() == 2) {
             l_factor = comp->get_operators()[0];
@@ -456,12 +467,20 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ = generate_default_solver<l_solver_type>(exec, l_factor);
+            // when l_solver_type is LinOp, use LowerTrs as the default one
+            l_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<l_solver_type, LinOp>,
+                solver::LowerTrs<value_type, index_type>, l_solver_type>>(
+                exec, l_factor);
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor);
         }
         if (!parameters_.u_solver_factory) {
-            u_solver_ = generate_default_solver<u_solver_type>(exec, u_factor);
+            // when u_solver_type is LinOp, use UpperTrs as the default one
+            u_solver_ = generate_default_solver<std::conditional_t<
+                std::is_same_v<u_solver_type, LinOp>,
+                solver::UpperTrs<value_type, index_type>, u_solver_type>>(
+                exec, u_factor);
         } else {
             u_solver_ = parameters_.u_solver_factory->generate(u_factor);
         }

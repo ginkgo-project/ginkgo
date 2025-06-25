@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
+#include "core/solver/update_residual.hpp"
 
 
 namespace gko {
@@ -96,7 +97,6 @@ Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
         this->parameters_ = other.parameters_;
         this->set_solver(other.get_solver());
         this->set_relaxation_factor(other.relaxation_factor_);
-        parameters_ = other.parameters_;
     }
     return *this;
 }
@@ -114,7 +114,6 @@ Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
         this->set_relaxation_factor(other.relaxation_factor_);
         other.set_solver(nullptr);
         other.set_relaxation_factor(nullptr);
-        parameters_ = other.parameters_;
     }
     return *this;
 }
@@ -194,7 +193,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
-    constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
@@ -204,7 +202,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
@@ -225,52 +222,19 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     while (true) {
         ++iter;
 
-        if (iter == 0) {
-            // In iter 0, the iteration and residual are updated.
-            bool all_stopped = stop_criterion->update()
-                                   .num_iterations(iter)
-                                   .residual(residual_ptr)
-                                   .solution(dense_x)
-                                   .check(relative_stopping_id, true,
-                                          &stop_status, &one_changed);
+        auto log_func = [this](auto solver, auto dense_b, auto dense_x,
+                               auto iter, auto residual_ptr,
+                               array<stopping_status>& stop_status,
+                               bool all_stopped) {
             this->template log<log::Logger::iteration_complete>(
-                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
+                solver, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
                 &stop_status, all_stopped);
-            if (all_stopped) {
-                break;
-            }
-        } else {
-            // In the other iterations, the residual can be updated separately.
-            bool all_stopped = stop_criterion->update()
-                                   .num_iterations(iter)
-                                   .solution(dense_x)
-                                   // we have the residual check later
-                                   .ignore_residual_check(true)
-                                   .check(relative_stopping_id, false,
-                                          &stop_status, &one_changed);
-            if (all_stopped) {
-                this->template log<log::Logger::iteration_complete>(
-                    this, dense_b, dense_x, iter, nullptr, nullptr, nullptr,
-                    &stop_status, all_stopped);
-                break;
-            }
-            residual_ptr = residual;
-            // residual = b - A * x
-            residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
-                                             residual);
-            all_stopped = stop_criterion->update()
-                              .num_iterations(iter)
-                              .residual(residual_ptr)
-                              .solution(dense_x)
-                              .check(relative_stopping_id, true, &stop_status,
-                                     &one_changed);
-            this->template log<log::Logger::iteration_complete>(
-                this, dense_b, dense_x, iter, residual_ptr, nullptr, nullptr,
-                &stop_status, all_stopped);
-            if (all_stopped) {
-                break;
-            }
+        };
+        bool all_stopped = update_residual(
+            this, iter, dense_b, dense_x, residual, residual_ptr,
+            stop_criterion, stop_status, log_func);
+        if (all_stopped) {
+            break;
         }
 
         if (solver_->apply_uses_initial_guess()) {

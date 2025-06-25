@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,17 +22,20 @@ protected:
     using value_type = T;
     static constexpr bool using_half =
         std::is_same_v<gko::remove_complex<value_type>, gko::half>;
+    static constexpr bool using_bfloat16 =
+        std::is_same_v<gko::remove_complex<value_type>, gko::bfloat16>;
 
-    // due to half accuracy, the summation ordering will affect the result
-    // easily
+    // due to half/bfloat16 accuracy, the summation ordering will affect the
+    // result easily
     ReduceArray()
-        : total_size(using_half ? 1024 : 6355),
+        : total_size(using_half ? 1024 : (using_bfloat16 ? 128 : 6355)),
           out{ref, I<T>{2}},
           dout{exec, out},
           vals{ref, total_size},
           dvals{exec}
     {
-        std::fill_n(vals.get_data(), total_size, using_half ? 1 : 3);
+        std::fill_n(vals.get_data(), total_size,
+                    using_half || using_bfloat16 ? 1 : 3);
         dvals = vals;
     }
 

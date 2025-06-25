@@ -27,10 +27,14 @@
 
 include(CMakeDependentOption)
 
-set(${PROJECT_NAME}_CUSTOM_BUILD_TYPES      "COVERAGE;TSAN;ASAN;LSAN;UBSAN" CACHE INTERNAL "")
+set(${PROJECT_NAME}_CUSTOM_BUILD_TYPES
+    "COVERAGE;TSAN;ASAN;LSAN;UBSAN"
+    CACHE INTERNAL
+    ""
+)
 
 # LLVM provides all sanitizers in a single library, but they are separate in GCC
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(GKO_TSAN_LIBRARIES "-static-libsan")
     set(GKO_UBSAN_LIBRARIES "-static-libsan")
 else()
@@ -38,16 +42,48 @@ else()
     set(GKO_UBSAN_LIBRARIES "-static-libubsan")
 endif()
 
-set(${PROJECT_NAME}_COVERAGE_COMPILER_FLAGS "-g -O0 --coverage" CACHE INTERNAL "")
-set(${PROJECT_NAME}_COVERAGE_LINKER_FLAGS   "--coverage"        CACHE INTERNAL "")
-set(${PROJECT_NAME}_TSAN_COMPILER_FLAGS     "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
-set(${PROJECT_NAME}_TSAN_LINKER_FLAGS       "-fsanitize=thread ${GKO_TSAN_LIBRARIES} -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
-set(${PROJECT_NAME}_ASAN_COMPILER_FLAGS     "-g -O1 -fsanitize=address -fno-omit-frame-pointer" CACHE INTERNAL "")
-set(${PROJECT_NAME}_ASAN_LINKER_FLAGS       "-fsanitize=address -fno-omit-frame-pointer"        CACHE INTERNAL "")
-set(${PROJECT_NAME}_LSAN_COMPILER_FLAGS     "-g -O1 -fsanitize=leak" CACHE INTERNAL "")
-set(${PROJECT_NAME}_LSAN_LINKER_FLAGS       "-fsanitize=leak"        CACHE INTERNAL "")
-set(${PROJECT_NAME}_UBSAN_COMPILER_FLAGS    "-g -O1 -fsanitize=undefined ${GKO_UBSAN_LIBRARIES}" CACHE INTERNAL "")
-set(${PROJECT_NAME}_UBSAN_LINKER_FLAGS      "-fsanitize=undefined ${GKO_UBSAN_LIBRARIES}"        CACHE INTERNAL "")
+set(${PROJECT_NAME}_COVERAGE_COMPILER_FLAGS
+    "-g -O0 --coverage"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_COVERAGE_LINKER_FLAGS "--coverage" CACHE INTERNAL "")
+set(${PROJECT_NAME}_TSAN_COMPILER_FLAGS
+    "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_TSAN_LINKER_FLAGS
+    "-fsanitize=thread ${GKO_TSAN_LIBRARIES} -fno-omit-frame-pointer -fPIC"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_ASAN_COMPILER_FLAGS
+    "-g -O1 -fsanitize=address -fno-omit-frame-pointer"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_ASAN_LINKER_FLAGS
+    "-fsanitize=address -fno-omit-frame-pointer"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_LSAN_COMPILER_FLAGS
+    "-g -O1 -fsanitize=leak"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_LSAN_LINKER_FLAGS "-fsanitize=leak" CACHE INTERNAL "")
+set(${PROJECT_NAME}_UBSAN_COMPILER_FLAGS
+    "-g -O1 -fsanitize=undefined ${GKO_UBSAN_LIBRARIES}"
+    CACHE INTERNAL
+    ""
+)
+set(${PROJECT_NAME}_UBSAN_LINKER_FLAGS
+    "-fsanitize=undefined ${GKO_UBSAN_LIBRARIES}"
+    CACHE INTERNAL
+    ""
+)
 
 # We need to wrap all flags with `-Xcomplier` for HIP when using the NVCC backend
 function(GKO_XCOMPILER varname varlist)
@@ -58,17 +94,16 @@ function(GKO_XCOMPILER varname varlist)
     set(${varname} "${tmp}" CACHE INTERNAL "")
 endfunction()
 
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_COMPILER_FLAGS "-g;-O0;--coverage")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_LINKER_FLAGS   "--coverage")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_TSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=thread;-fno-omit-frame-pointer;-fPIC")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_TSAN_LINKER_FLAGS       "-fsanitize=thread;-static-libtsan;-fno-omit-frame-pointer;-fPIC")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_ASAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=address;-fno-omit-frame-pointer")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_ASAN_LINKER_FLAGS       "-fsanitize=address;-fno-omit-frame-pointer")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_LSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=leak")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_LSAN_LINKER_FLAGS       "-fsanitize=leak")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_UBSAN_COMPILER_FLAGS    "-g;-O1;-fsanitize=undefined;-static-libubsan")
-GKO_XCOMPILER(${PROJECT_NAME}_NVCC_UBSAN_LINKER_FLAGS      "-fsanitize=undefined;-static-libubsan")
-
+gko_xcompiler(${PROJECT_NAME}_NVCC_COVERAGE_COMPILER_FLAGS "-g;-O0;--coverage")
+gko_xcompiler(${PROJECT_NAME}_NVCC_COVERAGE_LINKER_FLAGS   "--coverage")
+gko_xcompiler(${PROJECT_NAME}_NVCC_TSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=thread;-fno-omit-frame-pointer;-fPIC")
+gko_xcompiler(${PROJECT_NAME}_NVCC_TSAN_LINKER_FLAGS       "-fsanitize=thread;-static-libtsan;-fno-omit-frame-pointer;-fPIC")
+gko_xcompiler(${PROJECT_NAME}_NVCC_ASAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=address;-fno-omit-frame-pointer")
+gko_xcompiler(${PROJECT_NAME}_NVCC_ASAN_LINKER_FLAGS       "-fsanitize=address;-fno-omit-frame-pointer")
+gko_xcompiler(${PROJECT_NAME}_NVCC_LSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=leak")
+gko_xcompiler(${PROJECT_NAME}_NVCC_LSAN_LINKER_FLAGS       "-fsanitize=leak")
+gko_xcompiler(${PROJECT_NAME}_NVCC_UBSAN_COMPILER_FLAGS    "-g;-O1;-fsanitize=undefined;-static-libubsan")
+gko_xcompiler(${PROJECT_NAME}_NVCC_UBSAN_LINKER_FLAGS      "-fsanitize=undefined;-static-libubsan")
 
 get_property(ENABLED_LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
 
@@ -81,14 +116,21 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
         set(CMAKE_REQUIRED_LIBRARIES ${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS})
 
         if(_LANG STREQUAL "C")
-            check_c_compiler_flag("${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
-                ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
+            check_c_compiler_flag(
+                "${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
+                ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED
+            )
         elseif(_LANG STREQUAL "CXX" OR _LANG STREQUAL "HIP")
-            check_cxx_compiler_flag("${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
-                ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
+            check_cxx_compiler_flag(
+                "${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
+                ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED
+            )
         else()
             if(DEFINED ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-                message(STATUS "Skipping ${_LANG}, not supported by build_type_helpers.cmake script")
+                message(
+                    STATUS
+                    "Skipping ${_LANG}, not supported by build_type_helpers.cmake script"
+                )
             endif()
             set(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED FALSE)
         endif()
@@ -96,52 +138,77 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
             if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM_NVIDIA)
                 set(CMAKE_${_LANG}_FLAGS_${_TYPE}
                     ${${PROJECT_NAME}_NVCC_${_TYPE}_COMPILER_FLAGS}
-                    CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
+                    CACHE STRING
+                    "Flags used by the ${_LANG} compiler during ${_TYPE} builds."
+                    FORCE
                 )
                 mark_as_advanced(CMAKE_${_LANG}_FLAGS_${_TYPE})
-                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED TRUE CACHE
-                    STRING "Whether or not coverage is supported by at least one compiler." FORCE)
+                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED
+                    TRUE
+                    CACHE STRING
+                    "Whether or not coverage is supported by at least one compiler."
+                    FORCE
+                )
             else()
                 set(CMAKE_${_LANG}_FLAGS_${_TYPE}
                     ${${PROJECT_NAME}_${_TYPE}_COMPILER_FLAGS}
-                    CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
+                    CACHE STRING
+                    "Flags used by the ${_LANG} compiler during ${_TYPE} builds."
+                    FORCE
                 )
                 mark_as_advanced(CMAKE_${_LANG}_FLAGS_${_TYPE})
-                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED TRUE CACHE
-                    STRING "Whether or not coverage is supported by at least one compiler." FORCE)
+                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED
+                    TRUE
+                    CACHE STRING
+                    "Whether or not coverage is supported by at least one compiler."
+                    FORCE
+                )
             endif()
         endif()
         set(CMAKE_REQUIRED_LIBRARIES ${_CMAKE_REQUIRED_LIBRARIES})
     endforeach()
 endforeach()
 
-if (CMAKE_BUILD_TYPE
+if(
+    CMAKE_BUILD_TYPE
     AND (CMAKE_BUILD_TYPE IN_LIST ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
-    AND (NOT ${PROJECT_NAME}_${CMAKE_BUILD_TYPE}_SUPPORTED))
-    message(FATAL_ERROR "Custom CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} not supported by the compiler")
+    AND (NOT ${PROJECT_NAME}_${CMAKE_BUILD_TYPE}_SUPPORTED)
+)
+    message(
+        FATAL_ERROR
+        "Custom CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} not supported by the compiler"
+    )
 endif()
 
 foreach(_TYPE IN LISTS ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
-    cmake_dependent_option(${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES
-        "Should the ${_TYPE} target be in the CMAKE_CONFIGURATION_TYPES list if supported ?" ON
+    cmake_dependent_option(
+        ${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES
+        "Should the ${_TYPE} target be in the CMAKE_CONFIGURATION_TYPES list if supported ?"
+        ON
         # No need for this option if we are not using a multi-config generator
-        "CMAKE_CONFIGURATION_TYPES;${PROJECT_NAME}_${_TYPE}_SUPPORTED" OFF
+        "CMAKE_CONFIGURATION_TYPES;${PROJECT_NAME}_${_TYPE}_SUPPORTED"
+        OFF
     )
 
     if(${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES)
         # Modify this only if using a multi-config generator
-			  # some modules rely on this variable to detect those generators.
+        # some modules rely on this variable to detect those generators.
         if(CMAKE_CONFIGURATION_TYPES AND ${PROJECT_NAME}_${_TYPE}_SUPPORTED)
             list(APPEND CMAKE_CONFIGURATION_TYPES ${_TYPE})
             list(REMOVE_DUPLICATES CMAKE_CONFIGURATION_TYPES)
-            set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+            set(CMAKE_CONFIGURATION_TYPES
+                "${CMAKE_CONFIGURATION_TYPES}"
+                CACHE STRING
                 "Semicolon separated list of supported configuration types, only supports ${CMAKE_CONFIGURATION_TYPES} anything else will be ignored."
                 FORCE
             )
         endif()
     else()
         if(${_TYPE} IN_LIST CMAKE_CONFIGURATION_TYPES)
-            message(STATUS "Removing ${_TYPE} configuration type (${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES is OFF)")
+            message(
+                STATUS
+                "Removing ${_TYPE} configuration type (${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES is OFF)"
+            )
             list(REMOVE_ITEM CMAKE_CONFIGURATION_TYPES ${_TYPE})
             list(REMOVE_DUPLICATES CMAKE_CONFIGURATION_TYPES)
             set(CMAKE_CONFIGURATION_TYPES

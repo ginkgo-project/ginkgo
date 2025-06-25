@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,10 +19,12 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "core/base/index_range.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/symbolic.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
@@ -44,14 +46,7 @@ protected:
     using matrix_type = typename factory_type::matrix_type;
     using sparsity_pattern_type = typename factory_type::sparsity_pattern_type;
 
-    Lu()
-        : storage_offsets{ref},
-          dstorage_offsets{exec},
-          storage{ref},
-          dstorage{exec},
-          row_descs{ref},
-          drow_descs{exec}
-    {}
+    Lu() : lookup{ref}, dlookup{exec} {}
 
     void initialize_data(const char* mtx_filename, const char* mtx_lu_filename)
     {
@@ -61,23 +56,8 @@ protected:
         num_rows = mtx->get_size()[0];
         std::ifstream s_mtx_lu{mtx_lu_filename};
         mtx_lu = gko::read<matrix_type>(s_mtx_lu, ref);
-        storage_offsets.resize_and_reset(num_rows + 1);
-        row_descs.resize_and_reset(num_rows);
-
-        const auto allowed = gko::matrix::csr::sparsity_type::bitmap |
-                             gko::matrix::csr::sparsity_type::full |
-                             gko::matrix::csr::sparsity_type::hash;
-        gko::kernels::reference::csr::build_lookup_offsets(
-            ref, mtx_lu->get_const_row_ptrs(), mtx_lu->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_data());
-        storage.resize_and_reset(storage_offsets.get_const_data()[num_rows]);
-        gko::kernels::reference::csr::build_lookup(
-            ref, mtx_lu->get_const_row_ptrs(), mtx_lu->get_const_col_idxs(),
-            num_rows, allowed, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data());
-        dstorage_offsets = storage_offsets;
-        dstorage = storage;
-        drow_descs = row_descs;
+        lookup = gko::matrix::csr::build_lookup(mtx_lu.get());
+        dlookup = lookup;
         dmtx_lu = gko::clone(exec, mtx_lu);
         mtx_lu_sparsity = sparsity_pattern_type::create(ref);
         mtx_lu_sparsity->copy_from(mtx_lu);
@@ -100,16 +80,20 @@ protected:
             fn();
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("ani4");
             this->initialize_data(gko::matrices::location_ani4_mtx,
                                   gko::matrices::location_ani4_lu_mtx);
             fn();
+#endif
         }
         {
+#ifndef GINKGO_FAST_TESTS
             SCOPED_TRACE("ani4_amd");
             this->initialize_data(gko::matrices::location_ani4_amd_mtx,
                                   gko::matrices::location_ani4_amd_lu_mtx);
             fn();
+#endif
         }
     }
 
@@ -120,12 +104,8 @@ protected:
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<matrix_type> dmtx_lu;
     std::shared_ptr<sparsity_pattern_type> dmtx_lu_sparsity;
-    gko::array<index_type> storage_offsets;
-    gko::array<index_type> dstorage_offsets;
-    gko::array<gko::int32> storage;
-    gko::array<gko::int32> dstorage;
-    gko::array<gko::int64> row_descs;
-    gko::array<gko::int64> drow_descs;
+    gko::matrix::csr::lookup_data<index_type> lookup;
+    gko::matrix::csr::lookup_data<index_type> dlookup;
 };
 
 #ifdef GKO_COMPILING_OMP
@@ -159,14 +139,17 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
         gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
 
         gko::kernels::reference::lu_factorization::initialize(
-            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), this->mtx_lu.get());
+            this->ref, this->mtx.get(),
+            this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_data(),
+            this->mtx_lu.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
-            this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_data(), this->dmtx_lu.get());
+            this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
+            this->dmtx_lu.get());
 
         GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
         GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
@@ -184,25 +167,119 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
         gko::array<int> tmp{this->ref};
         gko::array<int> dtmp{this->exec};
         gko::kernels::reference::lu_factorization::initialize(
-            this->ref, this->mtx.get(), this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_data(), this->mtx_lu.get());
+            this->ref, this->mtx.get(),
+            this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_data(),
+            this->mtx_lu.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
             this->exec, this->dmtx.get(),
-            this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_data(), this->dmtx_lu.get());
+            this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
+            this->dmtx_lu.get());
 
         gko::kernels::reference::lu_factorization::factorize(
-            this->ref, this->storage_offsets.get_const_data(),
-            this->row_descs.get_const_data(), this->storage.get_const_data(),
-            diag_idxs.get_const_data(), this->mtx_lu.get(), true, tmp);
+            this->ref, this->lookup.storage_offsets.get_const_data(),
+            this->lookup.row_descs.get_const_data(),
+            this->lookup.storage.get_const_data(), diag_idxs.get_const_data(),
+            this->mtx_lu.get(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
-            this->exec, this->dstorage_offsets.get_const_data(),
-            this->drow_descs.get_const_data(), this->dstorage.get_const_data(),
-            ddiag_idxs.get_const_data(), this->dmtx_lu.get(), true, dtmp);
+            this->exec, this->dlookup.storage_offsets.get_const_data(),
+            this->dlookup.row_descs.get_const_data(),
+            this->dlookup.storage.get_const_data(), ddiag_idxs.get_const_data(),
+            this->dmtx_lu.get(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateValidFactors)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = false;
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_TRUE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data(
+            this->dmtx_lu->get_size());
+        // an identity matrix is a valid factorization, but doesn't contain the
+        // system matrix
+        for (auto row : gko::irange{static_cast<index_type>(data.size[0])}) {
+            data.nonzeros.emplace_back(row, row, gko::one<value_type>());
+        }
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsMissing)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data;
+        this->dmtx_lu->write(data);
+        // delete a random entry somewhere in the middle of the matrix
+        data.nonzeros.erase(data.nonzeros.begin() +
+                            data.nonzeros.size() * 3 / 4);
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
+    });
+}
+
+
+TYPED_TEST(Lu, KernelValidateInvalidFactorsExtra)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrices([this] {
+        bool valid = true;
+        gko::matrix_data<value_type, index_type> data;
+        this->dmtx_lu->write(data);
+        // insert an entry between two non-adjacent values in a row somewhere
+        // not at the beginning
+        const auto it = std::adjacent_find(
+            data.nonzeros.begin() + data.nonzeros.size() / 5,
+            data.nonzeros.end(), [](auto a, auto b) {
+                return a.row == b.row && a.column < b.column - 1;
+            });
+        data.nonzeros.insert(it, {it->row, it->column + 1, it->value});
+        this->dmtx_lu->read(data);
+
+        gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
+            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
+
+        ASSERT_FALSE(valid);
     });
 }
 

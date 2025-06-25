@@ -42,4 +42,3 @@ The intention of this example is to show how a custom linear operator can be
 created and integrated into Ginkgo to achieve performance benefits.
 
 <h3> About the example </h3>
-

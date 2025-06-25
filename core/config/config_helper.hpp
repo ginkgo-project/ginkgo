@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,10 +24,9 @@ namespace gko {
 namespace config {
 
 
-#define GKO_INVALID_CONFIG_VALUE(_entry, _value)                            \
-    GKO_INVALID_STATE(std::string("The value >" + _value +                  \
-                                  "< is invalid for the entry >" + _entry + \
-                                  "<"))
+#define GKO_INVALID_CONFIG_VALUE(_entry, _value)            \
+    GKO_INVALID_STATE(std::string("The value >") + _value + \
+                      "< is invalid for the entry >" + _entry + "<")
 
 
 #define GKO_MISSING_CONFIG_ENTRY(_entry) \
@@ -43,15 +42,18 @@ enum class LinOpFactoryType : int {
     Bicg,
     Bicgstab,
     Fcg,
+    PipeCg,
     Cgs,
     Ir,
     Idr,
     Gcr,
     Gmres,
     CbGmres,
+    Minres,
     Direct,
     LowerTrs,
     UpperTrs,
+    Chebyshev,
     Factorization_Ic,
     Factorization_Ilu,
     Cholesky,
@@ -142,6 +144,15 @@ parse_or_get_factory<const stop::CriterionFactory>(const pnode& config,
                                                    const type_descriptor& td);
 
 /**
+ * parse or get a std::vector of criteria.
+ * A stored single criterion will be converted to a std::vector.
+ */
+std::vector<deferred_factory_parameter<const stop::CriterionFactory>>
+parse_or_get_criteria(const pnode& config, const registry& context,
+                      const type_descriptor& td);
+
+
+/**
  * give a vector of factory by calling parse_or_get_factory.
  */
 template <typename T>
@@ -203,7 +214,8 @@ get_value(const pnode& config)
  */
 template <typename ValueType>
 inline std::enable_if_t<std::is_floating_point<ValueType>::value ||
-                            std::is_same<ValueType, half>::value,
+                            std::is_same<ValueType, float16>::value ||
+                            std::is_same<ValueType, bfloat16>::value,
                         ValueType>
 get_value(const pnode& config)
 {

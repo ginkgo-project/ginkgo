@@ -15,6 +15,15 @@
 
 
 namespace gko {
+namespace experimental {
+namespace distributed {
+
+
+class DistributedBase;
+
+
+}  // namespace distributed
+}  // namespace experimental
 
 
 /**
@@ -647,9 +656,6 @@ std::shared_ptr<const R> copy_and_convert_to(
  *        ConvertibleTo<ConcreteObject> interface). To enable a default
  *        implementation of this interface see the EnablePolymorphicAssignment
  *        mixin.
- * @note  This mixin can't be used with concrete types that derive from
- *        experimental::distributed::DistributedBase. In that case use
- *        experimental::EnableDistributedPolymorphicObject instead.
  *
  * @tparam ConcreteObject  the concrete type which is being implemented
  *                         [CRTP parameter]
@@ -667,7 +673,14 @@ protected:
     std::unique_ptr<PolymorphicObject> create_default_impl(
         std::shared_ptr<const Executor> exec) const override
     {
-        return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+        if constexpr (std::is_base_of_v<
+                          experimental::distributed::DistributedBase,
+                          ConcreteObject>) {
+            return std::unique_ptr<ConcreteObject>{
+                new ConcreteObject(exec, self()->get_communicator())};
+        } else {
+            return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+        }
     }
 
     PolymorphicObject* copy_from_impl(const PolymorphicObject* other) override
@@ -698,7 +711,14 @@ protected:
 
     PolymorphicObject* clear_impl() override
     {
-        *self() = ConcreteObject{this->get_executor()};
+        if constexpr (std::is_base_of_v<
+                          experimental::distributed::DistributedBase,
+                          ConcreteObject>) {
+            *self() = ConcreteObject{this->get_executor(),
+                                     self()->get_communicator()};
+        } else {
+            *self() = ConcreteObject{this->get_executor()};
+        }
         return this;
     }
 

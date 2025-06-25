@@ -11,6 +11,122 @@ git log --first-parent
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
 
+## Version 1.10.0
+
+The Ginkgo team is proud to announce the new Ginkgo minor release 1.10.0.
+This release brings new features such as:
+- Support for bfloat16 precision. The type `gko::bfloat16` can now be selected in most instances as the value type
+  of a matrix, solver, preconditioner, etc. If the selected backend supports bfloat16 as a native type, the native type
+  is used within the kernels, otherwise they may incur a conversion overhead. The new behavior is enabled by default, but it can be
+  turned off during CMake configuration.
+- Mixed precision support in our distributed matrix, provided the underlying matrix formats support mixed precision.
+- New pipelined CG solver. This specialization of the CG solver is suitable to reduce the communication overhead in
+  large scale distributed computations.
+- New Chebyshev iteration solver.
+- An OpenMP implementation of the merge-path based SpMV algorithm.
+
+And more!
+
+If you face an issue, please first check our [known issues page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues) and the [open issues list](https://github.com/ginkgo-project/ginkgo/issues) and if you do not
+find a solution, feel free to [open a new issue](https://github.com/ginkgo-project/ginkgo/issues/new/choose) or ask a question using the [github discussions](https://github.com/ginkgo-project/ginkgo/discussions).
+
+Supported systems and requirements:
++ For all platforms, CMake 3.16+
++ C++17 compliant compiler
++ Linux and macOS
+  + GCC: 7.0+
+  + clang: 5.0+
+  + Intel compiler: 2019+
+  + Apple Clang: 15.0 is tested. Earlier versions might also work.
+  + NVHPC: 22.7+
+  + Cray Compiler: 14.0.1+
+  + CUDA module: CMake 3.18+, and CUDA 11.0+ or NVHPC 22.7+, Compute Capability 5.3+
+  + HIP module: CMake 3.21+, and ROCm 4.5+
+  + DPC++ module: Intel oneAPI 2023.1+ with oneMKL and oneDPL. Set the CXX compiler to `dpcpp` or `icpx`.
+  + MPI: standard version 3.1+, ideally GPU Aware, for best performance
++ Windows
+  + MinGW: GCC 7.0+
+  + Microsoft Visual Studio: VS 2019+
+  + CUDA module: CUDA 11.0+, Microsoft Visual Studio
+  + OpenMP module: MinGW.
+
+### Behavior changes
+
++ A cmake format style has been added to uniformize formatting for CMake files. [#1755](https://github.com/ginkgo-project/ginkgo/pull/1755)
++ The file config for preconditioner Ic and Ilu now only takes `value_type`, not `l_solver_type` or `u_solver_type`  parameters [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811), [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828)
++ The distributed matrix now uses collective neighborhood communication if possible [#1589](https://github.com/ginkgo-project/ginkgo/pull/1589)
+
+### Deprecations
+
++ The `experimental::EnableDistributedLinOp` mixin has been removed, `EnableLinOp` can be used instead [#1751](https://github.com/ginkgo-project/ginkgo/pull/1751).
+
+### Summary of previous deprecations
+
++ The `Executor::run` overload without a name as the first parameter has been deprecated [#1667](https://github.com/ginkgo-project/ginkgo/pull/1667)
++ The `device_reset` parameter of CUDA and HIP executors no longer has an effect, and its `allocation_mode` parameters have been deprecated in favor of the `Allocator` interface.
++ The CMake parameter `GINKGO_BUILD_DPCPP` has been deprecated in favor of `GINKGO_BUILD_SYCL`.
++ The `gko::reorder::Rcm` interface has been deprecated in favor of `gko::experimental::reorder::Rcm` based on `Permutation`.
++ The Permutation class' `permute_mask` functionality.
++ Multiple functions with typos (`set_complex_subpsace()`, range functions such as `conj_operaton` etc).
++ `gko::lend()` is not necessary anymore.
++ The classes `RelativeResidualNorm` and `AbsoluteResidualNorm` are deprecated in favor of `ResidualNorm`.
++ The class `AmgxPgm` is deprecated in favor of `Pgm`.
++ Default constructors for the CSR `load_balance` and `automatical` strategies
++ The PolymorphicObject's move-semantic `copy_from` variant
++ The templated `SolverBase` class.
++ The class `MachineTopology` is deprecated in favor of `machine_topology`.
++ Logger constructors and create functions with the `executor` parameter.
++ The virtual, protected, Dense functions `compute_norm1_impl`, `add_scaled_impl`, etc.
++ Logger events for solvers and criteria without the additional `implicit_tau_sq` parameter.
++ The global `gko::solver::default_krylov_dim`, use instead `gko::solver::gmres_default_krylov_dim`.
++ `array::get_num_elems()` has been renamed to `get_size()`
++ `matrix_data::ensure_row_major_order()` has been renamed to `sort_row_major()`
++ `device_matrix_data::get_num_elems()` has been renamed to `get_num_stored_elements()`
++ The CMake parameter `GINKGO_COMPILER_FLAGS` has been superseded by `CMAKE_CXX_FLAGS`, and `GINKGO_CUDA_COMPILER_FLAGS` has been superseded by `CMAKE_CUDA_FLAGS`
++ The `std::initializer_list` overloads of matrix `create` methods and constructors are deprecated in favor of explicit `array` parameters
+
+### Added features
+
++ Add a pipelined CG solver [#1824](https://github.com/ginkgo-project/ginkgo/pull/1824), [#1838](https://github.com/ginkgo-project/ginkgo/pull/1838), [#1859](https://github.com/ginkgo-project/ginkgo/pull/1859)
++ Add Coo Transpose/Conj-Transpose [#1816](https://github.com/ginkgo-project/ginkgo/pull/1816)
++ Add Chebyshev iteration solver [#1289](https://github.com/ginkgo-project/ginkgo/pull/1289)
++ Add a two-level Schwarz preconditioner [#1431](https://github.com/ginkgo-project/ginkgo/pull/1431)
++ Add simplified configuration for stopping criteria [#1613](https://github.com/ginkgo-project/ginkgo/pull/1613)
++ Add an example to show the distributed multigrid usage [#1769](https://github.com/ginkgo-project/ginkgo/pull/1769)
++ Add half precision support for MPI [#1759](https://github.com/ginkgo-project/ginkgo/pull/1759)
++ Add yaml-cpp reader to parse config files in YAML format [#1677](https://github.com/ginkgo-project/ginkgo/pull/1677)
++ Add local and distributed L1-Jacobi [#1310](https://github.com/ginkgo-project/ginkgo/pull/1310), [#1806](https://github.com/ginkgo-project/ginkgo/pull/1806)
++ Add reusable permutation and transpose operations [#1338](https://github.com/ginkgo-project/ginkgo/pull/1338)
++ Add collective communication interface and dense/neighborhood implementation of the interface [#1780](https://github.com/ginkgo-project/ginkgo/pull/1780)
++ Add local-to-global index mapping [#1707](https://github.com/ginkgo-project/ginkgo/pull/1707)
++ Add Minres solver [#975](https://github.com/ginkgo-project/ginkgo/pull/975)
++ Add `array::copy_to_host` utility function [#1835](https://github.com/ginkgo-project/ginkgo/pull/1835)
++ Add bfloat16 support and corresponding MPI functions [#1825](https://github.com/ginkgo-project/ginkgo/pull/1825), [#1827](https://github.com/ginkgo-project/ginkgo/pull/1827)
++ Add mixed precision support for distributed matrix when the underlying matrix also supports mixed precision [#1819](https://github.com/ginkgo-project/ginkgo/pull/1819).
++ Add distributed RowGatherer which is used by the distributed matrix to handle the communication [#1589](https://github.com/ginkgo-project/ginkgo/pull/1589)
++ Add complex type support for Dense transpose and Fbcsr on AMD GPUs [#1839](https://github.com/ginkgo-project/ginkgo/pull/1839)
++ Add OMP implementation for Merge-Path CSR [#1810](https://github.com/ginkgo-project/ginkgo/pull/1810)
+
+### Improvements
+
++ Improve performance of factorization validation in benchmarks [#1766](https://github.com/ginkgo-project/ginkgo/pull/1766)
++ Allow specifying a ValueType instead of a full SolverType in preconditioners Ic [#1811](https://github.com/ginkgo-project/ginkgo/pull/1811) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828) and Ilu [#1828](https://github.com/ginkgo-project/ginkgo/pull/1828). Note. It introduces the behavior changes for config usage. Please take a look at the behavior changes section.
++ Avoid refilling the constant scalar in the workspace in each apply [#1846](https://github.com/ginkgo-project/ginkgo/pull/1846)
+
+### Fixes
+
++ Fix an oneMKL GEMM issue on zero-sized matrix [#1756](https://github.com/ginkgo-project/ginkgo/pull/1756)
++ Fix error with ILU/IC generation and default algorithm on OpenMP [#1783](https://github.com/ginkgo-project/ginkgo/pull/1783), [#1855](https://github.com/ginkgo-project/ginkgo/pull/1855)
++ Avoid NaN values being propagated through multiplications with zero scalars in linear combination apply and simple BLAS operations [#1573](https://github.com/ginkgo-project/ginkgo/pull/1573)
++ Fix IR `move` operation [#1812](https://github.com/ginkgo-project/ginkgo/pull/1812)
++ Fix CUDA 12.2 null rowptr issue when setting the cusparse CSR matrix [#1843](https://github.com/ginkgo-project/ginkgo/pull/1843)
++ Fix COO unsupported exception on an empty matrix with 16bit precision [#1843](https://github.com/ginkgo-project/ginkgo/pull/1843)
++ Fix METIS detection when GKLib is linked into the METIS library [#1847](https://github.com/ginkgo-project/ginkgo/pull/1847)
++ Fix bfloat16 issue on CUDA before cuda 12.2 and oneAPI before oneAPI 2024.2 [#1848](https://github.com/ginkgo-project/ginkgo/pull/1848)
++ Work around compiler bug related to warp ballot on H100 GPUs with CUDA 12.2 - 12.4 [#1849](https://github.com/ginkgo-project/ginkgo/pull/1849)
++ Fix a race condition in LU factorization [#1850](https://github.com/ginkgo-project/ginkgo/pull/1850)
++ Fix the 16bit precision NaN check in triangular solve [#1860](https://github.com/ginkgo-project/ginkgo/pull/1860)
+
 ## Version 1.9.0
 
 The Ginkgo team is proud to announce the new Ginkgo minor release 1.9.0.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -588,6 +588,8 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
     // beta encounters huge value out of the half-precision range in the first
     // part of the second iteration
     SKIP_IF_HALF(value_type);
+    // rounding error for bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
@@ -619,6 +621,8 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
     // beta encounters huge value out of the half-precision range in the first
     // part of second iteration
     SKIP_IF_HALF(value_type);
+    // rounding error for bfloat16
+    SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     std::shared_ptr<Mtx> locmtx =
         gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},

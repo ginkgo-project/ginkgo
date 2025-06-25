@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,11 +13,26 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/log/logger.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/common_fixture.hpp"
+
+
+struct CheckOperationLogger : gko::log::Logger {
+    void on_operation_launched(const gko::Executor*,
+                               const gko::Operation* op) const override
+    {
+        std::string s = op->get_name();
+        if (s.find("sparselib") != std::string::npos) {
+            contains_sparselib = true;
+        }
+    }
+
+    mutable bool contains_sparselib = false;
+};
 
 
 class Ilu : public CommonTestFixture {
@@ -36,6 +51,41 @@ protected:
     std::shared_ptr<Csr> mtx;
     std::shared_ptr<Csr> dmtx;
 };
+
+
+TEST_F(Ilu, UsesSyncFreeAlgorithm)
+{
+    auto logger = std::make_shared<CheckOperationLogger>();
+    exec->add_logger(logger);
+
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec)
+            ->generate(dmtx);
+
+    ASSERT_FALSE(logger->contains_sparselib);
+}
+
+
+TEST_F(Ilu, UsesSparseLibAlgorithm)
+{
+    auto logger = std::make_shared<CheckOperationLogger>();
+    exec->add_logger(logger);
+
+    auto dfact =
+        gko::factorization::Ilu<>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::sparselib)
+            .on(exec)
+            ->generate(dmtx);
+
+#ifdef GKO_COMPILING_OMP
+    // OMP does not have sparselib algorithm
+    ASSERT_FALSE(logger->contains_sparselib);
+#else
+    ASSERT_TRUE(logger->contains_sparselib);
+#endif
+}
 
 
 TEST_F(Ilu, ComputeILUBySyncfreeIsEquivalentToRefSorted)
@@ -153,22 +203,6 @@ TEST_F(Ilu, SetsCorrectStrategy)
 }
 
 
-#ifdef GKO_COMPILING_OMP
-
-
-TEST_F(Ilu, OmpComputeILUBySparselibShouldThrow)
-{
-    ASSERT_THROW(gko::factorization::Ilu<>::build()
-                     .with_skip_sorting(true)
-                     .on(exec)
-                     ->generate(dmtx),
-                 gko::InvalidStateError);
-}
-
-
-#else
-
-
 TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 {
     auto fact = gko::factorization::Ilu<>::build()
@@ -200,6 +234,3 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
     GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
 }
-
-
-#endif
