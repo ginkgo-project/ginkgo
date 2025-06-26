@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -230,4 +230,50 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
     m->read(data);
 
     this->assert_equal_to_original_mtx(m);
+}
+
+
+TYPED_TEST(Ell, RecognizesInfiniteValue)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {INFINITY, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+TYPED_TEST(Ell, RecognizesDupplicateIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {0, 0, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {4, 1, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
 }

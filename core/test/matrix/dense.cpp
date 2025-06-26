@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -440,5 +440,22 @@ TEST(DenseView, CustomViewKeepsRuntimeType)
     ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
 }
 
+
+TYPED_TEST(Dense, RecognizesInfiniteValue)
+{
+    using value_type = typename TestFixture::value_type;
+    // clang-format off
+    value_type data[] = {
+        INFINITY, 2.0, -1.0,
+        3.0, 4.0, -1.0,
+        5.0, 6.0, -1.0};
+    // clang-format on
+
+    auto m = gko::matrix::Dense<TypeParam>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 9, data), 3);
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
 
 }  // namespace

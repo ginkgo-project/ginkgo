@@ -191,6 +191,12 @@ public:
     void write(mat_data32& data) const override;
 
     /**
+     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     */
+    void validate_data() const;
+
+
+    /**
      * Creates an Diagonal matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
