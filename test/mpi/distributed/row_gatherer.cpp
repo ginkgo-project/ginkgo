@@ -87,7 +87,7 @@ TYPED_TEST(RowGatherer, CanApplyAsync)
                             gko::dim<2>{expected.get_size(), 1});
 
     auto req = this->rg->apply_async(b, x);
-    req.wait();
+    req->wait();
 
     auto expected_vec = Vector::create(
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
@@ -112,8 +112,8 @@ TYPED_TEST(RowGatherer, CanApplyAsyncConsequetively)
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
 
-    this->rg->apply_async(b, x).wait();
-    this->rg->apply_async(b, x).wait();
+    this->rg->apply_async(b, x)->wait();
+    this->rg->apply_async(b, x)->wait();
 
     auto expected_vec = Vector::create(
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
@@ -214,7 +214,7 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithMultipleColumns)
                             gko::dim<2>{this->rg->get_size()[0], 2},
                             gko::dim<2>{expected[rank].get_size() / 2, 2});
 
-    this->rg->apply_async(b, x).wait();
+    this->rg->apply_async(b, x)->wait();
 
     auto expected_vec = Vector::create(
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 2},
@@ -238,5 +238,5 @@ TYPED_TEST(RowGatherer, ThrowsOnNonMatchingExecutor)
     auto b = Vector::create(this->exec, this->comm);
     auto x = Vector::create(this->exec, this->comm);
 
-    ASSERT_THROW(rg->apply_async(b, x).wait(), gko::InvalidStateError);
+    ASSERT_THROW(rg->apply_async(b, x)->wait(), gko::InvalidStateError);
 }
