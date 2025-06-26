@@ -70,11 +70,12 @@ public:
      *           executor has to be compatible with the MPI implementation, see
      *           the class documentation.
      *
-     * @return  a mpi::request for this task. The task is guaranteed to
-     *          be completed only after `.wait()` has been called on it.
+     * @return  a shared_ptr to an mpi::request for this task. The task is
+     *          guaranteed to be completed only after `->wait()` has been called
+     *          on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b,
-                             ptr_param<LinOp> x) const;
+    [[nodiscard]] std::shared_ptr<mpi::request> apply_async(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Asynchronous version of LinOp::apply.
@@ -94,8 +95,9 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                             array<char>& workspace) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x,
+                                           array<char>& workspace) const;
 
     /**
      * Returns the size of the row gatherer.
@@ -181,6 +183,10 @@ private:
      */
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
+    std::unique_ptr<mpi::request> apply_async_impl(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        array<char>& workspace) const;
+
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
@@ -188,7 +194,7 @@ private:
     // This object might not hold an actual MPI request, so we can't use the
     // always owning mpi::request. Its destructor would otherwise make the
     // program crash.
-    mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
+    mutable std::shared_ptr<mpi::request> previous_req_;
 };
 
 
