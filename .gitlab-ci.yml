@@ -174,7 +174,7 @@ build/cuda120/openmpi/gcc/cuda/release/static:
     BUILD_MPI: "ON"
     BUILD_SHARED_LIBS: "OFF"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.18.6 cuda/12.0.1 gcc/12.4.0 openmpi/4.1.6"
+    MODULE_LOAD: "cmake/3.18.6 cuda/12.0.1 gcc/12.4.0 openmpi/4.1.8"
 
 build/cuda122/openmpi/gcc/cuda/release/static:
   extends:
@@ -189,7 +189,7 @@ build/cuda122/openmpi/gcc/cuda/release/static:
     ENABLE_BFLOAT16: "ON"
     BUILD_SHARED_LIBS: "OFF"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0 openmpi/4.1.6"
+    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0 openmpi/4.1.8"
 
 build/cuda126/nompi/gcc/cuda/release/shared:
   extends:
@@ -203,7 +203,7 @@ build/cuda126/nompi/gcc/cuda/release/shared:
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.30.5 cuda/12.6.2 gcc/13.3.0"
+    MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0"
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -298,7 +298,7 @@ build/amd/openmpi/gcc/rocm600/release/static:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.0 gcc/13.3.0 openmpi/5.0.5"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.0 gcc/13.3.0 openmpi/5.0.7"
 
 build/amd/nompi/gcc/rocm573/debug/shared:
   extends:
@@ -326,7 +326,7 @@ build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
     BUILD_HWLOC: "OFF"
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.5"
+    MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.7"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
