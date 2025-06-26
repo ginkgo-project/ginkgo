@@ -25,13 +25,13 @@ using DefaultCollComm = mpi::NeighborhoodCommunicator;
 
 
 template <typename LocalIndexType>
-mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
-                                                      ptr_param<LinOp> x) const
+std::shared_ptr<mpi::request> RowGatherer<LocalIndexType>::apply_async(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x) const
 {
-    int is_inactive;
+    int is_inactive = 1;
     MPI_Status status;
     GKO_ASSERT_NO_MPI_ERRORS(
-        MPI_Request_get_status(req_listener_, &is_inactive, &status));
+        MPI_Request_get_status(*previous_req_->get(), &is_inactive, &status));
     // This is untestable. Some processes might complete the previous request
     // while others don't, so it's impossible to create a predictable behavior
     // for a test.
@@ -41,17 +41,22 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                          "overload with a workspace to handle multiple "
                          "connections.");
 
-    auto req = apply_async(b, x, send_workspace_);
-    req_listener_ = *req.get();
-    return req;
+    previous_req_ = apply_async_impl(b, x, send_workspace_);
+    return previous_req_;
 }
-
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
     ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
 {
-    mpi::request req;
+    return std::move(*apply_async_impl(b, x, workspace).release());
+}
+
+template <typename LocalIndexType>
+std::unique_ptr<mpi::request> RowGatherer<LocalIndexType>::apply_async_impl(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
+{
+    std::unique_ptr<mpi::request> req;
 
     auto exec = this->get_executor();
     auto use_host_buffer =
@@ -113,8 +118,10 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                     mpi::contiguous_type type(
                         b_local->get_size()[1],
                         mpi::type_impl<ValueType>::get_type());
-                    req = coll_comm_->i_all_to_all_v(
-                        mpi_exec, send_ptr, type.get(), recv_ptr, type.get());
+                    req = std::make_unique<mpi::request>(
+                        coll_comm_->i_all_to_all_v(mpi_exec, send_ptr,
+                                                   type.get(), recv_ptr,
+                                                   type.get()));
                 },
                 x.get());
         });
@@ -161,7 +168,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      previous_req_(std::make_shared<mpi::request>())
 {
     // check that the coll_comm_ and imap have the same recv size
     // the same check for the send size is not possible, since the
@@ -221,7 +228,7 @@ RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
       coll_comm_(std::make_shared<DefaultCollComm>(comm)),
       send_idxs_(exec),
       send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      previous_req_(std::make_shared<mpi::request>())
 {}
 
 
@@ -231,7 +238,7 @@ RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor()),
       send_workspace_(o.get_executor()),
-      req_listener_(MPI_REQUEST_NULL)
+      previous_req_(std::make_shared<mpi::request>())
 {
     *this = std::move(o);
 }
@@ -261,7 +268,8 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
             std::make_shared<DefaultCollComm>(o.get_communicator()));
         send_idxs_ = std::move(o.send_idxs_);
         send_workspace_ = std::move(o.send_workspace_);
-        req_listener_ = std::exchange(o.req_listener_, MPI_REQUEST_NULL);
+        previous_req_ =
+            std::exchange(o.previous_req_, std::make_shared<mpi::request>());
     }
     return *this;
 }
