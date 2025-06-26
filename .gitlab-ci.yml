@@ -203,7 +203,7 @@ build/cuda126/nompi/gcc/cuda/release/shared:
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.30.5 cuda/12.6.2 gcc/13.3.0"
+    MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0"
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
