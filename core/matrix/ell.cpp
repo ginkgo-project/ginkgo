@@ -42,8 +42,8 @@ GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros_per_row, ell::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
-                       components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(prefix_sum_nonnegative,
+                                          components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
