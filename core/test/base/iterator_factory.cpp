@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <complex>
+#include <iterator>
 #include <numeric>
 #include <vector>
 
@@ -508,6 +509,169 @@ TYPED_TEST(PermuteIterator, DecreasingIterator)
     ASSERT_TRUE(iter == decrement_post_test--);
     ASSERT_TRUE(iter - 1 == --decrement_pre_test);
     ASSERT_TRUE(*minus_2 == vec[perm(3)]);
+}
+
+
+template <typename ValueType>
+class TransformIterator : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+};
+
+TYPED_TEST_SUITE(TransformIterator, gko::test::ComplexAndPODTypes,
+                 TypenameNameGenerator);
+
+
+struct identity_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return v;
+    }
+};
+
+
+template <typename T>
+struct scale_transform {
+    T operator()(T v) const { return scale * v; }
+
+    T scale;
+};
+
+
+struct double_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return T{2} * v;
+    }
+};
+
+
+TYPED_TEST(TransformIterator, EmptyIterator)
+{
+    auto test_iter = gko::detail::make_transform_iterator<TypeParam*>(
+        nullptr, identity_transform{});
+
+    ASSERT_NO_THROW((void)std::find(test_iter, test_iter, TypeParam{}));
+}
+
+
+TYPED_TEST(TransformIterator, CopyingWithIdentityFunction)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> result;
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), identity_transform{});
+
+    std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
+
+    ASSERT_EQ(vec, result);
+}
+
+
+TYPED_TEST(TransformIterator, CopyingWithStatefulFunctor)
+{
+    TypeParam scale = 3;
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> ref{18, 6, 15, 6, 12};
+    std::vector<TypeParam> result;
+    auto test_iter = gko::detail::make_transform_iterator(
+        vec.begin(), scale_transform<TypeParam>{scale});
+
+    std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
+
+    ASSERT_EQ(ref, result);
+}
+
+
+TYPED_TEST(TransformIterator, IncreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto transform = double_transform{};
+
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), transform);
+    auto begin = test_iter;
+    auto plus_2 = begin + 2;
+    auto plus_2_rev = 2 + begin;
+    auto plus_minus_2 = plus_2 - 2;
+    auto increment_pre_2 = begin;
+    ++increment_pre_2;
+    ++increment_pre_2;
+    auto increment_post_2 = begin;
+    increment_post_2++;
+    increment_post_2++;
+    auto increment_pre_test = begin;
+    auto increment_post_test = begin;
+
+    // check results for equality
+    ASSERT_TRUE(begin == plus_minus_2);
+    ASSERT_TRUE(plus_2 == increment_pre_2);
+    ASSERT_TRUE(plus_2_rev == increment_pre_2);
+    ASSERT_TRUE(increment_pre_2 == increment_post_2);
+    ASSERT_TRUE(begin == increment_post_test++);
+    ASSERT_TRUE(begin + 1 == ++increment_pre_test);
+    ASSERT_TRUE(*plus_2 == TypeParam{2} * vec[2]);
+    // check other comparison operators and difference
+    std::vector<gko::detail::transform_iterator<
+        typename std::vector<TypeParam>::iterator, decltype(transform)>>
+        its{begin,
+            plus_2,
+            plus_2_rev,
+            plus_minus_2,
+            increment_pre_2,
+            increment_post_2,
+            increment_pre_test,
+            increment_post_test,
+            begin + 5,
+            begin + 9};
+    std::sort(its.begin(), its.end());
+    std::vector<int> dists;
+    std::vector<int> ref_dists{0, 1, 0, 1, 0, 0, 0, 3, 4};
+    for (int i = 0; i < its.size() - 1; i++) {
+        SCOPED_TRACE(i);
+        dists.push_back(its[i + 1] - its[i]);
+        auto equal = dists.back() > 0;
+        ASSERT_EQ(its[i + 1] > its[i], equal);
+        ASSERT_EQ(its[i] < its[i + 1], equal);
+        ASSERT_EQ(its[i] != its[i + 1], equal);
+        ASSERT_EQ(its[i] == its[i + 1], !equal);
+        ASSERT_EQ(its[i] >= its[i + 1], !equal);
+        ASSERT_EQ(its[i + 1] <= its[i], !equal);
+        ASSERT_TRUE(its[i + 1] >= its[i]);
+        ASSERT_TRUE(its[i] <= its[i + 1]);
+    }
+    ASSERT_EQ(dists, ref_dists);
+}
+
+
+TYPED_TEST(TransformIterator, DecreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto transform = double_transform{};
+
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), transform);
+
+    auto iter = test_iter + 5;
+    auto minus_2 = iter - 2;
+    auto minus_plus_2 = minus_2 + 2;
+    auto decrement_pre_2 = iter;
+    --decrement_pre_2;
+    --decrement_pre_2;
+    auto decrement_post_2 = iter;
+    decrement_post_2--;
+    decrement_post_2--;
+    auto decrement_pre_test = iter;
+    auto decrement_post_test = iter;
+
+    ASSERT_TRUE(iter == minus_plus_2);
+    ASSERT_TRUE(minus_2 == decrement_pre_2);
+    ASSERT_TRUE(decrement_pre_2 == decrement_post_2);
+    ASSERT_TRUE(iter == decrement_post_test--);
+    ASSERT_TRUE(iter - 1 == --decrement_pre_test);
+    ASSERT_TRUE(*minus_2 == TypeParam{2} * vec[3]);
 }
 
 
