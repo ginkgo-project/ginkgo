@@ -62,20 +62,20 @@ public:
     /**
      * Asynchronous version of LinOp::apply.
      *
-     * @warning Only one mpi::request can be active at any given time. This
-     *          function will throw if another request is already active.
+     * @warning Only one mpi::request can be active at any given time. Calling
+     *          this function again without waiting on the previous mpi::request
+     *          will lead to undefined behavior.
      *
      * @param b  the input distributed::Vector.
      * @param x  the output matrix::Dense with the rows gathered from b. Its
      *           executor has to be compatible with the MPI implementation, see
      *           the class documentation.
      *
-     * @return  a shared_ptr to an mpi::request for this task. The task is
-     *          guaranteed to be completed only after `->wait()` has been called
-     *          on it.
+     * @return  a mpi::request for this task. The task is guaranteed to
+     *          be completed only after `.wait()` has been called on it.
      */
-    [[nodiscard]] std::shared_ptr<mpi::request> apply_async(
-        ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x) const;
 
     /**
      * Asynchronous version of LinOp::apply.
@@ -183,18 +183,10 @@ private:
      */
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
-    std::unique_ptr<mpi::request> apply_async_impl(
-        ptr_param<const LinOp> b, ptr_param<LinOp> x,
-        array<char>& workspace) const;
-
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
     mutable array<char> send_workspace_;
-    // This object might not hold an actual MPI request, so we can't use the
-    // always owning mpi::request. Its destructor would otherwise make the
-    // program crash.
-    mutable std::shared_ptr<mpi::request> previous_req_;
 };
 
 
