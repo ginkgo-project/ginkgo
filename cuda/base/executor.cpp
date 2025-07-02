@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -157,10 +157,16 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         detail::cuda_scoped_device_id_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeerAsync(
-            dest_ptr, dest->get_device_id(), src_ptr, this->get_device_id(),
-            num_bytes, this->get_stream()));
-        this->synchronize();
+        if (dest == this) {
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaMemcpyAsync(dest_ptr, src_ptr, num_bytes,
+                                cudaMemcpyDeviceToDevice, this->get_stream()));
+        } else {
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeerAsync(
+                dest_ptr, dest->get_device_id(), src_ptr, this->get_device_id(),
+                num_bytes, this->get_stream()));
+            this->synchronize();
+        }
     }
 }
 
