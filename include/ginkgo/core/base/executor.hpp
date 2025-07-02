@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
@@ -829,6 +830,8 @@ public:
      */
     virtual void synchronize() const = 0;
 
+    virtual std::shared_ptr<const Event> record_event() const = 0;
+
     /**
      * @copydoc Loggable::add_logger
      * @note This specialization keeps track of whether any propagating loggers
@@ -1422,6 +1425,11 @@ public:
 
     std::string get_description() const override;
 
+    std::shared_ptr<const Event> record_event() const override
+    {
+        return std::make_shared<NotAsyncEvent>(this->shared_from_this());
+    }
+
 protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : alloc_{std::move(alloc)}
@@ -1490,6 +1498,11 @@ public:
         op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
         this->template log<log::Logger::operation_completed>(this, &op);
+    }
+
+    std::shared_ptr<const Event> record_event() const override
+    {
+        return std::make_shared<NotAsyncEvent>(this->shared_from_this());
     }
 
 protected:
@@ -1593,6 +1606,8 @@ public:
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     std::string get_description() const override;
+
+    std::shared_ptr<const Event> record_event() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1818,6 +1833,11 @@ public:
 
     std::string get_description() const override;
 
+    std::shared_ptr<const Event> record_event() const override
+    {
+        return std::make_shared<NotAsyncEvent>(this->shared_from_this());
+    }
+
     /**
      * Get the HIP device id of the device associated to this executor.
      */
@@ -2022,6 +2042,11 @@ public:
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     std::string get_description() const override;
+
+    std::shared_ptr<const Event> record_event() const override
+    {
+        return std::make_shared<NotAsyncEvent>(this->shared_from_this());
+    }
 
     /**
      * Get the DPCPP device id of the device associated to this executor.

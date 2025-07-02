@@ -5,6 +5,7 @@
 #include "ginkgo/core/distributed/row_gatherer.hpp"
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
@@ -36,8 +37,22 @@ template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
     ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
 {
-    mpi::request req;
+    auto ev = this->apply_prepare(b, x, workspace);
+    return this->apply_finalize(b, x, ev, workspace);
+}
 
+template <typename LocalIndexType>
+std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x) const
+{
+    return apply_prepare(b, x, send_workspace_);
+}
+
+template <typename LocalIndexType>
+std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
+{
+    std::shared_ptr<const Event> ev = nullptr;
     auto exec = this->get_executor();
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
@@ -90,11 +105,72 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
                             reinterpret_cast<ValueType*>(workspace.get_data())),
                         send_size[1]);
                     b_local->row_gather(&send_idxs_, send_buffer);
+                    ev = b_local->get_executor()->record_event();
+                },
+                x.get());
+        });
+    return ev;
+}
+
+
+template <typename LocalIndexType>
+mpi::request RowGatherer<LocalIndexType>::apply_finalize(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    std::shared_ptr<const Event> ev) const
+{
+    auto req = apply_finalize(b, x, ev, send_workspace_);
+    return req;
+}
+
+template <typename LocalIndexType>
+mpi::request RowGatherer<LocalIndexType>::apply_finalize(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    std::shared_ptr<const Event> ev, array<char>& workspace) const
+{
+    mpi::request req;
+
+    auto exec = this->get_executor();
+    auto use_host_buffer =
+        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
+    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+
+    GKO_THROW_IF_INVALID(
+        !use_host_buffer || mpi_exec->memory_accessible(x->get_executor()),
+        "The receive buffer uses device memory, but MPI support of device "
+        "memory is not available or host buffer were explicitly requested. "
+        "Please provide a host buffer or enable MPI support for device "
+        "memory.");
+
+    // dispatch global vector
+    run<Vector,
+#if GINKGO_ENABLE_HALF
+        half, std::complex<half>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        bfloat16, std::complex<bfloat16>,
+#endif
+        double, float, std::complex<double>, std::complex<float>>(
+        make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
+            using ValueType =
+                typename std::decay_t<decltype(*b_global)>::value_type;
+            // dispatch local vector with the same precision as the global
+            // vector
+            distributed::precision_dispatch<ValueType>(
+                [&](auto* x_global) {
+                    auto b_local = b_global->get_local_vector();
+
+                    dim<2> send_size(coll_comm_->get_send_size(),
+                                     b_local->get_size()[1]);
+                    auto send_buffer = matrix::Dense<ValueType>::create(
+                        mpi_exec, send_size,
+                        make_array_view(
+                            mpi_exec, send_size[0] * send_size[1],
+                            reinterpret_cast<ValueType*>(workspace.get_data())),
+                        send_size[1]);
 
                     auto recv_ptr = x_global->get_local_values();
                     auto send_ptr = send_buffer->get_values();
-
-                    b_local->get_executor()->synchronize();
+                    ev->synchronize();
                     mpi::contiguous_type type(
                         b_local->get_size()[1],
                         mpi::type_impl<ValueType>::get_type());
