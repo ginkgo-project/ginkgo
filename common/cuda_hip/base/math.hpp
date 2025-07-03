@@ -258,7 +258,7 @@ struct highest_precision_impl<GKO_THRUST_QUALIFIER::complex<T1>,
 }  // namespace gko
 
 
-GKO_THRUST_NAEMSPACE_PREFIX
+GKO_THRUST_NAMESPACE_PREFIX
 namespace thrust {
 
 
@@ -304,7 +304,7 @@ GKO_ATTRIBUTES GKO_INLINE gko::vendor_bf16 abs<gko::vendor_bf16>(
 
 
 }  // namespace thrust
-GKO_THRUST_NAEMSPACE_POSTFIX
+GKO_THRUST_NAMESPACE_POSTFIX
 
 
 namespace gko {
