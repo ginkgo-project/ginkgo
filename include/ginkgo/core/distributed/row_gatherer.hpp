@@ -62,8 +62,9 @@ public:
     /**
      * Asynchronous version of LinOp::apply.
      *
-     * @warning Only one mpi::request can be active at any given time. This
-     *          function will throw if another request is already active.
+     * @warning Only one mpi::request can be active at any given time. Calling
+     *          this function again without waiting on the previous mpi::request
+     *          will lead to undefined behavior.
      *
      * @param b  the input distributed::Vector.
      * @param x  the output matrix::Dense with the rows gathered from b. Its
@@ -73,8 +74,8 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b,
-                             ptr_param<LinOp> x) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x) const;
 
     /**
      * Asynchronous version of LinOp::apply.
@@ -94,8 +95,9 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                             array<char>& workspace) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x,
+                                           array<char>& workspace) const;
 
     /**
      * Returns the size of the row gatherer.
@@ -185,10 +187,6 @@ private:
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
     mutable array<char> send_workspace_;
-    // This object might not hold an actual MPI request, so we can't use the
-    // always owning mpi::request. Its destructor would otherwise make the
-    // program crash.
-    mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
 };
 
 

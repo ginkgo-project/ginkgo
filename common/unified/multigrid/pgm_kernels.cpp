@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,6 +44,16 @@ void renumber(std::shared_ptr<const DefaultExecutor> exec,
               array<IndexType>& agg, IndexType* num_agg)
 {
     const auto num = agg.get_size();
+
+    // Without this check, a deadlock appeared when using MPICH 4.2.3.
+    // A process that had an empty agg stopped somewhere in this function,
+    // without throwing an exception or anything similar.
+    // (To be specific, it was shown as a zombie process using ps.)
+    if (num == 0) {
+        *num_agg = 0;
+        return;
+    }
+
     array<IndexType> agg_map(exec, num + 1);
     run_kernel(
         exec,
