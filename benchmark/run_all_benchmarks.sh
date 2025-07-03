@@ -215,7 +215,7 @@ keep_latest() {
 # final result.
 compute_matrix_statistics() {
     [ "${DRY_RUN}" == "true" ] && return
-    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    cp "$1" "$1.imd" # make sure we're not losing the original input
     ./matrix_statistics/matrix_statistics${BENCH_SUFFIX} \
         --backup="$1.bkp" --double_buffer="$1.bkp2" \
         <"$1.imd" 2>&1 >"$1"
@@ -230,7 +230,7 @@ compute_matrix_statistics() {
 # taken as the final result.
 run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
-    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    cp "$1" "$1.imd" # make sure we're not losing the original input
     ./conversions/conversions${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
@@ -248,7 +248,7 @@ run_conversion_benchmarks() {
 # taken as the final result.
 run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
-    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    cp "$1" "$1.imd" # make sure we're not losing the original input
     ./spmv/spmv${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} --timer_method=${TIMER_OUTPUT} \
@@ -266,7 +266,7 @@ run_spmv_benchmarks() {
 # taken as the final result.
 run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
-    cp "$1" "$1.imd" # make sure we're not loosing the original input
+    cp "$1" "$1.imd" # make sure we're not losing the original input
     ./solver/solver${BENCH_SUFFIX} --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
@@ -295,7 +295,7 @@ run_preconditioner_benchmarks() {
     for bsize in ${BLOCK_SIZES}; do
         for prec in ${PRECISIONS}; do
             echo -e "\t\t running jacobi ($prec) for block size ${bsize}" 1>&2
-            cp "$1" "$1.imd" # make sure we're not loosing the original input
+            cp "$1" "$1.imd" # make sure we're not losing the original input
             ./preconditioner/preconditioner${BENCH_SUFFIX} \
                 --backup="$1.bkp" --double_buffer="$1.bkp2" \
                 --executor="${EXECUTOR}" --preconditioners="jacobi" \
