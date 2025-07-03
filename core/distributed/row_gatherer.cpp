@@ -28,22 +28,7 @@ template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {
-    int is_inactive;
-    MPI_Status status;
-    GKO_ASSERT_NO_MPI_ERRORS(
-        MPI_Request_get_status(req_listener_, &is_inactive, &status));
-    // This is untestable. Some processes might complete the previous request
-    // while others don't, so it's impossible to create a predictable behavior
-    // for a test.
-    GKO_THROW_IF_INVALID(is_inactive,
-                         "Tried to call RowGatherer::apply_async while there "
-                         "is already an active communication. Please use the "
-                         "overload with a workspace to handle multiple "
-                         "connections.");
-
-    auto req = apply_async(b, x, send_workspace_);
-    req_listener_ = *req.get();
-    return req;
+    return apply_async(b, x, send_workspace_);
 }
 
 
@@ -160,8 +145,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
                    imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
-      send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(exec)
 {
     // check that the coll_comm_ and imap have the same recv size
     // the same check for the send size is not possible, since the
@@ -220,8 +204,7 @@ RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
       DistributedBase(comm),
       coll_comm_(std::make_shared<DefaultCollComm>(comm)),
       send_idxs_(exec),
-      send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(exec)
 {}
 
 
@@ -230,8 +213,7 @@ RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
     : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor()),
-      send_workspace_(o.get_executor()),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(o.get_executor())
 {
     *this = std::move(o);
 }
@@ -261,7 +243,6 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
             std::make_shared<DefaultCollComm>(o.get_communicator()));
         send_idxs_ = std::move(o.send_idxs_);
         send_workspace_ = std::move(o.send_workspace_);
-        req_listener_ = std::exchange(o.req_listener_, MPI_REQUEST_NULL);
     }
     return *this;
 }
