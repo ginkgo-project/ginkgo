@@ -12,6 +12,7 @@ list(
 )
 set(GINKGO_HIP_SOURCES
     base/device.hip.cpp
+    base/event_kernels.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/memory.hip.cpp

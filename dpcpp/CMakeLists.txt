@@ -14,6 +14,7 @@ target_sources(
     PRIVATE
         base/batch_multi_vector_kernels.dp.cpp
         base/device_matrix_data_kernels.dp.cpp
+        base/event_kernels.dp.cpp
         base/executor.dp.cpp
         base/helper.dp.cpp
         base/index_set_kernels.dp.cpp

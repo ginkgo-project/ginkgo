@@ -12,6 +12,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/event_kernels.hpp"
 
 namespace gko {
 namespace experimental {
@@ -23,6 +24,13 @@ using DefaultCollComm = mpi::DenseCommunicator;
 #else
 using DefaultCollComm = mpi::NeighborhoodCommunicator;
 #endif
+
+
+namespace event {
+namespace {
+GKO_REGISTER_OPERATION(record_event, event::record_event);
+}
+}  // namespace event
 
 
 template <typename LocalIndexType>
@@ -105,7 +113,7 @@ std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
                             reinterpret_cast<ValueType*>(workspace.get_data())),
                         send_size[1]);
                     b_local->row_gather(&send_idxs_, send_buffer);
-                    ev = b_local->get_executor()->record_event();
+                    b_local->get_executor()->run(event::make_record_event(ev));
                 },
                 x.get());
         });

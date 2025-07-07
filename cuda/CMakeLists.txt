@@ -17,6 +17,7 @@ target_sources(
     ginkgo_cuda
     PRIVATE
         base/device.cpp
+        base/event_kernels.cpp
         base/exception.cpp
         base/executor.cpp
         base/memory.cpp
