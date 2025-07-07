@@ -526,9 +526,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
-            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
+            auto ev = this->row_gatherer_->apply_prepare(dense_b, recv_ptr);
             local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
                               local_beta.get(), local_x);
+            auto req =
+                this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
             req.wait();
 
             if (recv_ptr != recv_vector.get()) {
