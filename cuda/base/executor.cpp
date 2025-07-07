@@ -22,7 +22,6 @@
 #include "cuda/base/cublas_handle.hpp"
 #include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device.hpp"
-#include "cuda/base/event.hpp"
 #include "cuda/base/scoped_device_id.hpp"
 
 
@@ -184,13 +183,6 @@ std::string CudaExecutor::get_description() const
     return "CudaExecutor on device " + std::to_string(this->get_device_id()) +
            " (" + gko::kernels::cuda::get_device_name(this->get_device_id()) +
            ") with host " + this->get_master()->get_description();
-}
-
-
-std::shared_ptr<const Event> CudaExecutor::record_event() const
-{
-    auto ev = std::make_shared<CudaEvent>(this->shared_from_this());
-    return ev;
 }
 
 

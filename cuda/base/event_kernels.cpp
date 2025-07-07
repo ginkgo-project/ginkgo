@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CUDA_BASE_EVENT_HPP_
-#define GKO_CUDA_BASE_EVENT_HPP_
+#include "core/base/event_kernels.hpp"
 
 #include <memory>
 
@@ -14,9 +13,17 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
+
 namespace gko {
 
 
+/**
+ * It records the event when constructing the object and destroys the event with
+ * object destructor.
+ *
+ * Note: from the profiler, the destroy needs 1 us, which should not have impact
+ * on the performance.
+ */
 class CudaEvent : public Event {
 public:
     CudaEvent(std::shared_ptr<const gko::CudaExecutor> exec) : exec_(exec)
@@ -44,7 +51,19 @@ private:
 };
 
 
+namespace kernels {
+namespace cuda {
+namespace event {
+
+
+void record_event(std::shared_ptr<const DefaultExecutor> exec,
+                  std::shared_ptr<const Event>& event)
+{
+    event = std::make_shared<CudaEvent>(exec);
+}
+
+
+}  // namespace event
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CUDA_BASE_EVENT_HPP_

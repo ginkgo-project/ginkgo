@@ -49,6 +49,7 @@ target_sources(
         ${GKO_CUDA_HIP_COMMON_SOURCES}
         ${GKO_UNIFIED_COMMON_SOURCES}
         base/device.cpp
+        base/event_kernels.cpp
         base/exception.cpp
         base/executor.cpp
         base/memory.cpp
