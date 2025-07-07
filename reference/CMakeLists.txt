@@ -4,6 +4,7 @@ target_sources(
     PRIVATE
         base/batch_multi_vector_kernels.cpp
         base/device_matrix_data_kernels.cpp
+        base/event_kernels.cpp
         base/index_set_kernels.cpp
         base/scoped_device_id.cpp
         base/version.cpp
