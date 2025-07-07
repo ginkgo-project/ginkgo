@@ -132,6 +132,8 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - mkdir install_prefix
     - export INSTALL_PREFIX=`pwd`/install_prefix
+    # get system version before loading module
+    - if [[ "${CXX_COMPILER}" = "g++" ]]; then export SYSTEM_VERSION=$(${CXX_COMPILER} -dumpfullversion); fi
     - if [ -n "${MODULE_LOAD}" ]; then module load ${MODULE_LOAD}; fi
     - if [ -n "${SPACK_LOAD}" ]; then spack load ${SPACK_LOAD}; fi
     - if [ -n "${CUDA_ARCH}" ]; then
@@ -156,10 +158,9 @@
     # only load it when the current gcc is newer than the system one
     - |
       if [[ "${CXX_COMPILER_PATH}" =~ ^/storage.*g\+\+ ]] && [[ "${BUILD_HIP}" == "ON" ]] && [[ "${CXX_COMPILER}" = "g++" ]]; then
-        export HIPFLAGS="--gcc-toolchain=${CXX_COMPILER_PATH%/*/*}"
         export CXX_SOURCE=${CXX_COMPILER_PATH%/*/*}
-        export SYSTEM_VERSION=$(echo ${CXX_SOURCE} | sed -E 's~.*/gcc-([0-9\.]+)/.*~\1~g')
-        export CURRENT_VERSION=$(echo ${CXX_SOURCE} | sed -E 's~.*/gcc-([0-9\.]+)-.*~\1~g')
+        export HIPFLAGS="--gcc-toolchain=${CXX_SOURCE}"
+        export CURRENT_VERSION=$(${CXX_COMPILER} -dumpfullversion)
         echo "SYSTEM ${SYSTEM_VERSION} CURRENT ${CURRENT_VERSION}"
         if printf '%s\n%s\n' "$CURRENT_VERSION" "$SYSTEM_VERSION" | sort --check=quiet --version-sort; then
           echo "CURRENT ${CURRENT_VERSION} <= SYSTEM ${SYSTEM_VERSION}, so we do not do anything"
@@ -168,9 +169,9 @@
           export LD_LIBRARY_PATH=${CXX_SOURCE}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         fi
       fi 
+    # RPATH_USE_LINK_PATH helps loading newer g++ than system's
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
         -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
         -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
         ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
@@ -188,9 +189,9 @@
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
     # just set a lower value of parallel for sycl too many file open
-    # - if [[ "${BUILD_SYCL}" == "ON" ]]; then
-    #     export NUM_CORES=16;
-    #   fi
+    - if [[ "${BUILD_SYCL}" == "ON" ]]; then
+        export NUM_CORES=16;
+      fi
     - echo "-j${NUM_CORES} -l${CI_LOAD_LIMIT}"
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
@@ -199,9 +200,9 @@
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_exportbuild
     # cuda module from spack does not add LD_LIBRARY_PATH
-    - if [[ "${BUILD_CUDA}" == "ON" ]]; then
-      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
-      fi
+    # - if [[ "${BUILD_CUDA}" == "ON" ]]; then
+    #   export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
+    #   fi
     - ninja test_install
     - pushd test/test_install
     - ninja install
