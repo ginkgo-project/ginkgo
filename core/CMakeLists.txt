@@ -37,7 +37,6 @@ target_sources(
         base/dense_cache.cpp
         base/device_matrix_data.cpp
         base/executor.cpp
-        base/event.cpp
         base/index_set.cpp
         base/memory.cpp
         base/mpi.cpp

@@ -8,12 +8,10 @@
 #include <memory>
 
 #include <ginkgo/core/base/event.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
 namespace gko {
-
-
-class Executor;
 
 
 /**
@@ -23,9 +21,12 @@ class Executor;
  */
 class NotAsyncEvent : public Event {
 public:
-    NotAsyncEvent(std::shared_ptr<const Executor> exec);
+    NotAsyncEvent(std::shared_ptr<const Executor> exec) { exec->synchronize(); }
 
-    void synchronize() const override;
+    void synchronize() const override
+    {
+        // we have sync in the recording phase
+    }
 };
 
 
