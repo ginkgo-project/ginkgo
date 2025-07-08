@@ -64,8 +64,8 @@ jobs:
           mkdir install
           export INSTALL_PREFIX=`pwd`/install
           cd build
-          cmake .. -DCMAKE_CXX_FLAGS='-undefined dynamic_lookup' -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=${{ matrix.config.half }} -DGINKGO_ENABLE_BFLOAT16=${{ matrix.config.bfloat16 }} -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -D GINKGO_BUILD_MPI=OFF -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_OMP=OFF
-          make -j8
+          cmake .. -DDGINKGO_CONFIG_LOG_DETAILED=ON -DCMAKE_CXX_FLAGS='-Xlinker -undefined -Xlinker dynamic_lookup -Wpedantic' -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=${{ matrix.config.half }} -DGINKGO_ENABLE_BFLOAT16=${{ matrix.config.bfloat16 }} -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -D GINKGO_BUILD_MPI=OFF -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_OMP=OFF
+          make VERBOSE=1 -j8 
           ctest -j10 --output-on-failure
 
       - name: install
