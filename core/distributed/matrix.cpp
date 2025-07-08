@@ -478,10 +478,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
             }
-            non_local_mtx_->apply(
-                one_scalar_.template get<ValueType>().get(),
-                recv_vector->get_local_vector(),
-                one_scalar_.template get<x_value_type>().get(), local_x);
+            if (auto coo = std::dynamic_pointer_cast<
+                    const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
+                    non_local_mtx_)) {
+                coo->apply2(recv_vector->get_local_vector(), local_x);
+            } else {
+                non_local_mtx_->apply(
+                    one_scalar_.template get<ValueType>().get(),
+                    recv_vector->get_local_vector(),
+                    one_scalar_.template get<x_value_type>().get(), local_x);
+            }
         },
         b, x);
 }
@@ -526,9 +532,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
             }
-            non_local_mtx_->apply(
-                local_alpha.get(), recv_vector->get_local_vector(),
-                one_scalar_.template get<x_value_type>().get(), local_x);
+            if (auto coo = std::dynamic_pointer_cast<
+                    const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
+                    non_local_mtx_)) {
+                coo->apply2(local_alpha.get(), recv_vector->get_local_vector(),
+                            local_x);
+            } else {
+                non_local_mtx_->apply(
+                    local_alpha.get(), recv_vector->get_local_vector(),
+                    one_scalar_.template get<x_value_type>().get(), local_x);
+            }
         },
         b, x);
 }
