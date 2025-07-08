@@ -37,7 +37,9 @@ public:
 
 private:
     std::shared_ptr<const DpcppExecutor> exec_;
-    sycl::event event_;
+    // wait_and_throw is not a const function. We use synchrnoize() const to
+    // keep the same interface as executor->synchronize()
+    mutable sycl::event event_;
 };
 
 
