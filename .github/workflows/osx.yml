@@ -37,7 +37,7 @@ jobs:
           - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON", cxx: "c++"}
           - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON", cxx: "c++"}
     name: ${{ matrix.config.name }}
-    runs-on: [macos-latest]
+    runs-on: [macos-15]
 
     steps:
       - name: Checkout the latest code (shallow clone)
