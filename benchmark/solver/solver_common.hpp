@@ -53,6 +53,9 @@ DEFINE_uint32(gcr_restart, 100,
 DEFINE_uint32(gmres_restart, 100,
               "Maximum dimension of the Krylov space to use in GMRES");
 
+DEFINE_string(gmres_ortho_method, "mgs",
+              "The orthogonalization method to use in GMRES.");
+
 DEFINE_uint32(idr_subspace_dim, 2,
               "What dimension of the subspace to use in IDR");
 
@@ -200,9 +203,23 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
             exec, precond, max_iters);
     } else if (description == "gmres") {
+        gko::solver::gmres::ortho_method ortho_method;
+        if (FLAGS_gmres_ortho_method == "mgs") {
+            ortho_method = gko::solver::gmres::ortho_method::mgs;
+        } else if (FLAGS_gmres_ortho_method == "cgs") {
+            ortho_method = gko::solver::gmres::ortho_method::cgs;
+        } else if (FLAGS_gmres_ortho_method == "cgs2") {
+            ortho_method = gko::solver::gmres::ortho_method::cgs2;
+        } else {
+            throw std::range_error(
+                std::string(
+                    "GMRES doesn't support the orthogonalization method <") +
+                FLAGS_gmres_ortho_method + ">!");
+        }
         return add_criteria_precond_finalize(
-            gko::solver::Gmres<etype>::build().with_krylov_dim(
-                FLAGS_gmres_restart),
+            gko::solver::Gmres<etype>::build()
+                .with_krylov_dim(FLAGS_gmres_restart)
+                .with_ortho_method(ortho_method),
             exec, precond, max_iters);
     } else if (description == "minres") {
         return add_criteria_precond_finalize<gko::solver::Minres<etype>>(
