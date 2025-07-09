@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/row_gatherer.hpp"
 
+#include <future>
+
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -37,9 +39,8 @@ template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {
-    return apply_async(b, x, send_workspace_);
+    return this->apply_async(b, x, send_workspace_);
 }
-
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
@@ -48,6 +49,26 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
     auto ev = this->apply_prepare(b, x, workspace);
     return this->apply_finalize(b, x, ev, workspace);
 }
+
+
+template <typename LocalIndexType>
+std::future<mpi::request> RowGatherer<LocalIndexType>::apply_future_async(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x) const
+{
+    return this->apply_future_async(b, x, send_workspace_);
+}
+
+template <typename LocalIndexType>
+std::future<mpi::request> RowGatherer<LocalIndexType>::apply_future_async(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
+{
+    auto ev = this->apply_prepare(b, x, workspace);
+    // need to pass b, x, ev by value, or get segmentation fault
+    return std::async(std::launch::async, [&, b, x, ev]() {
+        return this->apply_finalize(b, x, ev, workspace);
+    });
+}
+
 
 template <typename LocalIndexType>
 std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
@@ -148,7 +169,6 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         "memory is not available or host buffer were explicitly requested. "
         "Please provide a host buffer or enable MPI support for device "
         "memory.");
-
     // dispatch global vector
     run<Vector,
 #if GINKGO_ENABLE_HALF

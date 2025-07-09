@@ -479,13 +479,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 local_mtx_->apply(dense_b->get_local_vector(), local_x);
                 req.wait();
             } else {
+                auto future_req =
+                    this->row_gatherer_->apply_future_async(dense_b, recv_ptr);
+                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                future_req.get().wait();
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
-                auto ev = this->row_gatherer_->apply_prepare(dense_b, recv_ptr);
-                local_mtx_->apply(dense_b->get_local_vector(), local_x);
-                auto req =
-                    this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
-                req.wait();
+                // auto ev = this->row_gatherer_->apply_prepare(dense_b,
+                // recv_ptr); local_mtx_->apply(dense_b->get_local_vector(),
+                // local_x); auto req =
+                //     this->row_gatherer_->apply_finalize(dense_b, recv_ptr,
+                //     ev);
+                // req.wait();
             }
 
             if (recv_ptr != recv_vector.get()) {

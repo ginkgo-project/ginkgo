@@ -12,6 +12,8 @@
 #if GINKGO_BUILD_MPI
 
 
+#include <future>
+
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -99,6 +101,13 @@ public:
     [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
                                            ptr_param<LinOp> x,
                                            array<char>& workspace) const;
+
+    std::future<mpi::request> apply_future_async(ptr_param<const LinOp> b,
+                                                 ptr_param<LinOp> x) const;
+
+    std::future<mpi::request> apply_future_async(ptr_param<const LinOp> b,
+                                                 ptr_param<LinOp> x,
+                                                 array<char>& workspace) const;
 
     std::shared_ptr<const Event> apply_prepare(ptr_param<const LinOp> b,
                                                ptr_param<LinOp> x) const;

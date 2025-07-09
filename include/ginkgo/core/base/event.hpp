@@ -8,7 +8,6 @@
 
 #include <memory>
 
-
 namespace gko {
 
 
