@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -152,7 +152,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <typename ValueType>
 struct matrix_accessor {
-    ValueType* data;
+    ValueType* __restrict data;
     int64 stride;
 
     /**
