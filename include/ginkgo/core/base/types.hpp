@@ -35,7 +35,7 @@
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
-#define GKO_RESTRICT
+#define GKO_RESTRICT __restrict
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 

@@ -143,6 +143,32 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
+template <typename T>
+struct restricted_ptr {
+    T* GKO_RESTRICT data;
+
+    /**
+     * @internal
+     * Returns a reference to the element at position idx in the underlying
+     * storage.
+     */
+    GKO_INLINE GKO_ATTRIBUTES std::add_lvalue_reference_t<T> operator[](
+        int64 idx) const
+    {
+        return data[idx];
+    }
+
+    GKO_INLINE GKO_ATTRIBUTES std::add_lvalue_reference_t<T> operator*() const
+    {
+        return *data;
+    }
+};
+
+
+template <typename T>
+using aliased_ptr = T*;
+
+
 /**
  * @internal
  * A simple row-major accessor as a device representation of gko::matrix::Dense
@@ -246,6 +272,18 @@ struct to_device_type_impl<const array<ValueType>&> {
     {
         return as_device_type(array.get_const_data());
     }
+};
+
+template <typename T>
+struct to_device_type_impl<T*> {
+    using type = restricted_ptr<device_type<T>>;
+    static type map_to_device(T in) { return {as_device_type(in)}; }
+};
+
+template <typename T>
+struct to_device_type_impl<const T*> {
+    using type = restricted_ptr<const device_type<T>>;
+    static type map_to_device(T in) { return {as_device_type(in)}; }
 };
 
 
