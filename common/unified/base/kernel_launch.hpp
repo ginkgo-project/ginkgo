@@ -258,19 +258,19 @@ struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
 
 template <typename ValueType>
 struct to_device_type_impl<array<ValueType>&> {
-    using type = device_type<ValueType>*;
+    using type = restricted_ptr<device_type<ValueType>>;
     static type map_to_device(array<ValueType>& array)
     {
-        return as_device_type(array.get_data());
+        return {as_device_type(array.get_data())};
     }
 };
 
 template <typename ValueType>
 struct to_device_type_impl<const array<ValueType>&> {
-    using type = const device_type<ValueType>*;
+    using type = restricted_ptr<const device_type<ValueType>>;
     static type map_to_device(const array<ValueType>& array)
     {
-        return as_device_type(array.get_const_data());
+        return {as_device_type(array.get_const_data())};
     }
 };
 
