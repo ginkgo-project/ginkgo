@@ -454,9 +454,20 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, alpha->get_values(), nrhs,
                                    zero<ValueType>());
-            // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+// not support 16 bit atomic
+#if !defined(CUDA_VERSION)
             if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
+                GKO_NOT_SUPPORTED(alpha);
+            } else
+#else
+            auto compute_capability =
+                as<CudaExecutor>(exec)->get_major_version() * 10 +
+                as<CudaExecutor>(exec)->get_minor_version();
+            if (compute_capability < 70 &&
+                std::is_same_v<remove_complex<ValueType>, half>) {
+                GKO_NOT_SUPPORTED(alpha);
+            } else if (compute_capability < 80 &&
+                       std::is_same_v<remove_complex<ValueType>, bfloat16>) {
                 GKO_NOT_SUPPORTED(alpha);
             } else
 #endif
@@ -513,9 +524,21 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         auto m_i = m->get_values() + i * m_stride + k * nrhs;
         if (nrhs > 1 || is_complex<ValueType>()) {
             components::fill_array(exec, m_i, nrhs, zero<ValueType>());
-            // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+
+// not support 16 bit atomic
+#if !defined(CUDA_VERSION)
             if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
+                GKO_NOT_SUPPORTED(m_i);
+            } else
+#else
+            auto compute_capability =
+                as<CudaExecutor>(exec)->get_major_version() * 10 +
+                as<CudaExecutor>(exec)->get_minor_version();
+            if (compute_capability < 70 &&
+                std::is_same_v<remove_complex<ValueType>, half>) {
+                GKO_NOT_SUPPORTED(m_i);
+            } else if (compute_capability < 80 &&
+                       std::is_same_v<remove_complex<ValueType>, bfloat16>) {
                 GKO_NOT_SUPPORTED(m_i);
             } else
 #endif
