@@ -39,6 +39,7 @@ target_sources(
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
+        base/reused_thread.cpp
         base/perturbation.cpp
         base/segmented_array.cpp
         base/timer.cpp

@@ -21,6 +21,7 @@
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
+#include <ginkgo/core/base/reused_thread.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -899,6 +900,14 @@ public:
     /** @return a textual representation of the executor and its device. */
     virtual std::string get_description() const = 0;
 
+
+    template <typename Func, typename... Args>
+    auto add_task(Func&& f, Args&&... args) const
+        -> std::future<typename std::result_of<Func(Args...)>::type>
+    {
+        return t.add_task(std::forward<Func>(f), std::forward<Args>(args)...);
+    }
+
 protected:
     /**
      * A struct that abstracts the executor info for different executors
@@ -1202,6 +1211,8 @@ private:
         ClosureHip op_hip_;
         ClosureDpcpp op_dpcpp_;
     };
+
+    mutable reused_thread t;
 };
 
 
@@ -1286,6 +1297,7 @@ public:
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
+
 
 protected:
     void raw_copy_from(const Executor* src_exec, size_type n_bytes,

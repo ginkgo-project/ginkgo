@@ -64,9 +64,11 @@ std::future<mpi::request> RowGatherer<LocalIndexType>::apply_future_async(
 {
     auto ev = this->apply_prepare(b, x, workspace);
     // need to pass b, x, ev by value, or get segmentation fault
-    return std::async(std::launch::async, [&, b, x, ev]() {
-        return this->apply_finalize(b, x, ev, workspace);
-    });
+    // return std::async(std::launch::async, [&, b, x, ev]() {
+    //     return this->apply_finalize(b, x, ev, workspace);
+    // });
+    return this->get_executor()->add_task(
+        [&, b, x, ev]() { return this->apply_finalize(b, x, ev, workspace); });
 }
 
 
