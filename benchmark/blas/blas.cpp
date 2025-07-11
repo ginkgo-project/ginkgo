@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,6 +29,12 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
         {"axpy",
          [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
              return std::make_unique<AxpyOperation<Generator>>(
+                 exec, Generator{}, dims.n, dims.r, dims.stride_x,
+                 dims.stride_y, false);
+         }},
+        {"sub_scaled",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<SubScaledOperation<Generator>>(
                  exec, Generator{}, dims.n, dims.r, dims.stride_x,
                  dims.stride_y, false);
          }},
