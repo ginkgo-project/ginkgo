@@ -14,35 +14,25 @@ namespace matrix {
 struct local_span : span {};
 
 
-template <typename ValueType>
-class MultiVector
-    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>> {
+template <typename ValueType, typename ConcreteType>
+class MultiVector : public EnableLinOp<ConcreteType> {
 public:
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
-        ptr_param<const MultiVector> other)
-    {
-        return other->create_with_same_config_impl();
-    }
+        ptr_param<const MultiVector> other);
 
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
         ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride)
-    {
-        return other->create_with_type_of_impl(std::move(exec), size, stride);
-    }
+        std::shared_ptr<const Executor> exec);
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_view_of(
-        ptr_param<MultiVector> other)
-    {
-        return other->create_view_of_impl();
-    }
+    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
+        ptr_param<const MultiVector> other,
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size);
 
-    [[nodiscard]] static std::unique_ptr<const MultiVector>
-    create_const_view_of(ptr_param<const MultiVector> other)
-    {
-        return other->create_const_view_of_impl();
-    }
+    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
+        ptr_param<const MultiVector> other,
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride);
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_absolute_type()
         const = 0;
@@ -64,37 +54,38 @@ public:
 
     virtual void get_imag(ptr_param<MultiVector> result) const = 0;
 
-    virtual void scale(ptr_param<const LinOp> alpha) = 0;
+    virtual void scale(ptr_param<const MultiVector> alpha) = 0;
 
-    virtual void inv_scale(ptr_param<const LinOp> alpha) = 0;
+    virtual void inv_scale(ptr_param<const MultiVector> alpha) = 0;
 
-    virtual void add_scaled(ptr_param<const LinOp> alpha,
-                            ptr_param<const LinOp> b) = 0;
+    virtual void add_scaled(ptr_param<const MultiVector> alpha,
+                            ptr_param<const MultiVector> b) = 0;
 
-    virtual void sub_scaled(ptr_param<const LinOp> alpha,
-                            ptr_param<const LinOp> b) = 0;
+    virtual void sub_scaled(ptr_param<const MultiVector> alpha,
+                            ptr_param<const MultiVector> b) = 0;
 
-    virtual void compute_dot(ptr_param<const LinOp> b,
-                             ptr_param<LinOp> result) const = 0;
+    virtual void compute_dot(ptr_param<const MultiVector> b,
+                             ptr_param<MultiVector> result) const = 0;
 
-    virtual void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
+    virtual void compute_dot(ptr_param<const MultiVector> b,
+                             ptr_param<MultiVector> result,
                              array<char>& tmp) const = 0;
 
-    virtual void compute_conj_dot(ptr_param<const LinOp> b,
-                                  ptr_param<LinOp> result) const = 0;
+    virtual void compute_conj_dot(ptr_param<const MultiVector> b,
+                                  ptr_param<MultiVector> result) const = 0;
 
-    virtual void compute_conj_dot(ptr_param<const LinOp> b,
-                                  ptr_param<LinOp> result,
+    virtual void compute_conj_dot(ptr_param<const MultiVector> b,
+                                  ptr_param<MultiVector> result,
                                   array<char>& tmp) const = 0;
 
-    virtual void compute_norm2(ptr_param<LinOp> result) const = 0;
+    virtual void compute_norm2(ptr_param<MultiVector> result) const = 0;
 
-    virtual void compute_norm2(ptr_param<LinOp> result,
+    virtual void compute_norm2(ptr_param<MultiVector> result,
                                array<char>& tmp) const = 0;
 
-    virtual void compute_norm1(ptr_param<LinOp> result) const = 0;
+    virtual void compute_norm1(ptr_param<MultiVector> result) const = 0;
 
-    virtual void compute_norm1(ptr_param<LinOp> result,
+    virtual void compute_norm1(ptr_param<MultiVector> result,
                                array<char>& tmp) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<const MultiVector> create_real_view()
@@ -103,35 +94,28 @@ public:
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_real_view() = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview(
-        local_span rows, local_span columns);
+        local_span rows, local_span columns) = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview(
         local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols);
+        size_type globals_cols) = 0;
 
-    [[nodiscard]] dim<2> get_size() const noexcept { return size_; }
+    [[nodiscard]] dim<2> get_size() const noexcept;
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<MultiVector>(std::move(exec)),
-          size_{size}
+        : EnableLinOp<MultiVector>(std::move(exec)), size_{size}
     {}
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_with_same_config_impl() const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_with_type_of_impl(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride) const = 0;
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
-    create_view_of_impl() = 0;
-
-    [[nodiscard]] virtual std::unique_ptr<const MultiVector>
-    create_const_view_of_impl() const = 0;
-
-    void set_size(const dim<2>& size) noexcept { size_ = size; }
+    void set_size(const dim<2>& size) noexcept;
 
 private:
     dim<2> size_;
