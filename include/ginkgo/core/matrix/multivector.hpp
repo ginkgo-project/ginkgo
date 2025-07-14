@@ -4,13 +4,38 @@
 
 #pragma once
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
 namespace gko {
 namespace matrix {
 
+template <typename ValueType>
+class Dense;
 
+
+using supported_value_types =
+    std::tuple<double, float, std::complex<double>, std::complex<float>
+#if GINKGO_ENABLE_HALF
+               ,
+               half, std::complex<half>
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+               ,
+               bfloat16, std::complex<bfloat16>
+#endif
+               >;
+
+using dense_types = syn::apply_to_list<Dense, supported_value_types>;
+
+using any_const_dense_t = syn::variant_from_tuple<syn::apply_to_list<
+    ptr_param, syn::apply_to_list<std::add_const_t, dense_types>>>;
+using any_dense_type =
+    syn::variant_from_tuple<syn::apply_to_list<ptr_param, dense_types>>;
+
+
+// Different type to clarify that only local rows/columns are meant
 struct local_span : span {};
 
 template <typename ValueType>
