@@ -41,7 +41,12 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware")
+gko_rename_cache(
+    GINKGO_BUILD_DPCPP
+    GINKGO_BUILD_SYCL
+    BOOL
+    "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware"
+)
 option(
     GINKGO_BUILD_SYCL
     "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware"
@@ -192,8 +197,18 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
-gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
-gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
+gko_rename_cache(
+    GINKGO_COMPILER_FLAGS
+    CMAKE_CXX_FLAGS
+    BOOL
+    "Flags used by the CXX compiler during all build types."
+)
+gko_rename_cache(
+    GINKGO_CUDA_COMPILER_FLAGS
+    CMAKE_CUDA_FLAGS
+    BOOL
+    "Flags used by the CUDA compiler during all build types."
+)
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -463,9 +478,21 @@ if(MSVC)
 endif()
 
 if(GINKGO_BUILD_SYCL)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MINOR_VERSION __LIBSYCL_MINOR_VERSION)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_MAJOR_VERSION
+        __LIBSYCL_MAJOR_VERSION
+    )
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_MINOR_VERSION
+        __LIBSYCL_MINOR_VERSION
+    )
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_VERSION
+        __SYCL_COMPILER_VERSION
+    )
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
     set(GINKGO_DPCPP_MINOR_VERSION "0")

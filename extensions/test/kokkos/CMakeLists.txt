@@ -50,7 +50,16 @@ endfunction()
 create_gtest_main_kokkos()
 
 function(ginkgo_create_test_kokkos test_name)
-    ginkgo_create_test(${test_name} NO_GTEST_MAIN RESOURCE_TYPE ${resource_type} ADDITIONAL_LIBRARIES Kokkos::kokkos ginkgo_gtest_main_kokkos ${ARGN})
+    ginkgo_create_test(
+        ${test_name}
+        NO_GTEST_MAIN
+        RESOURCE_TYPE
+        ${resource_type}
+        ADDITIONAL_LIBRARIES
+        Kokkos::kokkos
+        ginkgo_gtest_main_kokkos
+        ${ARGN}
+    )
 endfunction()
 
 ginkgo_create_test_kokkos(types)
