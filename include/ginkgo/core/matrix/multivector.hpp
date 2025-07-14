@@ -40,7 +40,7 @@ struct local_span : span {};
 
 template <typename ValueType>
 class MultiVector
-    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>> {
+    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>, LinOp> {
 public:
     using value_type = ValueType;
     using absolute_type = MultiVector<remove_complex<ValueType>>;
@@ -64,69 +64,68 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
 
-    [[nodiscard]] virtual std::unique_ptr<absolute_type> compute_absolute()
-        const = 0;
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute() const;
 
-    virtual void compute_absolute_inplace() = 0;
+    void compute_absolute_inplace();
 
-    [[nodiscard]] virtual std::unique_ptr<complex_type> make_complex()
-        const = 0;
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex() const;
 
-    virtual void make_complex(ptr_param<complex_type> result) const = 0;
+    void make_complex(ptr_param<complex_type> result) const;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type> get_real() const = 0;
+    [[nodiscard]] std::unique_ptr<real_type> get_real() const;
 
-    virtual void get_real(ptr_param<real_type> result) const = 0;
+    void get_real(ptr_param<real_type> result) const;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type> get_imag() const = 0;
+    [[nodiscard]] std::unique_ptr<real_type> get_imag() const;
 
-    virtual void get_imag(ptr_param<real_type> result) const = 0;
+    void get_imag(ptr_param<real_type> result) const;
 
-    virtual void scale(ptr_param<const MultiVector> alpha) = 0;
+    void fill(ValueType value);
 
-    virtual void inv_scale(ptr_param<const MultiVector> alpha) = 0;
+    void scale(any_const_dense_t alpha);
 
-    virtual void add_scaled(ptr_param<const MultiVector> alpha,
-                            ptr_param<const MultiVector> b) = 0;
+    void inv_scale(any_const_dense_t alpha);
 
-    virtual void sub_scaled(ptr_param<const MultiVector> alpha,
-                            ptr_param<const MultiVector> b) = 0;
+    void add_scaled(any_const_dense_t alpha, ptr_param<const MultiVector> b);
 
-    virtual void compute_dot(ptr_param<const MultiVector> b,
-                             ptr_param<MultiVector> result) const = 0;
+    void sub_scaled(any_const_dense_t alpha, ptr_param<const MultiVector> b);
 
-    virtual void compute_dot(ptr_param<const MultiVector> b,
-                             ptr_param<MultiVector> result,
-                             array<char>& tmp) const = 0;
+    void compute_dot(ptr_param<const MultiVector> b,
+                     ptr_param<MultiVector> result) const;
 
-    virtual void compute_conj_dot(ptr_param<const MultiVector> b,
-                                  ptr_param<MultiVector> result) const = 0;
+    void compute_dot(ptr_param<const MultiVector> b,
+                     ptr_param<MultiVector> result, array<char>& tmp) const;
 
-    virtual void compute_conj_dot(ptr_param<const MultiVector> b,
-                                  ptr_param<MultiVector> result,
-                                  array<char>& tmp) const = 0;
+    void compute_conj_dot(ptr_param<const MultiVector> b,
+                          ptr_param<MultiVector> result) const;
 
-    virtual void compute_norm2(ptr_param<absolute_type> result) const = 0;
+    void compute_conj_dot(ptr_param<const MultiVector> b,
+                          ptr_param<MultiVector> result,
+                          array<char>& tmp) const;
 
-    virtual void compute_norm2(ptr_param<absolute_type> result,
-                               array<char>& tmp) const = 0;
+    void compute_norm2(ptr_param<absolute_type> result) const;
 
-    virtual void compute_norm1(ptr_param<absolute_type> result) const = 0;
+    void compute_norm2(ptr_param<absolute_type> result, array<char>& tmp) const;
 
-    virtual void compute_norm1(ptr_param<absolute_type> result,
-                               array<char>& tmp) const = 0;
+    void compute_squared_norm2(ptr_param<absolute_type> result) const;
 
-    [[nodiscard]] virtual std::unique_ptr<const real_type> create_real_view()
-        const = 0;
+    void compute_squared_norm2(ptr_param<absolute_type> result,
+                               array<char>& tmp) const;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type> create_real_view() = 0;
+    void compute_norm1(ptr_param<absolute_type> result) const;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview(
-        local_span rows, local_span columns) = 0;
+    void compute_norm1(ptr_param<absolute_type> result, array<char>& tmp) const;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview(
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view() const;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view();
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
+        local_span rows, local_span columns);
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
         local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols) = 0;
+        size_type globals_cols);
 
     [[nodiscard]] dim<2> get_size() const noexcept;
 
@@ -143,10 +142,74 @@ protected:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride) const = 0;
 
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {}
+    virtual void compute_absolute_inplace_impl() = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<complex_type> make_complex_impl()
+        const = 0;
+
+    virtual void make_complex_impl(complex_type* result) const = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<real_type> get_real_impl() const = 0;
+
+    virtual void get_real_impl(real_type* result) const = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<real_type> get_imag_impl() const = 0;
+
+    virtual void get_imag_impl(real_type* result) const = 0;
+
+    virtual void fill_impl(ValueType value) = 0;
+
+    // @todo: need to fix alpha to a our dense type
+    virtual void scale_impl(any_const_dense_t alpha) = 0;
+
+    virtual void inv_scale_impl(any_const_dense_t alpha) = 0;
+
+    virtual void add_scaled_impl(any_const_dense_t alpha,
+                                 const MultiVector* b) = 0;
+
+    virtual void sub_scaled_impl(any_const_dense_t alpha,
+                                 const MultiVector* b) = 0;
+
+    virtual void compute_dot_impl(const MultiVector* b,
+                                  MultiVector* result) const = 0;
+
+    virtual void compute_dot_impl(const MultiVector* b, MultiVector* result,
+                                  array<char>& tmp) const = 0;
+
+    virtual void compute_conj_dot_impl(const MultiVector* b,
+                                       MultiVector* result) const = 0;
+
+    virtual void compute_conj_dot_impl(const MultiVector* b,
+                                       MultiVector* result,
+                                       array<char>& tmp) const = 0;
+
+    virtual void compute_norm2_impl(absolute_type* result) const = 0;
+
+    virtual void compute_norm2_impl(absolute_type* result,
+                                    array<char>& tmp) const = 0;
+
+    virtual void compute_squared_norm2_impl(absolute_type* result) const = 0;
+
+    virtual void compute_squared_norm2_impl(absolute_type* result,
+                                            array<char>& tmp) const = 0;
+
+    virtual void compute_norm1_impl(absolute_type* result) const = 0;
+
+    virtual void compute_norm1_impl(absolute_type* result,
+                                    array<char>& tmp) const = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<const real_type>
+    create_real_view_impl() const = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<real_type>
+    create_real_view_impl() = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns, size_type global_rows,
+        size_type globals_cols) = 0;
 
     void set_size(const dim<2>& size) noexcept;
 };
