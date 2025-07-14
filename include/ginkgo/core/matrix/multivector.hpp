@@ -13,16 +13,14 @@ namespace matrix {
 
 struct local_span : span {};
 
-// @todo: remove ConcreteType
-template <typename ValueType, typename ConcreteType>
-class MultiVector : public EnableLinOp<ConcreteType> {
+template <typename ValueType>
+class MultiVector
+    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>> {
 public:
     using value_type = ValueType;
-    using absolute_type =
-        MultiVector<remove_complex<ValueType>, remove_complex<ConcreteType>>;
+    using absolute_type = MultiVector<remove_complex<ValueType>>;
     using real_type = absolute_type;
-    using complex_type =
-        MultiVector<to_complex<ValueType>, to_complex<ConcreteType>>;
+    using complex_type = MultiVector<to_complex<ValueType>>;
 
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);

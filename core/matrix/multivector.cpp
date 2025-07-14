@@ -8,27 +8,27 @@ namespace gko {
 namespace matrix {
 
 
-template <typename ValueType, typename ConcreteType>
-std::unique_ptr<MultiVector<ValueType, ConcreteType>>
-MultiVector<ValueType, ConcreteType>::create_with_config_of(
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_config_of(
     ptr_param<const MultiVector> other)
 {
     return other->create_with_same_config_impl();
 }
 
 
-template <typename ValueType, typename ConcreteType>
-std::unique_ptr<MultiVector<ValueType, ConcreteType>>
-MultiVector<ValueType, ConcreteType>::create_with_type_of(
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_type_of(
     ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec)
 {
     return other->create_with_type_of_impl(std::move(exec), {}, {}, 0);
 }
 
 
-template <typename ValueType, typename ConcreteType>
-std::unique_ptr<MultiVector<ValueType, ConcreteType>>
-MultiVector<ValueType, ConcreteType>::create_with_type_of(
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_type_of(
     ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size)
 {
@@ -38,9 +38,9 @@ MultiVector<ValueType, ConcreteType>::create_with_type_of(
 }
 
 
-template <typename ValueType, typename ConcreteType>
-std::unique_ptr<MultiVector<ValueType, ConcreteType>>
-MultiVector<ValueType, ConcreteType>::create_with_type_of(
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_type_of(
     ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size, size_type stride)
 {
@@ -49,15 +49,15 @@ MultiVector<ValueType, ConcreteType>::create_with_type_of(
 }
 
 
-template <typename ValueType, typename ConcreteType>
-dim<2> MultiVector<ValueType, ConcreteType>::get_size() const noexcept
+template <typename ValueType>
+dim<2> MultiVector<ValueType>::get_size() const noexcept
 {
     return LinOp::get_size();
 }
 
 
-template <typename ValueType, typename ConcreteType>
-void MultiVector<ValueType, ConcreteType>::set_size(const dim<2>& size) noexcept
+template <typename ValueType>
+void MultiVector<ValueType>::set_size(const dim<2>& size) noexcept
 {
     LinOp::set_size(size);
 }
