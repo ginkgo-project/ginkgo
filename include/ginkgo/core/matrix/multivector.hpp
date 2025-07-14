@@ -14,9 +14,14 @@ namespace matrix {
 struct local_span : span {};
 
 
-template <typename ValueType, typename ConcreteType>
-class MultiVector : public EnableLinOp<ConcreteType> {
+template <typename ValueType = default_precision>
+class MultiVector : public EnableLinOp<MultiVector<ValueType>> {
 public:
+    using value_type = ValueType;
+    using absolute_type = remove_complex<MultiVector>;
+    using real_type = absolute_type;
+    using complex_type = to_complex<MultiVector>;
+
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
 
@@ -34,25 +39,23 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_absolute_type()
-        const = 0;
-
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> compute_absolute()
+    [[nodiscard]] virtual std::unique_ptr<absolute_type> compute_absolute()
         const = 0;
 
     virtual void compute_absolute_inplace() = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> make_complex() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<complex_type> make_complex()
+        const = 0;
 
-    virtual void make_complex(ptr_param<MultiVector> result) const = 0;
+    virtual void make_complex(ptr_param<complex_type> result) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_real() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<real_type> get_real() const = 0;
 
-    virtual void get_real(ptr_param<MultiVector> result) const = 0;
+    virtual void get_real(ptr_param<real_type> result) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_imag() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<real_type> get_imag() const = 0;
 
-    virtual void get_imag(ptr_param<MultiVector> result) const = 0;
+    virtual void get_imag(ptr_param<real_type> result) const = 0;
 
     virtual void scale(ptr_param<const MultiVector> alpha) = 0;
 
@@ -78,20 +81,20 @@ public:
                                   ptr_param<MultiVector> result,
                                   array<char>& tmp) const = 0;
 
-    virtual void compute_norm2(ptr_param<MultiVector> result) const = 0;
+    virtual void compute_norm2(ptr_param<absolute_type> result) const = 0;
 
-    virtual void compute_norm2(ptr_param<MultiVector> result,
+    virtual void compute_norm2(ptr_param<absolute_type> result,
                                array<char>& tmp) const = 0;
 
-    virtual void compute_norm1(ptr_param<MultiVector> result) const = 0;
+    virtual void compute_norm1(ptr_param<absolute_type> result) const = 0;
 
-    virtual void compute_norm1(ptr_param<MultiVector> result,
+    virtual void compute_norm1(ptr_param<absolute_type> result,
                                array<char>& tmp) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const MultiVector> create_real_view()
+    [[nodiscard]] virtual std::unique_ptr<const real_type> create_real_view()
         const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> create_real_view() = 0;
+    [[nodiscard]] virtual std::unique_ptr<real_type> create_real_view() = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview(
         local_span rows, local_span columns) = 0;
@@ -105,7 +108,7 @@ public:
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{})
-        : EnableLinOp<MultiVector>(std::move(exec)), size_{size}
+        : EnableLinOp<MultiVector>(std::move(exec), size)
     {}
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
@@ -115,10 +118,12 @@ protected:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride) const = 0;
 
-    void set_size(const dim<2>& size) noexcept;
+    void apply_impl(const LinOp* b, LinOp* x) const override {}
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override
+    {}
 
-private:
-    dim<2> size_;
+    void set_size(const dim<2>& size) noexcept;
 };
 
 
