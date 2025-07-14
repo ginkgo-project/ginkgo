@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <array>
 #include <type_traits>
+#include <variant>
 
 
 namespace gko {
@@ -177,6 +178,47 @@ constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
     return std::array<T, sizeof...(Value)>{Value...};
 }
 
+namespace detail {
+
+template <template <typename...> typename T, typename InputList,
+          typename ResultList = std::tuple<>>
+struct apply_to_list_impl;
+
+template <template <typename...> typename T, typename ResultList>
+struct apply_to_list_impl<T, std::tuple<>, ResultList> {
+    using type = ResultList;
+};
+
+template <template <typename...> typename T, typename U, typename... InputTypes,
+          typename... ResultTypes>
+struct apply_to_list_impl<T, std::tuple<U, InputTypes...>,
+                          std::tuple<ResultTypes...>> {
+    using type =
+        typename apply_to_list_impl<T, std::tuple<InputTypes...>,
+                                    std::tuple<ResultTypes..., T<U>>>::type;
+};
+
+}  // namespace detail
+
+
+template <template <typename...> typename T, typename TupleList>
+using apply_to_list = typename detail::apply_to_list_impl<T, TupleList>::type;
+
+namespace detail {
+
+template <typename Tuple>
+struct variant_from_tuple_impl;
+
+template <typename... Types>
+struct variant_from_tuple_impl<std::tuple<Types...>> {
+    using type = std::variant<Types...>;
+};
+
+}  // namespace detail
+
+template <typename Tuple>
+using variant_from_tuple =
+    typename detail::variant_from_tuple_impl<Tuple>::type;
 
 }  // namespace syn
 }  // namespace gko
