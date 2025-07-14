@@ -8,6 +8,7 @@
 
 #include <array>
 #include <type_traits>
+#include <variant>
 
 
 namespace gko {
@@ -175,6 +176,24 @@ constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
 {
     return std::array<T, sizeof...(Value)>{Value...};
 }
+
+
+namespace detail {
+
+
+template <typename List>
+struct variant_from_list_impl;
+
+template <template <typename...> typename List, typename... Types>
+struct variant_from_list_impl<List<Types...>> {
+    using type = std::variant<Types...>;
+};
+
+
+}  // namespace detail
+
+template <typename List>
+using variant_from_list = typename detail::variant_from_list_impl<List>::type;
 
 
 }  // namespace syn
