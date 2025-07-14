@@ -90,6 +90,7 @@ target_sources(
         matrix/fft.cpp
         matrix/hybrid.cpp
         matrix/identity.cpp
+        matrix/multivector.cpp
         matrix/permutation.cpp
         matrix/row_gatherer.cpp
         matrix/scaled_permutation.cpp
