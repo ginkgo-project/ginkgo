@@ -1,2 +1,12 @@
 extensions:
 - gersemi.py
+definitions:
+- cmake
+- doc
+- core/test/gtest/CMakeLists.txt
+- common/cuda_hip/CMakeLists.txt
+- devices/CMakeLists.txt
+- core/test/accessor/CMakeLists.txt
+- benchmark/test/CMakelists.txt
+- benchmark/CMakeLists.txt
+- extensions/test/kokkos/CMakeLists.txt
