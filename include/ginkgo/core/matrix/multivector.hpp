@@ -34,19 +34,14 @@ using any_const_dense_t = syn::variant_from_tuple<syn::apply_to_list<
 using any_dense_type =
     syn::variant_from_tuple<syn::apply_to_list<ptr_param, dense_types>>;
 
+using any_value_t = syn::variant_from_tuple<supported_value_types>;
+
 
 // Different type to clarify that only local rows/columns are meant
 struct local_span : span {};
 
-template <typename ValueType>
-class MultiVector
-    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>, LinOp> {
+class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
 public:
-    using value_type = ValueType;
-    using absolute_type = MultiVector<remove_complex<ValueType>>;
-    using real_type = absolute_type;
-    using complex_type = MultiVector<to_complex<ValueType>>;
-
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
 
@@ -64,23 +59,23 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
 
-    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute() const;
+    [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute() const;
 
     void compute_absolute_inplace();
 
-    [[nodiscard]] std::unique_ptr<complex_type> make_complex() const;
+    [[nodiscard]] std::unique_ptr<MultiVector> make_complex() const;
 
-    void make_complex(ptr_param<complex_type> result) const;
+    void make_complex(ptr_param<MultiVector> result) const;
 
-    [[nodiscard]] std::unique_ptr<real_type> get_real() const;
+    [[nodiscard]] std::unique_ptr<MultiVector> get_real() const;
 
-    void get_real(ptr_param<real_type> result) const;
+    void get_real(ptr_param<MultiVector> result) const;
 
-    [[nodiscard]] std::unique_ptr<real_type> get_imag() const;
+    [[nodiscard]] std::unique_ptr<MultiVector> get_imag() const;
 
-    void get_imag(ptr_param<real_type> result) const;
+    void get_imag(ptr_param<MultiVector> result) const;
 
-    void fill(ValueType value);
+    void fill(any_value_t value);
 
     void scale(any_const_dense_t alpha);
 
@@ -103,22 +98,22 @@ public:
                           ptr_param<MultiVector> result,
                           array<char>& tmp) const;
 
-    void compute_norm2(ptr_param<absolute_type> result) const;
+    void compute_norm2(ptr_param<MultiVector> result) const;
 
-    void compute_norm2(ptr_param<absolute_type> result, array<char>& tmp) const;
+    void compute_norm2(ptr_param<MultiVector> result, array<char>& tmp) const;
 
-    void compute_squared_norm2(ptr_param<absolute_type> result) const;
+    void compute_squared_norm2(ptr_param<MultiVector> result) const;
 
-    void compute_squared_norm2(ptr_param<absolute_type> result,
+    void compute_squared_norm2(ptr_param<MultiVector> result,
                                array<char>& tmp) const;
 
-    void compute_norm1(ptr_param<absolute_type> result) const;
+    void compute_norm1(ptr_param<MultiVector> result) const;
 
-    void compute_norm1(ptr_param<absolute_type> result, array<char>& tmp) const;
+    void compute_norm1(ptr_param<MultiVector> result, array<char>& tmp) const;
 
-    [[nodiscard]] std::unique_ptr<const real_type> create_real_view() const;
+    [[nodiscard]] std::unique_ptr<const MultiVector> create_real_view() const;
 
-    [[nodiscard]] std::unique_ptr<real_type> create_real_view();
+    [[nodiscard]] std::unique_ptr<MultiVector> create_real_view();
 
     [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
         local_span rows, local_span columns);
@@ -131,9 +126,7 @@ public:
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size = dim<2>{})
-        : EnableLinOp<MultiVector>(std::move(exec), size)
-    {}
+                         const dim<2>& size = dim<2>{});
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_with_same_config_impl() const = 0;
@@ -142,22 +135,27 @@ protected:
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride) const = 0;
 
-    virtual void compute_absolute_inplace_impl() = 0;
-
-    [[nodiscard]] virtual std::unique_ptr<complex_type> make_complex_impl()
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> compute_absolute_impl()
         const = 0;
 
-    virtual void make_complex_impl(complex_type* result) const = 0;
+    virtual void compute_absolute_inplace_impl() = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type> get_real_impl() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> make_complex_impl()
+        const = 0;
 
-    virtual void get_real_impl(real_type* result) const = 0;
+    virtual void make_complex_impl(MultiVector* result) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type> get_imag_impl() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_real_impl()
+        const = 0;
 
-    virtual void get_imag_impl(real_type* result) const = 0;
+    virtual void get_real_impl(MultiVector* result) const = 0;
 
-    virtual void fill_impl(ValueType value) = 0;
+    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_imag_impl()
+        const = 0;
+
+    virtual void get_imag_impl(MultiVector* result) const = 0;
+
+    virtual void fill_impl(any_value_t value) = 0;
 
     // @todo: need to fix alpha to a our dense type
     virtual void scale_impl(any_const_dense_t alpha) = 0;
@@ -183,25 +181,25 @@ protected:
                                        MultiVector* result,
                                        array<char>& tmp) const = 0;
 
-    virtual void compute_norm2_impl(absolute_type* result) const = 0;
+    virtual void compute_norm2_impl(MultiVector* result) const = 0;
 
-    virtual void compute_norm2_impl(absolute_type* result,
+    virtual void compute_norm2_impl(MultiVector* result,
                                     array<char>& tmp) const = 0;
 
-    virtual void compute_squared_norm2_impl(absolute_type* result) const = 0;
+    virtual void compute_squared_norm2_impl(MultiVector* result) const = 0;
 
-    virtual void compute_squared_norm2_impl(absolute_type* result,
+    virtual void compute_squared_norm2_impl(MultiVector* result,
                                             array<char>& tmp) const = 0;
 
-    virtual void compute_norm1_impl(absolute_type* result) const = 0;
+    virtual void compute_norm1_impl(MultiVector* result) const = 0;
 
-    virtual void compute_norm1_impl(absolute_type* result,
+    virtual void compute_norm1_impl(MultiVector* result,
                                     array<char>& tmp) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const real_type>
+    [[nodiscard]] virtual std::unique_ptr<const MultiVector>
     create_real_view_impl() const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<real_type>
+    [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_real_view_impl() = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> create_subview_impl(
