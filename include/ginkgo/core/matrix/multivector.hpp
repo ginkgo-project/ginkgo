@@ -13,14 +13,16 @@ namespace matrix {
 
 struct local_span : span {};
 
-
-template <typename ValueType = default_precision>
-class MultiVector : public EnableLinOp<MultiVector<ValueType>> {
+// @todo: remove ConcreteType
+template <typename ValueType, typename ConcreteType>
+class MultiVector : public EnableLinOp<ConcreteType> {
 public:
     using value_type = ValueType;
-    using absolute_type = remove_complex<MultiVector>;
+    using absolute_type =
+        MultiVector<remove_complex<ValueType>, remove_complex<ConcreteType>>;
     using real_type = absolute_type;
-    using complex_type = to_complex<MultiVector>;
+    using complex_type =
+        MultiVector<to_complex<ValueType>, to_complex<ConcreteType>>;
 
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
