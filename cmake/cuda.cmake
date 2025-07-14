@@ -6,7 +6,10 @@ include(cmake/Modules/CudaArchitectureSelector.cmake)
 
 if(NOT CMAKE_CUDA_ARCHITECTURES)
     # Detect the CUDA architecture and propagate it to the entire project
-    cas_variable_cmake_cuda_architectures(CMAKE_CUDA_ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES})
+    cas_variable_cmake_cuda_architectures(
+        CMAKE_CUDA_ARCHITECTURES
+        ${GINKGO_CUDA_ARCHITECTURES}
+    )
 endif()
 
 find_package(NVTX REQUIRED)

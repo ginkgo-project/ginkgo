@@ -94,16 +94,34 @@ function(GKO_XCOMPILER varname varlist)
     set(${varname} "${tmp}" CACHE INTERNAL "")
 endfunction()
 
-gko_xcompiler(${PROJECT_NAME}_NVCC_COVERAGE_COMPILER_FLAGS "-g;-O0;--coverage")
-gko_xcompiler(${PROJECT_NAME}_NVCC_COVERAGE_LINKER_FLAGS   "--coverage")
-gko_xcompiler(${PROJECT_NAME}_NVCC_TSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=thread;-fno-omit-frame-pointer;-fPIC")
-gko_xcompiler(${PROJECT_NAME}_NVCC_TSAN_LINKER_FLAGS       "-fsanitize=thread;-static-libtsan;-fno-omit-frame-pointer;-fPIC")
-gko_xcompiler(${PROJECT_NAME}_NVCC_ASAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=address;-fno-omit-frame-pointer")
-gko_xcompiler(${PROJECT_NAME}_NVCC_ASAN_LINKER_FLAGS       "-fsanitize=address;-fno-omit-frame-pointer")
-gko_xcompiler(${PROJECT_NAME}_NVCC_LSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=leak")
-gko_xcompiler(${PROJECT_NAME}_NVCC_LSAN_LINKER_FLAGS       "-fsanitize=leak")
-gko_xcompiler(${PROJECT_NAME}_NVCC_UBSAN_COMPILER_FLAGS    "-g;-O1;-fsanitize=undefined;-static-libubsan")
-gko_xcompiler(${PROJECT_NAME}_NVCC_UBSAN_LINKER_FLAGS      "-fsanitize=undefined;-static-libubsan")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_COMPILER_FLAGS "-g;-O0;--coverage")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_LINKER_FLAGS "--coverage")
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_TSAN_COMPILER_FLAGS
+    "-g;-O1;-fsanitize=thread;-fno-omit-frame-pointer;-fPIC"
+)
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_TSAN_LINKER_FLAGS
+    "-fsanitize=thread;-static-libtsan;-fno-omit-frame-pointer;-fPIC"
+)
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_ASAN_COMPILER_FLAGS
+    "-g;-O1;-fsanitize=address;-fno-omit-frame-pointer"
+)
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_ASAN_LINKER_FLAGS
+    "-fsanitize=address;-fno-omit-frame-pointer"
+)
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_LSAN_COMPILER_FLAGS "-g;-O1;-fsanitize=leak")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_LSAN_LINKER_FLAGS "-fsanitize=leak")
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_UBSAN_COMPILER_FLAGS
+    "-g;-O1;-fsanitize=undefined;-static-libubsan"
+)
+GKO_XCOMPILER(
+    ${PROJECT_NAME}_NVCC_UBSAN_LINKER_FLAGS
+    "-fsanitize=undefined;-static-libubsan"
+)
 
 get_property(ENABLED_LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
 

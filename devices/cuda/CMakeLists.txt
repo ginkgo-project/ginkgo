@@ -1,6 +1,4 @@
-ginkgo_add_object_library(ginkgo_cuda_device
-    executor.cpp
-)
+ginkgo_add_object_library(ginkgo_cuda_device executor.cpp)
 if(GINKGO_BUILD_CUDA)
     target_compile_definitions(
         ginkgo_cuda_device
