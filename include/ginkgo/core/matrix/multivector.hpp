@@ -213,5 +213,211 @@ protected:
 };
 
 
+template <typename ConcreteType>
+class EnableMultiVector
+    : public EnablePolymorphicObject<ConcreteType, MultiVector>,
+      public EnablePolymorphicAssignment<ConcreteType> {
+public:
+    using value_type = typename ConcreteType::value_type;
+    using absolute_type = remove_complex<ConcreteType>;
+    using real_type = absolute_type;
+    using complex_type = to_complex<ConcreteType>;
+
+protected:
+    void make_complex_impl(MultiVector* result) const final;
+
+    void get_real_impl(MultiVector* result) const final;
+
+    void get_imag_impl(MultiVector* result) const final;
+
+    void add_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
+
+    void sub_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
+
+    void compute_dot_impl(const MultiVector* b,
+                          MultiVector* result) const final;
+
+    void compute_dot_impl(const MultiVector* b, MultiVector* result,
+                          array<char>& tmp) const final;
+
+    void compute_conj_dot_impl(const MultiVector* b,
+                               MultiVector* result) const final;
+
+    void compute_conj_dot_impl(const MultiVector* b, MultiVector* result,
+                               array<char>& tmp) const final;
+
+    void compute_norm2_impl(MultiVector* result) const final;
+
+    void compute_norm2_impl(MultiVector* result, array<char>& tmp) const final;
+
+    void compute_squared_norm2_impl(MultiVector* result) const final;
+
+    void compute_squared_norm2_impl(MultiVector* result,
+                                    array<char>& tmp) const final;
+
+    void compute_norm1_impl(MultiVector* result) const final;
+
+    void compute_norm1_impl(MultiVector* result, array<char>& tmp) const final;
+
+    // Concretized function calls
+    virtual void make_complex_impl(complex_type* result) const = 0;
+
+    virtual void get_real_impl(real_type* result) const = 0;
+
+    virtual void get_imag_impl(real_type* result) const = 0;
+
+    virtual void add_scaled_impl(any_const_dense_t alpha,
+                                 const ConcreteType* b) = 0;
+
+    virtual void sub_scaled_impl(any_const_dense_t alpha,
+                                 const ConcreteType* b) = 0;
+
+    virtual void compute_dot_impl(const ConcreteType* b,
+                                  ConcreteType* result) const = 0;
+
+    virtual void compute_dot_impl(const ConcreteType* b, ConcreteType* result,
+                                  array<char>& tmp) const = 0;
+
+    virtual void compute_conj_dot_impl(const ConcreteType* b,
+                                       ConcreteType* result) const = 0;
+
+    virtual void compute_conj_dot_impl(const ConcreteType* b,
+                                       ConcreteType* result,
+                                       array<char>& tmp) const = 0;
+
+    virtual void compute_norm2_impl(absolute_type* result) const = 0;
+
+    virtual void compute_norm2_impl(absolute_type* result,
+                                    array<char>& tmp) const = 0;
+
+    virtual void compute_norm1_impl(absolute_type* result) const = 0;
+
+    virtual void compute_norm1_impl(absolute_type* result,
+                                    array<char>& tmp) const = 0;
+};
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::make_complex_impl(
+    MultiVector* result) const
+{
+    this->make_complex_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::get_real_impl(MultiVector* result) const
+{
+    this->get_real_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::get_imag_impl(MultiVector* result) const
+{
+    this->get_imag_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::add_scaled_impl(any_const_dense_t alpha,
+                                                      const MultiVector* b)
+{
+    this->add_scaled_impl(alpha, as<const ConcreteType>(b));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::sub_scaled_impl(any_const_dense_t alpha,
+                                                      const MultiVector* b)
+{
+    this->sub_scaled_impl(alpha, as<const ConcreteType>(b));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_dot_impl(
+    const MultiVector* b, MultiVector* result) const
+{
+    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_dot_impl(const MultiVector* b,
+                                                       MultiVector* result,
+                                                       array<char>& tmp) const
+{
+    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result),
+                           tmp);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
+    const MultiVector* b, MultiVector* result) const
+{
+    this->compute_conj_dot_impl(as<const ConcreteType>(b),
+                                as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
+    const MultiVector* b, MultiVector* result, array<char>& tmp) const
+{
+    this->compute_conj_dot_impl(as<const ConcreteType>(b),
+                                as<ConcreteType>(result), tmp);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_norm2_impl(
+    MultiVector* result) const
+{
+    this->compute_norm2_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_norm2_impl(MultiVector* result,
+                                                         array<char>& tmp) const
+{
+    this->compute_norm2_impl(as<ConcreteType>(result), tmp);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
+    MultiVector* result) const
+{
+    this->compute_squared_norm2_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
+    MultiVector* result, array<char>& tmp) const
+{
+    this->compute_squared_norm2_impl(as<ConcreteType>(result), tmp);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_norm1_impl(
+    MultiVector* result) const
+{
+    this->compute_norm1_impl(as<ConcreteType>(result));
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
+                                                         array<char>& tmp) const
+{
+    this->compute_norm1_impl(as<ConcreteType>(result), tmp);
+}
+
+
 }  // namespace matrix
 }  // namespace gko
