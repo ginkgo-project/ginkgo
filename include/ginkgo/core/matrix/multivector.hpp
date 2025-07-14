@@ -4,18 +4,19 @@
 
 #pragma once
 
-#include <variant>
-
 #include <ginkgo/core/base/lin_op.hpp>
 
 
 namespace gko {
 namespace matrix {
 
+
 struct local_span : span {};
 
 
-class MultiVector : public EnableAbstractPolymorphicObject<MultiVector> {
+template <typename ValueType>
+class MultiVector
+    : public EnableAbstractPolymorphicObject<MultiVector<ValueType>> {
 public:
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other)
