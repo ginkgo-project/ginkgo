@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,6 +54,7 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
 public:
     using value_type = ValueType;
     using transposed_type = Cg<ValueType>;
+    using EnableLinOp<Cg>::apply;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -92,6 +93,9 @@ public:
                                  const config::registry& context,
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<ValueType>());
+
+    void apply(ptr_param<const matrix::MultiVector> b,
+               ptr_param<matrix::MultiVector> x) const;
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
