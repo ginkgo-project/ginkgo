@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -87,8 +88,7 @@ class SparsityCsr;
  */
 template <typename ValueType = default_precision>
 class Dense
-    : public LinOp,
-      public EnableCloneable<Dense<ValueType>>,
+    : public EnableMultiVector<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
@@ -142,8 +142,9 @@ class Dense
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Dense>::convert_to;
-    using EnableCloneable<Dense>::move_to;
+    using EnableMultiVector<Dense>::convert_to;
+    using EnableMultiVector<Dense>::move_to;
+    using EnableMultiVector<Dense>::create_with_type_of;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
@@ -176,8 +177,11 @@ public:
     using ConvertibleTo<SparsityCsr<ValueType, int64>>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
+    // necessary because of overload for diagonal matrices
+    using EnableMultiVector<Dense>::add_scaled;
+    using EnableMultiVector<Dense>::sub_scaled;
 
-    using value_type = ValueType;
+    using value_type = typename EnableMultiVector<Dense>::value_type;
     using index_type = int64;
     using transposed_type = Dense<value_type>;
     using mat_data = matrix_data<value_type, int64>;
@@ -187,105 +191,11 @@ public:
     using absolute_type = remove_complex<Dense>;
     using real_type = absolute_type;
     using complex_type = to_complex<Dense>;
-    using device_view = matrix::view::dense<value_type>;
-    using const_device_view = matrix::view::dense<const value_type>;
+    using device_view = typename EnableMultiVector<Dense>::device_view;
+    using const_device_view =
+        typename EnableMultiVector<Dense>::const_device_view;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
-
-    /**
-     * Creates a Dense matrix with the same size and stride as another Dense
-     * matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<Dense> create_with_config_of(
-        ptr_param<const Dense> other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
-
-    /**
-     * Creates a Dense matrix with the same type as another Dense
-     * matrix but on a different executor and with a different size.
-     *
-     * @param other  The other matrix whose type we target.
-     * @param exec  The executor of the new matrix.
-     * @param size  The size of the new matrix.
-     * @param stride  The stride of the new matrix.
-     *
-     * @returns a Dense matrix with the type of other.
-     */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size = dim<2>{})
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, size[1]);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload which allows full parameter specification.
-     */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param local_size  Unused
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload to stay consistent with
-     *       gko::experimental::distributed::Vector
-     */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, const dim<2>& local_size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * Creates a Dense matrix, where the underlying array is a view of another
-     * Dense matrix' array.
-     *
-     * @param other  The other matrix on which to create the view
-     *
-     * @return  A Dense matrix that is a view of other
-     */
-    static std::unique_ptr<Dense> create_view_of(ptr_param<Dense> other)
-    {
-        return other->create_view_of_impl();
-    }
-
-    /**
-     * Creates a immutable Dense matrix, where the underlying array is a view of
-     * another Dense matrix' array.
-     *
-     * @param other  The other matrix on which to create the view
-     * @return  A immutable Dense matrix that is a view of other
-     */
-    static std::unique_ptr<const Dense> create_const_view_of(
-        ptr_param<const Dense> other)
-    {
-        return other->create_const_view_of_impl();
-    }
 
     friend class Dense<previous_precision<ValueType>>;
 
@@ -404,13 +314,6 @@ public:
      *                `gko::transpose(this->get_size())`
      */
     void conj_transpose(ptr_param<Dense> output) const;
-
-    /**
-     * Fill the dense matrix with a given value.
-     *
-     * @param value  the value to be filled
-     */
-    void fill(const ValueType value);
 
     /**
      * Creates a permuted copy $A'$ of this matrix $A$ with the given
@@ -808,55 +711,6 @@ public:
      */
     void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    /**
-     * Writes the absolute values of this matrix into an existing matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix.
-     * @see Dense::compute_absolute()
-     */
-    void compute_absolute(ptr_param<absolute_type> output) const;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original matrix. If the original matrix
-     * was real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original matrix to a given complex matrix.
-     * If the original matrix was real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(ptr_param<complex_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the real part of the original
-     * matrix into that.
-     */
-    std::unique_ptr<real_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original matrix into a given real matrix.
-     */
-    void get_real(ptr_param<real_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the imaginary part of the
-     * original matrix into that.
-     */
-    std::unique_ptr<real_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original matrix into a given real
-     * matrix.
-     */
-    void get_imag(ptr_param<real_type> result) const;
-
     /**
      * Returns a pointer to the array of values of the matrix.
      *
@@ -947,165 +801,11 @@ public:
         return values_.get_const_data()[linearize_index(idx)];
     }
 
-    /**
-     * Scales the matrix with a scalar (aka: BLAS scal).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     */
-    void scale(ptr_param<const LinOp> alpha);
+    void add_scaled(ptr_param<const MultiVector> alpha,
+                    ptr_param<const Diagonal<value_type>> diag);
 
-    /**
-     * Scales the matrix with the inverse of a scalar.
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by 1 / alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of columns of the matrix).
-     */
-    void inv_scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of b is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm1(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+    void sub_scaled(ptr_param<const MultiVector> alpha,
+                    ptr_param<const Diagonal<value_type>> diag);
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -1128,66 +828,13 @@ public:
      */
     void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
 
-    /**
-     * Create a submatrix from the original matrix.
-     * Warning: defining stride for this create_submatrix method might cause
-     * wrong memory access. Better use the create_submatrix(rows, columns)
-     * method instead.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     * @param stride   stride of the new submatrix.
-     */
-    std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns,
-                                            const size_type stride)
-    {
-        return this->create_submatrix_impl(rows, columns, stride);
-    }
+    template <typename OtherValueType>
+    [[nodiscard]] gko::detail::temporary_conversion<Dense<OtherValueType>>
+    as_precision();
 
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     */
-    std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns)
-    {
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows  row span
-     * @param columns  column span
-     * @param size  size of the submatrix (only used for consistency with
-     *              distributed::Vector)
-     */
-    std::unique_ptr<Dense> create_submatrix(const local_span& rows,
-                                            const local_span& columns,
-                                            dim<2> size)
-    {
-        dim<2> deduced_size{rows.length(), columns.length()};
-        GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-    /**
-     * Create a real view of the (potentially) complex original matrix.
-     * If the original matrix is real, nothing changes. If the original matrix
-     * is complex, the result is created by viewing the complex matrix with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * @copydoc create_real_view()
-     */
-    std::unique_ptr<const real_type> create_real_view() const;
+    template <typename OtherValueType>
+    [[nodiscard]] gko::detail::temporary_conversion<const Dense<OtherValueType>>
+    as_precision() const;
 
     /**
      * Creates an uninitialized Dense matrix of the specified size.
@@ -1296,7 +943,7 @@ protected:
      *
      * @returns a Dense matrix with the same size and stride as the caller.
      */
-    virtual std::unique_ptr<Dense> create_with_same_config() const
+    std::unique_ptr<Dense> create_with_same_config_impl() const override
     {
         return Dense::create(this->get_executor(), this->get_size(),
                              this->get_stride());
@@ -1370,78 +1017,6 @@ protected:
     void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
 
     /**
-     * @copydoc scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc inv_scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void inv_scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc add_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc sub_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc compute_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_conj_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_conj_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm2_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm1(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm1_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_squared_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_squared_norm2_impl(LinOp* result) const;
-
-    /**
      * @copydoc compute_mean(LinOp*) const
      */
     virtual void compute_mean_impl(LinOp* result) const;
@@ -1455,16 +1030,6 @@ protected:
      * @param new_size  the new matrix dimensions
      */
     void resize(gko::dim<2> new_size);
-
-    /**
-     * @copydoc create_submatrix(const span, const span, const size_type)
-     *
-     * @note  Other implementations of dense should override this function
-     *        instead of create_submatrix(const span, const span, const
-     *        size_type).
-     */
-    virtual std::unique_ptr<Dense> create_submatrix_impl(
-        const span& rows, const span& columns, const size_type stride);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -1511,6 +1076,89 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Dense> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const Dense> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const Dense* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const Dense* b) override;
+
+    void compute_dot_impl(const Dense* b, Dense* result) const override;
+
+    void compute_dot_impl(const Dense* b, Dense* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Dense* b, Dense* result) const override;
+
+    void compute_conj_dot_impl(const Dense* b, Dense* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(absolute_type* result) const override;
+
+    void compute_norm2_impl(absolute_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_norm1_impl(absolute_type* result) const override;
+
+    void compute_norm1_impl(absolute_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(absolute_type* result) const override;
+
+    void compute_squared_norm2_impl(absolute_type* result,
+                                    array<char>& tmp) const override;
+
+    [[nodiscard]] device_view get_local_device_view_impl() override;
+
+    [[nodiscard]] const_device_view get_const_local_device_view_impl()
+        const override;
 
 private:
     size_type stride_;
