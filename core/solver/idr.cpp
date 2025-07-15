@@ -250,8 +250,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 gko::detail::get_local(c)->get_const_device_view(),
                 gko::detail::get_local(u)->get_device_view(), stop_status));
 
-            auto u_k = u->create_submatrix(span{0, problem_size},
-                                           span{k * nrhs, (k + 1) * nrhs});
+            auto u_k = u->create_subview(local_span{0, problem_size},
+                                         local_span{k * nrhs, (k + 1) * nrhs});
 
             // g_k = Au_k
             this->get_system_matrix()->apply(u_k, helper);
