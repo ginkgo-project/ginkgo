@@ -202,7 +202,7 @@ struct apply_to_list_impl<T, std::tuple<U, InputTypes...>,
 
 
 template <template <typename> typename T, typename TupleList>
-using apply_to_list = detail::apply_to_list_impl<T, TupleList>::type;
+using apply_to_list = typename detail::apply_to_list_impl<T, TupleList>::type;
 
 namespace detail {
 
@@ -217,7 +217,8 @@ struct variant_from_tuple_impl<std::tuple<Types...>> {
 }  // namespace detail
 
 template <typename Tuple>
-using variant_from_tuple = detail::variant_from_tuple_impl<Tuple>::type;
+using variant_from_tuple =
+    typename detail::variant_from_tuple_impl<Tuple>::type;
 
 }  // namespace syn
 }  // namespace gko
