@@ -448,7 +448,8 @@ std::unique_ptr<ConcreteType>
 EnableMultiVector<ConcreteType>::create_with_config_of(
     ptr_param<const ConcreteType> other)
 {
-    return other->create_with_same_config_impl();
+    return static_cast<const EnableMultiVector*>(other.get())
+        ->create_with_same_config_impl();
 }
 
 
@@ -457,7 +458,8 @@ std::unique_ptr<ConcreteType>
 EnableMultiVector<ConcreteType>::create_with_type_of(
     ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec)
 {
-    return other->create_with_type_of_impl(std::move(exec));
+    return static_cast<const EnableMultiVector*>(other.get())
+        ->create_with_type_of_impl(std::move(exec));
 }
 
 
@@ -467,8 +469,8 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
     ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size)
 {
-    return other->create_with_type_of_impl(std::move(exec), global_size,
-                                           local_size);
+    return static_cast<const EnableMultiVector*>(other.get())
+        ->create_with_type_of_impl(std::move(exec), global_size, local_size);
 }
 
 
@@ -478,8 +480,9 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
     ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size, size_type stride)
 {
-    return other->create_with_type_of_impl(std::move(exec), global_size,
-                                           local_size, stride);
+    return static_cast<const EnableMultiVector*>(other.get())
+        ->create_with_type_of_impl(std::move(exec), global_size, local_size,
+                                   stride);
 }
 
 
