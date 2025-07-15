@@ -9,7 +9,7 @@
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/mpi/mpi_op.hpp"
-
+#include "ginkgo/core/base/temporary_conversion.hpp"
 
 namespace gko {
 namespace experimental {
@@ -63,7 +63,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableLinOp<Vector>{exec, global_size},
+    : matrix::EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -74,7 +74,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableLinOp<Vector>{exec, global_size},
+    : matrix::EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -86,7 +86,9 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableLinOp<Vector>{exec, {}}, DistributedBase{comm}, local_{exec}
+    : matrix::EnableMultiVector<Vector>{exec, {}},
+      DistributedBase{comm},
+      local_{exec}
 {
     this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
@@ -159,14 +161,243 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
 
 
 template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::absolute_type>
+Vector<ValueType>::compute_absolute_impl() const
+{
+    return compute_absolute();
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_absolute_inplace_impl()
+{
+    compute_absolute_inplace();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::complex_type>
+Vector<ValueType>::make_complex_impl() const
+{
+    return make_complex();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::get_real_impl() const
+{
+    return get_real();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::get_imag_impl() const
+{
+    return get_imag();
+}
+
+template <typename ValueType>
+void Vector<ValueType>::fill_impl(matrix::any_value_t value)
+{
+    std::visit(
+        [this](auto value) {
+            using SndValueType = std::decay_t<decltype(value)>;
+            if constexpr (!is_complex<ValueType>() &&
+                          is_complex<SndValueType>()) {
+                GKO_INVALID_STATE(
+                    "Trying to fill a real vector with a complex value.");
+            } else {
+                fill(static_cast<ValueType>(value));
+            }
+        },
+        value);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::scale_impl(matrix::any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { scale(alpha); }, alpha);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::inv_scale_impl(matrix::any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { inv_scale(alpha); }, alpha);
+}
+
+template <typename ValueType>
+std::unique_ptr<const typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view_impl() const
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view_impl()
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_subview_impl(
+    local_span rows, local_span columns)
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    auto global_rows = this->get_size()[0];
+    auto global_cols = this->get_size()[1];
+    comm.all_reduce(exec, &global_rows, 1, MPI_SUM);
+    comm.all_reduce(exec, &global_cols, 1, MPI_SUM);
+    return create_subview_impl(rows, columns, {global_rows, global_cols});
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_subview_impl(
+    local_span rows, local_span columns) const
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    auto global_rows = this->get_size()[0];
+    auto global_cols = this->get_size()[1];
+    comm.all_reduce(exec, &global_rows, 1, MPI_SUM);
+    comm.all_reduce(exec, &global_cols, 1, MPI_SUM);
+    return create_subview_impl(rows, columns, {global_rows, global_cols});
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, dim<2> global_size) const
+{
+    // @todo: use const-cast here until dense also has const create_submatrix
+    return create(
+        this->get_executor(), this->get_communicator(), global_size,
+        const_cast<local_vector_type&>(local_).create_subview(rows, columns));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, dim<2> global_size)
+{
+    return create(this->get_executor(), this->get_communicator(), global_size,
+                  local_.create_subview(rows, columns));
+}
+
+template <typename ValueType>
+void Vector<ValueType>::make_complex_impl(complex_type* result) const
+{
+    make_complex(result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::get_real_impl(real_type* result) const
+{
+    get_real(result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::get_imag_impl(real_type* result) const
+{
+    get_imag(result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::add_scaled_impl(matrix::any_const_dense_t alpha,
+                                        const Vector* b)
+{
+    std::visit([this, b](auto alpha) { add_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::sub_scaled_impl(matrix::any_const_dense_t alpha,
+                                        const Vector* b)
+{
+    std::visit([this, b](auto alpha) { sub_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_dot_impl(const Vector* b, Vector* result) const
+{
+    compute_dot(b, result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_dot_impl(const Vector* b, Vector* result,
+                                         array<char>& tmp) const
+{
+    compute_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_conj_dot_impl(const Vector* b,
+                                              Vector* result) const
+{
+    compute_conj_dot(b, result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_conj_dot_impl(const Vector* b, Vector* result,
+                                              array<char>& tmp) const
+{
+    compute_conj_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm2_impl(absolute_type* result) const
+{
+    compute_norm2(result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm2_impl(absolute_type* result,
+                                           array<char>& tmp) const
+{
+    compute_norm2(result, tmp);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1_impl(absolute_type* result) const
+{
+    compute_norm1(result);
+}
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1_impl(absolute_type* result,
+                                           array<char>& tmp) const
+{
+    compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+auto Vector<ValueType>::get_local_device_view() ->
+    typename local_vector_type::device_view
+{
+    return local_.get_device_view();
+}
+
+
+template <typename ValueType>
+auto Vector<ValueType>::get_const_local_device_view() const ->
+    typename local_vector_type::const_device_view
+{
+    return local_.get_const_device_view();
+}
+
+
+template <typename ValueType>
+auto Vector<ValueType>::get_stride_impl() const -> size_type
+{
+    return local_.get_stride();
+}
+
+
+template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
     ptr_param<const Vector> other)
 {
-    // De-referencing `other` before calling the functions (instead of
-    // using operator `->`) is currently required to be compatible with
-    // CUDA 10.1.
-    // Otherwise, it results in a compile error.
-    return (*other).create_with_same_config();
+    return other->create_with_same_config_impl();
 }
 
 
@@ -753,16 +984,8 @@ Vector<ValueType>::create_real_view()
 
 
 template <typename ValueType>
-std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_submatrix(
-    local_span rows, local_span columns, dim<2> global_size)
-{
-    return this->create_submatrix_impl(rows, columns, global_size);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_same_config()
-    const
+std::unique_ptr<Vector<ValueType>>
+Vector<ValueType>::create_with_same_config_impl() const
 {
     return Vector::create(
         this->get_executor(), this->get_communicator(), this->get_size(),
@@ -777,15 +1000,6 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
 {
     return Vector::create(exec, this->get_communicator(), global_size,
                           local_size, stride);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_submatrix_impl(
-    local_span rows, local_span columns, dim<2> global_size)
-{
-    return Vector::create(this->get_executor(), this->get_communicator(),
-                          global_size, local_.create_submatrix(rows, columns));
 }
 
 
