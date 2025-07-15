@@ -15,9 +15,9 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
 
 namespace gko {
 namespace experimental {
@@ -64,19 +64,15 @@ class Partition;
  * @ingroup LinOp
  */
 template <typename ValueType = double>
-class Vector
-    : public LinOp,
-      public EnableCloneable<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
+class Vector : public EnableMultiVector<Vector<ValueType>>,
+               public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
 #endif
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase {
-    friend class EnableCloneable<Vector>;
+               public DistributedBase {
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -84,56 +80,20 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Vector>::convert_to;
-    using EnableCloneable<Vector>::move_to;
+    using EnableMultiVector<Vector>::convert_to;
+    using EnableMultiVector<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
-    using value_type = ValueType;
+    using typename EnableMultiVector<Vector>::value_type;
+    using typename EnableMultiVector<Vector>::absolute_value_type;
     using absolute_type = remove_complex<Vector>;
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;
     using local_vector_type = gko::matrix::Dense<value_type>;
-
-    /**
-     * Creates a distributed Vector with the same size and stride as another
-     * Vector.
-     *
-     * @param other  The other vector whose configuration needs to copied.
-     */
-    static std::unique_ptr<Vector> create_with_config_of(
-        ptr_param<const Vector> other);
-
-
-    /**
-     * Creates an empty Vector with the same type as another Vector, but on a
-     * different executor.
-     *
-     * @param other  The other multi-vector whose type we target.
-     * @param exec  The executor of the new multi-vector.
-     *
-     * @note  The new multi-vector uses the same communicator as other.
-     *
-     * @returns an empty Vector with the type of other.
-     */
-    static std::unique_ptr<Vector> create_with_type_of(
-        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec);
-
-    /**
-     * Creates an Vector with the same type as another Vector, but on a
-     * different executor and with a different size.
-     *
-     * @param other  The other multi-vector whose type we target.
-     * @param exec  The executor of the new multi-vector.
-     * @param global_size  The global size of the multi-vector.
-     * @param local_size  The local size of the multi-vector.
-     * @param stride  The stride of the new multi-vector.
-     *
-     * @returns a Vector of specified size with the type of other.
-     */
-    static std::unique_ptr<Vector> create_with_type_of(
-        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& global_size, const dim<2>& local_size, size_type stride);
+    using local_absolute_vector_type = gko::matrix::Dense<absolute_value_type>;
+    using typename EnableMultiVector<Vector>::device_view;
+    using typename EnableMultiVector<Vector>::const_device_view;
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -149,13 +109,13 @@ public:
      * @param data  The device_matrix_data structure
      * @param partition  The global row partition
      */
-    void read_distributed(const device_matrix_data<ValueType, int64>& data,
+    void read_distributed(const device_matrix_data<value_type, int64>& data,
                           ptr_param<const Partition<int64, int64>> partition);
 
-    void read_distributed(const device_matrix_data<ValueType, int64>& data,
+    void read_distributed(const device_matrix_data<value_type, int64>& data,
                           ptr_param<const Partition<int32, int64>> partition);
 
-    void read_distributed(const device_matrix_data<ValueType, int32>& data,
+    void read_distributed(const device_matrix_data<value_type, int32>& data,
                           ptr_param<const Partition<int32, int32>> partition);
 
     /**
@@ -167,251 +127,41 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(const matrix_data<ValueType, int64>& data,
+    void read_distributed(const matrix_data<value_type, int64>& data,
                           ptr_param<const Partition<int64, int64>> partition);
 
-    void read_distributed(const matrix_data<ValueType, int64>& data,
+    void read_distributed(const matrix_data<value_type, int64>& data,
                           ptr_param<const Partition<int32, int64>> partition);
 
-    void read_distributed(const matrix_data<ValueType, int32>& data,
+    void read_distributed(const matrix_data<value_type, int32>& data,
                           ptr_param<const Partition<int32, int32>> partition);
 
-    void convert_to(Vector<next_precision<ValueType>>* result) const override;
+    void convert_to(Vector<next_precision<value_type>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType>>* result) override;
+    void move_to(Vector<next_precision<value_type>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Vector<previous_precision<ValueType, 2>>;
-    using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::convert_to;
-    using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::move_to;
+    friend class Vector<previous_precision<value_type, 2>>;
+    using ConvertibleTo<Vector<next_precision<value_type, 2>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<value_type, 2>>>::move_to;
 
     void convert_to(
-        Vector<next_precision<ValueType, 2>>* result) const override;
+        Vector<next_precision<value_type, 2>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType, 2>>* result) override;
+    void move_to(Vector<next_precision<value_type, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    friend class Vector<previous_precision<ValueType, 3>>;
-    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::convert_to;
-    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::move_to;
+    friend class Vector<previous_precision<value_type, 3>>;
+    using ConvertibleTo<Vector<next_precision<value_type, 3>>>::convert_to;
+    using ConvertibleTo<Vector<next_precision<value_type, 3>>>::move_to;
 
     void convert_to(
-        Vector<next_precision<ValueType, 3>>* result) const override;
+        Vector<next_precision<value_type, 3>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType, 3>>* result) override;
+    void move_to(Vector<next_precision<value_type, 3>>* result) override;
 #endif
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original vectors. If the original vectors
-     * were real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original vectors to given complex vectors.
-     * If the original vectors were real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(ptr_param<complex_type> result) const;
-
-    /**
-     * Creates new real vectors and extracts the real part of the original
-     * vectors into that.
-     */
-    std::unique_ptr<real_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original vectors into given real vectors.
-     */
-    void get_real(ptr_param<real_type> result) const;
-
-    /**
-     * Creates new real vectors and extracts the imaginary part of the
-     * original vectors into that.
-     */
-    std::unique_ptr<real_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original vectors into given real
-     * vectors.
-     */
-    void get_imag(ptr_param<real_type> result) const;
-
-    /**
-     * Fill the distributed vectors with a given value.
-     *
-     * @param value  the value to be filled
-     */
-    void fill(ValueType value);
-
-    /**
-     * Scales the vectors with a scalar (aka: BLAS scal).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrx, the all vectors are scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column vector is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of vectors).
-     */
-    void scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Scales the vectors with the inverse of a scalar.
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors are scaled
-     *               by 1 / alpha. If it is a Dense row vector of values,
-     *               then i-th column vector is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of vectors).
-     */
-    void inv_scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
-     * scaled by alpha. If it is a Dense row vector of values, then i-th column
-     * vector of b is scaled with the i-th element of alpha (the number of
-     * columns of alpha has to match the number of vectors).
-     * @param b  a (multi-)vector of the same dimension as this
-     */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
-     * scaled by alpha. If it is a Dense row vector of values, then i-th column
-     * vector of b is scaled with the i-th element of alpha (the number of c
-     * @param b  a (multi-)vector of the same dimension as this
-     */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `b` using
-     * a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `b` using
-     * a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
-     * using a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
-     * using a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
-     * (multi-)vector using a global reduction.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
-     * (multi-)vector using a global reduction.
-     *
-     * @param result  a Dense row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a Dense row matrix, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     */
-    void compute_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a Dense row matrix, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this (multi-)vector.
-     *
-     * @param result  a Dense row matrix, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     */
-    void compute_norm1(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a Dense row matrix, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
      * Computes the column-wise mean of this (multi-)vector using a global
@@ -467,12 +217,12 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    ValueType& at_local(size_type idx) noexcept;
+    value_type& at_local(size_type idx) noexcept;
 
     /**
      * @copydoc Vector::at(size_type)
      */
-    ValueType at_local(size_type idx) const noexcept;
+    value_type at_local(size_type idx) const noexcept;
 
     /**
      * Returns a pointer to the array of local values of the multi-vector.
@@ -496,33 +246,6 @@ public:
      * @return a constant pointer to the underlying local_vector_type vectors
      */
     const local_vector_type* get_local_vector() const;
-
-    /**
-     * Create a real view of the (potentially) complex original multi-vector.
-     * If the original vector is real, nothing changes. If the original vector
-     * is complex, the result is created by viewing the complex vector with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<const real_type> create_real_view() const;
-
-    /**
-     * @copydoc create_real_view
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * Creates a view of a submatrix of this vector.
-     *
-     * @param rows  The local rows of the submatrix
-     * @param columns  The local columns of the submatrix
-     * @param global_size  The global size of the submatrix
-     *
-     * @return A view of a submatrix.
-     */
-    std::unique_ptr<Vector> create_submatrix(local_span rows,
-                                             local_span columns,
-                                             dim<2> global_size);
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
@@ -652,7 +375,7 @@ protected:
 
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed_impl(
-        const device_matrix_data<ValueType, GlobalIndexType>& data,
+        const device_matrix_data<value_type, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     void apply_impl(const LinOp*, LinOp*) const override;
@@ -666,7 +389,7 @@ protected:
      *
      * @returns a Vector with the same size and stride as the caller.
      */
-    virtual std::unique_ptr<Vector> create_with_same_config() const;
+    std::unique_ptr<Vector> create_with_same_config_impl() const override;
 
     /**
      * Creates a Vector with the same type as the callers multi-vector.
@@ -680,21 +403,95 @@ protected:
      *
      * @returns a Vector with the same type as the caller.
      */
-    virtual std::unique_ptr<Vector> create_with_type_of_impl(
+    std::unique_ptr<Vector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const;
+        const dim<2>& local_size, size_type stride) const override;
 
-    /**
-     * @copydoc create_submatrix
-     */
-    virtual std::unique_ptr<Vector> create_submatrix_impl(local_span rows,
-                                                          local_span columns,
-                                                          dim<2> global_size);
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void compute_dot_impl(const Vector* b,
+                          local_vector_type* result) const override;
+
+    void compute_dot_impl(const Vector* b, local_vector_type* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Vector* b,
+                               local_vector_type* result) const override;
+
+    void compute_conj_dot_impl(const Vector* b, local_vector_type* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(local_absolute_vector_type* result) const override;
+
+    void compute_norm2_impl(local_absolute_vector_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_norm1_impl(local_absolute_vector_type* result) const override;
+
+    void compute_norm1_impl(local_absolute_vector_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(
+        local_absolute_vector_type* result) const override;
+
+    void compute_squared_norm2_impl(local_absolute_vector_type* result,
+                                    array<char>& tmp) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    device_view get_local_device_view_impl() override;
+
+    const_device_view get_const_local_device_view_impl() const override;
 
 private:
     local_vector_type local_;
-    ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
-    ::gko::detail::DenseCache<remove_complex<ValueType>> host_norm_buffer_;
+    ::gko::detail::DenseCache<value_type> host_reduction_buffer_;
+    ::gko::detail::DenseCache<remove_complex<value_type>> host_norm_buffer_;
 };
 
 
