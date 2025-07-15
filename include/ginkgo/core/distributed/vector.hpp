@@ -736,6 +736,19 @@ protected:
     void compute_norm1_impl(absolute_type* result,
                             array<char>& tmp) const override;
 
+    [[nodiscard]] syn::variant_from_tuple<
+        syn::apply_to_list<std::unique_ptr, matrix::dense_types>>
+    create_local_view_impl(
+        syn::variant_from_tuple<matrix::supported_value_types> type) override;
+
+    [[nodiscard]] auto create_local_view_impl(
+        syn::variant_from_tuple<matrix::supported_value_types> type) const
+        -> syn::variant_from_tuple<syn::apply_to_list<
+            std::unique_ptr, syn::apply_to_list<std::add_const_t,
+                                                matrix::dense_types>>> override;
+
+    [[nodiscard]] auto get_stride_impl() const -> size_type override;
+
 private:
     local_vector_type local_;
     ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;

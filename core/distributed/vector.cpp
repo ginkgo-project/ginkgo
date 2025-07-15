@@ -375,6 +375,57 @@ void Vector<ValueType>::compute_norm1_impl(absolute_type* result,
 
 
 template <typename ValueType>
+syn::variant_from_tuple<
+    syn::apply_to_list<std::unique_ptr, matrix::dense_types>>
+Vector<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<matrix::supported_value_types> type)
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<
+                syn::apply_to_list<std::unique_ptr, matrix::dense_types>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_dense_view(&local_);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+
+template <typename ValueType>
+auto Vector<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<matrix::supported_value_types> type) const
+    -> syn::variant_from_tuple<syn::apply_to_list<
+        std::unique_ptr,
+        syn::apply_to_list<std::add_const_t, matrix::dense_types>>>
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<syn::apply_to_list<
+                std::unique_ptr,
+                syn::apply_to_list<std::add_const_t, matrix::dense_types>>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_const_dense_view(&local_);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+
+template <typename ValueType>
+auto Vector<ValueType>::get_stride_impl() const -> size_type
+{
+    return local_.get_stride();
+}
+
+
+template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_config_of(
     ptr_param<const Vector> other)
 {
