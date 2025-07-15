@@ -180,16 +180,16 @@ constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
 
 namespace detail {
 
-template <template <typename> typename T, typename InputList,
+template <template <typename...> typename T, typename InputList,
           typename ResultList = std::tuple<>>
 struct apply_to_list_impl;
 
-template <template <typename> typename T, typename ResultList>
+template <template <typename...> typename T, typename ResultList>
 struct apply_to_list_impl<T, std::tuple<>, ResultList> {
     using type = ResultList;
 };
 
-template <template <typename> typename T, typename U, typename... InputTypes,
+template <template <typename...> typename T, typename U, typename... InputTypes,
           typename... ResultTypes>
 struct apply_to_list_impl<T, std::tuple<U, InputTypes...>,
                           std::tuple<ResultTypes...>> {
@@ -201,7 +201,7 @@ struct apply_to_list_impl<T, std::tuple<U, InputTypes...>,
 }  // namespace detail
 
 
-template <template <typename> typename T, typename TupleList>
+template <template <typename...> typename T, typename TupleList>
 using apply_to_list = typename detail::apply_to_list_impl<T, TupleList>::type;
 
 namespace detail {
