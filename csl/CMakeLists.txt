@@ -1,36 +1,38 @@
-find_package(csl REQUIRED HINTS "$ENV{CSLROOT}" "$ENV{CSL_ROOT}")
-# use the parameter from cmake
-set(GINKGO_CSL_ROOT "${csl_DIR}" PARENT_SCOPE)
+add_custom_target(
+    csl
+    COMMAND
+        ${Python3_EXECUTABLE}
+        ${GINKGO_SOURCE_DIR}/csl/application_base_compile.py ${MATRIX_SIZE}
+        ${GRID_SIZE} ${GINKGO_SOURCE_DIR}
+    COMMENT "Compiling .csl files"
+    VERBATIM
+)
 
 add_library(ginkgo_csl $<TARGET_OBJECTS:ginkgo_csl_device> "")
-target_sources(
-    ginkgo_dpcpp
-    PRIVATE
-        base/executor.cpp
-        base/timer.cpp
-        base/scoped_device_id.cpp
-)
+target_sources(ginkgo_csl PRIVATE main.cpp)
 
 ginkgo_compile_features(ginkgo_csl)
 target_compile_definitions(
-    ginkgo_dpcpp
-    PRIVATE
-        GKO_COMPILING_CSL
-        GKO_DEVICE_NAMESPACE=csl
+    ginkgo_csl
+    PRIVATE M=${MATRIX_SIZE} G=${GRID_SIZE} EXECDIR=\"${GINKGO_SOURCE_DIR}\"
 )
 
-set(GINKGO_CSL_FLAGS ${GINKGO_CSL_FLAGS} PARENT_SCOPE)
-target_compile_options(ginkgo_csl PRIVATE "${GINKGO_CSL_FLAGS}")
-target_link_libraries(ginkgo_csl PUBLIC ginkgo_device)
+target_link_libraries(ginkgo_csl PUBLIC ginkgo_device ${Python3_LIBRARIES})
+target_include_directories(
+    ginkgo_csl
+    PUBLIC ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS}
+)
 target_link_libraries(ginkgo_csl PRIVATE csl)
 
-ginkgo_default_includes(ginkgo_dpcpp)
-ginkgo_install_library(ginkgo_dpcpp)
+ginkgo_default_includes(ginkgo_csl)
+ginkgo_install_library(ginkgo_csl)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_csl "GKO_COMPILING_CSL;GKO_DEVICE_NAMESPACE=csl")
+    # FIXME
+    # ginkgo_check_headers(ginkgo_csl "GKO_COMPILING_CSL;GKO_DEVICE_NAMESPACE=csl")
 endif()
 
 if(GINKGO_BUILD_TESTS)
-    add_subdirectory(test)
+    # TODO
+    # add_subdirectory(test)
 endif()

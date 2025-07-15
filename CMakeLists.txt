@@ -55,7 +55,7 @@ option(
 )
 option(
     GINKGO_BUILD_CSL
-    "Compile Csl kernels for Graphcore IPUs"
+    "Compile Csl kernels for Cerebras chip"
     ${GINKGO_HAS_CSL}
 )
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
@@ -233,7 +233,12 @@ if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
 if(GINKGO_BUILD_CSL)
-    find_package(csl REQUIRED)
+    set(Python3_EXECUTABLE "$ENV{VIRTUAL_ENV}/bin/python")
+
+    set(MATRIX_SIZE "20" CACHE STRING "Size of the input matrix")
+
+    set(GRID_SIZE "2" CACHE STRING "Size of the processor grid")
+    find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 endif()
 if(GINKGO_BUILD_OMP)
     find_package(OpenMP 3.0 REQUIRED)
