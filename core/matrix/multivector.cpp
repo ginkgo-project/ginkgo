@@ -17,14 +17,14 @@ MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
 std::unique_ptr<MultiVector> MultiVector::create_with_config_of(
     ptr_param<const MultiVector> other)
 {
-    return other->create_with_same_config_impl();
+    return other->create_generic_with_same_config_impl();
 }
 
 
 std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
     ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec)
 {
-    return other->create_with_type_of_impl(std::move(exec), {}, {}, 0);
+    return other->create_generic_with_type_of_impl(std::move(exec), {}, {}, 0);
 }
 
 
@@ -33,8 +33,8 @@ std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
     const dim<2>& global_size, const dim<2>& local_size)
 {
     GKO_ASSERT_EQUAL_COLS(global_size, local_size);
-    return other->create_with_type_of_impl(std::move(exec), global_size,
-                                           local_size, global_size[1]);
+    return other->create_generic_with_type_of_impl(std::move(exec), global_size,
+                                                   local_size, global_size[1]);
 }
 
 
@@ -42,14 +42,14 @@ std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
     ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size, size_type stride)
 {
-    return other->create_with_type_of_impl(std::move(exec), global_size,
-                                           local_size, stride);
+    return other->create_generic_with_type_of_impl(std::move(exec), global_size,
+                                                   local_size, stride);
 }
 
 
 std::unique_ptr<MultiVector> MultiVector::compute_absolute() const
 {
-    return this->compute_absolute_impl();
+    return this->compute_absolute_generic_impl();
 }
 
 
@@ -61,7 +61,7 @@ void MultiVector::compute_absolute_inplace()
 
 std::unique_ptr<MultiVector> MultiVector::make_complex() const
 {
-    return this->make_complex_impl();
+    return this->make_complex_generic_impl();
 }
 
 
@@ -73,7 +73,7 @@ void MultiVector::make_complex(ptr_param<MultiVector> result) const
 
 std::unique_ptr<MultiVector> MultiVector::get_real() const
 {
-    return this->get_real_impl();
+    return this->get_real_generic_impl();
 }
 
 
@@ -85,7 +85,7 @@ void MultiVector::get_real(ptr_param<MultiVector> result) const
 
 std::unique_ptr<MultiVector> MultiVector::get_imag() const
 {
-    return this->get_imag_impl();
+    return this->get_imag_generic_impl();
 }
 
 
@@ -195,20 +195,36 @@ void MultiVector::compute_norm1(ptr_param<MultiVector> result,
 
 std::unique_ptr<const MultiVector> MultiVector::create_real_view() const
 {
-    return this->create_real_view_impl();
+    return this->create_real_view_generic_impl();
 }
 
 
 std::unique_ptr<MultiVector> MultiVector::create_real_view()
 {
-    return this->create_real_view_impl();
+    return this->create_real_view_generic_impl();
 }
 
 
 std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
                                                          local_span columns)
 {
-    return this->create_subview_impl(rows, columns);
+    return this->create_subview_generic_impl(rows, columns);
+}
+
+
+std::unique_ptr<const MultiVector> MultiVector::create_subview(
+    local_span rows, local_span columns) const
+{
+    return this->create_subview_generic_impl(rows, columns);
+}
+
+
+std::unique_ptr<const MultiVector> MultiVector::create_subview(
+    local_span rows, local_span columns, size_type global_rows,
+    size_type globals_cols) const
+{
+    return this->create_subview_generic_impl(rows, columns, global_rows,
+                                             globals_cols);
 }
 
 
@@ -217,7 +233,8 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
                                                          size_type global_rows,
                                                          size_type globals_cols)
 {
-    return this->create_subview_impl(rows, columns, global_rows, globals_cols);
+    return this->create_subview_generic_impl(rows, columns, global_rows,
+                                             globals_cols);
 }
 
 
