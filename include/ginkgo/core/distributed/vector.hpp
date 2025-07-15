@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,7 +17,7 @@
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
+#include <ginkgo/core/matrix/multivector.hpp>
 
 namespace gko {
 namespace experimental {
@@ -64,18 +64,16 @@ class Partition;
  * @ingroup LinOp
  */
 template <typename ValueType = double>
-class Vector
-    : public EnableLinOp<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
+class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
+               public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
 #endif
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase {
-    friend class EnablePolymorphicObject<Vector, LinOp>;
+               public DistributedBase {
+    friend class EnablePolymorphicObject<Vector, matrix::MultiVector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -83,8 +81,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Vector>::convert_to;
-    using EnableLinOp<Vector>::move_to;
+    using matrix::EnableMultiVector<Vector>::convert_to;
+    using matrix::EnableMultiVector<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
@@ -201,9 +199,9 @@ public:
     void move_to(Vector<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const;
 
-    void compute_absolute_inplace() override;
+    void compute_absolute_inplace();
 
     /**
      * Creates a complex copy of the original vectors. If the original vectors
@@ -510,18 +508,11 @@ public:
      */
     std::unique_ptr<real_type> create_real_view();
 
-    /**
-     * Creates a view of a submatrix of this vector.
-     *
-     * @param rows  The local rows of the submatrix
-     * @param columns  The local columns of the submatrix
-     * @param global_size  The global size of the submatrix
-     *
-     * @return A view of a submatrix.
-     */
-    std::unique_ptr<Vector> create_submatrix(local_span rows,
-                                             local_span columns,
-                                             dim<2> global_size);
+    [[nodiscard]] auto get_local_device_view() ->
+        typename local_vector_type::device_view;
+
+    [[nodiscard]] auto get_const_local_device_view() const ->
+        typename local_vector_type::const_device_view;
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
@@ -665,7 +656,7 @@ protected:
      *
      * @returns a Vector with the same size and stride as the caller.
      */
-    virtual std::unique_ptr<Vector> create_with_same_config() const;
+    std::unique_ptr<Vector> create_with_same_config_impl() const override;
 
     /**
      * Creates a Vector with the same type as the callers multi-vector.
@@ -679,16 +670,78 @@ protected:
      *
      * @returns a Vector with the same type as the caller.
      */
-    virtual std::unique_ptr<Vector> create_with_type_of_impl(
+    std::unique_ptr<Vector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const;
+        const dim<2>& local_size, size_type stride) const override;
 
-    /**
-     * @copydoc create_submatrix
-     */
-    virtual std::unique_ptr<Vector> create_submatrix_impl(local_span rows,
-                                                          local_span columns,
-                                                          dim<2> global_size);
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void fill_impl(matrix::any_value_t value) override;
+
+    void scale_impl(matrix::any_const_dense_t alpha) override;
+
+    void inv_scale_impl(matrix::any_const_dense_t alpha) override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void add_scaled_impl(matrix::any_const_dense_t alpha,
+                         const Vector* b) override;
+
+    void sub_scaled_impl(matrix::any_const_dense_t alpha,
+                         const Vector* b) override;
+
+    void compute_dot_impl(const Vector* b, Vector* result) const override;
+
+    void compute_dot_impl(const Vector* b, Vector* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Vector* b, Vector* result) const override;
+
+    void compute_conj_dot_impl(const Vector* b, Vector* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(absolute_type* result) const override;
+
+    void compute_norm2_impl(absolute_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_norm1_impl(absolute_type* result) const override;
+
+    void compute_norm1_impl(absolute_type* result,
+                            array<char>& tmp) const override;
+
+    [[nodiscard]] auto get_stride_impl() const -> size_type override;
 
 private:
     local_vector_type local_;
