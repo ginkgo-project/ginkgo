@@ -19,6 +19,8 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
+#include "multivector.hpp"
+
 
 namespace gko {
 namespace experimental {
@@ -85,40 +87,38 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense
-    : public EnableLinOp<Dense<ValueType>>,
-      public ConvertibleTo<Dense<next_precision<ValueType>>>,
+class Dense : public EnableMultiVector<Dense<ValueType>>,
+              public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
+              public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
+              public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
-      public ConvertibleTo<Coo<ValueType, int32>>,
-      public ConvertibleTo<Coo<ValueType, int64>>,
-      public ConvertibleTo<Csr<ValueType, int32>>,
-      public ConvertibleTo<Csr<ValueType, int64>>,
-      public ConvertibleTo<Ell<ValueType, int32>>,
-      public ConvertibleTo<Ell<ValueType, int64>>,
-      public ConvertibleTo<Fbcsr<ValueType, int32>>,
-      public ConvertibleTo<Fbcsr<ValueType, int64>>,
-      public ConvertibleTo<Hybrid<ValueType, int32>>,
-      public ConvertibleTo<Hybrid<ValueType, int64>>,
-      public ConvertibleTo<Sellp<ValueType, int32>>,
-      public ConvertibleTo<Sellp<ValueType, int64>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, int32>,
-      public ReadableFromMatrixData<ValueType, int64>,
-      public WritableToMatrixData<ValueType, int32>,
-      public WritableToMatrixData<ValueType, int64>,
-      public Transposable,
-      public Permutable<int32>,
-      public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
-      public ScaledIdentityAddable {
-    friend class EnablePolymorphicObject<Dense, LinOp>;
+              public ConvertibleTo<Coo<ValueType, int32>>,
+              public ConvertibleTo<Coo<ValueType, int64>>,
+              public ConvertibleTo<Csr<ValueType, int32>>,
+              public ConvertibleTo<Csr<ValueType, int64>>,
+              public ConvertibleTo<Ell<ValueType, int32>>,
+              public ConvertibleTo<Ell<ValueType, int64>>,
+              public ConvertibleTo<Fbcsr<ValueType, int32>>,
+              public ConvertibleTo<Fbcsr<ValueType, int64>>,
+              public ConvertibleTo<Hybrid<ValueType, int32>>,
+              public ConvertibleTo<Hybrid<ValueType, int64>>,
+              public ConvertibleTo<Sellp<ValueType, int32>>,
+              public ConvertibleTo<Sellp<ValueType, int64>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+              public DiagonalExtractable<ValueType>,
+              public ReadableFromMatrixData<ValueType, int32>,
+              public ReadableFromMatrixData<ValueType, int64>,
+              public WritableToMatrixData<ValueType, int32>,
+              public WritableToMatrixData<ValueType, int64>,
+              public Transposable,
+              public Permutable<int32>,
+              public Permutable<int64>,
+              public ScaledIdentityAddable {
+    friend class EnablePolymorphicObject<Dense, MultiVector>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -139,8 +139,9 @@ class Dense
     friend class experimental::distributed::detail::VectorCache<ValueType>;
 
 public:
-    using EnableLinOp<Dense>::convert_to;
-    using EnableLinOp<Dense>::move_to;
+    using EnableMultiVector<Dense>::convert_to;
+    using EnableMultiVector<Dense>::move_to;
+    using EnableMultiVector<Dense>::create_with_type_of;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
@@ -188,22 +189,6 @@ public:
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a Dense matrix with the same size and stride as another Dense
-     * matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<Dense> create_with_config_of(
-        ptr_param<const Dense> other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
-
-    /**
      * Creates a Dense matrix with the same type as another Dense
      * matrix but on a different executor and with a different size.
      *
@@ -216,7 +201,7 @@ public:
      */
     static std::unique_ptr<Dense> create_with_type_of(
         ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size = dim<2>{})
+        const dim<2>& size)
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, size[1]);
@@ -233,24 +218,6 @@ public:
     static std::unique_ptr<Dense> create_with_type_of(
         ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
         const dim<2>& size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param local_size  Unused
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload to stay consistent with
-     *       gko::experimental::distributed::Vector
-     */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, const dim<2>& local_size, size_type stride)
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, stride);
@@ -803,7 +770,7 @@ public:
      */
     void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    std::unique_ptr<absolute_type> compute_absolute() const;
 
     /**
      * Writes the absolute values of this matrix into an existing matrix.
@@ -814,7 +781,7 @@ public:
      */
     void compute_absolute(ptr_param<absolute_type> output) const;
 
-    void compute_absolute_inplace() override;
+    void compute_absolute_inplace();
 
     /**
      * Creates a complex copy of the original matrix. If the original matrix
@@ -1269,7 +1236,7 @@ protected:
      *
      * @returns a Dense matrix with the same size and stride as the caller.
      */
-    virtual std::unique_ptr<Dense> create_with_same_config() const
+    std::unique_ptr<Dense> create_with_same_config_impl() const override
     {
         return Dense::create(this->get_executor(), this->get_size(),
                              this->get_stride());
@@ -1484,6 +1451,77 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
+
+    void compute_absolute_inplace_impl() override;
+
+    void fill_impl(any_value_t value) override;
+
+    void scale_impl(any_const_dense_t alpha) override;
+
+    void inv_scale_impl(any_const_dense_t alpha) override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Dense> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Dense> create_subview_impl(
+        local_span rows, local_span columns, size_type global_rows,
+        size_type globals_cols) override;
+
+    [[nodiscard]] std::unique_ptr<const Dense> create_subview_impl(
+        local_span rows, local_span columns, size_type global_rows,
+        size_type globals_cols) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void add_scaled_impl(any_const_dense_t alpha, const Dense* b) override;
+
+    void sub_scaled_impl(any_const_dense_t alpha, const Dense* b) override;
+
+    void compute_dot_impl(const Dense* b, Dense* result) const override;
+
+    void compute_dot_impl(const Dense* b, Dense* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Dense* b, Dense* result) const override;
+
+    void compute_conj_dot_impl(const Dense* b, Dense* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(absolute_type* result) const override;
+
+    void compute_norm2_impl(absolute_type* result,
+                            array<char>& tmp) const override;
+
+    void compute_norm1_impl(absolute_type* result) const override;
+
+    void compute_norm1_impl(absolute_type* result,
+                            array<char>& tmp) const override;
 
 private:
     size_type stride_;
