@@ -1538,6 +1538,52 @@ void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
     compute_norm1(result, tmp);
 }
 
+template <typename ValueType>
+syn::variant_from_tuple<syn::apply_to_list<std::unique_ptr, dense_types>>
+Dense<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<supported_value_types> type)
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<
+                syn::apply_to_list<std::unique_ptr, dense_types>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_dense_view(this);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<supported_value_types> type) const
+    -> syn::variant_from_tuple<syn::apply_to_list<
+        std::unique_ptr, syn::apply_to_list<std::add_const_t, dense_types>>>
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<syn::apply_to_list<
+                std::unique_ptr,
+                syn::apply_to_list<std::add_const_t, dense_types>>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_const_dense_view(this);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::get_stride_impl() const -> size_type
+{
+    return get_stride();
+}
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(

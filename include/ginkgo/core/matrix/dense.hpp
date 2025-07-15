@@ -1523,6 +1523,19 @@ protected:
     void compute_norm1_impl(absolute_type* result,
                             array<char>& tmp) const override;
 
+    [[nodiscard]] syn::variant_from_tuple<
+        syn::apply_to_list<std::unique_ptr, dense_types>>
+    create_local_view_impl(
+        syn::variant_from_tuple<supported_value_types> type) override;
+
+    [[nodiscard]] auto create_local_view_impl(
+        syn::variant_from_tuple<supported_value_types> type) const
+        -> syn::variant_from_tuple<syn::apply_to_list<
+            std::unique_ptr,
+            syn::apply_to_list<std::add_const_t, dense_types>>> override;
+
+    [[nodiscard]] auto get_stride_impl() const -> size_type override;
+
 private:
     size_type stride_;
     array<value_type> values_;
