@@ -47,6 +47,109 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
     return params;
 }
 
+template <typename ValueType>
+void Cg<ValueType>::apply_mv(ptr_param<const matrix::MultiVector> b,
+                             ptr_param<matrix::MultiVector> x) const
+{
+    // @todo: need precision dispatch
+    auto dense_b = b.get();
+    auto dense_x = x.get();
+
+    using std::swap;
+    constexpr uint8 RelativeStoppingId{1};
+
+    auto exec = this->get_executor();
+    this->setup_workspace();
+
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(q, dense_b);
+
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
+
+    GKO_SOLVER_ONE_MINUS_ONE();
+
+    bool one_changed{};
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
+
+    // r = dense_b
+    // rho = 0.0
+    // prev_rho = 1.0
+    // z = p = q = 0
+    // @todo: I think the template keyword is necessary because some of these
+    //        variables are defined via auto.
+    exec->run(cg::make_initialize(
+        dense_b->template get_const_local_device_view<ValueType>(),
+        r->template get_local_device_view<ValueType>(),
+        z->template get_local_device_view<ValueType>(),
+        p->template get_local_device_view<ValueType>(),
+        q->template get_local_device_view<ValueType>(),
+        prev_rho->get_device_view(), rho->get_device_view(), stop_status));
+
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
+
+    int iter = -1;
+    /* Memory movement summary:
+     * 18n * values + matrix/preconditioner storage
+     * 1x SpMV:           2n * values + storage
+     * 1x Preconditioner: 2n * values + storage
+     * 2x dot             4n
+     * 1x step 1 (axpy)   3n
+     * 1x step 2 (axpys)  6n
+     * 1x norm2 residual   n
+     */
+    while (true) {
+        // z = preconditioner * r
+        this->get_preconditioner()->apply(r, z);
+        // rho = dot(r, z)
+        r->compute_conj_dot(z, rho, reduction_tmp);
+
+        ++iter;
+        bool all_stopped =
+            stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+            all_stopped);
+        if (all_stopped) {
+            break;
+        }
+
+        // tmp = rho / prev_rho
+        // p = z + tmp * p
+        exec->run(cg::make_step_1(
+            p->template get_local_device_view<ValueType>(),
+            z->template get_const_local_device_view<ValueType>(),
+            rho->get_const_device_view(), prev_rho->get_const_device_view(),
+            stop_status));
+        // q = A * p
+        this->get_system_matrix()->apply(p, q);
+        // beta = dot(p, q)
+        p->compute_conj_dot(q, beta, reduction_tmp);
+        // tmp = rho / beta
+        // x = x + tmp * p
+        // r = r - tmp * q
+        exec->run(cg::make_step_2(
+            dense_x->template get_local_device_view<ValueType>(),
+            r->template get_local_device_view<ValueType>(),
+            p->template get_const_local_device_view<ValueType>(),
+            q->template get_const_local_device_view<ValueType>(),
+            beta->get_const_device_view(), rho->get_const_device_view(),
+            stop_status));
+        swap(prev_rho, rho);
+    }
+}
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Cg<ValueType>::transpose() const

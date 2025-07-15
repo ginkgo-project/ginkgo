@@ -238,6 +238,45 @@ TYPED_TEST(Cg, SolvesStencilSystem)
 }
 
 
+TYPED_TEST(Cg, SolvesStencilSystemMultiVector)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .on(this->exec)
+            ->generate(this->mtx);
+    std::unique_ptr<gko::matrix::MultiVector> b =
+        gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    std::unique_ptr<gko::matrix::MultiVector> x =
+        gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply_mv(b, x);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(x.get()), l({1.0, 3.0, 2.0}),
+                        r<value_type>::value);
+}
+
+TYPED_TEST(Cg, ThrowsOnStencilSystemMultiVectorMixed)
+{
+    using value_type = typename TestFixture::value_type;
+    using snd_value_type = gko::next_precision<value_type>;
+    using Mtx = gko::matrix::Dense<snd_value_type>;
+    auto solver =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .on(this->exec)
+            ->generate(this->mtx);
+    std::unique_ptr<gko::matrix::MultiVector> b =
+        gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    std::unique_ptr<gko::matrix::MultiVector> x =
+        gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    EXPECT_THROW(solver->apply_mv(b, x), gko::InvalidStateError);
+}
+
+
 TYPED_TEST(Cg, SolvesStencilSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
