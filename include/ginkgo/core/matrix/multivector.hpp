@@ -129,7 +129,17 @@ public:
         local_span rows, local_span columns, size_type global_rows,
         size_type globals_cols) const;
 
+    // @todo: this should return something like a device view
+    template <typename ValueType>
+    [[nodiscard]] std::unique_ptr<Dense<ValueType>> create_local_view();
+
+    template <typename ValueType>
+    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> create_local_view()
+        const;
+
     [[nodiscard]] dim<2> get_size() const noexcept;
+
+    [[nodiscard]] size_type get_stride() const noexcept;
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
@@ -226,6 +236,19 @@ protected:
     create_subview_generic_impl(local_span rows, local_span columns,
                                 size_type global_rows,
                                 size_type globals_cols) const = 0;
+
+    [[nodiscard]] virtual auto create_local_view_impl(
+        syn::variant_from_tuple<supported_value_types> type)
+        -> syn::variant_from_tuple<
+            syn::apply_to_list<std::unique_ptr, dense_types>> = 0;
+
+    [[nodiscard]] virtual auto create_local_view_impl(
+        syn::variant_from_tuple<supported_value_types> type) const
+        -> syn::variant_from_tuple<syn::apply_to_list<
+            std::unique_ptr,
+            syn::apply_to_list<std::add_const_t, dense_types>>> = 0;
+
+    [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
 
     void set_size(const dim<2>& size) noexcept;
 };

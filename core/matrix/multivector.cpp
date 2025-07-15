@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 namespace gko {
@@ -241,10 +242,46 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
 dim<2> MultiVector::get_size() const noexcept { return LinOp::get_size(); }
 
 
+size_type MultiVector::get_stride() const noexcept { return get_stride_impl(); }
+
+
 void MultiVector::set_size(const dim<2>& size) noexcept
 {
     LinOp::set_size(size);
 }
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> MultiVector::create_local_view()
+{
+    using return_type = std::unique_ptr<Dense<ValueType>>;
+    auto variant = this->create_local_view_impl(ValueType());
+    if (!std::holds_alternative<return_type>(variant)) {
+        GKO_INVALID_STATE("Unexpected type of local view");
+    }
+    return std::move(std::get<return_type>(variant));
+}
+
+#define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW(_type) \
+    std::unique_ptr<Dense<_type>> MultiVector::create_local_view()
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW);
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> MultiVector::create_local_view() const
+{
+    using return_type = std::unique_ptr<const Dense<ValueType>>;
+    auto variant = this->create_local_view_impl(ValueType());
+    if (!std::holds_alternative<return_type>(variant)) {
+        GKO_INVALID_STATE("Unexpected type of local view");
+    }
+    return std::move(std::get<return_type>(variant));
+}
+
+#define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST(_type) \
+    std::unique_ptr<const Dense<_type>> MultiVector::create_local_view() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST);
 
 
 }  // namespace matrix
