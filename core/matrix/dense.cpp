@@ -562,7 +562,7 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
 {
     if (&other != this) {
         auto old_size = this->get_size();
-        EnableLinOp<Dense>::operator=(other);
+        EnableMultiVector<Dense>::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
             this->stride_ = this->get_size()[1];
@@ -591,7 +591,7 @@ template <typename ValueType>
 Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
 {
     if (&other != this) {
-        EnableLinOp<Dense>::operator=(std::move(other));
+        EnableMultiVector<Dense>::operator=(std::move(other));
         values_ = std::move(other.values_);
         stride_ = std::exchange(other.stride_, 0);
     }
@@ -1398,6 +1398,245 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
         make_temporary_clone(exec, row_collection)->get_device_view()));
 }
 
+template <typename ValueType>
+void Dense<ValueType>::compute_absolute_inplace_impl()
+{
+    this->get_executor()->run(
+        dense::make_inplace_absolute_dense(this->get_device_view()));
+}
+
+template <typename ValueType>
+void Dense<ValueType>::fill_impl(any_value_t value)
+{
+    std::visit(
+        [this](auto value) {
+            using SndValueType = std::decay_t<decltype(value)>;
+            if constexpr (!is_complex<ValueType>() &&
+                          is_complex<SndValueType>()) {
+                GKO_INVALID_STATE(
+                    "Trying to fill a real vector with a complex value");
+            } else {
+                fill(static_cast<ValueType>(value));
+            }
+        },
+        value);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::scale_impl(any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { scale(alpha); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::inv_scale_impl(any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { inv_scale(alpha); }, alpha);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(global_size, local_size);
+    return create_with_type_of_impl(std::move(exec), global_size, stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns)
+{
+    return create_subview_impl(rows, columns,
+                               dim<2>(rows.length(), columns.length()));
+}
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns) const
+{
+    return const_cast<Dense&>(*this).create_subview(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, dim<2> global_size)
+{
+    dim<2> actual_size{rows.length(), columns.length()};
+    GKO_ASSERT_EQUAL_DIMENSIONS(actual_size, global_size);
+
+    row_major_range range_this{this->get_values(), this->get_size()[0],
+                               this->get_size()[1], this->get_stride()};
+    auto sub_range = range_this(rows, columns);
+    size_type storage_size =
+        rows.length() > 0 ? sub_range.length(1) +
+                                (sub_range.length(0) - 1) * this->get_stride()
+                          : 0;
+    return Dense::create(
+        this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
+        make_array_view(this->get_executor(), storage_size, sub_range->data),
+        this->get_stride());
+}
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, dim<2> global_size) const
+{
+    dim<2> actual_size{rows.length(), columns.length()};
+    GKO_ASSERT_EQUAL_DIMENSIONS(actual_size, global_size);
+    return const_cast<Dense&>(*this).create_subview(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<const typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view_impl() const
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view_impl()
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::compute_absolute_impl() const
+{
+    return compute_absolute();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::complex_type>
+Dense<ValueType>::make_complex_impl() const
+{
+    return make_complex();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::get_real_impl() const
+{
+    return get_real();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::get_imag_impl() const
+{
+    return get_imag();
+}
+
+template <typename ValueType>
+void Dense<ValueType>::make_complex_impl(complex_type* result) const
+{
+    make_complex(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::get_real_impl(real_type* result) const
+{
+    get_real(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::get_imag_impl(real_type* result) const
+{
+    get_imag(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_impl(any_const_dense_t alpha, const Dense* b)
+{
+    std::visit([this, b](auto alpha) { add_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled_impl(any_const_dense_t alpha, const Dense* b)
+{
+    std::visit([this, b](auto alpha) { sub_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result) const
+{
+    compute_dot(b, result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
+                                        array<char>& tmp) const
+{
+    compute_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b,
+                                             Dense* result) const
+{
+    compute_conj_dot(b, result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b, Dense* result,
+                                             array<char>& tmp) const
+{
+    compute_conj_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result) const
+{
+    compute_norm2(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    compute_norm2(result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result) const
+{
+    compute_norm2(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+auto Dense<ValueType>::get_local_device_view()
+    -> MultiVector::device_view<ValueType>
+{
+    return this->get_device_view();
+}
+
+
+template <typename ValueType>
+auto Dense<ValueType>::get_const_local_device_view() const
+    -> MultiVector::device_view<const ValueType>
+{
+    return this->get_const_device_view();
+}
+
+
+template <typename ValueType>
+auto Dense<ValueType>::get_stride_impl() const -> size_type
+{
+    return get_stride();
+}
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
@@ -2097,24 +2336,6 @@ Dense<ValueType>::create_real_view() const
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
-    const span& rows, const span& columns, const size_type stride)
-{
-    row_major_range range_this{this->get_values(), this->get_size()[0],
-                               this->get_size()[1], this->get_stride()};
-    auto sub_range = range_this(rows, columns);
-    size_type storage_size =
-        rows.length() > 0 ? sub_range.length(1) +
-                                (sub_range.length(0) - 1) * this->get_stride()
-                          : 0;
-    return Dense::create(
-        this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
-        make_array_view(this->get_executor(), storage_size, sub_range->data),
-        stride);
-}
-
-
-template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size, size_type stride)
 {
@@ -2147,7 +2368,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableLinOp<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2157,7 +2378,7 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableLinOp<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size),
       stride_{stride},
       values_{exec, std::move(values)}
 {
