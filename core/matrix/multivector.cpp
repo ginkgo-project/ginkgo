@@ -284,5 +284,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST);
 
 
+template <typename ValueType>
+auto MultiVector::temporary_precision()
+    -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>>
+{
+    return temporary_precision_impl(ValueType());
+}
+
+#define GKO_DECLARE_MULTIVECTOR_AS_PRECISION(_type)                 \
+    std::unique_ptr<MultiVector, std::function<void(MultiVector*)>> \
+    MultiVector::temporary_precision<_type>()
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_AS_PRECISION);
+
+
+template <typename ValueType>
+std::unique_ptr<const MultiVector> MultiVector::temporary_precision() const
+{
+    return temporary_precision_impl(ValueType());
+}
+
+#define GKO_DECLARE_MULTIVECTOR_AS_PRECISION_CONST(_type) \
+    std::unique_ptr<const MultiVector>                    \
+    MultiVector::temporary_precision<_type>() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_AS_PRECISION_CONST);
+
+
 }  // namespace matrix
 }  // namespace gko
