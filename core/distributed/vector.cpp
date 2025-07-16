@@ -9,7 +9,7 @@
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/mpi/mpi_op.hpp"
-
+#include "ginkgo/core/base/temporary_conversion.hpp"
 
 namespace gko {
 namespace experimental {
@@ -417,6 +417,63 @@ auto Vector<ValueType>::create_local_view_impl(
         type);
 }
 
+template <typename ValueType>
+auto Vector<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<matrix::supported_value_types> type)
+    -> std::unique_ptr<matrix::MultiVector,
+                       std::function<void(matrix::MultiVector*)>>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return {this, null_deleter<matrix::MultiVector>{}};
+    }
+    return std::visit(
+        [this](auto type)
+            -> std::unique_ptr<matrix::MultiVector,
+                               std::function<void(matrix::MultiVector*)>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Vector<SndValueType>::create(
+                    this->get_executor(), this->get_communicator());
+                this->convert_to(result.get());
+                return {result.release(),
+                        gko::detail::dynamic_convert_back_deleter<
+                            Vector<ValueType>, matrix::MultiVector,
+                            Vector<SndValueType>>{this}};
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Vector<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<matrix::supported_value_types> type) const
+    -> std::unique_ptr<const matrix::MultiVector>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return Vector::create_const(this->get_executor(),
+                                    this->get_communicator(), this->get_size(),
+                                    make_const_dense_view(&local_));
+    }
+    return std::visit(
+        [this](auto type) -> std::unique_ptr<const matrix::MultiVector> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Vector<SndValueType>::create(
+                    this->get_executor(), this->get_communicator());
+                this->convert_to(result.get());
+                return result;
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
 
 template <typename ValueType>
 auto Vector<ValueType>::get_stride_impl() const -> size_type

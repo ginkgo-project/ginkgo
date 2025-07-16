@@ -746,6 +746,14 @@ protected:
         -> syn::variant_from_tuple<syn::apply_to_list<
             std::unique_ptr, syn::apply_to_list<std::add_const_t,
                                                 matrix::dense_types>>> override;
+    [[nodiscard]] auto temporary_precision_impl(
+        syn::variant_from_tuple<matrix::supported_value_types> type)
+        -> std::unique_ptr<matrix::MultiVector,
+                           std::function<void(matrix::MultiVector*)>> override;
+
+    [[nodiscard]] auto temporary_precision_impl(
+        syn::variant_from_tuple<matrix::supported_value_types> type) const
+        -> std::unique_ptr<const matrix::MultiVector> override;
 
     [[nodiscard]] auto get_stride_impl() const -> size_type override;
 
