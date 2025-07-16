@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,6 +75,37 @@ public:
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
+};
+
+
+template <typename OrigType, typename BaseType, typename DynamicType>
+struct dynamic_convert_back_deleter {
+    using pointer = BaseType*;
+    using original_pointer = OrigType*;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @param original  the origin object to which the data will be converted
+     *                  back before deletion
+     */
+    dynamic_convert_back_deleter(original_pointer original)
+        : original_{original}
+    {}
+
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        as<DynamicType>(ptr)->convert_to(original_);
+        delete ptr;
+    }
+
+private:
+    original_pointer original_;
 };
 
 
