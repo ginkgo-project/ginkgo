@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,7 @@ namespace detail {
 GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
 {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-    return __popc(bitmask);
+    return __popc(static_cast<unsigned>(bitmask));
 #else
     std::bitset<32> bits{bitmask};
     return bits.count();
@@ -29,13 +29,11 @@ GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
 }
 
 
-/**
- * Returns the number of set bits in the given bitmask.
- */
+/** @copydoc popcount(uint32) */
 GKO_ATTRIBUTES GKO_INLINE int popcount(uint64 bitmask)
 {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-    return __popcll(bitmask);
+    return __popcll(static_cast<unsigned long long>(bitmask));
 #else
     std::bitset<64> bits{bitmask};
     return bits.count();

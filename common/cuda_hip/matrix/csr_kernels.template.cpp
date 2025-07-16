@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,6 +35,7 @@
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/merging.hpp"
 #include "common/cuda_hip/components/prefix_sum.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
@@ -461,10 +462,17 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
     const type beta_val = beta[0];
-    merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
-        [&alpha_val](const type& x) { return alpha_val * x; },
-        [&beta_val](const type& x) { return beta_val * x; });
+    if (is_zero(beta_val)) {
+        merge_path_spmv<items_per_thread>(
+            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            [&alpha_val](const type& x) { return alpha_val * x; },
+            [](const type& x) { return zero<type>(); });
+    } else {
+        merge_path_spmv<items_per_thread>(
+            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            [&alpha_val](const type& x) { return alpha_val * x; },
+            [&beta_val](const type& x) { return beta_val * x; });
+    }
 }
 
 
@@ -561,11 +569,19 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = alpha[0];
     const type beta_val = beta[0];
-    device_classical_spmv<subwarp_size>(
-        num_rows, val, col_idxs, row_ptrs, b, c,
-        [&alpha_val, &beta_val](const type& x, const type& y) {
-            return alpha_val * x + beta_val * y;
-        });
+    if (is_zero(beta_val)) {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val](const type& x, const type& y) {
+                return alpha_val * x;
+            });
+    } else {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val, &beta_val](const type& x, const type& y) {
+                return alpha_val * x + beta_val * y;
+            });
+    }
 }
 
 
@@ -593,7 +609,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
         a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
         [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
             bool valid) {
-            count += popcnt(subwarp.ballot(a_col != b_col && valid));
+            count += popcnt(group::ballot(subwarp, a_col != b_col && valid));
             return true;
         });
 
@@ -641,7 +657,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
         [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
             IndexType, bool valid) {
             auto c_col = min(a_col, b_col);
-            auto equal_mask = subwarp.ballot(a_col == b_col && valid);
+            auto equal_mask = group::ballot(subwarp, a_col == b_col && valid);
             // check if the elements in the previous merge step are
             // equal
             auto prev_equal_mask = equal_mask << 1 | skip_first;
@@ -1293,7 +1309,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         }
 #else
         if (i < row_len) {
-            while (atomicCAS(local_storage + hash, empty, i) != empty) {
+            while (atomic_cas_relaxed_local(local_storage + hash, empty,
+                                            static_cast<int32>(i)) != empty) {
                 hash++;
                 if (hash >= available_storage) {
                     hash = 0;
@@ -2076,7 +2093,7 @@ bool load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
 
     // not support 16 bit atomic
 #if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
-    if constexpr (std::is_same_v<remove_complex<OutputValueType>, half>) {
+    if constexpr (sizeof(remove_complex<OutputValueType>) == sizeof(int16)) {
         return false;
     } else
 #endif
@@ -2484,7 +2501,8 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_descr = sparselib::create_csr(
         k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
         const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
-    auto c_descr = sparselib::create_csr(m, n, zero_nnz, null_index, null_index,
+    // CUDA 12.2 requires non-null row_ptrs
+    auto c_descr = sparselib::create_csr(m, n, zero_nnz, c_row_ptrs, null_index,
                                          null_value);
 
     // estimate work
@@ -2636,7 +2654,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto m = IndexType(a->get_size()[0]);
     auto n = IndexType(b->get_size()[1]);
     auto k = IndexType(a->get_size()[1]);
-    auto c_row_ptrs = c->get_row_ptrs();
 
     auto null_value = static_cast<ValueType*>(nullptr);
     auto null_index = static_cast<IndexType*>(nullptr);
@@ -2650,8 +2667,11 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_descr = sparselib::create_csr(
         k, n, b_nnz, const_cast<IndexType*>(b_row_ptrs),
         const_cast<IndexType*>(b_col_idxs), const_cast<ValueType*>(b_vals));
-    auto c_descr = sparselib::create_csr(m, n, zero_nnz, null_index, null_index,
-                                         null_value);
+    // CUDA 12.2 requires non-null row_ptrs
+    array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
+    auto c_descr =
+        sparselib::create_csr(m, n, zero_nnz, c_tmp_row_ptrs_array.get_data(),
+                              null_index, null_value);
 
     // estimate work
     size_type buffer1_size{};
@@ -2675,7 +2695,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
 
     // write result to temporary storage
     auto c_tmp_nnz = sparselib::sparse_matrix_nnz(c_descr);
-    array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
     array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
     array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
     sparselib::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),

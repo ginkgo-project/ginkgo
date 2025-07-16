@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -116,10 +116,10 @@ __device__ __forceinline__ int choose_pivot(
 {
     auto my_abs_ele = abs(block_row[k]);
     if (perm > -1) {
-        my_abs_ele = -1;
+        my_abs_ele = -one<remove_complex<ValueType>>();
     }
     if (subwarp_grp.thread_rank() >= block_size) {
-        my_abs_ele = -1;
+        my_abs_ele = -one<remove_complex<ValueType>>();
     }
     subwarp_grp.sync();
     int my_piv_idx = subwarp_grp.thread_rank();

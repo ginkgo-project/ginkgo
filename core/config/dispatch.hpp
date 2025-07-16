@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,13 +105,15 @@ deferred_factory_parameter<ReturnType> dispatch(
 using value_type_list_base =
     syn::type_list<double, float, std::complex<double>, std::complex<float>>;
 
-#if GINKGO_ENABLE_HALF
 using value_type_list =
-    syn::type_list<double, float, half, std::complex<double>,
-                   std::complex<float>, std::complex<half>>;
-#else
-using value_type_list = value_type_list_base;
-#endif  // GINKGO_ENABLE_HALF
+    syn::type_list<double, float,
+#if GINKGO_ENABLE_HALF
+                   float16, std::complex<float16>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+                   bfloat16, std::complex<bfloat16>,
+#endif
+                   std::complex<double>, std::complex<float>>;
 
 using index_type_list = syn::type_list<int32, int64>;
 

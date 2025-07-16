@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -163,10 +163,10 @@ void Diagonal<ValueType>::move_to(Diagonal<next_precision<ValueType>>* result)
 }
 
 
-#if GINKGO_ENABLE_HALF
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
 void Diagonal<ValueType>::convert_to(
-    Diagonal<next_precision<next_precision<ValueType>>>* result) const
+    Diagonal<next_precision<ValueType, 2>>* result) const
 {
     result->values_ = this->values_;
     result->set_size(this->get_size());
@@ -175,7 +175,26 @@ void Diagonal<ValueType>::convert_to(
 
 template <typename ValueType>
 void Diagonal<ValueType>::move_to(
-    Diagonal<next_precision<next_precision<ValueType>>>* result)
+    Diagonal<next_precision<ValueType, 2>>* result)
+{
+    this->convert_to(result);
+}
+#endif
+
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(
+    Diagonal<next_precision<ValueType, 3>>* result) const
+{
+    result->values_ = this->values_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(
+    Diagonal<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }
@@ -357,7 +376,7 @@ Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Diagonal>(exec, dim<2>(size)),
       values_{exec, std::move(values)}
 {
-    GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_size());
+    GKO_ENSURE_COMPATIBLE_BOUNDS(size, values_.get_size());
 }
 
 

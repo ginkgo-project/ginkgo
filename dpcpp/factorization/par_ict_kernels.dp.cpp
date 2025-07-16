@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,8 +79,8 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
             IndexType llh_col, IndexType out_nz, bool valid) {
             auto col = min(a_col, llh_col);
             // count the number of unique elements being merged
-            count +=
-                popcnt(subwarp.ballot(col <= row && a_col != llh_col && valid));
+            count += popcnt(group::ballot(
+                subwarp, col <= row && a_col != llh_col && valid));
             return true;
         });
     if (subwarp.thread_rank() == 0) {
@@ -171,7 +171,8 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
         auto llh_cur_val = subwarp.shfl(llh_val, merge_result.b_idx);
         auto valid = out_begin + lane < out_size;
         // check if the previous thread has matching columns
-        auto equal_mask = subwarp.ballot(a_cur_col == llh_cur_col && valid);
+        auto equal_mask =
+            group::ballot(subwarp, a_cur_col == llh_cur_col && valid);
         auto prev_equal_mask = equal_mask << 1 | skip_first;
         skip_first = bool(equal_mask >> (subgroup_size - 1));
         auto prev_equal = bool(prev_equal_mask & lanemask_eq);
@@ -201,7 +202,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
         // determine which threads will write output to L
         auto use_l = l_cur_col == r_col;
         auto do_write = !prev_equal && valid && r_col <= row;
-        auto l_new_advance_mask = subwarp.ballot(do_write);
+        auto l_new_advance_mask = group::ballot(subwarp, do_write);
         // store values
         if (do_write) {
             auto diag = l_vals[l_row_ptrs[r_col + 1] - 1];
@@ -214,7 +215,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
         // advance *_begin offsets
         auto a_advance = merge_result.a_advance;
         auto llh_advance = merge_result.b_advance;
-        auto l_advance = popcnt(subwarp.ballot(do_write && use_l));
+        auto l_advance = popcnt(group::ballot(subwarp, do_write && use_l));
         auto l_new_advance = popcnt(l_new_advance_mask);
         a_begin += a_advance;
         llh_begin += llh_advance;
@@ -345,7 +346,7 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
                        conj(l_vals[lh_idx + lh_col_begin]);
             }
             // remember the transposed element
-            auto found_transp = subwarp.ballot(lh_row == row);
+            auto found_transp = group::ballot(subwarp, lh_row == row);
             if (found_transp) {
                 lh_nz =
                     subwarp.shfl(lh_idx + lh_col_begin, ffs(found_transp) - 1);

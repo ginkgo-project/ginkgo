@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,9 +57,9 @@ inline void initialize(
     batch_single_kernels::copy_kernel(b_entry, r_entry);
 
     // r = b - A*x
-    batch_single_kernels::advanced_apply(static_cast<ValueType>(-1.0), A_entry,
+    batch_single_kernels::advanced_apply(-one<ValueType>(), A_entry,
                                          gko::batch::to_const(x_entry),
-                                         static_cast<ValueType>(1.0), r_entry);
+                                         one<ValueType>(), r_entry);
     batch_single_kernels::compute_norm2_kernel<ValueType>(
         gko::batch::to_const(r_entry), res_norms_entry);
 

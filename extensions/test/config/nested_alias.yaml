@@ -1,0 +1,9 @@
+base: &base_config
+    key1: 123
+base2: &base_config2
+    <<: *base_config
+    key2: test
+test:
+    <<: *base_config2
+    key2: override
+    key3: true

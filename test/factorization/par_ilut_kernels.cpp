@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -243,6 +243,7 @@ TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_select(this->mtx_l, this->dmtx_l,
@@ -256,6 +257,7 @@ TYPED_TEST(ParIlut, KernelThresholdSelectMinIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_select(this->mtx_l, this->dmtx_l, 0);
@@ -268,6 +270,7 @@ TYPED_TEST(ParIlut, KernelThresholdSelectMaxIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_select(this->mtx_l, this->dmtx_l,
@@ -341,6 +344,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     // threshold_filter_approx calls sampleselect_count which needs 16 bits
     // memory operation
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
@@ -373,6 +377,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
     // threshold_filter_approx calls sampleselect_count which needs 16 bits
     // memory operation
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
@@ -388,6 +393,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNoneLowerIsEquivalentToRef)
     // threshold_filter_approx calls sampleselect_count which needs 16 bits
     // memory operation
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_filter_approx(this->mtx_l, this->dmtx_l, 0);
@@ -402,6 +408,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxAllLowerIsEquivalentToRef)
     // threshold_filter_approx calls sampleselect_count which needs 16 bits
     // memory operation
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
 
     this->test_filter_approx(this->mtx_l, this->dmtx_l,
@@ -413,7 +420,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+    if (std::is_same_v<gko::remove_complex<value_type>, gko::float16>) {
         // We set the diagonal larger than 1 in half precision to reduce the
         // possibility of resulting inf. It might introduce (a - lu)/u_diag when
         // the entry is not presented in the original matrix
@@ -434,7 +441,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     auto res_mtx_u = Csr::create(this->ref, square_size);
     auto dres_mtx_l = Csr::create(this->exec, square_size);
     auto dres_mtx_u = Csr::create(this->exec, square_size);
-    // gko::write(std::cout, mtx_lu);
+
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
         this->mtx_u.get(), res_mtx_l.get(), res_mtx_u.get());
@@ -457,6 +464,7 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);

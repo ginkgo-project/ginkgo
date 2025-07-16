@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/base/array.hpp"
+
+#include <type_traits>
 
 #include <ginkgo/core/base/math.hpp>
 
@@ -89,6 +91,12 @@ ValueType reduce_add(const array<ValueType>& input_arr,
 #define GKO_DECLARE_ARRAY_FILL(_type) void array<_type>::fill(const _type value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
+template GKO_DECLARE_ARRAY_FILL(bool);
+template GKO_DECLARE_ARRAY_FILL(uint16);
+template GKO_DECLARE_ARRAY_FILL(uint32);
+#ifndef GKO_SIZE_T_IS_UINT64_T
+template GKO_DECLARE_ARRAY_FILL(uint64);
+#endif
 
 
 #define GKO_DECLARE_ARRAY_REDUCE_ADD(_type) \

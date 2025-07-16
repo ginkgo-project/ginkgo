@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -203,7 +203,7 @@ void add_missing_diagonal_elements(
                     thread_is_active ? old_col_idxs[old_idx] : IndexType{};
                 // automatically false if thread is not active
                 bool diagonal_add_required = !diagonal_added && row < col_idx;
-                auto ballot = subwarp_grp.ballot(diagonal_add_required);
+                auto ballot = group::ballot(subwarp_grp, diagonal_add_required);
 
                 if (ballot) {
                     auto first_subwarp_idx = ffs(ballot) - 1;
@@ -588,6 +588,18 @@ void initialize_l(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void symbolic_validate(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    const matrix::Csr<ValueType, IndexType>* factors,
+    const matrix::csr::lookup_data<IndexType>& factors_lookup,
+    bool& valid) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL);
 
 
 }  // namespace factorization

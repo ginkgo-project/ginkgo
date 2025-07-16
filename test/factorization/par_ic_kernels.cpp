@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -110,6 +110,7 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
 #ifdef GKO_COMPILING_HIP
     // hip does not support memory operation in 16bit
     SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
 #endif
     auto square_size = this->mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(this->ref, square_size);

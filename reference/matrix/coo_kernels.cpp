@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -138,6 +138,18 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
+
+
+template <typename ValueType>
+void conj_array(std::shared_ptr<const ReferenceExecutor> exec,
+                size_type num_elems, ValueType* values)
+{
+    for (size_type idx = 0; idx < num_elems; idx++) {
+        values[idx] = conj(values[idx]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COO_CONJ_ARRAY_KERNEL);
 
 
 }  // namespace coo

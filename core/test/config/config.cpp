@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/test/utils.hpp"
@@ -119,6 +120,139 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
                       ->get_parameters()
                       .preconditioner.get()),
               nullptr);
+}
+
+
+TEST_F(Config, GenerateCriteriaFromMinimalConfig)
+{
+    // the map is ordered, since this allows for easier comparison in the test
+    pnode minimal_stop{{
+        {"absolute_implicit_residual_norm", pnode{0.01}},
+        {"absolute_residual_norm", pnode{0.01}},
+        {"initial_implicit_residual_norm", pnode{0.01}},
+        {"initial_residual_norm", pnode{0.01}},
+        {"iteration", pnode{10}},
+        {"relative_implicit_residual_norm", pnode{0.01}},
+        {"relative_residual_norm", pnode{0.01}},
+        {"time", pnode{100}},
+    }};
+
+    pnode p{{{"criteria", minimal_stop}}};
+    auto obj = std::dynamic_pointer_cast<gko::solver::Cg<float>::Factory>(
+        parse<LinOpFactoryType::Cg>(p, registry(),
+                                    type_descriptor{"float32", "void"})
+            .on(this->exec));
+
+    ASSERT_NE(obj, nullptr);
+    auto criteria = obj->get_parameters().criteria;
+    ASSERT_EQ(criteria.size(), minimal_stop.get_map().size());
+    try {
+        throw std::runtime_error("Criteria does not exist");
+    } catch (...) {
+    }
+    {
+        SCOPED_TRACE("Absolute Implicit Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ImplicitResidualNorm<float>::Factory>(criteria[0]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline, gko::stop::mode::absolute);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Absolute Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ResidualNorm<float>::Factory>(criteria[1]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline, gko::stop::mode::absolute);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Initial Implicit Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ImplicitResidualNorm<float>::Factory>(criteria[2]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline,
+                  gko::stop::mode::initial_resnorm);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Initial Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ResidualNorm<float>::Factory>(criteria[3]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline,
+                  gko::stop::mode::initial_resnorm);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Iteration Criterion");
+        auto it =
+            std::dynamic_pointer_cast<const gko::stop::Iteration::Factory>(
+                criteria[4]);
+        ASSERT_NE(it, nullptr);
+        EXPECT_EQ(it->get_parameters().max_iters, 10);
+    }
+    {
+        SCOPED_TRACE("Relative Implicit Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ImplicitResidualNorm<float>::Factory>(criteria[5]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline, gko::stop::mode::rhs_norm);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Relative Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ResidualNorm<float>::Factory>(criteria[6]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline, gko::stop::mode::rhs_norm);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01f);
+    }
+    {
+        SCOPED_TRACE("Time Criterion");
+        using namespace std::chrono_literals;
+        auto time = std::dynamic_pointer_cast<const gko::stop::Time::Factory>(
+            criteria[7]);
+        ASSERT_NE(time, nullptr);
+        EXPECT_EQ(time->get_parameters().time_limit, 100ns);
+    }
+}
+
+
+TEST_F(Config, GenerateCriteriaFromMinimalConfigWithValueType)
+{
+    auto reg = registry();
+    reg.emplace("precond", this->mtx);
+    pnode minimal_stop{{
+        {"value_type", pnode{"float64"}},
+        {"relative_residual_norm", pnode{0.01}},
+        {"time", pnode{100}},
+    }};
+
+    pnode p{{{"criteria", minimal_stop}}};
+    auto obj = std::dynamic_pointer_cast<gko::solver::Cg<float>::Factory>(
+        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float32", "void"})
+            .on(this->exec));
+
+    ASSERT_NE(obj, nullptr);
+    auto criteria = obj->get_parameters().criteria;
+    ASSERT_EQ(criteria.size(), minimal_stop.get_map().size() - 1);
+    {
+        SCOPED_TRACE("Residual Criterion");
+        auto res = std::dynamic_pointer_cast<
+            const gko::stop::ResidualNorm<double>::Factory>(criteria[0]);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->get_parameters().baseline, gko::stop::mode::rhs_norm);
+        EXPECT_EQ(res->get_parameters().reduction_factor, 0.01);
+    }
+    {
+        SCOPED_TRACE("Time Criterion");
+        using namespace std::chrono_literals;
+        auto time = std::dynamic_pointer_cast<const gko::stop::Time::Factory>(
+            criteria[1]);
+        ASSERT_NE(time, nullptr);
+        EXPECT_EQ(time->get_parameters().time_limit, 100ns);
+    }
 }
 
 

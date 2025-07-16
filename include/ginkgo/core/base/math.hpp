@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <complex>
 #include <cstdlib>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -84,6 +85,9 @@ struct is_complex_or_scalar_impl : std::is_scalar<T> {};
 
 template <>
 struct is_complex_or_scalar_impl<half> : std::true_type {};
+
+template <>
+struct is_complex_or_scalar_impl<bfloat16> : std::true_type {};
 
 template <typename T>
 struct is_complex_or_scalar_impl<std::complex<T>>
@@ -311,28 +315,49 @@ struct next_precision_base_impl<std::complex<T>> {
 };
 
 
-template <typename T>
-struct next_precision_impl {};
+/**
+ * Find the type step-away from the T in the template pack.
+ * step >= 0, find the next type in the list
+ * step <  0, find the previous type in the list
+ */
+template <typename T, int step, typename Visited, typename... Rest>
+struct find_precision_list_impl;
 
-
-template <>
-struct next_precision_impl<gko::half> {
-    using type = float;
+template <typename T, int step, typename... Visited, typename U,
+          typename... Rest>
+struct find_precision_list_impl<T, step, std::tuple<Visited...>, U, Rest...> {
+    using type =
+        typename find_precision_list_impl<T, step, std::tuple<Visited..., U>,
+                                          Rest...>::type;
 };
 
-template <>
-struct next_precision_impl<float> {
-    using type = double;
+template <typename T, int step, typename... Visited, typename... Rest>
+struct find_precision_list_impl<T, step, std::tuple<Visited...>, T, Rest...> {
+    using tuple = std::tuple<T, Rest..., Visited...>;
+    constexpr static auto tuple_size =
+        static_cast<int>(std::tuple_size_v<tuple>);
+    // It turns the first part into positive when step is negative
+    constexpr static int index = (tuple_size + step % tuple_size) % tuple_size;
+    using type = std::tuple_element_t<index, tuple>;
 };
 
-template <>
-struct next_precision_impl<double> {
-    using type = gko::half;
+
+template <typename T, int step = 1>
+struct find_precision_impl {
+    using type = typename find_precision_list_impl<T, step, std::tuple<>,
+#if GINKGO_ENABLE_HALF
+                                                   half,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+                                                   bfloat16,
+#endif
+                                                   float, double>::type;
 };
 
-template <typename T>
-struct next_precision_impl<std::complex<T>> {
-    using type = std::complex<typename next_precision_impl<T>::type>;
+
+template <typename T, int step>
+struct find_precision_impl<std::complex<T>, step> {
+    using type = std::complex<typename find_precision_impl<T, step>::type>;
 };
 
 
@@ -351,6 +376,7 @@ struct reduce_precision_impl<double> {
     using type = float;
 };
 
+// for block jacobi
 template <>
 struct reduce_precision_impl<float> {
     using type = half;
@@ -372,6 +398,7 @@ struct increase_precision_impl<float> {
     using type = double;
 };
 
+// for block jacobi
 template <>
 struct increase_precision_impl<half> {
     using type = float;
@@ -430,23 +457,20 @@ using next_precision_base = typename detail::next_precision_base_impl<T>::type;
 template <typename T>
 using previous_precision_base = next_precision_base<T>;
 
+
 /**
- * Obtains the next type in the singly-linked precision list with half.
+ * Obtains the next `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
  */
-#if GINKGO_ENABLE_HALF
-template <typename T>
-using next_precision = typename detail::next_precision_impl<T>::type;
+template <typename T, int step = 1>
+using next_precision = typename detail::find_precision_impl<T, step>::type;
 
-template <typename T>
-using previous_precision = next_precision<next_precision<T>>;
-#else
-// fallback to float/double list
-template <typename T>
-using next_precision = next_precision_base<T>;
-
-template <typename T>
-using previous_precision = previous_precision_base<T>;
-#endif
+/**
+ * Obtains the previous `move` type of T in the singly-linked precision
+ * corresponding bfloat16/half
+ */
+template <typename T, int step = 1>
+using previous_precision = typename detail::find_precision_impl<T, -step>::type;
 
 
 /**
@@ -637,6 +661,13 @@ GKO_INLINE constexpr half one<half>()
 {
     constexpr auto bits = static_cast<uint16>(0b0'01111'0000000000u);
     return half::create_from_bits(bits);
+}
+
+template <>
+GKO_INLINE constexpr bfloat16 one<bfloat16>()
+{
+    constexpr auto bits = static_cast<uint16>(0b0'01111111'0000000u);
+    return bfloat16::create_from_bits(bits);
 }
 
 
@@ -949,6 +980,12 @@ GKO_INLINE gko::half abs(const std::complex<gko::half>& x)
     return static_cast<gko::half>(abs(std::complex<float>(x)));
 }
 
+GKO_INLINE gko::bfloat16 abs(const std::complex<gko::bfloat16>& x)
+{
+    // Using float abs not sqrt on norm to avoid overflow
+    return static_cast<gko::bfloat16>(abs(std::complex<float>(x)));
+}
+
 
 using std::sqrt;
 
@@ -960,6 +997,17 @@ GKO_INLINE gko::half sqrt(gko::half a)
 GKO_INLINE std::complex<gko::half> sqrt(std::complex<gko::half> a)
 {
     return std::complex<gko::half>(sqrt(std::complex<float>(
+        static_cast<float>(a.real()), static_cast<float>(a.imag()))));
+}
+
+GKO_INLINE gko::bfloat16 sqrt(gko::bfloat16 a)
+{
+    return gko::bfloat16(std::sqrt(float(a)));
+}
+
+GKO_INLINE std::complex<gko::bfloat16> sqrt(std::complex<gko::bfloat16> a)
+{
+    return std::complex<gko::bfloat16>(sqrt(std::complex<float>(
         static_cast<float>(a.real()), static_cast<float>(a.imag()))));
 }
 

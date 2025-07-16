@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,19 @@
 #include <ginkgo/core/base/segmented_array.hpp>
 
 #include "core/test/utils.hpp"
+
+
+class DummyExecutor : public gko::ReferenceExecutor {
+public:
+    DummyExecutor() : ReferenceExecutor(std::make_shared<gko::CpuAllocator>())
+    {}
+
+protected:
+    bool verify_memory_to(const ReferenceExecutor* other) const override
+    {
+        return false;
+    }
+};
 
 
 template <typename T>
@@ -140,6 +153,40 @@ TYPED_TEST(SegmentedArray, CanBeMoved)
     ASSERT_EQ(arr.get_segment_count(), 0);
     ASSERT_EQ(arr.get_flat_data(), nullptr);
     ASSERT_NE(arr.get_offsets().get_const_data(), nullptr);
+}
+
+
+TYPED_TEST(SegmentedArray, CanCreateTemporaryClone)
+{
+    using value_type = typename TestFixture::value_type;
+    auto other_exec = std::make_shared<DummyExecutor>();
+    auto buffer = gko::array<value_type>(this->exec, {1, 2, 2, 3, 3, 3});
+    auto offsets = gko::array<gko::int64>(this->exec, {0, 1, 3, 6});
+    auto arr =
+        gko::segmented_array<value_type>::create_from_offsets(buffer, offsets);
+
+    auto copy = gko::make_temporary_clone(other_exec, &arr);
+
+    ASSERT_EQ(copy->get_executor(), other_exec);
+    ASSERT_NE(copy->get_executor(), arr.get_executor());
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(*copy, arr);
+}
+
+
+TYPED_TEST(SegmentedArray, TemporaryCloneIsNoopForSameExec)
+{
+    using value_type = typename TestFixture::value_type;
+    auto buffer = gko::array<value_type>(this->exec, {1, 2, 2, 3, 3, 3});
+    auto offsets = gko::array<gko::int64>(this->exec, {0, 1, 3, 6});
+    auto arr =
+        gko::segmented_array<value_type>::create_from_offsets(buffer, offsets);
+
+    auto copy = gko::make_temporary_clone(this->exec, &arr);
+
+    ASSERT_EQ(copy->get_executor(), arr.get_executor());
+    ASSERT_EQ(copy->get_flat_data(), arr.get_flat_data());
+    ASSERT_EQ(copy->get_offsets().get_const_data(),
+              arr.get_offsets().get_const_data());
 }
 
 

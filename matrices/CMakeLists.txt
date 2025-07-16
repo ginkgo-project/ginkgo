@@ -1,42 +1,156 @@
-configure_file("${Ginkgo_SOURCE_DIR}/matrices/config.hpp.in"
-    "${Ginkgo_BINARY_DIR}/matrices/config.hpp" @ONLY)
+configure_file(
+    "${Ginkgo_SOURCE_DIR}/matrices/config.hpp.in"
+    "${Ginkgo_BINARY_DIR}/matrices/config.hpp"
+    @ONLY
+)
 
 configure_file("test/ani1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1.mtx")
-configure_file("test/ani1_chol.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_chol.mtx")
-configure_file("test/ani1_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_lu.mtx")
-configure_file("test/ani1_amd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd.mtx")
-configure_file("test/ani1_amd_chol.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_chol.mtx")
-configure_file("test/ani1_amd_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_lu.mtx")
-configure_file("test/ani1_nonsymm.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm.mtx")
-configure_file("test/ani1_nonsymm_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm_lu.mtx")
+configure_file(
+    "test/ani1_chol.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_chol.mtx"
+)
+configure_file(
+    "test/ani1_lu.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_lu.mtx"
+)
+configure_file(
+    "test/ani1_amd.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd.mtx"
+)
+configure_file(
+    "test/ani1_amd_chol.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_chol.mtx"
+)
+configure_file(
+    "test/ani1_amd_lu.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_amd_lu.mtx"
+)
+configure_file(
+    "test/ani1_nonsymm.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm.mtx"
+)
+configure_file(
+    "test/ani1_nonsymm_lu.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani1_nonsymm_lu.mtx"
+)
 configure_file("test/ani4.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4.mtx")
-configure_file("test/ani4_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_lu.mtx")
-configure_file("test/ani4_chol.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_chol.mtx")
-configure_file("test/ani4_amd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd.mtx")
-configure_file("test/ani4_amd_lu.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd_lu.mtx")
-configure_file("test/ani4_amd_chol.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd_chol.mtx")
-configure_file("test/isai_l.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l.mtx")
-configure_file("test/isai_l_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess.mtx")
-configure_file("test/isai_l_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess_rhs.mtx")
-configure_file("test/isai_l_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv.mtx")
-configure_file("test/isai_l_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv_partial.mtx")
-configure_file("test/isai_u.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u.mtx")
-configure_file("test/isai_u_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess.mtx")
-configure_file("test/isai_u_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess_rhs.mtx")
-configure_file("test/isai_u_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv.mtx")
-configure_file("test/isai_u_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv_partial.mtx")
-configure_file("test/1138_bus.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus.mtx")
-configure_file("test/1138_bus_shuffled.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus_shuffled.mtx")
-configure_file("test/isai_a.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a.mtx")
-configure_file("test/isai_a_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_excess.mtx")
-configure_file("test/isai_a_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_excess_rhs.mtx")
-configure_file("test/isai_a_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv.mtx")
-configure_file("test/isai_a_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv_partial.mtx")
-configure_file("test/isai_spd.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd.mtx")
-configure_file("test/isai_spd_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess.mtx")
-configure_file("test/isai_spd_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess_rhs.mtx")
-configure_file("test/isai_spd_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv.mtx")
-configure_file("test/isai_spd_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv_partial.mtx")
-configure_file("test/1138_bus_mc64_result.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus_mc64_result.mtx")
-configure_file("test/nontrivial_mc64_example.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_example.mtx")
-configure_file("test/nontrivial_mc64_result.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_result.mtx")
+configure_file(
+    "test/ani4_lu.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani4_lu.mtx"
+)
+configure_file(
+    "test/ani4_chol.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani4_chol.mtx"
+)
+configure_file(
+    "test/ani4_amd.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd.mtx"
+)
+configure_file(
+    "test/ani4_amd_lu.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd_lu.mtx"
+)
+configure_file(
+    "test/ani4_amd_chol.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/ani4_amd_chol.mtx"
+)
+configure_file(
+    "test/isai_l.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_l.mtx"
+)
+configure_file(
+    "test/isai_l_excess.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess.mtx"
+)
+configure_file(
+    "test/isai_l_excess_rhs.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess_rhs.mtx"
+)
+configure_file(
+    "test/isai_l_inv.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv.mtx"
+)
+configure_file(
+    "test/isai_l_inv_partial.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv_partial.mtx"
+)
+configure_file(
+    "test/isai_u.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_u.mtx"
+)
+configure_file(
+    "test/isai_u_excess.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess.mtx"
+)
+configure_file(
+    "test/isai_u_excess_rhs.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess_rhs.mtx"
+)
+configure_file(
+    "test/isai_u_inv.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv.mtx"
+)
+configure_file(
+    "test/isai_u_inv_partial.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv_partial.mtx"
+)
+configure_file(
+    "test/1138_bus.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus.mtx"
+)
+configure_file(
+    "test/1138_bus_shuffled.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus_shuffled.mtx"
+)
+configure_file(
+    "test/isai_a.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_a.mtx"
+)
+configure_file(
+    "test/isai_a_excess.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_excess.mtx"
+)
+configure_file(
+    "test/isai_a_excess_rhs.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_excess_rhs.mtx"
+)
+configure_file(
+    "test/isai_a_inv.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv.mtx"
+)
+configure_file(
+    "test/isai_a_inv_partial.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_a_inv_partial.mtx"
+)
+configure_file(
+    "test/isai_spd.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd.mtx"
+)
+configure_file(
+    "test/isai_spd_excess.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess.mtx"
+)
+configure_file(
+    "test/isai_spd_excess_rhs.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_excess_rhs.mtx"
+)
+configure_file(
+    "test/isai_spd_inv.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv.mtx"
+)
+configure_file(
+    "test/isai_spd_inv_partial.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/isai_spd_inv_partial.mtx"
+)
+configure_file(
+    "test/1138_bus_mc64_result.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/1138_bus_mc64_result.mtx"
+)
+configure_file(
+    "test/nontrivial_mc64_example.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_example.mtx"
+)
+configure_file(
+    "test/nontrivial_mc64_result.mtx"
+    "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_result.mtx"
+)

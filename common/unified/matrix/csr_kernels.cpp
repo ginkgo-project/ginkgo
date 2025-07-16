@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -311,6 +311,27 @@ void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Csr<ValueType, IndexType>* orig,
+                           array<ValueType>& sum)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto value_ptr, auto sum_ptr) {
+            sum_ptr[row] = zero<device_type<ValueType>>();
+            for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+                sum_ptr[row] += abs(value_ptr[k]);
+            }
+        },
+        sum.get_size(), orig->get_const_row_ptrs(), orig->get_const_values(),
+        sum.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_WISE_ABSOLUTE_SUM);
 
 
 }  // namespace csr

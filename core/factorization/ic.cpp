@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,9 +18,9 @@
 #include "core/config/config_helper.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/elimination_forest_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -38,9 +38,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 // for gko syncfree implementation
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
-GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
-GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
-GKO_REGISTER_OPERATION(forest_from_factor, cholesky::forest_from_factor);
+GKO_REGISTER_OPERATION(from_factor, elimination_forest::from_factor);
 GKO_REGISTER_OPERATION(initialize, cholesky::initialize);
 GKO_REGISTER_OPERATION(factorize, cholesky::factorize);
 
@@ -104,8 +102,10 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         local_system_matrix.get(), false));
 
     std::shared_ptr<const matrix_type> ic;
-    // Compute LC factorization
-    if (parameters_.algorithm == incomplete_algorithm::syncfree) {
+    // Compute IC factorization
+    if (parameters_.algorithm == incomplete_algorithm::syncfree ||
+        (!std::dynamic_pointer_cast<const ReferenceExecutor>(exec) &&
+         exec == exec->get_master())) {
         std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
             forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
@@ -122,49 +122,29 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         forest =
             std::make_unique<gko::factorization::elimination_forest<IndexType>>(
                 exec, num_rows);
-        exec->run(
-            ic_factorization::make_forest_from_factor(factors.get(), *forest));
+        exec->run(ic_factorization::make_from_factor(factors.get(), *forest));
 
         // setup lookup structure on factors
-        array<IndexType> storage_offsets{exec, num_rows + 1};
-        array<int64> row_descs{exec, num_rows};
+        const auto lookup = matrix::csr::build_lookup(factors.get());
         array<IndexType> diag_idxs{exec, num_rows};
         array<IndexType> transpose_idxs{exec,
                                         factors->get_num_stored_elements()};
-        const auto allowed_sparsity = gko::matrix::csr::sparsity_type::bitmap |
-                                      gko::matrix::csr::sparsity_type::full |
-                                      gko::matrix::csr::sparsity_type::hash;
-        exec->run(ic_factorization::make_build_lookup_offsets(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            num_rows, allowed_sparsity, storage_offsets.get_data()));
-        const auto storage_size =
-            static_cast<size_type>(get_element(storage_offsets, num_rows));
-        array<int32> storage{exec, storage_size};
-        exec->run(ic_factorization::make_build_lookup(
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            num_rows, allowed_sparsity, storage_offsets.get_const_data(),
-            row_descs.get_data(), storage.get_data()));
         // initialize factors
         exec->run(ic_factorization::make_fill_array(
             factors->get_values(), factors->get_num_stored_elements(),
             zero<ValueType>()));
         exec->run(ic_factorization::make_initialize(
-            local_system_matrix.get(), storage_offsets.get_const_data(),
-            row_descs.get_const_data(), storage.get_const_data(),
+            local_system_matrix.get(), lookup.storage_offsets.get_const_data(),
+            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
             diag_idxs.get_data(), transpose_idxs.get_data(), factors.get()));
         // run numerical factorization
         array<int> tmp{exec};
         exec->run(ic_factorization::make_factorize(
-            storage_offsets.get_const_data(), row_descs.get_const_data(),
-            storage.get_const_data(), diag_idxs.get_const_data(),
-            transpose_idxs.get_const_data(), *forest, factors.get(), false,
-            tmp));
+            lookup.storage_offsets.get_const_data(),
+            lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+            diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
+            *forest, factors.get(), false, tmp));
         ic = factors;
-    } else if (std::dynamic_pointer_cast<const OmpExecutor>(exec) &&
-               !std::dynamic_pointer_cast<const ReferenceExecutor>(exec)) {
-        GKO_INVALID_STATE(
-            "OmpExecutor does not support sparselib algorithm. Please use "
-            "syncfree algorithm.");
     } else {
         exec->run(
             ic_factorization::make_sparselib_ic(local_system_matrix.get()));

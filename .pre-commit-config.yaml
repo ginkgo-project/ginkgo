@@ -14,6 +14,12 @@ repos:
         third_party/identify_stream_usage/.*|
         include/ginkgo/ginkgo.hpp
       )
+- repo: https://github.com/BlankSpruce/gersemi
+  rev: 0.19.0
+  hooks:
+  - id: gersemi
+    name: cmake-format
+    files: ^cmake|CMakeLists.txt
 - repo: local
   hooks:
   # The official reuse hook only supports calling lint, so we need our own hook
@@ -30,10 +36,3 @@ repos:
         examples/external-lib-interfacing/external-lib-interfacing.cpp|
         core/base/workspace_aliases.hpp
       )$
-  - id: update-ginkgo-header
-    name: update ginkgo header
-    entry: dev_tools/scripts/update_ginkgo_header.sh
-    language: script
-    types: [header]
-    pass_filenames: false
-    files: ^include/ginkgo/core

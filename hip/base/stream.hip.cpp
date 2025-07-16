@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,7 +29,7 @@ hip_stream::~hip_stream()
 {
     if (stream_) {
         detail::hip_scoped_device_id_guard g(device_id_);
-        hipStreamDestroy(stream_);
+        (void)hipStreamDestroy(stream_);
     }
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,8 +33,23 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) =
-                static_cast<device_type<OutValueType>>(input(row, col));
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using bridge_type =
+                device_type<highest_precision<InValueType, OutValueType>>;
+            if constexpr (sizeof(remove_complex<InValueType>) ==
+                              sizeof(int16) &&
+                          sizeof(remove_complex<OutValueType>) ==
+                              sizeof(int16)) {
+                output(row, col) = static_cast<device_type<OutValueType>>(
+                    static_cast<bridge_type>(input(row, col)));
+            } else
+#endif
+            {
+                output(row, col) =
+                    static_cast<device_type<OutValueType>>(input(row, col));
+            }
         },
         input->get_size(), input, output);
 }
@@ -83,7 +98,11 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
-                x(row, col) *= alpha[0];
+                if (is_zero(alpha[0])) {
+                    x(row, col) = zero(alpha[0]);
+                } else {
+                    x(row, col) *= alpha[0];
+                }
             },
             x->get_size(), alpha->get_const_values(), x);
     }
@@ -129,7 +148,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                y(row, col) += alpha[0] * x(row, col);
+                if (is_nonzero(alpha[0])) {
+                    y(row, col) += alpha[0] * x(row, col);
+                }
             },
             x->get_size(), alpha->get_const_values(), x, y);
     }
@@ -152,7 +173,9 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                y(row, col) -= alpha[0] * x(row, col);
+                if (is_nonzero(alpha[0])) {
+                    y(row, col) -= alpha[0] * x(row, col);
+                }
             },
             x->get_size(), alpha->get_const_values(), x, y);
     }
@@ -169,7 +192,9 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            y(i, i) += alpha[0] * diag[i];
+            if (is_nonzero(alpha[0])) {
+                y(i, i) += alpha[0] * diag[i];
+            }
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
 }
@@ -185,7 +210,9 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            y(i, i) -= alpha[0] * diag[i];
+            if (is_nonzero(alpha[0])) {
+                y(i, i) -= alpha[0] * diag[i];
+            }
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
 }
@@ -426,8 +453,21 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-            gathered(row, col) =
-                static_cast<device_type<OutputType>>(orig(rows[row], col));
+#if defined(GKO_COMPILING_DPCPP) ||                            \
+    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+    (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
+            using bridge_type =
+                device_type<highest_precision<ValueType, OutputType>>;
+            if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16) &&
+                          sizeof(remove_complex<OutputType>) == sizeof(int16)) {
+                gathered(row, col) = static_cast<device_type<OutputType>>(
+                    static_cast<bridge_type>(orig(rows[row], col)));
+            } else
+#endif
+            {
+                gathered(row, col) =
+                    static_cast<device_type<OutputType>>(orig(rows[row], col));
+            }
         },
         row_collection->get_size(), orig, row_idxs, row_collection);
 }
@@ -446,10 +486,10 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto orig, auto rows,
                       auto beta, auto gathered) {
             using type = device_type<highest_precision<ValueType, OutputType>>;
-            gathered(row, col) =
+            gathered(row, col) = static_cast<device_type<OutputType>>(
                 static_cast<type>(alpha[0] * orig(rows[row], col)) +
                 static_cast<type>(beta[0]) *
-                    static_cast<type>(gathered(row, col));
+                    static_cast<type>(gathered(row, col)));
         },
         row_collection->get_size(), alpha->get_const_values(), orig, row_idxs,
         beta->get_const_values(), row_collection);

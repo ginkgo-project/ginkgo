@@ -14,4 +14,3 @@ and pipe the result to the minimal_solver_cuda executable:
 @code{.cpp}cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal-cuda-solver@endcode
 
 <h3> About the example </h3>
-

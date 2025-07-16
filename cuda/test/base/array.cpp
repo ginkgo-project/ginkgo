@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,6 +55,15 @@ TYPED_TEST(Array, CanCopyBackTemporaryCloneOnDifferentExecutor)
     }
 
     this->assert_equal_to_original_x(this->x);
+}
+
+
+TYPED_TEST(Array, CanCopyToHost)
+{
+    using T = TypeParam;
+    auto arr = gko::array<T>(this->exec, I<T>{4, 6});
+
+    ASSERT_EQ(arr.copy_to_host(), (std::vector<T>{4, 6}));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,6 +103,16 @@ constexpr bool less_equal(const T&& lhs, const T&& rhs)
 
 template <class... Ts>
 using conjunction = std::conjunction<Ts...>;
+
+
+// Provide the type_identity from C++20
+template <typename T>
+struct type_identity {
+    using type = T;
+};
+
+template <typename T>
+using type_identity_t = typename type_identity<T>::type;
 
 
 }  // namespace xstd

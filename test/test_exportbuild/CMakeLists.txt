@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(GinkgoExportBuildTest LANGUAGES CXX)
 
-find_package(Ginkgo REQUIRED
-             ONLY_CMAKE_FIND_ROOT_PATH)
+find_package(Ginkgo REQUIRED ONLY_CMAKE_FIND_ROOT_PATH)
 
 # Here, we use test install without any data. We instantiate the
 # interface only.

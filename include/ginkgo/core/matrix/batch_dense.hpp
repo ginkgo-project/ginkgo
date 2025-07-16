@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,12 +45,14 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final
-    : public EnableBatchLinOp<Dense<ValueType>>,
-#if GINKGO_ENABLE_HALF
-      public ConvertibleTo<Dense<next_precision<next_precision<ValueType>>>>,
+class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+                    public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
-      public ConvertibleTo<Dense<next_precision<ValueType>>> {
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+                    public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
+#endif
+                    public ConvertibleTo<Dense<next_precision<ValueType>>> {
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
@@ -70,18 +72,24 @@ public:
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
-#if GINKGO_ENABLE_HALF
-    friend class Dense<previous_precision<previous_precision<ValueType>>>;
-    using ConvertibleTo<
-        Dense<next_precision<next_precision<ValueType>>>>::convert_to;
-    using ConvertibleTo<
-        Dense<next_precision<next_precision<ValueType>>>>::move_to;
+#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
+    friend class Dense<previous_precision<ValueType, 2>>;
+    using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(Dense<next_precision<next_precision<ValueType>>>* result)
-        const override;
+    void convert_to(Dense<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(
-        Dense<next_precision<next_precision<ValueType>>>* result) override;
+    void move_to(Dense<next_precision<ValueType, 2>>* result) override;
+#endif
+
+#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
+    friend class Dense<previous_precision<ValueType, 3>>;
+    using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::move_to;
+
+    void convert_to(Dense<next_precision<ValueType, 3>>* result) const override;
+
+    void move_to(Dense<next_precision<ValueType, 3>>* result) override;
 #endif
 
     /**

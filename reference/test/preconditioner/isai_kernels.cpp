@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -186,7 +186,7 @@ protected:
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
-        if (std::is_same_v<gko::remove_complex<value_type>, gko::half>) {
+        if (std::is_same_v<gko::remove_complex<value_type>, gko::float16>) {
             general_isai_factory =
                 GeneralIsai::build()
                     .with_excess_solver_reduction(
@@ -326,11 +326,11 @@ protected:
 
 
 // Due to NVHPC compilation limitation, we need to split it to two files.
-#ifdef NVHPC_HALF
-using HalfIndexTypes = gko::test::cartesian_type_product_t<
-    ::testing::Types<gko::half, std::complex<gko::half>>,
+#ifdef NVHPC_FLOAT16
+using Float16IndexTypes = gko::test::cartesian_type_product_t<
+    ::testing::Types<gko::float16, std::complex<gko::float16>>,
     gko::test::IndexTypes>;
-TYPED_TEST_SUITE(Isai, HalfIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Isai, Float16IndexTypes, PairTypenameNameGenerator);
 #else
 TYPED_TEST_SUITE(Isai, gko::test::ValueIndexTypesBase,
                  PairTypenameNameGenerator);

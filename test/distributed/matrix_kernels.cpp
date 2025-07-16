@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -87,7 +87,7 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypesBase,
+TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
@@ -132,8 +132,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
-        this->engine, this->ref);
+        std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
 
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
@@ -162,13 +161,13 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
         std::uniform_int_distribution<
             gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
         this->engine, this->ref);
-    auto input = gko::test::generate_random_device_matrix_data<
-        value_type, global_index_type>(
-        num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
-                                           static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
-        this->engine, this->ref);
+    auto input =
+        gko::test::generate_random_device_matrix_data<value_type,
+                                                      global_index_type>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
+                                               static_cast<int>(num_cols - 1)),
+            std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
 
     auto partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
@@ -241,8 +240,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallWithColPartitionIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
-        this->engine, this->ref);
+        std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
 
     auto row_partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
@@ -286,13 +284,13 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
         std::uniform_int_distribution<
             gko::experimental::distributed::comm_index_type>(0, num_parts - 1),
         this->engine, this->ref);
-    auto input = gko::test::generate_random_device_matrix_data<
-        value_type, global_index_type>(
-        num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols)),
-        std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
-        this->engine, this->ref);
+    auto input =
+        gko::test::generate_random_device_matrix_data<value_type,
+                                                      global_index_type>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<int>(static_cast<int>(num_cols),
+                                               static_cast<int>(num_cols)),
+            std::uniform_real_distribution<>(0, 1), this->engine, this->ref);
 
     auto row_partition = gko::experimental::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,

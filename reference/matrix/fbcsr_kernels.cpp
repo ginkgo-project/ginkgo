@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -99,7 +99,11 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
-                c->at(row, rhs) *= vbeta;
+                if (is_zero(vbeta)) {
+                    c->at(row, rhs) = zero(vbeta);
+                } else {
+                    c->at(row, rhs) *= vbeta;
+                }
             }
         }
 

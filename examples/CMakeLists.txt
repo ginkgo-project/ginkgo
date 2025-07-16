@@ -1,4 +1,8 @@
-option(GINKGO_BUILD_EXTLIB_EXAMPLE "Build the external-lib-interfacing with deal.II, you need to link the deal.II library." OFF)
+option(
+    GINKGO_BUILD_EXTLIB_EXAMPLE
+    "Build the external-lib-interfacing with deal.II, you need to link the deal.II library."
+    OFF
+)
 
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
@@ -15,7 +19,8 @@ set(EXAMPLES_EXEC_LIST
     poisson-solver
     preconditioned-solver
     simple-solver
-    three-pt-stencil-solver)
+    three-pt-stencil-solver
+)
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
@@ -32,7 +37,8 @@ set(EXAMPLES_LIST
     performance-debugging
     preconditioner-export
     reordered-preconditioned-solver
-    simple-solver-logging)
+    simple-solver-logging
+)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
     list(APPEND EXAMPLES_LIST custom-matrix-format)
@@ -54,7 +60,12 @@ if(GINKGO_HAVE_PAPI_SDE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-solver)
+    list(
+        APPEND
+        EXAMPLES_LIST
+        distributed-solver
+        distributed-multigrid-preconditioned-solver
+    )
 endif()
 
 find_package(Kokkos 4.1.00 QUIET)
@@ -90,35 +101,46 @@ if(GINKGO_BUILD_TESTS)
     endif()
     foreach(example IN LISTS EXAMPLES_EXEC_LIST)
         foreach(executor IN LISTS executors)
-            add_test(NAME example_${example}_${executor}
-                     COMMAND
-                     ${Python3_EXECUTABLE}
-                     "${CMAKE_CURRENT_SOURCE_DIR}/compare-output.py"
-                     "${CMAKE_CURRENT_BINARY_DIR}/${example}"
-                     "$<TARGET_FILE_DIR:ginkgo>"
-                     "${CMAKE_CURRENT_SOURCE_DIR}/${example}/doc/results.dox"
-                     "$<TARGET_FILE:${example}>"
-                     "${executor}"
-                     WORKING_DIRECTORY
-                     "${CMAKE_CURRENT_SOURCE_DIR}/${example}")
+            add_test(
+                NAME example_${example}_${executor}
+                COMMAND
+                    ${Python3_EXECUTABLE}
+                    "${CMAKE_CURRENT_SOURCE_DIR}/compare-output.py"
+                    "${CMAKE_CURRENT_BINARY_DIR}/${example}"
+                    "$<TARGET_FILE_DIR:ginkgo>"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/${example}/doc/results.dox"
+                    "$<TARGET_FILE:${example}>" "${executor}"
+                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${example}"
+            )
             # Prevent performance issues with high core counts
-            set_property(TEST example_${example}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
+            set_property(
+                TEST example_${example}_${executor}
+                PROPERTY ENVIRONMENT OMP_NUM_THREADS=4
+            )
         endforeach()
     endforeach()
 
-    file(GLOB config_list RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" file-config-solver/config/*.json)
+    file(
+        GLOB config_list
+        RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+        file-config-solver/config/*.json
+    )
     foreach(config IN LISTS config_list)
         get_filename_component(config_name "${config}" NAME_WE)
         foreach(executor IN LISTS executors)
-            add_test(NAME example_file-config-solver_${config_name}_${executor}
+            add_test(
+                NAME example_file-config-solver_${config_name}_${executor}
                 COMMAND
-                "$<TARGET_FILE:file-config-solver>"
-                "${executor}" "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
-                "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
-                WORKING_DIRECTORY
-                "$<TARGET_FILE_DIR:ginkgo>")
+                    "$<TARGET_FILE:file-config-solver>" "${executor}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/config/${config_name}.json"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/file-config-solver/data/A.mtx"
+                WORKING_DIRECTORY "$<TARGET_FILE_DIR:ginkgo>"
+            )
             # Prevent performance issues with high core counts
-            set_property(TEST example_file-config-solver_${config_name}_${executor} PROPERTY ENVIRONMENT OMP_NUM_THREADS=4)
+            set_property(
+                TEST example_file-config-solver_${config_name}_${executor}
+                PROPERTY ENVIRONMENT OMP_NUM_THREADS=4
+            )
         endforeach()
     endforeach()
 endif()

@@ -1,8 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/partition_kernels.hpp"
+
+#include "core/base/segmented_array.hpp"
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -108,6 +111,30 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES);
+
+
+void build_ranges_by_part(std::shared_ptr<const DefaultExecutor> exec,
+                          const int* range_parts, size_type num_ranges,
+                          int num_parts, array<size_type>& range_ids,
+                          array<int64>& sizes)
+{
+    range_ids.resize_and_reset(num_ranges);
+    std::iota(range_ids.get_data(), range_ids.get_data() + num_ranges,
+              size_type(0));
+    // sort by (part_id, range_id)
+    std::sort(range_ids.get_data(), range_ids.get_data() + num_ranges,
+              [range_parts](auto rid_a, auto rid_b) {
+                  return std::tie(range_parts[rid_a], rid_a) <
+                         std::tie(range_parts[rid_b], rid_b);
+              });
+
+    sizes.resize_and_reset(num_parts);
+    std::fill_n(sizes.get_data(), num_parts, zero<int64>());
+    for (size_type i = 0; i < num_ranges; ++i) {
+        sizes.get_data()[range_parts[i]]++;
+    }
+}
+
 
 template <typename LocalIndexType, typename GlobalIndexType>
 void has_ordered_parts(

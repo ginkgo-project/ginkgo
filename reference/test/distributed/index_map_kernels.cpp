@@ -1,10 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/index_map_kernels.hpp"
 
-#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -36,6 +35,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const part_type> part =
         part_type::build_from_mapping(ref, {ref, {0, 0, 1, 1, 2, 2}}, 3);
+    std::shared_ptr<const part_type> part_large = part_type::build_from_mapping(
+        ref, {ref, {0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0}}, 3);
 };
 
 
@@ -194,4 +195,111 @@ TEST_F(IndexMap, CanGetLocalWithCombinedISWithInvalid)
 
     gko::array<local_index_type> expected(ref, {2, 3, 0, 1, 2, 4, -1, 1});
     GKO_ASSERT_ARRAY_EQ(local_ids, expected);
+}
+
+
+TEST_F(IndexMap, CanGetGlobalWithLocalISWithInvalid)
+{
+    gko::array<global_index_type> global_idxs(ref);
+    gko::array<local_index_type> local_idxs(ref,
+                                            {5, 4, 10, 3, 2, 1, 0, 100, 4});
+    auto remote_global_idxs = gko::segmented_array<global_index_type>{ref};
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part_large.get()),
+        to_device_const(remote_global_idxs), 0, local_idxs,
+        gko::experimental::distributed::index_space::local, global_idxs);
+
+    auto invalid = gko::invalid_index<global_index_type>();
+    gko::array<global_index_type> expected(
+        ref, I<global_index_type>{17, 16, invalid, 15, 2, 1, 0, invalid, 16});
+    GKO_ASSERT_ARRAY_EQ(global_idxs, expected);
+}
+
+
+TEST_F(IndexMap, CanGetGlobalWithNonLocalISWithInvalid)
+{
+    gko::array<global_index_type> global_idxs(ref);
+    gko::array<local_index_type> local_idxs(ref,
+                                            {5, 4, 10, 3, 2, 1, 0, 100, 4});
+    auto remote_global_idxs =
+        gko::segmented_array<global_index_type>::create_from_sizes(
+            {ref, {0, 1, 9, 8, 7, 6}}, {ref, {2, 4}});
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part_large.get()),
+        to_device_const(remote_global_idxs), 1, local_idxs,
+        gko::experimental::distributed::index_space::non_local, global_idxs);
+
+    auto invalid = gko::invalid_index<global_index_type>();
+    gko::array<global_index_type> expected(
+        ref, I<global_index_type>{6, 7, invalid, 8, 9, 1, 0, invalid, 7});
+    GKO_ASSERT_ARRAY_EQ(global_idxs, expected);
+}
+
+
+TEST_F(IndexMap, CanGetGlobalWithCombinedISWithInvalid)
+{
+    gko::array<global_index_type> global_idxs(ref);
+    gko::array<local_index_type> local_idxs(ref, {2, 5, 133, 6, 10});
+    auto remote_global_idxs =
+        gko::segmented_array<global_index_type>::create_from_sizes(
+            {ref, {0, 1, 9, 8, 7, 6}}, {ref, {2, 4}});
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part_large.get()),
+        to_device_const(remote_global_idxs), 1, local_idxs,
+        gko::experimental::distributed::index_space::combined, global_idxs);
+
+    auto invalid = gko::invalid_index<global_index_type>();
+    gko::array<global_index_type> expected(
+        ref, I<global_index_type>{5, 14, invalid, 0, 7});
+    GKO_ASSERT_ARRAY_EQ(global_idxs, expected);
+}
+
+
+TEST_F(IndexMap, RoundTripGlobalWithCombinedIS)
+{
+    gko::array<global_index_type> result(ref);
+    gko::array<global_index_type> global_idxs(ref,
+                                              {5, 14, 14, 0, 3, 4, 8, 7, 12});
+    gko::array<local_index_type> local_idxs(ref);
+    auto remote_global_idxs =
+        gko::segmented_array<global_index_type>::create_from_sizes(
+            {ref, {0, 1, 6, 7, 8, 9}}, {ref, {2, 4}});
+    gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
+
+    gko::kernels::reference::index_map::map_to_local(
+        ref, part_large.get(), remote_target_ids,
+        to_device_const(remote_global_idxs), 1, global_idxs,
+        gko::experimental::distributed::index_space::combined, local_idxs);
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part_large.get()),
+        to_device_const(remote_global_idxs), 1, local_idxs,
+        gko::experimental::distributed::index_space::combined, result);
+
+    GKO_ASSERT_ARRAY_EQ(result, global_idxs);
+}
+
+
+TEST_F(IndexMap, RoundTripLocalWithCombinedIS)
+{
+    gko::array<local_index_type> result(ref);
+    gko::array<global_index_type> global_idxs(ref);
+    gko::array<local_index_type> local_idxs(ref, {2, 5, 4, 6, 3, 3, 10});
+    auto remote_global_idxs =
+        gko::segmented_array<global_index_type>::create_from_sizes(
+            {ref, {0, 1, 6, 7, 8, 9}}, {ref, {2, 4}});
+    gko::array<comm_index_type> remote_target_ids(ref, {0, 2});
+
+    gko::kernels::reference::index_map::map_to_global(
+        ref, to_device_const(part_large.get()),
+        to_device_const(remote_global_idxs), 1, local_idxs,
+        gko::experimental::distributed::index_space::combined, global_idxs);
+    gko::kernels::reference::index_map::map_to_local(
+        ref, part_large.get(), remote_target_ids,
+        to_device_const(remote_global_idxs), 1, global_idxs,
+        gko::experimental::distributed::index_space::combined, result);
+
+    GKO_ASSERT_ARRAY_EQ(result, local_idxs);
 }

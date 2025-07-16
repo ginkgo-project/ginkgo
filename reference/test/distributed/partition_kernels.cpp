@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,6 +75,11 @@ TYPED_TEST(Partition, BuildsFromMapping)
     assert_equal_data(partition->get_range_starting_indices(),
                       {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
     assert_equal_data(partition->get_part_sizes(), {5, 6, 5});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {1, 4, 6, 9, 2, 5, 7, 0, 3, 8}},
+            {this->ref, {0, 4, 7, 10}}));
 }
 
 
@@ -100,6 +105,11 @@ TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
     assert_equal_data(partition->get_range_starting_indices(),
                       {0, 0, 0, 2, 1, 2, 3, 3, 3, 4});
     assert_equal_data(partition->get_part_sizes(), {5, 6, 0, 5, 0});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {1, 4, 6, 9, 2, 5, 7, 0, 3, 8}},
+            {this->ref, {0, 4, 7, 7, 10, 10}}));
 }
 
 
@@ -119,6 +129,10 @@ TYPED_TEST(Partition, BuildsFromRanges)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {5, 0, 2, 2, 1});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0, 1, 2, 3, 4}}, {this->ref, {0, 1, 2, 3, 4, 5}}));
 }
 
 
@@ -135,6 +149,10 @@ TYPED_TEST(Partition, BuildsFromRangeWithSingleElement)
     EXPECT_EQ(partition->get_num_parts(), 0);
     EXPECT_EQ(partition->get_num_empty_parts(), 0);
     assert_equal_data(partition->get_range_bounds(), {0});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0}}));
 }
 
 
@@ -156,6 +174,10 @@ TYPED_TEST(Partition, BuildsFromRangesWithPartIds)
     assert_equal_data(partition->get_part_ids(), {0, 4, 3, 1, 2});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {5, 2, 1, 2, 0});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0, 3, 4, 2, 1}}, {this->ref, {0, 1, 2, 3, 4, 5}}));
 }
 
 
@@ -174,6 +196,10 @@ TYPED_TEST(Partition, BuildsFromGlobalSize)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {3, 3, 3, 2, 2});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0, 1, 2, 3, 4}}, {this->ref, {0, 1, 2, 3, 4, 5}}));
 }
 
 
@@ -191,6 +217,10 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeEmptySize)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {0, 0, 0, 0, 0});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0, 1, 2, 3, 4}}, {this->ref, {0, 1, 2, 3, 4, 5}}));
 }
 
 
@@ -208,6 +238,10 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithEmptyParts)
     assert_equal_data(partition->get_part_ids(), {0, 1, 2, 3, 4});
     assert_equal_data(partition->get_range_starting_indices(), {0, 0, 0, 0, 0});
     assert_equal_data(partition->get_part_sizes(), {1, 1, 1, 0, 0});
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0, 1, 2, 3, 4}}, {this->ref, {0, 1, 2, 3, 4, 5}}));
 }
 
 
@@ -225,6 +259,10 @@ TYPED_TEST(Partition, BuildsFromGlobalSizeWithZeroParts)
     ASSERT_EQ(partition->get_part_ids(), nullptr);
     ASSERT_EQ(partition->get_range_starting_indices(), nullptr);
     ASSERT_EQ(partition->get_part_sizes(), nullptr);
+    GKO_ASSERT_SEGMENTED_ARRAY_EQ(
+        partition->get_ranges_by_part(),
+        gko::segmented_array<gko::size_type>::create_from_offsets(
+            {this->ref, {0}}));
 }
 
 

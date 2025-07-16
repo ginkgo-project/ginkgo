@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,10 +13,9 @@ namespace {
 
 
 template <typename IndexType>
-void compute_elim_forest_parent_impl(std::shared_ptr<const Executor> host_exec,
-                                     const IndexType* row_ptrs,
-                                     const IndexType* cols, IndexType num_rows,
-                                     IndexType* parent)
+void compute_elimination_forest_parent_impl(
+    std::shared_ptr<const Executor> host_exec, const IndexType* row_ptrs,
+    const IndexType* cols, IndexType num_rows, IndexType* parent)
 {
     disjoint_sets<IndexType> subtrees{host_exec, num_rows};
     array<IndexType> subtree_root_array{host_exec,
@@ -50,8 +49,10 @@ void compute_elim_forest_parent_impl(std::shared_ptr<const Executor> host_exec,
 
 
 template <typename IndexType>
-void compute_elim_forest_children_impl(const IndexType* parent, IndexType size,
-                                       IndexType* child_ptr, IndexType* child)
+void compute_elimination_forest_children_impl(const IndexType* parent,
+                                              IndexType size,
+                                              IndexType* child_ptr,
+                                              IndexType* child)
 {
     // count how many times each parent occurs, excluding pseudo-root at
     // parent == size
@@ -74,7 +75,7 @@ void compute_elim_forest_children_impl(const IndexType* parent, IndexType size,
 
 
 template <typename IndexType>
-void compute_elim_forest_postorder_impl(
+void compute_elimination_forest_postorder_impl(
     std::shared_ptr<const Executor> host_exec, const IndexType* parent,
     const IndexType* child_ptr, const IndexType* child, IndexType size,
     IndexType* postorder, IndexType* inv_postorder)
@@ -111,10 +112,9 @@ void compute_elim_forest_postorder_impl(
 
 
 template <typename IndexType>
-void compute_elim_forest_postorder_parent_impl(const IndexType* parent,
-                                               const IndexType* inv_postorder,
-                                               IndexType size,
-                                               IndexType* postorder_parent)
+void compute_elimination_forest_postorder_parent_impl(
+    const IndexType* parent, const IndexType* inv_postorder, IndexType size,
+    IndexType* postorder_parent)
 {
     for (IndexType row = 0; row < size; row++) {
         postorder_parent[inv_postorder[row]] =
@@ -140,26 +140,27 @@ void elimination_forest<IndexType>::set_executor(
 
 
 template <typename ValueType, typename IndexType>
-void compute_elim_forest(const matrix::Csr<ValueType, IndexType>* mtx,
-                         std::unique_ptr<elimination_forest<IndexType>>& forest)
+void compute_elimination_forest(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<elimination_forest<IndexType>>& forest)
 {
     const auto host_exec = mtx->get_executor()->get_master();
     const auto host_mtx = make_temporary_clone(host_exec, mtx);
     const auto num_rows = static_cast<IndexType>(host_mtx->get_size()[0]);
     forest =
         std::make_unique<elimination_forest<IndexType>>(host_exec, num_rows);
-    compute_elim_forest_parent_impl(host_exec, host_mtx->get_const_row_ptrs(),
-                                    host_mtx->get_const_col_idxs(), num_rows,
-                                    forest->parents.get_data());
-    compute_elim_forest_children_impl(forest->parents.get_const_data(),
-                                      num_rows, forest->child_ptrs.get_data(),
-                                      forest->children.get_data());
-    compute_elim_forest_postorder_impl(
+    compute_elimination_forest_parent_impl(
+        host_exec, host_mtx->get_const_row_ptrs(),
+        host_mtx->get_const_col_idxs(), num_rows, forest->parents.get_data());
+    compute_elimination_forest_children_impl(
+        forest->parents.get_const_data(), num_rows,
+        forest->child_ptrs.get_data(), forest->children.get_data());
+    compute_elimination_forest_postorder_impl(
         host_exec, forest->parents.get_const_data(),
         forest->child_ptrs.get_const_data(), forest->children.get_const_data(),
         num_rows, forest->postorder.get_data(),
         forest->inv_postorder.get_data());
-    compute_elim_forest_postorder_parent_impl(
+    compute_elimination_forest_postorder_parent_impl(
         forest->parents.get_const_data(),
         forest->inv_postorder.get_const_data(), num_rows,
         forest->postorder_parents.get_data());
@@ -168,12 +169,13 @@ void compute_elim_forest(const matrix::Csr<ValueType, IndexType>* mtx,
 }
 
 
-#define GKO_DECLARE_COMPUTE_ELIM_FOREST(ValueType, IndexType) \
-    void compute_elim_forest(                                 \
-        const matrix::Csr<ValueType, IndexType>* mtx,         \
+#define GKO_DECLARE_COMPUTE_ELIMINATION_FOREST(ValueType, IndexType) \
+    void compute_elimination_forest(                                 \
+        const matrix::Csr<ValueType, IndexType>* mtx,                \
         std::unique_ptr<elimination_forest<IndexType>>& forest)
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMPUTE_ELIM_FOREST);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPUTE_ELIMINATION_FOREST);
 
 
 }  // namespace factorization

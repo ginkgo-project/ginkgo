@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -572,10 +572,16 @@ TEST(MtxReader, ReadsBinary)
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
 #if GINKGO_ENABLE_HALF
-    test_read(gko::matrix_data<gko::half, gko::int32>{});
-    test_read(gko::matrix_data<std::complex<gko::half>, gko::int32>{});
-    test_read(gko::matrix_data<gko::half, gko::int64>{});
-    test_read(gko::matrix_data<std::complex<gko::half>, gko::int64>{});
+    test_read(gko::matrix_data<gko::float16, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::float16>, gko::int32>{});
+    test_read(gko::matrix_data<gko::float16, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::float16>, gko::int64>{});
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    test_read(gko::matrix_data<gko::bfloat16, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::bfloat16>, gko::int32>{});
+    test_read(gko::matrix_data<gko::bfloat16, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::bfloat16>, gko::int64>{});
 #endif
 }
 
@@ -633,10 +639,16 @@ TEST(MtxReader, ReadsComplexBinary)
     test_read(gko::matrix_data<std::complex<float>, gko::int64>{});
     test_read(gko::matrix_data<std::complex<double>, gko::int64>{});
 #if GINKGO_ENABLE_HALF
-    test_read_fail(gko::matrix_data<gko::half, gko::int32>{});
-    test_read(gko::matrix_data<std::complex<gko::half>, gko::int32>{});
-    test_read_fail(gko::matrix_data<gko::half, gko::int64>{});
-    test_read(gko::matrix_data<std::complex<gko::half>, gko::int64>{});
+    test_read_fail(gko::matrix_data<gko::float16, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::float16>, gko::int32>{});
+    test_read_fail(gko::matrix_data<gko::float16, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::float16>, gko::int64>{});
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    test_read_fail(gko::matrix_data<gko::bfloat16, gko::int32>{});
+    test_read(gko::matrix_data<std::complex<gko::bfloat16>, gko::int32>{});
+    test_read_fail(gko::matrix_data<gko::bfloat16, gko::int64>{});
+    test_read(gko::matrix_data<std::complex<gko::bfloat16>, gko::int64>{});
 #endif
 }
 

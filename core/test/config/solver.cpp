@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,12 +14,15 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -121,6 +124,15 @@ struct Fcg
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"solver::Fcg"}}};
+    }
+};
+
+
+struct PipeCg : SolverConfigTest<gko::solver::PipeCg<float>,
+                                 gko::solver::PipeCg<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"solver::PipeCg"}}};
     }
 };
 
@@ -340,6 +352,15 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
 };
 
 
+struct Minres : SolverConfigTest<gko::solver::Minres<float>,
+                                 gko::solver::Minres<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"solver::Minres"}}};
+    }
+};
+
+
 struct Direct
     : SolverConfigTest<gko::experimental::solver::Direct<float, int>,
                        gko::experimental::solver::Direct<double, int>> {
@@ -439,6 +460,41 @@ struct UpperTrs : TrsHelper<gko::solver::UpperTrs> {
 };
 
 
+struct Chebyshev : SolverConfigTest<gko::solver::Chebyshev<float>,
+                                    gko::solver::Chebyshev<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"solver::Chebyshev"}}};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        solver_config_test::template set<from_reg>(config_map, param, reg,
+                                                   exec);
+        using fvt = typename decltype(param.foci)::first_type;
+        config_map["foci"] =
+            pnode{pnode::array_type{pnode{fvt{0.5}}, pnode{fvt{1.5}}}};
+        param.with_foci(fvt{0.5}, fvt{1.5});
+        config_map["default_initial_guess"] = pnode{"zero"};
+        param.with_default_initial_guess(gko::solver::initial_guess_mode::zero);
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        solver_config_test::template validate<from_reg>(result, answer);
+        ASSERT_EQ(res_param.foci, ans_param.foci);
+        ASSERT_EQ(res_param.default_initial_guess,
+                  ans_param.default_initial_guess);
+    }
+};
+
+
 template <typename T>
 class Solver : public ::testing::Test {
 protected:
@@ -467,8 +523,9 @@ protected:
 
 
 using SolverTypes =
-    ::testing::Types<::Cg, ::Fcg, ::Cgs, ::Bicg, ::Bicgstab, ::Ir, ::Idr, ::Gcr,
-                     ::Gmres, ::CbGmres, ::Direct, ::LowerTrs, ::UpperTrs>;
+    ::testing::Types<::Cg, ::Fcg, ::Cgs, ::PipeCg, ::Bicg, ::Bicgstab, ::Ir,
+                     ::Idr, ::Gcr, ::Gmres, ::CbGmres, ::Minres, ::Direct,
+                     ::LowerTrs, ::UpperTrs>;
 
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);

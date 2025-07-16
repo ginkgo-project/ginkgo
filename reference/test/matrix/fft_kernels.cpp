@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,9 +39,15 @@ protected:
     Fft()
         : exec(gko::ReferenceExecutor::create()),
           rng{7381},
+#ifdef GINKGO_FAST_TESTS
+          n1{4},
+          n2{4},
+          n3{8},
+#else
           n1{4},
           n2{8},
           n3{16},
+#endif
           n{n1 * n2 * n3},
           nrhs{6},
           subcols{3},

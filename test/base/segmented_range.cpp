@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+/*@GKO_PREPROCESSOR_FILENAME_HELPER@*/
 
 #include "core/base/segmented_range.hpp"
 
