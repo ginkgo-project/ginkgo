@@ -48,8 +48,8 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
 }
 
 template <typename ValueType>
-void Cg<ValueType>::apply(const matrix::MultiVector* b,
-                          matrix::MultiVector* x) const
+void Cg<ValueType>::apply_mv(ptr_param<const matrix::MultiVector> b,
+                             ptr_param<matrix::MultiVector> x) const
 {
     // @todo: need precision dispatch
     auto dense_b = b->temporary_precision<ValueType>();
