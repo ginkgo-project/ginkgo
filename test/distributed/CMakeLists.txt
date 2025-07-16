@@ -1,6 +1,40 @@
-ginkgo_create_common_test(assembly_kernels DISABLE_EXECUTORS dpcpp LABELS distributed)
-ginkgo_create_common_test(index_map_kernels DISABLE_EXECUTORS dpcpp LABELS distributed)
-ginkgo_create_common_test(matrix_kernels DISABLE_EXECUTORS dpcpp LABELS distributed)
-ginkgo_create_common_test(partition_kernels DISABLE_EXECUTORS dpcpp LABELS distributed)
-ginkgo_create_common_test(vector_kernels DISABLE_EXECUTORS dpcpp LABELS distributed)
-ginkgo_create_common_and_reference_test(partition_helper_kernels LABELS distributed)
+ginkgo_create_common_test(
+    assembly_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
+ginkgo_create_common_test(
+    index_map_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
+ginkgo_create_common_test(
+    matrix_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
+ginkgo_create_common_test(
+    partition_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
+ginkgo_create_common_test(
+    vector_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
+ginkgo_create_common_and_reference_test(
+    partition_helper_kernels
+    LABELS
+    distributed
+)

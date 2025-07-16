@@ -1,12 +1,36 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/csr_kernels.instantiate.cpp CSR_INSTANTIATE)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kernels.instantiate.cpp FBCSR_INSTANTIATE)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_bicgstab_launch.instantiate.cpp BATCH_BICGSTAB_INSTANTIATE1)
-add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.cu BATCH_BICGSTAB_INSTANTIATE2)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_cg_launch.instantiate.cpp BATCH_CG_INSTANTIATE1)
-add_instantiation_files(. solver/batch_cg_launch.instantiate.cu BATCH_CG_INSTANTIATE2)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    matrix/csr_kernels.instantiate.cpp
+    CSR_INSTANTIATE
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    matrix/fbcsr_kernels.instantiate.cpp
+    FBCSR_INSTANTIATE
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    solver/batch_bicgstab_launch.instantiate.cpp
+    BATCH_BICGSTAB_INSTANTIATE1
+)
+add_instantiation_files(
+    .
+    solver/batch_bicgstab_launch.instantiate.cu
+    BATCH_BICGSTAB_INSTANTIATE2
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    solver/batch_cg_launch.instantiate.cpp
+    BATCH_CG_INSTANTIATE1
+)
+add_instantiation_files(
+    .
+    solver/batch_cg_launch.instantiate.cu
+    BATCH_CG_INSTANTIATE2
+)
 # we don't split up the dense kernels into distinct compilations
 list(
     APPEND
@@ -16,6 +40,14 @@ list(
 target_sources(
     ginkgo_cuda
     PRIVATE
+        ${BATCH_BICGSTAB_INSTANTIATE1}
+        ${BATCH_BICGSTAB_INSTANTIATE2}
+        ${BATCH_CG_INSTANTIATE1}
+        ${BATCH_CG_INSTANTIATE2}
+        ${CSR_INSTANTIATE}
+        ${FBCSR_INSTANTIATE}
+        ${GKO_CUDA_HIP_COMMON_SOURCES}
+        ${GKO_UNIFIED_COMMON_SOURCES}
         base/device.cpp
         base/exception.cpp
         base/executor.cpp
@@ -25,20 +57,12 @@ target_sources(
         base/stream.cpp
         base/timer.cpp
         base/version.cpp
-        ${CSR_INSTANTIATE}
-        ${FBCSR_INSTANTIATE}
         matrix/fft_kernels.cu
         preconditioner/batch_jacobi_kernels.cu
         solver/batch_bicgstab_kernels.cu
-        ${BATCH_BICGSTAB_INSTANTIATE1}
-        ${BATCH_BICGSTAB_INSTANTIATE2}
         solver/batch_cg_kernels.cu
-        ${BATCH_CG_INSTANTIATE1}
-        ${BATCH_CG_INSTANTIATE2}
         solver/lower_trs_kernels.cu
         solver/upper_trs_kernels.cu
-        ${GKO_UNIFIED_COMMON_SOURCES}
-        ${GKO_CUDA_HIP_COMMON_SOURCES}
 )
 if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
     set(GKO_CUDA_JACOBI_BLOCK_SIZES)

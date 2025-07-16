@@ -28,7 +28,11 @@ if(NOT yaml-cpp_FOUND)
     # We set the default to c++17 as Ginkgo
     set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 17)
 endif()
-ginkgo_create_test(json_config ADDITIONAL_LIBRARIES nlohmann_json::nlohmann_json)
+ginkgo_create_test(
+    json_config
+    ADDITIONAL_LIBRARIES
+    nlohmann_json::nlohmann_json
+)
 ginkgo_create_test(yaml_config ADDITIONAL_LIBRARIES yaml-cpp::yaml-cpp)
 
 # prepare the testing file and generate location
