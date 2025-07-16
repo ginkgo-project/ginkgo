@@ -94,8 +94,7 @@ public:
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<ValueType>());
 
-    void apply(ptr_param<const matrix::MultiVector> b,
-               ptr_param<matrix::MultiVector> x) const;
+    void apply(const matrix::MultiVector* b, matrix::MultiVector* x) const;
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;

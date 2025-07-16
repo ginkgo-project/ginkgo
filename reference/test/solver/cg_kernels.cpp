@@ -240,7 +240,7 @@ TYPED_TEST(Cg, SolvesStencilSystemMultiVector)
     std::unique_ptr<gko::matrix::MultiVector> x =
         gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b, x);
+    solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(x.get()), l({1.0, 3.0, 2.0}),
                         r<value_type>::value);
