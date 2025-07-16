@@ -529,7 +529,7 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
 {
     if (&other != this) {
         auto old_size = this->get_size();
-        EnableLinOp<Dense>::operator=(other);
+        EnableMultiVector<Dense>::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
             this->stride_ = this->get_size()[1];
@@ -557,7 +557,7 @@ template <typename ValueType>
 Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
 {
     if (&other != this) {
-        EnableLinOp<Dense>::operator=(std::move(other));
+        EnableMultiVector<Dense>::operator=(std::move(other));
         values_ = std::move(other.values_);
         stride_ = std::exchange(other.stride_, 0);
     }
@@ -1333,6 +1333,309 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
         make_temporary_clone(exec, row_collection).get()));
 }
 
+template <typename ValueType>
+void Dense<ValueType>::compute_absolute_inplace_impl()
+{
+    this->get_executor()->run(dense::make_inplace_absolute_dense(this));
+}
+
+template <typename ValueType>
+void Dense<ValueType>::fill_impl(any_value_t value)
+{
+    std::visit(
+        [this](auto value) {
+            using SndValueType = std::decay_t<decltype(value)>;
+            if constexpr (!is_complex<ValueType>() &&
+                          is_complex<SndValueType>()) {
+                GKO_INVALID_STATE(
+                    "Trying to fill a real vector with a complex value");
+            } else {
+                fill(static_cast<ValueType>(value));
+            }
+        },
+        value);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::scale_impl(any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { scale(alpha); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::inv_scale_impl(any_const_dense_t alpha)
+{
+    std::visit([this](auto alpha) { inv_scale(alpha); }, alpha);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(global_size, local_size);
+    return create_with_type_of_impl(std::move(exec), global_size, stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns)
+{
+    return create_submatrix(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns) const
+{
+    return const_cast<Dense&>(*this).create_subview(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, size_type global_rows,
+    size_type globals_cols)
+{
+    GKO_ASSERT_EQ(rows.length(), global_rows);
+    GKO_ASSERT_EQ(columns.length(), globals_cols);
+    return create_submatrix(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_subview_impl(
+    local_span rows, local_span columns, size_type global_rows,
+    size_type globals_cols) const
+{
+    GKO_ASSERT_EQ(rows.length(), global_rows);
+    GKO_ASSERT_EQ(columns.length(), globals_cols);
+    return const_cast<Dense&>(*this).create_subview(rows, columns);
+}
+
+template <typename ValueType>
+std::unique_ptr<const typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view_impl() const
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view_impl()
+{
+    return create_real_view();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::absolute_type>
+Dense<ValueType>::compute_absolute_impl() const
+{
+    return compute_absolute();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::complex_type>
+Dense<ValueType>::make_complex_impl() const
+{
+    return make_complex();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::get_real_impl() const
+{
+    return get_real();
+}
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::get_imag_impl() const
+{
+    return get_imag();
+}
+
+template <typename ValueType>
+void Dense<ValueType>::make_complex_impl(complex_type* result) const
+{
+    make_complex(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::get_real_impl(real_type* result) const
+{
+    get_real(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::get_imag_impl(real_type* result) const
+{
+    get_imag(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_impl(any_const_dense_t alpha, const Dense* b)
+{
+    std::visit([this, b](auto alpha) { add_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled_impl(any_const_dense_t alpha, const Dense* b)
+{
+    std::visit([this, b](auto alpha) { sub_scaled(alpha, b); }, alpha);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result) const
+{
+    compute_dot(b, result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
+                                        array<char>& tmp) const
+{
+    compute_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b,
+                                             Dense* result) const
+{
+    compute_conj_dot(b, result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b, Dense* result,
+                                             array<char>& tmp) const
+{
+    compute_conj_dot(b, result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result) const
+{
+    compute_norm2(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    compute_norm2(result, tmp);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result) const
+{
+    compute_norm2(result);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    compute_norm1(result, tmp);
+}
+
+template <typename ValueType>
+syn::variant_from_tuple<syn::apply_to_list<std::unique_ptr, dense_types>>
+Dense<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<supported_value_types> type)
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<
+                syn::apply_to_list<std::unique_ptr, dense_types>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_dense_view(this);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::create_local_view_impl(
+    syn::variant_from_tuple<supported_value_types> type) const
+    -> syn::variant_from_tuple<syn::apply_to_list<
+        std::unique_ptr, syn::apply_to_list<std::add_const_t, dense_types>>>
+{
+    return std::visit(
+        [this](auto type)
+            -> syn::variant_from_tuple<syn::apply_to_list<
+                std::unique_ptr,
+                syn::apply_to_list<std::add_const_t, dense_types>>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (std::is_same_v<ValueType, SndValueType>) {
+                return make_const_dense_view(this);
+            } else {
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<supported_value_types> type)
+    -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return {this, null_deleter<MultiVector>{}};
+    }
+    return std::visit(
+        [this](auto type)
+            -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Dense<SndValueType>::create(this->get_executor());
+                this->convert_to(result.get());
+                return {result.release(),
+                        gko::detail::dynamic_convert_back_deleter<
+                            Dense<ValueType>, MultiVector, Dense<SndValueType>>{
+                            this}};
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<supported_value_types> type) const
+    -> std::unique_ptr<const MultiVector>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return make_const_dense_view(this);
+    }
+    return std::visit(
+        [this](auto type) -> std::unique_ptr<const MultiVector> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Dense<SndValueType>::create(this->get_executor());
+                this->convert_to(result.get());
+                return result;
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::get_stride_impl() const -> size_type
+{
+    return get_stride();
+}
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
@@ -1866,9 +2169,7 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 
 template <typename ValueType>
 void Dense<ValueType>::compute_absolute_inplace()
-{
-    this->get_executor()->run(dense::make_inplace_absolute_dense(this));
-}
+{}
 
 
 template <typename ValueType>
@@ -2058,7 +2359,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableLinOp<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2068,7 +2369,7 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableLinOp<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size),
       stride_{stride},
       values_{exec, std::move(values)}
 {
