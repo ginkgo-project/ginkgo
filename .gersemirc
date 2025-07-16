@@ -1,5 +1,5 @@
 extensions:
-- gersemi.py
+- .gersemi.py
 definitions:
 - cmake
 - doc
