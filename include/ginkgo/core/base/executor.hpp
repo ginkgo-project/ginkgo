@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -139,6 +139,15 @@ class ExecutorBase;
 
 
 }  // namespace detail
+
+
+namespace log {
+
+
+class ProfilerHook;
+
+
+}  // namespace log
 
 
 /**
@@ -619,6 +628,8 @@ class Executor : public log::EnableLogging<Executor> {
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
     friend class ReferenceExecutor;
 
+    friend class log::ProfilerHook;
+
 public:
     virtual ~Executor() = default;
 
@@ -827,7 +838,12 @@ public:
     /**
      * Synchronize the operations launched on the executor with its master.
      */
-    virtual void synchronize() const = 0;
+    void synchronize() const
+    {
+        this->template log<log::Logger::synchronize_started>(this);
+        this->synchronize_impl();
+        this->template log<log::Logger::synchronize_completed>(this);
+    }
 
     /**
      * @copydoc Loggable::add_logger
@@ -1022,6 +1038,11 @@ protected:
      * @return  the exec_info struct
      */
     const exec_info& get_exec_info() const { return this->exec_info_; }
+
+    /**
+     * Synchronize the operations launched on the executor with its master.
+     */
+    virtual void synchronize_impl() const = 0;
 
     /**
      * Allocates raw memory in this Executor.
@@ -1404,8 +1425,6 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
-    void synchronize() const override;
-
     int get_num_cores() const
     {
         return this->get_exec_info().num_computing_units;
@@ -1430,6 +1449,8 @@ protected:
     }
 
     void populate_exec_info(const machine_topology* mach_topo) override;
+
+    void synchronize_impl() const override;
 
     void* raw_alloc(size_type size) const override;
 
@@ -1588,8 +1609,6 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
-    void synchronize() const override;
-
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
     std::string get_description() const override;
@@ -1731,6 +1750,8 @@ protected:
         this->init_handles();
     }
 
+    void synchronize_impl() const override;
+
     void* raw_alloc(size_type size) const override;
 
     void raw_free(void* ptr) const noexcept override;
@@ -1811,8 +1832,6 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
-
-    void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1949,6 +1968,8 @@ protected:
         this->init_handles();
     }
 
+    void synchronize_impl() const override;
+
     void* raw_alloc(size_type size) const override;
 
     void raw_free(void* ptr) const noexcept override;
@@ -2016,8 +2037,6 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
-
-    void synchronize() const override;
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -2131,6 +2150,8 @@ protected:
     }
 
     void populate_exec_info(const machine_topology* mach_topo) override;
+
+    void synchronize_impl() const override;
 
     void* raw_alloc(size_type size) const override;
 

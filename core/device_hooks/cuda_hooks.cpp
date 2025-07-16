@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -141,7 +141,7 @@ void CudaExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
+void CudaExecutor::synchronize_impl() const GKO_NOT_COMPILED(cuda);
 
 
 scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const

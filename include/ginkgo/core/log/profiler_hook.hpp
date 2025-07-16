@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -86,6 +86,10 @@ public:
 
     void on_operation_completed(const Executor* exec,
                                 const Operation* operation) const override;
+
+    void on_synchronize_started(const Executor*) const override;
+
+    void on_synchronize_completed(const Executor*) const override;
 
     /* PolymorphicObject events */
     void on_polymorphic_object_copy_started(

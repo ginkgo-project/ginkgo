@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -161,7 +161,7 @@ void HipExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
 }
 
 
-void HipExecutor::synchronize() const
+void HipExecutor::synchronize_impl() const
 {
     detail::hip_scoped_device_id_guard g(this->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(hipStreamSynchronize(this->get_stream()));
