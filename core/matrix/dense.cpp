@@ -1579,6 +1579,58 @@ auto Dense<ValueType>::create_local_view_impl(
 }
 
 template <typename ValueType>
+auto Dense<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<supported_value_types> type)
+    -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return {this, null_deleter<MultiVector>{}};
+    }
+    return std::visit(
+        [this](auto type)
+            -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Dense<SndValueType>::create(this->get_executor());
+                this->convert_to(result.get());
+                return {result.release(),
+                        gko::detail::dynamic_convert_back_deleter<
+                            Dense<ValueType>, MultiVector, Dense<SndValueType>>{
+                            this}};
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
+auto Dense<ValueType>::temporary_precision_impl(
+    syn::variant_from_tuple<supported_value_types> type) const
+    -> std::unique_ptr<const MultiVector>
+{
+    if (std::holds_alternative<ValueType>(type)) {
+        return make_const_dense_view(this);
+    }
+    return std::visit(
+        [this](auto type) -> std::unique_ptr<const MultiVector> {
+            using SndValueType = std::decay_t<decltype(type)>;
+            if constexpr (is_complex<ValueType>() ==
+                          is_complex<SndValueType>()) {
+                auto result = Dense<SndValueType>::create(this->get_executor());
+                this->convert_to(result.get());
+                return result;
+            } else {
+                // @todo: handle real <--> complex conversion
+                GKO_INVALID_STATE("Unsupported value type");
+            }
+        },
+        type);
+}
+
+template <typename ValueType>
 auto Dense<ValueType>::get_stride_impl() const -> size_type
 {
     return get_stride();

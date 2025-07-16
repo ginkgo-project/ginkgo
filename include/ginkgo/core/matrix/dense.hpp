@@ -1534,6 +1534,15 @@ protected:
             std::unique_ptr,
             syn::apply_to_list<std::add_const_t, dense_types>>> override;
 
+    [[nodiscard]] auto temporary_precision_impl(
+        syn::variant_from_tuple<supported_value_types> type)
+        -> std::unique_ptr<MultiVector,
+                           std::function<void(MultiVector*)>> override;
+
+    [[nodiscard]] auto temporary_precision_impl(
+        syn::variant_from_tuple<supported_value_types> type) const
+        -> std::unique_ptr<const MultiVector> override;
+
     [[nodiscard]] auto get_stride_impl() const -> size_type override;
 
 private:
