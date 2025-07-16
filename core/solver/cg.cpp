@@ -52,6 +52,8 @@ void Cg<ValueType>::apply(const matrix::MultiVector* b,
                           matrix::MultiVector* x) const
 {
     // @todo: need precision dispatch
+    auto dense_b = b->temporary_precision<ValueType>();
+    auto dense_x = x->temporary_precision<ValueType>();
 
     using std::swap;
     constexpr uint8 RelativeStoppingId{1};
@@ -59,15 +61,14 @@ void Cg<ValueType>::apply(const matrix::MultiVector* b,
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    auto dense_b = b.get();
-    GKO_SOLVER_VECTOR(r, dense_b);
-    GKO_SOLVER_VECTOR(z, dense_b);
-    GKO_SOLVER_VECTOR(p, dense_b);
-    GKO_SOLVER_VECTOR(q, dense_b);
+    GKO_SOLVER_VECTOR(r, dense_b.get());
+    GKO_SOLVER_VECTOR(z, dense_b.get());
+    GKO_SOLVER_VECTOR(p, dense_b.get());
+    GKO_SOLVER_VECTOR(q, dense_b.get());
 
-    GKO_SOLVER_SCALAR(beta, dense_b);
-    GKO_SOLVER_SCALAR(prev_rho, dense_b);
-    GKO_SOLVER_SCALAR(rho, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b.get());
+    GKO_SOLVER_SCALAR(prev_rho, dense_b.get());
+    GKO_SOLVER_SCALAR(rho, dense_b.get());
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -80,18 +81,19 @@ void Cg<ValueType>::apply(const matrix::MultiVector* b,
     // z = p = q = 0
     // @todo: I think the template keyword is necessary because some of these
     //        variables are defined via auto.
-    exec->run(
-        cg::make_initialize(b->template create_local_view<ValueType>().get(),
-                            r->template create_local_view<ValueType>().get(),
-                            z->template create_local_view<ValueType>().get(),
-                            p->template create_local_view<ValueType>().get(),
-                            q->template create_local_view<ValueType>().get(),
-                            prev_rho, rho, &stop_status));
+    exec->run(cg::make_initialize(
+        dense_b->template create_local_view<ValueType>().get(),
+        r->template create_local_view<ValueType>().get(),
+        z->template create_local_view<ValueType>().get(),
+        p->template create_local_view<ValueType>().get(),
+        q->template create_local_view<ValueType>().get(), prev_rho, rho,
+        &stop_status));
 
-    this->get_system_matrix()->apply(neg_one_op, x, one_op, r);
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), x.get(), r);
+        std::shared_ptr<const LinOp>(dense_b.get(), [](const LinOp*) {}),
+        dense_x.get(), r);
 
     int iter = -1;
     /* Memory movement summary:
@@ -115,11 +117,11 @@ void Cg<ValueType>::apply(const matrix::MultiVector* b,
                 .num_iterations(iter)
                 .residual(r)
                 .implicit_sq_residual_norm(rho)
-                .solution(x.get())
+                .solution(dense_x.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed);
         this->template log<log::Logger::iteration_complete>(
-            this, dense_b, x.get(), iter, r, nullptr, rho, &stop_status,
-            all_stopped);
+            this, dense_b.get(), dense_x.get(), iter, r, nullptr, rho,
+            &stop_status, all_stopped);
         if (all_stopped) {
             break;
         }
@@ -137,12 +139,12 @@ void Cg<ValueType>::apply(const matrix::MultiVector* b,
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(
-            cg::make_step_2(x->template create_local_view<ValueType>().get(),
-                            r->template create_local_view<ValueType>().get(),
-                            p->template create_local_view<ValueType>().get(),
-                            q->template create_local_view<ValueType>().get(),
-                            beta, rho, &stop_status));
+        exec->run(cg::make_step_2(
+            dense_x->template create_local_view<ValueType>().get(),
+            r->template create_local_view<ValueType>().get(),
+            p->template create_local_view<ValueType>().get(),
+            q->template create_local_view<ValueType>().get(), beta, rho,
+            &stop_status));
         swap(prev_rho, rho);
     }
 }
