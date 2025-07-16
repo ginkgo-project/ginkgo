@@ -535,7 +535,10 @@ sonarqube_cov_:
       fi
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
-    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+    - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
+      -Dsonar.projectKey="ginkgo-project_ginkgo"
+      -Dsonar.organization="ginkgo-project"
+      -Dsonar.host.url="https://sonarcloud.io"
       -Dsonar.cfamily.build-wrapper-output=build/bw-output
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       ${sonar_branching}
