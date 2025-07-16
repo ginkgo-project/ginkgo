@@ -65,6 +65,9 @@ protected:
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+        mtx_l3 = gko::test::generate_random_lower_triangular_matrix<Csr>(
+            800, false, std::uniform_int_distribution<index_type>(256, 256),
+            std::normal_distribution<>(-0.667, 3.333), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
@@ -79,6 +82,7 @@ protected:
         dmtx_ut_ani = Csr::create(exec);
         dmtx_l = gko::clone(exec, mtx_l);
         dmtx_l2 = gko::clone(exec, mtx_l2);
+        dmtx_l3 = gko::clone(exec, mtx_l3);
         dmtx_u = gko::clone(exec, mtx_u);
 
         std::string file_name(gko::matrices::location_ani4_mtx);
@@ -219,6 +223,7 @@ protected:
     std::unique_ptr<Csr> mtx_ut_ani;
     std::unique_ptr<Csr> mtx_l;
     std::unique_ptr<Csr> mtx_l2;
+    std::unique_ptr<Csr> mtx_l3;
     std::unique_ptr<Csr> mtx_u;
 
     std::unique_ptr<Csr> dmtx1;
@@ -230,6 +235,7 @@ protected:
     std::unique_ptr<Csr> dmtx_ut_ani;
     std::unique_ptr<Csr> dmtx_l;
     std::unique_ptr<Csr> dmtx_l2;
+    std::unique_ptr<Csr> dmtx_l3;
     std::unique_ptr<Csr> dmtx_u;
 };
 
@@ -246,8 +252,8 @@ TYPED_TEST(ParIlut, KernelThresholdSelectIsEquivalentToRef)
     SKIP_IF_BFLOAT16(value_type);
 #endif
 
-    this->test_select(this->mtx_l, this->dmtx_l,
-                      this->mtx_l->get_num_stored_elements() / 3);
+    this->test_select(this->mtx_l3, this->dmtx_l3,
+                      this->mtx_l3->get_num_stored_elements() / 3);
 }
 
 
