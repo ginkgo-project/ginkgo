@@ -498,7 +498,7 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
     ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec)
 {
     return static_cast<const EnableMultiVector*>(other.get())
-        ->create_with_type_of_impl(std::move(exec));
+        ->create_with_type_of_impl(std::move(exec), {}, {}, 0);
 }
 
 
