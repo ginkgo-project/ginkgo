@@ -3,6 +3,7 @@ license, as specified in the repository's LICENSE file.
 
 Aliaga José I. <aliaga@uji.es> Universitat Jaume I
 Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology, The University of Tennessee Knoxville
+Beams Natalie <nbeams@icl.utk.edu> University of Tennessee, Knoxville
 Boman Erik <egboman@sandia.gov> Sandia National Laboratories
 Castelli Fabian <fabian.castelli@kit.edu> Karlsruhe Institute of Technology
 Chen Yenchen <yanjen224@gmail.com> National Taiwan University
