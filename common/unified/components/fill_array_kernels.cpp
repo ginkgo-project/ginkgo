@@ -27,6 +27,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(char);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
 #ifndef GKO_SIZE_T_IS_UINT64_T

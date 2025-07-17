@@ -122,6 +122,8 @@ DEBUG: begin repetition
 DEBUG: begin apply(<typename>)
 DEBUG: begin dense::row_gather
 DEBUG: end   dense::row_gather
+DEBUG: begin event::record_event
+DEBUG: end   event::record_event
 DEBUG: begin apply(<typename>)
 DEBUG: begin csr::spmv
 DEBUG: end   csr::spmv

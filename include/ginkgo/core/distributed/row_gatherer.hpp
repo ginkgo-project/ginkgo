@@ -13,6 +13,7 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -98,6 +99,20 @@ public:
     [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
                                            ptr_param<LinOp> x,
                                            array<char>& workspace) const;
+
+    std::shared_ptr<const Event> apply_prepare(ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x) const;
+
+    std::shared_ptr<const Event> apply_prepare(ptr_param<const LinOp> b,
+                                               ptr_param<LinOp> x,
+                                               array<char>& workspace) const;
+
+    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                std::shared_ptr<const Event>) const;
+
+    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                std::shared_ptr<const Event>,
+                                array<char>& workspace) const;
 
     /**
      * Returns the size of the row gatherer.

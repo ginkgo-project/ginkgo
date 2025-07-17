@@ -28,6 +28,7 @@
                         "cg::initialize": 1.0,
                         "advanced_apply(<typename>)": 1.0,
                         "dense::row_gather": 1.0,
+                        "event::record_event": 1.0,
                         "csr::advanced_spmv": 1.0,
                         "dense::compute_squared_norm2": 1.0,
                         "dense::compute_sqrt": 1.0,
