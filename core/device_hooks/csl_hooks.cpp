@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,9 +98,6 @@ std::string CslExecutor::get_description() const GKO_NOT_COMPILED(csl);
 
 
 int CslExecutor::get_num_devices(std::string) { return 0; }
-
-
-void CslExecutor::set_device_property(csl_queue_property property) {}
 
 
 bool CslExecutor::verify_memory_to(const OmpExecutor* dest_exec) const

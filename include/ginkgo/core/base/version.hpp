@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -190,6 +190,13 @@ public:
      */
     version dpcpp_version;
 
+    /**
+     * Contains version information of the CSL module.
+     *
+     * This is the version of the static/shared library called "ginkgo_csl".
+     */
+    version csl_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
@@ -209,6 +216,8 @@ private:
 
     static version get_dpcpp_version() noexcept;
 
+    static version get_csl_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
@@ -216,7 +225,8 @@ private:
           omp_version{get_omp_version()},
           cuda_version{get_cuda_version()},
           hip_version{get_hip_version()},
-          dpcpp_version{get_dpcpp_version()}
+          dpcpp_version{get_dpcpp_version()},
+          csl_version{get_csl_version()}
     {}
 };
 

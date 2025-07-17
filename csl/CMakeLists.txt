@@ -9,7 +9,11 @@ add_custom_target(
 )
 
 add_library(ginkgo_csl $<TARGET_OBJECTS:ginkgo_csl_device> "")
-target_sources(ginkgo_csl PRIVATE main.cpp)
+target_sources(
+    ginkgo_csl
+    PRIVATE main.cpp
+    # base/executor.cpp
+)
 
 ginkgo_compile_features(ginkgo_csl)
 target_compile_definitions(

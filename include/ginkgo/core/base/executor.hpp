@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -2217,7 +2217,7 @@ using DefaultExecutor = DpcppExecutor;
 
 /**
  * This is the Executor subclass which represents a Csl enhanced device (For
- * Graphcore IPUs).
+ * Cerebras chip).
  *
  * @ingroup exec_csl
  * @ingroup Executor
@@ -2235,8 +2235,6 @@ public:
      * @param device_id  the CSL device id of this device
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
-     * @param device_type  a string representing the type of device to consider
-     *                     (accelerator, cpu, gpu or all).
      */
     static std::shared_ptr<CslExecutor> create(
         int device_id, std::shared_ptr<Executor> master);
@@ -2269,65 +2267,6 @@ public:
      * @return the number of devices present on the system
      */
     static int get_num_devices(std::string device_type);
-
-    /**
-     * Get the available subgroup sizes for this device.
-     *
-     * @return the available subgroup sizes for this device
-     */
-    const std::vector<int>& get_subgroup_sizes() const noexcept
-    {
-        return this->get_exec_info().subgroup_sizes;
-    }
-
-    /**
-     * Get the number of Computing Units of this executor.
-     *
-     * @return the number of Computing Units of this executor
-     */
-    int get_num_computing_units() const noexcept
-    {
-        return this->get_exec_info().num_computing_units;
-    }
-
-    /**
-     * Get the number of subgroups of this executor.
-     */
-    int get_num_subgroups() const noexcept
-    {
-        return this->get_exec_info().num_computing_units *
-               this->get_exec_info().num_pu_per_cu;
-    }
-
-    /**
-     * Get the maximum work item sizes.
-     *
-     * @return the maximum work item sizes
-     */
-    const std::vector<int>& get_max_workitem_sizes() const noexcept
-    {
-        return this->get_exec_info().max_workitem_sizes;
-    }
-
-    /**
-     * Get the maximum workgroup size.
-     *
-     * @return the maximum workgroup size
-     */
-    int get_max_workgroup_size() const noexcept
-    {
-        return this->get_exec_info().max_workgroup_size;
-    }
-
-    /**
-     * Get the maximum subgroup size.
-     *
-     * @return the maximum subgroup size
-     */
-    int get_max_subgroup_size() const noexcept
-    {
-        return this->get_exec_info().max_subgroup_size;
-    }
 
 protected:
     CslExecutor(int device_id, std::shared_ptr<Executor> master)
