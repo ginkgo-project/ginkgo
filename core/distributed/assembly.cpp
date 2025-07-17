@@ -81,17 +81,17 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
         recv_values.set_executor(exec->get_master());
     }
     auto row_req = comm.i_all_to_all_v(
-        use_host_buffer ? exec : exec->get_master(),
+        use_host_buffer ? exec->get_master() : exec,
         send_row_idxs.get_const_data(), send_sizes.get_data(),
         send_offsets.get_data(), recv_row_idxs.get_data(),
         recv_sizes.get_data(), recv_offsets.get_data());
     auto col_req = comm.i_all_to_all_v(
-        use_host_buffer ? exec : exec->get_master(),
+        use_host_buffer ? exec->get_master() : exec,
         send_col_idxs.get_const_data(), send_sizes.get_data(),
         send_offsets.get_data(), recv_col_idxs.get_data(),
         recv_sizes.get_data(), recv_offsets.get_data());
     auto val_req =
-        comm.i_all_to_all_v(use_host_buffer ? exec : exec->get_master(),
+        comm.i_all_to_all_v(use_host_buffer ? exec->get_master() : exec,
                             send_values.get_const_data(), send_sizes.get_data(),
                             send_offsets.get_data(), recv_values.get_data(),
                             recv_sizes.get_data(), recv_offsets.get_data());
