@@ -228,21 +228,19 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
             restart_iter = 0;
         }
 
-        auto Ap = ::gko::detail::create_submatrix_helper(
-            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
-        auto p = ::gko::detail::create_submatrix_helper(
-            krylov_bases_p, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
+        auto Ap = mapped_krylov_bases_Ap->create_submatrix(
+            local_span{local_num_rows * restart_iter,
+                       local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+        auto p = krylov_bases_p->create_submatrix(
+            local_span{local_num_rows * restart_iter,
+                       local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         // compute r*Ap
         residual->compute_conj_dot(Ap.get(), tmp_rAp, reduction_tmp);
         // normalise
         auto Ap_norm = Ap_norms->create_submatrix(
-            span{restart_iter, restart_iter + 1}, span{0, num_rhs});
+            local_span{restart_iter, restart_iter + 1}, local_span{0, num_rhs});
         Ap->compute_squared_norm2(Ap_norm.get(), reduction_tmp);
 
         // alpha = r*Ap / Ap_norm
@@ -262,31 +260,27 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(precon_residual, A_precon_residual);
 
         // modified Gram-Schmidt
-        auto next_Ap = ::gko::detail::create_submatrix_helper(
-            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * (restart_iter + 1),
-                 local_num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
-        auto next_p = ::gko::detail::create_submatrix_helper(
-            krylov_bases_p, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * (restart_iter + 1),
-                 local_num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
+        auto next_Ap = mapped_krylov_bases_Ap->create_submatrix(
+            local_span{local_num_rows * (restart_iter + 1),
+                       local_num_rows * (restart_iter + 2)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+        auto next_p = krylov_bases_p->create_submatrix(
+            local_span{local_num_rows * (restart_iter + 1),
+                       local_num_rows * (restart_iter + 2)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         // Ap = Ar
         // p = r
         next_Ap->copy_from(A_precon_residual);
         next_p->copy_from(precon_residual);
         for (size_type i = 0; i <= restart_iter; ++i) {
-            Ap = ::gko::detail::create_submatrix_helper(
-                mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-                span{local_num_rows * i, local_num_rows * (i + 1)},
-                span{0, num_rhs});
-            p = ::gko::detail::create_submatrix_helper(
-                krylov_bases_p, dim<2>{num_rows, num_rhs},
-                span{local_num_rows * i, local_num_rows * (i + 1)},
-                span{0, num_rhs});
-            Ap_norm =
-                Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
+            Ap = mapped_krylov_bases_Ap->create_submatrix(
+                local_span{local_num_rows * i, local_num_rows * (i + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            p = krylov_bases_p->create_submatrix(
+                local_span{local_num_rows * i, local_num_rows * (i + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            Ap_norm = Ap_norms->create_submatrix(local_span{i, i + 1},
+                                                 local_span{0, num_rhs});
             // tmp_minus_beta = -beta = Ar*Ap/Ap*Ap
             A_precon_residual->compute_conj_dot(Ap.get(), tmp_minus_beta,
                                                 reduction_tmp);
