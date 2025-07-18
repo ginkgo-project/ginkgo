@@ -102,26 +102,91 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    GKO_SOLVER_VECTOR(r, dense_b);
-    GKO_SOLVER_VECTOR(z, dense_b);
+    // we combine the two vectors r and w, formerly created with
+    // GKO_SOLVER_VECTOR(r, dense_b);
+    // GKO_SOLVER_VECTOR(w, dense_b);
+    // into rw that we later slice for efficient dot product computation
+    dim<2> original_size = dense_b->get_size();
+    dim<2> conjoined_size = original_size;
+    std::cout << "orig size: " << original_size[0] << ' ' << original_size[1]
+              << '\n';
+    conjoined_size[0] *= 2;
+    LocalVector* rw = this->template create_workspace_op<LocalVector>(
+        GKO_SOLVER_TRAITS::rw, conjoined_size);
+    auto r_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(exec, original_size[0] * original_size[1],
+                        rw->get_values()),
+        dense_b->get_stride());
+    auto* r = r_unique.get();
+    auto w_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(exec, original_size[0] * original_size[1],
+                        rw->get_values() +
+                            original_size[0] *
+                                original_size[1]),  // should this be adjusted
+                                                    // for the stride?
+        dense_b->get_stride());
+    auto* w = w_unique.get();
+
+    // z now consists of two identical repeating parts: z1 and z2, again, for
+    // the same reason
+    GKO_SOLVER_VECTOR(z, rw);
+    auto z1_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(exec, original_size[0] * original_size[1],
+                        z->get_values()),
+        dense_b->get_stride());
+    auto* z1 = z1_unique.get();
+
+    auto z2_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(
+            exec, original_size[0] * original_size[1],
+            z->get_values() + original_size[0] *
+                                  original_size[1]),  // should this be adjusted
+                                                      // for the stride?
+        dense_b->get_stride());
+    auto* z2 = z2_unique.get();
+
     GKO_SOLVER_VECTOR(p, dense_b);
-    GKO_SOLVER_VECTOR(w, dense_b);
     GKO_SOLVER_VECTOR(m, dense_b);
     GKO_SOLVER_VECTOR(n, dense_b);
     GKO_SOLVER_VECTOR(q, dense_b);
     GKO_SOLVER_VECTOR(f, dense_b);
     GKO_SOLVER_VECTOR(g, dense_b);
 
+    // rho and delta become combined as well
+    LocalVector* rhodelta = this->template create_workspace_op<LocalVector>(
+        GKO_SOLVER_TRAITS::rhodelta, dim<2>{2, original_size[1]});
+    std::cout << "rhodelta size: " << rhodelta->get_size()[0] << ' '
+              << rhodelta->get_size()[1] << '\n';
+
+    auto rho_unique = LocalVector::create(
+        exec, dim<2>{1, original_size[1]},
+        make_array_view(exec, original_size[1], rhodelta->get_values()),
+        original_size[1]);
+    auto* rho = rho_unique.get();
+
+    auto delta_unique = LocalVector::create(
+        exec, dim<2>{1, original_size[1]},
+        make_array_view(exec, original_size[1],
+                        rhodelta->get_values() + original_size[1]),
+        original_size[1]);
+    auto* delta = delta_unique.get();
+
     GKO_SOLVER_SCALAR(beta, dense_b);
-    GKO_SOLVER_SCALAR(delta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
-    GKO_SOLVER_SCALAR(rho, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
 
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
+    // needs to match the size of the combined rhodelta
+    auto& stop_status = this->template create_workspace_array<stopping_status>(
+        GKO_SOLVER_TRAITS::stop, original_size[1]);
+    auto& reduction_tmp = this->template create_workspace_array<char>(
+        GKO_SOLVER_TRAITS::tmp, 2 * original_size[1]);
 
     // r = b
     // prev_rho = 1.0
@@ -131,20 +196,23 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // r = r - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     // z = preconditioner * r
-    this->get_preconditioner()->apply(r, z);
+    this->get_preconditioner()->apply(r, z1);
+    // z2 = z1
+    std::copy(z1->get_values(), z2->get_values(), z2->get_values());
     // w = A * z
-    this->get_system_matrix()->apply(z, w);
+    this->get_system_matrix()->apply(z1, w);
     // m = preconditioner * w
     this->get_preconditioner()->apply(w, m);
     // n = A * m
     this->get_system_matrix()->apply(m, n);
-    // TODO: merge these two dot products:
+    // merged dot products
     // rho = dot(r, z)
-    r->compute_conj_dot(z, rho, reduction_tmp);
     // delta = dot(w, z)
-    w->compute_conj_dot(z, delta, reduction_tmp);
+    std::cout << "vyv14\n";
+    rw->compute_conj_dot(z, rhodelta, reduction_tmp);
 
     // check for an early termination
+    std::cout << "vyv15\n";
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -168,10 +236,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // q = w
     // f = m
     // g = n
+    std::cout << "vyv16\n";
     exec->run(pipe_cg::make_initialize_2(
         gko::detail::get_local(p), gko::detail::get_local(q),
         gko::detail::get_local(f), gko::detail::get_local(g), beta,
-        gko::detail::get_local(z), gko::detail::get_local(w),
+        gko::detail::get_local(z1), gko::detail::get_local(w),
         gko::detail::get_local(m), gko::detail::get_local(n), delta));
 
     /* Memory movement summary:
@@ -183,24 +252,31 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // r = r - tmp * q
         // z = z - tmp * f
         // w = w - tmp * g
+        // it's the only place where z is updated so we updated both z1 and z2
+        // here
+        std::cout << "vyv17\n";
         exec->run(pipe_cg::make_step_1(
             gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(z), gko::detail::get_local(w),
-            gko::detail::get_local(p), gko::detail::get_local(q),
-            gko::detail::get_local(f), gko::detail::get_local(g), rho, beta,
-            &stop_status));
+            gko::detail::get_local(z1), gko::detail::get_local(z2),
+            gko::detail::get_local(w), gko::detail::get_local(p),
+            gko::detail::get_local(q), gko::detail::get_local(f),
+            gko::detail::get_local(g), rho, beta, &stop_status));
         // m = preconditioner * w
+        std::cout << "vyv18\n";
         this->get_preconditioner()->apply(w, m);
         // n = A * m
+        std::cout << "vyv19\n";
         this->get_system_matrix()->apply(m, n);
         // prev_rho = rho
+        std::cout << "vyv20\n";
         swap(prev_rho, rho);
-        // TODO: merge these two dot products:
+        // merged dot products
         // rho = dot(r, z)
-        r->compute_conj_dot(z, rho, reduction_tmp);
         // delta = dot(w, z)
-        w->compute_conj_dot(z, delta, reduction_tmp);
+        std::cout << "vyv21\n";
+        rw->compute_conj_dot(z, rhodelta, reduction_tmp);
         // check
+        std::cout << "vyv22\n";
         ++iter;
         bool all_stopped =
             stop_criterion->update()
@@ -221,13 +297,15 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // q = w + tmp * q
         // f = m + tmp * f
         // g = n + tmp * g
+        std::cout << "vyv23\n";
         exec->run(pipe_cg::make_step_2(
             beta, gko::detail::get_local(p), gko::detail::get_local(q),
             gko::detail::get_local(f), gko::detail::get_local(g),
-            gko::detail::get_local(z), gko::detail::get_local(w),
+            gko::detail::get_local(z1), gko::detail::get_local(w),
             gko::detail::get_local(m), gko::detail::get_local(n), prev_rho, rho,
             delta, &stop_status));
     }
+    std::cout << "vyv24\n";
 }
 
 
@@ -259,7 +337,7 @@ int workspace_traits<PipeCg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<PipeCg<ValueType>>::num_vectors(const Solver&)
 {
-    return 15;
+    return 13;
 }
 
 
@@ -268,8 +346,8 @@ std::vector<std::string> workspace_traits<PipeCg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r", "z",    "p",     "w",        "m",   "n",   "q",         "f",
-        "g", "beta", "delta", "prev_rho", "rho", "one", "minus_one",
+        "rw", "z",    "p",        "m",        "n",   "q",         "f",
+        "g",  "beta", "rhodelta", "prev_rho", "one", "minus_one",
     };
 }
 
@@ -285,14 +363,14 @@ std::vector<std::string> workspace_traits<PipeCg<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<PipeCg<ValueType>>::scalars(const Solver&)
 {
-    return {beta, delta, prev_rho, rho};
+    return {beta, rhodelta, prev_rho};
 }
 
 
 template <typename ValueType>
 std::vector<int> workspace_traits<PipeCg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, w, m, n, q, f, g};
+    return {rw, z, p, m, n, q, f, g};
 }
 
 

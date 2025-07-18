@@ -39,14 +39,14 @@ namespace pipe_cg {
 
 
 #define GKO_DECLARE_PIPE_CG_STEP_1_KERNEL(_type)                              \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::Dense<_type>* x, matrix::Dense<_type>* r,             \
-                matrix::Dense<_type>* z, matrix::Dense<_type>* w,             \
-                const matrix::Dense<_type>* p, const matrix::Dense<_type>* q, \
-                const matrix::Dense<_type>* f, const matrix::Dense<_type>* g, \
-                const matrix::Dense<_type>* rho,                              \
-                const matrix::Dense<_type>* beta,                             \
-                const array<stopping_status>* stop_status)
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec, matrix::Dense<_type>* x, \
+        matrix::Dense<_type>* r, matrix::Dense<_type>* z1,                    \
+        matrix::Dense<_type>* z2, matrix::Dense<_type>* w,                    \
+        const matrix::Dense<_type>* p, const matrix::Dense<_type>* q,         \
+        const matrix::Dense<_type>* f, const matrix::Dense<_type>* g,         \
+        const matrix::Dense<_type>* rho, const matrix::Dense<_type>* beta,    \
+        const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(_type)                             \
