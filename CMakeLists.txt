@@ -397,21 +397,21 @@ if(GINKGO_BUILD_MPI)
 
     # use try_compile instead of try_run to prevent cross-compiling issues
     try_compile(
-        uses_openmpi
+        gko_uses_openmpi
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
         COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
         LINK_LIBRARIES MPI::MPI_CXX
     )
-    if(uses_openmpi)
+    if(gko_uses_openmpi)
         try_compile(
-            valid_openmpi_version
+            gko_valid_openmpi_version
             ${Ginkgo_BINARY_DIR}
             ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
             COMPILE_DEFINITIONS -DCHECK_OPEN_MPI_VERSION=1
             LINK_LIBRARIES MPI::MPI_CXX
         )
-        if(NOT valid_openmpi_version)
+        if(NOT gko_valid_openmpi_version)
             message(
                 WARNING
                 "OpenMPI v4.0.x has several bugs that forces us to use non-optimal communication in our distributed "
@@ -420,9 +420,11 @@ if(GINKGO_BUILD_MPI)
             )
             set(GINKGO_HAVE_OPENMPI_PRE_4_1_X ON)
         endif()
-        unset(valid_openmpi_version)
+        unset(gko_valid_openmpi_version)
+        unset(gko_valid_openmpi_version CACHE)
     endif()
-    unset(uses_openmpi)
+    unset(gko_uses_openmpi)
+    unset(gko_uses_openmpi CACHE)
 endif()
 
 # Try to find the third party packages before using our subdirectories
