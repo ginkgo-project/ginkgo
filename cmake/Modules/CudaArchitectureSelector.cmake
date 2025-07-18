@@ -121,11 +121,11 @@ function(cas_get_supported_architectures output)
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
         execute_process(
             COMMAND "${CMAKE_CUDA_COMPILER}" -v
-            RESULT_VARIABLE status
+            RESULT_VARIABLE gko_clang_cuda_check
             ERROR_VARIABLE clang_info_content
             OUTPUT_QUIET
         )
-        if(NOT (status EQUAL 0))
+        if(NOT (gko_clang_cuda_check EQUAL 0))
             message(FATAL_ERROR "Unable to execute clang-cuda")
         endif()
         if(clang_info_content MATCHES "Found CUDA installation: (.*), version ")
@@ -139,11 +139,11 @@ function(cas_get_supported_architectures output)
     endif()
     execute_process(
         COMMAND "${CAS_NVCC_EXEC}" --help
-        RESULT_VARIABLE status
+        RESULT_VARIABLE gko_cuda_compiler_check
         OUTPUT_VARIABLE help_content
         ERROR_QUIET
     )
-    if(NOT (status EQUAL 0))
+    if(NOT (gko_cuda_compiler_check EQUAL 0))
         message(FATAL_ERROR "Unable to determine supported GPU architectures")
     endif()
     string(REGEX MATCHALL "sm_[0-9]+" extracted_info ${help_content})
@@ -157,8 +157,12 @@ function(cas_get_supported_architectures output)
         else()
             set(CMAKE_CUDA_FLAGS "--gpu-architecture=${item}")
         endif()
-        try_compile(status "${PROJECT_BINARY_DIR}" SOURCES "${detector_name}")
-        if(status)
+        try_compile(
+            gko_cuda_arch_check
+            "${PROJECT_BINARY_DIR}"
+            SOURCES "${detector_name}"
+        )
+        if(gko_cuda_arch_check)
             string(REGEX REPLACE "sm_([0-9]+)" "\\1" temp ${item})
             list(APPEND supported ${temp})
         endif()
@@ -215,13 +219,13 @@ function(cas_get_onboard_architectures output)
         "}"
     )
     try_run(
-        status
-        unused
+        gko_detect_arch_status
+        gko_detect_arch_unused
         "${PROJECT_BINARY_DIR}/CMakeFiles"
         "${detector_name}"
         RUN_OUTPUT_VARIABLE detected
     )
-    if(status EQUAL 0)
+    if(gko_detect_arch_status EQUAL 0)
         list(SORT detected)
         list(REMOVE_DUPLICATES detected)
         set(CAS_ONBOARD_ARCHITECTURES
