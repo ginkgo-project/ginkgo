@@ -46,7 +46,8 @@ protected:
         // all vectors need the same stride as b, except x
         b = gen_mtx(size_m, size_n, size_n + 2);
         r = gen_mtx(size_m, size_n, size_n + 2);
-        z = gen_mtx(size_m, size_n, size_n + 2);
+        z1 = gen_mtx(size_m, size_n, size_n + 2);
+        z2 = gen_mtx(size_m, size_n, size_n + 2);
         w = gen_mtx(size_m, size_n, size_n + 2);
         m = gen_mtx(size_m, size_n, size_n + 2);
         n = gen_mtx(size_m, size_n, size_n + 2);
@@ -73,7 +74,8 @@ protected:
 
         d_b = gko::clone(exec, b);
         d_r = gko::clone(exec, r);
-        d_z = gko::clone(exec, z);
+        d_z1 = gko::clone(exec, z1);
+        d_z2 = gko::clone(exec, z2);
         d_w = gko::clone(exec, w);
         d_m = gko::clone(exec, m);
         d_n = gko::clone(exec, n);
@@ -99,7 +101,8 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> r;
-    std::unique_ptr<Mtx> z;
+    std::unique_ptr<Mtx> z1;
+    std::unique_ptr<Mtx> z2;
     std::unique_ptr<Mtx> w;
     std::unique_ptr<Mtx> m;
     std::unique_ptr<Mtx> n;
@@ -116,7 +119,8 @@ protected:
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
-    std::unique_ptr<Mtx> d_z;
+    std::unique_ptr<Mtx> d_z1;
+    std::unique_ptr<Mtx> d_z2;
     std::unique_ptr<Mtx> d_w;
     std::unique_ptr<Mtx> d_m;
     std::unique_ptr<Mtx> d_n;
@@ -150,11 +154,11 @@ TEST_F(PipeCg, PipeCgInitialize2IsEquivalentToRef)
 
     gko::kernels::reference::pipe_cg::initialize_2(
         ref, this->p.get(), this->q.get(), this->f.get(), this->g.get(),
-        this->beta.get(), this->z.get(), this->w.get(), this->m.get(),
+        this->beta.get(), this->z1.get(), this->w.get(), this->m.get(),
         this->n.get(), this->delta.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::initialize_2(
         this->exec, this->d_p.get(), this->d_q.get(), this->d_f.get(),
-        this->d_g.get(), this->d_beta.get(), this->d_z.get(), this->d_w.get(),
+        this->d_g.get(), this->d_beta.get(), this->d_z1.get(), this->d_w.get(),
         this->d_m.get(), this->d_n.get(), this->d_delta.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 0);
@@ -170,18 +174,20 @@ TEST_F(PipeCg, PipeCgStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::pipe_cg::step_1(
-        ref, this->x.get(), this->r.get(), this->z.get(), this->w.get(),
-        this->p.get(), this->q.get(), this->f.get(), this->g.get(),
-        this->rho.get(), this->beta.get(), this->stop_status.get());
+        ref, this->x.get(), this->r.get(), this->z1.get(), this->z2.get(),
+        this->w.get(), this->p.get(), this->q.get(), this->f.get(),
+        this->g.get(), this->rho.get(), this->beta.get(),
+        this->stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::step_1(
-        this->exec, this->d_x.get(), this->d_r.get(), this->d_z.get(),
-        this->d_w.get(), this->d_p.get(), this->d_q.get(), this->d_f.get(),
-        this->d_g.get(), this->d_rho.get(), this->d_beta.get(),
+        this->exec, this->d_x.get(), this->d_r.get(), this->d_z1.get(),
+        this->d_z2.get(), this->d_w.get(), this->d_p.get(), this->d_q.get(),
+        this->d_f.get(), this->d_g.get(), this->d_rho.get(), this->d_beta.get(),
         this->d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z1, z1, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_z2, z2, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_w, w, ::r<value_type>::value);
 }
 
@@ -192,12 +198,12 @@ TEST_F(PipeCg, PipeCgStep2IsEquivalentToRef)
 
     gko::kernels::reference::pipe_cg::step_2(
         ref, this->beta.get(), this->p.get(), this->q.get(), this->f.get(),
-        this->g.get(), this->z.get(), this->w.get(), this->m.get(),
+        this->g.get(), this->z1.get(), this->w.get(), this->m.get(),
         this->n.get(), this->prev_rho.get(), this->rho.get(), this->delta.get(),
         this->stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::step_2(
         this->exec, this->d_beta.get(), this->d_p.get(), this->d_q.get(),
-        this->d_f.get(), this->d_g.get(), this->d_z.get(), this->d_w.get(),
+        this->d_f.get(), this->d_g.get(), this->d_z1.get(), this->d_w.get(),
         this->d_m.get(), this->d_n.get(), this->d_prev_rho.get(),
         this->d_rho.get(), this->d_delta.get(), this->d_stop_status.get());
 
