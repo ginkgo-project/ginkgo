@@ -103,8 +103,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL);
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
-            matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* w,
-            const matrix::Dense<ValueType>* p,
+            matrix::Dense<ValueType>* z1, matrix::Dense<ValueType>* z2,
+            matrix::Dense<ValueType>* w, const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* q,
             const matrix::Dense<ValueType>* f,
             const matrix::Dense<ValueType>* g,
@@ -119,21 +119,22 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
     // w = w - tmp * g
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto z, auto w,
-                      auto p, auto q, auto f, auto g, auto rho, auto beta,
-                      auto stop) {
+        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto z1, auto z2,
+                      auto w, auto p, auto q, auto f, auto g, auto rho,
+                      auto beta, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto tmp = safe_divide(rho[col], beta[col]);
                 x(row, col) += tmp * p(row, col);
                 r(row, col) -= tmp * q(row, col);
-                z(row, col) -= tmp * f(row, col);
+                z1(row, col) -= tmp * f(row, col);
+                z2(row, col) = z1(row, col);
                 w(row, col) -= tmp * g(row, col);
             }
         },
-        x->get_size(), r->get_stride(), x, default_stride(r), default_stride(z),
-        default_stride(w), default_stride(p), default_stride(q),
-        default_stride(f), default_stride(g), row_vector(rho), row_vector(beta),
-        *stop_status);
+        x->get_size(), r->get_stride(), x, default_stride(r),
+        default_stride(z1), default_stride(z2), default_stride(w),
+        default_stride(p), default_stride(q), default_stride(f),
+        default_stride(g), row_vector(rho), row_vector(beta), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
