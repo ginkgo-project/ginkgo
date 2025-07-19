@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -64,15 +64,16 @@ TEST_F(Time, CanCreateCriterion)
 TEST_F(Time, WaitsTillTime)
 {
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    bool one_changed{};
+    gko::array<bool> stop_indicators(exec_->get_master(), 2);
+    stop_indicators.get_data()[0] = false;
     gko::array<gko::stopping_status> stop_status(exec_, 1);
     stop_status.get_data()[0].reset();
     constexpr gko::uint8 RelativeStoppingId{1};
 
     sleep_millisecond(test_ms);
 
-    ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
-                                          &stop_status, &one_changed));
+    ASSERT_TRUE(criterion->update().check(
+        RelativeStoppingId, true, &stop_status, stop_indicators.get_data()));
 }
 
 

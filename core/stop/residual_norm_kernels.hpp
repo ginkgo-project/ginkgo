@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,7 +24,7 @@ namespace residual_norm {
         const matrix::Dense<_type>* tau, const matrix::Dense<_type>* orig_tau, \
         _type rel_residual_goal, uint8 stoppingId, bool setFinalized,          \
         array<stopping_status>* stop_status, array<bool>* device_storage,      \
-        bool* all_converged, bool* one_changed)
+        bool* all_converged, bool* indicators)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
@@ -45,7 +45,7 @@ namespace implicit_residual_norm {
         const matrix::Dense<remove_complex<_type>>* orig_tau,      \
         remove_complex<_type> rel_residual_goal, uint8 stoppingId, \
         bool setFinalized, array<stopping_status>* stop_status,    \
-        array<bool>* device_storage, bool* all_converged, bool* one_changed)
+        array<bool>* device_storage, bool* all_converged, bool* indicators)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES2 \

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,10 +71,10 @@ public:
          * @copydoc Criterion::check(uint8, bool, array<stopping_status>, bool)
          */
         bool check(uint8 stopping_id, bool set_finalized,
-                   array<stopping_status>* stop_status, bool* one_changed) const
+                   array<stopping_status>* stop_status, bool* indicators) const
         {
             auto converged = parent_->check(stopping_id, set_finalized,
-                                            stop_status, one_changed, *this);
+                                            stop_status, indicators, *this);
             return converged;
         }
 
@@ -129,26 +129,28 @@ public:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if the status of a vector has changed
+     * @param indicators  it should be a bool pointer to the host array
+     *                    containing at least two elements. The first entry will
+     *                    indicate if the status of a vector has changed.
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
      */
     bool check(uint8 stopping_id, bool set_finalized,
-               array<stopping_status>* stop_status, bool* one_changed,
+               array<stopping_status>* stop_status, bool* indecators,
                const Updater& updater)
     {
         this->template log<log::Logger::criterion_check_started>(
             this, updater.num_iterations_, updater.residual_,
             updater.residual_norm_, updater.solution_, stopping_id,
             set_finalized);
-        auto all_converged = this->check_impl(
-            stopping_id, set_finalized, stop_status, one_changed, updater);
+        auto all_converged = this->check_impl(stopping_id, set_finalized,
+                                              stop_status, indecators, updater);
         this->template log<log::Logger::criterion_check_completed>(
             this, updater.num_iterations_, updater.residual_,
             updater.residual_norm_, updater.implicit_sq_residual_norm_,
             updater.solution_, stopping_id, set_finalized, stop_status,
-            *one_changed, all_converged);
+            *indecators, all_converged);
         return all_converged;
     }
 
@@ -164,14 +166,16 @@ protected:
      * @param set_finalized  Controls if the current version should count as
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
-     * @param one_changed  indicates if the status of a vector has changed
+     * @param indicators  it should be a bool pointer to the host array
+     *                    containing at least two elements. The first entry will
+     *                    indicate if the status of a vector has changed.
      * @param updater  the Updater object containing all the information
      *
      * @returns whether convergence was completely reached
      */
     virtual bool check_impl(uint8 stopping_id, bool set_finalized,
                             array<stopping_status>* stop_status,
-                            bool* one_changed, const Updater& updater) = 0;
+                            bool* indicators, const Updater& updater) = 0;
 
     /**
      * This is a helper function which properly sets all elements of the

@@ -153,7 +153,6 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // r = dense_b
@@ -198,13 +197,13 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         ++iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(nullptr)
-                .implicit_sq_residual_norm(tau)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        bool all_stopped = stop_criterion->update()
+                               .num_iterations(iter)
+                               .residual(nullptr)
+                               .implicit_sq_residual_norm(tau)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, true, &stop_status,
+                                      stop_indicators.get_data());
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, tau, &stop_status,
             all_stopped);

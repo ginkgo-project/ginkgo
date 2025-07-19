@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,7 +28,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>* stop_status,
                    array<bool>* device_storage, bool* all_converged,
-                   bool* one_changed)
+                   bool* indicators)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -40,7 +40,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
             local_one_changed = true;
         }
     }
-    *one_changed = local_one_changed;
+    *indicators = local_one_changed;
     // No early stopping here because one cannot use break with parallel for
     // But it's parallel so does it matter?
     bool local_all_converged = true;
@@ -75,7 +75,7 @@ void implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>* stop_status,
-    array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    array<bool>* device_storage, bool* all_converged, bool* indicators)
 {
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
@@ -85,7 +85,7 @@ void implicit_residual_norm(
             local_one_changed = true;
         }
     }
-    *one_changed = local_one_changed;
+    *indicators = local_one_changed;
     // No early stopping here because one cannot use break with parallel for
     // But it's parallel so does it matter?
     bool local_all_converged = true;

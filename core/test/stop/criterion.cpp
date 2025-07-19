@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,7 +56,7 @@ public:
 protected:
     bool check_impl(gko::uint8 stopping_id, bool set_finalized,
                     gko::array<gko::stopping_status>* stop_status,
-                    bool* one_changed, const Updater& updater) override
+                    bool* indicators, const Updater& updater) override
     {
         return true;
     }
@@ -95,10 +95,10 @@ TEST_F(Criterion, DefaultUpdateStatus)
 TEST_F(Criterion, CanLogCheck)
 {
     auto before_logger = *logger;
-    bool one_changed = false;
+    gko::array<bool> stop_indicators(exec->get_master(), 2);
 
-    criterion->check(gko::uint8(0), false, &stopping_status, &one_changed,
-                     criterion->update());
+    criterion->check(gko::uint8(0), false, &stopping_status,
+                     stop_indicators.get_data(), criterion->update());
 
     ASSERT_EQ(logger->criterion_check_started,
               before_logger.criterion_check_started + 1);

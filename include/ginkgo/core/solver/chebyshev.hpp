@@ -224,6 +224,8 @@ struct workspace_traits<Chebyshev<ValueType>> {
 
     // stopping status array
     constexpr static int stop = 0;
+    // stopping indicator array
+    constexpr static int indicators = 1;
 };
 
 

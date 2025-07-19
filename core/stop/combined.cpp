@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,22 +32,26 @@ Combined::Combined(const Combined::Factory* factory, const CriterionArgs& args)
 
 
 bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          array<stopping_status>* stop_status,
-                          bool* one_changed, const Updater& updater)
+                          array<stopping_status>* stop_status, bool* indicators,
+                          const Updater& updater)
 {
     bool one_converged = false;
     gko::uint8 ids{1};
-    *one_changed = false;
+    auto one_changed = false;
     for (auto& c : criteria_) {
-        bool local_one_changed = false;
-        one_converged |= c->check(ids, setFinalized, stop_status,
-                                  &local_one_changed, updater);
-        *one_changed |= local_one_changed;
+        // use indicators in each critirion such that we can reduce the
+        // #copy_call
+        indicators[0] = false;
+        one_converged |=
+            c->check(ids, setFinalized, stop_status, indicators, updater);
+        one_changed |= indicators[0];
         if (one_converged) {
             break;
         }
         ids++;
     }
+    // set the result back to return
+    indicators[0] = one_changed;
     return one_converged;
 }
 

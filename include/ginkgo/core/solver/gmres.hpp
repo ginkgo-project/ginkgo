@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -225,6 +225,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int tmp = 1;
     // final iteration number array
     constexpr static int final_iter_nums = 2;
+    // stopping indicator array
+    constexpr static int indicators = 3;
 };
 
 

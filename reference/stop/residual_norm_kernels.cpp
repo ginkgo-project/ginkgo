@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,16 +30,16 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>* stop_status,
                    array<bool>* device_storage, bool* all_converged,
-                   bool* one_changed)
+                   bool* indicators)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     *all_converged = true;
-    *one_changed = false;
+    *indicators = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (tau->at(i) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            *indicators = true;
         }
     }
     for (size_type i = 0; i < stop_status->get_size(); ++i) {
@@ -72,14 +72,14 @@ void implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>* stop_status,
-    array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    array<bool>* device_storage, bool* all_converged, bool* indicators)
 {
     *all_converged = true;
-    *one_changed = false;
+    *indicators = false;
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (sqrt(abs(tau->at(i))) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            *indicators = true;
         }
     }
     for (size_type i = 0; i < stop_status->get_size(); ++i) {

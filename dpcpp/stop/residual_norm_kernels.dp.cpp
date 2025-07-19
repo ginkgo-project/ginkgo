@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,15 +35,17 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>* stop_status,
                    array<bool>* device_storage, bool* all_converged,
-                   bool* one_changed)
+                   bool* indicators)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     auto device_storage_val = device_storage->get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
-            device_storage_val[0] = true;
-            device_storage_val[1] = false;
+            // one_changed
+            device_storage_val[0] = false;
+            // all_converged
+            device_storage_val[1] = true;
         });
     });
 
@@ -56,19 +58,20 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
                 const auto tidx = idx_id[0];
                 if (tau_val[tidx] <= rel_residual_goal * orig_tau_val[tidx]) {
                     stop_status_val[tidx].converge(stoppingId, setFinalized);
-                    device_storage_val[1] = true;
+                    device_storage_val[0] = true;
                 }
                 // because only false is written to all_converged, write
                 // conflicts should not cause any problem
                 else if (!stop_status_val[tidx].has_stopped()) {
-                    device_storage_val[0] = false;
+                    device_storage_val[1] = false;
                 }
             });
     });
 
-    /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    /* Represents all_converged(1), one_changed(0) */
+    exec->get_master()->copy_from(exec, 2, device_storage->get_const_data(),
+                                  indicators);
+    *all_converged = indicators[1];
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -93,13 +96,15 @@ void implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>* stop_status,
-    array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    array<bool>* device_storage, bool* all_converged, bool* indicators)
 {
     auto device_storage_val = device_storage->get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{1}, [=](sycl::id<1>) {
-            device_storage_val[0] = true;
-            device_storage_val[1] = false;
+            // one_changed
+            device_storage_val[0] = false;
+            // all_converged
+            device_storage_val[1] = true;
         });
     });
 
@@ -113,19 +118,20 @@ void implicit_residual_norm(
                 if (gko::sqrt(gko::abs(tau_val[tidx])) <=
                     rel_residual_goal * orig_tau_val[tidx]) {
                     stop_status_val[tidx].converge(stoppingId, setFinalized);
-                    device_storage_val[1] = true;
+                    device_storage_val[0] = true;
                 }
                 // because only false is written to all_converged, write
                 // conflicts should not cause any problem
                 else if (!stop_status_val[tidx].has_stopped()) {
-                    device_storage_val[0] = false;
+                    device_storage_val[1] = false;
                 }
             });
     });
 
-    /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    /* Represents all_converged(1), one_changed(0) */
+    exec->get_master()->copy_from(exec, 2, device_storage->get_const_data(),
+                                  indicators);
+    *all_converged = indicators[1];
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
