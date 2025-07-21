@@ -120,7 +120,6 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // r = dense_b
@@ -160,13 +159,13 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         ++iter;
         rr->compute_conj_dot(r, rho, reduction_tmp);
 
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r)
-                .implicit_sq_residual_norm(rho)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        bool all_stopped = stop_criterion->update()
+                               .num_iterations(iter)
+                               .residual(r)
+                               .implicit_sq_residual_norm(rho)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, true, &stop_status,
+                                      stop_indicators.get_data());
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
             all_stopped);
@@ -193,14 +192,14 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(r), gko::detail::get_local(s),
             gko::detail::get_local(v), rho, alpha, beta, &stop_status));
 
-        all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(s)
-                .implicit_sq_residual_norm(rho)
-                // .solution(dense_x) // outdated at this point
-                .check(RelativeStoppingId, false, &stop_status, &one_changed);
-        if (one_changed) {
+        all_stopped = stop_criterion->update()
+                          .num_iterations(iter)
+                          .residual(s)
+                          .implicit_sq_residual_norm(rho)
+                          // .solution(dense_x) // outdated at this point
+                          .check(RelativeStoppingId, false, &stop_status,
+                                 stop_indicators.get_data());
+        if (stop_indicators.get_const_data()[0]) {
             exec->run(bicgstab::make_finalize(gko::detail::get_local(dense_x),
                                               gko::detail::get_local(y), alpha,
                                               &stop_status));
@@ -254,7 +253,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
 {
-    return 2;
+    return 3;
 }
 
 

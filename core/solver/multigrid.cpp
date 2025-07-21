@@ -966,7 +966,9 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
         auto& stop_status =
             this->template create_workspace_array<stopping_status>(
                 ws::stop, b->get_size()[1]);
-        bool one_changed{};
+        auto& stop_indicators =
+            this->template create_workspace_array<bool>(ws::indicators, 2);
+        stop_indicators.set_executor(this->get_executor()->get_master());
         exec->run(multigrid::make_initialize(&stop_status));
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
             this->get_system_matrix(),
@@ -985,7 +987,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                     // residual check.
                     .solution(x)
                     .check(RelativeStoppingId, true, &stop_status,
-                           &one_changed);
+                           stop_indicators.get_data());
             this->template log<log::Logger::iteration_complete>(
                 this, b, x, iter, nullptr, nullptr, nullptr, &stop_status,
                 all_stopped);
@@ -1109,7 +1111,7 @@ Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
 {}
 
 
-int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }
+int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 2; }
 
 
 int workspace_traits<Multigrid>::num_vectors(const Solver&) { return 0; }

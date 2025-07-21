@@ -180,6 +180,8 @@ struct workspace_traits<Minres<ValueType>> {
     constexpr static int stop = 0;
     // reduction tmp array
     constexpr static int tmp = 1;
+    // stopping indicator array
+    constexpr static int indicators = 2;
 };
 
 

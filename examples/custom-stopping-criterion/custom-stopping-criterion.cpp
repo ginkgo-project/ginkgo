@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,12 +37,12 @@ public:
 protected:
     bool check_impl(gko::uint8 stoppingId, bool setFinalized,
                     gko::array<gko::stopping_status>* stop_status,
-                    bool* one_changed, const Criterion::Updater&) override
+                    bool* indicators, const Criterion::Updater&) override
     {
         bool result = *(parameters_.stop_iteration_process);
         if (result) {
             this->set_all_statuses(stoppingId, setFinalized, stop_status);
-            *one_changed = true;
+            *indicators = true;
         }
         return result;
     }

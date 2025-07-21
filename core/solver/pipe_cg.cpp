@@ -119,8 +119,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    bool one_changed{};
-
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // r = b
@@ -149,13 +147,13 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
     int iter = 0;
-    bool all_stopped =
-        stop_criterion->update()
-            .num_iterations(iter)
-            .residual(r)
-            .implicit_sq_residual_norm(rho)
-            .solution(dense_x)
-            .check(RelativeStoppingId, true, &stop_status, &one_changed);
+    bool all_stopped = stop_criterion->update()
+                           .num_iterations(iter)
+                           .residual(r)
+                           .implicit_sq_residual_norm(rho)
+                           .solution(dense_x)
+                           .check(RelativeStoppingId, true, &stop_status,
+                                  stop_indicators.get_data());
     this->template log<log::Logger::iteration_complete>(
         this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
         all_stopped);
@@ -202,13 +200,13 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         w->compute_conj_dot(z, delta, reduction_tmp);
         // check
         ++iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r)
-                .implicit_sq_residual_norm(rho)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        bool all_stopped = stop_criterion->update()
+                               .num_iterations(iter)
+                               .residual(r)
+                               .implicit_sq_residual_norm(rho)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, true, &stop_status,
+                                      stop_indicators.get_data());
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
             all_stopped);
@@ -252,7 +250,7 @@ void PipeCg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 int workspace_traits<PipeCg<ValueType>>::num_arrays(const Solver&)
 {
-    return 2;
+    return 3;
 }
 
 
