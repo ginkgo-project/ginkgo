@@ -1,10 +1,14 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/stop/residual_norm.hpp"
 
+#include <type_traits>
+
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -183,9 +187,15 @@ bool ResidualNormBase<ValueType>::check_impl(
         auto exec = this->get_executor();
         norm_dispatch<ValueType>(
             [&](auto dense_b, auto dense_x) {
-                auto dense_r = dense_b->clone();
-                system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
-                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
+                using dense_b_type = std::remove_cv_t<
+                    std::remove_reference_t<decltype(*dense_b)>>;
+                if (!this->rhs_) {
+                    this->rhs_ = dense_b_type::create_with_config_of(dense_b);
+                }
+                auto rhs = as<dense_b_type>(this->rhs_);
+                rhs->copy_from(dense_b);
+                system_matrix_->apply(neg_one_, dense_x, one_, rhs);
+                rhs->compute_norm2(u_dense_tau_, reduction_tmp_);
             },
             b_.get(), updater.solution_);
         dense_tau = u_dense_tau_.get();
