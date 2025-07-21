@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,9 +9,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-
-#include <csl/Engine.hpp>
-#include <csl/IPUModel.hpp>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -24,13 +21,6 @@ void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
-}
-
-
-bool OmpExecutor::verify_memory_to(const CslExecutor* dest_exec) const
-{
-    // TODO
-    return false;
 }
 
 
@@ -103,11 +93,6 @@ void CslExecutor::synchronize() const
     GKO_NOT_IMPLEMENTED;
 }
 
-scoped_device_id_guard CslExecutor::get_scoped_device_id_guard() const
-{
-    return {this, this->get_device_id()};
-}
-
 
 std::string CslExecutor::get_description() const
 {
@@ -138,9 +123,6 @@ bool CslExecutor::verify_memory_to(const CslExecutor* dest_exec) const
 
 namespace kernels {
 namespace csl {
-
-
-void destroy_event(csl::event* event) { delete event; }
 
 
 std::string get_device_name(int device_id) { return "Not implemented"; }

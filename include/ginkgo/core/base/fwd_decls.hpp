@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,6 +42,15 @@ class event;
 
 }  // namespace _V1
 }  // namespace sycl
+
+
+namespace csl {
+
+
+class event;
+
+
+}  // namespace csl
 
 
 #endif  // GKO_PUBLIC_CORE_BASE_FWD_DECLS_HPP_

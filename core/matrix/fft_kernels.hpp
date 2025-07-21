@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,8 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
@@ -44,49 +46,7 @@ namespace kernels {
     GKO_DECLARE_FFT3_KERNEL(ValueType)
 
 
-namespace omp {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace omp
-
-
-namespace cuda {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace cuda
-
-
-namespace reference {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace reference
-
-
-namespace hip {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(fft, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

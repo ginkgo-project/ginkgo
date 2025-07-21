@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,6 +37,7 @@ private:
     friend class CudaTimer;
     friend class HipTimer;
     friend class DpcppTimer;
+    friend class CslTimer;
 
     /** What kind of timer was used to generate the time point? */
     enum class type {
@@ -48,6 +49,8 @@ private:
         hip,
         /** sycl::event-based timer */
         dpcpp,
+        /** csl timer */
+        csl
     };
 
     type type_;
@@ -55,6 +58,7 @@ private:
         CUevent_st* cuda_event;
         GKO_HIP_EVENT_STRUCT* hip_event;
         sycl::event* dpcpp_event;
+        csl::event* csl_event;
         std::chrono::steady_clock::time_point chrono;
 
         data_union();

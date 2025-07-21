@@ -43,14 +43,6 @@ void OmpExecutor::raw_copy_to(const CslExecutor*, size_type num_bytes,
     GKO_NOT_COMPILED(csl);
 
 
-bool OmpExecutor::verify_memory_to(const CslExecutor* dest_exec) const
-{
-    // Dummy check
-    // TODO
-    return false;
-}
-
-
 void CslExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
@@ -136,6 +128,20 @@ void CslTimer::wait(time_point& time) GKO_NOT_COMPILED(csl);
 std::chrono::nanoseconds CslTimer::difference_async(const time_point& start,
                                                     const time_point& stop)
     GKO_NOT_COMPILED(csl);
+
+
+namespace kernels {
+namespace csl {
+
+
+void reset_device(int device_id) GKO_NOT_COMPILED(csl);
+
+
+void destroy_event(::csl::event* event) GKO_NOT_COMPILED(csl);
+
+
+}  // namespace csl
+}  // namespace kernels
 
 
 }  // namespace gko

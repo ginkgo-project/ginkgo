@@ -2,8 +2,8 @@ add_custom_target(
     csl
     COMMAND
         ${Python3_EXECUTABLE}
-        ${GINKGO_SOURCE_DIR}/csl/application_base_compile.py ${MATRIX_SIZE}
-        ${GRID_SIZE} ${GINKGO_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/csl/application_base_compile.py ${MATRIX_SIZE}
+        ${GRID_SIZE} ${CMAKE_SOURCE_DIR}
     COMMENT "Compiling .csl files"
     VERBATIM
 )
@@ -11,14 +11,18 @@ add_custom_target(
 add_library(ginkgo_csl $<TARGET_OBJECTS:ginkgo_csl_device> "")
 target_sources(
     ginkgo_csl
-    PRIVATE main.cpp
-    # base/executor.cpp
+    PRIVATE
+        main.cpp
+        base/device.cpp
+        base/executor.cpp
+        base/scoped_device_id.cpp
+        base/timer.cpp
 )
 
 ginkgo_compile_features(ginkgo_csl)
 target_compile_definitions(
     ginkgo_csl
-    PRIVATE M=${MATRIX_SIZE} G=${GRID_SIZE} EXECDIR=\"${GINKGO_SOURCE_DIR}\"
+    PRIVATE M=${MATRIX_SIZE} G=${GRID_SIZE} EXECDIR=\"${CMAKE_SOURCE_DIR}/csl\"
 )
 
 target_link_libraries(ginkgo_csl PUBLIC ginkgo_device ${Python3_LIBRARIES})
@@ -26,9 +30,11 @@ target_include_directories(
     ginkgo_csl
     PUBLIC ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS}
 )
-target_link_libraries(ginkgo_csl PRIVATE csl)
+add_dependencies(ginkgo_csl csl)
+# target_link_libraries(ginkgo_csl PRIVATE INTERFACE csl)
 
 ginkgo_default_includes(ginkgo_csl)
+# ginkgo_install_library(csl)
 ginkgo_install_library(ginkgo_csl)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)

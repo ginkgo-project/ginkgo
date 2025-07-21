@@ -16,7 +16,7 @@
 #include <numpy/arrayobject.h>
 #include <Python.h>
 
-#include "pythonhandler.hpp"
+#include "python_handler.hpp"
 
 #ifndef EXECDIR
 #define EXECDIR "."

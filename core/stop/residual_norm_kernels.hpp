@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
+
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
@@ -56,84 +58,10 @@ namespace implicit_residual_norm {
 }  // namespace implicit_residual_norm
 
 
-namespace omp {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace omp
-
-
-namespace cuda {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace cuda
-
-
-namespace reference {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace reference
-
-
-namespace hip {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(residual_norm,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(implicit_residual_norm,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES2);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
