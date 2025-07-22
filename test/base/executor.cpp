@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,6 +34,10 @@ namespace dpcpp {
 int value = 4;
 }
 
+namespace csl {
+int value = 5;
+}
+
 
 class ExampleOperation : public gko::Operation {
 public:
@@ -53,6 +57,10 @@ public:
     void run(std::shared_ptr<const gko::DpcppExecutor>) const override
     {
         value = dpcpp::value;
+    }
+    void run(std::shared_ptr<const gko::CslExecutor>) const override
+    {
+        value = csl::value;
     }
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
@@ -98,9 +106,10 @@ TEST_F(Executor, RunsCorrectLambdaOperationWithReferenceExecutor)
     auto cuda_lambda = [&value]() { value = cuda::value; };
     auto hip_lambda = [&value]() { value = hip::value; };
     auto dpcpp_lambda = [&value]() { value = dpcpp::value; };
+    auto csl_lambda = [&value]() { value = csl::value; };
 
     exec->run("test", ref_lambda, omp_lambda, cuda_lambda, hip_lambda,
-              dpcpp_lambda);
+              dpcpp_lambda, csl_lambda);
 
     ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }
@@ -119,8 +128,9 @@ TEST_F(Executor, RunsCorrectLambdaOperation)
     auto cuda_lambda = [&value]() { value = cuda::value; };
     auto hip_lambda = [&value]() { value = hip::value; };
     auto dpcpp_lambda = [&value]() { value = dpcpp::value; };
+    auto csl_lambda = [&value]() { value = csl::value; };
 
-    exec->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda);
+    exec->run(omp_lambda, cuda_lambda, hip_lambda, dpcpp_lambda, csl_lambda);
 
     ASSERT_EQ(GKO_DEVICE_NAMESPACE::value, value);
 }

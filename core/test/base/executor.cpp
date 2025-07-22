@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -276,9 +276,11 @@ TEST(Executor, CanVerifyMemory)
     auto omp = gko::OmpExecutor::create();
     auto hip = gko::HipExecutor::create(0, ref);
     auto cuda = gko::CudaExecutor::create(0, ref);
+    auto csl = gko::CslExecutor::create(0, ref);
     auto omp2 = gko::OmpExecutor::create();
     auto hip2 = gko::HipExecutor::create(0, ref);
     auto cuda2 = gko::CudaExecutor::create(0, ref);
+    auto csl2 = gko::CslExecutor::create(0, ref);
     auto hip_1 = gko::HipExecutor::create(1, ref);
     auto cuda_1 = gko::CudaExecutor::create(1, ref);
     std::shared_ptr<gko::DpcppExecutor> host_dpcpp;
@@ -310,6 +312,10 @@ TEST(Executor, CanVerifyMemory)
     ASSERT_EQ(false, cuda->memory_accessible(ref));
     ASSERT_EQ(false, omp->memory_accessible(cuda));
     ASSERT_EQ(false, cuda->memory_accessible(omp));
+    ASSERT_EQ(false, csl->memory_accessible(ref));
+    ASSERT_EQ(true, csl->memory_accessible(omp));
+    ASSERT_EQ(false, csl->memory_accessible(cuda));
+    ASSERT_EQ(false, csl->memory_accessible(hip));
     if (gko::DpcppExecutor::get_num_devices("host")) {
         ASSERT_EQ(false, host_dpcpp->memory_accessible(ref));
         ASSERT_EQ(false, ref->memory_accessible(host_dpcpp));
@@ -505,6 +511,7 @@ public:
     void run(std::shared_ptr<const gko::CudaExecutor>) const override {}
     void run(std::shared_ptr<const gko::HipExecutor>) const override {}
     void run(std::shared_ptr<const gko::DpcppExecutor>) const override {}
+    void run(std::shared_ptr<const gko::CslExecutor>) const override {}
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override {}
 };
 
@@ -541,7 +548,7 @@ TEST(LambdaOperation, CanSetName)
     exec->add_logger(name_logger);
 
     exec->run(
-        "name", [] {}, [] {}, [] {}, [] {}, [] {});
+        "name", [] {}, [] {}, [] {}, [] {}, [] {}, [] {});
 
     ASSERT_EQ("name", name_logger->op_name);
 }
@@ -556,7 +563,7 @@ TEST(LambdaOperation, HasDefaultName)
     auto exec = gko::ReferenceExecutor::create();
     exec->add_logger(name_logger);
 
-    exec->run([] {}, [] {}, [] {}, [] {});
+    exec->run([] {}, [] {}, [] {}, [] {}, [] {});
 
     ASSERT_NE(nullptr, name_logger->op_name.c_str());
 }

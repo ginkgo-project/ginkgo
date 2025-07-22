@@ -676,7 +676,7 @@ public:
         "Please use the overload with std::string as first parameter.")
     void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
              const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp,
-             ClosureCsl& op_csl) const
+             const ClosureCsl& op_csl) const
     {
         LambdaOperation<ClosureOmp, ClosureOmp, ClosureCuda, ClosureHip,
                         ClosureDpcpp, ClosureCsl>
