@@ -24,6 +24,27 @@ void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
 }
 
 
+void DpcppExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
+{
+    GKO_NOT_SUPPORTED(dest);
+}
+
+
+void CudaExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+{
+    GKO_NOT_SUPPORTED(dest);
+}
+
+
+void HipExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
+{
+    GKO_NOT_SUPPORTED(dest);
+}
+
+
 std::shared_ptr<CslExecutor> CslExecutor::create(
     int device_id, std::shared_ptr<Executor> master)
 {
@@ -43,7 +64,6 @@ void CslExecutor::populate_exec_info(const machine_topology* mach_topo)
 void CslExecutor::raw_free(void* ptr) const noexcept
 {
     // TODO
-    GKO_NOT_IMPLEMENTED;
 }
 
 
@@ -66,8 +86,6 @@ void CslExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 void CslExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
-    // TODO: later when possible, if we have DPC++ with a CUDA backend
-    // support/compiler, we could maybe support native copies?
     GKO_NOT_SUPPORTED(dest);
 }
 
@@ -83,7 +101,13 @@ void CslExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
-    GKO_NOT_IMPLEMENTED;
+}
+
+
+void CslExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
+{
+    GKO_NOT_SUPPORTED(dest);
 }
 
 
@@ -96,8 +120,8 @@ void CslExecutor::synchronize() const
 
 std::string CslExecutor::get_description() const
 {
-    // TODO
-    return "Not implemented";
+    return "CslExecutor on device with host " +
+           this->get_master()->get_description();
 }
 
 
@@ -105,6 +129,12 @@ int CslExecutor::get_num_devices(std::string device_type)
 {
     // TODO
     return 0;
+}
+
+
+scoped_device_id_guard CslExecutor::get_scoped_device_id_guard() const
+{
+    return {this, this->get_device_id()};
 }
 
 
@@ -121,13 +151,4 @@ bool CslExecutor::verify_memory_to(const CslExecutor* dest_exec) const
 }
 
 
-namespace kernels {
-namespace csl {
-
-
-std::string get_device_name(int device_id) { return "Not implemented"; }
-
-
-}  // namespace csl
-}  // namespace kernels
 }  // namespace gko

@@ -9,7 +9,7 @@
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace csl {
 
 
 void destroy_event(::csl::event* event) { delete event; }
@@ -18,6 +18,6 @@ void destroy_event(::csl::event* event) { delete event; }
 std::string get_device_name(int device_id) { return "Csl device"; }
 
 
-}  // namespace cuda
+}  // namespace csl
 }  // namespace kernels
 }  // namespace gko

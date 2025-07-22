@@ -17,6 +17,7 @@ target_sources(
         base/executor.cpp
         base/scoped_device_id.cpp
         base/timer.cpp
+        base/device_hooks.cpp # TODO: remove this later
 )
 
 ginkgo_compile_features(ginkgo_csl)
