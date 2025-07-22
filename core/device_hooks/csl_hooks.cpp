@@ -43,6 +43,21 @@ void OmpExecutor::raw_copy_to(const CslExecutor*, size_type num_bytes,
     GKO_NOT_COMPILED(csl);
 
 
+void DpcppExecutor::raw_copy_to(const CslExecutor*, size_type num_bytes,
+                                const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(csl);
+
+
+void HipExecutor::raw_copy_to(const CslExecutor*, size_type num_bytes,
+                              const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(csl);
+
+
+void CudaExecutor::raw_copy_to(const CslExecutor*, size_type num_bytes,
+                               const void* src_ptr, void* dest_ptr) const
+    GKO_NOT_COMPILED(csl);
+
+
 void CslExecutor::raw_free(void* ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.

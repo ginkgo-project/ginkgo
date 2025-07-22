@@ -191,6 +191,7 @@ target_link_libraries(
         ginkgo_reference
         ginkgo_hip
         ginkgo_dpcpp
+        ginkgo_csl
 )
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(${ginkgo_core} PUBLIC PAPI::PAPI_SDE)
