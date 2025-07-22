@@ -21,6 +21,7 @@ void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
+    // Host to device copy
 }
 
 
@@ -49,6 +50,8 @@ std::shared_ptr<CslExecutor> CslExecutor::create(
     int device_id, std::shared_ptr<Executor> master)
 {
     // TODO
+    // Device creation (CerebrasInterface class instance creation and store a
+    // handle to it.)
     return std::shared_ptr<CslExecutor>(
         new CslExecutor(device_id, std::move(master)));
 }
@@ -79,7 +82,7 @@ void CslExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
-    GKO_NOT_IMPLEMENTED;
+    // Device to Host copy.
 }
 
 
@@ -101,6 +104,7 @@ void CslExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
+    // Device to device copy. May not be needed?
 }
 
 
