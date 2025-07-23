@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -309,12 +309,37 @@ TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
 TYPED_TEST(Dense, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2});
+    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
 
+    EXPECT_EQ(submtx->get_size(), gko::dim<2>(1, 2));
     EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
     EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
-    EXPECT_EQ(submtx->at(1, 0), value_type{2.5});
-    EXPECT_EQ(submtx->at(1, 1), value_type{3.5});
+    EXPECT_LT(std::distance(this->mtx->get_values(), submtx->get_values()),
+              this->mtx->get_num_stored_elements());
+    EXPECT_EQ(&submtx->at(0, 0), &this->mtx->at(0, 1));
+    EXPECT_EQ(&submtx->at(0, 1), &this->mtx->at(0, 2));
+}
+
+
+TYPED_TEST(Dense, CanCreateSubmatrixWithGlobalSize)
+{
+    using value_type = typename TestFixture::value_type;
+    auto submtx_orig =
+        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
+    auto submtx = this->mtx->create_submatrix(
+        gko::local_span{0, 1}, gko::local_span{1, 3}, gko::dim<2>{1, 2});
+
+    GKO_ASSERT_MTX_NEAR(submtx_orig, submtx, 0.0);
+    EXPECT_EQ(submtx->get_values(), submtx_orig->get_values());
+}
+
+
+TYPED_TEST(Dense, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
+{
+    EXPECT_THROW(
+        this->mtx->create_submatrix(gko::local_span{0, 1},
+                                    gko::local_span{1, 3}, gko::dim<2>{1, 20}),
+        gko::DimensionMismatch);
 }
 
 
@@ -331,11 +356,21 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx =
-        this->mtx->create_submatrix(gko::span{1, 2}, gko::span{1, 3}, 3);
+        this->mtx->create_submatrix(gko::span{0, 2}, gko::span{0, 2}, 3);
 
-    EXPECT_EQ(submtx->at(0, 0), value_type{2.5});
-    EXPECT_EQ(submtx->at(0, 1), value_type{3.5});
-    EXPECT_EQ(submtx->get_num_stored_elements(), 2);
+    EXPECT_EQ(submtx->get_size(), gko::dim<2>(2, 2));
+    EXPECT_EQ(submtx->get_stride(), 3);
+    // The entry submtx->at(1, 0) points to the strided data of this->mtx
+    // which means that it is undefined. Thus it is skipped in the tests
+    EXPECT_EQ(submtx->at(0, 0), value_type{1.0});
+    EXPECT_EQ(submtx->at(0, 1), value_type{2.0});
+    EXPECT_EQ(submtx->at(1, 1), value_type{1.5});
+    EXPECT_EQ(submtx->get_num_stored_elements(), 6);
+    EXPECT_LT(std::distance(this->mtx->get_values(), submtx->get_values()),
+              this->mtx->get_num_stored_elements());
+    EXPECT_EQ(&submtx->at(0, 0), &this->mtx->at(0, 0));
+    EXPECT_EQ(&submtx->at(0, 1), &this->mtx->at(0, 1));
+    EXPECT_EQ(&submtx->at(1, 1), &this->mtx->at(1, 0));
 }
 
 

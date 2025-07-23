@@ -512,9 +512,9 @@ public:
     /**
      * Creates a view of a submatrix of this vector.
      *
-     * @param rows The local rows of the submatrix
-     * @param columns The local columns of the submatrix
-     * @param global_size The global size of the submatrix
+     * @param rows  The local rows of the submatrix
+     * @param columns  The local columns of the submatrix
+     * @param global_size  The global size of the submatrix
      *
      * @return A view of a submatrix.
      */
