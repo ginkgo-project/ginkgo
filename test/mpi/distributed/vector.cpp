@@ -1059,4 +1059,7 @@ TYPED_TEST(VectorLocalOps, CreateSubmatrixSameAsLocal)
 
     GKO_ASSERT_EQUAL_DIMENSIONS(rv, global_size);
     GKO_ASSERT_MTX_NEAR(rv->get_local_vector(), local_rv, 0.0);
+    EXPECT_LT(
+        std::distance(this->x->get_local_values(), rv->get_local_values()),
+        this->x->get_local_vector()->get_num_stored_elements());
 }

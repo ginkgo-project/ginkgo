@@ -1152,10 +1152,10 @@ public:
     /**
      * Create a submatrix from the original matrix.
      *
-     * @param rows     row span
+     * @param rows  row span
      * @param columns  column span
-     * @param global_size size of the submatrix (only used for consistency with
-     *                    distributed::Vector)
+     * @param size  size of the submatrix (only used for consistency with
+     *              distributed::Vector)
      */
     std::unique_ptr<Dense> create_submatrix(const local_span& rows,
                                             const local_span& columns,
