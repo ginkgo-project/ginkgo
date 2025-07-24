@@ -140,6 +140,10 @@ public:
 
     void compute_absolute_inplace() override;
 
+    // bool has_unique_idxs(const array<index_type>& col_idxs, index_type
+    // num_rows,
+    //     size_type num_non_zero_per_row, size_type stride) const;
+
     /**
      * Returns the values of the matrix.
      *
@@ -252,9 +256,10 @@ public:
     }
 
     /**
-     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     * Throws gko::InvalidData exception if the data inside the arrays is
+     * invalid.
      */
-    void validate_data() const;
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -335,6 +340,30 @@ public:
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride);
+
+    /**
+     * Checks if all column indices in the given array are unique.
+     * @param col_idxs  the column index array of the matrix
+     * @param num_rows  the number of rows in the matrix
+     * @param num_non_zero_per_row  the number of nonzeros per row
+     * @param stride  the column-stride of the value and column index array
+     */
+    static bool has_unique_idxs(const array<IndexType>& col_idxs,
+                                const IndexType num_rows,
+                                const size_type num_non_zero_per_row,
+                                const size_type stride);
+
+    /**
+     * Checks if all column indices in the given array are unique.
+     * @param col_idxs  the column index array of the matrix
+     * @param num_rows  the number of rows in the matrix
+     * @param num_non_zero_per_row  the number of nonzeros per row
+     * @param stride  the column-stride of the value and column index array
+     */
+    static bool is_within_bounds(const array<IndexType>& col_idxs,
+                                 const IndexType num_rows,
+                                 const size_type num_non_zero_per_row,
+                                 const size_type stride);
 
     /**
      * Copy-assigns an Ell matrix. Preserves the executor, reallocates the

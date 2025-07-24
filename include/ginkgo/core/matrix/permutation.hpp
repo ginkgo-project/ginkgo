@@ -177,9 +177,10 @@ public:
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
-     * Throws gko::Invalid exception if the data inside the arrays is invalid.
+     * Throws gko::InvalidData exception if the data inside the arrays is
+     * invalid.
      */
-    void validate_data() const;
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized Permutation arrays on the specified executor.
@@ -262,6 +263,11 @@ public:
     static std::unique_ptr<const Permutation> create_const(
         std::shared_ptr<const Executor> exec,
         gko::detail::const_array_view<IndexType>&& perm_idxs);
+    /**
+     * Check if the permutation indices are unique.
+     * @param permutation_  the permutation indices
+     */
+    static bool has_unique_idxs(const gko::array<IndexType>& permutation_);
 
 protected:
     Permutation(std::shared_ptr<const Executor> exec, size_type = 0);

@@ -248,13 +248,13 @@ TYPED_TEST(Ell, RecognizesInfiniteValue)
     ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
 }
 
+
 TYPED_TEST(Ell, RecognizesDupplicateIndex)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
     index_type col_idxs[] = {0, 0, 0, -1, 1, 0, 0, -1};
-
     auto mtx = gko::matrix::Ell<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::make_array_view(this->exec, 8, values),
@@ -269,7 +269,6 @@ TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
     using index_type = typename TestFixture::index_type;
     value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
     index_type col_idxs[] = {4, 1, 0, -1, 1, 0, 0, -1};
-
     auto mtx = gko::matrix::Ell<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::make_array_view(this->exec, 8, values),

@@ -60,14 +60,14 @@ void Ell<ValueType, IndexType>::validate_data() const
 {
     GKO_VALIDATE(validation::is_finite(values_),
                  "matrix must contain only finite values");
-    GKO_VALIDATE(validation::ell_has_unique_idxs(
-                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
-                     num_stored_elements_per_row_, stride_),
-                 "col_idxs must contain unique indices");
-    GKO_VALIDATE(validation::ell_is_within_bounds(
-                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
-                     num_stored_elements_per_row_, stride_),
-                 "col_idxs must be within bounds");
+    GKO_VALIDATE(
+        has_unique_idxs(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                        num_stored_elements_per_row_, stride_),
+        "col_idxs must contain unique indices");
+    GKO_VALIDATE(
+        is_within_bounds(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                         num_stored_elements_per_row_, stride_),
+        "col_idxs must be within bounds");
 }
 
 
@@ -427,6 +427,51 @@ Ell<ValueType, IndexType>::create_const(
         new Ell{exec, size, gko::detail::array_const_cast(std::move(values)),
                 gko::detail::array_const_cast(std::move(col_idxs)),
                 num_stored_elements_per_row, stride}};
+}
+
+
+template <typename ValueType, typename IndexType>
+bool Ell<ValueType, IndexType>::has_unique_idxs(
+    const array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_non_zero_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        std::unordered_set<IndexType> unique_idxs;
+        for (size_type j = 0; j < num_non_zero_per_row; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx == -1) {
+                continue;
+            }
+            if (idx != -1 && idx < num_rows) {
+                if (!unique_idxs.insert(idx).second) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
+template <typename ValueType, typename IndexType>
+bool Ell<ValueType, IndexType>::is_within_bounds(
+    const gko::array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_non_zero_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        bool padding = false;
+        for (size_type j = 0; j < num_non_zero_per_row; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx == invalid_index<IndexType>()) {
+                padding = true;
+            } else if (padding) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 
