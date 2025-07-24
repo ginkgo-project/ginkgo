@@ -107,6 +107,7 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 }  // anonymous namespace
 }  // namespace dense
 
+
 template <typename ValueType>
 void Dense<ValueType>::validate_data() const
 {
