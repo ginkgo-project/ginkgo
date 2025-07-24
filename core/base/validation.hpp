@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,44 +57,52 @@ bool is_within_bounds(const gko::array<IndexType>& col_idxs,
 }
 
 
-template <typename IndexType>
-bool ell_has_unique_idxs(const gko::array<IndexType>& col_idxs,
-                         const IndexType num_rows, const size_type nnz,
-                         const size_type stride)
+template <typename SizeType>
+bool sellp_has_consistent_slice_sets(const gko::array<SizeType>& slice_sets,
+                                     const gko::array<SizeType>& slice_lengths,
+                                     const size_type slice_size)
 {
-    const auto host_col_idxs = col_idxs.copy_to_host();
-    for (size_type i = 0; i < num_rows; ++i) {
-        std::unordered_set<IndexType> unique_idxs;
-        for (size_type j = 0; j < nnz; ++j) {
-            const auto idx = host_col_idxs[i + stride * j];
-            if (idx == -1) {
-                continue;
-            }
-            if (idx != -1 && idx < num_rows) {
-                if (!unique_idxs.insert(idx).second) {
-                    return false;
-                }
-            }
+    const auto host_slice_sets = slice_sets.copy_to_host();
+    const auto host_slice_lengths = slice_lengths.copy_to_host();
+    const auto num_slices = host_slice_sets.size() - 1;
+    if (num_slices == 0) {
+        return true;
+    }
+    if (host_slice_sets.size() != host_slice_lengths.size() + 1) {
+        return false;
+    }
+    for (size_t i = 0; i < num_slices; ++i) {
+        if (host_slice_sets[i + 1] !=
+            host_slice_sets[i] + host_slice_lengths[i] * slice_size) {
+            return false;
         }
     }
     return true;
 }
 
-
-template <typename IndexType>
-bool ell_is_within_bounds(const gko::array<IndexType>& col_idxs,
-                          const IndexType num_rows, const size_type nnz,
-                          const size_type stride)
+template <typename IndexType, typename SizeType>
+bool sellp_is_within_bounds(const gko::array<IndexType>& col_idxs,
+                            const gko::array<SizeType>& slice_sets,
+                            const gko::array<SizeType>& slice_lengths,
+                            const size_type slice_size)
 {
     const auto host_col_idxs = col_idxs.copy_to_host();
-    for (size_type i = 0; i < num_rows; ++i) {
-        bool padding = false;
-        for (size_type j = 0; j < nnz; ++j) {
-            const auto idx = host_col_idxs[i + stride * j];
-            if (idx == -1) {
-                padding = true;
-            } else if (padding) {
-                return false;
+    const auto host_slice_sets = slice_sets.copy_to_host();
+    const auto host_slice_lengths = slice_lengths.copy_to_host();
+    const auto num_slices = host_slice_sets.size() - 1;
+
+    for (size_t i = 0; i < num_slices; ++i) {
+        const auto offset = host_slice_sets[i];
+        const auto length = host_slice_lengths[i];
+        for (size_t j = 0; j < length; ++j) {
+            bool padding = false;
+            for (size_t k = 0; k < slice_size; ++k) {
+                const auto idx = host_col_idxs[offset + j * slice_size + k];
+                if (idx == -1) {
+                    padding = true;
+                } else if (padding) {
+                    return false;
+                }
             }
         }
     }
@@ -137,27 +145,6 @@ bool has_unique_columns(const gko::array<IndexType>& row_ptrs,
         }
     }
     return result;
-}
-
-template <typename IndexType>
-bool has_unique_perm_idxs(const gko::array<IndexType>& permutation_)
-{
-    const auto host_perm_idxs = permutation_.copy_to_host();
-    const auto size = host_perm_idxs.size();
-    std::unordered_set<IndexType> unique_ptrs(host_perm_idxs.begin(),
-                                              host_perm_idxs.end());
-
-    if (unique_ptrs.size() < size) {
-        return false;
-    }
-
-    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
-        if (unique_ptrs.find(i) == unique_ptrs.end()) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 }  // namespace validation

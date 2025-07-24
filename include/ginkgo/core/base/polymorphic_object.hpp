@@ -51,6 +51,8 @@ public:
                                                                     this);
     }
 
+    virtual void validate_data() const {}
+
     // preserve the executor of the object
     PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
 
