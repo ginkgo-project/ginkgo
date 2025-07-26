@@ -240,13 +240,53 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* y,
                       matrix::Dense<ValueType>* result, array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
-        exec,
-        [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
-            return conj(x(i, j)) * y(i, j);
-        },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        tmp, x, y);
+    // if result is [1 x N], use the old version
+    if (result->get_size()[0] == 1) {
+        run_kernel_col_reduction_cached(
+            exec,
+            [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+                return conj(x(i, j)) * y(i, j);
+            },
+            GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(),
+            x->get_size(), tmp, x, y);
+    } else {
+        // otherwise computes several conj dot products at once
+        const size_type vector_dim = x->get_size()[0] / result->get_size()[0];
+
+        // prototype for now. needs to be done in parallel
+        for (size_type k = 0; k < result->get_size()[0]; ++k) {
+            auto x_k_unique = matrix::Dense<ValueType>::create_const(
+                exec, dim<2>{vector_dim, x->get_size()[1]},
+                make_const_array_view(
+                    exec, vector_dim * x->get_size()[1],
+                    x->get_const_values() + k * vector_dim * x->get_size()[1]),
+                x->get_stride());
+            auto* x_k = x_k_unique.get();
+
+            auto y_k_unique = matrix::Dense<ValueType>::create_const(
+                exec, dim<2>{vector_dim, y->get_size()[1]},
+                make_const_array_view(
+                    exec, vector_dim * y->get_size()[1],
+                    y->get_const_values() + k * vector_dim * y->get_size()[1]),
+                y->get_stride());
+            auto* y_k = y_k_unique.get();
+
+            auto result_k_unique = matrix::Dense<ValueType>::create(
+                exec, dim<2>{1, result->get_size()[1]},
+                make_array_view(exec, result->get_size()[1],
+                                result->get_values() + result->get_size()[1]),
+                result->get_size()[1]);
+            auto* result_k = result_k_unique.get();
+
+            run_kernel_col_reduction_cached(
+                exec,
+                [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+                    return conj(x(i, j)) * y(i, j);
+                },
+                GKO_KERNEL_REDUCE_SUM(ValueType), result_k->get_values(),
+                dim<2>{vector_dim, x->get_size()[1]}, tmp, x_k, y_k);
+        }
+    }
 }
 
 
