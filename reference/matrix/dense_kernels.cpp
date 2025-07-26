@@ -297,12 +297,18 @@ void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* y,
                       matrix::Dense<ValueType>* result, array<char>&)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<ValueType>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    // possibly computes several conj dot products if the result has multiple
+    // rows
+    const size_type vector_dim = x->get_size()[0] / result->get_size()[0];
+    // TODO: assert if the int division is invalid?
+    for (size_type k = 0; k < result->get_size()[0]; ++k) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
+            result->at(k, j) = zero<ValueType>();
+        }
+        for (size_type i = vector_dim * k; i < vector_dim * (k + 1); ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(k, j) += conj(x->at(i, j)) * y->at(i, j);
+            }
         }
     }
 }
