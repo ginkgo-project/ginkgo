@@ -506,7 +506,6 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(state.x);
-            std::shared_ptr<gko::LinOp> detailed_solver;
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
@@ -516,16 +515,24 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                     exec->get_master()->add_logger(gen_logger);
                 }
 
-                auto precond = precond_factory.at(precond_name)(exec);
-                detailed_solver = generate_solver(exec, give(precond),
+                {
+                    auto precond = precond_factory.at(precond_name)(exec);
+                    auto solver = generate_solver(exec, give(precond),
                                                   solver_name, FLAGS_max_iters)
                                       ->generate(state.system_matrix);
+                }
 
                 exec->remove_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->remove_logger(gen_logger);
                 }
             }
+
+            // generate it for apply usage
+            auto precond = precond_factory.at(precond_name)(exec);
+            auto detailed_solver = generate_solver(exec, give(precond),
+                                                   solver_name, FLAGS_max_iters)
+                                       ->generate(state.system_matrix);
 
             if (auto prec = dynamic_cast<const gko::Preconditionable*>(
                     detailed_solver.get())) {
