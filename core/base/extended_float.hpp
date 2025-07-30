@@ -93,7 +93,7 @@ public:
     GKO_ATTRIBUTES explicit truncated(const float_type& val) noexcept
     {
         full_bits_type bits;
-        std::memcpy(&bits, &val, sizeof(full_bits_type));
+        memcpy(&bits, &val, sizeof(full_bits_type));
         data_ = static_cast<bits_type>((bits & component_mask) >>
                                        component_position);
     }
@@ -103,7 +103,7 @@ public:
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
         float_type ans;
-        std::memcpy(&ans, &bits, sizeof(float_type));
+        memcpy(&ans, &bits, sizeof(float_type));
         return ans;
     }
 
