@@ -2097,8 +2097,7 @@ bool load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
         return false;
     } else
 #else
-    auto compute_capability = as<CudaExecutor>(exec)->get_major_version() * 10 +
-                              as<CudaExecutor>(exec)->get_minor_version();
+    auto compute_capability = as<CudaExecutor>(exec)->get_compute_capability();
     if (compute_capability < 70 &&
         std::is_same_v<remove_complex<OutputValueType>, half>) {
         return false;
