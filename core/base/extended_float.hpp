@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_CORE_BASE_EXTENDED_FLOAT_HPP_
 
 
+#include <cstring>
 #include <limits>
 #include <type_traits>
 
@@ -91,7 +92,8 @@ public:
 
     GKO_ATTRIBUTES explicit truncated(const float_type& val) noexcept
     {
-        const auto& bits = reinterpret_cast<const full_bits_type&>(val);
+        full_bits_type bits;
+        std::memcpy(&bits, &val, sizeof(full_bits_type));
         data_ = static_cast<bits_type>((bits & component_mask) >>
                                        component_position);
     }
@@ -100,7 +102,9 @@ public:
     {
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
-        return reinterpret_cast<const float_type&>(bits);
+        float_type ans;
+        std::memcpy(&ans, &bits, sizeof(float_type));
+        return ans;
     }
 
     GKO_ATTRIBUTES truncated operator-() const noexcept
