@@ -36,7 +36,10 @@ DEFINE_bool(
 
 DEFINE_bool(benchmark_from_scratch, false,
             "benchmark the solver from scratch everytime which requires "
-            "workspace initialization everytime");
+            "workspace initialization everytime. When this is true, the "
+            "repetition progress will use the solver generated from warmup "
+            "stage. If this is false but no warmup iteration is performed, the "
+            "first solver will be from scratch.");
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
@@ -585,8 +588,9 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                                                FLAGS_max_iters)
                                    ->generate(state.system_matrix));
                 generate_timer->toc();
-                // if we benchmark from scrach, we use the new generated solver.
-                if (FLAGS_benchmark_from_scratch) {
+                // if we benchmark from scratch or do not have warmup iteration,
+                // we use the new generated solver.
+                if (FLAGS_benchmark_from_scratch || !solver) {
                     solver = generated_solver;
                 }
             }
