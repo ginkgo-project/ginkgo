@@ -460,9 +460,8 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                 GKO_NOT_SUPPORTED(alpha);
             } else
 #else
-            auto compute_capability =
-                as<CudaExecutor>(exec)->get_major_version() * 10 +
-                as<CudaExecutor>(exec)->get_minor_version();
+            const auto compute_capability =
+                as<CudaExecutor>(exec)->get_compute_capability();
             if (compute_capability < 70 &&
                 std::is_same_v<remove_complex<ValueType>, half>) {
                 GKO_NOT_SUPPORTED(alpha);
@@ -531,9 +530,8 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
                 GKO_NOT_SUPPORTED(m_i);
             } else
 #else
-            auto compute_capability =
-                as<CudaExecutor>(exec)->get_major_version() * 10 +
-                as<CudaExecutor>(exec)->get_minor_version();
+            const auto compute_capability =
+                as<CudaExecutor>(exec)->get_compute_capability();
             if (compute_capability < 70 &&
                 std::is_same_v<remove_complex<ValueType>, half>) {
                 GKO_NOT_SUPPORTED(m_i);

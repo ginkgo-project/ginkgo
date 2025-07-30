@@ -272,8 +272,8 @@ void abstract_spmv(syn::value_list<int, info>,
         sizeof(remove_complex<arithmetic_type>) == sizeof(bfloat16);
     constexpr bool atomic_bfloat16_out =
         atomic && sizeof(remove_complex<OutputValueType>) == sizeof(bfloat16);
-    auto compute_capability = as<CudaExecutor>(exec)->get_major_version() * 10 +
-                              as<CudaExecutor>(exec)->get_minor_version();
+    const auto compute_capability =
+        as<CudaExecutor>(exec)->get_compute_capability();
     if (num_thread_per_worker != 1 && (shared_half || atomic_half_out) &&
         compute_capability < 70) {
         GKO_KERNEL_NOT_FOUND;
