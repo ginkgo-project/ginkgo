@@ -14,7 +14,6 @@
                 "generate": {
                     "components": {
                         "generate(<typename>)": 1.0,
-                        "free": 1.0,
                         "overhead": 1.0
                     },
                     "time": 1.0

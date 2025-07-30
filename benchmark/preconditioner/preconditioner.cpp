@@ -225,7 +225,6 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             auto x_clone = clone(state.x);
             auto precond = precond_factory.at(decoded_precond_name)(exec);
 
-            std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
@@ -236,13 +235,16 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                     exec->get_master()->add_logger(gen_logger);
                 }
                 for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
-                    precond_op = precond->generate(state.system_matrix);
+                    auto precond_op = precond->generate(state.system_matrix);
                 }
                 if (exec->get_master() != exec) {
                     exec->get_master()->remove_logger(gen_logger);
                 }
                 exec->remove_logger(gen_logger);
             }
+
+            // generate it for apply usage
+            auto precond_op = precond->generate(state.system_matrix);
 
             auto apply_logger = create_operations_logger(
                 FLAGS_gpu_timer, FLAGS_nested_names, exec,
