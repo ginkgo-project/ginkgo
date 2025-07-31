@@ -92,6 +92,10 @@ public:
 
     GKO_ATTRIBUTES explicit truncated(const float_type& val) noexcept
     {
+// hip does not allow std::memcpy in __host__ __device__
+#ifndef HIP_VERSION
+        using std::memcpy;
+#endif
         full_bits_type bits;
         memcpy(&bits, &val, sizeof(full_bits_type));
         data_ = static_cast<bits_type>((bits & component_mask) >>
@@ -100,6 +104,10 @@ public:
 
     GKO_ATTRIBUTES operator float_type() const noexcept
     {
+// hip does not allow std::memcpy in __host__ __device__
+#ifndef HIP_VERSION
+        using std::memcpy;
+#endif
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
         float_type ans;
