@@ -110,22 +110,21 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     dim<2> conjoined_size = original_size;
     std::cout << "orig size: " << original_size[0] << ' ' << original_size[1]
               << '\n';
-    conjoined_size[0] *= 2;
+    conjoined_size[1] = dense_b->get_stride() * 2;
+    std::cout << "conj size: " << conjoined_size[0] << ' ' << conjoined_size[1]
+              << '\n';
     LocalVector* rw = this->template create_workspace_op<LocalVector>(
         GKO_SOLVER_TRAITS::rw, conjoined_size);
     auto r_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * original_size[1],
+        make_array_view(exec, original_size[0] * dense_b->get_stride(),
                         rw->get_values()),
         dense_b->get_stride());
     auto* r = r_unique.get();
     auto w_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * original_size[1],
-                        rw->get_values() +
-                            original_size[0] *
-                                original_size[1]),  // should this be adjusted
-                                                    // for the stride?
+        make_array_view(exec, original_size[0] * dense_b->get_stride(),
+                        rw->get_values() + dense_b->get_stride()),
         dense_b->get_stride());
     auto* w = w_unique.get();
 
@@ -138,14 +137,10 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                         z->get_values()),
         dense_b->get_stride());
     auto* z1 = z1_unique.get();
-
     auto z2_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(
-            exec, original_size[0] * original_size[1],
-            z->get_values() + original_size[0] *
-                                  original_size[1]),  // should this be adjusted
-                                                      // for the stride?
+        make_array_view(exec, original_size[0] * original_size[1],
+                        z->get_values() + dense_b->get_stride()),
         dense_b->get_stride());
     auto* z2 = z2_unique.get();
 
@@ -157,22 +152,21 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(g, dense_b);
 
     // rho and delta become combined as well
-    LocalVector* rhodelta = this->template create_workspace_op<LocalVector>(
-        GKO_SOLVER_TRAITS::rhodelta, dim<2>{2, original_size[1]});
+    GKO_SOLVER_SCALAR(rhodelta, rw);
     std::cout << "rhodelta size: " << rhodelta->get_size()[0] << ' '
               << rhodelta->get_size()[1] << '\n';
 
     auto rho_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, original_size[1], rhodelta->get_values()),
-        original_size[1]);
+        make_array_view(exec, dense_b->get_stride(), rhodelta->get_values()),
+        dense_b->get_stride());
     auto* rho = rho_unique.get();
 
     auto delta_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, original_size[1],
-                        rhodelta->get_values() + original_size[1]),
-        original_size[1]);
+        make_array_view(exec, dense_b->get_stride(),
+                        rhodelta->get_values() + dense_b->get_stride()),
+        dense_b->get_stride());
     auto* delta = delta_unique.get();
 
     GKO_SOLVER_SCALAR(beta, dense_b);
