@@ -51,15 +51,17 @@ namespace kernels {
                           matrix::Dense<ValueType>* lambda_rhs)
 
 
-#define GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType, IndexType)    \
-    void build_coarse_contribution(                                    \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const array<remove_complex<ValueType>>& local_labels,          \
-        const array<IndexType>& local_tags,                            \
-        const array<remove_complex<ValueType>>& global_labels,         \
-        const array<IndexType>& global_tags,                           \
-        const matrix::Dense<ValueType>* lambda,                        \
-        device_matrix_data<ValueType, IndexType>& coarse_contribution, \
+#define GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType, IndexType)       \
+    void build_coarse_contribution(                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const array<experimental::distributed::preconditioner::dof_type>& \
+            dof_types,                                                    \
+        const array<remove_complex<ValueType>>& local_labels,             \
+        const array<IndexType>& local_tags,                               \
+        const array<remove_complex<ValueType>>& global_labels,            \
+        const array<IndexType>& global_tags,                              \
+        const matrix::Dense<ValueType>* lambda,                           \
+        device_matrix_data<ValueType, IndexType>& coarse_contribution,    \
         array<IndexType>& permutation_array)
 
 

@@ -121,7 +121,6 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto tmp_partition = make_temporary_clone(exec, partition);
 
     // set up LinOp sizes
@@ -163,9 +162,9 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // Gather local sizes from all ranks and build the partition in the enriched
     // space.
-    array<GlobalIndexType> range_bounds{
-        use_host_buffer ? exec->get_master() : exec, num_parts + 1};
-    comm.all_gather(exec, &local_num_rows, 1, range_bounds.get_data(), 1);
+    array<GlobalIndexType> range_bounds{exec->get_master(), num_parts + 1};
+    comm.all_gather(exec->get_master(), &local_num_rows, 1,
+                    range_bounds.get_data(), 1);
     range_bounds.set_executor(exec);
     exec->run(dd_matrix::make_prefix_sum_nonnegative(range_bounds.get_data(),
                                                      num_parts + 1));
