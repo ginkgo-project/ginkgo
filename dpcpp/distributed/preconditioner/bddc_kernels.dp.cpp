@@ -59,6 +59,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_FILL_COARSE_DATA);
 template <typename ValueType, typename IndexType>
 void build_coarse_contribution(
     std::shared_ptr<const DefaultExecutor> exec,
+    const array<experimental::distributed::preconditioner::dof_type>& dof_types,
     const array<remove_complex<ValueType>>& local_labels,
     const array<IndexType>& local_tags,
     const array<remove_complex<ValueType>>& global_labels,

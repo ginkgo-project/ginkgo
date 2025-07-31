@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <string>
 
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
@@ -23,8 +24,12 @@ template <typename ValueType>
 bool labels_eq(size_type& n_cols, const ValueType* label_a,
                const ValueType* label_b)
 {
+    using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
+    uint_type int_label_a, int_label_b;
     for (size_type i = 0; i < n_cols; i++) {
-        if (label_a[i] != label_b[i]) {
+        std::memcpy(&int_label_a, label_a + i, sizeof(uint_type));
+        std::memcpy(&int_label_b, label_b + i, sizeof(uint_type));
+        if (int_label_a != int_label_b) {
             return false;
         }
     }
@@ -96,10 +101,7 @@ void classify_dofs(
         } else if (n_ranks == 2) {
             n_face_idxs++;
             dof_types.get_data()[i] =
-                use_faces
-                    ? experimental::distributed::preconditioner::dof_type::face
-                    : experimental::distributed::preconditioner::dof_type::
-                          inactive;
+                experimental::distributed::preconditioner::dof_type::face;
             if (occurences[keypair] == 1) {
                 n_faces++;
             }
@@ -128,12 +130,37 @@ void classify_dofs(
             } else if (!use_edges) {
                 dof_types.get_data()[i] = experimental::distributed::
                     preconditioner::dof_type::inactive;
-                // } else if (occurences[key] > 2) {
+            } else if (occurences[keypair] > 2) {
+                n_vertices++;
+                n_edge_idxs--;
+                dof_types.get_data()[i] =
+                    experimental::distributed::preconditioner::dof_type::vertex;
+                occurences[keypair] *= -1;
+                for (size_type j = 0; j < n_cols; j++) {
+                    labels->at(i, j) *= -1;
+                }
+            }
+        }
+        if (dof_types.get_data()[i] ==
+            experimental::distributed::preconditioner::dof_type::face) {
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
+            auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+            if (occurences[keypair] == 1) {
+                n_vertices++;
+                n_faces--;
+                n_face_idxs--;
+                dof_types.get_data()[i] =
+                    experimental::distributed::preconditioner::dof_type::vertex;
+            } else if (!use_faces) {
+                dof_types.get_data()[i] = experimental::distributed::
+                    preconditioner::dof_type::inactive;
+                // } else if (occurences[keypair] > 2) {
                 //     n_vertices++;
-                //     n_edge_idxs--;
+                //     n_face_idxs--;
                 //     dof_types.get_data()[i] =
                 //     experimental::distributed::preconditioner::dof_type::vertex;
-                //     occurences[key] *= -1;
+                //     occurences[keypair] *= -1;
                 //     for (size_type j = 0; j < n_cols; j++) {
                 //         labels->at(i, j) *= -1;
                 //     }
@@ -168,12 +195,12 @@ void classify_dofs(
             if (tags.get_const_data()[a] != tags.get_const_data()[b]) {
                 return tags.get_const_data()[a] < tags.get_const_data()[b];
             }
-            return false;
+            return a < b;
         }
         return dof_types.get_const_data()[a] < dof_types.get_const_data()[b];
     };
-    std::stable_sort(permutation_array.get_data(),
-                     permutation_array.get_data() + n_rows, comp);
+    std::sort(permutation_array.get_data(),
+              permutation_array.get_data() + n_rows, comp);
 
     interface_sizes.resize_and_reset(n_constraints);
     std::vector<size_type> owning_label_idxs;
@@ -188,19 +215,29 @@ void classify_dofs(
                     n_cols * sizeof(uint_type));
         auto keypair = std::make_pair(key, tags.get_const_data()[row]);
         auto occ = occurences[keypair];
-        interface_sizes.get_data()[i] = occ > 0 ? occ : -occ - 1;
+        interface_sizes.get_data()[i] =
+            occ > 0 ? occ
+                    : (dof_types.get_const_data()[row] ==
+                               experimental::distributed::preconditioner::
+                                   dof_type::vertex
+                           ? 1
+                           : -occ - 1);
         unique_label_idxs.emplace_back(row);
         if (min_rank(key, n_significand_bits) == local_part) {
             n_owning_interfaces++;
             owning_label_idxs.emplace_back(row);
         }
-        while (labels_eq(n_cols, local_labels + row * n_cols,
-                         local_labels +
-                             permutation_array.get_const_data()[start_idx] *
-                                 n_cols) &&
-               tags.get_const_data()[row] ==
-                   tags.get_const_data()[permutation_array
-                                             .get_const_data()[start_idx]]) {
+        while (
+            labels_eq(
+                n_cols, local_labels + row * n_cols,
+                local_labels +
+                    permutation_array.get_const_data()[start_idx] * n_cols) &&
+            tags.get_const_data()[row] ==
+                tags.get_const_data()[permutation_array
+                                          .get_const_data()[start_idx]] &&
+            dof_types.get_const_data()[row] ==
+                dof_types.get_const_data()[permutation_array
+                                               .get_const_data()[start_idx]]) {
             start_idx++;
             if (start_idx == n_rows) {
                 break;
@@ -281,6 +318,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_FILL_COARSE_DATA);
 template <typename ValueType, typename IndexType>
 void build_coarse_contribution(
     std::shared_ptr<const DefaultExecutor> exec,
+    const array<experimental::distributed::preconditioner::dof_type>& dof_types,
     const array<remove_complex<ValueType>>& local_labels,
     const array<IndexType>& local_tags,
     const array<remove_complex<ValueType>>& global_labels,

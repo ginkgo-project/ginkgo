@@ -43,6 +43,8 @@ namespace preconditioner {
 
 enum class dof_type { inner, inactive, face, edge, vertex };
 
+enum class scaling_type { stiffness, deluxe };
+
 
 /**
  * BDDC is a two-level, non-overlapping substructuring method.
@@ -86,6 +88,9 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             local_solver);
 
+        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
+            inner_solver);
+
         /**
          * Coarse solver factory.
          */
@@ -122,6 +127,9 @@ public:
 
         std::map<GlobalIndexType, LocalIndexType> GKO_FACTORY_PARAMETER_VECTOR(
             tags);
+
+        scaling_type GKO_FACTORY_PARAMETER_SCALAR(scaling,
+                                                  scaling_type::stiffness);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bddc, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -185,8 +193,8 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    void solve_inner(std::shared_ptr<local_vec> b,
-                     std::shared_ptr<local_vec> x) const;
+    void solve_inner(std::shared_ptr<local_vec> b, std::shared_ptr<local_vec> x,
+                     bool ignore_nsp = false) const;
 
     void solve_local(std::shared_ptr<local_vec> b,
                      std::shared_ptr<local_vec> x) const;
@@ -241,6 +249,7 @@ private:
     std::shared_ptr<local_vec> local_coarse_buf_1_;
     std::shared_ptr<local_vec> local_coarse_buf_2_;
     std::shared_ptr<local_mtx> A_LL;
+    std::shared_ptr<local_mtx> A_LL_backup;
     std::shared_ptr<const local_mtx> A_LP;
     std::shared_ptr<const local_mtx> A_PL;
     std::shared_ptr<const local_mtx> A_PP;
@@ -265,6 +274,7 @@ private:
     std::shared_ptr<local_vec> LL_scal_3;
     std::shared_ptr<vec> nsp;
     std::shared_ptr<local_vec> n_op;
+    bool active;
 };
 
 
