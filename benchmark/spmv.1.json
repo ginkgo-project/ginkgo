@@ -1,0 +1,24 @@
+{
+  "operators": [
+    {
+      "filename": "something"
+    },
+    {
+      "stencil": {
+        "name": "5pt",
+        "size": 1000
+      }
+    },
+    {
+      "stencil": {
+        "name": "5pt",
+        "size": 1000,
+        "process_grid": [
+          2,
+          1,
+          3
+        ]
+      }
+    }
+  ]
+}
