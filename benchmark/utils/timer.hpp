@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,6 +19,8 @@
 DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
+
+DEFINE_bool(cpu_timer, true, "use cpu timer based on event...");
 
 DEFINE_string(
     timer_method, "average",

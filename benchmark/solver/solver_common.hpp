@@ -476,6 +476,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         for (auto stage : {"generate", "apply"}) {
             solver_case[stage] = json::object();
             solver_case[stage]["components"] = json::object();
+            solver_case[stage]["components"]["gpu"] = json::object();
+            solver_case[stage]["components"]["cpu"] = json::object();
         }
 
         IterationControl ic{timer};
@@ -529,19 +531,42 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             }
 
             {
-                auto apply_logger = create_operations_logger(
-                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_case["apply"]["components"], 1);
-                exec->add_logger(apply_logger);
-                if (exec != exec->get_master()) {
-                    exec->get_master()->add_logger(apply_logger);
+                std::shared_ptr<gko::log::ProfilerHook> apply_gpu_logger =
+                    nullptr;
+                std::shared_ptr<gko::log::ProfilerHook> apply_cpu_logger =
+                    nullptr;
+
+                if (FLAGS_gpu_timer) {
+                    apply_gpu_logger = create_operations_logger(
+                        true, FLAGS_nested_names, exec,
+                        solver_case["apply"]["components"]["gpu"], 1);
+                }
+                if (FLAGS_cpu_timer) {
+                    apply_cpu_logger = create_operations_logger(
+                        false, FLAGS_nested_names, exec,
+                        solver_case["apply"]["components"]["cpu"], 1);
+                }
+
+                if (FLAGS_cpu_timer) {
+                    exec->add_logger(apply_cpu_logger);
+                    if (exec != exec->get_master()) {
+                        exec->get_master()->add_logger(apply_cpu_logger);
+                    }
+                }
+                if (FLAGS_gpu_timer && exec != exec->get_master()) {
+                    exec->add_logger(apply_gpu_logger);
                 }
 
                 solver->apply(state.b, x_clone);
 
-                exec->remove_logger(apply_logger);
-                if (exec != exec->get_master()) {
-                    exec->get_master()->remove_logger(apply_logger);
+                if (FLAGS_cpu_timer) {
+                    exec->remove_logger(apply_cpu_logger);
+                    if (exec != exec->get_master()) {
+                        exec->get_master()->remove_logger(apply_cpu_logger);
+                    }
+                }
+                if (exec != exec->get_master() && FLAGS_gpu_timer) {
+                    exec->remove_logger(apply_gpu_logger);
                 }
             }
 
