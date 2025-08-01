@@ -3,14 +3,16 @@ name: Windows-MSVC-CUDA (compile-only)
 on:
   push:
     branches:
+      - 'main'
       - 'master'
       - 'develop'
       - 'release/**'
-      - 'check_msvc_cuda'
     tags:
       - '**'
   pull_request:
     types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
   workflow_dispatch:
     inputs:
       debug_enabled:
