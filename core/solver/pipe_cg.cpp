@@ -106,42 +106,38 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // GKO_SOLVER_VECTOR(r, dense_b);
     // GKO_SOLVER_VECTOR(w, dense_b);
     // into rw that we later slice for efficient dot product computation
+    auto stride = dense_b->get_stride();
     dim<2> original_size = dense_b->get_size();
-    dim<2> conjoined_size = original_size;
-    std::cout << "orig size: " << original_size[0] << ' ' << original_size[1]
-              << '\n';
-    conjoined_size[1] = dense_b->get_stride() * 2;
-    std::cout << "conj size: " << conjoined_size[0] << ' ' << conjoined_size[1]
-              << '\n';
+    dim<2> conjoined_size = {original_size[0], stride * 2};
+
     LocalVector* rw = this->template create_workspace_op<LocalVector>(
         GKO_SOLVER_TRAITS::rw, conjoined_size);
     auto r_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * dense_b->get_stride(),
-                        rw->get_values()),
-        dense_b->get_stride());
+        make_array_view(exec, original_size[0] * stride * 2, rw->get_values()),
+        stride * 2);
     auto* r = r_unique.get();
-    auto w_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * dense_b->get_stride(),
-                        rw->get_values() + dense_b->get_stride()),
-        dense_b->get_stride());
+    auto w_unique =
+        LocalVector::create(exec, original_size,
+                            make_array_view(exec, original_size[0] * stride * 2,
+                                            rw->get_values() + stride),
+                            stride * 2);
     auto* w = w_unique.get();
+
 
     // z now consists of two identical repeating parts: z1 and z2, again, for
     // the same reason
     GKO_SOLVER_VECTOR(z, rw);
     auto z1_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * original_size[1],
-                        z->get_values()),
-        dense_b->get_stride());
+        make_array_view(exec, original_size[0] * stride * 2, z->get_values()),
+        stride * 2);
     auto* z1 = z1_unique.get();
-    auto z2_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * original_size[1],
-                        z->get_values() + dense_b->get_stride()),
-        dense_b->get_stride());
+    auto z2_unique =
+        LocalVector::create(exec, original_size,
+                            make_array_view(exec, original_size[0] * stride * 2,
+                                            z->get_values() + stride),
+                            stride * 2);
     auto* z2 = z2_unique.get();
 
     GKO_SOLVER_VECTOR(p, dense_b);
@@ -153,20 +149,15 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // rho and delta become combined as well
     GKO_SOLVER_SCALAR(rhodelta, rw);
-    std::cout << "rhodelta size: " << rhodelta->get_size()[0] << ' '
-              << rhodelta->get_size()[1] << '\n';
-
     auto rho_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, dense_b->get_stride(), rhodelta->get_values()),
-        dense_b->get_stride());
+        make_array_view(exec, stride, rhodelta->get_values()), stride * 2);
     auto* rho = rho_unique.get();
 
     auto delta_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, dense_b->get_stride(),
-                        rhodelta->get_values() + dense_b->get_stride()),
-        dense_b->get_stride());
+        make_array_view(exec, stride, rhodelta->get_values() + stride),
+        stride * 2);
     auto* delta = delta_unique.get();
 
     GKO_SOLVER_SCALAR(beta, dense_b);
@@ -192,7 +183,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // z = preconditioner * r
     this->get_preconditioner()->apply(r, z1);
     // z2 = z1
-    std::copy(z1->get_values(), z2->get_values(), z2->get_values());
+    z2->copy_from(z1);
     // w = A * z
     this->get_system_matrix()->apply(z1, w);
     // m = preconditioner * w
@@ -202,11 +193,9 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // merged dot products
     // rho = dot(r, z)
     // delta = dot(w, z)
-    std::cout << "vyv14\n";
     rw->compute_conj_dot(z, rhodelta, reduction_tmp);
 
     // check for an early termination
-    std::cout << "vyv15\n";
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -230,12 +219,68 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // q = w
     // f = m
     // g = n
-    std::cout << "vyv16\n";
     exec->run(pipe_cg::make_initialize_2(
         gko::detail::get_local(p), gko::detail::get_local(q),
         gko::detail::get_local(f), gko::detail::get_local(g), beta,
         gko::detail::get_local(z1), gko::detail::get_local(w),
         gko::detail::get_local(m), gko::detail::get_local(n), delta));
+
+    // std::cout << "z: \n";
+    // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
+    //         std::cout << z->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "z1: \n";
+    // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
+    //         std::cout << z1->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "z2: \n";
+    // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
+    //         std::cout << z2->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "\nrw: \n";
+    // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
+    //         std::cout << rw->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "r: \n";
+    // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
+    //         std::cout << r->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "w: \n";
+    // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
+    //         std::cout << w->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "prev_rho: \n";
+    // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
+    //         std::cout << prev_rho->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
+    // std::cout << "rho: \n";
+    // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
+    //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
+    //         std::cout << rho->at(ii, jj) << ' ';
+    //     }
+    //     std::cout << '\n';
+    // }
 
     /* Memory movement summary:
      TODO
@@ -248,30 +293,149 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // w = w - tmp * g
         // it's the only place where z is updated so we updated both z1 and z2
         // here
-        std::cout << "vyv17\n";
         exec->run(pipe_cg::make_step_1(
             gko::detail::get_local(dense_x), gko::detail::get_local(r),
             gko::detail::get_local(z1), gko::detail::get_local(z2),
             gko::detail::get_local(w), gko::detail::get_local(p),
             gko::detail::get_local(q), gko::detail::get_local(f),
             gko::detail::get_local(g), rho, beta, &stop_status));
+
+        // std::cout << "\n(step 1)" << iter << "\n";
+        // std::cout << "z: \n";
+        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
+        //         std::cout << z->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z1: \n";
+        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
+        //         std::cout << z1->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z2: \n";
+        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
+        //         std::cout << z2->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "\nrw: \n";
+        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
+        //         std::cout << rw->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "r: \n";
+        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
+        //         std::cout << r->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "w: \n";
+        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
+        //         std::cout << w->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "prev_rho: \n";
+        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
+        //         std::cout << prev_rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "rho: \n";
+        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
+        //         std::cout << rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+
         // m = preconditioner * w
-        std::cout << "vyv18\n";
         this->get_preconditioner()->apply(w, m);
         // n = A * m
-        std::cout << "vyv19\n";
         this->get_system_matrix()->apply(m, n);
         // prev_rho = rho
-        std::cout << "vyv20\n";
-        swap(prev_rho, rho);
+        prev_rho->copy_from(rho);
         // merged dot products
         // rho = dot(r, z)
         // delta = dot(w, z)
-        std::cout << "vyv21\n";
         rw->compute_conj_dot(z, rhodelta, reduction_tmp);
         // check
-        std::cout << "vyv22\n";
         ++iter;
+
+        // std::cout << "\nSTEPPED other ++iter;" << iter << "\n";
+        // std::cout << "z: \n";
+        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
+        //         std::cout << z->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z1: \n";
+        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
+        //         std::cout << z1->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z2: \n";
+        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
+        //         std::cout << z2->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "\nrw: \n";
+        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
+        //         std::cout << rw->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "r: \n";
+        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
+        //         std::cout << r->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "w: \n";
+        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
+        //         std::cout << w->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "rhodelta: \n";
+        // for (size_t ii = 0; ii < rhodelta->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rhodelta->get_size()[1]; ++jj) {
+        //         std::cout << rhodelta->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "prev_rho: \n";
+        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
+        //         std::cout << prev_rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "rho: \n";
+        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
+        //         std::cout << rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+
         bool all_stopped =
             stop_criterion->update()
                 .num_iterations(iter)
@@ -291,15 +455,78 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // q = w + tmp * q
         // f = m + tmp * f
         // g = n + tmp * g
-        std::cout << "vyv23\n";
         exec->run(pipe_cg::make_step_2(
             beta, gko::detail::get_local(p), gko::detail::get_local(q),
             gko::detail::get_local(f), gko::detail::get_local(g),
             gko::detail::get_local(z1), gko::detail::get_local(w),
             gko::detail::get_local(m), gko::detail::get_local(n), prev_rho, rho,
             delta, &stop_status));
+
+        // std::cout << "\n(step 2)" << iter << "\n";
+        // std::cout << "z: \n";
+        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
+        //         std::cout << z->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z1: \n";
+        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
+        //         std::cout << z1->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "z2: \n";
+        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
+        //         std::cout << z2->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "\nrw: \n";
+        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
+        //         std::cout << rw->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "r: \n";
+        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
+        //         std::cout << r->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "w: \n";
+        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
+        //         std::cout << w->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "rhodelta: \n";
+        // for (size_t ii = 0; ii < rhodelta->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rhodelta->get_size()[1]; ++jj) {
+        //         std::cout << rhodelta->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "prev_rho: \n";
+        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
+        //         std::cout << prev_rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
+        // std::cout << "rho: \n";
+        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
+        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
+        //         std::cout << rho->at(ii, jj) << ' ';
+        //     }
+        //     std::cout << '\n';
+        // }
     }
-    std::cout << "vyv24\n";
 }
 
 
