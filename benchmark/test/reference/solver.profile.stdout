@@ -17,7 +17,10 @@
                     "time": 1.0
                 },
                 "apply": {
-                    "components": {},
+                    "components": {
+                        "cpu": {},
+                        "gpu": {}
+                    },
                     "iterations": 7,
                     "time": 1.0
                 },
