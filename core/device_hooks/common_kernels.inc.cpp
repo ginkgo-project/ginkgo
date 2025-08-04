@@ -38,6 +38,7 @@
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
+#include "core/matrix/conv_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -838,6 +839,15 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_COO_CONJ_ARRAY_KERNEL);
 
 
 }  // namespace coo
+
+
+namespace conv {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_CONV_KERNEL);
+
+
+}  // namespace conv
 
 
 namespace ell {
