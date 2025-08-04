@@ -80,6 +80,7 @@ target_sources(
         matrix/batch_dense.cpp
         matrix/batch_ell.cpp
         matrix/batch_identity.cpp
+        matrix/conv.cpp
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/csr_lookup.cpp

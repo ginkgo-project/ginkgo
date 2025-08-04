@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -297,7 +297,8 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp* b, const LinOp* x) const
+    virtual void validate_application_parameters(const LinOp* b,
+                                                 const LinOp* x) const
     {
         GKO_ASSERT_CONFORMANT(this, b);
         GKO_ASSERT_EQUAL_ROWS(this, x);

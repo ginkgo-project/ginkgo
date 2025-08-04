@@ -38,6 +38,7 @@ set(GINKGO_HIP_SOURCES
     base/version.hip.cpp
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
+    matrix/conv_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     ${BATCH_BICGSTAB_INSTANTIATE}
