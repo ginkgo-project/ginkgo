@@ -547,12 +547,14 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                         solver_case["apply"]["components"]["cpu"], 1);
                 }
 
+                // we have cpu activity from executor and master executor
                 if (FLAGS_cpu_timer) {
                     exec->add_logger(apply_cpu_logger);
                     if (exec != exec->get_master()) {
                         exec->get_master()->add_logger(apply_cpu_logger);
                     }
                 }
+                // we only have gpu activity when the executor is on accelerator
                 if (FLAGS_gpu_timer && exec != exec->get_master()) {
                     exec->add_logger(apply_gpu_logger);
                 }

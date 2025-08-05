@@ -20,7 +20,7 @@ DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
             "executor is cuda or hip");
 
-DEFINE_bool(cpu_timer, true, "use cpu timer based on event...");
+DEFINE_bool(cpu_timer, true, "use cpu timer based on steady_clock. note: it will only capture the launch overhead or get accumulated time during synchronization when executor is on accelerators");
 
 DEFINE_string(
     timer_method, "average",
