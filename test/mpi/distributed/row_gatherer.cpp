@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
@@ -32,9 +33,9 @@ class RowGatherer : public CommonMpiTestFixture {
 protected:
     using index_type = IndexType;
     using part_type =
-        gko::experimental::distributed::Partition<index_type, long>;
+        gko::experimental::distributed::Partition<index_type, gko::int64>;
     using map_type =
-        gko::experimental::distributed::index_map<index_type, long>;
+        gko::experimental::distributed::index_map<index_type, gko::int64>;
     using row_gatherer_type =
         gko::experimental::distributed::RowGatherer<index_type>;
 
@@ -43,7 +44,7 @@ protected:
         int rank = comm.rank();
         auto part = gko::share(part_type::build_from_global_size_uniform(
             exec, comm.size(), comm.size() * 3));
-        auto recv_connections = create_recv_connections<long>()[rank];
+        auto recv_connections = create_recv_connections<gko::int64>()[rank];
         auto imap = map_type{exec, part, comm.rank(), recv_connections};
         auto coll_comm = std::make_shared<CollCommType>(comm, imap);
         rg = row_gatherer_type::create(exec, coll_comm, imap);
