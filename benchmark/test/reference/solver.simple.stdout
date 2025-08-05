@@ -14,14 +14,18 @@
                 "rhs_norm": 1.0,
                 "generate": {
                     "components": {
-                        "generate(<typename>)": 1.0,
-                        "free": 1.0,
-                        "overhead": 1.0
+                        "gpu": {},
+                        "cpu": {
+                            "generate(<typename>)": 1.0,
+                            "free": 1.0,
+                            "overhead": 1.0
+                        }
                     },
                     "time": 1.0
                 },
                 "apply": {
                     "components": {
+                        "gpu": {},
                         "cpu": {
                             "apply(<typename>)": 1.0,
                             "iteration": 1.0,
@@ -41,8 +45,7 @@
                             "cg::step_2": 1.0,
                             "free": 1.0,
                             "overhead": 1.0
-                        },
-                        "gpu": {}    
+                        }
                     },
                     "iterations": 7,
                     "time": 1.0
