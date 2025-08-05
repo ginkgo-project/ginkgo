@@ -256,7 +256,7 @@ include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /permissive-")
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
