@@ -1,12 +1,14 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -24,6 +26,12 @@ public:
     {
         status.get_data()[0].reset();
         status.get_data()[0].converge(0);
+        system =
+            gko::solver::Ir<T>::build()
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+                .on(exec)
+                ->generate(
+                    gko::initialize<Dense>(I<I<T>>{{1, 2}, {0, 3}}, exec));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> exec =
@@ -34,11 +42,9 @@ public:
         gko::initialize<AbsoluteDense>({5}, exec);
     std::unique_ptr<AbsoluteDense> implicit_sq_resnorm =
         gko::initialize<AbsoluteDense>({6}, exec);
-    std::unique_ptr<gko::LinOp> system =
-        gko::solver::Ir<T>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
-            .on(exec)
-            ->generate(gko::initialize<Dense>(I<I<T>>{{1, 2}, {0, 3}}, exec));
+    // we do not initialize the complex setup when declaring member because MSVC
+    // with /fpermissive- will fail at resolving the type.
+    std::unique_ptr<gko::LinOp> system;
     std::unique_ptr<Dense> rhs = gko::initialize<Dense>({15, 25}, exec);
     std::unique_ptr<Dense> solution = gko::initialize<Dense>({-2, 7}, exec);
 
