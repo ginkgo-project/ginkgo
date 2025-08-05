@@ -54,19 +54,20 @@ size_type min_rank(std::vector<ValueType>& key, size_type n_significand_bits)
 }  // namespace
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void classify_dofs(
     std::shared_ptr<const DefaultExecutor> exec,
-    matrix::Dense<ValueType>* labels, const array<IndexType>& tags,
-    comm_index_type local_part,
+    matrix::Dense<ValueType>* labels, const array<GlobalIndexType>& tags,
+    comm_index_type local_part, const LocalIndexType* row_ptrs,
+    const LocalIndexType* col_idxs,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
-    array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
-    array<ValueType>& unique_labels, array<IndexType>& unique_tags,
-    array<ValueType>& owning_labels, array<IndexType>& owning_tags,
-    size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
-    size_type& n_vertices, size_type& n_faces, size_type& n_edges,
-    size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges)
+    array<LocalIndexType>& permutation_array,
+    array<LocalIndexType>& interface_sizes, array<ValueType>& unique_labels,
+    array<GlobalIndexType>& unique_tags, array<ValueType>& owning_labels,
+    array<GlobalIndexType>& owning_tags, size_type& n_inner_idxs,
+    size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
+    size_type& n_faces, size_type& n_edges, size_type& n_constraints,
+    int& n_owning_interfaces, bool use_faces, bool use_edges)
 {
     using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
     comm_index_type n_significand_bits =
@@ -74,7 +75,7 @@ void classify_dofs(
     auto local_labels = labels->get_const_values();
     auto n_rows = labels->get_size()[0];
     auto n_cols = labels->get_size()[1];
-    std::map<std::pair<std::vector<uint_type>, IndexType>, IndexType>
+    std::map<std::pair<std::vector<uint_type>, GlobalIndexType>, LocalIndexType>
         occurences;
     std::vector<uint_type> key(n_cols, zero<ValueType>());
     uint_type int_key;
@@ -264,7 +265,7 @@ void classify_dofs(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS);
 
 

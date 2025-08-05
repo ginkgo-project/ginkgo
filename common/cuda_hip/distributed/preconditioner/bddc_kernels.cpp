@@ -69,21 +69,23 @@ __global__ __launch_bounds__(default_block_size) void fill_coarse_data(
 }  // namespace kernel
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void classify_dofs(
     std::shared_ptr<const DefaultExecutor> exec,
-    matrix::Dense<ValueType>* labels, const array<IndexType>& tags,
-    comm_index_type local_part,
+    matrix::Dense<ValueType>* labels, const array<GlobalIndexType>& tags,
+    comm_index_type local_part, const LocalIndexType* row_ptrs,
+    const LocalIndexType* col_idxs,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
-    array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
-    array<ValueType>& unique_labels, array<IndexType>& unique_tags,
-    array<ValueType>& owning_labels, array<IndexType>& owning_tags,
-    size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
-    size_type& n_vertices, size_type& n_faces, size_type& n_edges,
-    size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
+    array<LocalIndexType>& permutation_array,
+    array<LocalIndexType>& interface_sizes, array<ValueType>& unique_labels,
+    array<GlobalIndexType>& unique_tags, array<ValueType>& owning_labels,
+    array<GlobalIndexType>& owning_tags, size_type& n_inner_idxs,
+    size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
+    size_type& n_faces, size_type& n_edges, size_type& n_constraints,
+    int& n_owning_interfaces, bool use_faces,
     bool use_edges) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS);
 
 

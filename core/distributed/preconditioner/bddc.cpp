@@ -49,6 +49,8 @@
 #include "ginkgo/core/base/array.hpp"
 #include "ginkgo/core/base/composition.hpp"
 #include "ginkgo/core/base/device_matrix_data.hpp"
+#include "ginkgo/core/base/index_set.hpp"
+#include "ginkgo/core/base/intrinsics.hpp"
 #include "ginkgo/core/base/lin_op.hpp"
 #include "ginkgo/core/base/matrix_data.hpp"
 #include "ginkgo/core/base/mpi.hpp"
@@ -88,13 +90,13 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>
         system_matrix,
-    const array<LocalIndexType>& tags, array<dof_type>& dof_types,
+    const array<GlobalIndexType>& tags, array<dof_type>& dof_types,
     array<LocalIndexType>& permutation_array,
     array<LocalIndexType>& interface_sizes,
     array<remove_complex<ValueType>>& unique_labels,
-    array<LocalIndexType>& unique_tags,
+    array<GlobalIndexType>& unique_tags,
     array<remove_complex<ValueType>>& owning_labels,
-    array<LocalIndexType>& owning_tags, size_type& n_inner_idxs,
+    array<GlobalIndexType>& owning_tags, size_type& n_inner_idxs,
     size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
     size_type& n_faces, size_type& n_edges, size_type& n_constraints,
     int& n_owning_interfaces, bool use_faces, bool use_edges)
@@ -140,9 +142,48 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
     auto labels = clone(buffer_1->get_local_vector());
+    const gko::matrix::Csr<ValueType, LocalIndexType>* local_matrix =
+        as<const gko::matrix::Csr<ValueType, LocalIndexType>>(
+            system_matrix->get_local_matrix())
+            .get();
+
+    // gko::matrix_data<ValueType, LocalIndexType> local_data;
+    // local_matrix->write(local_data);
+    // gko::matrix_data<ValueType, LocalIndexType> gamma_data{local_data.size};
+    // uint_type row, col;
+    // std::vector<LocalIndexType> s_sizes(comm.size());
+    // for (auto entry : local_data.nonzeros) {
+    //     size_type n_row_ranks = 0;
+    //     size_type n_col_ranks = 0;
+    //     auto i = entry.row;
+    //     auto j = entry.column;
+    //     for (size_type k = 0; k < width; k++) {
+    //         std::memcpy(&row, labels->get_const_values() + i * width + k,
+    //         sizeof(uint_type)); std::memcpy(&col, labels->get_const_values()
+    //         + j * width + k, sizeof(uint_type)); n_row_ranks +=
+    //         gko::detail::popcount(row); n_col_ranks +=
+    //         gko::detail::popcount(col); for (size_type l = 0; l <
+    //         n_significand_bits; l++) {
+    //             if (row & ((LocalIndexType)1 << l) && col &
+    //             ((LocalIndexType)1 << l)) {
+    //                 s_sizes[k * n_significand_bits + l]++;
+    //             }
+    //         }
+    //     }
+    //     if (n_row_ranks > 1 && n_col_ranks > 1) {
+    //         gamma_data.nonzeros.emplace_back(i, j, one<ValueType>());
+    //     }
+    // }
+    // std::vector<LocalIndexType> s_offsets(comm.size() + 1, 0);
+    // std::partial_sum(s_sizes.begin(), s_sizes.end(),
+    //                     s_offsets.begin() + 1);
+
+    // std::ofstream out_gamma{"gamma_" + std::to_string(comm.rank()) + ".mtx"};
+    // write_raw(out_gamma, gamma_data);
 
     exec->run(bddc::make_classify_dofs(
-        labels.get(), tags, local_part, dof_types, permutation_array,
+        labels.get(), tags, local_part, local_matrix->get_const_row_ptrs(),
+        local_matrix->get_const_col_idxs(), dof_types, permutation_array,
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
         n_constraints, n_owning_interfaces, use_faces, use_edges));
@@ -418,11 +459,16 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     neg_one_ = gko::initialize<local_vec>({-1.0}, exec);
     zero_ = gko::initialize<local_vec>({zero<ValueType>()}, exec);
     size_type local_size = dd_system_matrix->get_local_matrix()->get_size()[0];
-    array<LocalIndexType> tags{host_exec, local_size};
+    // array<GlobalIndexType> tags{host_exec, local_size};
 
     // A processor can be inactive if the local problem has size 0, this happens
     // in particular on lower levels of a multilevel BDDC.
     active = local_size > 0;
+
+    array<LocalIndexType> local_idxs{exec, local_size};
+    exec->run(bddc::make_fill_seq_array(local_idxs.get_data(), local_size));
+    auto tags = dd_system_matrix->get_map().map_to_global(
+        local_idxs, index_space::combined);
 
     if (parameters_.tags.size() == local_size) {
         auto imap = dd_system_matrix->get_map();
@@ -448,9 +494,9 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     array<LocalIndexType> permutation_array{host_exec};
     array<LocalIndexType> interface_sizes{host_exec};
     array<real_type> unique_labels{host_exec};
-    array<LocalIndexType> unique_tags{host_exec};
+    array<GlobalIndexType> unique_tags{host_exec};
     array<real_type> owning_labels{host_exec};
-    array<LocalIndexType> owning_tags{host_exec};
+    array<GlobalIndexType> owning_tags{host_exec};
     size_type n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces,
         n_edges, n_constraints;
     int n_owning_interfaces;
@@ -713,10 +759,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     size_type num_parts = static_cast<size_type>(comm.size());
     size_type num_cols = labels->get_size()[1];
     array<int> owning_interfaces{host_exec, num_parts + 1};
-    array<LocalIndexType> owning_interfaces_index_type{host_exec,
-                                                       num_parts + 1};
-    LocalIndexType n_owning_interfaces_index_type =
-        static_cast<LocalIndexType>(n_owning_interfaces);
+    array<GlobalIndexType> owning_interfaces_index_type{host_exec,
+                                                        num_parts + 1};
+    GlobalIndexType n_owning_interfaces_index_type =
+        static_cast<GlobalIndexType>(n_owning_interfaces);
     comm.all_gather(host_exec, &n_owning_interfaces, 1,
                     owning_interfaces.get_data(), 1);
     comm.all_gather(host_exec, &n_owning_interfaces_index_type, 1,
@@ -730,7 +776,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         owning_interfaces_index_type.get_data(), num_parts + 1));
     size_type n_global_interfaces =
         exec->copy_val_to_host(owning_interfaces.get_data() + num_parts);
-    array<LocalIndexType> global_tags{host_exec, n_global_interfaces};
+    array<GlobalIndexType> global_tags{host_exec, n_global_interfaces};
     owning_tags.set_executor(host_exec);
     owning_sizes.set_executor(host_exec);
     owning_interfaces.set_executor(host_exec);
@@ -755,13 +801,13 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                       label_offsets.get_data());
     owning_interfaces_index_type.set_executor(exec);
     auto coarse_partition =
-        share(Partition<LocalIndexType, LocalIndexType>::build_from_contiguous(
+        share(Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
             exec, owning_interfaces_index_type));
-    device_matrix_data<ValueType, LocalIndexType> coarse_contribution{
+    device_matrix_data<ValueType, GlobalIndexType> coarse_contribution{
         host_exec, dim<2>{n_global_interfaces, n_global_interfaces},
         n_constraints * n_constraints};
 
-    array<LocalIndexType> coarse_global_idxs{host_exec, n_constraints};
+    array<GlobalIndexType> coarse_global_idxs{host_exec, n_constraints};
     auto host_lambda = clone(host_exec, lambda);
     host_exec->run(bddc::make_build_coarse_contribution(
         dof_types, unique_labels, unique_tags, global_labels, global_tags,
@@ -772,8 +818,12 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         std::cout << "COARSE SPACE: " << coarse_contribution.get_size()
                   << std::endl;
     }
+
+    std::ofstream out_coarse{"coarse_" + std::to_string(comm.rank()) + ".mtx"};
+    gko::write_raw(out_coarse, coarse_contribution.copy_to_host());
+    out_coarse.close();
     auto coarse_matrix =
-        share(DdMatrix<ValueType, LocalIndexType, LocalIndexType>::create(
+        share(DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::create(
             exec, comm));
     coarse_matrix->read_distributed(coarse_contribution.copy_to_host(),
                                     coarse_partition);
@@ -865,16 +915,16 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         std::partial_sum(elem_sizes.begin(), elem_sizes.end(),
                          elem_offsets.begin() + 1);
 
-        std::vector<LocalIndexType> send_row_idxs(n_coarse_entries);
-        std::vector<LocalIndexType> send_col_idxs(n_coarse_entries);
+        std::vector<GlobalIndexType> send_row_idxs(n_coarse_entries);
+        std::vector<GlobalIndexType> send_col_idxs(n_coarse_entries);
         std::vector<ValueType> send_values(n_coarse_entries);
         for (size_type i = 0; i < n_coarse_entries; i++) {
             send_row_idxs[i] = host_coarse.nonzeros[i].row;
             send_col_idxs[i] = host_coarse.nonzeros[i].column;
             send_values[i] = host_coarse.nonzeros[i].value;
         }
-        std::vector<LocalIndexType> recv_row_idxs(elem_offsets.back());
-        std::vector<LocalIndexType> recv_col_idxs(elem_offsets.back());
+        std::vector<GlobalIndexType> recv_row_idxs(elem_offsets.back());
+        std::vector<GlobalIndexType> recv_col_idxs(elem_offsets.back());
         std::vector<ValueType> recv_values(elem_offsets.back());
 
         comm.i_send(host_exec, send_row_idxs.data(), n_coarse_entries, new_part,
@@ -915,7 +965,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         comm.synchronize();
 
         // Assemble coarse contributions on new owners
-        matrix_data<ValueType, LocalIndexType> complete_coarse_data(
+        matrix_data<ValueType, GlobalIndexType> complete_coarse_data(
             host_coarse.size);
         for (size_type i = 0; i < elem_offsets.back(); i++) {
             complete_coarse_data.nonzeros.emplace_back(
@@ -938,26 +988,26 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
         // Use this mapping to create partition for the redistributed coarse
         // matrix.
-        auto new_partition =
-            share(Partition<LocalIndexType, LocalIndexType>::build_from_mapping(
+        auto new_partition = share(
+            Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
                 exec, mapping, num_parts));
 
         // Build Identity mapping from old to new coarse partition
-        array<LocalIndexType> row_idxs{exec, host_coarse.size[0]};
+        array<GlobalIndexType> row_idxs{exec, host_coarse.size[0]};
         exec->run(bddc::make_fill_seq_array(row_idxs.get_data(),
                                             host_coarse.size[0]));
-        array<LocalIndexType> col_idxs{exec, host_coarse.size[0]};
+        array<GlobalIndexType> col_idxs{exec, host_coarse.size[0]};
         col_idxs = row_idxs;
         array<ValueType> vals{exec, host_coarse.size[0]};
         vals.fill(one<ValueType>());
-        device_matrix_data<ValueType, LocalIndexType> id_data{
+        device_matrix_data<ValueType, GlobalIndexType> id_data{
             exec, host_coarse.size, row_idxs, col_idxs, vals};
         auto map_to_new =
-            share(Matrix<ValueType, LocalIndexType, LocalIndexType>::create(
+            share(Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                 exec, comm));
         map_to_new->read_distributed(id_data, new_partition, coarse_partition);
         auto map_from_new =
-            share(Matrix<ValueType, LocalIndexType, LocalIndexType>::create(
+            share(Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                 exec, comm));
         map_from_new->read_distributed(id_data, coarse_partition,
                                        new_partition);
@@ -965,20 +1015,20 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // Read coarse matrix with new partition and set up coarse solver
         bool multilevel =
             dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
-                                             LocalIndexType>::Factory*>(
+                                             GlobalIndexType>::Factory*>(
                 parameters_.coarse_solver.get()) != nullptr;
         std::shared_ptr<LinOp> coarse_solver;
         if (multilevel) {
             auto complete_coarse_matrix = share(
-                DdMatrix<ValueType, LocalIndexType, LocalIndexType>::create(
+                DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                     exec, comm));
             complete_coarse_matrix->read_distributed(complete_coarse_data,
                                                      new_partition);
             coarse_solver =
                 parameters_.coarse_solver->generate(complete_coarse_matrix);
         } else {
-            auto complete_coarse_matrix =
-                share(Matrix<ValueType, LocalIndexType, LocalIndexType>::create(
+            auto complete_coarse_matrix = share(
+                Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                     exec, comm));
             complete_coarse_matrix->read_distributed(complete_coarse_data,
                                                      new_partition);
@@ -995,16 +1045,16 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     } else {
         bool multilevel =
             dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
-                                             LocalIndexType>::Factory*>(
+                                             GlobalIndexType>::Factory*>(
                 parameters_.coarse_solver.get()) != nullptr;
         if (multilevel) {
             auto complete_coarse_matrix = share(
-                DdMatrix<ValueType, LocalIndexType, LocalIndexType>::create(
+                DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                     exec, comm));
             coarse_solver_ = parameters_.coarse_solver->generate(coarse_matrix);
         } else {
-            auto complete_coarse_matrix =
-                share(Matrix<ValueType, LocalIndexType, LocalIndexType>::create(
+            auto complete_coarse_matrix = share(
+                Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
                     exec, comm));
             complete_coarse_matrix->read_distributed(
                 coarse_contribution, coarse_partition,
@@ -1014,8 +1064,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         }
     }
 
-    array<LocalIndexType> coarse_non_owning_row_idxs{host_exec};
-    array<LocalIndexType> coarse_non_owning_col_idxs{host_exec};
+    array<GlobalIndexType> coarse_non_owning_row_idxs{host_exec};
+    array<GlobalIndexType> coarse_non_owning_col_idxs{host_exec};
     host_exec->run(bddc::make_filter_non_owning_idxs(
         coarse_contribution,
         make_temporary_clone(host_exec, coarse_partition).get(),
@@ -1023,9 +1073,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         coarse_non_owning_row_idxs, coarse_non_owning_col_idxs));
     coarse_non_owning_row_idxs.set_executor(exec);
     coarse_non_owning_col_idxs.set_executor(exec);
-    auto coarse_map = gko::experimental::distributed::index_map<LocalIndexType,
-                                                                LocalIndexType>(
-        exec, coarse_partition, comm.rank(), coarse_non_owning_row_idxs);
+    auto coarse_map =
+        gko::experimental::distributed::index_map<LocalIndexType,
+                                                  GlobalIndexType>(
+            exec, coarse_partition, comm.rank(), coarse_non_owning_row_idxs);
     coarse_global_idxs.set_executor(exec);
     auto coarse_local_idxs = coarse_map.map_to_local(
         coarse_global_idxs,
@@ -1152,40 +1203,46 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             auto host_diag = clone(host_exec, local_buf_2_);
             gko::matrix_data<ValueType, LocalIndexType> weight_data(
                 gko::dim<2>{local_size, local_size});
+            gko::matrix_data<ValueType, LocalIndexType> second_data(
+                gko::dim<2>{local_size, local_size});
             for (size_type i = 0; i < n_inactive; i++) {
                 weight_data.nonzeros.emplace_back(i, i, one<ValueType>());
+                second_data.nonzeros.emplace_back(i, i, one<ValueType>());
             }
-            for (size_type i = n_inactive + n_face_idxs; i < local_size; i++) {
+            for (size_type i = n_inactive + n_face_idxs + n_edge_idxs;
+                 i < local_size; i++) {
                 weight_data.nonzeros.emplace_back(i, i, host_diag->at(i, 0));
+                second_data.nonzeros.emplace_back(i, i, one<ValueType>());
             }
 
             size_type start = n_inactive;
-            std::vector<std::shared_ptr<local_vec>> diag_blocks(n_faces);
-            std::vector<std::shared_ptr<local_vec>> recv_blocks(n_faces);
-            std::vector<mpi::request> requests(n_faces);
-            std::vector<mpi::request> send_requests(n_faces);
-            std::vector<mpi::request> idx_requests(n_faces);
-            std::vector<mpi::request> send_idx_requests(n_faces);
-            array<GlobalIndexType> global_idxs{exec, n_face_idxs};
-            array<GlobalIndexType> other_global_idxs{exec, n_face_idxs};
-            for (size_type i = 0; i < n_faces; i++) {
+            std::vector<std::shared_ptr<local_vec>> diag_blocks(n_faces +
+                                                                n_edges);
+            std::vector<std::shared_ptr<local_vec>> recv_blocks;
+            std::vector<mpi::request> requests;
+            std::vector<mpi::request> send_requests;
+            std::vector<mpi::request> idx_requests;
+            std::vector<mpi::request> send_idx_requests;
+            std::vector<size_type> other_ranks(n_faces + n_edges);
+            std::vector<std::vector<GlobalIndexType>> global_idxs(n_edges +
+                                                                  n_faces);
+            std::vector<std::vector<GlobalIndexType>> other_global_idxs;
+            for (size_type i = 0; i < n_faces + n_edges; i++) {
                 using uint_type = typename gko::detail::float_traits<
                     remove_complex<ValueType>>::bits_type;
-                size_type other;
+                std::vector<size_type> others;
                 comm_index_type n_significand_bits =
                     std::numeric_limits<remove_complex<ValueType>>::digits;
                 size_type width = ceildiv(num_parts, n_significand_bits);
                 uint_type int_key;
                 for (size_type j = 0; j < width; j++) {
-                    bool found = false;
                     std::memcpy(&int_key,
                                 unique_labels.get_const_data() + i * width + j,
                                 sizeof(uint_type));
                     for (size_type k = 0; k < n_significand_bits; k++) {
                         if ((k != comm.rank()) &&
                             (int_key & (uint_type)1 << k)) {
-                            other = j * n_significand_bits + k;
-                            found = true;
+                            others.emplace_back(j * n_significand_bits + k);
                         }
                     }
                 }
@@ -1221,34 +1278,41 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto idxs = dd_system_matrix->get_map().map_to_global(
                     local_idxs,
                     gko::experimental::distributed::index_space::combined);
-                exec->copy(size, idxs.get_data(),
-                           global_idxs.get_data() + start - n_inactive);
+                idxs.set_executor(host_exec);
+                for (size_type j = 0; j < size; j++) {
+                    global_idxs[i].emplace_back(idxs.get_const_data()[j]);
+                }
                 A_FI->apply(neg_one_, sol, one_, A_FF);
-                auto recv_block = share(
-                    local_vec::create(exec, gko::dim<2>{size, size}, size));
-                recv_blocks[i] = recv_block;
                 diag_blocks[i] = A_FF;
+                for (size_type j = 0; j < others.size(); j++) {
+                    auto recv_block = share(
+                        local_vec::create(exec, gko::dim<2>{size, size}, size));
+                    recv_blocks.emplace_back(recv_block);
 
-                // std::ofstream out{"S_FF_" + std::to_string(comm.rank()) + "_"
-                // + std::to_string(other) + "_" + std::to_string(i) + ".mtx"};
-                // gko::write(out, diag_blocks[i]);
-                // out << "STRIDE: " << diag_blocks[i]->get_stride() <<
-                // std::endl;
-                send_requests[i] =
-                    comm.i_send(exec, diag_blocks[i]->get_values(), size * size,
-                                other, 2 * comm.rank());
-                requests[i] = comm.i_recv(exec, recv_blocks[i]->get_values(),
-                                          size * size, other, 2 * other);
-                send_idx_requests[i] = comm.i_send(
-                    exec, global_idxs.get_data() + start - n_inactive, size,
-                    other, 2 * comm.rank() + 1);
-                idx_requests[i] = comm.i_recv(
-                    exec, other_global_idxs.get_data() + start - n_inactive,
-                    size, other, 2 * other + 1);
+                    // std::ofstream out{"S_FF_" + std::to_string(comm.rank()) +
+                    // "_" + std::to_string(other) + "_" + std::to_string(i) +
+                    // ".mtx"}; gko::write(out, diag_blocks[i]); out << "STRIDE:
+                    // " << diag_blocks[i]->get_stride() << std::endl;
+                    send_requests.emplace_back(
+                        comm.i_send(exec, diag_blocks[i]->get_values(),
+                                    size * size, others[j], 2 * comm.rank()));
+                    requests.emplace_back(
+                        comm.i_recv(exec, recv_blocks.back()->get_values(),
+                                    size * size, others[j], 2 * others[j]));
+                    send_idx_requests.emplace_back(
+                        comm.i_send(host_exec, global_idxs[i].data(), size,
+                                    others[j], 2 * comm.rank() + 1));
+                    other_global_idxs.emplace_back(
+                        std::move(std::vector<GlobalIndexType>(size)));
+                    idx_requests.emplace_back(
+                        comm.i_recv(host_exec, other_global_idxs.back().data(),
+                                    size, others[j], 2 * others[j] + 1));
+                }
+                other_ranks[i] = others.size();
                 start += size;
             }
             start = n_inactive;
-            for (size_type i = 0; i < n_faces; i++) {
+            for (size_type i = 0; i < requests.size(); i++) {
                 send_requests[i].wait();
                 requests[i].wait();
                 // std::ofstream out_recv{"recv_" + std::to_string(comm.rank())
@@ -1258,68 +1322,80 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 send_idx_requests[i].wait();
                 idx_requests[i].wait();
             }
-            global_idxs.set_executor(host_exec);
-            other_global_idxs.set_executor(host_exec);
-            for (size_type i = 0; i < n_faces; i++) {
+            size_type offset = 0;
+            for (size_type i = 0; i < n_faces + n_edges; i++) {
                 size_type size = diag_blocks[i]->get_size()[0];
-                // if (comm.rank() == 0) {
-                //     std::cout << "Received " << i << std::endl;
-                // }
-                // recv_blocks[i]->add_scaled(one_, diag_blocks[i]);
-                array<LocalIndexType> other_perm_array{host_exec, size};
-                for (size_type j = 0; j < size; j++) {
+                auto sum = share(clone(diag_blocks[i]));
+
+                for (size_type j = offset; j < offset + other_ranks[i]; j++) {
+                    array<LocalIndexType> other_perm_array{host_exec, size};
                     for (size_type k = 0; k < size; k++) {
-                        if (other_global_idxs
-                                .get_const_data()[k + start - n_inactive] ==
-                            global_idxs
-                                .get_const_data()[j + start - n_inactive]) {
-                            other_perm_array.get_data()[j] = k;
-                            break;
+                        for (size_type l = 0; l < size; l++) {
+                            if (other_global_idxs[j][l] == global_idxs[i][k]) {
+                                other_perm_array.get_data()[k] = l;
+                                break;
+                            }
                         }
                     }
+                    other_perm_array.set_executor(exec);
+                    auto other_perm =
+                        perm_type::create(exec, std::move(other_perm_array));
+                    sum->add_scaled(one_, recv_blocks[j]->permute(other_perm));
                 }
-                other_perm_array.set_executor(exec);
-                auto other_perm =
-                    perm_type::create(exec, std::move(other_perm_array));
-                // std::ofstream out_perm{"perm_" + std::to_string(comm.rank())
-                // + "_" + std::to_string(i) + ".mtx"}; gko::write(out_perm,
-                // other_perm);
-                auto sum = share(recv_blocks[i]->permute(other_perm));
-                sum->add_scaled(one_, diag_blocks[i]);
                 // std::ofstream out_sum{"sum_" + std::to_string(comm.rank()) +
                 // "_" + std::to_string(i) + ".mtx"}; gko::write(out_sum, sum);
-                auto face_solver =
-                    gko::experimental::solver::Direct<ValueType,
-                                                      LocalIndexType>::build()
-                        .with_factorization(
-                            gko::experimental::factorization::Cholesky<
-                                ValueType, LocalIndexType>::build()
-                                .on(exec))
-                        .on(exec)
-                        ->generate(sum);
-                for (size_type j = 0; j < size; j++) {
-                    auto rhs = share(diag_blocks[i]->create_submatrix(
-                        span{0, size}, span{j, j + 1}));
-                    auto sol = share(recv_blocks[i]->create_submatrix(
-                        span{0, size}, span{j, j + 1}));
-                    face_solver->apply(rhs, sol);
-                }
-                // std::ofstream out{"D_F_" + std::to_string(comm.rank()) + "_"
-                // + std::to_string(i) + ".mtx"}; gko::write(out,
-                // recv_blocks[i]);
-                auto host_block = clone(host_exec, recv_blocks[i]);
+                // auto face_solver =
+                //     gko::experimental::solver::Direct<ValueType,
+                //                                     LocalIndexType>::build()
+                //         .with_factorization(gko::experimental::factorization::Cholesky<
+                //                                 ValueType,
+                //                                 LocalIndexType>::build()
+                //                                 .on(exec))
+                //         .on(exec)
+                //         ->generate(sum);
+                // auto sol = share(clone(diag_blocks[i]));
+                // for (size_type j = 0; j < size; j++) {
+                //     auto rhs = share(diag_blocks[i]->create_submatrix(
+                //         span{0, size}, span{j, j + 1}));
+                //     auto sol_col = share(sol->create_submatrix(
+                //         span{0, size}, span{j, j + 1}));
+                //     face_solver->apply(rhs, sol_col);
+                // }
+                // // std::ofstream out{"D_F_" + std::to_string(comm.rank()) +
+                // "_" + std::to_string(i) + ".mtx"};
+                // // gko::write(out, recv_blocks[i]);
+                // auto host_block = clone(host_exec, sol);
+
+                auto host_block = clone(host_exec, sum);
+                auto host_diag = clone(host_exec, diag_blocks[i]);
                 for (size_type j = 0; j < size; j++) {
                     for (size_type k = 0; k < size; k++) {
                         weight_data.nonzeros.emplace_back(start + j, start + k,
+                                                          host_diag->at(j, k));
+                        second_data.nonzeros.emplace_back(start + j, start + k,
                                                           host_block->at(j, k));
                     }
                 }
                 start += size;
+                offset += other_ranks[i];
             }
             auto weights = share(local_mtx::create(exec));
             weight_data.sort_row_major();
             weights->read(weight_data);
-            weights_ = weights;
+            auto lhs = share(local_mtx::create(exec));
+            second_data.sort_row_major();
+            lhs->read(second_data);
+            auto weight_solver =
+                share(gko::experimental::solver::Direct<ValueType,
+                                                        LocalIndexType>::build()
+                          .with_factorization(
+                              gko::experimental::factorization::Cholesky<
+                                  ValueType, LocalIndexType>::build()
+                                  .on(exec))
+                          .on(exec)
+                          ->generate(lhs));
+            weights_ =
+                gko::Composition<ValueType>::create(weight_solver, weights);
         }
     } else {
         weights_ = gko::matrix::Identity<ValueType>::create(exec, local_size);

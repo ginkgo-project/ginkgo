@@ -22,18 +22,20 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType)                        \
+#define GKO_DECLARE_CLASSIFY_DOFS(ValueType, LocalIndexType, GlobalIndexType)  \
     void classify_dofs(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        matrix::Dense<ValueType>* labels, const array<IndexType>& tags,        \
-        comm_index_type local_part,                                            \
+        matrix::Dense<ValueType>* labels, const array<GlobalIndexType>& tags,  \
+        comm_index_type local_part, const LocalIndexType* row_ptrs,            \
+        const LocalIndexType* col_idxs,                                        \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
-        array<IndexType>& permutation_array,                                   \
-        array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \
-        array<IndexType>& unique_tags, array<ValueType>& owning_labels,        \
-        array<IndexType>& owning_tags, size_type& n_inner_idxs,                \
-        size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices, \
-        size_type& n_faces, size_type& n_edges, size_type& n_constraints,      \
+        array<LocalIndexType>& permutation_array,                              \
+        array<LocalIndexType>& interface_sizes,                                \
+        array<ValueType>& unique_labels, array<GlobalIndexType>& unique_tags,  \
+        array<ValueType>& owning_labels, array<GlobalIndexType>& owning_tags,  \
+        size_type& n_inner_idxs, size_type& n_face_idxs,                       \
+        size_type& n_edge_idxs, size_type& n_vertices, size_type& n_faces,     \
+        size_type& n_edges, size_type& n_constraints,                          \
         int& n_owning_interfaces, bool use_faces, bool use_edges)
 
 
@@ -65,15 +67,16 @@ namespace kernels {
         array<IndexType>& permutation_array)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    using comm_index_type = experimental::distributed::comm_index_type; \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType);                    \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType);             \
-    template <typename ValueType>                                       \
-    GKO_DECLARE_FILL_COARSE_DATA(ValueType);                            \
-    template <typename ValueType, typename IndexType>                   \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
+    using comm_index_type = experimental::distributed::comm_index_type;    \
+    template <typename ValueType, typename LocalIndexType,                 \
+              typename GlobalIndexType>                                    \
+    GKO_DECLARE_CLASSIFY_DOFS(ValueType, LocalIndexType, GlobalIndexType); \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType);                \
+    template <typename ValueType>                                          \
+    GKO_DECLARE_FILL_COARSE_DATA(ValueType);                               \
+    template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_BUILD_COARSE_CONTRIBUTION(ValueType, IndexType)
 
 
