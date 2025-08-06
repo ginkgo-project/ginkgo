@@ -152,7 +152,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) += alpha[0] * x(row, col);
                 }
             },
-            x->get_size(), alpha->get_const_values(), x, y);
+            x->get_size(), as_restrict(alpha), as_restrict(x), as_restrict(y));
     }
 }
 
@@ -177,7 +177,7 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) -= alpha[0] * x(row, col);
                 }
             },
-            x->get_size(), alpha->get_const_values(), x, y);
+            x->get_size(), as_restrict(alpha), as_restrict(x), as_restrict(y));
     }
 }
 
@@ -196,7 +196,8 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) += alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
+        x->get_size()[0], as_restrict(alpha),
+        as_restrict(x->get_const_values()), as_restrict(y));
 }
 
 
@@ -214,7 +215,8 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) -= alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
+        x->get_size()[0], as_restrict(alpha),
+        as_restrict(x->get_const_values()), as_restrict(y));
 }
 
 
