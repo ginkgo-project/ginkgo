@@ -503,12 +503,30 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             auto x_clone = clone(state.x);
 
             {
-                auto gen_logger = create_operations_logger(
-                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_case["generate"]["components"], 1);
-                exec->add_logger(gen_logger);
-                if (exec != exec->get_master()) {
-                    exec->get_master()->add_logger(gen_logger);
+                std::shared_ptr<gko::log::ProfilerHook> gen_gpu_logger =
+                    nullptr;
+                std::shared_ptr<gko::log::ProfilerHook> gen_cpu_logger =
+                    nullptr;
+
+                if (FLAGS_gpu_timer) {
+                    gen_gpu_logger = create_operations_logger(
+                        true, FLAGS_nested_names, exec,
+                        solver_case["generate"]["components"]["gpu"], 1);
+                }
+                if (FLAGS_cpu_timer) {
+                    gen_cpu_logger = create_operations_logger(
+                        false, FLAGS_nested_names, exec,
+                        solver_case["generate"]["components"]["cpu"], 1);
+                }
+
+                if (FLAGS_cpu_timer) {
+                    exec->add_logger(gen_cpu_logger);
+                    if (exec != exec->get_master()) {
+                        exec->get_master()->add_logger(gen_cpu_logger);
+                    }
+                }
+                if (FLAGS_gpu_timer && exec != exec->get_master()) {
+                    exec->add_logger(gen_gpu_logger);
                 }
 
                 auto precond = precond_factory.at(precond_name)(exec);
@@ -516,9 +534,14 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                                          FLAGS_max_iters)
                              ->generate(state.system_matrix);
 
-                exec->remove_logger(gen_logger);
-                if (exec != exec->get_master()) {
-                    exec->get_master()->remove_logger(gen_logger);
+                if (FLAGS_cpu_timer) {
+                    exec->remove_logger(gen_cpu_logger);
+                    if (exec != exec->get_master()) {
+                        exec->get_master()->remove_logger(gen_cpu_logger);
+                    }
+                }
+                if (FLAGS_gpu_timer && exec != exec->get_master()) {
+                    exec->remove_logger(gen_gpu_logger);
                 }
             }
 
@@ -567,7 +590,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                         exec->get_master()->remove_logger(apply_cpu_logger);
                     }
                 }
-                if (exec != exec->get_master() && FLAGS_gpu_timer) {
+                if (FLAGS_gpu_timer && exec != exec->get_master()) {
                     exec->remove_logger(apply_gpu_logger);
                 }
             }
