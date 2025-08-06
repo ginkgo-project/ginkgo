@@ -33,7 +33,7 @@ void Conv<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(conv::make_conv(this, dense_b, dense_x));
+            this->get_executor()->run(conv::make_conv(kernel_, dense_b, dense_x));
         },
         b, x);
 }
@@ -50,7 +50,19 @@ template <typename ValueType>
 void Conv<ValueType>::validate_application_parameters(const LinOp* b,
                                                       const LinOp* x) const
 {
-    // implement dimension validation throw DimensionMismatch when it is wrong
+    using gko::detail::get_size;
+    const auto b_rows = get_size(b)[0];
+    const auto x_rows = get_size(x)[0];
+    const auto kernel_len = kernel_.get_size();
+
+    if (x_rows != b_rows + kernel_len - 1) {
+        throw DimensionMismatch(__FILE__, __LINE__, __func__,
+            "x", x_rows, 1, "b + kernel - 1", b_rows + kernel_len - 1, 1,
+            "x must have size = b + kernel - 1");
+    }
+
+    
+    GKO_ASSERT_EQUAL_COLS(b, x);
 }
 
 
@@ -82,9 +94,30 @@ std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
     return std::unique_ptr<Conv>{new Conv{exec, array}};
 }
 
+/*
+template <typename ValueType>
+const gko::array<ValueType>& Conv<ValueType>::get_kernel() const
+{
+    return kernel_;
+}
 
+template <typename ValueType>
+ValueType Conv<ValueType>::at(int row, int col) const
+{
+    GKO_ASSERT_EQ(col, 0);  // only single column supported
+    GKO_ASSERT(row >= 0 && row < kernel_.get_size());
+    return kernel_.get_const_data()[row];
+}
+template <typename ValueType>
+dim<2> Conv<ValueType>::get_size() const
+{
+    return dim<2>(kernel_.get_size(), 1);
+}
+*/
 #define GKO_DECLARE_CONV(ValueType) class Conv<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV);
+
+
 
 
 }  // namespace matrix
