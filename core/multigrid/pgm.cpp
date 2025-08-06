@@ -204,13 +204,18 @@ Pgm<ValueType, IndexType>::generate_local(
     IndexType num_unagg_prev = num_rows;
     // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
     // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
-    auto abs_mtx = local_matrix->compute_absolute();
-    // abs_mtx is already real valuetype, so transpose is enough
-    auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
-    auto identity = matrix::Identity<real_type>::create(exec, num_rows);
-    // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    std::shared_ptr<weight_csr_type> weight_mtx = nullptr;
+    if (this->get_parameters().local_weight_mtx) {
+        weight_mtx = this->get_parameters().local_weight_mtx;
+    } else {
+        auto abs_mtx = local_matrix->compute_absolute();
+        // abs_mtx is already real valuetype, so transpose is enough
+        weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
+        auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+        auto identity = matrix::Identity<real_type>::create(exec, num_rows);
+        // W = (abs_mtx + transpose(abs_mtx))/2
+        abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    }
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {

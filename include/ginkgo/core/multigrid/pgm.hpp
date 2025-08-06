@@ -127,6 +127,13 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * Local weight matrix. If it is nullptr, we will generate the weight
+         * matrix by (abs(mtx) + abs(mtx'))/2.
+         */
+        std::shared_ptr<const matrix::Csr<remove_complex<ValueType>, IndexType>>
+            GKO_FACTORY_PARAMETER_SCALAR(local_weight_mtx, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
