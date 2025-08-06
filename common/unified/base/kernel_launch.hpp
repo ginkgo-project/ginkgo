@@ -176,9 +176,9 @@ using aliased_ptr = T*;
  *
  * @tparam ValueType  the value type of the underlying matrix.
  */
-template <typename ValueType>
+template <typename ValueType, template <typename> typename PtrWrapper>
 struct matrix_accessor {
-    ValueType* __restrict data;
+    PtrWrapper<ValueType> data;
     int64 stride;
 
     /**
@@ -202,6 +202,16 @@ struct matrix_accessor {
 };
 
 
+struct restrict_tag {};
+
+
+template <typename T>
+auto as_restrict(T&& orig) -> std::pair<T&&, restrict_tag>
+{
+    return {std::forward<T>(orig), restrict_tag{}};
+}
+
+
 /**
  * @internal
  * This struct is used to provide mappings from host types like
@@ -220,25 +230,25 @@ struct matrix_accessor {
  *            pointers or values. This means that T will be either a r-value or
  *            l-value reference.
  */
-template <typename T>
+template <typename T, template <typename> typename PtrWrapper = aliased_ptr>
 struct to_device_type_impl {
     using type = std::decay_t<device_type<T>>;
     static type map_to_device(T in) { return as_device_type(in); }
 };
 
-template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType>*&> {
-    using type = matrix_accessor<device_type<ValueType>>;
+template <typename ValueType, template <typename> typename PtrWrapper>
+struct to_device_type_impl<matrix::Dense<ValueType>*&, PtrWrapper> {
+    using type = matrix_accessor<device_type<ValueType>, PtrWrapper>;
     static type map_to_device(matrix::Dense<ValueType>* mtx)
     {
-        return to_device_type_impl<
-            matrix::Dense<ValueType>* const&>::map_to_device(mtx);
+        return to_device_type_impl<matrix::Dense<ValueType>* const&,
+                                   PtrWrapper>::map_to_device(mtx);
     }
 };
 
-template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType>* const&> {
-    using type = matrix_accessor<device_type<ValueType>>;
+template <typename ValueType, template <typename> typename PtrWrapper>
+struct to_device_type_impl<matrix::Dense<ValueType>* const&, PtrWrapper> {
+    using type = matrix_accessor<device_type<ValueType>, PtrWrapper>;
     static type map_to_device(matrix::Dense<ValueType>* mtx)
     {
         return {as_device_type(mtx->get_values()),
@@ -246,9 +256,9 @@ struct to_device_type_impl<matrix::Dense<ValueType>* const&> {
     }
 };
 
-template <typename ValueType>
-struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
-    using type = matrix_accessor<const device_type<ValueType>>;
+template <typename ValueType, template <typename> typename PtrWrapper>
+struct to_device_type_impl<const matrix::Dense<ValueType>*&, PtrWrapper> {
+    using type = matrix_accessor<const device_type<ValueType>, PtrWrapper>;
     static type map_to_device(const matrix::Dense<ValueType>* mtx)
     {
         return {as_device_type(mtx->get_const_values()),
@@ -256,34 +266,52 @@ struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
     }
 };
 
-template <typename ValueType>
-struct to_device_type_impl<array<ValueType>&> {
-    using type = restricted_ptr<device_type<ValueType>>;
+template <typename ValueType, template <typename> typename PtrWrapper>
+struct to_device_type_impl<array<ValueType>&, PtrWrapper> {
+    using type = PtrWrapper<device_type<ValueType>>;
     static type map_to_device(array<ValueType>& array)
     {
         return {as_device_type(array.get_data())};
     }
 };
 
-template <typename ValueType>
-struct to_device_type_impl<const array<ValueType>&> {
-    using type = restricted_ptr<const device_type<ValueType>>;
+template <typename ValueType, template <typename> typename PtrWrapper>
+struct to_device_type_impl<const array<ValueType>&, PtrWrapper> {
+    using type = PtrWrapper<const device_type<ValueType>>;
     static type map_to_device(const array<ValueType>& array)
     {
         return {as_device_type(array.get_const_data())};
     }
 };
 
-template <typename T>
-struct to_device_type_impl<T*> {
-    using type = restricted_ptr<device_type<T>>;
+template <typename T, template <typename> typename PtrWrapper>
+struct to_device_type_impl<T*, PtrWrapper> {
+    using type = PtrWrapper<device_type<T>>;
+    static type map_to_device(T in) { return {as_device_type(in)}; }
+};
+
+template <typename T, template <typename> typename PtrWrapper>
+struct to_device_type_impl<const T*, PtrWrapper> {
+    using type = PtrWrapper<const device_type<T>>;
     static type map_to_device(T in) { return {as_device_type(in)}; }
 };
 
 template <typename T>
-struct to_device_type_impl<const T*> {
-    using type = restricted_ptr<const device_type<T>>;
-    static type map_to_device(T in) { return {as_device_type(in)}; }
+struct to_device_type_impl<std::pair<T&, restrict_tag>&, aliased_ptr> {
+    using type = typename to_device_type_impl<T&, restricted_ptr>::type;
+    static type map_to_device(std::pair<T&, restrict_tag> in)
+    {
+        return to_device_type_impl<T&, restricted_ptr>::map_to_device(in.first);
+    }
+};
+
+template <typename T>
+struct to_device_type_impl<std::pair<T, restrict_tag>&, aliased_ptr> {
+    using type = typename to_device_type_impl<T, restricted_ptr>::type;
+    static type map_to_device(std::pair<T, restrict_tag> in)
+    {
+        return to_device_type_impl<T, restricted_ptr>::map_to_device(in.first);
+    }
 };
 
 
