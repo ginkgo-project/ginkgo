@@ -24,8 +24,8 @@ namespace conv {
 
 template <typename ValueType>
 void conv(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Conv<ValueType>* kernel,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+          const array<ValueType>& kernel, const matrix::Dense<ValueType>* b,
+          matrix::Dense<ValueType>* x)
 {
     GKO_NOT_IMPLEMENTED;
 }
