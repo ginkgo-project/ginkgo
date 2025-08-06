@@ -225,63 +225,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(z1), gko::detail::get_local(w),
         gko::detail::get_local(m), gko::detail::get_local(n), delta));
 
-    // std::cout << "z: \n";
-    // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
-    //         std::cout << z->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "z1: \n";
-    // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
-    //         std::cout << z1->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "z2: \n";
-    // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
-    //         std::cout << z2->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "\nrw: \n";
-    // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
-    //         std::cout << rw->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "r: \n";
-    // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
-    //         std::cout << r->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "w: \n";
-    // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
-    //         std::cout << w->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "prev_rho: \n";
-    // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
-    //         std::cout << prev_rho->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-    // std::cout << "rho: \n";
-    // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
-    //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
-    //         std::cout << rho->at(ii, jj) << ' ';
-    //     }
-    //     std::cout << '\n';
-    // }
-
     /* Memory movement summary:
      TODO
      */
@@ -300,64 +243,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(q), gko::detail::get_local(f),
             gko::detail::get_local(g), rho, beta, &stop_status));
 
-        // std::cout << "\n(step 1)" << iter << "\n";
-        // std::cout << "z: \n";
-        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
-        //         std::cout << z->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z1: \n";
-        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
-        //         std::cout << z1->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z2: \n";
-        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
-        //         std::cout << z2->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "\nrw: \n";
-        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
-        //         std::cout << rw->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "r: \n";
-        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
-        //         std::cout << r->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "w: \n";
-        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
-        //         std::cout << w->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "prev_rho: \n";
-        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
-        //         std::cout << prev_rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "rho: \n";
-        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
-        //         std::cout << rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-
         // m = preconditioner * w
         this->get_preconditioner()->apply(w, m);
         // n = A * m
@@ -370,72 +255,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         rw->compute_conj_dot(z, rhodelta, reduction_tmp);
         // check
         ++iter;
-
-        // std::cout << "\nSTEPPED other ++iter;" << iter << "\n";
-        // std::cout << "z: \n";
-        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
-        //         std::cout << z->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z1: \n";
-        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
-        //         std::cout << z1->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z2: \n";
-        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
-        //         std::cout << z2->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "\nrw: \n";
-        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
-        //         std::cout << rw->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "r: \n";
-        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
-        //         std::cout << r->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "w: \n";
-        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
-        //         std::cout << w->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "rhodelta: \n";
-        // for (size_t ii = 0; ii < rhodelta->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rhodelta->get_size()[1]; ++jj) {
-        //         std::cout << rhodelta->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "prev_rho: \n";
-        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
-        //         std::cout << prev_rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "rho: \n";
-        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
-        //         std::cout << rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-
         bool all_stopped =
             stop_criterion->update()
                 .num_iterations(iter)
@@ -449,6 +268,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (all_stopped) {
             break;
         }
+
         // tmp = rho / prev_rho
         // beta = delta - |tmp|^2 * beta
         // p = z + tmp * p
@@ -461,71 +281,6 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(z1), gko::detail::get_local(w),
             gko::detail::get_local(m), gko::detail::get_local(n), prev_rho, rho,
             delta, &stop_status));
-
-        // std::cout << "\n(step 2)" << iter << "\n";
-        // std::cout << "z: \n";
-        // for (size_t ii = 0; ii < z->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z->get_size()[1]; ++jj) {
-        //         std::cout << z->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z1: \n";
-        // for (size_t ii = 0; ii < z1->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z1->get_size()[1]; ++jj) {
-        //         std::cout << z1->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "z2: \n";
-        // for (size_t ii = 0; ii < z2->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < z2->get_size()[1]; ++jj) {
-        //         std::cout << z2->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "\nrw: \n";
-        // for (size_t ii = 0; ii < rw->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rw->get_size()[1]; ++jj) {
-        //         std::cout << rw->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "r: \n";
-        // for (size_t ii = 0; ii < r->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < r->get_size()[1]; ++jj) {
-        //         std::cout << r->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "w: \n";
-        // for (size_t ii = 0; ii < w->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < w->get_size()[1]; ++jj) {
-        //         std::cout << w->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "rhodelta: \n";
-        // for (size_t ii = 0; ii < rhodelta->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rhodelta->get_size()[1]; ++jj) {
-        //         std::cout << rhodelta->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "prev_rho: \n";
-        // for (size_t ii = 0; ii < prev_rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < prev_rho->get_size()[1]; ++jj) {
-        //         std::cout << prev_rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
-        // std::cout << "rho: \n";
-        // for (size_t ii = 0; ii < rho->get_size()[0]; ++ii) {
-        //     for (size_t jj = 0; jj < rho->get_size()[1]; ++jj) {
-        //         std::cout << rho->at(ii, jj) << ' ';
-        //     }
-        //     std::cout << '\n';
-        // }
     }
 }
 
