@@ -49,7 +49,6 @@ public:
     static std::unique_ptr<Conv> create(std::shared_ptr<const Executor> exec,
                                         const array<ValueType>& array);
 
-                                    
 
 protected:
     Conv(std::shared_ptr<const Executor> exec, const array<ValueType>& array);

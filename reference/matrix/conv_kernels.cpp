@@ -24,20 +24,21 @@ namespace conv {
 
 template <typename ValueType>
 void conv(std::shared_ptr<const DefaultExecutor> exec,
-          const array<ValueType>& kernel,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+          const array<ValueType>& kernel, const matrix::Dense<ValueType>* b,
+          matrix::Dense<ValueType>* x)
 {
-    const auto b_size = b->get_size();                      // (N, 1)
-    const auto x_size = x->get_size();                      // (N + K - 1, 1)
-    const auto kernel_size = kernel.get_size();  // K
-    const auto* kernel_ptr = kernel.get_const_data();       // pointer to kernel data
+    const auto b_size = b->get_size();                 // (N, 1)
+    const auto x_size = x->get_size();                 // (N + K - 1, 1)
+    const auto kernel_size = kernel.get_size();        // K
+    const auto* kernel_ptr = kernel.get_const_data();  // pointer to kernel data
 
     for (int i = 0; i < x_size[0]; ++i) {
         ValueType sum = zero<ValueType>();
         for (int j = 0; j < kernel_size; ++j) {
             int b_idx = i - j;
             if (b_idx >= 0 && b_idx < b_size[0]) {
-                sum += kernel_ptr[j] * b->at(b_idx, 0);  // direct pointer access
+                sum +=
+                    kernel_ptr[j] * b->at(b_idx, 0);  // direct pointer access
             }
         }
         x->at(i, 0) = sum;

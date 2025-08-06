@@ -33,7 +33,8 @@ void Conv<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(conv::make_conv(kernel_, dense_b, dense_x));
+            this->get_executor()->run(
+                conv::make_conv(kernel_, dense_b, dense_x));
         },
         b, x);
 }
@@ -56,12 +57,12 @@ void Conv<ValueType>::validate_application_parameters(const LinOp* b,
     const auto kernel_len = kernel_.get_size();
 
     if (x_rows != b_rows + kernel_len - 1) {
-        throw DimensionMismatch(__FILE__, __LINE__, __func__,
-            "x", x_rows, 1, "b + kernel - 1", b_rows + kernel_len - 1, 1,
-            "x must have size = b + kernel - 1");
+        throw DimensionMismatch(__FILE__, __LINE__, __func__, "x", x_rows, 1,
+                                "b + kernel - 1", b_rows + kernel_len - 1, 1,
+                                "x must have size = b + kernel - 1");
     }
 
-    
+
     GKO_ASSERT_EQUAL_COLS(b, x);
 }
 
@@ -116,8 +117,6 @@ dim<2> Conv<ValueType>::get_size() const
 */
 #define GKO_DECLARE_CONV(ValueType) class Conv<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV);
-
-
 
 
 }  // namespace matrix

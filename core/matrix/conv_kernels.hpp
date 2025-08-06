@@ -18,7 +18,7 @@ namespace kernels {
 
 #define GKO_DECLARE_CONV_KERNEL(ValueType)                 \
     void conv(std::shared_ptr<const DefaultExecutor> exec, \
-               const gko::array<ValueType>& kernel,       \
+              const gko::array<ValueType>& kernel,         \
               const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 
 
