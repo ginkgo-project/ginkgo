@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "/ginkgo/spmv",
+  "$id": "spmv.item.schema.json",
   "title": "SpMV",
   "desciption": "something",
   "type": "array",
@@ -8,48 +8,13 @@
     "type": "object",
     "properties": {
       "operator": {
-        "type": "object",
-        "properties": {
-          "filename": {
-            "type": "string"
-          },
-          "stencil": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "local_size": {
-                "type": "number",
-                "exclusiveMinimum": 0
-              },
-              "process_grid": {
-                "type": "array",
-                "minItems": 3,
-                "maxItems": 3,
-                "items": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
-                }
-              }
-            }
-          }
-        },
-        "oneOf": [
-          {
-            "required": [
-              "filename"
-            ]
-          },
-          {
-            "required": [
-              "stencil"
-            ]
-          }
-        ]
-      },
+        "$ref": "schema.operator.json"
+        }     ,
       "format": {
         "type": "string"
+      },
+      "reorder": {
+        "enum": ["amd", "nd", "rcm"]
       }
     }
   }

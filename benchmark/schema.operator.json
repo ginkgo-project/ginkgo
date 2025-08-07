@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.operator.json",
+  "title": "Operator",
+  "desciption": "something",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "stencil": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "local_size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "process_grid": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      },
+      "required": [
+        "name",
+        "local_size"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": [
+        "filename"
+      ]
+    },
+    {
+      "required": [
+        "stencil"
+      ]
+    }
+  ]
+}
