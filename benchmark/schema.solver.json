@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Solver",
+  "desciption": "something",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "operator": {
+        "$ref": "schema.operator.json"
+      },
+      "solver": {
+        "type": "object",
+        "not": {
+          "required": ["criteria"]
+        }
+      },
+      "optimal": {
+        "type": "object",
+        "properties": {
+          "spmv": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string"
+              }
+            },
+            "required": ["format"]
+          }
+        },
+        "required": ["spmv"]
+      }
+    },
+    "required": ["operator", "solver", "optimal"]
+  }
+}

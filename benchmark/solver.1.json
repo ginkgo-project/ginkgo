@@ -1,0 +1,26 @@
+[
+  {
+    "operator": {
+      "stencil": {
+        "local_size": 100,
+        "name": "5pt"
+      }
+    },
+    "solver": {
+      "type": "solver::Cg",
+      "preconditioner": {
+        "type": "preconditioner::Jacobi",
+        "max_block_size": 4
+      },
+      "criteria": {
+        "iteration": 10
+      }
+    },
+    "optimal": {
+      "spmv": {
+        "format": "csr",
+        "reorder": "natural"
+      }
+    }
+  }
+]
