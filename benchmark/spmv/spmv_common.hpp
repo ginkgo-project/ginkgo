@@ -177,28 +177,40 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
         format_case["repetitions"] = ic.get_num_repetitions();
     }
 
-    void postprocess(json& test_case) const override
+    void postprocess(json& test_cases) const override
     {
-        if (!test_case.contains("optimal")) {
-            test_case["optimal"] = json::object();
+        std::map<json, json> same_operators;
+        for (const auto& test_case : test_cases) {
+            auto without_result = test_case;
+            without_result.erase(name);
+            without_result.erase("format");
+            same_operators.try_emplace(without_result, json::object());
+            same_operators[without_result]
+                          [test_case["format"].get<std::string>()] =
+                              test_case[name];
         }
-        auto best_time = std::numeric_limits<double>::max();
-        std::string best_format;
-        // find the fastest among all formats we tested
-        // for (const auto& format : formats) {
-        //     auto& format_case = test_case[name][format];
-        //     if (format_case.contains("completed") &&
-        //         format_case["completed"].template get<bool>()) {
-        //         auto time = format_case["time"];
-        //         if (time < best_time) {
-        //             best_time = time;
-        //             best_format = format;
-        //         }
-        //     }
-        // }
-        if (!best_format.empty()) {
-            test_case["optimal"][name] = best_format;
+        auto merged_cases = json::array();
+        for (const auto& [test_case, results] : same_operators) {
+            auto best_time = std::numeric_limits<double>::max();
+            std::string best_format;
+            for (const auto& [format, result] : results.items()) {
+                if (result.contains("completed") &&
+                    result["completed"].template get<bool>()) {
+                    auto time = result["time"];
+                    if (time < best_time) {
+                        best_time = time;
+                        best_format = format;
+                    }
+                }
+            }
+
+            merged_cases.push_back(test_case);
+            merged_cases.back()[name] = results;
+            if (!best_format.empty()) {
+                merged_cases.back()["optimal"][name] = best_format;
+            }
         }
+        test_cases = std::move(merged_cases);
     }
 };
 
