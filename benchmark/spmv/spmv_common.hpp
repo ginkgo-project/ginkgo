@@ -47,27 +47,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return {};
-    }
-
     bool should_print() const override { return do_print; }
-
-    std::string get_example_config() const override
-    {
-        return generator.get_example_config();
-    }
-
-    bool validate_config(const json& test_case) const override
-    {
-        return generator.validate_config(test_case);
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return generator.describe_config(test_case);
-    }
 
     spmv_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
                                           json& test_case) const override

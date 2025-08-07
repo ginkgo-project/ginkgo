@@ -49,46 +49,13 @@ struct DefaultSystemGenerator {
         return {data, size};
     }
 
-    static std::string get_example_config()
-    {
-        return json::
-            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"stencil": {"name": "7pt", "local_size": 100}}])")
-                .dump(4);
-    }
-
-    static bool validate_config(const json& test_case)
-    {
-        return (test_case.contains("stencil") &&
-                test_case["stencil"].is_object() &&
-                test_case["stencil"].contains("name") &&
-                test_case["stencil"]["name"].is_string() &&
-                test_case["stencil"].contains("local_size")) ||
-               (test_case.contains("filename") &&
-                test_case["filename"].is_string());
-    }
-
-    static std::string describe_config(const json& config)
-    {
-        if (config.contains("filename")) {
-            return config["filename"].get<std::string>();
-        } else if (config.contains("stencil")) {
-            std::stringstream ss;
-            ss << "stencil("
-               << config["stencil"]["local_size"].get<gko::int64>() << ", "
-               << config["stencil"]["name"].get<std::string>() << ")";
-            return ss.str();
-        } else {
-            throw std::runtime_error("No known way to describe config.");
-        }
-    }
-
     static std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
         std::shared_ptr<gko::Executor> exec, json& config)
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
-            std::move(exec), config["optimal"]["spmv"].get<std::string>(),
-            data);
+            std::move(exec),
+            config["optimal"]["spmv"]["format"].get<std::string>(), data);
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(

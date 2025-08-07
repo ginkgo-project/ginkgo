@@ -23,8 +23,8 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format2 = Generator::get_example_config();
-    initialize_argument_parsing_matrix(&argc, &argv, header, format2);
+    std::string format;
+    initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::string extra_information = "The formats are " + FLAGS_formats +
                                     "\nThe number of right hand sides is " +
@@ -65,59 +65,8 @@ int main(int argc, char* argv[])
     }
     auto annotate = annotate_functor(profiler_hook);
 
-    auto benchmark_cases = json::array();
+    auto results = run_test_cases(SpmvBenchmark{Generator{}}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
 
-    for (auto& test_case : test_cases) {
-        benchmark_cases.push_back(test_case);
-        auto& current_case = benchmark_cases.back();
-        try {
-            // set up benchmark
-            auto test_case_desc = to_string(current_case);
-            if (benchmark.should_print()) {
-                std::clog << "Running test case " << std::endl;
-                std::clog << "    " << current_case << std::endl;
-            }
-
-            if (!current_case.contains(benchmark.get_name())) {
-                current_case[benchmark.get_name()] = json::object();
-            }
-
-            auto test_case_state = benchmark.setup(exec, current_case);
-            auto test_case_range = annotate(test_case_desc.c_str());
-            auto& result_case = current_case[benchmark.get_name()];
-            try {
-                benchmark.run(exec, timer, annotate, test_case_state,
-                              current_case["format"].get<std::string>(),
-                              result_case);
-                result_case["completed"] = true;
-            } catch (const std::exception& e) {
-                result_case["completed"] = false;
-                result_case["error_type"] =
-                    gko::name_demangling::get_dynamic_type(e);
-                result_case["error"] = e.what();
-                std::cerr << "Error when processing test case\n"
-                          << test_case_desc << "\n"
-                          << "what(): " << e.what() << std::endl;
-            }
-
-            if (benchmark.should_print()) {
-                backup_results(benchmark_cases);
-            }
-        } catch (const std::exception& e) {
-            if (benchmark.should_print()) {
-                std::cerr << "Error setting up benchmark, what(): " << e.what()
-                          << std::endl;
-            }
-            current_case["error_type"] =
-                gko::name_demangling::get_dynamic_type(e);
-            current_case["error"] = e.what();
-        }
-    }
-    benchmark.postprocess(benchmark_cases);
-
-    if (profiler_hook) {
-        exec->remove_logger(profiler_hook);
-    }
-
-    std::cout << std::setw(4) << benchmark_cases << std::endl;
+    std::cout << std::setw(4) << results << std::endl;
 }
