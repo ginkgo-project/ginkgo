@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,37 +41,39 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
     gko::matrix_data<ValueType, IndexType>& data, json& test_case)
 {
 #ifndef GKO_BENCHMARK_DISTRIBUTED
-    if (FLAGS_reorder == "none") {
+    if (!test_case.contains("reorder") ||
+        test_case["reorder"].get<std::string>() == "natural") {
+        test_case["reorder"] = "natural";
         return nullptr;
     }
+    auto reordering_alg = test_case["reorder"].get<std::string>();
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
     auto ref = gko::ReferenceExecutor::create();
     auto mtx = gko::share(Csr::create(ref));
     mtx->read(data);
     std::unique_ptr<gko::matrix::Permutation<IndexType>> perm;
-    if (FLAGS_reorder == "amd") {
+    if (reordering_alg == "amd") {
         perm = gko::experimental::reorder::Amd<IndexType>::build()
                    .on(ref)
                    ->generate(mtx);
 #if GKO_HAVE_METIS
-    } else if (FLAGS_reorder == "nd") {
+    } else if (reordering_alg == "nd") {
         perm = gko::experimental::reorder::NestedDissection<ValueType,
                                                             IndexType>::build()
                    .on(ref)
                    ->generate(mtx);
 #endif
-    } else if (FLAGS_reorder == "rcm") {
+    } else if (reordering_alg == "rcm") {
         perm = gko::experimental::reorder::Rcm<IndexType>::build()
                    .on(ref)
                    ->generate(mtx);
     } else {
         throw std::runtime_error{"Unknown reordering algorithm " +
-                                 FLAGS_reorder};
+                                 reordering_alg};
     }
     auto perm_arr =
         gko::array<IndexType>::view(ref, data.size[0], perm->get_permutation());
     gko::as<Csr>(mtx->permute(&perm_arr))->write(data);
-    test_case["reordered"] = FLAGS_reorder;
     return perm;
 #else
     // no reordering for distributed benchmarks
