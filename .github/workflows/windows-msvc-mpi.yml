@@ -6,7 +6,6 @@ on:
       - 'main'
       - 'develop'
       - 'release/**'
-      - 'check_msvc_mpi'
     tags:
       - '**'
   pull_request:
@@ -41,6 +40,14 @@ jobs:
       uses: mpi4py/setup-mpi@v1
       with:
           mpi: intelmpi
+    - name: setup (versioned)
+      if: matrix.config.version != 'latest'
+      run: |
+        choco install cuda --version=${{ matrix.config.version }} -y
+    - name: setup (latest)
+      if: matrix.config.version == 'latest'
+      run: |
+        choco install cuda -y
     - name: Debug over SSH (tmate)
       uses: mxschmitt/action-tmate@v3.5
       if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
@@ -49,7 +56,10 @@ jobs:
 
     - name: configure
       run: |
+        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
+        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        refreshenv
         mkdir build
         cd build
-        cmake -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
+        cmake -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75 -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
         cmake --build . -j4 --config Release
