@@ -134,7 +134,7 @@ public:
          * Local weight matrix. If it is nullptr, we will generate the weight
          * matrix by (abs(mtx) + abs(mtx'))/2.
          */
-        std::shared_ptr<const matrix::Csr<remove_complex<ValueType>, IndexType>>
+        std::shared_ptr<matrix::Csr<remove_complex<ValueType>, IndexType>>
             GKO_FACTORY_PARAMETER_SCALAR(local_weight_mtx, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
