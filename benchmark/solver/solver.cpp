@@ -39,10 +39,9 @@ int main(int argc, char* argv[])
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
 
     std::string extra_information =
-        "Running " + FLAGS_solvers + " with " +
-        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
-        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs);
+        "Running solvers with " + std::to_string(FLAGS_max_iters) +
+        " iterations and residual goal of " + ss_rel_res_goal.str() +
+        "\nThe number of right hand sides is " + std::to_string(FLAGS_nrhs);
 
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);

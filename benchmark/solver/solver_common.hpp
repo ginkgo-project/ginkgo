@@ -35,34 +35,9 @@ DEFINE_bool(
     rel_residual, false,
     "Use relative residual instead of residual reduction stopping criterion");
 
-DEFINE_string(solvers, "cg",
-              "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, bicg, cb_gmres_keep, "
-              "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
-              "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, direct, fcg, "
-              "pipe_cg, gmres, idr, lower_trs, minres, near_symm_direct, "
-              "upper_trs, spd_direct, symm_direct, "
-              "overhead");
-
 DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
-
-DEFINE_uint32(gcr_restart, 100,
-              "Maximum dimension of the Krylov space to use in GCR");
-
-DEFINE_uint32(gmres_restart, 100,
-              "Maximum dimension of the Krylov space to use in GMRES");
-
-DEFINE_string(gmres_ortho_method, "mgs",
-              "The orthogonalization method to use in GMRES.");
-
-DEFINE_uint32(idr_subspace_dim, 2,
-              "What dimension of the subspace to use in IDR");
-
-DEFINE_double(
-    idr_kappa, 0.7,
-    "the number to check whether Av_n and v_n are too close or not in IDR");
 
 DEFINE_string(
     rhs_generation, "1",
@@ -241,6 +216,13 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
         auto solver_case = operation_case;
         solver_case["solver"]["criteria"]["iteration"] = FLAGS_max_iters;
+        if (FLAGS_rel_residual) {
+            solver_case["solver"]["criteria"]["initial_residual_norm"] =
+                FLAGS_rel_res_goal;
+        } else {
+            solver_case["solver"]["criteria"]["relative_residual_norm"] =
+                FLAGS_rel_res_goal;
+        }
         auto solver_config =
             gko::ext::config::parse_json(solver_case["solver"]);
 
