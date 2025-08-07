@@ -14,6 +14,7 @@
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
+#include "ginkgo/extensions/config/json_config.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
@@ -97,211 +98,6 @@ std::string solver_example_config = R"(
 )";
 
 
-std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
-    std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters)
-{
-    std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
-    if (FLAGS_rel_residual) {
-        residual_stop =
-            gko::share(gko::stop::ResidualNorm<rc_etype>::build()
-                           .with_baseline(gko::stop::mode::initial_resnorm)
-                           .with_reduction_factor(
-                               static_cast<rc_etype>(FLAGS_rel_res_goal))
-                           .on(exec));
-    } else {
-        residual_stop =
-            gko::share(gko::stop::ResidualNorm<rc_etype>::build()
-                           .with_baseline(gko::stop::mode::rhs_norm)
-                           .with_reduction_factor(
-                               static_cast<rc_etype>(FLAGS_rel_res_goal))
-                           .on(exec));
-    }
-    auto iteration_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
-    std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
-        criterion_vector{residual_stop, iteration_stop};
-    return gko::stop::combine(criterion_vector);
-}
-
-
-template <typename SolverIntermediate>
-std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
-    SolverIntermediate inter, const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
-{
-    return inter.with_criteria(create_criterion(exec, max_iters))
-        .with_preconditioner(give(precond))
-        .on(exec);
-}
-
-
-template <typename Solver>
-std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
-    const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
-{
-    return add_criteria_precond_finalize(Solver::build(), exec, precond,
-                                         max_iters);
-}
-
-
-std::unique_ptr<gko::LinOpFactory> generate_solver(
-    const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond,
-    const std::string& description, std::uint32_t max_iters)
-{
-    std::string cb_gmres_prefix("cb_gmres_");
-    if (description.find(cb_gmres_prefix) == 0) {
-        auto s_prec = gko::solver::cb_gmres::storage_precision::keep;
-        const auto spec = description.substr(cb_gmres_prefix.length());
-        if (spec == "keep") {
-            s_prec = gko::solver::cb_gmres::storage_precision::keep;
-        } else if (spec == "reduce1") {
-            s_prec = gko::solver::cb_gmres::storage_precision::reduce1;
-        } else if (spec == "reduce2") {
-            s_prec = gko::solver::cb_gmres::storage_precision::reduce2;
-        } else if (spec == "integer") {
-            s_prec = gko::solver::cb_gmres::storage_precision::integer;
-        } else if (spec == "ireduce1") {
-            s_prec = gko::solver::cb_gmres::storage_precision::ireduce1;
-        } else if (spec == "ireduce2") {
-            s_prec = gko::solver::cb_gmres::storage_precision::ireduce2;
-        } else {
-            throw std::range_error(
-                std::string(
-                    "CB-GMRES does not have a corresponding solver to <") +
-                description + ">!");
-        }
-        return add_criteria_precond_finalize(
-            gko::solver::CbGmres<etype>::build()
-                .with_krylov_dim(FLAGS_gmres_restart)
-                .with_storage_precision(s_prec),
-            exec, precond, max_iters);
-    } else if (description == "bicgstab") {
-        return add_criteria_precond_finalize<gko::solver::Bicgstab<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "bicg") {
-        return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "cg") {
-        return add_criteria_precond_finalize<gko::solver::Cg<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "cgs") {
-        return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "fcg") {
-        return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "pipe_cg") {
-        return add_criteria_precond_finalize<gko::solver::PipeCg<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "idr") {
-        return add_criteria_precond_finalize(
-            gko::solver::Idr<etype>::build()
-                .with_subspace_dim(FLAGS_idr_subspace_dim)
-                .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
-            exec, precond, max_iters);
-    } else if (description == "gmres") {
-        gko::solver::gmres::ortho_method ortho_method;
-        if (FLAGS_gmres_ortho_method == "mgs") {
-            ortho_method = gko::solver::gmres::ortho_method::mgs;
-        } else if (FLAGS_gmres_ortho_method == "cgs") {
-            ortho_method = gko::solver::gmres::ortho_method::cgs;
-        } else if (FLAGS_gmres_ortho_method == "cgs2") {
-            ortho_method = gko::solver::gmres::ortho_method::cgs2;
-        } else {
-            throw std::range_error(
-                std::string(
-                    "GMRES doesn't support the orthogonalization method <") +
-                FLAGS_gmres_ortho_method + ">!");
-        }
-        return add_criteria_precond_finalize(
-            gko::solver::Gmres<etype>::build()
-                .with_krylov_dim(FLAGS_gmres_restart)
-                .with_ortho_method(ortho_method),
-            exec, precond, max_iters);
-    } else if (description == "minres") {
-        return add_criteria_precond_finalize<gko::solver::Minres<etype>>(
-            exec, precond, max_iters);
-    } else if (description == "lower_trs") {
-        return gko::solver::LowerTrs<etype>::build()
-            .with_num_rhs(FLAGS_nrhs)
-            .on(exec);
-    } else if (description == "upper_trs") {
-        return gko::solver::UpperTrs<etype>::build()
-            .with_num_rhs(FLAGS_nrhs)
-            .on(exec);
-    } else if (description == "spd_direct") {
-        return gko::experimental::solver::Direct<etype, itype>::build()
-            .with_factorization(
-                gko::experimental::factorization::Cholesky<etype,
-                                                           itype>::build())
-            .on(exec);
-    } else if (description == "symm_direct") {
-        return gko::experimental::solver::Direct<etype, itype>::build()
-            .with_factorization(
-                gko::experimental::factorization::Lu<etype, itype>::build()
-                    .with_symbolic_algorithm(gko::experimental::factorization::
-                                                 symbolic_type::symmetric))
-            .on(exec);
-    } else if (description == "near_symm_direct") {
-        return gko::experimental::solver::Direct<etype, itype>::build()
-            .with_factorization(
-                gko::experimental::factorization::Lu<etype, itype>::build()
-                    .with_symbolic_algorithm(gko::experimental::factorization::
-                                                 symbolic_type::near_symmetric))
-            .on(exec);
-    } else if (description == "direct") {
-        return gko::experimental::solver::Direct<etype, itype>::build()
-            .with_factorization(
-                gko::experimental::factorization::Lu<etype, itype>::build())
-            .on(exec);
-    } else if (description == "overhead") {
-        return add_criteria_precond_finalize<gko::Overhead<etype>>(
-            exec, precond, max_iters);
-    }
-    throw std::range_error(std::string("The provided string <") + description +
-                           "> does not match any solver!");
-}
-
-
-void write_precond_info(const gko::LinOp* precond, json& precond_info)
-{
-    if (const auto jacobi =
-            dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(precond)) {
-        // extract block sizes
-        const auto bdata =
-            jacobi->get_parameters().block_pointers.get_const_data();
-        precond_info["block_sizes"] = json::array();
-        const auto nblocks = jacobi->get_num_blocks();
-        for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-            precond_info["block_sizes"].push_back(bdata[i + 1] - bdata[i]);
-        }
-
-        // extract block precisions
-        const auto pdata =
-            jacobi->get_parameters()
-                .storage_optimization.block_wise.get_const_data();
-        if (pdata) {
-            precond_info["block_precisions"] = json::array();
-            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-                precond_info["block_precisions"].push_back(
-                    static_cast<int>(pdata[i]));
-            }
-        }
-
-        // extract condition numbers
-        const auto cdata = jacobi->get_conditioning();
-        if (cdata) {
-            precond_info["block_conditioning"] = json::array();
-            for (auto i = decltype(nblocks){0}; i < nblocks; ++i) {
-                precond_info["block_conditioning"].push_back(cdata[i]);
-            }
-        }
-    }
-}
-
-
 struct SolverGenerator : DefaultSystemGenerator<> {
     using Vec = typename DefaultSystemGenerator::Vec;
 
@@ -377,50 +173,16 @@ struct solver_benchmark_state {
 template <typename Generator>
 struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
     std::string name;
-    std::vector<std::string> precond_solvers;
-    std::map<std::string, std::pair<std::string, std::string>> decoder;
     Generator generator;
     bool do_print;
 
     SolverBenchmark(Generator generator, bool do_print = true)
-        : name{"solver"}, generator{generator}, do_print(do_print)
-    {
-        auto solvers = split(FLAGS_solvers, ',');
-        auto preconds = split(FLAGS_preconditioners, ',');
-        for (const auto& s : solvers) {
-            for (const auto& p : preconds) {
-                precond_solvers.push_back(s + (p == "none" ? "" : "-" + p));
-                decoder[precond_solvers.back()] = {s, p};
-            }
-        }
-    }
+        : name{"solve"}, generator{generator}, do_print(do_print)
+    {}
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return precond_solvers;
-    }
-
     bool should_print() const override { return do_print; }
-
-    std::string get_example_config() const override
-    {
-        return solver_example_config;
-    }
-
-    bool validate_config(const json& value) const override
-    {
-        return generator.validate_config(value) &&
-               (value.contains("optimal") &&
-                value["optimal"].contains("spmv") &&
-                value["optimal"]["spmv"].is_string());
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return Generator::describe_config(test_case);
-    }
 
     solver_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
                                             json& test_case) const override
@@ -434,11 +196,11 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             state.x = generator.initialize({0.0}, exec);
         } else {
             auto [data, size] = generator.generate_matrix_data(test_case);
-            auto permutation = reorder(data, test_case);
+            auto permutation = reorder(data, test_case["optimal"]["spmv"]);
 
             state.system_matrix = generator.generate_matrix_with_format(
-                exec, test_case["optimal"]["spmv"].get<std::string>(), data,
-                size);
+                exec, test_case["optimal"]["spmv"]["format"].get<std::string>(),
+                data, size);
             state.b = generator.generate_rhs(exec, state.system_matrix.get(),
                                              test_case);
             if (permutation) {
@@ -453,8 +215,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                       << state.system_matrix->get_size()[0] << ", "
                       << state.system_matrix->get_size()[1] << ")" << std::endl;
         }
-        test_case["rows"] = state.system_matrix->get_size()[0];
-        test_case["cols"] = state.system_matrix->get_size()[1];
+        test_case["operator"]["rows"] = state.system_matrix->get_size()[0];
+        test_case["operator"]["cols"] = state.system_matrix->get_size()[1];
         return state;
     }
 
@@ -462,24 +224,33 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate,
              solver_benchmark_state<Generator>& state,
-             const std::string& encoded_solver_name,
-             json& solver_case) const override
+             const json& operation_case, json& result_case) const override
     {
-        const auto decoded_pair = decoder.at(encoded_solver_name);
-        auto& solver_name = decoded_pair.first;
-        auto& precond_name = decoded_pair.second;
-        solver_case["recurrent_residuals"] = json::array();
-        solver_case["true_residuals"] = json::array();
-        solver_case["implicit_residuals"] = json::array();
-        solver_case["iteration_timestamps"] = json::array();
+        result_case["recurrent_residuals"] = json::array();
+        result_case["true_residuals"] = json::array();
+        result_case["implicit_residuals"] = json::array();
+        result_case["iteration_timestamps"] = json::array();
         if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
             auto rhs_norm = compute_norm2(state.b.get());
-            solver_case["rhs_norm"] = rhs_norm;
+            result_case["rhs_norm"] = rhs_norm;
         }
         for (auto stage : {"generate", "apply"}) {
-            solver_case[stage] = json::object();
-            solver_case[stage]["components"] = json::object();
+            result_case[stage] = json::object();
+            result_case[stage]["components"] = json::object();
         }
+
+        auto solver_case = operation_case;
+        solver_case["solver"]["criteria"]["iteration"] = FLAGS_max_iters;
+        auto solver_config =
+            gko::ext::config::parse_json(solver_case["solver"]);
+
+        auto warmup_case = solver_case;
+        warmup_case["solver"]["criteria"]["iteration"] = FLAGS_warmup_max_iters;
+        auto warmup_config =
+            gko::ext::config::parse_json(warmup_case["solver"]);
+
+        auto registry = gko::config::registry{};
+        auto td = gko::config::make_type_descriptor<etype>();
 
         IterationControl ic{timer};
 
@@ -489,9 +260,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             auto range = annotate("warmup", FLAGS_warmup > 0);
             for (auto _ : ic.warmup_run()) {
                 auto x_clone = clone(state.x);
-                auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_warmup_max_iters)
+                solver = gko::config::parse(warmup_config, registry, td)
+                             .on(exec)
                              ->generate(state.system_matrix);
                 solver->apply(state.b, x_clone);
                 exec->synchronize();
@@ -506,35 +276,25 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_case["generate"]["components"], 1);
+                    result_case["generate"]["components"], 1);
                 exec->add_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(gen_logger);
                 }
 
-                auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_max_iters)
+                solver = gko::config::parse(solver_config, registry, td)
+                             .on(exec)
                              ->generate(state.system_matrix);
-
                 exec->remove_logger(gen_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->remove_logger(gen_logger);
                 }
             }
 
-            if (auto prec =
-                    dynamic_cast<const gko::Preconditionable*>(solver.get())) {
-                solver_case["preconditioner"] = json::object();
-                write_precond_info(
-                    clone(exec->get_master(), prec->get_preconditioner()).get(),
-                    solver_case["preconditioner"]);
-            }
-
             {
                 auto apply_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    solver_case["apply"]["components"], 1);
+                    result_case["apply"]["components"], 1);
                 exec->add_logger(apply_logger);
                 if (exec != exec->get_master()) {
                     exec->get_master()->add_logger(apply_logger);
@@ -553,14 +313,14 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 x_clone = clone(state.x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     state.system_matrix, state.b,
-                    solver_case["recurrent_residuals"],
-                    solver_case["true_residuals"],
-                    solver_case["implicit_residuals"],
-                    solver_case["iteration_timestamps"]);
+                    result_case["recurrent_residuals"],
+                    result_case["true_residuals"],
+                    result_case["implicit_residuals"],
+                    result_case["iteration_timestamps"]);
                 solver->add_logger(res_logger);
                 solver->apply(state.b, x_clone);
                 if (!res_logger->has_implicit_res_norms()) {
-                    solver_case.erase("implicit_residuals");
+                    result_case.erase("implicit_residuals");
                 }
             }
             exec->synchronize();
@@ -577,9 +337,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
             exec->synchronize();
             generate_timer->tic();
-            auto precond = precond_factory.at(precond_name)(exec);
-            solver = generate_solver(exec, give(precond), solver_name,
-                                     FLAGS_max_iters)
+            solver = gko::config::parse(solver_config, registry, td)
+                         .on(exec)
                          ->generate(state.system_matrix);
             generate_timer->toc();
 
@@ -594,25 +353,25 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 solver->remove_logger(it_logger);
             }
         }
-        it_logger->write_data(solver_case["apply"]);
+        it_logger->write_data(result_case["apply"]);
 
         if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
             // a solver is considered direct if it didn't log any iterations
-            if (solver_case["apply"].contains("iterations") &&
-                solver_case["apply"]["iterations"].get<gko::int64>() == 0) {
+            if (result_case["apply"].contains("iterations") &&
+                result_case["apply"]["iterations"].get<gko::int64>() == 0) {
                 auto error = compute_direct_error(solver.get(), state.b.get(),
                                                   x_clone.get());
-                solver_case["forward_error"] = error;
+                result_case["forward_error"] = error;
             }
             auto residual = compute_residual_norm(state.system_matrix.get(),
                                                   state.b.get(), x_clone.get());
-            solver_case["residual_norm"] = residual;
+            result_case["residual_norm"] = residual;
         }
-        solver_case["generate"]["time"] =
+        result_case["generate"]["time"] =
             generate_timer->compute_time(FLAGS_timer_method);
-        solver_case["apply"]["time"] =
+        result_case["apply"]["time"] =
             apply_timer->compute_time(FLAGS_timer_method);
-        solver_case["repetitions"] = apply_timer->get_num_repetitions();
+        result_case["repetitions"] = apply_timer->get_num_repetitions();
     }
 };
 

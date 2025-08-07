@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,8 +58,9 @@ int main(int argc, char* argv[])
         test_cases = json::parse(overhead_json);
     }
 
-    run_test_cases(SolverBenchmark<SolverGenerator>{SolverGenerator{}}, exec,
-                   get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results =
+        run_test_cases(SolverBenchmark<SolverGenerator>{SolverGenerator{}},
+                       exec, get_timer(exec, FLAGS_gpu_timer), test_cases);
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    std::cout << std::setw(4) << results << std::endl;
 }
