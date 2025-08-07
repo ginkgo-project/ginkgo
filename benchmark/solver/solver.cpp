@@ -14,12 +14,30 @@
 #include <sstream>
 #include <vector>
 
+#include <nlohmann/json-schema.hpp>
+
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/solver/solver_common.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 
+namespace json_schema = nlohmann::json_schema;
+
+static void loader(const nlohmann::json_uri& uri,
+                   nlohmann::basic_json<>& schema)
+{
+    std::string filename = GKO_ROOT "/benchmark/" + uri.path();
+    std::ifstream lf(filename);
+    if (!lf.good())
+        throw std::invalid_argument("could not open " + uri.url() +
+                                    " tried with " + filename);
+    try {
+        lf >> schema;
+    } catch (const std::exception& e) {
+        throw e;
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -46,15 +64,32 @@ int main(int argc, char* argv[])
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
 
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/spmv.item.schema.json"));
+    json_schema::json_validator validator(loader);  // create validator
+
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
+    }
+
     json test_cases;
     if (!FLAGS_overhead) {
         test_cases = json::parse(get_input_stream());
     } else {
-        // Fake test case to run once
-        auto overhead_json = std::string() +
-                             " [{\"filename\": \"overhead.mtx\", \"optimal\": "
-                             "{ \"spmv\": \"csr\"}}]";
-        test_cases = json::parse(overhead_json);
+        // Not sure how to handle this yet.
+        return EXIT_FAILURE;
+    }
+
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+        std::cout << "Validation succeeded\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
     }
 
     auto results =
