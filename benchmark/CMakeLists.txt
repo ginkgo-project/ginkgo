@@ -6,6 +6,14 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     )
 endif()
 
+include(FetchContent)
+FetchContent_Declare(
+    nlohmann_json_schema_validator
+    GIT_REPOSITORY https://github.com/pboettch/json-schema-validator.git
+    GIT_TAG 2.3.0
+)
+FetchContent_MakeAvailable(nlohmann_json_schema_validator)
+
 function(ginkgo_benchmark_add_tuning_maybe name)
     if(GINKGO_BENCHMARK_ENABLE_TUNING)
         target_sources(
@@ -101,7 +109,13 @@ function(
     type
 )
     add_executable("${name}" ${ARGN})
-    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
+    target_link_libraries(
+        "${name}"
+        ginkgo
+        gflags
+        nlohmann_json::nlohmann_json
+        nlohmann_json_schema_validator
+    )
     # always include the device timer
     if(GINKGO_BUILD_CUDA)
         target_compile_definitions("${name}" PRIVATE HAS_CUDA_TIMER=1)
@@ -119,7 +133,10 @@ function(
         target_compile_definitions(${name} PRIVATE HAS_MPI_TIMER=1)
         target_link_libraries(${name} mpi_timer)
     endif()
-    target_compile_definitions("${name}" PRIVATE "${macro_def}")
+    target_compile_definitions(
+        "${name}"
+        PRIVATE "${macro_def}" GKO_ROOT="${Ginkgo_SOURCE_DIR}"
+    )
     ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if(GINKGO_BUILD_CUDA)

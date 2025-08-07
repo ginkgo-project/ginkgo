@@ -27,18 +27,20 @@ struct DefaultSystemGenerator {
     generate_matrix_data(const json& config)
     {
         auto [data, size] = [&] {
-            if (config.contains("filename")) {
+            if (config["operator"].contains("filename")) {
                 std::ifstream in(config["filename"].get<std::string>());
                 // Returning an empty dim means that there is no specified local
                 // size, which is relevant in the distributed case
                 return std::make_pair(
                     gko::read_generic_raw<ValueType, IndexType>(in),
                     gko::dim<2>());
-            } else if (config.contains("stencil")) {
+            } else if (config["operator"].contains("stencil")) {
                 return generate_stencil<ValueType, IndexType>(
-                    config["stencil"]["name"].get<std::string>(),
-                    config["stencil"]["local_size"].get<gko::int64>());
+                    config["operator"]["stencil"]["name"].get<std::string>(),
+                    config["operator"]["stencil"]["local_size"]
+                        .get<gko::int64>());
             } else {
+                std::cout << config << std::endl;
                 throw std::runtime_error(
                     "No known way to generate matrix data found.");
             }

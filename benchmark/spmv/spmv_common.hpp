@@ -38,23 +38,18 @@ template <typename Generator>
 struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     using Vec = typename Generator::Vec;
     std::string name;
-    std::vector<std::string> formats;
     bool do_print;
     Generator generator;
 
-    SpmvBenchmark(Generator generator, std::vector<std::string> formats,
-                  bool do_print = true)
-        : name{"spmv"},
-          formats{std::move(formats)},
-          do_print{do_print},
-          generator{generator}
+    SpmvBenchmark(Generator generator, bool do_print = true)
+        : name{"spmv"}, do_print{do_print}, generator{generator}
     {}
 
     const std::string& get_name() const override { return name; }
 
     const std::vector<std::string>& get_operations() const override
     {
-        return formats;
+        return {};
     }
 
     bool should_print() const override { return do_print; }
@@ -189,17 +184,17 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
         auto best_time = std::numeric_limits<double>::max();
         std::string best_format;
         // find the fastest among all formats we tested
-        for (const auto& format : formats) {
-            auto& format_case = test_case[name][format];
-            if (format_case.contains("completed") &&
-                format_case["completed"].template get<bool>()) {
-                auto time = format_case["time"];
-                if (time < best_time) {
-                    best_time = time;
-                    best_format = format;
-                }
-            }
-        }
+        // for (const auto& format : formats) {
+        //     auto& format_case = test_case[name][format];
+        //     if (format_case.contains("completed") &&
+        //         format_case["completed"].template get<bool>()) {
+        //         auto time = format_case["time"];
+        //         if (time < best_time) {
+        //             best_time = time;
+        //             best_format = format;
+        //         }
+        //     }
+        // }
         if (!best_format.empty()) {
             test_case["optimal"][name] = best_format;
         }
