@@ -14,6 +14,13 @@
 
 #endif
 
+#include <random>
+
+#include <gflags/gflags.h>
+
+DEFINE_bool(standard_stencil, true,
+            "If false, stecil offdiag is -1 + rand([0, 0.5))");
+
 
 template <typename T>
 double closest_nth_root(T v, int n)
@@ -421,7 +428,8 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
     const auto diag_value = static_cast<ValueType>(nnz_in_row() - 1);
 
     A_data.nonzeros.reserve(nnz_in_row() * local_size);
-
+    std::mt19937 gen(15);
+    std::uniform_real_distribution<> dis(0, 0.5);
     for (IndexType iz = 0; iz < discretization_points[2]; ++iz) {
         for (IndexType iy = 0; iy < discretization_points[1]; ++iy) {
             for (IndexType ix = 0; ix < discretization_points[0]; ++ix) {
@@ -435,7 +443,10 @@ generate_3d_stencil_subdomain(std::array<int, 3> dims,
                                                          global_size))) {
                                     if (col != row) {
                                         A_data.nonzeros.emplace_back(
-                                            row, col, -gko::one<ValueType>());
+                                            row, col,
+                                            FLAGS_standard_stencil
+                                                ? -1
+                                                : -1 + dis(gen));
                                     } else {
                                         A_data.nonzeros.emplace_back(
                                             row, col, diag_value);

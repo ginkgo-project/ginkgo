@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,7 +22,7 @@ DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
               "Supported values are: none, jacobi, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
-              "parilut-isai, ic-isai, ilu-isai, sor, overhead");
+              "parilut-isai, ic-isai, ilu-isai, sor, multigrid, overhead");
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
@@ -305,6 +305,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      static_cast<gko::remove_complex<etype>>(
                          FLAGS_sor_relaxation_factor))
                  .with_symmetric(FLAGS_sor_symmetric)
+                 .on(exec);
+         }},
+        {"multigrid",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::solver::Multigrid::build()
+                 .with_criteria(
+                     gko::stop::Iteration::build().with_max_iters(1u))
+                 .with_mg_level(gko::multigrid::Pgm<etype, itype>::build()
+                                    .with_deterministic(true))
                  .on(exec);
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
