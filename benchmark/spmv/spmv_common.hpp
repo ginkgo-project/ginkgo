@@ -84,7 +84,8 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec, gko::dim<2>{state.data.first.size[0], nrhs},
             gko::dim<2>{state.data.second[0], nrhs});
         if (do_print) {
-            std::clog << "Matrix is of size (" << state.data.first.size[0]
+            std::clog << "    "
+                      << "Matrix is of size (" << state.data.first.size[0]
                       << ", " << state.data.first.size[1] << "), "
                       << state.data.first.nonzeros.size() << std::endl;
         }

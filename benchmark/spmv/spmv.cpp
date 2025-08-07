@@ -59,7 +59,6 @@ int main(int argc, char* argv[])
     SpmvBenchmark benchmark{Generator{}};
     auto timer = get_timer(exec, FLAGS_gpu_timer);
 
-
     auto profiler_hook = create_profiler_hook(exec, benchmark.should_print());
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
@@ -82,13 +81,6 @@ int main(int argc, char* argv[])
             }
             auto test_case_state = benchmark.setup(exec, current_case);
             auto test_case_range = annotate(test_case_desc.c_str());
-            // if (benchmark_case.contains(operation_name) &&
-            // !FLAGS_overwrite) {
-            // continue;
-            // }
-            if (benchmark.should_print()) {
-                std::clog << "\tRunning " << current_case << std::endl;
-            }
             auto format = current_case["format"].get<std::string>();
             auto& result_case = current_case[benchmark.get_name()];
             try {
@@ -109,7 +101,6 @@ int main(int argc, char* argv[])
             if (benchmark.should_print()) {
                 backup_results(benchmark_cases);
             }
-            benchmark.postprocess(current_case);
         } catch (const std::exception& e) {
             if (benchmark.should_print()) {
                 std::cerr << "Error setting up benchmark, what(): " << e.what()
@@ -120,6 +111,7 @@ int main(int argc, char* argv[])
             current_case["error"] = e.what();
         }
     }
+    benchmark.postprocess(benchmark_cases);
 
     if (profiler_hook) {
         exec->remove_logger(profiler_hook);
