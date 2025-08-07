@@ -89,9 +89,9 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
                       << ", " << state.data.first.size[1] << "), "
                       << state.data.first.nonzeros.size() << std::endl;
         }
-        test_case["rows"] = state.data.first.size[0];
-        test_case["cols"] = state.data.first.size[1];
-        test_case["nonzeros"] = state.data.first.nonzeros.size();
+        test_case["operator"]["rows"] = state.data.first.size[0];
+        test_case["operator"]["cols"] = state.data.first.size[1];
+        test_case["operator"]["nonzeros"] = state.data.first.nonzeros.size();
         if (FLAGS_detailed) {
             state.answer = gko::clone(state.x);
             auto system_matrix = generator.generate_matrix_with_default_format(
@@ -181,33 +181,35 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     {
         std::map<json, json> same_operators;
         for (const auto& test_case : test_cases) {
-            auto without_result = test_case;
-            without_result.erase(name);
-            without_result.erase("format");
-            same_operators.try_emplace(without_result, json::object());
-            same_operators[without_result]
-                          [test_case["format"].get<std::string>()] =
-                              test_case[name];
+            auto case_operator =
+                json::object({{"operator", test_case["operator"]}});
+            same_operators.try_emplace(case_operator, json::array());
+            auto case_variant = test_case;
+            case_variant.erase("operator");
+            case_variant.erase(name);
+            auto case_result = test_case[name];
+            case_result["variant"] = case_variant;
+            same_operators[case_operator].push_back(case_result);
         }
         auto merged_cases = json::array();
         for (const auto& [test_case, results] : same_operators) {
             auto best_time = std::numeric_limits<double>::max();
-            std::string best_format;
-            for (const auto& [format, result] : results.items()) {
+            json best_variant;
+            for (const auto& result : results) {
                 if (result.contains("completed") &&
                     result["completed"].template get<bool>()) {
                     auto time = result["time"];
                     if (time < best_time) {
                         best_time = time;
-                        best_format = format;
+                        best_variant = result["variant"];
                     }
                 }
             }
 
             merged_cases.push_back(test_case);
             merged_cases.back()[name] = results;
-            if (!best_format.empty()) {
-                merged_cases.back()["optimal"][name] = best_format;
+            if (!best_variant.empty()) {
+                merged_cases.back()["optimal"][name] = best_variant;
             }
         }
         test_cases = std::move(merged_cases);

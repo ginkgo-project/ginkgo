@@ -70,22 +70,24 @@ int main(int argc, char* argv[])
     for (auto& test_case : test_cases) {
         benchmark_cases.push_back(test_case);
         auto& current_case = benchmark_cases.back();
-        if (!current_case.contains(benchmark.get_name())) {
-            current_case[benchmark.get_name()] = json::object();
-        }
         try {
             // set up benchmark
             auto test_case_desc = to_string(current_case);
             if (benchmark.should_print()) {
-                std::clog << "Running test case " << current_case << std::endl;
+                std::clog << "Running test case " << std::endl;
+                std::clog << "    " << current_case << std::endl;
             }
+
+            if (!current_case.contains(benchmark.get_name())) {
+                current_case[benchmark.get_name()] = json::object();
+            }
+
             auto test_case_state = benchmark.setup(exec, current_case);
             auto test_case_range = annotate(test_case_desc.c_str());
-            auto format = current_case["format"].get<std::string>();
             auto& result_case = current_case[benchmark.get_name()];
             try {
-                auto operation_range = annotate(format.c_str());
-                benchmark.run(exec, timer, annotate, test_case_state, format,
+                benchmark.run(exec, timer, annotate, test_case_state,
+                              current_case["format"].get<std::string>(),
                               result_case);
                 result_case["completed"] = true;
             } catch (const std::exception& e) {
