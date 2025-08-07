@@ -85,11 +85,11 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate, spmv_benchmark_state<Generator>& state,
-             const std::string& format_name, json& format_case) const override
+             const json& operation_case, json& result_case) const override
     {
         auto system_matrix = generator.generate_matrix_with_format(
-            exec, format_name, state.data.first, state.data.second,
-            &format_case);
+            exec, operation_case["format"].get<std::string>(), state.data.first,
+            state.data.second, &result_case);
 
         // check the residual
         if (FLAGS_detailed) {
@@ -99,7 +99,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec->synchronize();
             auto max_relative_norm2 =
                 compute_max_relative_norm2(x_clone.get(), state.answer.get());
-            format_case["max_relative_norm2"] = max_relative_norm2;
+            result_case["max_relative_norm2"] = max_relative_norm2;
         }
 
         IterationControl ic{timer};
@@ -153,8 +153,8 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
-        format_case["time"] = ic.compute_time(FLAGS_timer_method);
-        format_case["repetitions"] = ic.get_num_repetitions();
+        result_case["time"] = ic.compute_time(FLAGS_timer_method);
+        result_case["repetitions"] = ic.get_num_repetitions();
     }
 
     void postprocess(json& test_cases) const override

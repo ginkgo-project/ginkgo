@@ -61,8 +61,8 @@ struct Benchmark {
     /** Runs a single operation of the benchmark */
     virtual void run(std::shared_ptr<gko::Executor> exec,
                      std::shared_ptr<Timer> timer, annotate_functor annotate,
-                     State& state, const std::string& operation,
-                     json& operation_case) const = 0;
+                     State& state, const json& operation_case,
+                     json& result_case) const = 0;
 
     /** Post-process test case info. */
     virtual void postprocess(json& test_case) const {}
@@ -102,8 +102,7 @@ json run_test_cases(const Benchmark<State>& benchmark,
             auto& result_case = current_case[benchmark.get_name()];
             try {
                 benchmark.run(exec, timer, annotate, test_case_state,
-                              current_case["format"].get<std::string>(),
-                              result_case);
+                              current_case, result_case);
                 result_case["completed"] = true;
             } catch (const std::exception& e) {
                 result_case["completed"] = false;
