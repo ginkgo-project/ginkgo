@@ -278,6 +278,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::Dense<ValueType>* a,
+                 const matrix::Csr<ValueType, IndexType>* b,
+                 matrix::Dense<ValueType>* c)
+{
+    // TODO: implement c = a * b with single thread
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void mspm(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Dense<ValueType>* alpha,
+          const matrix::Dense<ValueType>* a,
+          const matrix::Csr<ValueType, IndexType>* b,
+          const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+{
+    // TODO: implement c = alpha * a * b + beta * c with single thread
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_MSPM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const int64* row_ptrs,
