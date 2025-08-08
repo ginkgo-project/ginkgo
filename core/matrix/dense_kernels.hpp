@@ -40,6 +40,20 @@ namespace kernels {
               matrix::view::dense<const InValueType> input,      \
               matrix::view::dense<OutValueType> output)
 
+#define GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(ValueType, IndexType)      \
+    void simple_mspm(std::shared_ptr<const DefaultExecutor> exec, \
+                     const matrix::Dense<ValueType>* a,              \
+                     const matrix::Csr<ValueType, IndexType>* b,        \
+                     matrix::Dense<ValueType>* c)
+
+#define GKO_DECLARE_DENSE_MSPM_KERNEL(ValueType, IndexType)      \
+    void mspm(std::shared_ptr<const DefaultExecutor> exec, \
+              const matrix::Dense<ValueType>* alpha,          \
+              const matrix::Dense<ValueType>* a,              \
+              const matrix::Csr<ValueType, IndexType>* b,        \
+              const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+
+
 #define GKO_DECLARE_DENSE_FILL_KERNEL(ValueType)           \
     void fill(std::shared_ptr<const DefaultExecutor> exec, \
               matrix::view::dense<ValueType> mat, ValueType value)
@@ -381,6 +395,10 @@ namespace kernels {
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                         \
     template <typename ValueType>                                             \
     GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                                \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_MSPM_KERNEL(ValueType, IndexType);                      \
     template <typename InValueType, typename OutValueType>                    \
     GKO_DECLARE_DENSE_COPY_KERNEL(InValueType, OutValueType);                 \
     template <typename ValueType>                                             \

@@ -42,6 +42,8 @@ namespace {
 
 GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
+GKO_REGISTER_OPERATION(simple_mspm, dense::simple_mspm);
+GKO_REGISTER_OPERATION(mspm, dense::mspm);
 GKO_REGISTER_OPERATION(copy, dense::copy);
 GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
@@ -110,13 +112,25 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(dense::make_simple_apply(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        b, x);
+    // TODO: it does not consider mixed precision for MSpM
+    if (auto b_csr =
+            dynamic_cast<const matrix::Csr<ValueType, gko::int32>*>(b)) {
+        this->get_executor()->run(
+            dense::make_simple_mspm(this, b_csr, as<Dense>(x)));
+    } else if (auto b_csr =
+                   dynamic_cast<const matrix::Csr<ValueType, gko::int64>*>(b)) {
+        this->get_executor()->run(
+            dense::make_simple_mspm(this, b_csr, as<Dense>(x)));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    dense::make_simple_apply(this->get_const_device_view(),
+                                             dense_b->get_const_device_view(),
+                                             dense_x->get_device_view()));
+            },
+            b, x);
+    }
 }
 
 
@@ -124,15 +138,26 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                   const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    // TODO: it does not consider mixed precision for MSpM
+    if (auto b_csr =
+            dynamic_cast<const matrix::Csr<ValueType, gko::int32>*>(b)) {
+        this->get_executor()->run(dense::make_mspm(
+            as<Dense>(alpha), this, b_csr, as<Dense>(beta), as<Dense>(x)));
+    } else if (auto b_csr =
+                   dynamic_cast<const matrix::Csr<ValueType, gko::int64>*>(b)) {
+        this->get_executor()->run(dense::make_mspm(
+            as<Dense>(alpha), this, b_csr, as<Dense>(beta), as<Dense>(x)));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->get_executor()->run(dense::make_apply(
                 dense_alpha->get_const_device_view(),
                 this->get_const_device_view(), dense_b->get_const_device_view(),
                 dense_beta->get_const_device_view(),
                 dense_x->get_device_view()));
         },
-        alpha, b, beta, x);
+            alpha, b, beta, x);
+    }
 }
 
 
