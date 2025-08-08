@@ -106,38 +106,38 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // GKO_SOLVER_VECTOR(r, dense_b);
     // GKO_SOLVER_VECTOR(w, dense_b);
     // into rw that we later slice for efficient dot product computation
-    auto stride = dense_b->get_stride();
+    auto b_stride = dense_b->get_stride();
     dim<2> original_size = dense_b->get_size();
-    dim<2> conjoined_size = {original_size[0], stride * 2};
+    dim<2> conjoined_size = {original_size[0], b_stride * 2};
 
     LocalVector* rw = this->template create_workspace_op<LocalVector>(
         GKO_SOLVER_TRAITS::rw, conjoined_size);
     auto r_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * stride * 2, rw->get_values()),
-        stride * 2);
+        make_array_view(exec, original_size[0] * b_stride * 2,
+                        rw->get_values()),
+        b_stride * 2);
     auto* r = r_unique.get();
-    auto w_unique =
-        LocalVector::create(exec, original_size,
-                            make_array_view(exec, original_size[0] * stride * 2,
-                                            rw->get_values() + stride),
-                            stride * 2);
+    auto w_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(exec, original_size[0] * b_stride * 2,
+                        rw->get_values() + b_stride),
+        b_stride * 2);
     auto* w = w_unique.get();
-
 
     // z now consists of two identical repeating parts: z1 and z2, again, for
     // the same reason
     GKO_SOLVER_VECTOR(z, rw);
     auto z1_unique = LocalVector::create(
         exec, original_size,
-        make_array_view(exec, original_size[0] * stride * 2, z->get_values()),
-        stride * 2);
+        make_array_view(exec, original_size[0] * b_stride * 2, z->get_values()),
+        b_stride * 2);
     auto* z1 = z1_unique.get();
-    auto z2_unique =
-        LocalVector::create(exec, original_size,
-                            make_array_view(exec, original_size[0] * stride * 2,
-                                            z->get_values() + stride),
-                            stride * 2);
+    auto z2_unique = LocalVector::create(
+        exec, original_size,
+        make_array_view(exec, original_size[0] * b_stride * 2,
+                        z->get_values() + b_stride),
+        b_stride * 2);
     auto* z2 = z2_unique.get();
 
     GKO_SOLVER_VECTOR(p, dense_b);
@@ -151,13 +151,13 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_SCALAR(rhodelta, rw);
     auto rho_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, stride, rhodelta->get_values()), stride * 2);
+        make_array_view(exec, b_stride, rhodelta->get_values()), b_stride * 2);
     auto* rho = rho_unique.get();
 
     auto delta_unique = LocalVector::create(
         exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, stride, rhodelta->get_values() + stride),
-        stride * 2);
+        make_array_view(exec, b_stride, rhodelta->get_values() + b_stride),
+        b_stride * 2);
     auto* delta = delta_unique.get();
 
     GKO_SOLVER_SCALAR(beta, dense_b);
@@ -191,8 +191,8 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // n = A * m
     this->get_system_matrix()->apply(m, n);
     // merged dot products
-    // rho = dot(r, z)
-    // delta = dot(w, z)
+    // rho = dot(r, z1)
+    // delta = dot(w, z2)
     rw->compute_conj_dot(z, rhodelta, reduction_tmp);
 
     // check for an early termination
@@ -250,8 +250,8 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // prev_rho = rho
         prev_rho->copy_from(rho);
         // merged dot products
-        // rho = dot(r, z)
-        // delta = dot(w, z)
+        // rho = dot(r, z1)
+        // delta = dot(w, z2)
         rw->compute_conj_dot(z, rhodelta, reduction_tmp);
         // check
         ++iter;
