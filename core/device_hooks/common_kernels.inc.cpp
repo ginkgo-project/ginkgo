@@ -51,6 +51,7 @@
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/multigrid/pmis_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -1126,6 +1127,20 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm
+
+
+namespace pmis {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
+GKO_STUB(GKO_DECLARE_COUNT_KERNEL);
+
+
+}  // namespace pmis
 
 
 namespace set_all_statuses {

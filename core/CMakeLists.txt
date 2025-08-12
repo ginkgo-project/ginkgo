@@ -97,6 +97,7 @@ target_sources(
         matrix/sparsity_csr.cpp
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
+        multigrid/pmis.cpp
         preconditioner/batch_jacobi.cpp
         preconditioner/gauss_seidel.cpp
         preconditioner/ic.cpp
