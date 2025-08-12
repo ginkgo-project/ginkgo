@@ -43,13 +43,23 @@ struct device_unpack_solver_impl {
 
 template <typename ValueType>
 struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
-    using type = matrix_accessor<ValueType, aliased_ptr>;
+    using type = matrix_accessor<ValueType>;
     static GKO_INLINE GKO_ATTRIBUTES type
     unpack(default_stride_dense_wrapper<ValueType> param, int64 default_stride)
     {
         return {param.data, default_stride};
     }
 };
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES auto device_unpack(T&& param, int64 default_stride)
+{
+    using device_type =
+        std::decay_t<decltype(map_to_device(std::forward<T>(param)))>;
+    return device_unpack_solver_impl<device_type>::unpack(
+        std::forward<T>(param), default_stride);
+}
 
 
 /**

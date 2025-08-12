@@ -175,8 +175,11 @@ using aliased_ptr = T*;
  * objects.
  *
  * @tparam ValueType  the value type of the underlying matrix.
+ * @tparam PtrWrapper  the pointer type. By default, it's just `T*`, but it may
+ *                     be set to restricted_ptr.
  */
-template <typename ValueType, template <typename> typename PtrWrapper>
+template <typename ValueType,
+          template <typename> typename PtrWrapper = aliased_ptr>
 struct matrix_accessor {
     PtrWrapper<ValueType> data;
     int64 stride;
@@ -202,9 +205,24 @@ struct matrix_accessor {
 };
 
 
+/**
+ * Tag to signal that pointers should be annotated with `__restrict`
+ */
 struct restrict_tag {};
 
 
+/**
+ * @internal
+ * Adds a restrict annotation to an object.
+ *
+ * @note Can't be used for run_kernel_solver.
+ *
+ * @tparam T  Type that should be annotated
+ *
+ * @param orig  Original object
+ *
+ * @return The original object and a restrict_tag
+ */
 template <typename T>
 auto as_restrict(T&& orig) -> std::pair<T&&, restrict_tag>
 {
@@ -220,46 +238,47 @@ auto as_restrict(T&& orig) -> std::pair<T&&, restrict_tag>
  *
  * By default, it only maps std::complex to the corresponding device
  * representation of the complex type. There are specializations for dealing
- * with gko::array and gko::matrix::Dense (both const and mutable) that map them
+ * with gko::array and gko::matrix::Dense that map them
  * to plain pointers or matrix_accessor objects.
  *
- * @tparam T  the type being mapped. It will be used based on a
- *            forwarding-reference, i.e. preserve references in the input
- *            parameter, so special care must be taken to only return types that
- *            can be passed to the device, i.e. (structs containing) device
- *            pointers or values. This means that T will be either a r-value or
- *            l-value reference.
+ * @tparam T  the underlying type being mapped. Any references or const
+ *            qualifiers have to be resolved before passing the type.
+ *            The distinction between const/mutable objects is done by
+ *            overloading the map_to_device function.
+ * @tparam PtrWrapper  the pointer type. By default, it's just `T*`, but it may
+ *                     be set to restricted_ptr.
  */
 template <typename T, template <typename> typename PtrWrapper = aliased_ptr>
 struct to_device_type_impl {
-    using type = std::decay_t<device_type<T>>;
-    static type map_to_device(T in) { return as_device_type(in); }
+    static auto map_to_device(T in) -> device_type<T>
+    {
+        return as_device_type(in);
+    }
 };
 
-template <typename ValueType, template <typename> typename PtrWrapper>
-struct to_device_type_impl<matrix::Dense<ValueType>*&, PtrWrapper> {
-    using type = matrix_accessor<device_type<ValueType>, PtrWrapper>;
-    static type map_to_device(matrix::Dense<ValueType>* mtx)
+template <typename T, template <typename> typename PtrWrapper>
+struct to_device_type_impl<T*, PtrWrapper> {
+    static auto map_to_device(T* in) -> PtrWrapper<device_type<T>>
     {
-        return to_device_type_impl<matrix::Dense<ValueType>* const&,
-                                   PtrWrapper>::map_to_device(mtx);
+        return {as_device_type(in)};
+    }
+    static auto map_to_device(const T* in) -> PtrWrapper<const device_type<T>>
+    {
+        return {as_device_type(in)};
     }
 };
 
 template <typename ValueType, template <typename> typename PtrWrapper>
-struct to_device_type_impl<matrix::Dense<ValueType>* const&, PtrWrapper> {
-    using type = matrix_accessor<device_type<ValueType>, PtrWrapper>;
-    static type map_to_device(matrix::Dense<ValueType>* mtx)
+struct to_device_type_impl<matrix::Dense<ValueType>*, PtrWrapper> {
+    static auto map_to_device(matrix::Dense<ValueType>* mtx)
+        -> matrix_accessor<device_type<ValueType>, PtrWrapper>
     {
         return {as_device_type(mtx->get_values()),
                 static_cast<int64>(mtx->get_stride())};
     }
-};
 
-template <typename ValueType, template <typename> typename PtrWrapper>
-struct to_device_type_impl<const matrix::Dense<ValueType>*&, PtrWrapper> {
-    using type = matrix_accessor<const device_type<ValueType>, PtrWrapper>;
-    static type map_to_device(const matrix::Dense<ValueType>* mtx)
+    static auto map_to_device(const matrix::Dense<ValueType>* mtx)
+        -> matrix_accessor<const device_type<ValueType>, PtrWrapper>
     {
         return {as_device_type(mtx->get_const_values()),
                 static_cast<int64>(mtx->get_stride())};
@@ -267,58 +286,91 @@ struct to_device_type_impl<const matrix::Dense<ValueType>*&, PtrWrapper> {
 };
 
 template <typename ValueType, template <typename> typename PtrWrapper>
-struct to_device_type_impl<array<ValueType>&, PtrWrapper> {
-    using type = PtrWrapper<device_type<ValueType>>;
-    static type map_to_device(array<ValueType>& array)
+struct to_device_type_impl<array<ValueType>, PtrWrapper> {
+    static auto map_to_device(array<ValueType>& array)
+        -> PtrWrapper<device_type<ValueType>>
     {
         return {as_device_type(array.get_data())};
     }
-};
 
-template <typename ValueType, template <typename> typename PtrWrapper>
-struct to_device_type_impl<const array<ValueType>&, PtrWrapper> {
-    using type = PtrWrapper<const device_type<ValueType>>;
-    static type map_to_device(const array<ValueType>& array)
+    static auto map_to_device(const array<ValueType>& array)
+        -> PtrWrapper<const device_type<ValueType>>
     {
         return {as_device_type(array.get_const_data())};
     }
 };
 
-template <typename T, template <typename> typename PtrWrapper>
-struct to_device_type_impl<T*, PtrWrapper> {
-    using type = PtrWrapper<device_type<T>>;
-    static type map_to_device(T in) { return {as_device_type(in)}; }
-};
-
-template <typename T, template <typename> typename PtrWrapper>
-struct to_device_type_impl<const T*, PtrWrapper> {
-    using type = PtrWrapper<const device_type<T>>;
-    static type map_to_device(T in) { return {as_device_type(in)}; }
-};
-
+/**
+ * Specialization for handling objects annotated by as_restrict.
+ * It changes the pointer wrapper type to restricted_ptr.
+ */
 template <typename T>
-struct to_device_type_impl<std::pair<T&, restrict_tag>&, aliased_ptr> {
-    using type = typename to_device_type_impl<T&, restricted_ptr>::type;
-    static type map_to_device(std::pair<T&, restrict_tag> in)
-    {
-        return to_device_type_impl<T&, restricted_ptr>::map_to_device(in.first);
-    }
-};
-
-template <typename T>
-struct to_device_type_impl<std::pair<T, restrict_tag>&, aliased_ptr> {
-    using type = typename to_device_type_impl<T, restricted_ptr>::type;
-    static type map_to_device(std::pair<T, restrict_tag> in)
+struct to_device_type_impl<std::pair<T, restrict_tag>, aliased_ptr> {
+    template <typename U>
+    static auto map_to_device(U&& in)
     {
         return to_device_type_impl<T, restricted_ptr>::map_to_device(in.first);
     }
 };
 
 
+namespace detail {
+
+
+/**
+ * Similar to std::remove_cv_t except that it remove the const from pointers,
+ * i.e. `const T*` -> `T*`.
+ */
 template <typename T>
-typename to_device_type_impl<T>::type map_to_device(T&& param)
+struct aggressive_remove_const {
+    using type = std::remove_cv_t<T>;
+};
+
+template <typename T>
+struct aggressive_remove_const<const T*> {
+    using type = T*;
+};
+
+/**
+ * Similar to std::decay, except that it also applies std::decay on the first
+ * nesting of types, i.e. `T<U&>` -> `T<U>`.
+ * This only resolves a single level of nesting.
+ */
+template <typename T>
+struct nested_decay;
+
+/**
+ * Helper type for nested_decay.
+ * This is necessary, since the references in the top-level type have to be
+ * removed, before std::decay may be applied to the nested type.
+ */
+template <typename T>
+struct nested_decay_inner {
+    using type = typename aggressive_remove_const<std::decay_t<T>>::type;
+};
+
+template <typename T, typename Tag>
+struct nested_decay_inner<std::pair<T, Tag>> {
+    using type = std::pair<typename nested_decay_inner<T>::type, Tag>;
+};
+
+template <typename T>
+struct nested_decay {
+    using type = typename nested_decay_inner<std::decay_t<T>>::type;
+};
+
+
+}  // namespace detail
+
+
+template <typename T>
+using to_device_type =
+    to_device_type_impl<typename detail::nested_decay<T>::type>;
+
+template <typename T>
+auto map_to_device(T&& param)
 {
-    return to_device_type_impl<T>::map_to_device(param);
+    return to_device_type<T>::map_to_device(std::forward<T>(param));
 }
 
 

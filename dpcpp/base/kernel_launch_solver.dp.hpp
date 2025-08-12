@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,9 +22,7 @@ void generic_kernel_2d_solver(sycl::handler& cgh, int64 rows, int64 cols,
                      [=](sycl::id<1> idx) {
                          auto row = static_cast<int64>(idx[0] / cols);
                          auto col = static_cast<int64>(idx[0] % cols);
-                         fn(row, col,
-                            device_unpack_solver_impl<KernelArgs>::unpack(
-                                args, default_stride)...);
+                         fn(row, col, device_unpack(args, default_stride)...);
                      });
 }
 
