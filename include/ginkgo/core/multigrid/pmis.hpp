@@ -129,7 +129,8 @@ protected:
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
-          agg_(factory->get_executor(), system_matrix_->get_size()[0])
+          weight_(factory->get_executor(), system_matrix_->get_size()[0]),
+          status_(factory->get_executor(), system_matrix_->get_size()[0])
     {
         GKO_ASSERT(parameters_.strength_threshold <= 1.0);
         GKO_ASSERT(parameters_.strength_threshold >= 0.0);
