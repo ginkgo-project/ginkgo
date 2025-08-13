@@ -17,24 +17,6 @@
 
 using Generator = DefaultSystemGenerator<>;
 
-namespace json_schema = nlohmann::json_schema;
-
-
-static void loader(const nlohmann::json_uri& uri,
-                   nlohmann::basic_json<>& schema)
-{
-    std::string filename = GKO_ROOT "/benchmark/" + uri.path();
-    std::ifstream lf(filename);
-    if (!lf.good())
-        throw std::invalid_argument("could not open " + uri.url() +
-                                    " tried with " + filename);
-    try {
-        lf >> schema;
-    } catch (const std::exception& e) {
-        throw e;
-    }
-}
-
 int main(int argc, char* argv[])
 {
     std::string header =
@@ -51,8 +33,8 @@ int main(int argc, char* argv[])
     print_general_information(extra_information, exec);
 
     auto schema =
-        json::parse(std::ifstream(GKO_ROOT "/benchmark/spmv.item.schema.json"));
-    json_schema::json_validator validator(loader);  // create validator
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/spmv.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
     try {
         validator.set_root_schema(schema);  // insert root-schema

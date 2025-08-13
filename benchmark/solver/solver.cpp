@@ -14,30 +14,12 @@
 #include <sstream>
 #include <vector>
 
-#include <nlohmann/json-schema.hpp>
-
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/solver/solver_common.hpp"
 #include "benchmark/utils/general_matrix.hpp"
 #include "benchmark/utils/generator.hpp"
 
-namespace json_schema = nlohmann::json_schema;
-
-static void loader(const nlohmann::json_uri& uri,
-                   nlohmann::basic_json<>& schema)
-{
-    std::string filename = GKO_ROOT "/benchmark/" + uri.path();
-    std::ifstream lf(filename);
-    if (!lf.good())
-        throw std::invalid_argument("could not open " + uri.url() +
-                                    " tried with " + filename);
-    try {
-        lf >> schema;
-    } catch (const std::exception& e) {
-        throw e;
-    }
-}
 
 int main(int argc, char* argv[])
 {
@@ -63,15 +45,15 @@ int main(int argc, char* argv[])
     print_general_information(extra_information, exec);
 
     auto schema =
-        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema.solver.json"));
-    json_schema::json_validator validator(loader);  // create validator
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/solver.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
     try {
         validator.set_root_schema(schema);  // insert root-schema
     } catch (const std::exception& e) {
         std::cerr << "Validation of schema failed, here is why: " << e.what()
                   << "\n";
-        return EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 
     json test_cases;
@@ -79,7 +61,7 @@ int main(int argc, char* argv[])
         test_cases = json::parse(get_input_stream());
     } else {
         // Not sure how to handle this yet.
-        return EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
     }
 
     try {
@@ -88,6 +70,7 @@ int main(int argc, char* argv[])
         std::cout << "Validation succeeded\n";
     } catch (const std::exception& e) {
         std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        std::exit(EXIT_FAILURE);
     }
 
     auto results =

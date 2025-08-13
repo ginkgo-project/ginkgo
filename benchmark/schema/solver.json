@@ -7,7 +7,7 @@
     "type": "object",
     "properties": {
       "operator": {
-        "$ref": "schema.operator.json"
+        "$ref": "operator.json"
       },
       "solver": {
         "type": "object",

@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "spmv.item.schema.json",
   "title": "SpMV",
   "desciption": "something",
   "type": "array",
@@ -8,7 +7,7 @@
     "type": "object",
     "properties": {
       "operator": {
-        "$ref": "schema.operator.json"
+        "$ref": "operator.json"
         }     ,
       "format": {
         "type": "string"
