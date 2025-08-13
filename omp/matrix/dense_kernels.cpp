@@ -23,6 +23,7 @@
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 
 
 namespace gko {
@@ -138,6 +139,50 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
+template <typename ValueType, typename IndexType, typename InitAcc, typename DefMultOperand>
+void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Dense<ValueType>* a,
+                    const matrix::Csr<ValueType, IndexType>* b,
+                    matrix::Dense<ValueType>* c,
+                    InitAcc initialize_accumulator,
+                    DefMultOperand define_multiplication_operand)
+{
+    //initialization
+    const auto b_rowptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto a_vals = acc::helper::build_const_rrm_accessor<ValueType>(a);
+    const auto b_vals = acc::helper::build_const_rrm_accessor<ValueType>(b);
+    const auto c_vals_ptr = c->get_values();
+    //accumulate partial results of a row
+    const auto sub_acc_size = b->get_size()[1]; //each accumulator stores a whole row
+    const size_t nb_th = omp_get_max_threads(); //number of threads
+    array<ValueType> acc_array(exec, sub_acc_size*nb_th); //one accumulator per row
+    auto acc_ptr = acc_array.get_data();
+    //compute the multiplication, 1 thread per row
+    #pragma omp parallel
+    {
+        const auto th_id = omp_get_thread_num();
+        const auto th_acc_begin_ptr = acc_ptr + th_id*sub_acc_size;
+        const auto th_acc_end_ptr = acc_ptr + (th_id+1)*sub_acc_size;
+        #pragma omp for
+        for(IndexType row=zero<IndexType>(); row<c->get_size()[0]; row++){
+            //reinitialize accumulator to 0
+            initialize_accumulator(th_acc_begin_ptr, sub_acc_size, row);
+            //iterate over the whole matrix b
+            for(IndexType k=zero<IndexType>(); k<b->get_size()[0]; k++){
+                const auto val_A = define_multiplication_operand(row, k);
+                //iterate over the non-zero values of a row
+                for(IndexType idx_B=b_rowptrs[k]; idx_B<b_rowptrs[k+1]; idx_B++){
+                    const auto col = b_cols[idx_B];
+                    th_acc_begin_ptr[col] += val_A * b_vals(idx_B);
+                }
+            }
+            //move accumulator to result
+            auto out_ptr = c_vals_ptr + row*c->get_stride();
+            std::copy(th_acc_begin_ptr, th_acc_end_ptr, out_ptr);
+        }
+    }
+}
 
 template <typename ValueType, typename IndexType>
 void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,
@@ -145,8 +190,13 @@ void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* b,
                  matrix::Dense<ValueType>* c)
 {
-    // TODO: implement c = a * b with single thread
-    GKO_NOT_IMPLEMENTED;
+    auto simple_init_acc = [b](ValueType* acc_begin_ptr, IndexType acc_size, IndexType row){
+        std::fill(acc_begin_ptr, acc_begin_ptr + acc_size, zero<ValueType>()); //reinitialize accumulator with zeroes
+    };
+    auto simple_def_mult_operand = [a](IndexType row, IndexType k){
+        return a->at(row, k); //no multiplication by alpha, just get value in a
+    };
+    mspm_auxiliary(exec, a, b, c, simple_init_acc, simple_def_mult_operand);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -160,8 +210,16 @@ void mspm(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* b,
           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
-    // TODO: implement c = alpha * a * b + beta * c with single thread
-    GKO_NOT_IMPLEMENTED;
+    auto advanced_init_acc = [b, c, beta](ValueType* acc_begin_ptr, IndexType acc_size, IndexType row){
+        const auto begin_row_c_vals_ptr = c->get_const_values() + c->get_stride()*row;
+        std::transform( //initialize the accumulator with c + beta
+            begin_row_c_vals_ptr, begin_row_c_vals_ptr + acc_size,
+            acc_begin_ptr, std::bind1st(std::multiplies<ValueType>(), beta->at(0, 0)));
+    };
+    auto advanced_def_mult_operand = [a, alpha](IndexType row, IndexType k){
+        return alpha->at(0, 0) * a->at(row, k); //multiply a(row,k) by alpha
+    };
+    mspm_auxiliary(exec, a, b, c, advanced_init_acc, advanced_def_mult_operand);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_MSPM_KERNEL);
