@@ -5,16 +5,17 @@
   "type": "array",
   "items": {
     "type": "object",
-    "properties": {
-      "operator": {
-        "$ref": "operator.json"
-        }     ,
-      "format": {
-        "type": "string"
+    "allOf": [
+      {
+        "$ref": "spmv.reuse.json"
       },
-      "reorder": {
-        "enum": ["amd", "nd", "rcm"]
+      {
+        "properties": {
+          "operator": {
+            "$ref": "operator.json"
+          }
+        }
       }
-    }
+    ]
   }
 }

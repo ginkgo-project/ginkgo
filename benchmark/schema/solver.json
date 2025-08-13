@@ -19,13 +19,7 @@
         "type": "object",
         "properties": {
           "spmv": {
-            "type": "object",
-            "properties": {
-              "format": {
-                "type": "string"
-              }
-            },
-            "required": ["format"]
+            "$ref": "spmv.reuse.json"
           }
         },
         "required": ["spmv"]
