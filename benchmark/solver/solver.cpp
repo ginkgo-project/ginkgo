@@ -46,10 +46,8 @@ int main(int argc, char* argv[])
     FLAGS_min_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
-    std::string format = solver_example_config + R"(
-  "optimal":"spmv" can be one of the recognized spmv formats
-)";
-    std::string additional_json = R"(,"optimal":{"spmv":"csr"})";
+    std::string format;
+    std::string additional_json;
     initialize_argument_parsing_matrix(&argc, &argv, header, format,
                                        additional_json);
 
@@ -65,7 +63,7 @@ int main(int argc, char* argv[])
     print_general_information(extra_information, exec);
 
     auto schema =
-        json::parse(std::ifstream(GKO_ROOT "/benchmark/spmv.item.schema.json"));
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema.solver.json"));
     json_schema::json_validator validator(loader);  // create validator
 
     try {

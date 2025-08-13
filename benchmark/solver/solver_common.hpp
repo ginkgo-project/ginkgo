@@ -62,17 +62,6 @@ DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
 
-std::string solver_example_config = R"(
-  [
-    {"filename": "my_file.mtx", "optimal": {"spmv": "ell"},
-     "rhs": "my_file_rhs.mtx"},
-    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo"},
-     "rhs": "my_file_rhs.mtx"},
-    {"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}
-  ]
-)";
-
-
 struct SolverGenerator : DefaultSystemGenerator<> {
     using Vec = typename DefaultSystemGenerator::Vec;
 
@@ -215,6 +204,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         }
 
         auto solver_case = operation_case;
+        // remove any criteria if it is defined in the input json
+        if (solver_case["solver"].contains("criteria")) {
+            solver_case["solver"]["criteria"] = json::object();
+        }
         solver_case["solver"]["criteria"]["iteration"] = FLAGS_max_iters;
         if (FLAGS_rel_residual) {
             solver_case["solver"]["criteria"]["initial_residual_norm"] =
