@@ -152,7 +152,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) += alpha[0] * x(row, col);
                 }
             },
-            x->get_size(), alpha->get_const_values(), x, y);
+            x->get_size(), as_restrict(alpha), as_restrict(x), as_restrict(y));
     }
 }
 
@@ -177,7 +177,7 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) -= alpha[0] * x(row, col);
                 }
             },
-            x->get_size(), alpha->get_const_values(), x, y);
+            x->get_size(), as_restrict(alpha), as_restrict(x), as_restrict(y));
     }
 }
 

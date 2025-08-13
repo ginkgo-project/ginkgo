@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,6 +50,16 @@ struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
         return {param.data, default_stride};
     }
 };
+
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES auto device_unpack(T&& param, int64 default_stride)
+{
+    using device_type =
+        std::decay_t<decltype(map_to_device(std::forward<T>(param)))>;
+    return device_unpack_solver_impl<device_type>::unpack(
+        std::forward<T>(param), default_stride);
+}
 
 
 /**
