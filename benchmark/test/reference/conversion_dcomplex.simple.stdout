@@ -1,28 +1,29 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
+        "operator": {
+            "stencil": {
+                "name": "7pt",
+                "size": 100
+            }
+        },
         "conversion": {
             "coo-read": {
                 "time": 1.0,
-                "repetitions": 10,
-                "completed": true
+                "repetitions": 10
             },
             "coo-csr": {
                 "time": 1.0,
-                "repetitions": 10,
-                "completed": true
+                "repetitions": 10
             },
             "csr-read": {
                 "time": 1.0,
-                "repetitions": 10,
-                "completed": true
+                "repetitions": 10
             },
             "csr-coo": {
                 "time": 1.0,
-                "repetitions": 10,
-                "completed": true
-            }
+                "repetitions": 10
+            },
+            "completed": true
         },
         "rows": 125,
         "cols": 125,
