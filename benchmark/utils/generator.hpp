@@ -172,47 +172,6 @@ struct DistributedDefaultSystemGenerator {
         return {data, local_size};
     }
 
-    static std::string get_example_config()
-    {
-        return json::
-            parse(R"([{"stencil": {"name": "5pt", "local_size": 100, "process_grid": [2, 3]}}, {"filename": "my_file.mtx"}])")
-                .dump(4);
-    }
-
-    static bool validate_config(const json& test_case)
-    {
-        return (test_case.contains("stencil") &&
-                test_case["stencil"].is_object() &&
-                test_case["stencil"].contains("name") &&
-                test_case["stencil"]["name"].is_string() &&
-                test_case["stencil"].contains("local_size") &&
-                test_case["stencil"]["local_size"].is_number_integer() &&
-                (!test_case["stencil"].contains("process_grid") ||
-                 test_case["stencil"]["process_grid"].is_array())) ||
-               (test_case.contains("filename") &&
-                test_case["filename"].is_string());
-    }
-
-    static std::string describe_config(const json& config)
-    {
-        if (config.contains("filename")) {
-            return config["filename"].get<std::string>();
-        } else if (config.contains("stencil")) {
-            std::stringstream ss;
-            ss << "stencil(" << config["stencil"]["local_size"] << ", "
-               << config["stencil"]["name"] << ", ";
-            if (config["stencil"].contains("process_grid")) {
-                ss << config["stencil"]["process_grid"];
-            } else {
-                ss << "[tbd]";
-            }
-            ss << ")";
-            return ss.str();
-        } else {
-            throw std::runtime_error("No known way to describe config.");
-        }
-    }
-
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(
         std::shared_ptr<gko::Executor> exec, const std::string& format_name,
         const gko::matrix_data<value_type, index_type>& data,
