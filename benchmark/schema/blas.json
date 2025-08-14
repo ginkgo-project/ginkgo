@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BLAS",
+  "desciption": "something",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "n": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "r": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "m": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "k": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stride_x": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stride_y": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stride_A": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stride_B": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "stride_C": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "if": {
+      "properties": {
+        "stride": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "then": {
+      "not": {
+        "anyOf": [
+          {"required": ["stride_x"]},
+          {"required": ["stride_y"]}
+        ]
+      }
+    },
+    "required": ["n"]
+  }
+}

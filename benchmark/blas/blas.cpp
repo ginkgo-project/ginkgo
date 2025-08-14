@@ -106,7 +106,7 @@ Parameters for a benchmark case are:
     stride_B: stride for B matrix in gemm (optional, default m)
     stride_C: stride for C matrix in gemm (optional, default m)
 )";
-    std::string format = Generator::get_example_config();
+    std::string format;
     initialize_argument_parsing(&argc, &argv, header, format);
 
     std::string extra_information = "The operations are " + FLAGS_operations;
@@ -115,8 +115,27 @@ Parameters for a benchmark case are:
 
     auto test_cases = json::parse(get_input_stream());
 
-    run_test_cases(BlasBenchmark{operation_map}, exec,
-                   get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/blas.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    auto results = run_test_cases(BlasBenchmark{operation_map}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+
+    std::cout << std::setw(4) << results << std::endl;
 }
