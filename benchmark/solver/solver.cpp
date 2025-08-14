@@ -32,8 +32,7 @@ int main(int argc, char* argv[])
     auto schema =
         json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/solver.json"));
 
-    initialize_argument_parsing_matrix(&argc, &argv, header,
-                                       schema["examples"]);
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
     std::stringstream ss_rel_res_goal;
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;

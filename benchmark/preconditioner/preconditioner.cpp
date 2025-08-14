@@ -176,8 +176,7 @@ int main(int argc, char* argv[])
     auto schema = json::parse(
         std::ifstream(GKO_ROOT "/benchmark/schema/preconditioner.json"));
 
-    initialize_argument_parsing_matrix(&argc, &argv, header,
-                                       schema["examples"]);
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
     std::string extra_information = "Running with preconditioners: ";
 

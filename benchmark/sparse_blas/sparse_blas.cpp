@@ -139,8 +139,7 @@ int main(int argc, char* argv[])
     auto schema = json::parse(
         std::ifstream(GKO_ROOT "/benchmark/schema/sparse-blas.json"));
 
-    initialize_argument_parsing_matrix(&argc, &argv, header,
-                                       schema["examples"]);
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
