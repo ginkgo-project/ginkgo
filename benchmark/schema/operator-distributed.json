@@ -19,14 +19,23 @@
             "27pt"
           ]
         },
-        "size": {
+        "local_size": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "process_grid": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
         }
       },
       "required": [
         "name",
-        "size"
+        "local_size"
       ]
     }
   },
