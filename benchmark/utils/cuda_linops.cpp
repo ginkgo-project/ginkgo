@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -195,7 +195,8 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
                            const cusparseSpMatDescr_t mat,
                            const gko::array<ValueType>& scalars,
                            const gko::LinOp* b, gko::LinOp* x,
-                           cusparseOperation_t trans, cusparseSpMVAlg_t alg)
+                           cusparseOperation_t trans, cusparseSpMVAlg_t alg,
+                           gko::array<char>& workspace)
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
     using gko::kernels::cuda::as_culibs_type;
@@ -218,8 +219,8 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
         gpu_exec->get_sparselib_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
         &buffer_size));
-    gko::array<char> buffer_array(gpu_exec, buffer_size);
-    auto dbuffer = buffer_array.get_data();
+    workspace.resize_and_reset(buffer_size);
+    auto dbuffer = workspace.get_data();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
         gpu_exec->get_sparselib_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg, dbuffer));
@@ -302,7 +303,7 @@ protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              Alg);
+                              Alg, workspace);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
@@ -322,6 +323,7 @@ private:
     gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
+    mutable gko::array<char> workspace{this->get_executor()};
     cusparseOperation_t trans_;
     cusparseSpMatDescr_t mat_;
 };
@@ -394,7 +396,7 @@ protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
-                              default_csr_alg);
+                              default_csr_alg, workspace);
     }
 
     void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
@@ -412,6 +414,7 @@ private:
     // Contains {alpha, beta}
     gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
+    mutable gko::array<char> workspace{this->get_executor()};
     std::shared_ptr<coo> coo_;
     cusparseOperation_t trans_;
     cusparseSpMatDescr_t mat_;
