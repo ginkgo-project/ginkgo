@@ -16,5 +16,6 @@
         "natural"
       ]
     }
-  }
+  },
+  "required": ["format"]
 }

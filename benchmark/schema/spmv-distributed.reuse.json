@@ -6,12 +6,14 @@
   "type": "object",
   "properties": {
     "format": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+"
     },
     "reorder": {
       "enum": [
         "natural"
       ]
     }
-  }
+  },
+  "required": ["format"]
 }
