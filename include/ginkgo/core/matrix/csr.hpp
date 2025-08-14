@@ -471,13 +471,13 @@ public:
             if (warp_size_ > 0) {
                 int multiple = 8;
                 if (nnz >= static_cast<int64_t>(2e8)) {
-                    multiple = 2048;
+                    multiple = 1024;
                 } else if (nnz >= static_cast<int64_t>(2e7)) {
-                    multiple = 512;
+                    multiple = 256;
                 } else if (nnz >= static_cast<int64_t>(2e6)) {
-                    multiple = 128;
+                    multiple = 64;
                 } else if (nnz >= static_cast<int64_t>(2e5)) {
-                    multiple = 32;
+                    multiple = 16;
                 }
                 if (strategy_name_ == "intel") {
                     multiple = 8;

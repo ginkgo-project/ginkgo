@@ -68,7 +68,7 @@ namespace csr {
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int classical_oversubscription = 32;
+constexpr int classical_oversubscription = 256;
 
 
 /**
@@ -163,6 +163,25 @@ __device__ __forceinline__ void warp_atomic_add(
 }
 
 
+template <unsigned subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
+__device__ __forceinline__ void warp_atomic_add(
+    const group::thread_block_tile<subwarp_size>& group, bool force_write,
+    ValueType& val, const IndexType row, ValueType* __restrict__ c,
+    Closure scale)
+{
+    // do a local scan to avoid atomic collisions
+    const bool need_write = segment_scan(
+        group, row, val, [](ValueType a, ValueType b) { return a + b; });
+    if (need_write && force_write) {
+        atomic_add(c + row, scale(val));
+    }
+    if (!need_write || force_write) {
+        val = zero<ValueType>();
+    }
+}
+
+
 template <bool last, unsigned subwarp_size, typename arithmetic_type,
           typename matrix_accessor, typename IndexType, typename input_accessor,
           typename output_accessor, typename Closure>
@@ -189,6 +208,37 @@ __device__ __forceinline__ void process_window(
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
         temp_val += val(ind) * b(col, column_id);
+    }
+}
+
+
+template <bool last, unsigned subwarp_size, typename ValueType,
+          typename IndexType, typename Closure>
+__device__ __forceinline__ void process_window(
+    const group::thread_block_tile<subwarp_size>& group,
+    const IndexType num_rows, const IndexType data_size, const IndexType ind,
+    IndexType& row, IndexType& row_end, IndexType& nrow, IndexType& nrow_end,
+    ValueType& temp_val, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
+    ValueType* __restrict__ c, Closure scale)
+{
+    const auto curr_row = row;
+    find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
+    // segmented scan
+    if (group.any(curr_row != row)) {
+        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c, scale);
+        nrow = group.shfl(row, subwarp_size - 1);
+        nrow_end = group.shfl(row_end, subwarp_size - 1);
+    }
+
+    if (!last || ind < data_size) {
+        if constexpr (std::is_same_v<ValueType, double>) {
+            temp_val = fma(val[ind], b[col_idxs[ind]], temp_val);
+        } else {
+            temp_val += val[ind] * b[col_idxs[ind]];
+        }
     }
 }
 
@@ -286,6 +336,72 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
                 });
 }
 
+
+template <typename ValueType, typename IndexType, typename Closure>
+__device__ __forceinline__ void spmv_kernel(
+    const IndexType nwarps, const IndexType num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    const ValueType* __restrict__ b, ValueType* __restrict__ c, Closure scale)
+{
+    const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
+    if (warp_idx >= nwarps) {
+        return;
+    }
+    const IndexType data_size = row_ptrs[num_rows];
+    const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
+    constexpr IndexType wsize = config::warp_size;
+    const IndexType end =
+        min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
+            ceildivT<IndexType>(data_size, wsize) * wsize);
+    auto row = srow[warp_idx];
+    auto row_end = row_ptrs[row + 1];
+    auto nrow = row;
+    auto nrow_end = row_end;
+    auto temp_val = zero<ValueType>();
+    IndexType ind = start + threadIdx.x;
+    find_next_row<true>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
+    const IndexType ind_end = end - wsize;
+    const auto tile_block =
+        group::tiled_partition<wsize>(group::this_thread_block());
+    for (; ind < ind_end; ind += wsize) {
+        process_window<false>(tile_block, num_rows, data_size, ind, row,
+                              row_end, nrow, nrow_end, temp_val, val, col_idxs,
+                              row_ptrs, b, c, scale);
+    }
+    process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
+                         nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
+                         c, scale);
+    warp_atomic_add(tile_block, true, temp_val, row, c, scale);
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const IndexType nwarps, const IndexType num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    const ValueType* __restrict__ b, ValueType* __restrict__ c)
+{
+    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+                [](const ValueType& x) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const IndexType nwarps, const IndexType num_rows,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
+    const ValueType* __restrict__ b, ValueType* __restrict__ c)
+{
+    const auto scale_factor = alpha[0];
+    spmv_kernel(
+        nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, c,
+        [&scale_factor](const ValueType& x) { return scale_factor * x; });
+}
 
 template <typename IndexType>
 __forceinline__ __device__ void merge_path_search(
@@ -498,6 +614,82 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
     merge_path_reduce(
         nwarps, last_val, last_row, c,
         [&alpha_val](const arithmetic_type& x) { return alpha_val * x; });
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
+__device__ void device_classical_spmv(const size_type num_rows,
+                                      const ValueType* __restrict__ val,
+                                      const IndexType* __restrict__ col_idxs,
+                                      const IndexType* __restrict__ row_ptrs,
+                                      const ValueType* __restrict__ b,
+                                      ValueType* __restrict__ c, Closure scale)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
+    const auto subid = subwarp_tile.thread_rank();
+    // can not use auto for hip because the type is
+    // __HIP_Coordinates<__HIP_BlockIdx>::__Y which is not allowed in accessor
+    // operator()
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    for (; row < num_rows; row += subrow) {
+        const auto ind_end = row_ptrs[row + 1];
+        auto temp_val = zero<ValueType>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            if constexpr (std::is_same_v<ValueType, double>) {
+                temp_val = fma(val[ind], b[col_idxs[ind]], temp_val);
+            } else {
+                temp_val += val[ind] * b[col_idxs[ind]];
+            }
+        }
+        auto subwarp_result = reduce(
+            subwarp_tile, temp_val,
+            [](const ValueType& a, const ValueType& b) { return a + b; });
+        if (subid == 0) {
+            c[row] = scale(subwarp_result, c[row]);
+        }
+    }
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
+    ValueType* __restrict__ c)
+{
+    device_classical_spmv<subwarp_size>(
+        num_rows, val, col_idxs, row_ptrs, b, c,
+        [](const ValueType& x, const ValueType& y) { return x; });
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
+    const size_type num_rows, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
+    const ValueType* __restrict__ beta, ValueType* __restrict__ c)
+{
+    const auto alpha_val = alpha[0];
+    const auto beta_val = beta[0];
+    if (is_zero(beta_val)) {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val](const ValueType& x, const ValueType& y) {
+                return alpha_val * x;
+            });
+    } else {
+        device_classical_spmv<subwarp_size>(
+            num_rows, val, col_idxs, row_ptrs, b, c,
+            [&alpha_val, &beta_val](const ValueType& x, const ValueType& y) {
+                return alpha_val * x + beta_val * y;
+            });
+    }
 }
 
 
@@ -2053,23 +2245,52 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], acc::as_device_range(a_vals),
-                    a->get_const_col_idxs(),
-                    as_device_type(a->get_const_row_ptrs()),
-                    acc::as_device_range(b_vals), acc::as_device_range(c_vals));
+            if (b->get_stride() == 1 && c->get_stride() &&
+                std::is_same_v<MatrixValueType, InputValueType> &&
+                std::is_same_v<InputValueType, OutputValueType>) {
+                kernel::abstract_classical_spmv<subwarp_size>
+                    <<<grid, block, 0, exec->get_stream()>>>(
+                        a->get_size()[0], as_device_type(a->get_const_values()),
+                        a->get_const_col_idxs(),
+                        as_device_type(a->get_const_row_ptrs()),
+                        as_device_type(b->get_const_values()),
+                        as_device_type(c->get_values()));
+            } else {
+                kernel::abstract_classical_spmv<subwarp_size>
+                    <<<grid, block, 0, exec->get_stream()>>>(
+                        a->get_size()[0], acc::as_device_range(a_vals),
+                        a->get_const_col_idxs(),
+                        as_device_type(a->get_const_row_ptrs()),
+                        acc::as_device_range(b_vals),
+                        acc::as_device_range(c_vals));
+            }
         }
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], as_device_type(alpha->get_const_values()),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    as_device_type(a->get_const_row_ptrs()),
-                    acc::as_device_range(b_vals),
-                    as_device_type(beta->get_const_values()),
-                    acc::as_device_range(c_vals));
+            if (b->get_stride() == 1 && c->get_stride() &&
+                std::is_same_v<MatrixValueType, InputValueType> &&
+                std::is_same_v<InputValueType, OutputValueType>) {
+                kernel::abstract_classical_spmv<subwarp_size>
+                    <<<grid, block, 0, exec->get_stream()>>>(
+                        a->get_size()[0],
+                        as_device_type(alpha->get_const_values()),
+                        as_device_type(a->get_const_values()),
+                        a->get_const_col_idxs(),
+                        as_device_type(a->get_const_row_ptrs()),
+                        as_device_type(b->get_const_values()),
+                        as_device_type(beta->get_const_values()),
+                        as_device_type(c->get_values()));
+            } else {
+                kernel::abstract_classical_spmv<subwarp_size>
+                    <<<grid, block, 0, exec->get_stream()>>>(
+                        a->get_size()[0],
+                        as_device_type(alpha->get_const_values()),
+                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
+                        as_device_type(a->get_const_row_ptrs()),
+                        acc::as_device_range(b_vals),
+                        as_device_type(beta->get_const_values()),
+                        acc::as_device_range(c_vals));
+            }
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -2124,26 +2345,57 @@ bool load_balance_spmv(std::shared_ptr<const DefaultExecutor> exec,
             auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
             if (alpha) {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
-                    kernel::abstract_spmv<<<csr_grid, csr_block, 0,
-                                            exec->get_stream()>>>(
-                        nwarps, static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(alpha->get_const_values()),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
-                        acc::as_device_range(b_vals),
-                        acc::as_device_range(c_vals));
+                    if (b->get_stride() == 1 && c->get_stride() &&
+                        std::is_same_v<MatrixValueType, InputValueType> &&
+                        std::is_same_v<InputValueType, OutputValueType>) {
+                        kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                                exec->get_stream()>>>(
+                            nwarps, static_cast<IndexType>(a->get_size()[0]),
+                            as_device_type(alpha->get_const_values()),
+                            as_device_type(a->get_const_values()),
+                            a->get_const_col_idxs(),
+                            as_device_type(a->get_const_row_ptrs()),
+                            as_device_type(a->get_const_srow()),
+                            as_device_type(b->get_const_values()),
+                            as_device_type(c->get_values()));
+                    } else {
+                        kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                                exec->get_stream()>>>(
+                            nwarps, static_cast<IndexType>(a->get_size()[0]),
+                            as_device_type(alpha->get_const_values()),
+                            acc::as_device_range(a_vals),
+                            a->get_const_col_idxs(),
+                            as_device_type(a->get_const_row_ptrs()),
+                            as_device_type(a->get_const_srow()),
+                            acc::as_device_range(b_vals),
+                            acc::as_device_range(c_vals));
+                    }
                 }
             } else {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
-                    kernel::abstract_spmv<<<csr_grid, csr_block, 0,
-                                            exec->get_stream()>>>(
-                        nwarps, static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
-                        acc::as_device_range(b_vals),
-                        acc::as_device_range(c_vals));
+                    if (b->get_stride() == 1 && c->get_stride() &&
+                        std::is_same_v<MatrixValueType, InputValueType> &&
+                        std::is_same_v<InputValueType, OutputValueType>) {
+                        kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                                exec->get_stream()>>>(
+                            nwarps, static_cast<IndexType>(a->get_size()[0]),
+                            as_device_type(a->get_const_values()),
+                            a->get_const_col_idxs(),
+                            as_device_type(a->get_const_row_ptrs()),
+                            as_device_type(a->get_const_srow()),
+                            as_device_type(b->get_const_values()),
+                            as_device_type(c->get_values()));
+                    } else {
+                        kernel::abstract_spmv<<<csr_grid, csr_block, 0,
+                                                exec->get_stream()>>>(
+                            nwarps, static_cast<IndexType>(a->get_size()[0]),
+                            acc::as_device_range(a_vals),
+                            a->get_const_col_idxs(),
+                            as_device_type(a->get_const_row_ptrs()),
+                            as_device_type(a->get_const_srow()),
+                            acc::as_device_range(b_vals),
+                            acc::as_device_range(c_vals));
+                    }
                 }
             }
         }

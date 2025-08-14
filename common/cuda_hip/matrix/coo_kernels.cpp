@@ -115,6 +115,137 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
 }
 
 
+template <int subwarp_size = config::warp_size, typename ValueType,
+          typename IndexType, typename Closure>
+__device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
+                            const ValueType* __restrict__ val,
+                            const IndexType* __restrict__ col,
+                            const IndexType* __restrict__ row,
+                            const ValueType* __restrict__ b,
+                            ValueType* __restrict__ c, Closure scale)
+{
+    ValueType temp_val = zero<ValueType>();
+    const auto start = static_cast<IndexType>(blockDim.x) * blockIdx.x *
+                           blockDim.y * num_lines +
+                       threadIdx.y * blockDim.x * num_lines;
+    IndexType num = (nnz > start) * ceildiv(nnz - start, subwarp_size);
+    num = min(num, static_cast<IndexType>(num_lines));
+    const IndexType ind_start = start + threadIdx.x;
+    const IndexType ind_end = ind_start + num * subwarp_size - subwarp_size;
+    IndexType ind = ind_start;
+    const auto tile_block =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    if (start + num * subwarp_size >= nnz) {
+        IndexType curr_row = (ind < nnz) ? row[ind] : 0;
+        for (; ind < ind_end; ind += subwarp_size) {
+            if constexpr (std::is_same_v<ValueType, double>) {
+                temp_val = (ind < nnz) ? fma(val[ind], b[col[ind]], temp_val)
+                                       : temp_val;
+            } else {
+                temp_val +=
+                    (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
+            }
+            auto next_row = (ind + subwarp_size < nnz) ? row[ind + subwarp_size]
+                                                       : row[nnz - 1];
+            // segmented scan
+            if (tile_block.any(curr_row != next_row)) {
+                bool is_first_in_segment = segment_scan<subwarp_size>(
+                    tile_block, curr_row, temp_val,
+                    [](ValueType a, ValueType b) { return a + b; });
+                if (is_first_in_segment) {
+                    atomic_add(&(c[curr_row]), scale(temp_val));
+                }
+                // tile_block.sync();
+                temp_val = zero<ValueType>();
+            }
+            tile_block.sync();
+            curr_row = next_row;
+        }
+        if (num > 0) {
+            ind = ind_end;
+            if constexpr (std::is_same_v<ValueType, double>) {
+                temp_val = (ind < nnz) ? fma(val[ind], b[col[ind]], temp_val)
+                                       : temp_val;
+            } else {
+                temp_val +=
+                    (ind < nnz) ? val[ind] * b[col[ind]] : zero<ValueType>();
+            }
+            // segmented scan
+            bool is_first_in_segment = segment_scan<subwarp_size>(
+                tile_block, curr_row, temp_val,
+                [](ValueType a, ValueType b) { return a + b; });
+            if (is_first_in_segment) {
+                atomic_add(&(c[curr_row]), scale(temp_val));
+            }
+        }
+    } else {
+        IndexType curr_row = row[ind];
+        for (; ind < ind_end; ind += subwarp_size) {
+            if constexpr (std::is_same_v<ValueType, double>) {
+                temp_val = fma(val[ind], b[col[ind]], temp_val);
+            } else {
+                temp_val += val[ind] * b[col[ind]];
+            }
+            auto next_row = row[ind + subwarp_size];
+            // segmented scan
+            if (tile_block.any(curr_row != next_row)) {
+                bool is_first_in_segment = segment_scan<subwarp_size>(
+                    tile_block, curr_row, temp_val,
+                    [](ValueType a, ValueType b) { return a + b; });
+                if (is_first_in_segment) {
+                    atomic_add(&(c[curr_row]), scale(temp_val));
+                }
+                // tile_block.sync();
+                temp_val = zero<ValueType>();
+            }
+            tile_block.sync();
+            curr_row = next_row;
+        }
+        if (num > 0) {
+            ind = ind_end;
+            if constexpr (std::is_same_v<ValueType, double>) {
+                temp_val = fma(val[ind], b[col[ind]], temp_val);
+            } else {
+                temp_val += val[ind] * b[col[ind]];
+            }
+            // segmented scan
+            bool is_first_in_segment = segment_scan<subwarp_size>(
+                tile_block, curr_row, temp_val,
+                [](ValueType a, ValueType b) { return a + b; });
+            if (is_first_in_segment) {
+                atomic_add(&(c[curr_row]), scale(temp_val));
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const size_type nnz, const size_type num_lines,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, const ValueType* __restrict__ b,
+    ValueType* __restrict__ c)
+{
+    spmv_kernel(nnz, num_lines, val, col, row, b, c,
+                [](const ValueType& x) { return x; });
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
+    const size_type nnz, const size_type num_lines,
+    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    const ValueType* __restrict__ b, ValueType* __restrict__ c)
+{
+    const ValueType scale_factor = alpha[0];
+    spmv_kernel(
+        nnz, num_lines, val, col, row, b, c,
+        [&scale_factor](const ValueType& x) { return scale_factor * x; });
+}
+
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const size_type nnz, const size_type num_lines,
@@ -136,7 +267,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
     const ValueType* __restrict__ b, const size_type b_stride,
     ValueType* __restrict__ c, const size_type c_stride)
 {
-    ValueType scale_factor = alpha[0];
+    const ValueType scale_factor = alpha[0];
     spmv_kernel(
         nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
         [&scale_factor](const ValueType& x) { return scale_factor * x; });
@@ -291,13 +422,21 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
-
-            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_lines, as_device_type(a->get_const_values()),
-                a->get_const_col_idxs(),
-                as_device_type(a->get_const_row_idxs()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(c->get_values()), c->get_stride());
+            if (b->get_stride() == 1 && c->get_stride() == 1) {
+                abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                    nnz, num_lines, as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_device_type(a->get_const_row_idxs()),
+                    as_device_type(b->get_const_values()),
+                    as_device_type(c->get_values()));
+            } else {
+                abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                    nnz, num_lines, as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_device_type(a->get_const_row_idxs()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
+            }
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
@@ -354,12 +493,23 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
 
-            abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_lines, as_device_type(alpha->get_const_values()),
-                as_device_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_device_type(a->get_const_row_idxs()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(c->get_values()), c->get_stride());
+            if (b->get_stride() == 1 && c->get_stride() == 1) {
+                abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                    nnz, num_lines, as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_device_type(a->get_const_row_idxs()),
+                    as_device_type(b->get_const_values()),
+                    as_device_type(c->get_values()));
+            } else {
+                abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
+                    nnz, num_lines, as_device_type(alpha->get_const_values()),
+                    as_device_type(a->get_const_values()),
+                    a->get_const_col_idxs(),
+                    as_device_type(a->get_const_row_idxs()),
+                    as_device_type(b->get_const_values()), b->get_stride(),
+                    as_device_type(c->get_values()), c->get_stride());
+            }
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;

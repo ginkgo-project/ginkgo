@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,13 +78,13 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
     size_type nwarps_in_cuda = exec->get_num_multiprocessor() * warps_per_sm;
     size_type multiple = 8;
     if (nnz >= 2e8) {
-        multiple = 2048;
+        multiple = 1024;
     } else if (nnz >= 2e7) {
-        multiple = 512;
+        multiple = 256;
     } else if (nnz >= 2e6) {
-        multiple = 128;
+        multiple = 64;
     } else if (nnz >= 2e5) {
-        multiple = 32;
+        multiple = 16;
     }
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
     if (_tuning_flag) {
