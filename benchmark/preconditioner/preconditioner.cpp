@@ -16,88 +16,15 @@
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "ginkgo/extensions/config/json_config.hpp"
 
 
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
 #include "benchmark/utils/tuning_variables.hpp"
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
-
-
-// preconditioner generation and application
-std::string encode_parameters(const char* precond_name)
-{
-    static std::map<std::string, std::string (*)()> encoder{
-        {"jacobi",
-         [] {
-             std::ostringstream oss;
-             oss << "jacobi-" << FLAGS_jacobi_max_block_size << "-"
-                 << FLAGS_jacobi_storage;
-             return oss.str();
-         }},
-        {"parict",
-         [] {
-             std::ostringstream oss;
-             oss << "parict-" << FLAGS_parilu_iterations << '-'
-                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
-             return oss.str();
-         }},
-        {"parilu",
-         [] {
-             std::ostringstream oss;
-             oss << "parilu-" << FLAGS_parilu_iterations;
-             return oss.str();
-         }},
-        {"parilut",
-         [] {
-             std::ostringstream oss;
-             oss << "parilut-" << FLAGS_parilu_iterations << '-'
-                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit;
-             return oss.str();
-         }},
-        {"parict-isai",
-         [] {
-             std::ostringstream oss;
-             oss << "parict-isai-" << FLAGS_parilu_iterations << '-'
-                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
-                 << '-' << FLAGS_isai_power;
-             return oss.str();
-         }},
-        {"parilu-isai",
-         [] {
-             std::ostringstream oss;
-             oss << "parilu-isai-" << FLAGS_parilu_iterations << '-'
-                 << FLAGS_isai_power;
-             return oss.str();
-         }},
-        {"parilut-isai",
-         [] {
-             std::ostringstream oss;
-             oss << "parilut-isai-" << FLAGS_parilu_iterations << '-'
-                 << FLAGS_parilut_approx_select << '-' << FLAGS_parilut_limit
-                 << '-' << FLAGS_isai_power;
-             return oss.str();
-         }},
-        {"ilu-isai",
-         [] {
-             return std::string{"ilu-isai-"} + std::to_string(FLAGS_isai_power);
-         }},
-        {"general-isai",
-         [] {
-             return std::string{"general-isai-"} +
-                    std::to_string(FLAGS_isai_power);
-         }},
-        {"spd-isai", [] {
-             return std::string{"spd-isai-"} + std::to_string(FLAGS_isai_power);
-         }}};
-    if (encoder.find(precond_name) == encoder.end()) {
-        return precond_name;
-    }
-    return encoder[precond_name]();
-}
 
 
 struct preconditioner_benchmark_state {
@@ -112,40 +39,12 @@ using Generator = DefaultSystemGenerator<>;
 
 struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
     std::string name;
-    std::vector<std::string> preconditioners;
-    std::map<std::string, std::string> precond_decoder;
 
-    PreconditionerBenchmark() : name{"preconditioner"}
-    {
-        for (auto precond : split(FLAGS_preconditioners)) {
-            preconditioners.push_back(encode_parameters(precond.c_str()));
-            precond_decoder[preconditioners.back()] = precond;
-        }
-    }
+    PreconditionerBenchmark() : name{"precondition"} {}
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return preconditioners;
-    }
-
     bool should_print() const override { return true; }
-
-    bool validate_config(const json& value) const override
-    {
-        return Generator::validate_config(value);
-    }
-
-    std::string get_example_config() const override
-    {
-        return Generator::get_example_config();
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return Generator::describe_config(test_case);
-    }
 
     preconditioner_benchmark_state setup(std::shared_ptr<gko::Executor> exec,
                                          json& test_case) const override
@@ -169,26 +68,28 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         return state;
     }
 
-
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate, preconditioner_benchmark_state& state,
-             const std::string& encoded_precond_name,
-             json& precond_case) const override
+             const json& operation_case, json& result_case) const override
     {
-        auto decoded_precond_name = precond_decoder.at(encoded_precond_name);
         for (auto stage : {"generate", "apply"}) {
-            precond_case[stage] = json::object();
-            precond_case[stage]["components"] = json::object();
+            result_case[stage] = json::object();
+            result_case[stage]["components"] = json::object();
         }
 
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
 
+        auto context = gko::config::registry{};
+        auto td = gko::config::make_type_descriptor<etype, itype>();
+        auto preconditioner_config =
+            gko::ext::config::parse_json(operation_case["preconditioner"]);
         {
             // fast run, gets total time
             auto x_clone = clone(state.x);
 
-            auto precond = precond_factory.at(decoded_precond_name)(exec);
+            auto precond =
+                gko::config::parse(preconditioner_config, context, td).on(exec);
 
             {
                 auto range = annotate("warmup", FLAGS_warmup > 0);
@@ -204,9 +105,9 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 precond_op = precond->generate(state.system_matrix);
             }
 
-            precond_case["generate"]["time"] =
+            result_case["generate"]["time"] =
                 ic_gen.compute_time(FLAGS_timer_method);
-            precond_case["generate"]["repetitions"] =
+            result_case["generate"]["repetitions"] =
                 ic_gen.get_num_repetitions();
 
             for (auto _ : ic_apply.run()) {
@@ -214,22 +115,23 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 precond_op->apply(state.b, x_clone);
             }
 
-            precond_case["apply"]["time"] =
+            result_case["apply"]["time"] =
                 ic_apply.compute_time(FLAGS_timer_method);
-            precond_case["apply"]["repetitions"] =
+            result_case["apply"]["repetitions"] =
                 ic_apply.get_num_repetitions();
         }
 
         if (FLAGS_detailed) {
             // slow run, times each component separately
             auto x_clone = clone(state.x);
-            auto precond = precond_factory.at(decoded_precond_name)(exec);
+            auto precond =
+                gko::config::parse(preconditioner_config, context, td).on(exec);
 
             std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    precond_case["generate"]["components"],
+                    result_case["generate"]["components"],
                     ic_gen.get_num_repetitions());
                 exec->add_logger(gen_logger);
                 if (exec->get_master() != exec) {
@@ -246,7 +148,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
             auto apply_logger = create_operations_logger(
                 FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                precond_case["apply"]["components"],
+                result_case["apply"]["components"],
                 ic_apply.get_num_repetitions());
             exec->add_logger(apply_logger);
             if (exec->get_master() != exec) {
@@ -270,28 +172,36 @@ int main(int argc, char* argv[])
     FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
-    std::string format = Generator::get_example_config();
+    std::string format;
     initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
-    std::string extra_information =
-        "Running with preconditioners: " + FLAGS_preconditioners;
+    std::string extra_information = "Running with preconditioners: ";
 
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
-    auto& engine = get_engine();
-
-    auto preconditioners = split(FLAGS_preconditioners, ',');
-
-    auto formats = split(FLAGS_formats, ',');
-    if (formats.size() != 1) {
-        std::cerr << "Preconditioner only supports one format" << std::endl;
-        std::exit(1);
-    }
 
     auto test_cases = json::parse(get_input_stream());
 
-    run_test_cases(PreconditionerBenchmark{}, exec,
-                   get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/preconditioner.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+    }
+
+    auto results = run_test_cases(PreconditionerBenchmark{}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+
+    std::cout << std::setw(4) << results << std::endl;
 }
