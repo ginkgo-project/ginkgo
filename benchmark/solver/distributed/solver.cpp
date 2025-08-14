@@ -59,24 +59,6 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
 };
 
 
-std::string solver_distributed_example_config = R"(
-  [
-    {
-      "stencil": {
-        "name": "7pt",
-        "local_size": 100,
-        "process_grid": [2, 3, 4],
-      }
-      "optimal": {"spmv": "csr-coo"}
-    },
-    {"filename": "my_file.mtx", "optimal": {"spmv": "ell-csr"},
-     "rhs": "my_file_rhs.mtx"},
-    {"filename": "my_file2.mtx", "optimal": {"spmv": "coo-coo"},
-     "rhs": "my_file_rhs.mtx"}
-  ]
-)";
-
-
 int main(int argc, char* argv[])
 {
     gko::experimental::mpi::environment mpi_env{argc, argv};
@@ -91,7 +73,7 @@ int main(int argc, char* argv[])
 
     std::string header =
         "A benchmark for measuring Ginkgo's distributed solvers\n";
-    std::string format = solver_distributed_example_config + R"(
+    std::string format = R"(
   The matrix will either be read from an input file if the filename parameter
   is given, or generated as a stencil matrix.
   If the filename parameter is given, all processes will read the file and
@@ -115,23 +97,11 @@ int main(int argc, char* argv[])
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
 
     std::string extra_information =
-        "Running " + FLAGS_solvers + " with " +
-        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
-        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs);
+        "Running  with " + std::to_string(FLAGS_max_iters) +
+        " iterations and residual goal of " + ss_rel_res_goal.str() +
+        "\nThe number of right hand sides is " + std::to_string(FLAGS_nrhs);
     if (do_print) {
         print_general_information(extra_information, exec);
-    }
-
-    std::set<std::string> supported_solvers = {"cg", "fcg", "cgs", "bicgstab",
-                                               "gmres"};
-    auto solvers = split(FLAGS_solvers, ',');
-    for (const auto& solver : solvers) {
-        if (supported_solvers.find(solver) == supported_solvers.end()) {
-            throw std::range_error(
-                std::string("The requested solvers <") + FLAGS_solvers +
-                "> contain the unsupported solver <" + solver + ">!");
-        }
     }
 
     std::string json_input =
@@ -142,10 +112,34 @@ int main(int argc, char* argv[])
                        : broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    run_test_cases(SolverBenchmark<Generator>{Generator{comm}, do_print}, exec,
-                   get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/solver-distributed.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
+
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        if (do_print) {
+            std::cerr << "Validation of schema failed, here is why: "
+                      << e.what() << "\n";
+        }
+        std::exit(EXIT_FAILURE);
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        if (do_print) {
+            std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        }
+        std::exit(EXIT_FAILURE);
+    }
+
+    auto results =
+        run_test_cases(SolverBenchmark{Generator{comm}, do_print}, exec,
+                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
     if (do_print) {
-        std::cout << std::setw(4) << test_cases << std::endl;
+        std::cout << std::setw(4) << results << std::endl;
     }
 }

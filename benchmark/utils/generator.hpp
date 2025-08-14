@@ -151,15 +151,15 @@ struct DistributedDefaultSystemGenerator {
     generate_matrix_data(const json& config) const
     {
         auto [data, local_size] = [&] {
-            if (config.contains("filename")) {
+            if (config["operator"].contains("filename")) {
                 std::ifstream in(config["filename"].get<std::string>());
                 // Returning an empty dim means that no local size is specified,
                 // and thus the partition has to be deduced from the global size
                 return std::make_pair(
                     gko::read_generic_raw<value_type, index_type>(in),
                     gko::dim<2>());
-            } else if (config.contains("stencil")) {
-                auto& stencil = config["stencil"];
+            } else if (config["operator"].contains("stencil")) {
+                auto& stencil = config["operator"]["stencil"];
                 return generate_stencil<value_type, index_type>(
                     stencil["name"].get<std::string>(), comm,
                     stencil["local_size"].get<gko::int64>(),
