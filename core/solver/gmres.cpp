@@ -167,10 +167,9 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
         // i)
         auto hessenberg_entry =
             hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_basis = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * i, local_num_rows * (i + 1)},
-            span{0, num_rhs});
+        auto krylov_basis = krylov_bases->create_submatrix(
+            local_span{local_num_rows * i, local_num_rows * (i + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         krylov_basis->compute_conj_dot(next_krylov, hessenberg_entry,
                                        reduction_tmp);
         next_krylov->sub_scaled(hessenberg_entry, krylov_basis);
@@ -229,9 +228,9 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_basis' *
     // next_krylov
-    auto krylov_basis_small = ::gko::detail::create_submatrix_helper(
-        krylov_bases, dim<2>{num_rows, num_rhs},
-        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
+    auto krylov_basis_small = krylov_bases->create_submatrix(
+        local_span{0, local_num_rows * (restart_iter + 1)},
+        local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
         gko::detail::get_local(krylov_basis_small.get()),
         gko::detail::get_local(next_krylov), hessenberg_iter));
@@ -241,10 +240,9 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
         // i)
         auto hessenberg_entry =
             hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * i, local_num_rows * (i + 1)},
-            span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_submatrix(
+            local_span{local_num_rows * i, local_num_rows * (i + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
     }
 }
@@ -261,9 +259,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_bases' *
     // next_krylov
-    auto krylov_basis_small = ::gko::detail::create_submatrix_helper(
-        krylov_bases, dim<2>{num_rows, num_rhs},
-        span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
+    auto krylov_basis_small = krylov_bases->create_submatrix(
+        local_span{0, local_num_rows * (restart_iter + 1)},
+        local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
         gko::detail::get_local(krylov_basis_small.get()),
         gko::detail::get_local(next_krylov), hessenberg_iter));
@@ -273,10 +271,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
         // i)
         auto hessenberg_entry =
             hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * i, local_num_rows * (i + 1)},
-            span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_submatrix(
+            local_span{local_num_rows * i, local_num_rows * (i + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
     }
     // Re-orthogonalize
@@ -293,10 +290,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
         // i)
         auto hessenberg_entry =
             hessenberg_aux->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * i, local_num_rows * (i + 1)},
-            span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_submatrix(
+            local_span{local_num_rows * i, local_num_rows * (i + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
     }
     // Add both Hessenberg columns
@@ -496,25 +492,23 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
-        auto this_krylov = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
+        auto this_krylov = krylov_bases->create_submatrix(
+            local_span{local_num_rows * restart_iter,
+                       local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
 
-        auto next_krylov = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * (restart_iter + 1),
-                 local_num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
+        auto next_krylov = krylov_bases->create_submatrix(
+            local_span{local_num_rows * (restart_iter + 1),
+                       local_num_rows * (restart_iter + 2)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         std::unique_ptr<VectorType> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
-            preconditioned_krylov = ::gko::detail::create_submatrix_helper(
-                preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
-                span{local_num_rows * restart_iter,
-                     local_num_rows * (restart_iter + 1)},
-                span{0, num_rhs});
+            preconditioned_krylov =
+                preconditioned_krylov_bases->create_submatrix(
+                    local_span{local_num_rows * restart_iter,
+                               local_num_rows * (restart_iter + 1)},
+                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
             preconditioned_krylov_vector = preconditioned_krylov.get();
         }
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
@@ -602,18 +596,20 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     if (is_flexible) {
         auto preconditioned_krylov_bases_small =
-            ::gko::detail::create_submatrix_helper(
-                preconditioned_krylov_bases, dim<2>{num_rows, num_rhs},
-                span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
+            preconditioned_krylov_bases->create_submatrix(
+                local_span{0, local_num_rows * (restart_iter + 1)},
+                local_span{0, num_rhs},
+                dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // after_preconditioner = preconditioned_krylov_bases * y
         exec->run(gmres::make_multi_axpy(
             gko::detail::get_local(preconditioned_krylov_bases_small.get()), y,
             gko::detail::get_local(after_preconditioner),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
-        auto krylov_bases_small = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{0, local_num_rows * (restart_iter + 1)}, span{0, num_rhs});
+        auto krylov_bases_small = krylov_bases->create_submatrix(
+            local_span{0, local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs},
+            dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // before_preconditioner = krylov_bases * y
         exec->run(gmres::make_multi_axpy(
             gko::detail::get_local(krylov_bases_small.get()), y,

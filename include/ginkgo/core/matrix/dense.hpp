@@ -1148,6 +1148,24 @@ public:
         return create_submatrix(rows, columns, this->get_stride());
     }
 
+
+    /**
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows  row span
+     * @param columns  column span
+     * @param size  size of the submatrix (only used for consistency with
+     *              distributed::Vector)
+     */
+    std::unique_ptr<Dense> create_submatrix(const local_span& rows,
+                                            const local_span& columns,
+                                            dim<2> size)
+    {
+        dim<2> deduced_size{rows.length(), columns.length()};
+        GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
+        return create_submatrix(rows, columns, this->get_stride());
+    }
+
     /**
      * Create a real view of the (potentially) complex original matrix.
      * If the original matrix is real, nothing changes. If the original matrix

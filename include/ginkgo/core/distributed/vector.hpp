@@ -509,6 +509,19 @@ public:
      */
     std::unique_ptr<real_type> create_real_view();
 
+    /**
+     * Creates a view of a submatrix of this vector.
+     *
+     * @param rows  The local rows of the submatrix
+     * @param columns  The local columns of the submatrix
+     * @param global_size  The global size of the submatrix
+     *
+     * @return A view of a submatrix.
+     */
+    std::unique_ptr<Vector> create_submatrix(local_span rows,
+                                             local_span columns,
+                                             dim<2> global_size);
+
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
     /**
@@ -668,6 +681,13 @@ protected:
     virtual std::unique_ptr<Vector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride) const;
+
+    /**
+     * @copydoc create_submatrix
+     */
+    virtual std::unique_ptr<Vector> create_submatrix_impl(local_span rows,
+                                                          local_span columns,
+                                                          dim<2> global_size);
 
 private:
     local_vector_type local_;
