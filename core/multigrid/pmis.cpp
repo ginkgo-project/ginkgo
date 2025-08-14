@@ -117,6 +117,26 @@ void Pmis<ValueType, IndexType>::generate()
         num_not_assigned = new_num;
     }
     // finish classify points to fine and coarse group.
+    // TODO: change count to accept checking value
+    size_type num_coarse = 0;
+    // exec->run(pmis::make_count(status_, 2, &num_coarse));
+    // the following implements direct interpolation
+    // get the row sum from two kind of matrix
+    // alpha_i = sum(a_ij which a_ij < 0) / sum(a_ik which s_ik exist, a_ik < 0,
+    // k is coarse point) beta_i = sum(a_ij which a_ij > 0) / sum(a_ik which
+    // s_ik exist, a_ik > 0, k is coarse point) if the dividor is zero, set it
+    // to zero create a coarse point map k in coarse -> c[k] c[k] in the fine
+    // construct interpolation w_ik k from S_ic[k] exists and c[k] is coarse
+    // point counte nnz per row again depends on S_ic[k] get row offset allocate
+    // col and value and move them into csr auto prolongation =
+    // share(matrix::Csr<ValueType>(exec, dim<2>{pmis_op->get_size()[0],
+    // num_coarse})); finish weight construction w_ik = {-alpha_i if a_ic[k] is
+    // negative or -beta_i if it is positive} * a_ic[k]/a_ii auto restriction =
+    // share(prolongation->transpose()); auto internal = matrix::Csr<ValueType,
+    // IndexType>::create(exec, prolongation->get_size()); auto coarse =
+    // matrix::Csr<ValueType, IndexType>::create(exec, dim<2>{num_coarse,
+    // num_coarse}); this->set_multigrid_level(prolongation, coarse,
+    // restriction);
 }
 
 
