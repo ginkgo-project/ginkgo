@@ -1,10 +1,18 @@
 [
-    {
-        "size": 100,
-        "stencil": "7pt",
-        "comm_pattern": "stencil",
-        "optimal": {
-            "spmv": "csr-csr"
-        }
+  {
+    "operator": {
+      "stencil": {
+        "local_size": 100,
+        "name": "7pt"
+      }
+    },
+    "solver": {
+      "type": "solver::Cg"
+    },
+    "optimal": {
+      "spmv": {
+        "format": "csr-csr"
+      }
     }
+  }
 ]

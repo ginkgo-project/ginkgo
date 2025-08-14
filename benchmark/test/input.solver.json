@@ -1,9 +1,18 @@
 [
-    {
+  {
+    "operator": {
+      "stencil": {
         "size": 100,
-        "stencil": "7pt",
-        "optimal": {
-            "spmv": "csr"
-        }
+        "name": "7pt"
+      }
+    },
+    "solver": {
+      "type": "solver::Cg"
+    },
+    "optimal": {
+      "spmv": {
+        "format": "csr-csr"
+      }
     }
+  }
 ]

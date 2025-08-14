@@ -1,6 +1,10 @@
 [
-    {
+  {
+    "operator": {
+      "stencil": {
         "size": 100,
-        "stencil": "7pt"
+        "name": "7pt"
+      }
     }
+  }
 ]

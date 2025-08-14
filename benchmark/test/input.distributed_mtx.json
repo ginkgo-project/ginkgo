@@ -1,7 +1,10 @@
 [
-    {
-        "size": 100,
-        "stencil": "7pt",
-        "comm_pattern": "stencil"
+  {
+    "operator": {
+      "stencil": {
+        "local_size": 100,
+        "name": "7pt"
+      }
     }
+  }
 ]
