@@ -3,7 +3,7 @@
     "operator": {
       "stencil": {
         "name": "5pt",
-        "local_size": 100
+        "size": 100
       }
     },
     "format": "csr"
@@ -12,7 +12,7 @@
     "operator": {
       "stencil": {
         "name": "5pt",
-        "local_size": 100
+        "size": 100
       }
     },
     "format": "coo"

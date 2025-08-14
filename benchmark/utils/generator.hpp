@@ -37,8 +37,7 @@ struct DefaultSystemGenerator {
             } else if (config["operator"].contains("stencil")) {
                 return generate_stencil<ValueType, IndexType>(
                     config["operator"]["stencil"]["name"].get<std::string>(),
-                    config["operator"]["stencil"]["local_size"]
-                        .get<gko::int64>());
+                    config["operator"]["stencil"]["size"].get<gko::int64>());
             } else {
                 std::cout << config << std::endl;
                 throw std::runtime_error(

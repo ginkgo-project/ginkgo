@@ -2,7 +2,7 @@
   {
     "operator": {
       "stencil": {
-        "local_size": 100,
+        "size": 100,
         "name": "5pt"
       }
     },
@@ -11,9 +11,6 @@
       "preconditioner": {
         "type": "preconditioner::Jacobi",
         "max_block_size": 4
-      },
-      "criteria": {
-        "iteration": 10
       }
     },
     "optimal": {
