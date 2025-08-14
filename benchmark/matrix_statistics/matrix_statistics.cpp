@@ -123,33 +123,13 @@ struct empty_state {};
 
 struct MatrixStatistics : Benchmark<empty_state> {
     std::string name;
-    std::vector<std::string> empty;
 
     MatrixStatistics() : name{"problem"} {}
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return empty;
-    }
 
     bool should_print() const override { return true; }
-
-    std::string get_example_config() const override
-    {
-        return Generator::get_example_config();
-    }
-
-    bool validate_config(const json& test_case) const override
-    {
-        return Generator::validate_config(test_case);
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return Generator::describe_config(test_case);
-    }
 
     empty_state setup(std::shared_ptr<gko::Executor> exec,
                       json& test_case) const override
@@ -166,12 +146,12 @@ struct MatrixStatistics : Benchmark<empty_state> {
         return {};
     }
 
-
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
-             annotate_functor annotate, empty_state& data,
-             const std::string& operation_name,
-             json& operation_case) const override
-    {}
+             annotate_functor annotate, empty_state& state,
+             const json& operation_case, json& result_case) const override
+    {
+        result_case = operation_case["problem"];
+    }
 };
 
 
@@ -180,7 +160,7 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that collects additional statistical properties of the "
         "matrix.\n";
-    std::string format = Generator::get_example_config();
+    std::string format;
     initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
     std::clog << gko::version_info::get() << std::endl;
@@ -188,8 +168,27 @@ int main(int argc, char* argv[])
     auto test_cases = json::parse(get_input_stream());
     auto exec = gko::ReferenceExecutor::create();
 
-    run_test_cases(MatrixStatistics{}, exec, get_timer(exec, false),
-                   test_cases);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-statistics.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    auto results = run_test_cases(MatrixStatistics{}, exec,
+                                  get_timer(exec, false), test_cases);
+
+    std::cout << std::setw(4) << results << std::endl;
 }
