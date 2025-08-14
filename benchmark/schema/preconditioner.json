@@ -13,10 +13,20 @@
           "$ref": "operator.json"
         },
         "preconditioner": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "skip_sorting": {
+              "type": "boolean",
+              "default": true
+            }
+          }
         }
       }
     }
+  ],
+  "required": [
+    "operator",
+    "preconditioner"
   ],
   "examples": [
     {

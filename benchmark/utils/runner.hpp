@@ -99,7 +99,8 @@ json run_test_cases(const Benchmark<State>& benchmark,
                 std::clog << "    " << current_case << std::endl;
             }
 
-            validator.validate(test_case);
+            auto default_patch = validator.validate(current_case);
+            current_case = current_case.patch(default_patch);
 
             if (!current_case.contains(benchmark.get_name())) {
                 current_case[benchmark.get_name()] = json::object();
