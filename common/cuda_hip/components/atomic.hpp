@@ -165,7 +165,7 @@ GKO_BIND_ATOMIC_ADD(__nv_bfloat16);
 
 
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
-#define GKO_BIND_UNSUPPORT_ATOMIC_ADD(ValueType)     \
+#define GKO_BIND_UNSUPPORTED_ATOMIC_ADD(ValueType)   \
     __forceinline__ __device__ ValueType atomic_add( \
         ValueType* __restrict__ addr, ValueType val) \
     {                                                \
@@ -177,12 +177,12 @@ GKO_BIND_ATOMIC_ADD(__nv_bfloat16);
 // have compile time guard from host side. Providing an unsupported
 // implementation for atomic operation. This is only for the compilation purpose
 // and the implementation should not rely on this to throw an error.
-GKO_BIND_UNSUPPORT_ATOMIC_ADD(__half);
+GKO_BIND_UNSUPPORTED_ATOMIC_ADD(__half);
 // compute capability 7.x and higher already supported 16-bit atomicCAS, so
 // __nv_bfloat16 can also rely on it before compute capability 8.x.
-GKO_BIND_UNSUPPORT_ATOMIC_ADD(__nv_bfloat16);
+GKO_BIND_UNSUPPORTED_ATOMIC_ADD(__nv_bfloat16);
 
-#undef GKO_BIND_UNSUPPORT_ATOMIC_ADD
+#undef GKO_BIND_UNSUPPORTED_ATOMIC_ADD
 #endif  // defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 700
 
 #if !(defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
