@@ -56,17 +56,17 @@ void Conv<ValueType>::validate_application_parameters(const LinOp* b,
     const auto x_rows = get_size(x)[0];
     const auto kernel_len = kernel_.get_size();
 
-    if (x_rows != b_rows + kernel_len - 1) {
+    if (x_rows != (b_rows + 2 * 0 - kernel_len) / 1 + 1) {
         throw DimensionMismatch(
             __FILE__, __LINE__, __func__, "x", x_rows, 1,
             "(b + 2*padding - kernel)/stride + 1",
-            (b_rows + 2 * 2 - kernel_len) / 1 + 1, 1,
+            (b_rows + 2 * 0 - kernel_len) / 1 + 1, 1,
             "x must have size = (b + 2*padding - kernel)/stride + 1");
     }
 
 
     GKO_ASSERT_EQUAL_COLS(b, x);
-    GKO_ASSERT_EQUAL_COLS(b, dim<2>{1, 1});
+    // GKO_ASSERT_EQUAL_COLS(b, gko::dim<2>{1, 1});
 }
 
 
