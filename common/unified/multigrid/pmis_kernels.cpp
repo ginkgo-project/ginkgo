@@ -35,31 +35,22 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
 {
     std::vector<IndexType> max_values(csr->get_size()[1]);
 
-    // Per ogni colonna, calcola il valore massimo assoluto (escludendo la diagonale)
     for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
         remove_complex<ValueType> max_val = 0;
-        // Scorri tutte le righe
         for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
-            // Scorri gli indici degli elementi non nulli nella riga corrente
             for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
-                // Considera solo gli elementi della colonna corrente, escludendo la diagonale
                 if (csr->get_const_col_idxs()[idx] == col && row != col) {
-                    // Aggiorna il massimo con il valore assoluto
                     max_val = std::max(max_val, gko::abs(csr->get_const_values()[idx]));
                 }
             }
         }
-        // Salva il massimo trovato per la colonna corrente
         max_values[col] = max_val;
     }
 
     for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
-        // Scorri tutte le righe
         for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
-            sparsity_rows[row] = 0;  // Inizializza il conteggio per la riga corrente
-            // Scorri gli indici degli elementi non nulli nella riga corrente
+            sparsity_rows[row] = 0;
             for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
-                // Considera solo gli elementi della colonna corrente, escludendo la diagonale
                 if (gko::abs(csr->get_const_values()[idx]) > strength_threshold * max_values[col] && row != col) {
                     sparsity_rows[row] += 1;
                 }
@@ -85,32 +76,22 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
     
     std::vector<IndexType> max_values(csr->get_size()[1]);
 
-    // Per ogni colonna, calcola il valore massimo assoluto (escludendo la diagonale)
     for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
         remove_complex<ValueType> max_val = 0;
-        // Scorri tutte le righe
         for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
-            // Scorri gli indici degli elementi non nulli nella riga corrente
             for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
-                // Considera solo gli elementi della colonna corrente, escludendo la diagonale
                 if (csr->get_const_col_idxs()[idx] == col && row != col) {
-                    // Aggiorna il massimo con il valore assoluto
                     max_val = std::max(max_val, gko::abs(csr->get_const_values()[idx]));
                 }
             }
         }
-        // Salva il massimo trovato per la colonna corrente
         max_values[col] = max_val;
     }
 
     for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
-        // Scorri tutte le righe
         for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
-            // Scorri gli indici degli elementi non nulli nella riga corrente
             for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
-                // Considera solo gli elementi della colonna corrente, escludendo la diagonale
                 if (gko::abs(csr->get_const_values()[idx]) > strength_threshold * max_values[col] && row != col) {
-                    // Inserisce la dipendenza forte nella matrice strong_dep
                     strong_dep->get_col_idxs()[strong_dep->get_row_ptrs()[row]++] = col;
                 }
             }
@@ -128,7 +109,7 @@ void initialize_weight_and_status(
     const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
-    std::mt19937 gen(42); // seed fisso per riproducibilità
+    std::mt19937 gen(42);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
     for(int i=0; i< strong_dep->get_num_nonzeros(); i++){
         weight[strong_dep->get_const_col_idxs()[i]] +=1;
