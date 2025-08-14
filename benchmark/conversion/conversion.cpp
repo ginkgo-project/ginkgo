@@ -80,7 +80,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate,
-             gko::device_matrix_data<double, int>& data,
+             gko::device_matrix_data<etype, itype>& data,
              const json& operation_case, json& result_case) const override
     {
         for (const auto& operation_name : operations) {
