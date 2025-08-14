@@ -28,7 +28,8 @@ struct DefaultSystemGenerator {
     {
         auto [data, size] = [&] {
             if (config["operator"].contains("filename")) {
-                std::ifstream in(config["filename"].get<std::string>());
+                std::ifstream in(
+                    config["operator"]["filename"].get<std::string>());
                 // Returning an empty dim means that there is no specified local
                 // size, which is relevant in the distributed case
                 return std::make_pair(
@@ -151,7 +152,8 @@ struct DistributedDefaultSystemGenerator {
     {
         auto [data, local_size] = [&] {
             if (config["operator"].contains("filename")) {
-                std::ifstream in(config["filename"].get<std::string>());
+                std::ifstream in(
+                    config["operator"]["filename"].get<std::string>());
                 // Returning an empty dim means that no local size is specified,
                 // and thus the partition has to be deduced from the global size
                 return std::make_pair(
