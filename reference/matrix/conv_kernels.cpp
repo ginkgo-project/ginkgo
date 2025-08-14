@@ -35,17 +35,19 @@ void conv(std::shared_ptr<const DefaultExecutor> exec,
     int padding = 2;
     int output_length = (x_size[0] + 2 * padding - kernel_size) / stride + 1;
 
-    for (int i = 0; i < x_size[0]; ++i) {
+    for (gko::size_type i = 0; i < x_size[0]; ++i) {
         ValueType sum = zero<ValueType>();
-        int start = i * stride - padding;
-        for (int j = 0; j < kernel_size; ++j) {
-            int b_idx =
+        std::ptrdiff_t start =
+            static_cast<std::ptrdiff_t>(i * stride) - padding;
+        for (gko::size_type j = 0; j < kernel_size; ++j) {
+            std::ptrdiff_t b_idx =
                 start +
-                j;  // calculate the index in b's row based on the current
-                    // position in x and the kernel's stride and padding
-            if (b_idx >= 0 && b_idx < b_size[0]) {
-                sum +=
-                    kernel_ptr[j] * b->at(b_idx, 0);  // direct pointer access
+                static_cast<std::ptrdiff_t>(
+                    j);  // calculate the index in b's row based on the current
+                         // position in x and the kernel's stride and padding
+            if (b_idx >= 0 && b_idx < static_cast<std::ptrdiff_t>(b_size[0])) {
+                sum += kernel_ptr[j] * b->at(static_cast<gko::size_type>(b_idx),
+                                             0);  // direct pointer access
             }
         }
         x->at(i, 0) = sum;
