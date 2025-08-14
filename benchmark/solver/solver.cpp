@@ -28,10 +28,12 @@ int main(int argc, char* argv[])
     FLAGS_min_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
-    std::string format;
-    std::string additional_json;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format,
-                                       additional_json);
+
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/solver.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     std::stringstream ss_rel_res_goal;
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
@@ -44,8 +46,6 @@ int main(int argc, char* argv[])
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
 
-    auto schema =
-        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/solver.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

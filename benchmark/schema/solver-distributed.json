@@ -46,5 +46,43 @@
       "solver",
       "optimal"
     ]
-  }
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "solver": {
+        "type": "solver::Cg",
+        "preconditioner": {
+          "type": "preconditioner::Schwarz",
+          "local_solver": {
+            "type": "preconditioner::Jacobi"
+          }
+        }
+      },
+      "optimal": {
+        "spmv": {
+          "format": "csr-coo"
+        }
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "local_size": 100
+        }
+      },
+      "solver": {
+        "type": "solver::Gmres",
+        "krylov_dim": 10
+      },
+      "optimal": {
+        "spmv": {
+          "format": "coo-coo"
+        }
+      }
+    }
+  ]
 }

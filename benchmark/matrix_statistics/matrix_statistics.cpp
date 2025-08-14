@@ -160,16 +160,18 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that collects additional statistical properties of the "
         "matrix.\n";
-    std::string format;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-statistics.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     std::clog << gko::version_info::get() << std::endl;
 
     auto test_cases = json::parse(get_input_stream());
     auto exec = gko::ReferenceExecutor::create();
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-statistics.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

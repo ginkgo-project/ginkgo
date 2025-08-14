@@ -172,8 +172,12 @@ int main(int argc, char* argv[])
     FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
-    std::string format;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/preconditioner.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     std::string extra_information = "Running with preconditioners: ";
 
@@ -182,8 +186,6 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/preconditioner.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

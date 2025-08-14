@@ -54,11 +54,41 @@
     "then": {
       "not": {
         "anyOf": [
-          {"required": ["stride_x"]},
-          {"required": ["stride_y"]}
+          {
+            "required": [
+              "stride_x"
+            ]
+          },
+          {
+            "required": [
+              "stride_y"
+            ]
+          }
         ]
       }
     },
-    "required": ["n"]
-  }
+    "required": [
+      "n"
+    ]
+  },
+  "examples": [
+    {
+      "n": 1000
+    },
+    {
+      "n": 1000,
+      "r": 1000,
+      "m": 1000,
+      "k": 1000
+    },
+    {
+      "n": 1000,
+      "stride": 1024
+    },
+    {
+      "n": 1000,
+      "stride_x": 1024,
+      "stride_y": 2048
+    }
+  ]
 }

@@ -13,5 +13,20 @@
     "not": {
       "required": ["format", "reorder"]
     }
-  }
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      }
+    }
+  ]
 }

@@ -17,5 +17,30 @@
         }
       }
     ]
-  }
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo"
+    },
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo",
+      "reorder": "nd"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "format": "coo",
+      "reorder": "nd"
+    }
+  ]
 }

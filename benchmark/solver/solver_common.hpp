@@ -12,7 +12,6 @@
 #include "benchmark/utils/generator.hpp"
 #include "benchmark/utils/iteration_control.hpp"
 #include "benchmark/utils/loggers.hpp"
-#include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
 #include "ginkgo/extensions/config/json_config.hpp"
 

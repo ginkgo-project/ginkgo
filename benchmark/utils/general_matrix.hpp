@@ -107,7 +107,7 @@ void permute(
  *                                     if the `-input_matrix` flag is used.
  */
 void initialize_argument_parsing_matrix(
-    int* argc, char** argv[], std::string& header, std::string& format,
+    int* argc, char** argv[], std::string& header, const json& format,
     std::string additional_matrix_file_json = "", bool do_print = true)
 {
     initialize_argument_parsing(argc, argv, header, format, do_print);

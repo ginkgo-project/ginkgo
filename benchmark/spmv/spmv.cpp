@@ -21,8 +21,12 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
+
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/spmv.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     std::string extra_information = "The formats are " + FLAGS_formats +
                                     "\nThe number of right hand sides is " +
@@ -32,8 +36,6 @@ int main(int argc, char* argv[])
 
     print_general_information(extra_information, exec);
 
-    auto schema =
-        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/spmv.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

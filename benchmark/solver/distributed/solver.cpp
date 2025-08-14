@@ -73,23 +73,12 @@ int main(int argc, char* argv[])
 
     std::string header =
         "A benchmark for measuring Ginkgo's distributed solvers\n";
-    std::string format = R"(
-  The matrix will either be read from an input file if the filename parameter
-  is given, or generated as a stencil matrix.
-  If the filename parameter is given, all processes will read the file and
-  then the matrix is distributed row-block-wise.
-  In the other case, a size and stencil parameter have to be provided.
-  The size parameter denotes the size per process. It might be adjusted to
-  fit the dimensionality of the stencil more easily.
-  Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
-  Optional values for "comm_pattern" are: stencil, optimal.
-  Possible values for "optimal[spmv]" follow the pattern
-  "<local_format>-<non_local_format>", where both "local_format" and
-  "non_local_format" can be any of the recognized spmv formats.
-)";
-    std::string additional_json = R"(,"optimal":{"spmv":"csr-csr"})";
-    initialize_argument_parsing_matrix(&argc, &argv, header, format,
-                                       additional_json, do_print);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/solver-distributed.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header, schema["examples"],
+                                       "", do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
@@ -112,8 +101,6 @@ int main(int argc, char* argv[])
                        : broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/solver-distributed.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

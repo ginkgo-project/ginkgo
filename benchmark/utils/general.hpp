@@ -118,12 +118,13 @@ std::unique_ptr<std::istream> input_stream;
  * @param format  the format of the benchmark input data
  */
 void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
-                                 std::string& format, bool do_print = true)
+                                 const json& format, bool do_print = true)
 {
     if (do_print) {
         std::ostringstream doc;
         doc << header << "Usage: " << (*argv)[0] << " [options]\n"
-            << format << "\n"
+            << "Example JSON input:\n"
+            << std::setw(4) << format << "\n"
             << "  The results are written on standard output, in the same "
                "format,\n"
             << "  but with test cases extended to include an additional member "

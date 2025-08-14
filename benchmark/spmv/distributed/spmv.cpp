@@ -45,9 +45,12 @@ int main(int argc, char* argv[])
 
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format = Generator::get_example_config();
-    initialize_argument_parsing_matrix(&argc, &argv, header, format, "",
-                                       do_print);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/spmv-distributed.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header, schema["examples"],
+                                       "", do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
@@ -62,8 +65,6 @@ int main(int argc, char* argv[])
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/spmv-distributed.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

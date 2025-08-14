@@ -135,8 +135,12 @@ int main(int argc, char* argv[])
     std::string header =
         "A benchmark for measuring performance of Ginkgo's sparse BLAS "
         "operations.\n";
-    std::string format;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/sparse-blas.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
@@ -145,8 +149,6 @@ int main(int argc, char* argv[])
     std::string extra_information = "The operations are " + FLAGS_operations;
     print_general_information(extra_information, exec);
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/sparse-blas.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

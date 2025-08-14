@@ -18,32 +18,6 @@
 #endif  // GINKGO_BENCHMARK_ENABLE_TUNING
 
 
-namespace {
-std::string input_format =
-    "  [\n"
-    "    {\n"
-    "      \"filename\": \"<output-file>\",\n"
-    "      \"problem\": {\n"
-    "        \"type\": <matrix-type>\",\n"
-    "        \"num_blocks\": <num-blocks>,\n"
-    "        \"block_size\": <block-size>\n"
-    "      }\n"
-    "    },\n"
-    "    ...\n"
-    "  ]\n"
-    "  <output-file> is a string specifying a path to the output file\n"
-    "  <matrix-type> is a string specifying the type of matrix to generate,\n"
-    "    supported values are \"block-diagonal\"\n"
-    "  All other properties are optional, depending on <matrix-type>\n"
-    "  Properties for \"block-diagonal\":\n"
-    "    <num-blocks> is the number of dense diagonal blocks\n"
-    "    <block-size> is the size of each dense block\n"
-    "    The generated matrix will have a dense block of size <block-size>,\n"
-    "    with random real values chosen uniformly in the interval [-1, 1],\n"
-    "    repeated <num-blocks> times on the diagonal.\n";
-}  // namespace
-
-
 using generator_function = std::function<gko::matrix_data<etype, itype>(
     json&, std::default_random_engine&)>;
 
@@ -71,15 +45,17 @@ int main(int argc, char* argv[])
     std::string header =
         "A utility that generates various types of "
         "matrices.\n";
-    initialize_argument_parsing(&argc, &argv, header, input_format);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-generator.json"));
+
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
     std::clog << gko::version_info::get() << std::endl;
 
     auto engine = get_engine();
     auto configurations = json::parse(get_input_stream());
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-generator.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {
@@ -96,7 +72,6 @@ int main(int argc, char* argv[])
         std::cerr << "Validation failed, here is why: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
-
 
     for (auto& config : configurations) {
         try {

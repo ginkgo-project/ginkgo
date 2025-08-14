@@ -140,8 +140,12 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
-    std::string format_str;
-    initialize_argument_parsing_matrix(&argc, &argv, header, format_str);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/conversion.json"));
+
+    initialize_argument_parsing_matrix(&argc, &argv, header,
+                                       schema["examples"]);
 
     std::string extra_information =
         std::string() + "The formats are " + FLAGS_formats;
@@ -152,8 +156,6 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    auto schema = json::parse(
-        std::ifstream(GKO_ROOT "/benchmark/schema/conversion.json"));
     json_schema::json_validator validator(json_loader);  // create validator
 
     try {

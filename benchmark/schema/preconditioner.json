@@ -20,5 +20,29 @@
         }
       }
     ]
-  }
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "preconditioner": {
+        "type": "preconditioner::Jacobi"
+      },
+      "format": "csr",
+      "reorder": "nd"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "preconditioner": {
+        "type": "preconditioner::GaussSeidel",
+        "symmetric": true
+      }
+    }
+  ]
 }

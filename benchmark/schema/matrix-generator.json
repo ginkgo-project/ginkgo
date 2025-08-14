@@ -13,7 +13,9 @@
         "type": "object",
         "properties": {
           "type": {
-            "enum": ["block-diagonal"]
+            "enum": [
+              "block-diagonal"
+            ]
           },
           "num_blocks": {
             "type": "integer",
@@ -26,6 +28,22 @@
         }
       }
     },
-    "required": ["filename", "problem"]
-  }
+    "required": [
+      "filename",
+      "problem"
+    ]
+  },
+  "examples": [
+    {
+      "$comment": "The generated matrix will have a dense block of size <block-size>, with random real values chosen uniformly in the interval [-1, 1], repeated <num-blocks> times on the diagonal"
+    },
+    {
+      "filename": "output_matrix.mtx",
+      "problem": {
+        "type": "block-diagonal",
+        "num_blocks": 2,
+        "block_size": 2
+      }
+    }
+  ]
 }

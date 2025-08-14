@@ -17,5 +17,28 @@
         }
       }
     ]
-  }
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo-coo"
+    },
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "csr-coo"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "local_size": 100
+        }
+      },
+      "format": "csr-csr"
+    }
+  ]
 }
