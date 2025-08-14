@@ -2,9 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "BLAS",
   "desciption": "something",
-  "type": "array",
-  "items": {
-    "type": "object",
+  "type": "object",
     "properties": {
       "n": {
         "type": "integer",
@@ -69,8 +67,7 @@
     },
     "required": [
       "n"
-    ]
-  },
+    ],
   "examples": [
     {
       "n": 1000

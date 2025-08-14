@@ -2,8 +2,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Solver",
   "desciption": "something",
-  "type": "array",
-  "items": {
     "type": "object",
     "properties": {
       "operator": {
@@ -45,8 +43,7 @@
       "operator",
       "solver",
       "optimal"
-    ]
-  },
+    ],
   "examples": [
     {
       "operator": {

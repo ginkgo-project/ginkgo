@@ -2,8 +2,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Solver",
   "desciption": "something",
-  "type": "array",
-  "items": {
     "type": "object",
     "properties": {
       "operator": {
@@ -25,8 +23,7 @@
         "required": ["spmv"]
       }
     },
-    "required": ["operator", "solver", "optimal"]
-  },
+    "required": ["operator", "solver", "optimal"],
   "examples": [
     {
       "operator": {
