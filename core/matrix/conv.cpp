@@ -66,7 +66,7 @@ void Conv<ValueType>::validate_application_parameters(const LinOp* b,
 
 
     GKO_ASSERT_EQUAL_COLS(b, x);
-    // GKO_ASSERT_EQUAL_COLS(b, gko::dim<2>{1, 1});
+    GKO_ASSERT_EQUAL_COLS(b, (gko::dim<2>{1, 1}));
 }
 
 
