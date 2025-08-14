@@ -31,11 +31,18 @@ void conv(std::shared_ptr<const DefaultExecutor> exec,
     const auto x_size = x->get_size();                 // (N + K - 1, 1)
     const auto kernel_size = kernel.get_size();        // K
     const auto* kernel_ptr = kernel.get_const_data();  // pointer to kernel data
+    int stride = 1;
+    int padding = 2;
+    int output_length = (x_size[0] + 2 * padding - kernel_size) / stride + 1;
 
     for (int i = 0; i < x_size[0]; ++i) {
         ValueType sum = zero<ValueType>();
+        int start = i * stride - padding;
         for (int j = 0; j < kernel_size; ++j) {
-            int b_idx = i - j;
+            int b_idx =
+                start +
+                j;  // calculate the index in b's row based on the current
+                    // position in x and the kernel's stride and padding
             if (b_idx >= 0 && b_idx < b_size[0]) {
                 sum +=
                     kernel_ptr[j] * b->at(b_idx, 0);  // direct pointer access

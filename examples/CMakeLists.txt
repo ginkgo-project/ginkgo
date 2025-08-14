@@ -20,6 +20,7 @@ set(EXAMPLES_EXEC_LIST
     preconditioned-solver
     simple-solver
     three-pt-stencil-solver
+    conv
 )
 
 set(EXAMPLES_LIST
