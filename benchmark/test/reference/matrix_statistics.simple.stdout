@@ -1,7 +1,11 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
+        "operator": {
+            "stencil": {
+                "size": 100,
+                "name": "7pt"
+            }
+        },
         "problem": {
             "rows": 125,
             "columns": 125,
@@ -31,7 +35,8 @@
                 "kurtosis": 2.388888888888889,
                 "hyperskewness": -1.741577812922432,
                 "hyperflatness": 7.762345679012379
-            }
+            },
+            "completed": true
         },
         "rows": 125,
         "cols": 125,
