@@ -46,13 +46,7 @@ int main(int argc, char* argv[])
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
 
-    json test_cases;
-    if (!FLAGS_overhead) {
-        test_cases = json::parse(get_input_stream());
-    } else {
-        // Not sure how to handle this yet.
-        std::exit(EXIT_FAILURE);
-    }
+    json test_cases = json::parse(get_input_stream());
 
     auto results =
         run_test_cases(SolverBenchmark{SolverGenerator{}}, exec,

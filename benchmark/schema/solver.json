@@ -5,7 +5,16 @@
   "type": "object",
   "properties": {
     "operator": {
-      "$ref": "operator.json"
+      "anyOf": [
+        {
+          "$ref": "operator.json"
+        },
+        {
+          "enum": [
+            "overhead"
+          ]
+        }
+      ]
     },
     "solver": {
       "type": "object",

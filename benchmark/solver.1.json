@@ -19,5 +19,22 @@
         "reorder": "natural"
       }
     }
+  },
+
+  {
+    "operator": "overhead",
+    "solver": {
+      "type": "solver::Cg",
+      "preconditioner": {
+        "type": "preconditioner::Jacobi",
+        "max_block_size": 4
+      }
+    },
+    "optimal": {
+      "spmv": {
+        "format": "csr",
+        "reorder": "natural"
+      }
+    }
   }
 ]

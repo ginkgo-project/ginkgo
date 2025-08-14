@@ -152,7 +152,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
     {
         solver_benchmark_state<Generator> state;
 
-        if (FLAGS_overhead) {
+        if (test_case["operator"] == "overhead") {
             state.system_matrix = generator.initialize({1.0}, exec);
             state.b = generator.initialize(
                 {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
@@ -171,15 +171,17 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             }
             state.x = generator.generate_initial_guess(
                 exec, state.system_matrix.get(), state.b.get());
+
+            if (do_print) {
+                std::clog << "Matrix is of size ("
+                          << state.system_matrix->get_size()[0] << ", "
+                          << state.system_matrix->get_size()[1] << ")"
+                          << std::endl;
+            }
+            test_case["operator"]["rows"] = state.system_matrix->get_size()[0];
+            test_case["operator"]["cols"] = state.system_matrix->get_size()[1];
         }
 
-        if (do_print) {
-            std::clog << "Matrix is of size ("
-                      << state.system_matrix->get_size()[0] << ", "
-                      << state.system_matrix->get_size()[1] << ")" << std::endl;
-        }
-        test_case["operator"]["rows"] = state.system_matrix->get_size()[0];
-        test_case["operator"]["cols"] = state.system_matrix->get_size()[1];
         return state;
     }
 
@@ -193,7 +195,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         result_case["true_residuals"] = json::array();
         result_case["implicit_residuals"] = json::array();
         result_case["iteration_timestamps"] = json::array();
-        if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
+
+        bool is_overhead = operation_case["operator"] == "overhead";
+
+        if (state.b->get_size()[1] == 1 && !is_overhead) {
             auto rhs_norm = compute_norm2(state.b.get());
             result_case["rhs_norm"] = rhs_norm;
         }
@@ -243,7 +248,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         }
 
         // detail run
-        if (FLAGS_detailed && !FLAGS_overhead) {
+        if (FLAGS_detailed && !is_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(state.x);
 
@@ -329,7 +334,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         }
         it_logger->write_data(result_case["apply"]);
 
-        if (state.b->get_size()[1] == 1 && !FLAGS_overhead) {
+        if (state.b->get_size()[1] == 1 && !is_overhead) {
             // a solver is considered direct if it didn't log any iterations
             if (result_case["apply"].contains("iterations") &&
                 result_case["apply"]["iterations"].get<gko::int64>() == 0) {

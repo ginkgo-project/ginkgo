@@ -93,12 +93,7 @@ int main(int argc, char* argv[])
         print_general_information(extra_information, exec);
     }
 
-    std::string json_input =
-        FLAGS_overhead ? R"(
-[{"filename": "overhead.mtx",
-  "optimal": {"spmv": "csr-csr"}]
-)"
-                       : broadcast_json_input(get_input_stream(), comm);
+    std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
     auto results = run_test_cases(
