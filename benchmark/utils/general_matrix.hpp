@@ -31,11 +31,6 @@ DEFINE_string(input_matrix, "",
               "the value of the -input flag");
 
 
-#ifndef GKO_BENCHMARK_DISTRIBUTED
-DEFINE_string(reorder, "none", reordering_algorithm_desc.c_str());
-#endif
-
-
 template <typename ValueType, typename IndexType>
 std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
     gko::matrix_data<ValueType, IndexType>& data, json& test_case)

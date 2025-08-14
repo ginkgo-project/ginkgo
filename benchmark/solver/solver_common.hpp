@@ -53,13 +53,6 @@ DEFINE_string(
     "`random`, `rhs`, `0`. `random` uses a random vector, `rhs` uses the right "
     "hand side, and `0 uses a zero vector as the initial guess.");
 
-// This allows to benchmark the overhead of a solver by using the following
-// data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
-// solvers or using the argument --solvers=overhead, a minimal solver will be
-// launched which contains only a few kernel calls.
-DEFINE_bool(overhead, false,
-            "If set, uses dummy data to benchmark Ginkgo overhead");
-
 
 struct SolverGenerator : DefaultSystemGenerator<> {
     using Vec = typename DefaultSystemGenerator::Vec;

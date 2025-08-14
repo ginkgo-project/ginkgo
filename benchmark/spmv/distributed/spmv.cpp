@@ -24,14 +24,6 @@
 #include "benchmark/utils/types.hpp"
 
 
-DEFINE_string(local_formats, "csr",
-              "A comma-separated list of formats for the local matrix to run. "
-              "See the 'formats' option for a list of supported versions");
-DEFINE_string(non_local_formats, "csr",
-              "A comma-separated list of formats for the non-local matrix to "
-              "run. See the 'formats' option for a list of supported versions");
-
-
 using Generator = DistributedDefaultSystemGenerator<DefaultSystemGenerator<>>;
 
 
@@ -56,8 +48,6 @@ int main(int argc, char* argv[])
 
     if (do_print) {
         std::string extra_information =
-            "The formats are [" + FLAGS_local_formats + "]x[" +
-            FLAGS_non_local_formats + "]\n" +
             "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
         print_general_information(extra_information, exec);
     }
