@@ -2,28 +2,36 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Solver",
   "desciption": "something",
-    "type": "object",
-    "properties": {
-      "operator": {
-        "$ref": "operator.json"
-      },
-      "solver": {
-        "type": "object",
-        "not": {
-          "required": ["criteria"]
-        }
-      },
-      "optimal": {
-        "type": "object",
-        "properties": {
-          "spmv": {
-            "$ref": "spmv.reuse.json"
-          }
-        },
-        "required": ["spmv"]
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator.json"
+    },
+    "solver": {
+      "type": "object",
+      "not": {
+        "required": [
+          "criteria"
+        ]
       }
     },
-    "required": ["operator", "solver", "optimal"],
+    "optimal": {
+      "type": "object",
+      "properties": {
+        "spmv": {
+          "$ref": "spmv.reuse.json"
+        }
+      },
+      "required": [
+        "spmv"
+      ]
+    }
+  },
+  "required": [
+    "operator",
+    "solver",
+    "optimal"
+  ],
   "examples": [
     {
       "operator": {

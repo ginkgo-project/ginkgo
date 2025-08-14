@@ -117,25 +117,9 @@ Parameters for a benchmark case are:
 
     auto test_cases = json::parse(get_input_stream());
 
-    json_schema::json_validator validator(json_loader);  // create validator
-
-    try {
-        validator.set_root_schema(schema);  // insert root-schema
-    } catch (const std::exception& e) {
-        std::cerr << "Validation of schema failed, here is why: " << e.what()
-                  << "\n";
-        return EXIT_FAILURE;
-    }
-    try {
-        validator.validate(test_cases);
-        // validate the document - uses the default throwing error-handler
-    } catch (const std::exception& e) {
-        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
-        return EXIT_FAILURE;
-    }
-
-    auto results = run_test_cases(BlasBenchmark{operation_map}, exec,
-                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results =
+        run_test_cases(BlasBenchmark{operation_map}, exec,
+                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
 
     std::cout << std::setw(4) << results << std::endl;
 }

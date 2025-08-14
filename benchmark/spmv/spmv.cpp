@@ -36,25 +36,7 @@ int main(int argc, char* argv[])
 
     print_general_information(extra_information, exec);
 
-    json_schema::json_validator validator(json_loader);  // create validator
-
-    try {
-        validator.set_root_schema(schema);  // insert root-schema
-    } catch (const std::exception& e) {
-        std::cerr << "Validation of schema failed, here is why: " << e.what()
-                  << "\n";
-        return EXIT_FAILURE;
-    }
-
     auto test_cases = json::parse(get_input_stream());
-
-    try {
-        validator.validate(test_cases);
-        // validate the document - uses the default throwing error-handler
-    } catch (const std::exception& e) {
-        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
-        return EXIT_FAILURE;
-    }
 
     SpmvBenchmark benchmark{Generator{}};
     auto timer = get_timer(exec, FLAGS_gpu_timer);
@@ -65,8 +47,9 @@ int main(int argc, char* argv[])
     }
     auto annotate = annotate_functor(profiler_hook);
 
-    auto results = run_test_cases(SpmvBenchmark{Generator{}}, exec,
-                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results =
+        run_test_cases(SpmvBenchmark{Generator{}}, exec,
+                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
 
     std::cout << std::setw(4) << results << std::endl;
 }

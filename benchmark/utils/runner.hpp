@@ -74,8 +74,12 @@ struct Benchmark {
 template <typename State>
 json run_test_cases(const Benchmark<State>& benchmark,
                     std::shared_ptr<gko::Executor> exec,
-                    std::shared_ptr<Timer> timer, const json& test_cases)
+                    std::shared_ptr<Timer> timer, const json& schema,
+                    const json& test_cases)
 {
+    json_schema::json_validator validator(json_loader);
+    validator.set_root_schema(schema);
+
     auto profiler_hook = create_profiler_hook(exec, benchmark.should_print());
     if (profiler_hook) {
         exec->add_logger(profiler_hook);
@@ -94,6 +98,8 @@ json run_test_cases(const Benchmark<State>& benchmark,
                 std::clog << "Running test case " << std::endl;
                 std::clog << "    " << current_case << std::endl;
             }
+
+            validator.validate(test_case);
 
             if (!current_case.contains(benchmark.get_name())) {
                 current_case[benchmark.get_name()] = json::object();

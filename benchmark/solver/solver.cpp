@@ -46,16 +46,6 @@ int main(int argc, char* argv[])
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
 
-    json_schema::json_validator validator(json_loader);  // create validator
-
-    try {
-        validator.set_root_schema(schema);  // insert root-schema
-    } catch (const std::exception& e) {
-        std::cerr << "Validation of schema failed, here is why: " << e.what()
-                  << "\n";
-        std::exit(EXIT_FAILURE);
-    }
-
     json test_cases;
     if (!FLAGS_overhead) {
         test_cases = json::parse(get_input_stream());
@@ -64,16 +54,9 @@ int main(int argc, char* argv[])
         std::exit(EXIT_FAILURE);
     }
 
-    try {
-        validator.validate(test_cases);
-        // validate the document - uses the default throwing error-handler
-    } catch (const std::exception& e) {
-        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
-        std::exit(EXIT_FAILURE);
-    }
-
-    auto results = run_test_cases(SolverBenchmark{SolverGenerator{}}, exec,
-                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results =
+        run_test_cases(SolverBenchmark{SolverGenerator{}}, exec,
+                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
 
     std::cout << std::setw(4) << results << std::endl;
 }

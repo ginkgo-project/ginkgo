@@ -2,48 +2,48 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Solver",
   "desciption": "something",
-    "type": "object",
-    "properties": {
-      "operator": {
-        "$ref": "operator-distributed.json"
-      },
-      "solver": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "enum": [
-              "solver::Cg",
-              "solver::Fcg",
-              "solver::Cgs",
-              "solver::Bicgstab",
-              "solver::Gmres",
-              "solver::Multigrid"
-            ]
-          }
-        },
-        "not": {
-          "required": [
-            "criteria"
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator-distributed.json"
+    },
+    "solver": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "solver::Cg",
+            "solver::Fcg",
+            "solver::Cgs",
+            "solver::Bicgstab",
+            "solver::Gmres",
+            "solver::Multigrid"
           ]
         }
       },
-      "optimal": {
-        "type": "object",
-        "properties": {
-          "spmv": {
-            "$ref": "spmv-distributed.reuse.json"
-          }
-        },
+      "not": {
         "required": [
-          "spmv"
+          "criteria"
         ]
       }
     },
-    "required": [
-      "operator",
-      "solver",
-      "optimal"
-    ],
+    "optimal": {
+      "type": "object",
+      "properties": {
+        "spmv": {
+          "$ref": "spmv-distributed.reuse.json"
+        }
+      },
+      "required": [
+        "spmv"
+      ]
+    }
+  },
+  "required": [
+    "operator",
+    "solver",
+    "optimal"
+  ],
   "examples": [
     {
       "operator": {

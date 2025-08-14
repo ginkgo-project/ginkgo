@@ -2,34 +2,34 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Matrix Generator",
   "desciption": "something",
-    "type": "object",
-    "properties": {
-      "filename": {
-        "type": "string"
-      },
-      "problem": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "enum": [
-              "block-diagonal"
-            ]
-          },
-          "num_blocks": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "block_size": {
-            "type": "integer",
-            "minimum": 1
-          }
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "problem": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "block-diagonal"
+          ]
+        },
+        "num_blocks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "block_size": {
+          "type": "integer",
+          "minimum": 1
         }
       }
-    },
-    "required": [
-      "filename",
-      "problem"
-    ],
+    }
+  },
+  "required": [
+    "filename",
+    "problem"
+  ],
   "examples": [
     {
       "$comment": "The generated matrix will have a dense block of size <block-size>, with random real values chosen uniformly in the interval [-1, 1], repeated <num-blocks> times on the diagonal"

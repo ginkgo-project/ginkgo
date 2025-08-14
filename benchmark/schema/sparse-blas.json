@@ -2,15 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Sparse-BLAS",
   "desciption": "something",
-    "type": "object",
-    "properties": {
-      "operator": {
-        "$ref": "operator.json"
-      }
-    },
-    "not": {
-      "required": ["format", "reorder"]
-    },
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator.json"
+    }
+  },
+  "not": {
+    "required": [
+      "format",
+      "reorder"
+    ]
+  },
   "examples": [
     {
       "operator": {

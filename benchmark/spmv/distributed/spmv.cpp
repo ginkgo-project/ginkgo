@@ -65,30 +65,9 @@ int main(int argc, char* argv[])
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    json_schema::json_validator validator(json_loader);  // create validator
-
-    try {
-        validator.set_root_schema(schema);  // insert root-schema
-    } catch (const std::exception& e) {
-        if (do_print) {
-            std::cerr << "Validation of schema failed, here is why: "
-                      << e.what() << "\n";
-        }
-        return EXIT_FAILURE;
-    }
-    try {
-        validator.validate(test_cases);
-        // validate the document - uses the default throwing error-handler
-    } catch (const std::exception& e) {
-        if (do_print) {
-            std::cerr << "Validation failed, here is why: " << e.what() << "\n";
-        }
-        return EXIT_FAILURE;
-    }
-
-    auto results =
-        run_test_cases(SpmvBenchmark{Generator{comm}, do_print}, exec,
-                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
+    auto results = run_test_cases(
+        SpmvBenchmark{Generator{comm}, do_print}, exec,
+        get_mpi_timer(exec, comm, FLAGS_gpu_timer), schema, test_cases);
 
     if (do_print) {
         std::cout << std::setw(4) << results << std::endl;

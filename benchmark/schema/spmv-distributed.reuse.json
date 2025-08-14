@@ -15,5 +15,7 @@
       ]
     }
   },
-  "required": ["format"]
+  "required": [
+    "format"
+  ]
 }
