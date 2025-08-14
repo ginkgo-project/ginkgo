@@ -49,7 +49,6 @@ int main(int argc, char* argv[])
     try {
         validator.validate(test_cases);
         // validate the document - uses the default throwing error-handler
-        std::cout << "Validation succeeded\n";
     } catch (const std::exception& e) {
         std::cerr << "Validation failed, here is why: " << e.what() << "\n";
     }

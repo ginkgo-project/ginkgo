@@ -67,15 +67,13 @@ int main(int argc, char* argv[])
     try {
         validator.validate(test_cases);
         // validate the document - uses the default throwing error-handler
-        std::cout << "Validation succeeded\n";
     } catch (const std::exception& e) {
         std::cerr << "Validation failed, here is why: " << e.what() << "\n";
         std::exit(EXIT_FAILURE);
     }
 
-    auto results =
-        run_test_cases(SolverBenchmark<SolverGenerator>{SolverGenerator{}},
-                       exec, get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results = run_test_cases(SolverBenchmark{SolverGenerator{}}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
 
     std::cout << std::setw(4) << results << std::endl;
 }
