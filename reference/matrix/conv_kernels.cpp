@@ -32,20 +32,19 @@ void conv(std::shared_ptr<const DefaultExecutor> exec,
     const auto kernel_size = kernel.get_size();        // K
     const auto* kernel_ptr = kernel.get_const_data();  // pointer to kernel data
     int stride = 1;
-    int padding = 2;
-    int output_length = (x_size[0] + 2 * padding - kernel_size) / stride + 1;
+    int padding = 0;
+    // int output_length = (b_size[0] + 2 * padding - kernel_size) / stride + 1;
 
     for (gko::size_type i = 0; i < x_size[0]; ++i) {
         ValueType sum = zero<ValueType>();
-        std::ptrdiff_t start =
-            static_cast<std::ptrdiff_t>(i * stride) - padding;
+        gko::int64 start = static_cast<gko::int64>(i * stride) - padding;
         for (gko::size_type j = 0; j < kernel_size; ++j) {
-            std::ptrdiff_t b_idx =
+            gko::int64 b_idx =
                 start +
-                static_cast<std::ptrdiff_t>(
+                static_cast<gko::int64>(
                     j);  // calculate the index in b's row based on the current
                          // position in x and the kernel's stride and padding
-            if (b_idx >= 0 && b_idx < static_cast<std::ptrdiff_t>(b_size[0])) {
+            if (b_idx >= 0 && b_idx < static_cast<gko::int64>(b_size[0])) {
                 sum += kernel_ptr[j] * b->at(static_cast<gko::size_type>(b_idx),
                                              0);  // direct pointer access
             }

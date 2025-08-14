@@ -28,7 +28,7 @@ int main()
     // Allocate output Dense vector: floor((N + 2*padding - K) / stride) + 1
     // elements
     const gko::size_type output_length =
-        (input->get_size()[0] + 2 * 2 - kernel_vals.size()) / 1 + 1;
+        (input->get_size()[0] + 2 * 0 - kernel_vals.size()) / 1 + 1;
     std::cout << "Output length: " << output_length << std::endl;
     auto output = Vec::create(exec, gko::dim<2>{output_length, 1});
     output->fill(0.0);
