@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,28 +44,6 @@ std::string input_format =
 }  // namespace
 
 
-// clang-format off
-// input validation
-[[noreturn]] void print_config_error_and_exit(int code = 1)
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << input_format << std::endl;
-    std::exit(code);
-}
-// clang-format on
-
-
-void validate_option_object(const json& value)
-{
-    if (!value.is_object() || !value.contains("filename") ||
-        !value["filename"].is_string() || !value.contains("problem") ||
-        !value["problem"].is_object() || !value["problem"].contains("type") ||
-        !value["problem"]["type"].is_string()) {
-        print_config_error_and_exit(2);
-    }
-}
-
-
 using generator_function = std::function<gko::matrix_data<etype, itype>(
     json&, std::default_random_engine&)>;
 
@@ -74,12 +52,6 @@ using generator_function = std::function<gko::matrix_data<etype, itype>(
 gko::matrix_data<etype, itype> generate_block_diagonal(
     json& config, std::default_random_engine& engine)
 {
-    if (!config.contains("num_blocks") ||
-        !config["num_blocks"].is_number_unsigned() ||
-        !config.contains("block_size") ||
-        !config["block_size"].is_number_unsigned()) {
-        print_config_error_and_exit(2);
-    }
     auto num_blocks = config["num_blocks"].get<gko::uint64>();
     auto block_size = config["block_size"].get<gko::uint64>();
     auto block = gko::matrix_data<etype, itype>(
@@ -106,13 +78,28 @@ int main(int argc, char* argv[])
     auto engine = get_engine();
     auto configurations = json::parse(get_input_stream());
 
-    if (!configurations.is_array()) {
-        print_config_error_and_exit(1);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/matrix-generator.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
+
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
     }
+    try {
+        validator.validate(configurations);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
 
     for (auto& config : configurations) {
         try {
-            validate_option_object(config);
             std::clog << "Generating matrix: " << config << std::endl;
             auto filename = config["filename"].get<std::string>();
             auto type = config["problem"]["type"].get<std::string>();

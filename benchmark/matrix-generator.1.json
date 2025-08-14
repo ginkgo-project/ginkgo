@@ -1,0 +1,10 @@
+[
+  {
+    "filename": "dummy.mtx",
+    "problem": {
+      "type": "block-diagonal",
+      "num_blocks": 2,
+      "block_size": 4
+    }
+  }
+]

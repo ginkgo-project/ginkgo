@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Matrix Generator",
+  "desciption": "something",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string"
+      },
+      "problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "enum": ["block-diagonal"]
+          },
+          "num_blocks": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "block_size": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "required": ["filename", "problem"]
+  }
+}
