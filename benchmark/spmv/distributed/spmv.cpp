@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,23 +59,37 @@ int main(int argc, char* argv[])
         print_general_information(extra_information, exec);
     }
 
-    auto local_formats = split(FLAGS_local_formats, ',');
-    auto non_local_formats = split(FLAGS_non_local_formats, ',');
-    std::vector<std::string> formats;
-    for (const auto& local_fmt : local_formats) {
-        for (const auto& non_local_fmt : non_local_formats) {
-            formats.push_back(local_fmt + "-" + non_local_fmt);
-        }
-    }
-
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    run_test_cases(SpmvBenchmark<Generator>{Generator{comm}, formats, do_print},
-                   exec, get_mpi_timer(exec, comm, FLAGS_gpu_timer),
-                   test_cases);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/spmv-distributed.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
+
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        if (do_print) {
+            std::cerr << "Validation of schema failed, here is why: "
+                      << e.what() << "\n";
+        }
+        return EXIT_FAILURE;
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        if (do_print) {
+            std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        }
+        return EXIT_FAILURE;
+    }
+
+    auto results =
+        run_test_cases(SpmvBenchmark{Generator{comm}, do_print}, exec,
+                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
 
     if (do_print) {
-        std::cout << std::setw(4) << test_cases << std::endl;
+        std::cout << std::setw(4) << results << std::endl;
     }
 }
