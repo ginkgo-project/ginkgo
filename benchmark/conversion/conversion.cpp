@@ -61,27 +61,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return operations;
-    }
-
     bool should_print() const override { return true; }
-
-    std::string get_example_config() const override
-    {
-        return Generator::get_example_config();
-    }
-
-    bool validate_config(const json& test_case) const override
-    {
-        return Generator::validate_config(test_case);
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return Generator::describe_config(test_case);
-    }
 
     gko::device_matrix_data<etype, itype> setup(
         std::shared_ptr<gko::Executor> exec, json& test_case) const override
@@ -98,57 +78,60 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
                                                                        data);
     }
 
-
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate,
-             gko::device_matrix_data<etype, itype>& data,
-             const std::string& operation_name,
-             json& operation_case) const override
+             gko::device_matrix_data<double, int>& data,
+             const json& operation_case, json& result_case) const override
     {
-        auto split_it =
-            std::find(operation_name.begin(), operation_name.end(), '-');
-        std::string from_name{operation_name.begin(), split_it};
-        std::string to_name{split_it + 1, operation_name.end()};
-        auto mtx_from = formats::matrix_type_factory.at(from_name)(exec);
-        auto readable =
-            gko::as<gko::ReadableFromMatrixData<etype, itype>>(mtx_from.get());
-        IterationControl ic{timer};
-        if (to_name == "read") {
-            // warm run
-            {
-                auto range = annotate("warmup", FLAGS_warmup > 0);
-                for (auto _ : ic.warmup_run()) {
-                    exec->synchronize();
-                    readable->read(data);
-                    exec->synchronize();
-                }
-            }
-            // timed run
-            for (auto _ : ic.run()) {
-                auto range = annotate("repetition");
-                readable->read(data);
-            }
-        } else {
-            readable->read(data);
-            auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
+        for (const auto& operation_name : operations) {
+            result_case[operation_name] = json::object();
+            auto& op_result_case = result_case[operation_name];
 
-            // warm run
-            {
-                auto range = annotate("warmup", FLAGS_warmup > 0);
-                for (auto _ : ic.warmup_run()) {
-                    exec->synchronize();
+            auto split_it =
+                std::find(operation_name.begin(), operation_name.end(), '-');
+            std::string from_name{operation_name.begin(), split_it};
+            std::string to_name{split_it + 1, operation_name.end()};
+            auto mtx_from = formats::matrix_type_factory.at(from_name)(exec);
+            auto readable = gko::as<gko::ReadableFromMatrixData<etype, itype>>(
+                mtx_from.get());
+            IterationControl ic{timer};
+            if (to_name == "read") {
+                // warm run
+                {
+                    auto range = annotate("warmup", FLAGS_warmup > 0);
+                    for (auto _ : ic.warmup_run()) {
+                        exec->synchronize();
+                        readable->read(data);
+                        exec->synchronize();
+                    }
+                }
+                // timed run
+                for (auto _ : ic.run()) {
+                    auto range = annotate("repetition");
+                    readable->read(data);
+                }
+            } else {
+                readable->read(data);
+                auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
+
+                // warm run
+                {
+                    auto range = annotate("warmup", FLAGS_warmup > 0);
+                    for (auto _ : ic.warmup_run()) {
+                        exec->synchronize();
+                        mtx_to->copy_from(mtx_from);
+                        exec->synchronize();
+                    }
+                }
+                // timed run
+                for (auto _ : ic.run()) {
+                    auto range = annotate("repetition");
                     mtx_to->copy_from(mtx_from);
-                    exec->synchronize();
                 }
             }
-            // timed run
-            for (auto _ : ic.run()) {
-                auto range = annotate("repetition");
-                mtx_to->copy_from(mtx_from);
-            }
+            op_result_case["time"] = ic.compute_time(FLAGS_timer_method);
+            op_result_case["repetitions"] = ic.get_num_repetitions();
         }
-        operation_case["time"] = ic.compute_time(FLAGS_timer_method);
-        operation_case["repetitions"] = ic.get_num_repetitions();
     }
 };
 
@@ -157,7 +140,7 @@ int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's conversions.\n";
-    std::string format_str = Generator::get_example_config();
+    std::string format_str;
     initialize_argument_parsing_matrix(&argc, &argv, header, format_str);
 
     std::string extra_information =
@@ -169,8 +152,27 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    run_test_cases(ConversionBenchmark{}, exec,
-                   get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/conversion.json"));
+    json_schema::json_validator validator(json_loader);  // create validator
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    try {
+        validator.set_root_schema(schema);  // insert root-schema
+    } catch (const std::exception& e) {
+        std::cerr << "Validation of schema failed, here is why: " << e.what()
+                  << "\n";
+        return EXIT_FAILURE;
+    }
+    try {
+        validator.validate(test_cases);
+        // validate the document - uses the default throwing error-handler
+    } catch (const std::exception& e) {
+        std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    auto results = run_test_cases(ConversionBenchmark{}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), test_cases);
+
+    std::cout << std::setw(4) << results << std::endl;
 }
