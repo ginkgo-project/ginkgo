@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
         // validate the document - uses the default throwing error-handler
     } catch (const std::exception& e) {
         std::cerr << "Validation failed, here is why: " << e.what() << "\n";
+        return EXIT_FAILURE;
     }
 
     SpmvBenchmark benchmark{Generator{}};

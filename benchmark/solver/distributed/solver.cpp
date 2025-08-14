@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
             std::cerr << "Validation of schema failed, here is why: "
                       << e.what() << "\n";
         }
-        std::exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     try {
         validator.validate(test_cases);
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
         if (do_print) {
             std::cerr << "Validation failed, here is why: " << e.what() << "\n";
         }
-        std::exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     auto results =
