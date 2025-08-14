@@ -1,0 +1,14 @@
+[
+  {
+    "operator": {
+      "stencil": {
+        "size": 100,
+        "name": "7pt"
+      }
+    },
+    "preconditioner": {
+      "type": "matrix::Identity"
+    },
+    "format": "csr"
+  }
+]

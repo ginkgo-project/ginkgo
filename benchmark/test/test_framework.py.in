@@ -31,6 +31,8 @@ empty_array_paths = [
     "iteration_timestamps",
 ]
 
+def stencil_inputs(*formats: str):
+    return [{"operator": {"stencil": {"name": "7pt", "size": 100}}, "format": format} for format in formats]
 
 def sanitize_json_key(key: str):
     """Applies sanitation to a single key.

@@ -34,7 +34,7 @@
         "filename": "my_file.mtx"
       },
       "preconditioner": {
-        "type": "preconditioner::Jacobi"
+        "type": "matrix::Identity"
       },
       "format": "csr",
       "reorder": "nd"
