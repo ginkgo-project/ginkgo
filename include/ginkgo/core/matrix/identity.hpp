@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,10 +88,11 @@ protected:
 template <typename ValueType = default_precision>
 class IdentityFactory
     : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
-    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
-
 public:
     using value_type = ValueType;
+
+    struct parameters_type
+        : enable_parameters_type<parameters_type, IdentityFactory> {};
 
     /**
      * Creates a new Identity factory.
@@ -108,10 +109,14 @@ public:
     }
 
 protected:
+    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
+    friend class enable_parameters_type<parameters_type, IdentityFactory>;
+
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-    IdentityFactory(std::shared_ptr<const Executor> exec)
+    explicit IdentityFactory(std::shared_ptr<const Executor> exec,
+                             const parameters_type& params = {})
         : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
     {}
 };
