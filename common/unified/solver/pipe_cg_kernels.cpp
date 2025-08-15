@@ -38,8 +38,8 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 r(row, col) = b(row, col);
             },
-            b->get_size(), b->get_stride(), b, default_stride(r),
-            row_vector(prev_rho), *stop_status);
+            b->get_size(), b->get_stride(), b, r, row_vector(prev_rho),
+            *stop_status);
     } else {
         run_kernel(
             exec,
@@ -83,9 +83,7 @@ void initialize_2(std::shared_ptr<const DefaultExecutor> exec,
                 f(row, col) = m(row, col);
                 g(row, col) = n(row, col);
             },
-            p->get_size(), p->get_stride(), default_stride(p),
-            default_stride(q), default_stride(f), default_stride(g),
-            row_vector(beta), default_stride(z), default_stride(w),
+            p->get_size(), p->get_stride(), p, q, f, g, row_vector(beta), z, w,
             default_stride(m), default_stride(n), row_vector(delta));
     } else {
         run_kernel(
@@ -131,8 +129,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 w(row, col) -= tmp * g(row, col);
             }
         },
-        x->get_size(), r->get_stride(), x, default_stride(r),
-        default_stride(z1), default_stride(z2), default_stride(w),
+        x->get_size(), x->get_stride(), default_stride(x), r, z1, z2, w,
         default_stride(p), default_stride(q), default_stride(f),
         default_stride(g), row_vector(rho), row_vector(beta), *stop_status);
 }
@@ -180,10 +177,9 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             }
         },
         p->get_size(), p->get_stride(), row_vector(beta), default_stride(p),
-        default_stride(q), default_stride(f), default_stride(g),
-        default_stride(z), default_stride(w), default_stride(m),
-        default_stride(n), row_vector(prev_rho), row_vector(rho),
-        row_vector(delta), *stop_status);
+        default_stride(q), default_stride(f), default_stride(g), z, w,
+        default_stride(m), default_stride(n), row_vector(prev_rho),
+        row_vector(rho), row_vector(delta), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_2_KERNEL);
