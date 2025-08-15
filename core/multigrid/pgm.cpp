@@ -260,7 +260,8 @@ Pgm<ValueType, IndexType>::generate_local(
     auto coarse_matrix =
         generate_coarse(exec, local_matrix.get(), num_agg, agg_);
     std::clog << local_matrix->get_size()[0] << " -> "
-              << coarse_matrix->get_size()[0] << std::endl;
+              << coarse_matrix->get_size()[0]
+              << " exec: " << exec->get_description() << std::endl;
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
 
