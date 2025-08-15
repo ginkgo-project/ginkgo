@@ -1,33 +1,46 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
-        "preconditioner": {
-            "jacobi-32-0,0": {
-                "generate": {
-                    "components": {
-                        "generate(<typename>)": 1.0,
-                        "allocate": 1.0,
-                        "jacobi::find_blocks": 1.0,
-                        "jacobi::generate": 1.0,
-                        "free": 1.0,
-                        "overhead": 1.0
-                    },
-                    "time": 1.0,
-                    "repetitions": 10
-                },
-                "apply": {
-                    "components": {
-                        "apply(<typename>)": 1.0,
-                        "jacobi::simple_apply": 1.0,
-                        "overhead": 1.0
-                    },
-                    "time": 1.0,
-                    "repetitions": 10
-                },
-                "completed": true
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "size": 100
             }
         },
+        "preconditioner": {
+            "type": "preconditioner::Jacobi",
+            "max_block_size": 32,
+            "storage_optimization": [
+                0,
+                0
+            ],
+            "skip_sorting": true
+        },
+        "format": "csr",
+        "precondition": {
+            "generate": {
+                "components": {
+                    "generate(<typename>)": 1.0,
+                    "allocate": 1.0,
+                    "jacobi::find_blocks": 1.0,
+                    "jacobi::generate": 1.0,
+                    "free": 1.0,
+                    "overhead": 1.0
+                },
+                "time": 1.0,
+                "repetitions": 10
+            },
+            "apply": {
+                "components": {
+                    "apply(<typename>)": 1.0,
+                    "jacobi::simple_apply": 1.0,
+                    "overhead": 1.0
+                },
+                "time": 1.0,
+                "repetitions": 10
+            },
+            "completed": true
+        },
+        "reorder": "natural",
         "rows": 125,
         "cols": 125,
         "nonzeros": 725

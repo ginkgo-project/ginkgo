@@ -2,13 +2,12 @@ Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The formats are coo,csr
-Running test case stencil(100, 7pt)
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}}}
 Matrix is of size (125, 125), 725
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin stencil(100, 7pt)
-	Running conversion: coo-read
-DEBUG: begin coo-read
+DEBUG: begin {"operator":{"stencil":{"kind":"7pt","size":100}}}
 DEBUG: begin repetition
 DEBUG: begin copy
 DEBUG: end   copy
@@ -17,9 +16,6 @@ DEBUG: end   copy
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: end   repetition
-DEBUG: end   coo-read
-	Running conversion: coo-csr
-DEBUG: begin coo-csr
 DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin copy
@@ -38,9 +34,6 @@ DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: end   copy(<typename>)
 DEBUG: end   repetition
-DEBUG: end   coo-csr
-	Running conversion: csr-read
-DEBUG: begin csr-read
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin repetition
@@ -53,9 +46,6 @@ DEBUG: end   copy
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: end   repetition
-DEBUG: end   csr-read
-	Running conversion: csr-coo
-DEBUG: begin csr-coo
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin copy
@@ -76,5 +66,4 @@ DEBUG: begin components::convert_ptrs_to_idxs
 DEBUG: end   components::convert_ptrs_to_idxs
 DEBUG: end   copy(<typename>)
 DEBUG: end   repetition
-DEBUG: end   csr-coo
-DEBUG: end   stencil(100, 7pt)
+DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}}}

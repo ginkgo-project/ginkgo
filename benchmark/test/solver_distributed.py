@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 import test_framework
+import json
+
+stencil_input = [{"operator": {"stencil": {"kind": "7pt", "local_size": 100}},
+                  "solver": {"type": "solver::Cg"},
+                  "optimal": {"spmv": {"format": "csr-csr"}}}]
 
 # check that all input modes work:
 # parameter
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil", "optimal": {"spmv": "csr-csr"}}]',
+        json.dumps(stencil_input),
     ],
     expected_stdout="distributed_solver.simple.stdout",
     expected_stderr="distributed_solver.simple.stderr",
@@ -17,7 +22,7 @@ test_framework.compare_output(
     [],
     expected_stdout="distributed_solver.simple.stdout",
     expected_stderr="distributed_solver.simple.stderr",
-    stdin='[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil", "optimal": {"spmv": "csr-csr"}}]',
+    stdin=json.dumps(stencil_input),
 )
 
 # input file
@@ -27,18 +32,11 @@ test_framework.compare_output(
     expected_stderr="distributed_solver.simple.stderr",
 )
 
-# input matrix file
-test_framework.compare_output(
-    ["-input_matrix", str(test_framework.matrixpath)],
-    expected_stdout="distributed_solver.matrix.stdout",
-    expected_stderr="distributed_solver.matrix.stderr",
-)
-
 # profiler annotations
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil", "optimal": {"spmv": "csr-csr"}}]',
+        json.dumps(stencil_input),
         "-profile",
         "-profiler_hook",
         "debug",
@@ -51,7 +49,7 @@ test_framework.compare_output(
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil", "optimal": {"spmv": "csr-csr"}}]',
+        json.dumps(stencil_input),
     ],
     expected_stdout="distributed_solver_dcomplex.simple.stdout",
     expected_stderr="distributed_solver_dcomplex.simple.stderr",

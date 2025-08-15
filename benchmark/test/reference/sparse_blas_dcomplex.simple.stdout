@@ -1,7 +1,11 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "size": 100
+            }
+        },
         "sparse_blas": {
             "transpose": {
                 "time": 1.0,
@@ -14,10 +18,11 @@
                     "csr::transpose": 1.0,
                     "free": 1.0,
                     "overhead": 1.0
-                },
-                "completed": true
-            }
+                }
+            },
+            "completed": true
         },
+        "reorder": "natural",
         "rows": 125,
         "cols": 125,
         "nonzeros": 725

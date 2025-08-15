@@ -1,8 +1,9 @@
 Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
-Running with preconditioners: none
-Running test case stencil(100, 7pt)
+
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"preconditioner":{"type":"matrix::Identity"},"format":"csr"}
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::aos_to_soa
@@ -22,9 +23,7 @@ DEBUG: end   dense::fill
 DEBUG: begin dense::fill_in_matrix_data
 DEBUG: end   dense::fill_in_matrix_data
 Matrix is of size (125, 125), 725
-DEBUG: begin stencil(100, 7pt)
-	Running preconditioner: none
-DEBUG: begin none
+DEBUG: begin {"operator":{"stencil":{"kind":"7pt","size":100}},"preconditioner":{"type":"matrix::Identity"},"format":"csr"}
 DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy
@@ -41,5 +40,4 @@ DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition apply
-DEBUG: end   none
-DEBUG: end   stencil(100, 7pt)
+DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}},"preconditioner":{"type":"matrix::Identity"},"format":"csr"}

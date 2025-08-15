@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import test_framework
 
+stencil_input = '[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "coo"}]'
+
 # check that all input modes work:
 # parameter
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt"}]'],
+    ["-input", stencil_input],
     expected_stdout="spmv.simple.stdout",
     expected_stderr="spmv.simple.stderr",
 )
@@ -14,7 +16,7 @@ test_framework.compare_output(
     [],
     expected_stdout="spmv.simple.stdout",
     expected_stderr="spmv.simple.stderr",
-    stdin='[{"size": 100, "stencil": "7pt"}]',
+    stdin=stencil_input,
 )
 
 # input file
@@ -24,18 +26,11 @@ test_framework.compare_output(
     expected_stderr="spmv.simple.stderr",
 )
 
-# input matrix file
-test_framework.compare_output(
-    ["-input_matrix", str(test_framework.matrixpath)],
-    expected_stdout="spmv.matrix.stdout",
-    expected_stderr="spmv.matrix.stderr",
-)
-
 # profiler annotations
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt"}]',
+        stencil_input,
         "-profile",
         "-profiler_hook",
         "debug",
@@ -46,15 +41,15 @@ test_framework.compare_output(
 
 # stdin
 test_framework.compare_output(
-    ["-reorder", "amd"],
+    [],
     expected_stdout="spmv.reordered.stdout",
     expected_stderr="spmv.reordered.stderr",
-    stdin='[{"size": 100, "stencil": "7pt"}]',
+    stdin='[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "csr", "reorder": "amd"}]',
 )
 
 # complex
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt"}]'],
+    ["-input", stencil_input],
     expected_stdout="spmv_dcomplex.simple.stdout",
     expected_stderr="spmv_dcomplex.simple.stderr",
     use_complex=True

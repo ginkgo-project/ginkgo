@@ -1,9 +1,9 @@
 Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
-The formats are [csr]x[csr]
 The number of right hand sides is 1
-Running test case stencil(100, 7pt, stencil)
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","local_size":100}},"format":"csr-csr"}
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
 DEBUG: begin dense::fill
@@ -16,10 +16,8 @@ DEBUG: begin dense::fill
 DEBUG: end   dense::fill
 DEBUG: begin dense::fill_in_matrix_data
 DEBUG: end   dense::fill_in_matrix_data
-Matrix is of size (125, 125), 285
-DEBUG: begin stencil(100, 7pt, stencil)
-	Running spmv: csr-csr
-DEBUG: begin csr-csr
+    Matrix is of size (343, 343), 896
+DEBUG: begin {"operator":{"stencil":{"kind":"7pt","local_size":100}},"format":"csr-csr"}
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
@@ -134,5 +132,4 @@ DEBUG: end   csr::advanced_spmv
 DEBUG: end   advanced_apply(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition
-DEBUG: end   csr-csr
-DEBUG: end   stencil(100, 7pt, stencil)
+DEBUG: end   {"operator":{"stencil":{"kind":"7pt","local_size":100}},"format":"csr-csr"}

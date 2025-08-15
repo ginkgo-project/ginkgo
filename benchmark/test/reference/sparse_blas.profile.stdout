@@ -1,16 +1,21 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "size": 100
+            }
+        },
         "sparse_blas": {
             "transpose": {
                 "time": 1.0,
                 "flops": 1.0,
                 "bandwidth": 1.0,
-                "repetitions": 1,
-                "completed": true
-            }
+                "repetitions": 1
+            },
+            "completed": true
         },
+        "reorder": "natural",
         "rows": 125,
         "cols": 125,
         "nonzeros": 725

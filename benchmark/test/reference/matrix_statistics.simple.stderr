@@ -1,2 +1,3 @@
-Running test case stencil(100, 7pt)
+Running test case 
+    {"operator":{"stencil":{"size":100,"kind":"7pt"}},"format":"coo"}
 Matrix is of size (125, 125), 725

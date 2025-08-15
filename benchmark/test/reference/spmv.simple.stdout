@@ -1,21 +1,32 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
-        "spmv": {
-            "coo": {
+        "operator": {
+            "stencil": {
+                "size": 100,
+                "kind": "7pt"
+            },
+            "rows": 125,
+            "cols": 125,
+            "nonzeros": 725
+        },
+        "spmv": [
+            {
                 "storage": 11600,
                 "max_relative_norm2": 1.0,
                 "time": 1.0,
                 "repetitions": 10,
-                "completed": true
+                "completed": true,
+                "variant": {
+                    "format": "coo",
+                    "reorder": "natural"
+                }
             }
-        },
-        "rows": 125,
-        "cols": 125,
-        "nonzeros": 725,
+        ],
         "optimal": {
-            "spmv": "coo"
+            "spmv": {
+                "format": "coo",
+                "reorder": "natural"
+            }
         }
     }
 ]

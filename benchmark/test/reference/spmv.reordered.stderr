@@ -1,8 +1,7 @@
 Running on ReferenceExecutor
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-The formats are coo
 The number of right hand sides is 1
-Running test case stencil(100, 7pt)
-Matrix is of size (125, 125), 725
-	Running spmv: coo
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"format":"csr","reorder":"amd"}
+    Matrix is of size (125, 125), 725

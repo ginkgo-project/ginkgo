@@ -1,21 +1,32 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
-        "comm_pattern": "stencil",
-        "spmv": {
-            "csr-csr": {
-                "storage": 11452,
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "local_size": 100,
+                "comm_pattern": "stencil"
+            },
+            "rows": 343,
+            "cols": 343,
+            "nonzeros": 896
+        },
+        "spmv": [
+            {
+                "storage": 31316,
                 "time": 1.0,
                 "repetitions": 1,
-                "completed": true
+                "completed": true,
+                "variant": {
+                    "format": "csr-csr",
+                    "reorder": "natural"
+                }
             }
-        },
-        "rows": 125,
-        "cols": 125,
-        "nonzeros": 285,
+        ],
         "optimal": {
-            "spmv": "csr-csr"
+            "spmv": {
+                "format": "csr-csr",
+                "reorder": "natural"
+            }
         }
     }
 ]

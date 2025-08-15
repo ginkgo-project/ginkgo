@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import test_framework
 
+stencil_input = '[{"operator": {"stencil": {"kind": "7pt", "local_size": 100}}, "format": "csr-csr"}]'
+
 # check that all input modes work:
 # parameter
 test_framework.compare_output_distributed(
-    ["-input", '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}]'],
+    ["-input", stencil_input],
     expected_stdout="spmv_distributed.simple.stdout",
     expected_stderr="spmv_distributed.simple.stderr",
     num_procs=3,
@@ -16,7 +18,7 @@ test_framework.compare_output_distributed(
     expected_stdout="spmv_distributed.simple.stdout",
     expected_stderr="spmv_distributed.simple.stderr",
     num_procs=3,
-    stdin='[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}]',
+    stdin=stencil_input,
 )
 
 # input file
@@ -31,7 +33,7 @@ test_framework.compare_output_distributed(
 test_framework.compare_output_distributed(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}]',
+        stencil_input,
         "-profile",
         "-profiler_hook",
         "debug",
@@ -43,7 +45,7 @@ test_framework.compare_output_distributed(
 
 # complex
 test_framework.compare_output_distributed(
-    ["-input", '[{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}]'],
+    ["-input", stencil_input],
     expected_stdout="spmv_distributed_dcomplex.simple.stdout",
     expected_stderr="spmv_distributed_dcomplex.simple.stderr",
     num_procs=3,

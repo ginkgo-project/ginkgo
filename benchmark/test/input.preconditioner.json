@@ -6,13 +6,9 @@
         "kind": "7pt"
       }
     },
-    "solver": {
-      "type": "solver::Cg"
+    "preconditioner": {
+      "type": "matrix::Identity"
     },
-    "optimal": {
-      "spmv": {
-        "format": "csr"
-      }
-    }
+    "format": "csr"
   }
 ]
