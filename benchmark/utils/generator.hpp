@@ -27,18 +27,20 @@ struct DefaultSystemGenerator {
     generate_matrix_data(const json& config)
     {
         auto [data, size] = [&] {
-            if (config.contains("filename")) {
-                std::ifstream in(config["filename"].get<std::string>());
+            if (config["operator"].contains("filename")) {
+                std::ifstream in(
+                    config["operator"]["filename"].get<std::string>());
                 // Returning an empty dim means that there is no specified local
                 // size, which is relevant in the distributed case
                 return std::make_pair(
                     gko::read_generic_raw<ValueType, IndexType>(in),
                     gko::dim<2>());
-            } else if (config.contains("stencil")) {
+            } else if (config["operator"].contains("stencil")) {
                 return generate_stencil<ValueType, IndexType>(
-                    config["stencil"].get<std::string>(),
-                    config["size"].get<gko::int64>());
+                    config["operator"]["stencil"]["kind"].get<std::string>(),
+                    config["operator"]["stencil"]["size"].get<gko::int64>());
             } else {
+                std::cout << config << std::endl;
                 throw std::runtime_error(
                     "No known way to generate matrix data found.");
             }
@@ -47,43 +49,13 @@ struct DefaultSystemGenerator {
         return {data, size};
     }
 
-    static std::string get_example_config()
-    {
-        return json::
-            parse(R"([{"filename": "my_file.mtx"},{"filename": "my_file2.mtx"},{"size": 100, "stencil": "7pt"}])")
-                .dump(4);
-    }
-
-    static bool validate_config(const json& test_case)
-    {
-        return ((test_case.contains("size") && test_case.contains("stencil") &&
-                 test_case["size"].is_number_integer() &&
-                 test_case["stencil"].is_string()) ||
-                (test_case.contains("filename") &&
-                 test_case["filename"].is_string()));
-    }
-
-    static std::string describe_config(const json& config)
-    {
-        if (config.contains("filename")) {
-            return config["filename"].get<std::string>();
-        } else if (config.contains("stencil")) {
-            std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
-               << config["stencil"].get<std::string>() << ")";
-            return ss.str();
-        } else {
-            throw std::runtime_error("No known way to describe config.");
-        }
-    }
-
     static std::shared_ptr<gko::LinOp> generate_matrix_with_optimal_format(
         std::shared_ptr<gko::Executor> exec, json& config)
     {
         auto data = generate_matrix_data(config);
         return generate_matrix_with_format(
-            std::move(exec), config["optimal"]["spmv"].get<std::string>(),
-            data);
+            std::move(exec),
+            config["optimal"]["spmv"]["format"].get<std::string>(), data);
     }
 
     static std::shared_ptr<gko::LinOp> generate_matrix_with_format(
@@ -179,21 +151,20 @@ struct DistributedDefaultSystemGenerator {
     generate_matrix_data(const json& config) const
     {
         auto [data, local_size] = [&] {
-            if (config.contains("filename")) {
-                std::ifstream in(config["filename"].get<std::string>());
+            if (config["operator"].contains("filename")) {
+                std::ifstream in(
+                    config["operator"]["filename"].get<std::string>());
                 // Returning an empty dim means that no local size is specified,
                 // and thus the partition has to be deduced from the global size
                 return std::make_pair(
                     gko::read_generic_raw<value_type, index_type>(in),
                     gko::dim<2>());
-            } else if (config.contains("stencil")) {
-                auto target_local_size = static_cast<global_itype>(
-                    config["size"].get<gko::int64>() / comm.size());
+            } else if (config["operator"].contains("stencil")) {
+                auto& stencil = config["operator"]["stencil"];
                 return generate_stencil<value_type, index_type>(
-                    config["stencil"].get<std::string>(), comm,
-                    target_local_size,
-                    config["comm_pattern"].get<std::string>() ==
-                        std::string("optimal"));
+                    stencil["kind"].get<std::string>(), comm,
+                    stencil["local_size"].get<gko::int64>(),
+                    stencil["comm_pattern"] == "optimal");
             } else {
                 throw std::runtime_error(
                     "No known way to generate matrix data found.");
@@ -201,39 +172,6 @@ struct DistributedDefaultSystemGenerator {
         }();
         data.sort_row_major();
         return {data, local_size};
-    }
-
-    static std::string get_example_config()
-    {
-        return json::
-            parse(R"([{"size": 100, "stencil": "7pt", "comm_pattern": "stencil"}, {"filename": "my_file.mtx"}])")
-                .dump(4);
-    }
-
-    static bool validate_config(const json& test_case)
-    {
-        return ((test_case.contains("size") && test_case.contains("stencil") &&
-                 test_case.contains("comm_pattern") &&
-                 test_case["size"].is_number_integer() &&
-                 test_case["stencil"].is_string() &&
-                 test_case["comm_pattern"].is_string()) ||
-                (test_case.contains("filename") &&
-                 test_case["filename"].is_string()));
-    }
-
-    static std::string describe_config(const json& config)
-    {
-        if (config.contains("filename")) {
-            return config["filename"].get<std::string>();
-        } else if (config.contains("stencil")) {
-            std::stringstream ss;
-            ss << "stencil(" << config["size"].get<gko::int64>() << ", "
-               << config["stencil"].get<std::string>() << ", "
-               << config["comm_pattern"].get<std::string>() << ")";
-            return ss.str();
-        } else {
-            throw std::runtime_error("No known way to describe config.");
-        }
     }
 
     std::shared_ptr<gko::LinOp> generate_matrix_with_format(

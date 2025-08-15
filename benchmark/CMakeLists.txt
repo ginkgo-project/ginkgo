@@ -125,7 +125,10 @@ function(
         target_compile_definitions(${name} PRIVATE HAS_MPI_TIMER=1)
         target_link_libraries(${name} mpi_timer)
     endif()
-    target_compile_definitions("${name}" PRIVATE "${macro_def}")
+    target_compile_definitions(
+        "${name}"
+        PRIVATE "${macro_def}" GKO_ROOT="${Ginkgo_SOURCE_DIR}"
+    )
     ginkgo_benchmark_add_tuning_maybe("${name}")
     if("${use_lib_linops}")
         if(GINKGO_BUILD_CUDA)

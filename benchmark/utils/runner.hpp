@@ -8,7 +8,7 @@
 
 #include <iomanip>
 #include <iostream>
-#include <vector>
+#include <set>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -17,23 +17,13 @@
 
 template <typename State>
 struct Benchmark {
+    virtual ~Benchmark() = default;
+
     /** The name to be used in the JSON output. */
     virtual const std::string& get_name() const = 0;
 
-    /** The operations to loop over for each test case. */
-    virtual const std::vector<std::string>& get_operations() const = 0;
-
     /** Should we write logging output? */
     virtual bool should_print() const = 0;
-
-    /** Example JSON input */
-    virtual std::string get_example_config() const = 0;
-
-    /** Is the input test case in the correct format? */
-    virtual bool validate_config(const json& value) const = 0;
-
-    /** Textual representation of the test case for profiler annotation */
-    virtual std::string describe_config(const json& test_case) const = 0;
 
     /** Sets up shared state and test case info */
     virtual State setup(std::shared_ptr<gko::Executor> exec,
@@ -42,37 +32,65 @@ struct Benchmark {
     /** Runs a single operation of the benchmark */
     virtual void run(std::shared_ptr<gko::Executor> exec,
                      std::shared_ptr<Timer> timer, annotate_functor annotate,
-                     State& state, const std::string& operation,
-                     json& operation_case) const = 0;
+                     State& state, const json& operation_case,
+                     json& result_case) const = 0;
 
     /** Post-process test case info. */
-    virtual void postprocess(json& test_case) const {}
+    virtual void postprocess(json& test_cases) const {}
 };
 
 
-template <typename State>
-void run_test_cases(const Benchmark<State>& benchmark,
-                    std::shared_ptr<gko::Executor> exec,
-                    std::shared_ptr<Timer> timer, json& test_cases)
+/**
+ * By default, add `skip_sorting=true` to all types that support it.
+ */
+void add_skip_sorting(json& schema)
 {
-    if (!test_cases.is_array()) {
-        if (benchmark.should_print()) {
-            std::cerr
-                << "Input has to be a JSON array of benchmark configurations:\n"
-                << benchmark.get_example_config() << std::endl;
+    static const std::set<std::string> skip_sorting{
+        "factorization::Cholesky",
+        "factorization::Ic",
+        "factorization::Ilu",
+        "factorization::Lu",
+        "factorization::ParIc",
+        "factorization::ParIct",
+        "factorization::ParIlu",
+        "factorization::ParIlut",
+        "multigrid::FixedCoarsening",
+        "multigrid::Pgm",
+        "preconditioner::GaussSeidel",
+        "preconditioner::Ic",
+        "preconditioner::Ilu",
+        "preconditioner::Isai",
+        "preconditioner::Jacobi",
+        "preconditioner::Sor",
+        "reorder::Amd"};
+
+    if (schema.is_object()) {
+        for (auto& [key, value] : schema.items()) {
+            add_skip_sorting(value);
         }
-        std::exit(1);
-    }
-    for (const auto& test_case : test_cases) {
-        if (!test_case.is_object() || !benchmark.validate_config(test_case)) {
-            if (benchmark.should_print()) {
-                std::cerr << "Invalid test case:\n"
-                          << std::setw(4) << test_case << "\nInput format:\n"
-                          << benchmark.get_example_config() << std::endl;
+        if (schema.contains("type") &&
+            skip_sorting.count(schema["type"].get<std::string>())) {
+            if (!schema.contains("skip_sorting")) {
+                schema["skip_sorting"] = true;
             }
-            std::exit(2);
         }
     }
+    if (schema.is_array()) {
+        for (auto& value : schema) {
+            add_skip_sorting(value);
+        }
+    }
+}
+
+
+template <typename State>
+json run_test_cases(const Benchmark<State>& benchmark,
+                    std::shared_ptr<gko::Executor> exec,
+                    std::shared_ptr<Timer> timer, const json& schema,
+                    const json& test_cases)
+{
+    json_schema::json_validator validator(json_loader);
+    validator.set_root_schema(schema);
 
     auto profiler_hook = create_profiler_hook(exec, benchmark.should_print());
     if (profiler_hook) {
@@ -80,62 +98,64 @@ void run_test_cases(const Benchmark<State>& benchmark,
     }
     auto annotate = annotate_functor(profiler_hook);
 
-    for (auto& test_case : test_cases) {
+    auto benchmark_cases = json::array();
+
+    for (const auto& test_case : test_cases) {
+        benchmark_cases.push_back(test_case);
+        auto& current_case = benchmark_cases.back();
+        add_skip_sorting(current_case);
         try {
             // set up benchmark
-            if (!test_case.contains(benchmark.get_name())) {
-                test_case[benchmark.get_name()] = json::object();
-            }
-            auto test_case_desc = benchmark.describe_config(test_case);
+            auto test_case_desc = to_string(current_case);
             if (benchmark.should_print()) {
-                std::clog << "Running test case " << test_case_desc
+                std::clog << "Running test case " << std::endl;
+                std::clog << "    " << current_case << std::endl;
+            }
+
+            if (!current_case.contains(benchmark.get_name())) {
+                current_case[benchmark.get_name()] = json::object();
+            }
+
+            auto default_patch = validator.validate(current_case);
+            current_case = current_case.patch(default_patch);
+
+            auto test_case_state = benchmark.setup(exec, current_case);
+            auto test_case_range = annotate(test_case_desc.c_str());
+            auto& result_case = current_case[benchmark.get_name()];
+            try {
+                benchmark.run(exec, timer, annotate, test_case_state,
+                              current_case, result_case);
+                result_case["completed"] = true;
+            } catch (const std::exception& e) {
+                result_case["completed"] = false;
+                result_case["error_type"] =
+                    gko::name_demangling::get_dynamic_type(e);
+                result_case["error"] = e.what();
+                std::cerr << "Error when processing test case\n"
+                          << test_case_desc << "\n"
+                          << "what(): " << e.what() << std::endl;
+            }
+
+            if (benchmark.should_print()) {
+                backup_results(benchmark_cases);
+            }
+        } catch (const std::exception& e) {
+            if (benchmark.should_print()) {
+                std::cerr << "Error setting up benchmark, what(): " << e.what()
                           << std::endl;
             }
-            auto test_case_state = benchmark.setup(exec, test_case);
-            auto test_case_range = annotate(test_case_desc.c_str());
-            auto& benchmark_case = test_case[benchmark.get_name()];
-            for (const auto& operation_name : benchmark.get_operations()) {
-                if (benchmark_case.contains(operation_name) &&
-                    !FLAGS_overwrite) {
-                    continue;
-                }
-                benchmark_case[operation_name] = json::object();
-                if (benchmark.should_print()) {
-                    std::clog << "\tRunning " << benchmark.get_name() << ": "
-                              << operation_name << std::endl;
-                }
-                auto& operation_case = benchmark_case[operation_name];
-                try {
-                    auto operation_range = annotate(operation_name.c_str());
-                    benchmark.run(exec, timer, annotate, test_case_state,
-                                  operation_name, operation_case);
-                    operation_case["completed"] = true;
-                } catch (const std::exception& e) {
-                    operation_case["completed"] = false;
-                    operation_case["error_type"] =
-                        gko::name_demangling::get_dynamic_type(e);
-                    operation_case["error"] = e.what();
-                    std::cerr << "Error when processing test case\n"
-                              << test_case_desc << "\n"
-                              << "what(): " << e.what() << std::endl;
-                }
-
-                if (benchmark.should_print()) {
-                    backup_results(test_cases);
-                }
-            }
-            benchmark.postprocess(test_case);
-        } catch (const std::exception& e) {
-            std::cerr << "Error setting up benchmark, what(): " << e.what()
-                      << std::endl;
-            test_case["error_type"] = gko::name_demangling::get_dynamic_type(e);
-            test_case["error"] = e.what();
+            current_case["error_type"] =
+                gko::name_demangling::get_dynamic_type(e);
+            current_case["error"] = e.what();
         }
     }
+    benchmark.postprocess(benchmark_cases);
 
     if (profiler_hook) {
         exec->remove_logger(profiler_hook);
     }
+
+    return benchmark_cases;
 }
 
 
