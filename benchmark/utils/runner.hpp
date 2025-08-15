@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,37 +13,6 @@
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
-
-
-std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
-    std::shared_ptr<const gko::Executor> exec, bool do_print = true)
-{
-    using gko::log::ProfilerHook;
-    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
-        hook_map{
-            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
-            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
-            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
-            {"roctx", [] { return ProfilerHook::create_roctx(); }},
-            {"tau", [] { return ProfilerHook::create_tau(); }},
-            {"vtune", [] { return ProfilerHook::create_vtune(); }},
-            {"debug", [do_print] {
-                 return ProfilerHook::create_custom(
-                     [do_print](const char* name,
-                                gko::log::profile_event_category) {
-                         if (do_print) {
-                             std::clog << "DEBUG: begin " << name << '\n';
-                         }
-                     },
-                     [do_print](const char* name,
-                                gko::log::profile_event_category) {
-                         if (do_print) {
-                             std::clog << "DEBUG: end   " << name << '\n';
-                         }
-                     });
-             }}};
-    return hook_map.at(FLAGS_profiler_hook)();
-}
 
 
 template <typename State>

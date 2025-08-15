@@ -189,7 +189,7 @@ void print_general_information(const std::string& extra,
 
 
 std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
-    std::shared_ptr<const gko::Executor> exec)
+    std::shared_ptr<const gko::Executor> exec, bool do_print = true)
 {
     using gko::log::ProfilerHook;
     std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
@@ -200,13 +200,19 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
             {"roctx", [] { return ProfilerHook::create_roctx(); }},
             {"tau", [] { return ProfilerHook::create_tau(); }},
             {"vtune", [] { return ProfilerHook::create_vtune(); }},
-            {"debug", [] {
+            {"debug", [do_print] {
                  return ProfilerHook::create_custom(
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: begin " << name << '\n';
+                     [do_print](const char* name,
+                                gko::log::profile_event_category) {
+                         if (do_print) {
+                             std::clog << "DEBUG: begin " << name << '\n';
+                         }
                      },
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: end   " << name << '\n';
+                     [do_print](const char* name,
+                                gko::log::profile_event_category) {
+                         if (do_print) {
+                             std::clog << "DEBUG: end   " << name << '\n';
+                         }
                      });
              }}};
     return hook_map.at(FLAGS_profiler_hook)();
