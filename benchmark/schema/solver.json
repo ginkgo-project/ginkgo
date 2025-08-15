@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Solver",
+  "description": "Input for a single solver operation",
+  "type": "object",
+  "properties": {
+    "operator": {
+      "anyOf": [
+        {
+          "$ref": "operator.reuse.json"
+        },
+        {
+          "enum": [
+            "overhead"
+          ]
+        }
+      ]
+    },
+    "solver": {
+      "type": "object",
+      "not": {
+        "required": [
+          "criteria"
+        ]
+      }
+    },
+    "optimal": {
+      "type": "object",
+      "properties": {
+        "spmv": {
+          "$ref": "spmv.reuse.json"
+        }
+      },
+      "required": [
+        "spmv"
+      ]
+    }
+  },
+  "required": [
+    "operator",
+    "solver",
+    "optimal"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "solver": {
+        "type": "solver::Cg",
+        "preconditioner": {
+          "type": "preconditioner::Jacobi"
+        }
+      },
+      "optimal": {
+        "spmv": {
+          "format": "csr",
+          "reorder": "nd"
+        }
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "solver": {
+        "type": "solver::Gmres",
+        "krylov_dim": 10
+      },
+      "optimal": {
+        "spmv": {
+          "format": "csr"
+        }
+      }
+    }
+  ]
+}

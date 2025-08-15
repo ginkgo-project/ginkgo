@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Matrix Statistics",
+  "description": "Input for a single matrix statistics operation",
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator.reuse.json"
+    }
+  },
+  "required": [
+    "operator"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      }
+    }
+  ]
+}

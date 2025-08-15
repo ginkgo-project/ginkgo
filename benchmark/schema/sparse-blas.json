@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sparse-BLAS",
+  "description": "Input for a single sparse-BLAS operation",
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator.reuse.json"
+    },
+    "reorder": {
+      "enum": [
+        "amd",
+        "nd",
+        "rcm",
+        "natural"
+      ]
+    }
+  },
+  "required": [
+    "operator"
+  ],
+  "not": {
+    "required": [
+      "format"
+    ]
+  },
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      }
+    }
+  ]
+}

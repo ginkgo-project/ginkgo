@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Preconditioner",
+  "description": "Input for a single preconditioner operation",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "spmv.reuse.json"
+    },
+    {
+      "properties": {
+        "operator": {
+          "$ref": "operator.reuse.json"
+        },
+        "preconditioner": {
+          "type": "object"
+        }
+      }
+    }
+  ],
+  "required": [
+    "operator",
+    "preconditioner"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "preconditioner": {
+        "type": "matrix::Identity"
+      },
+      "format": "csr",
+      "reorder": "nd"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "format": "coo",
+      "preconditioner": {
+        "type": "preconditioner::GaussSeidel",
+        "symmetric": true
+      }
+    }
+  ]
+}

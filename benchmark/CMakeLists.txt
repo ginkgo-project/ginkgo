@@ -101,7 +101,13 @@ function(
     type
 )
     add_executable("${name}" ${ARGN})
-    target_link_libraries("${name}" ginkgo gflags nlohmann_json::nlohmann_json)
+    target_link_libraries(
+        "${name}"
+        ginkgo
+        gflags
+        nlohmann_json::nlohmann_json
+        nlohmann_json_schema_validator
+    )
     # always include the device timer
     if(GINKGO_BUILD_CUDA)
         target_compile_definitions("${name}" PRIVATE HAS_CUDA_TIMER=1)

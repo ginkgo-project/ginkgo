@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "operator-distributed.reuse.json",
+  "title": "Distributed Operator",
+  "description": "Reusable distributed operator definition",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "stencil": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "5pt",
+            "7pt",
+            "9pt",
+            "27pt"
+          ]
+        },
+        "local_size": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "comm_pattern": {
+          "enum": [
+            "stencil",
+            "optimal"
+          ],
+          "default": "stencil"
+        }
+      },
+      "required": [
+        "kind",
+        "local_size"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": [
+        "filename"
+      ]
+    },
+    {
+      "required": [
+        "stencil"
+      ]
+    }
+  ]
+}

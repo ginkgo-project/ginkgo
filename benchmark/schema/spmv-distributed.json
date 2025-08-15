@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Distributed SpMV",
+  "description": "Input for a single distributed SpMV operation",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "spmv-distributed.reuse.json"
+    },
+    {
+      "properties": {
+        "operator": {
+          "$ref": "operator-distributed.reuse.json"
+        }
+      }
+    }
+  ],
+  "required": [
+    "operator",
+    "format"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo-coo"
+    },
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "csr-coo"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "local_size": 100
+        }
+      },
+      "format": "csr-csr"
+    }
+  ]
+}
