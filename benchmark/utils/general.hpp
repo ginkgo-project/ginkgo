@@ -115,15 +115,16 @@ std::unique_ptr<std::istream> input_stream;
  * @param argc  the number of arguments given to the main function
  * @param argv  the arguments given to the main function
  * @param header  a header which describes the benchmark
- * @param format  the format of the benchmark input data
+ * @param examples  the format of the benchmark input data
  */
 void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
-                                 std::string& format, bool do_print = true)
+                                 const json& examples, bool do_print = true)
 {
     if (do_print) {
         std::ostringstream doc;
         doc << header << "Usage: " << (*argv)[0] << " [options]\n"
-            << format
+            << "Example JSON input:\n"
+            << std::setw(4) << examples << "\n"
             << "  The results are written on standard output, in the same "
                "format,\n"
             << "  but with test cases extended to include an additional member "
@@ -144,7 +145,10 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
         gflags::SetUsageMessage("");
         gflags::SetVersionString("");
     }
-    gflags::ParseCommandLineFlags(argc, argv, true);
+    gflags::ParseCommandLineNonHelpFlags(argc, argv, true);
+    if (do_print) {
+        gflags::HandleCommandLineHelpFlags();
+    }
     if (FLAGS_profile) {
         FLAGS_repetitions = "1";
         FLAGS_warmup = 0;
