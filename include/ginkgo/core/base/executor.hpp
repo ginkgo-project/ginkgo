@@ -1443,7 +1443,7 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipExecutor, false);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, true);
 
     bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
 
@@ -1745,7 +1745,7 @@ protected:
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, false);
+    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceExecutor, false);
 

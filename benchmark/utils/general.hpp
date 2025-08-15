@@ -366,7 +366,7 @@ const std::map<std::string,
              FLAGS_device_id = gko::experimental::mpi::map_rank_to_device_id(
                  comm, gko::CudaExecutor::get_num_devices());
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::ReferenceExecutor::create(),
+                                              gko::OmpExecutor::create(),
                                               create_cuda_allocator());
          }},
         {"hip",
