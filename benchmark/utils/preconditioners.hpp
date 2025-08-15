@@ -22,7 +22,14 @@ DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
               "Supported values are: none, jacobi, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
-              "parilut-isai, ic-isai, ilu-isai, sor, multigrid, overhead");
+              "parilut-isai, ic-isai, ilu-isai, sor, multigrid, "
+              "multigrid-coarse-cpu, overhead");
+
+DEFINE_uint32(multigrid_cpu_level, 1000,
+              "when level >= this value, using cpu part");
+
+DEFINE_uint32(multigrid_cpu_size, 0,
+              "when matrix <= this value, using cpu part");
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
@@ -309,11 +316,77 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }},
         {"multigrid",
          [](std::shared_ptr<const gko::Executor> exec) {
+             auto smoother_gen = [](auto exec) {
+                 return gko::solver::Ir<etype>::build()
+                     .with_solver(
+                         gko::experimental::distributed::preconditioner::
+                             Schwarz<etype, itype, gko::int64>::build()
+                                 .with_local_solver(
+                                     gko::preconditioner::Jacobi<etype,
+                                                                 itype>::build()
+                                         .with_max_block_size(1u)))
+                     .with_criteria(
+                         gko::stop::Iteration::build().with_max_iters(1))
+                     .on(exec);
+             };
              return gko::solver::Multigrid::build()
                  .with_criteria(
                      gko::stop::Iteration::build().with_max_iters(1u))
                  .with_mg_level(gko::multigrid::Pgm<etype, itype>::build()
                                     .with_deterministic(true))
+                 .with_pre_smoother(smoother_gen(exec))
+                 .with_coarsest_solver(smoother_gen(exec))
+                 .on(exec);
+         }},
+        {"multigrid-coarse-cpu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto smoother_gen = [](auto exec) {
+                 return gko::solver::Ir<etype>::build()
+                     .with_solver(
+                         gko::experimental::distributed::preconditioner::
+                             Schwarz<etype, itype, gko::int64>::build()
+                                 .with_local_solver(
+                                     gko::preconditioner::Jacobi<etype,
+                                                                 itype>::build()
+                                         .with_max_block_size(1u)))
+                     .with_criteria(
+                         gko::stop::Iteration::build().with_max_iters(1))
+                     .on(exec);
+             };
+             return gko::solver::Multigrid::build()
+                 .with_criteria(
+                     gko::stop::Iteration::build().with_max_iters(1u))
+                 .with_mg_level(gko::multigrid::Pgm<etype, itype>::build()
+                                    .with_deterministic(true)
+                                    .on(exec),
+                                gko::multigrid::Pgm<etype, itype>::build()
+                                    .with_deterministic(true)
+                                    .on(exec->get_master()))
+                 .with_mg_level(gko::multigrid::Pgm<etype, itype>::build()
+                                    .with_deterministic(true)
+                                    .on(exec),
+                                gko::multigrid::Pgm<etype, itype>::build()
+                                    .with_deterministic(true)
+                                    .on(exec->get_master()))
+                 .with_pre_smoother(smoother_gen(exec),
+                                    smoother_gen(exec->get_master()))
+                 .with_coarsest_solver(smoother_gen(exec->get_master()))
+                 .with_level_selector(
+                     [](const gko::size_type level,
+                        const gko::LinOp* op) -> gko::size_type {
+                         gko::size_type op_size = 0;
+                         if (auto dist = dynamic_cast<
+                                 const gko::experimental::distributed::Matrix<
+                                     etype, itype, gko::int64>*>(op)) {
+                             op_size = dist->get_local_matrix()->get_size()[0];
+                         } else {
+                             op_size = op->get_size()[0];
+                         }
+                         return level >= FLAGS_multigrid_cpu_level ||
+                                        op_size <= FLAGS_multigrid_cpu_size
+                                    ? 1
+                                    : 0;
+                     })
                  .on(exec);
          }},
         {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
