@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,12 @@
 // Command-line arguments
 DEFINE_bool(gpu_timer, false,
             "use gpu timer based on event. It is valid only when "
-            "executor is cuda or hip");
+            "executor is cuda, hip or dpcpp");
+
+DEFINE_bool(cpu_timer, true,
+            "use cpu timer based on steady_clock. note: it will only capture "
+            "the launch overhead or get accumulated time during "
+            "synchronization when executor is on accelerators");
 
 DEFINE_string(
     timer_method, "average",

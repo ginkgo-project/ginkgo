@@ -13,11 +13,17 @@
                 "iteration_timestamps": [],
                 "rhs_norm": 1.0,
                 "generate": {
-                    "components": {},
+                    "components": {
+                        "gpu": {},
+                        "cpu": {}
+                    },
                     "time": 1.0
                 },
                 "apply": {
-                    "components": {},
+                    "components": {
+                        "gpu": {},
+                        "cpu": {}
+                    },
                     "iterations": 7,
                     "time": 1.0
                 },
