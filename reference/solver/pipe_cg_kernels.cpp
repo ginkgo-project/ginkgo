@@ -101,7 +101,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
                 z1->at(i, j) -= tmp * f->at(i, j);
-                z2->at(i, j) = z1->at(i, j);
+                z2->at(i, j) -= tmp * f->at(i, j);
                 w->at(i, j) -= tmp * g->at(i, j);
             }
         }

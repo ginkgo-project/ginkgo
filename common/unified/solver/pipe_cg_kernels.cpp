@@ -125,7 +125,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) += tmp * p(row, col);
                 r(row, col) -= tmp * q(row, col);
                 z1(row, col) -= tmp * f(row, col);
-                z2(row, col) = z1(row, col);
+                z2(row, col) -= tmp * f(row, col);
                 w(row, col) -= tmp * g(row, col);
             }
         },
