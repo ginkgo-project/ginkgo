@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -142,6 +142,13 @@ void* CudaUnifiedAllocator::allocate(size_type num_bytes)
     void* ptr{};
     GKO_ASSERT_NO_CUDA_ALLOCATION_ERRORS(
         cudaMallocManaged(&ptr, num_bytes, flags_), num_bytes);
+    cudaMemLocation loc;
+    loc.id = device_id_;
+    loc.type = cudaMemLocationTypeDevice;
+    GKO_ASSERT_NO_CUDA_ERRORS(
+        cudaMemAdvise(ptr, num_bytes, cudaMemAdviseSetPreferredLocation, loc));
+    GKO_ASSERT_NO_CUDA_ERRORS(
+        cudaMemAdvise(ptr, num_bytes, cudaMemAdviseSetAccessedBy, loc));
     return ptr;
 }
 
