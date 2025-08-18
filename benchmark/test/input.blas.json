@@ -1,5 +1,14 @@
 [
     {
-        "n": 100
+        "n": 100,
+        "operation": "copy"
+    },
+    {
+        "n": 100,
+        "operation": "axpy"
+    },
+    {
+        "n": 100,
+        "operation": "scal"
     }
 ]

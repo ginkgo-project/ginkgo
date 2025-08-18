@@ -37,6 +37,16 @@ Parameters for a benchmark case are:
     stride: storage stride for both vectors (optional, default r)
     stride_x: stride for input vector x (optional, default r)
     stride_y: stride for in/out vector y (optional, default r)
+The supported operations are defined as:
+BLAS algorithms:
+   copy (y = x),
+   axpy (y = y + a * x),
+   sub_scaled (y = y - a * x),
+   multiaxpy (like axpy, but a has one entry per column),
+   scal (y = a * y),
+   multiscal (like scal, but a has one entry per column),
+   dot (a = x' * y),"
+   norm (a = sqrt(x' * x))
 )";
     auto schema = json::parse(
         std::ifstream(GKO_ROOT "/benchmark/schema/blas-distributed.json"));
@@ -47,8 +57,7 @@ Parameters for a benchmark case are:
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     if (do_print) {
-        std::string extra_information =
-            "The operations are " + FLAGS_operations;
+        std::string extra_information;
         print_general_information(extra_information, exec);
     }
 
