@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,26 +21,7 @@
 namespace formats {
 
 
-std::string available_format =
-    "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
-    "hybrid40, "
-    "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
-    "hybridminstorage"
-#ifdef HAS_CUDA
-    ", cusparse_csr, cusparse_csrex, cusparse_coo"
-    ", cusparse_csrmp, cusparse_csrmm, cusparse_ell, cusparse_hybrid"
-    ", cusparse_gcsr, cusparse_gcsr2, cusparse_gcoo"
-#endif  // HAS_CUDA
-#ifdef HAS_HIP
-    ", hipsparse_csr, hipsparse_csrmm, hipsparse_coo, hipsparse_ell, "
-    "hipsparse_hybrid"
-#endif  // HAS_HIP
-#ifdef HAS_DPCPP
-    ", onemkl_csr, onemkl_optimized_csr"
-#endif  // HAS_DPCPP
-    ".\n";
-
-std::string format_description =
+inline std::string format_description =
     "coo: Coordinate storage. The GPU kernels use the load-balancing "
     "approach\n"
     "     suggested in Flegar et al.: Overcoming Load Imbalance for\n"
@@ -105,17 +86,11 @@ std::string format_description =
 #endif  // HAS_DPCPP
     ;
 
-std::string format_command =
-    "A comma-separated list of formats to run. Supported values are: " +
-    available_format + format_description;
-
 
 }  // namespace formats
 
 
 // the formats command-line argument
-DEFINE_string(formats, "coo", formats::format_command.c_str());
-
 DEFINE_int64(ell_imbalance_limit, 100,
              "Maximal storage overhead above which ELL benchmarks will be "
              "skipped. Negative values mean no limit.");
