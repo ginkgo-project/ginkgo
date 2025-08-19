@@ -3,14 +3,14 @@ Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"coo"}
+    {"from":"coo","to":"coo","operator":{"stencil":{"kind":"7pt","size":100}}}
 Matrix is of size (125, 125), 725
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+    {"from":"coo","to":"csr","operator":{"stencil":{"kind":"7pt","size":100}}}
 Matrix is of size (125, 125), 725
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"coo"}
+    {"from":"csr","to":"coo","operator":{"stencil":{"kind":"7pt","size":100}}}
 Matrix is of size (125, 125), 725
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"csr"}
+    {"from":"csr","to":"csr","operator":{"stencil":{"kind":"7pt","size":100}}}
 Matrix is of size (125, 125), 725

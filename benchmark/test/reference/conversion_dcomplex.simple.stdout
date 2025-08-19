@@ -21,6 +21,13 @@
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true,
+                "to": "coo",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
                 "to": "csr",
                 "from": "coo"
             },
@@ -29,13 +36,6 @@
                 "repetitions": 10,
                 "completed": true,
                 "to": "csr",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "coo",
                 "from": "csr"
             }
         ]

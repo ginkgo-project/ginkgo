@@ -2,9 +2,9 @@
 import test_framework
 import json
 
-stencil_input = [{"operator": {"stencil": {"kind": "7pt", "size": 100}},
-                  "preconditioner": {"type": "matrix::Identity"},
-                  "format": "csr"}]
+stencil_input = {"operator": {"stencil": {"kind": "7pt", "size": 100}},
+                 "preconditioner": {"type": "matrix::Identity"},
+                 "format": "csr"}
 
 # check that all input modes work:
 # parameter
@@ -22,6 +22,13 @@ test_framework.compare_output(
     stdin=json.dumps(stencil_input),
 )
 
+# list input
+test_framework.compare_output(
+    ["-input", json.dumps(test_framework.config_dict_to_list(stencil_input | {"format": ["csr", "coo"]}))],
+    expected_stdout="preconditioner.list.stdout",
+    expected_stderr="preconditioner.list.stderr",
+)
+
 # input file
 test_framework.compare_output(
     ["-input", str(test_framework.sourcepath / "input.preconditioner.json")],
@@ -30,8 +37,8 @@ test_framework.compare_output(
 )
 
 # set preconditioner works
-precond_config = [stencil_input[0] | {
-    "preconditioner": {"type": "preconditioner::Jacobi", "max_block_size": 32, "storage_optimization": [0, 0]}}]
+precond_config = stencil_input | {
+    "preconditioner": {"type": "preconditioner::Jacobi", "max_block_size": 32, "storage_optimization": [0, 0]}}
 test_framework.compare_output(
     [
         "-input",
@@ -58,7 +65,7 @@ test_framework.compare_output(
     [],
     expected_stdout="preconditioner.reordered.stdout",
     expected_stderr="preconditioner.reordered.stderr",
-    stdin=json.dumps([stencil_input[0] | {"reorder": "amd"}]),
+    stdin=json.dumps(stencil_input | {"reorder": "amd"}),
 )
 
 # complex

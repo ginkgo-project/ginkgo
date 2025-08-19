@@ -21,6 +21,13 @@
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true,
+                "to": "coo",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
                 "to": "csr",
                 "from": "coo"
             },
@@ -35,50 +42,8 @@
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true,
-                "to": "coo",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "ell",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "sellp",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "hybrid",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "ell",
-                "from": "ell"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
                 "to": "csr",
                 "from": "ell"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 10,
-                "completed": true,
-                "to": "sellp",
-                "from": "sellp"
             },
             {
                 "time": 1.0,
@@ -91,14 +56,49 @@
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true,
-                "to": "hybrid",
+                "to": "csr",
                 "from": "hybrid"
             },
             {
                 "time": 1.0,
                 "repetitions": 10,
                 "completed": true,
-                "to": "csr",
+                "to": "ell",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "ell",
+                "from": "ell"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "sellp",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "sellp",
+                "from": "sellp"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "hybrid",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "hybrid",
                 "from": "hybrid"
             }
         ]

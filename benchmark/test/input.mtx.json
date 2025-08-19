@@ -1,11 +1,9 @@
-[
-  {
-    "operator": {
-      "stencil": {
-        "size": 100,
-        "kind": "7pt"
-      }
-    },
-    "format": "coo"
-  }
-]
+{
+  "operator": {
+    "stencil": {
+      "size": 100,
+      "kind": "7pt"
+    }
+  },
+  "format": "coo"
+}

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import test_framework
+import json
 
-stencil_input = '[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "coo"}]'
+stencil_input = '{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "coo"}'
 
 # check that all input modes work:
 # parameter
@@ -17,6 +18,13 @@ test_framework.compare_output(
     expected_stdout="spmv.simple.stdout",
     expected_stderr="spmv.simple.stderr",
     stdin=stencil_input,
+)
+
+# list input
+test_framework.compare_output(
+    ["-input", json.dumps(test_framework.config_dict_to_list(json.loads(stencil_input) | {"format": ["coo", "csr"]}))],
+    expected_stdout="spmv.list.stdout",
+    expected_stderr="spmv.list.stderr",
 )
 
 # input file
@@ -44,7 +52,7 @@ test_framework.compare_output(
     [],
     expected_stdout="spmv.reordered.stdout",
     expected_stderr="spmv.reordered.stderr",
-    stdin='[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "csr", "reorder": "amd"}]',
+    stdin='{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": "csr", "reorder": "amd"}',
 )
 
 # complex

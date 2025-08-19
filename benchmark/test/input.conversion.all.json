@@ -1,0 +1,132 @@
+[
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "coo",
+    "from": "coo"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "coo",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "coo"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "ell"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "sellp"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "hybrid"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "ell",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "ell",
+    "from": "ell"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "sellp",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "sellp",
+    "from": "sellp"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "hybrid",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "kind": "7pt",
+        "size": 100
+      }
+    },
+    "to": "hybrid",
+    "from": "hybrid"
+  }
+]

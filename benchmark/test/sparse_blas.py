@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import test_framework
+import json
 
-
-stencil_input = '[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "operation": "transpose"}]'
+stencil_input = '{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "operation": "transpose"}'
 
 # check that all input modes work:
 # parameter
@@ -18,6 +18,13 @@ test_framework.compare_output(
     expected_stdout="sparse_blas.simple.stdout",
     expected_stderr="sparse_blas.simple.stderr",
     stdin=stencil_input,
+)
+
+# list input
+test_framework.compare_output(
+    ["-input", json.dumps(test_framework.config_dict_to_list(json.loads(stencil_input) | {"operation": ["transpose", "sort"]}))],
+    expected_stdout="sparse_blas.list.stdout",
+    expected_stderr="sparse_blas.list.stderr",
 )
 
 # input file
@@ -48,7 +55,7 @@ test_framework.compare_output(
     [],
     expected_stdout="sparse_blas.reordered.stdout",
     expected_stderr="sparse_blas.reordered.stderr",
-    stdin='[{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "operation": "symbolic_cholesky", "reorder": "amd"}]',
+    stdin='{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "operation": "symbolic_cholesky", "reorder": "amd"}',
 )
 
 # complex

@@ -2,27 +2,40 @@
     {
         "operator": {
             "stencil": {
-                "name": "7pt",
+                "kind": "7pt",
                 "size": 100
             }
         },
-        "error_type": "std::invalid_argument",
-        "error": "At /operator/stencil of {\"name\":\"7pt\",\"size\":100} - required property 'kind' not found in object\n",
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725,
         "conversion": [
             {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
                 "to": "coo",
                 "from": "coo"
             },
             {
-                "to": "csr",
-                "from": "coo"
-            },
-            {
-                "to": "csr",
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "coo",
                 "from": "csr"
             },
             {
-                "to": "coo",
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "coo"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
                 "from": "csr"
             }
         ]

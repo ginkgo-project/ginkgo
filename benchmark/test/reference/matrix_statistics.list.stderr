@@ -1,0 +1,6 @@
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}}}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"27pt","size":100}}}
+Matrix is of size (125, 125), 2197

@@ -1,18 +1,16 @@
-[
-  {
-    "operator": {
-      "stencil": {
-        "size": 100,
-        "kind": "7pt"
-      }
-    },
-    "solver": {
-      "type": "solver::Cg"
-    },
-    "optimal": {
-      "spmv": {
-        "format": "csr"
-      }
+{
+  "operator": {
+    "stencil": {
+      "size": 100,
+      "kind": "7pt"
+    }
+  },
+  "solver": {
+    "type": "solver::Cg"
+  },
+  "optimal": {
+    "spmv": {
+      "format": "csr"
     }
   }
-]
+}

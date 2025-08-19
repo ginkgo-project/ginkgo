@@ -34,6 +34,23 @@ empty_array_paths = [
 def stencil_inputs(*formats: str):
     return [{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "format": format} for format in formats]
 
+def config_dict_to_list(conf: dict):
+    for k, v in conf.items():
+        if not isinstance(v, list):
+            conf[k] = [v]
+
+    result = []
+    def expand(obj, rest: dict):
+        if len(rest) == 0:
+            result.append(obj)
+        else:
+            next_name, next_list = rest.popitem()
+            for v in next_list:
+                expand({**obj, next_name: v}, rest.copy())
+    expand({}, conf)
+    return result
+
+
 def sanitize_json_key(key: str):
     """Applies sanitation to a single key.
 

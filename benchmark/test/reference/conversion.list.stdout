@@ -12,28 +12,28 @@
         "conversion": [
             {
                 "time": 1.0,
-                "repetitions": 1,
+                "repetitions": 10,
                 "completed": true,
                 "to": "coo",
                 "from": "coo"
             },
             {
                 "time": 1.0,
-                "repetitions": 1,
-                "completed": true,
-                "to": "coo",
-                "from": "csr"
-            },
-            {
-                "time": 1.0,
-                "repetitions": 1,
+                "repetitions": 10,
                 "completed": true,
                 "to": "csr",
                 "from": "coo"
             },
             {
                 "time": 1.0,
-                "repetitions": 1,
+                "repetitions": 10,
+                "completed": true,
+                "to": "coo",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
                 "completed": true,
                 "to": "csr",
                 "from": "csr"
