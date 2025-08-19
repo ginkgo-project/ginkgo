@@ -1,9 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <cstdlib>
 #include <iostream>
+
+#include <nlohmann/json-schema.hpp>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -15,17 +17,18 @@
 
 using Generator = DefaultSystemGenerator<>;
 
-
 int main(int argc, char* argv[])
 {
     std::string header =
         "A benchmark for measuring performance of Ginkgo's spmv.\n";
-    std::string format = Generator::get_example_config();
-    initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
-    std::string extra_information = "The formats are " + FLAGS_formats +
-                                    "\nThe number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs);
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/spmv.json"));
+
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
+
+    std::string extra_information =
+        "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
 
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
@@ -33,8 +36,12 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    run_test_cases(SpmvBenchmark<Generator>{Generator{}, split(FLAGS_formats)},
-                   exec, get_timer(exec, FLAGS_gpu_timer), test_cases);
+    SpmvBenchmark benchmark{Generator{}};
+    auto timer = get_timer(exec, FLAGS_gpu_timer);
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    auto results =
+        run_test_cases(SpmvBenchmark{Generator{}}, exec,
+                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
+
+    std::cout << std::setw(4) << results << std::endl;
 }

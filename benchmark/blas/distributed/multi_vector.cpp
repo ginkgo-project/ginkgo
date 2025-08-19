@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,8 +38,11 @@ Parameters for a benchmark case are:
     stride_x: stride for input vector x (optional, default r)
     stride_y: stride for in/out vector y (optional, default r)
 )";
-    std::string format = Generator::get_example_config();
-    initialize_argument_parsing(&argc, &argv, header, format, do_print);
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/blas-distributed.json"));
+
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"],
+                                do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
@@ -98,10 +101,11 @@ Parameters for a benchmark case are:
                      exec, Generator{comm, {}}, dims.n, dims.r, dims.stride_y);
              }}};
 
-    run_test_cases(BlasBenchmark{operation_map, do_print}, exec,
-                   get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
+    auto results = run_test_cases(BlasBenchmark{operation_map, do_print}, exec,
+                                  get_mpi_timer(exec, comm, FLAGS_gpu_timer),
+                                  schema, test_cases);
 
     if (do_print) {
-        std::cout << std::setw(4) << test_cases << std::endl;
+        std::cout << std::setw(4) << results << std::endl;
     }
 }

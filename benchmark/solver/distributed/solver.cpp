@@ -73,23 +73,12 @@ int main(int argc, char* argv[])
 
     std::string header =
         "A benchmark for measuring Ginkgo's distributed solvers\n";
-    std::string format = solver_example_config + R"(
-  The matrix will either be read from an input file if the filename parameter
-  is given, or generated as a stencil matrix.
-  If the filename parameter is given, all processes will read the file and
-  then the matrix is distributed row-block-wise.
-  In the other case, a size and stencil parameter have to be provided.
-  The size parameter denotes the size per process. It might be adjusted to
-  fit the dimensionality of the stencil more easily.
-  Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
-  Optional values for "comm_pattern" are: stencil, optimal.
-  Possible values for "optimal[spmv]" follow the pattern
-  "<local_format>-<non_local_format>", where both "local_format" and
-  "non_local_format" can be any of the recognized spmv formats.
-)";
-    std::string additional_json = R"(,"optimal":{"spmv":"csr-csr"})";
-    initialize_argument_parsing_matrix(&argc, &argv, header, format,
-                                       additional_json, do_print);
+
+    auto schema = json::parse(
+        std::ifstream(GKO_ROOT "/benchmark/schema/solver-distributed.json"));
+
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"],
+                                do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
@@ -97,37 +86,21 @@ int main(int argc, char* argv[])
     ss_rel_res_goal << std::scientific << FLAGS_rel_res_goal;
 
     std::string extra_information =
-        "Running " + FLAGS_solvers + " with " +
-        std::to_string(FLAGS_max_iters) + " iterations and residual goal of " +
-        ss_rel_res_goal.str() + "\nThe number of right hand sides is " +
-        std::to_string(FLAGS_nrhs);
+        "Running solvers with " + std::to_string(FLAGS_max_iters) +
+        " iterations and residual goal of " + ss_rel_res_goal.str() +
+        "\nThe number of right hand sides is " + std::to_string(FLAGS_nrhs);
     if (do_print) {
         print_general_information(extra_information, exec);
     }
 
-    std::set<std::string> supported_solvers = {"cg", "fcg", "cgs", "bicgstab",
-                                               "gmres"};
-    auto solvers = split(FLAGS_solvers, ',');
-    for (const auto& solver : solvers) {
-        if (supported_solvers.find(solver) == supported_solvers.end()) {
-            throw std::range_error(
-                std::string("The requested solvers <") + FLAGS_solvers +
-                "> contain the unsupported solver <" + solver + ">!");
-        }
-    }
-
-    std::string json_input =
-        FLAGS_overhead ? R"(
-[{"filename": "overhead.mtx",
-  "optimal": {"spmv": "csr-csr"}]
-)"
-                       : broadcast_json_input(get_input_stream(), comm);
+    std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    run_test_cases(SolverBenchmark<Generator>{Generator{comm}}, exec,
-                   get_mpi_timer(exec, comm, FLAGS_gpu_timer), test_cases);
+    auto results = run_test_cases(
+        SolverBenchmark{Generator{comm}, do_print}, exec,
+        get_mpi_timer(exec, comm, FLAGS_gpu_timer), schema, test_cases);
 
     if (do_print) {
-        std::cout << std::setw(4) << test_cases << std::endl;
+        std::cout << std::setw(4) << results << std::endl;
     }
 }
