@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,6 +31,16 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, dense_b);
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+typename IdentityFactory<ValueType>::parameters_type
+IdentityFactory<ValueType>::parse(const config::pnode& config,
+                                  const config::registry& context,
+                                  const config::type_descriptor& td_for_child)
+{
+    return {};
 }
 
 
