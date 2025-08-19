@@ -8,6 +8,8 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 
+#include "ginkgo/core/config/config.hpp"
+
 
 namespace gko {
 namespace matrix {
@@ -94,6 +96,27 @@ class IdentityFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
 
+    struct parameters_type
+        : enable_parameters_type<parameters_type, IdentityFactory> {};
+
+    /**
+     * Create the parameters from the property_tree.
+     * Because this is directly tied to the specific type, the value/index type
+     * settings within config are ignored and type_descriptor is only used
+     * for children configs.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children configs. The
+     *                      default uses the value type of this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<ValueType>());
+
     /**
      * Creates a new Identity factory.
      *
@@ -109,10 +132,14 @@ public:
     }
 
 protected:
+    friend class enable_parameters_type<parameters_type, IdentityFactory>;
+
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
+    explicit IdentityFactory(std::shared_ptr<const Executor> exec,
+                             const parameters_type& params = {})
+        : LinOpFactory(exec)
     {}
 };
 
