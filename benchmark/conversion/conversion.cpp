@@ -153,9 +153,9 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    auto results =
-        run_test_cases(ConversionBenchmark{}, exec,
-                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
+    auto results = run_test_cases(ConversionBenchmark{}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), schema,
+                                  std::move(test_cases));
 
     std::cout << std::setw(4) << results << std::endl;
 }

@@ -159,7 +159,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     }
     std::string input_str(FLAGS_input);
     if (!input_str.empty()) {
-        if (input_str.back() == ']') {
+        if (input_str.back() == ']' || input_str.back() == '}') {
             input_stream = std::make_unique<std::stringstream>(input_str);
         } else {
             input_stream = std::make_unique<std::ifstream>(input_str);

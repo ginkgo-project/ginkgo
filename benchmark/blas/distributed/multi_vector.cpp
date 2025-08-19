@@ -112,7 +112,7 @@ BLAS algorithms:
 
     auto results = run_test_cases(BlasBenchmark{operation_map, do_print}, exec,
                                   get_mpi_timer(exec, comm, FLAGS_gpu_timer),
-                                  schema, test_cases);
+                                  schema, std::move(test_cases));
 
     if (do_print) {
         std::cout << std::setw(4) << results << std::endl;

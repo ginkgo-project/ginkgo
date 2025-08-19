@@ -39,9 +39,9 @@ int main(int argc, char* argv[])
     SpmvBenchmark benchmark{Generator{}};
     auto timer = get_timer(exec, FLAGS_gpu_timer);
 
-    auto results =
-        run_test_cases(SpmvBenchmark{Generator{}}, exec,
-                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
+    auto results = run_test_cases(SpmvBenchmark{Generator{}}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), schema,
+                                  std::move(test_cases));
 
     std::cout << std::setw(4) << results << std::endl;
 }

@@ -96,9 +96,10 @@ int main(int argc, char* argv[])
     std::string json_input = broadcast_json_input(get_input_stream(), comm);
     auto test_cases = json::parse(json_input);
 
-    auto results = run_test_cases(
-        SolverBenchmark{Generator{comm}, do_print}, exec,
-        get_mpi_timer(exec, comm, FLAGS_gpu_timer), schema, test_cases);
+    auto results =
+        run_test_cases(SolverBenchmark{Generator{comm}, do_print}, exec,
+                       get_mpi_timer(exec, comm, FLAGS_gpu_timer), schema,
+                       std::move(test_cases));
 
     if (do_print) {
         std::cout << std::setw(4) << results << std::endl;

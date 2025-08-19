@@ -171,8 +171,9 @@ int main(int argc, char* argv[])
     auto test_cases = json::parse(get_input_stream());
     auto exec = gko::ReferenceExecutor::create();
 
-    auto results = run_test_cases(MatrixStatistics{}, exec,
-                                  get_timer(exec, false), schema, test_cases);
+    auto results =
+        run_test_cases(MatrixStatistics{}, exec, get_timer(exec, false), schema,
+                       std::move(test_cases));
 
     std::cout << std::setw(4) << results << std::endl;
 }
