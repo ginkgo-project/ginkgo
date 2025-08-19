@@ -7,8 +7,6 @@
 #include <map>
 #include <unordered_set>
 
-#include <gflags/gflags.h>
-
 #include "core/base/array_access.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -31,24 +29,6 @@ GKO_REGISTER_OPERATION(benchmark_lookup, csr::benchmark_lookup);
 
 
 std::default_random_engine& get_engine();
-
-
-DEFINE_int32(
-    spgeam_swap_distance, 100,
-    "Maximum distance for row swaps to avoid rows with disjoint column ranges");
-
-DEFINE_string(spgemm_mode, "normal",
-              R"(Which matrix B should be used to compute A * B: normal,
-transposed, sparse, dense
-normal: B = A for A square, A^T otherwise\ntransposed: B = A^T
-sparse: B is a sparse matrix with dimensions of A^T with uniformly
-        random values, at most -spgemm_rowlength non-zeros per row
-dense: B is a 'dense' sparse matrix with -spgemm_rowlength columns
-       and non-zeros per row)");
-
-DEFINE_int32(spgemm_rowlength, 10,
-             "The length of rows in randomly generated matrices B. Only "
-             "relevant for spgemm_mode = <sparse|dense>");
 
 
 using Mtx = gko::matrix::Csr<etype, itype>;
@@ -89,11 +69,11 @@ std::pair<bool, double> validate_result(gko::ptr_param<const Mtx> correct_mtx,
 
 class SpgemmOperation : public BenchmarkOperation {
 public:
-    explicit SpgemmOperation(const Mtx* mtx) : mtx_{mtx}
+    explicit SpgemmOperation(const json& config, const Mtx* mtx) : mtx_{mtx}
     {
         auto exec = mtx_->get_executor();
         const auto size = mtx_->get_size();
-        std::string mode_str{FLAGS_spgemm_mode};
+        auto mode_str = config["mode"];
         if (mode_str == "normal") {
             // normal for square matrix, transposed for rectangular
             if (size[0] == size[1]) {
@@ -111,7 +91,7 @@ public:
                 -1.0, 1.0);
             gko::matrix_data<etype, itype> data{size, {}};
             const auto local_rowlength =
-                std::min<int>(FLAGS_spgemm_rowlength, size2[1]);
+                std::min<int>(config["rowlength"].get<int>(), size2[1]);
             data.nonzeros.reserve(size2[0] * local_rowlength);
             // randomly permute column indices
             std::vector<itype> cols(size2[1]);
@@ -129,7 +109,8 @@ public:
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else if (mode_str == "dense") {
-            const auto size2 = gko::dim<2>(size[1], FLAGS_spgemm_rowlength);
+            const auto size2 =
+                gko::dim<2>(size[1], config["rowlength"].get<gko::size_type>());
             std::uniform_real_distribution<gko::remove_complex<etype>> dist(
                 -1.0, 1.0);
             gko::matrix_data<etype, itype> data{size2, dist, get_engine()};
@@ -137,8 +118,9 @@ public:
             mtx2_ = Mtx::create(exec, size2);
             mtx2_->read(data);
         } else {
-            throw gko::Error{__FILE__, __LINE__,
-                             "Unsupported SpGEMM mode " + mode_str};
+            throw gko::Error{
+                __FILE__, __LINE__,
+                "Unsupported SpGEMM mode " + config["mode"].get<std::string>()};
         }
     }
 
@@ -197,7 +179,7 @@ private:
 
 class SpgeamOperation : public BenchmarkOperation {
 public:
-    explicit SpgeamOperation(const Mtx* mtx) : mtx_{mtx}
+    explicit SpgeamOperation(const json& config, const Mtx* mtx) : mtx_{mtx}
     {
         auto exec = mtx_->get_executor();
         const auto size = mtx_->get_size();
@@ -207,7 +189,8 @@ public:
         std::iota(permutation, permutation + size[0], 0);
         std::uniform_int_distribution<itype> start_dist(0, size[0] - 1);
         std::uniform_int_distribution<itype> delta_dist(
-            -FLAGS_spgeam_swap_distance, FLAGS_spgeam_swap_distance);
+            -config["swap_distance"].get<itype>(),
+            config["swap_distance"].get<itype>());
         for (itype i = 0; i < size[0] / 2; ++i) {
             auto a = start_dist(get_engine());
             auto b = a + delta_dist(get_engine());
@@ -259,7 +242,8 @@ private:
 
 class TransposeOperation : public BenchmarkOperation {
 public:
-    explicit TransposeOperation(const Mtx* mtx) : mtx_{mtx} {}
+    explicit TransposeOperation(const json& config, const Mtx* mtx) : mtx_{mtx}
+    {}
 
     std::pair<bool, double> validate() const override
     {
@@ -290,7 +274,7 @@ private:
 
 class SortOperation : public BenchmarkOperation {
 public:
-    explicit SortOperation(const Mtx* mtx)
+    explicit SortOperation(const json& config, const Mtx* mtx)
     {
         mtx_shuffled_ = mtx->clone();
         gko::test::unsort_matrix(mtx_shuffled_, get_engine());
@@ -331,7 +315,9 @@ private:
 
 class IsSortedOperation : public BenchmarkOperation {
 public:
-    explicit IsSortedOperation(const Mtx* mtx) : mtx_{mtx}, result_{} {}
+    explicit IsSortedOperation(const json& config, const Mtx* mtx)
+        : mtx_{mtx}, result_{}
+    {}
 
     std::pair<bool, double> validate() const override
     {
@@ -357,23 +343,14 @@ private:
 };
 
 
-DEFINE_bool(lookup_no_full, false,
-            "Disable lookup specialization for rows with contiguous non-zero "
-            "range in lookup and generate_lookup benchmark");
-
-DEFINE_bool(lookup_no_bitmap, false,
-            "Disable lookup specialization using a bitmap in lookup and "
-            "generate_lookup benchmark");
-
-
-gko::matrix::csr::sparsity_type get_allowed_sparsity()
+gko::matrix::csr::sparsity_type get_allowed_sparsity(const json& config)
 {
     auto allowed_sparsity = gko::matrix::csr::sparsity_type::hash;
-    if (!FLAGS_lookup_no_full) {
+    if (!config["no_full"].get<bool>()) {
         allowed_sparsity =
             allowed_sparsity | gko::matrix::csr::sparsity_type::full;
     }
-    if (!FLAGS_lookup_no_bitmap) {
+    if (!config["no_bitmap"].get<bool>()) {
         allowed_sparsity =
             allowed_sparsity | gko::matrix::csr::sparsity_type::bitmap;
     }
@@ -383,9 +360,9 @@ gko::matrix::csr::sparsity_type get_allowed_sparsity()
 
 class GenerateLookupOperation : public BenchmarkOperation {
 public:
-    explicit GenerateLookupOperation(const Mtx* mtx)
+    explicit GenerateLookupOperation(const json& config, const Mtx* mtx)
         : mtx_{mtx},
-          allowed_sparsity_{get_allowed_sparsity()},
+          allowed_sparsity_{get_allowed_sparsity(config)},
           storage_offsets_{mtx->get_executor(), mtx->get_size()[0] + 1},
           row_descs_{mtx->get_executor(), mtx->get_size()[0]},
           storage_{mtx->get_executor()}
@@ -459,21 +436,17 @@ private:
 };
 
 
-DEFINE_int32(lookup_sample_size, 10,
-             "Number of elements to look up from each row in lookup benchmark");
-
-
 class LookupOperation : public BenchmarkOperation {
 public:
-    explicit LookupOperation(const Mtx* mtx)
+    explicit LookupOperation(const json& config, const Mtx* mtx)
         : mtx_{mtx},
-          allowed_sparsity_{get_allowed_sparsity()},
+          allowed_sparsity_{get_allowed_sparsity(config)},
           storage_offsets_{mtx->get_executor(), mtx->get_size()[0] + 1},
           row_descs_{mtx->get_executor(), mtx->get_size()[0]},
           storage_{mtx->get_executor()},
           results_{mtx->get_executor()}
     {
-        sample_size_ = 10;
+        sample_size_ = config["sample_size"].get<itype>();
         const auto exec = mtx_->get_executor();
         const auto num_rows = mtx_->get_size()[0];
         results_.resize_and_reset(num_rows * sample_size_);
@@ -556,7 +529,9 @@ bool validate_symbolic_factorization(const Mtx* input, const Mtx* factors)
 
 class SymbolicLuOperation : public BenchmarkOperation {
 public:
-    explicit SymbolicLuOperation(const Mtx* mtx) : mtx_{mtx}, result_{} {}
+    explicit SymbolicLuOperation(const json& config, const Mtx* mtx)
+        : mtx_{mtx}, result_{}
+    {}
 
     std::pair<bool, double> validate() const override
     {
@@ -583,7 +558,8 @@ private:
 
 class SymbolicLuNearSymmOperation : public BenchmarkOperation {
 public:
-    explicit SymbolicLuNearSymmOperation(const Mtx* mtx) : mtx_{mtx}, result_{}
+    explicit SymbolicLuNearSymmOperation(const json& config, const Mtx* mtx)
+        : mtx_{mtx}, result_{}
     {}
 
     std::pair<bool, double> validate() const override
@@ -672,7 +648,7 @@ class ReorderRcmOperation : public BenchmarkOperation {
     using permute_type = gko::matrix::Permutation<itype>;
 
 public:
-    explicit ReorderRcmOperation(const Mtx* mtx)
+    explicit ReorderRcmOperation(const json& config, const Mtx* mtx)
         : mtx_{mtx->clone()},
           factory_{reorder_type::build().on(mtx->get_executor())}
     {}
@@ -707,7 +683,8 @@ class ReorderNestedDissectionOperation : public BenchmarkOperation {
     using reorder_type = gko::matrix::Permutation<itype>;
 
 public:
-    explicit ReorderNestedDissectionOperation(const Mtx* mtx)
+    explicit ReorderNestedDissectionOperation(const json& config,
+                                              const Mtx* mtx)
         : mtx_{mtx->clone()},
           factory_{factory_type::build().on(mtx->get_executor())}
     {}
@@ -741,7 +718,7 @@ class ReorderApproxMinDegOperation : public BenchmarkOperation {
     using reorder_type = gko::matrix::Permutation<itype>;
 
 public:
-    explicit ReorderApproxMinDegOperation(const Mtx* mtx)
+    explicit ReorderApproxMinDegOperation(const json& config, const Mtx* mtx)
         : mtx_{mtx->clone()},
           factory_{factory_type::build().on(mtx->get_executor())}
     {}
@@ -767,77 +744,87 @@ private:
 };
 
 
-const std::map<std::string,
-               std::function<std::unique_ptr<BenchmarkOperation>(const Mtx*)>>
+const std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
+                                const json&, const Mtx*)>>
     operation_map{
         {"spgemm",
-         [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<SpgemmOperation>(config, mtx);
+         }},
         {"spgeam",
-         [](const Mtx* mtx) { return std::make_unique<SpgeamOperation>(mtx); }},
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<SpgeamOperation>(config, mtx);
+         }},
         {"transpose",
-         [](const Mtx* mtx) {
-             return std::make_unique<TransposeOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<TransposeOperation>(config, mtx);
          }},
         {"sort",
-         [](const Mtx* mtx) { return std::make_unique<SortOperation>(mtx); }},
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<SortOperation>(config, mtx);
+         }},
         {"is_sorted",
-         [](const Mtx* mtx) {
-             return std::make_unique<IsSortedOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<IsSortedOperation>(config, mtx);
          }},
         {"generate_lookup",
-         [](const Mtx* mtx) {
-             return std::make_unique<GenerateLookupOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<GenerateLookupOperation>(config, mtx);
          }},
         {"lookup",
-         [](const Mtx* mtx) { return std::make_unique<LookupOperation>(mtx); }},
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<LookupOperation>(config, mtx);
+         }},
         {"symbolic_lu",
-         [](const Mtx* mtx) {
-             return std::make_unique<SymbolicLuOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<SymbolicLuOperation>(config, mtx);
          }},
         {"symbolic_lu_near_symm",
-         [](const Mtx* mtx) {
-             return std::make_unique<SymbolicLuNearSymmOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<SymbolicLuNearSymmOperation>(config, mtx);
          }},
         {"symbolic_cholesky_device",
-         [](const Mtx* mtx) {
+         [](const json& config, const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, true,
                                                                 false);
          }},
         {"symbolic_cholesky_device_symmetric",
-         [](const Mtx* mtx) {
+         [](const json& config, const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, true,
                                                                 true);
          }},
         {"symbolic_cholesky",
-         [](const Mtx* mtx) {
+         [](const json& config, const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false,
                                                                 false);
          }},
         {"symbolic_cholesky_symmetric",
-         [](const Mtx* mtx) {
+         [](const json& config, const Mtx* mtx) {
              return std::make_unique<SymbolicCholeskyOperation>(mtx, false,
                                                                 true);
          }},
         {"reorder_rcm",
-         [](const Mtx* mtx) {
-             return std::make_unique<ReorderRcmOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<ReorderRcmOperation>(config, mtx);
          }},
         {"reorder_amd",
-         [](const Mtx* mtx) {
-             return std::make_unique<ReorderApproxMinDegOperation>(mtx);
+         [](const json& config, const Mtx* mtx) {
+             return std::make_unique<ReorderApproxMinDegOperation>(config, mtx);
          }},
         {"reorder_nd",
-         [](const Mtx* mtx) -> std::unique_ptr<BenchmarkOperation> {
+         [](const json& config,
+            const Mtx* mtx) -> std::unique_ptr<BenchmarkOperation> {
 #if GKO_HAVE_METIS
-             return std::make_unique<ReorderNestedDissectionOperation>(mtx);
+             return std::make_unique<ReorderNestedDissectionOperation>(config,
+                                                                       mtx);
 #else
              GKO_NOT_COMPILED(METIS);
 #endif
          }}};
 
 
-std::unique_ptr<BenchmarkOperation> get_operation(std::string name,
+std::unique_ptr<BenchmarkOperation> get_operation(const json& config,
                                                   const Mtx* matrix)
 {
-    return operation_map.at(name)(matrix);
+    return operation_map.at(config["name"])(config, matrix);
 }

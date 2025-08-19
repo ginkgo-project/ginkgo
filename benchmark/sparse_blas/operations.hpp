@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,5 +54,5 @@ public:
 using Mtx = gko::matrix::Csr<etype, itype>;
 
 
-std::unique_ptr<BenchmarkOperation> get_operation(std::string name,
+std::unique_ptr<BenchmarkOperation> get_operation(const json& config,
                                                   const Mtx* matrix);

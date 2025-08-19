@@ -7,8 +7,11 @@
             }
         },
         "reorder": "amd",
-        "sparse_blas": {
-            "symbolic_cholesky": {
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725,
+        "sparse_blas": [
+            {
                 "time": 1.0,
                 "flops": 1.0,
                 "bandwidth": 1.0,
@@ -25,12 +28,12 @@
                     "csr::sort_by_column_index": 1.0,
                     "overhead": 1.0
                 },
-                "factor_nonzeros": 1324
-            },
-            "completed": true
-        },
-        "rows": 125,
-        "cols": 125,
-        "nonzeros": 725
+                "factor_nonzeros": 1324,
+                "completed": true,
+                "operation": {
+                    "name": "symbolic_cholesky"
+                }
+            }
+        ]
     }
 ]

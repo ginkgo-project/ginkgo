@@ -12,6 +12,8 @@
 #include <random>
 #include <typeinfo>
 
+#include <gflags/gflags.h>
+
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/sparse_blas/operations.hpp"
@@ -23,17 +25,6 @@
 
 using mat_data = gko::matrix_data<etype, itype>;
 
-const char* operations_string =
-    "Comma-separated list of operations to be benchmarked. Can be "
-    "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, "
-    "lookup, symbolic_lu, symbolic_lu_near_symm, symbolic_cholesky, "
-    "symbolic_cholesky_symmetric, reorder_rcm, "
-#if GKO_HAVE_METIS
-    "reorder_nd, "
-#endif
-    "reorder_amd";
-
-DEFINE_string(operations, "spgemm,spgeam,transpose", operations_string);
 
 DEFINE_bool(validate, false,
             "Check for correct sparsity pattern and compute the L2 norm "
@@ -45,15 +36,20 @@ using Generator = DefaultSystemGenerator<>;
 
 struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
     std::string name;
-    std::vector<std::string> operations;
 
-    SparseBlasBenchmark()
-        : name{"sparse_blas"}, operations{split(FLAGS_operations)}
-    {}
+    SparseBlasBenchmark() : name{"sparse_blas"} {}
 
     const std::string& get_name() const override { return name; }
 
     bool should_print() const override { return true; }
+
+    void normalize_json(json& test_case) const override
+    {
+        if (test_case["operation"].is_string()) {
+            test_case["operation"] =
+                json::object({{"name", test_case["operation"]}});
+        }
+    }
 
     std::unique_ptr<Mtx> setup(std::shared_ptr<gko::Executor> exec,
                                json& test_case) const override
@@ -75,58 +71,73 @@ struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
              annotate_functor annotate, std::unique_ptr<Mtx>& mtx,
              const json& operation_case, json& result_case) const override
     {
-        for (const auto& operation_name : operations) {
-            result_case[operation_name] = json::object();
-            auto& op_result_case = result_case[operation_name];
+        auto op = get_operation(operation_case["operation"], mtx.get());
 
-            auto op = get_operation(operation_name, mtx.get());
+        IterationControl ic(timer);
 
-            IterationControl ic(timer);
-
-            // warm run
-            {
-                auto range = annotate("warmup", FLAGS_warmup > 0);
-                for (auto _ : ic.warmup_run()) {
-                    op->prepare();
-                    exec->synchronize();
-                    op->run();
-                    exec->synchronize();
-                }
+        // warm run
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                op->prepare();
+                exec->synchronize();
+                op->run();
+                exec->synchronize();
             }
+        }
 
-            // timed run
-            op->prepare();
-            for (auto _ : ic.run()) {
-                auto range = annotate("repetition");
+        // timed run
+        op->prepare();
+        for (auto _ : ic.run()) {
+            auto range = annotate("repetition");
+            op->run();
+        }
+        const auto runtime = ic.compute_time(FLAGS_timer_method);
+        const auto flops = static_cast<double>(op->get_flops());
+        const auto mem = static_cast<double>(op->get_memory());
+        const auto repetitions = ic.get_num_repetitions();
+        result_case["time"] = runtime;
+        result_case["flops"] = flops / runtime;
+        result_case["bandwidth"] = mem / runtime;
+        result_case["repetitions"] = repetitions;
+
+        if (FLAGS_validate) {
+            auto validation_result = op->validate();
+            result_case["correct"] = validation_result.first;
+            result_case["error"] = validation_result.second;
+        }
+        if (FLAGS_detailed) {
+            result_case["components"] = json::object();
+            auto gen_logger = create_operations_logger(
+                FLAGS_gpu_timer, FLAGS_nested_names, exec,
+                result_case["components"], repetitions);
+            exec->add_logger(gen_logger);
+            for (unsigned i = 0; i < repetitions; i++) {
                 op->run();
             }
-            const auto runtime = ic.compute_time(FLAGS_timer_method);
-            const auto flops = static_cast<double>(op->get_flops());
-            const auto mem = static_cast<double>(op->get_memory());
-            const auto repetitions = ic.get_num_repetitions();
-            op_result_case["time"] = runtime;
-            op_result_case["flops"] = flops / runtime;
-            op_result_case["bandwidth"] = mem / runtime;
-            op_result_case["repetitions"] = repetitions;
-
-            if (FLAGS_validate) {
-                auto validation_result = op->validate();
-                op_result_case["correct"] = validation_result.first;
-                op_result_case["error"] = validation_result.second;
-            }
-            if (FLAGS_detailed) {
-                op_result_case["components"] = json::object();
-                auto gen_logger = create_operations_logger(
-                    FLAGS_gpu_timer, FLAGS_nested_names, exec,
-                    op_result_case["components"], repetitions);
-                exec->add_logger(gen_logger);
-                for (unsigned i = 0; i < repetitions; i++) {
-                    op->run();
-                }
-                exec->remove_logger(gen_logger);
-            }
-            op->write_stats(op_result_case);
+            exec->remove_logger(gen_logger);
         }
+        op->write_stats(result_case);
+    }
+
+    void postprocess(json& test_cases) const override
+    {
+        std::map<json, json> same_operators;
+        for (const auto& test_case : test_cases) {
+            auto case_operator = test_case;
+            case_operator.erase("operation");
+            case_operator.erase(name);
+            same_operators.try_emplace(case_operator, json::array());
+            same_operators[case_operator].push_back(test_case[name]);
+            same_operators[case_operator].back()["operation"] =
+                test_case["operation"];
+        }
+        auto merged_cases = json::array();
+        for (auto& [case_operator, results] : same_operators) {
+            merged_cases.push_back(case_operator);
+            merged_cases.back()[name] = results;
+        }
+        test_cases = std::move(merged_cases);
     }
 };
 
@@ -146,8 +157,7 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information, exec);
+    print_general_information("", exec);
 
     auto results =
         run_test_cases(SparseBlasBenchmark{}, exec,
