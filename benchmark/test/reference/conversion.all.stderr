@@ -1,7 +1,43 @@
 Running on ReferenceExecutor
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-The formats are coo,csr,ell,sellp,hybrid
+
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}}}
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"coo"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"coo"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"ell","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"sellp","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"hybrid","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"ell","from":"ell"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"ell"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"sellp","from":"sellp"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"sellp"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"hybrid","from":"hybrid"}
+Matrix is of size (125, 125), 725
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"hybrid"}
 Matrix is of size (125, 125), 725

@@ -6,27 +6,38 @@
                 "size": 100
             }
         },
-        "conversion": {
-            "coo-read": {
-                "time": 1.0,
-                "repetitions": 1
-            },
-            "coo-csr": {
-                "time": 1.0,
-                "repetitions": 1
-            },
-            "csr-read": {
-                "time": 1.0,
-                "repetitions": 1
-            },
-            "csr-coo": {
-                "time": 1.0,
-                "repetitions": 1
-            },
-            "completed": true
-        },
         "rows": 125,
         "cols": 125,
-        "nonzeros": 725
+        "nonzeros": 725,
+        "conversion": [
+            {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true,
+                "to": "coo",
+                "from": "coo"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true,
+                "to": "csr",
+                "from": "coo"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true,
+                "to": "csr",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 1,
+                "completed": true,
+                "to": "coo",
+                "from": "csr"
+            }
+        ]
     }
 ]

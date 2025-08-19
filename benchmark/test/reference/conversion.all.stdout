@@ -6,63 +6,101 @@
                 "size": 100
             }
         },
-        "conversion": {
-            "coo-read": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "coo-csr": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "csr-read": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "csr-coo": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "csr-ell": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "csr-sellp": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "csr-hybrid": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "ell-read": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "ell-csr": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "sellp-read": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "sellp-csr": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "hybrid-read": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "hybrid-csr": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "completed": true
-        },
         "rows": 125,
         "cols": 125,
-        "nonzeros": 725
+        "nonzeros": 725,
+        "conversion": [
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "coo",
+                "from": "coo"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "coo"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "coo",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "ell",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "sellp",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "hybrid",
+                "from": "csr"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "ell",
+                "from": "ell"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "ell"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "sellp",
+                "from": "sellp"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "sellp"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "hybrid",
+                "from": "hybrid"
+            },
+            {
+                "time": 1.0,
+                "repetitions": 10,
+                "completed": true,
+                "to": "csr",
+                "from": "hybrid"
+            }
+        ]
     }
 ]
