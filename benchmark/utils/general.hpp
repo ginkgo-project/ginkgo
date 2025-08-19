@@ -30,7 +30,9 @@
 #include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
+#include "overhead_linop.hpp"
 
 
 // Global command-line arguments
@@ -562,6 +564,23 @@ std::unique_ptr<VectorType> create_normalized_manufactured_rhs(
     system_matrix->apply(scaled_solution, rhs);
 
     return rhs;
+}
+
+
+inline gko::config::registry create_default_registry()
+{
+    return {{{"overhead",
+              [](const gko::config::pnode& config,
+                 const gko::config::registry& context,
+                 gko::config::type_descriptor td_for_child)
+                  -> gko::deferred_factory_parameter<gko::LinOpFactory> {
+                  auto params = gko::Overhead<etype>::build();
+                  if (auto& obj = config.get("criteria")) {
+                      params.with_criteria(gko::config::parse_or_get_criteria(
+                          obj, context, td_for_child));
+                  }
+                  return params;
+              }}}};
 }
 
 
