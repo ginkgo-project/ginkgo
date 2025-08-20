@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -150,6 +151,58 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                          false);
 
     exec->remove_logger(logger);
+    ASSERT_EQ(output, expected);
+}
+
+
+TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
+{
+    // clang-format: off
+    std::vector<std::string> expected{
+        "begin:apply(obj*Dense<float>=Dense<complex<double>>)",
+        "begin:op",
+        "end:op",
+        "end:apply(obj*Dense<float>=Dense<complex<double>>)",
+        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<"
+        "float>*Dense<complex<double>>)",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<"
+        "float>*Dense<complex<double>>)",
+        "begin:apply(obj*linop=Dense<complex<double>>)",
+        "begin:op",
+        "end:op",
+        "end:apply(obj*linop=Dense<complex<double>>)",
+        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+linop*"
+        "linop)",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+linop*"
+        "linop)"};
+    // clang-format: on
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    logger->set_apply_precision_check(true);
+    auto linop = gko::share(DummyLinOp::create(exec));
+    auto alpha = gko::share(gko::matrix::Dense<std::complex<double>>::create(
+        exec, gko::dim<2>{1, 1}));
+    auto beta =
+        gko::share(gko::matrix::Dense<float>::create(exec, gko::dim<2>{1, 1}));
+    auto invec = gko::share(gko::matrix::Dense<float>::create(exec));
+    auto outvec =
+        gko::share(gko::matrix::Dense<std::complex<double>>::create(exec));
+    auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
+    logger->set_object_name(linop, "obj");
+    exec->add_logger(logger);
+
+    linop->apply(invec, outvec);
+    linop->apply(alpha, invec, beta, outvec);
+    linop->apply(linop, outvec);
+    linop->apply(alpha, invec, scalar, linop);
+
     ASSERT_EQ(output, expected);
 }
 
