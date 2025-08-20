@@ -1,23 +1,72 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/log/profiler_hook.hpp"
 
+#include <complex>
 #include <memory>
 #include <mutex>
 #include <sstream>
 
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
+#include "core/base/dispatch_helper.hpp"
+#include "core/config/type_descriptor_helper.hpp"
 #include "core/log/profiler_hook.hpp"
-
 
 namespace gko {
 namespace log {
+namespace {
+
+
+std::string check_vector_type(const LinOp* linop)
+{
+#define GKO_CHECK_TYPE(_class, _type)                                        \
+    if (dynamic_cast<const _class<_type>*>(linop)) {                         \
+        return #_class "<" #_type ">";                                       \
+    } else if (dynamic_cast<const _class<std::complex<_type>>*>(linop)) {    \
+        return #_class "<complex<" #_type ">>";                              \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+    using gko::matrix::Dense;
+    GKO_CHECK_TYPE(Dense, double);
+    GKO_CHECK_TYPE(Dense, float);
+#if GINKGO_ENABLE_HALF
+    GKO_CHECK_TYPE(Dense, half);
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    GKO_CHECK_TYPE(Dense, bfloat16);
+#endif
+
+#if GINKGO_BUILD_MPI
+    using gko::experimental::distributed::Vector;
+    GKO_CHECK_TYPE(Vector, double);
+    GKO_CHECK_TYPE(Vector, float);
+#if GINKGO_ENABLE_HALF
+    GKO_CHECK_TYPE(Vector, half);
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    GKO_CHECK_TYPE(Vector, bfloat16);
+#endif
+#endif
+
+#undef GKO_CHECK_TYPE
+
+    return "linop";
+}
+
+
+}  // namespace
 
 
 void ProfilerHook::on_allocation_started(const gko::Executor* exec,
@@ -139,7 +188,11 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
                                           const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << ")";
+    ss << "apply(" << stringify_object(A);
+    if (log_apply_precision_) {
+        ss << "*" << check_vector_type(b) << "=" << check_vector_type(x);
+    }
+    ss << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -151,7 +204,11 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
                                             const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << ")";
+    ss << "apply(" << stringify_object(A);
+    if (log_apply_precision_) {
+        ss << "*" << check_vector_type(b) << "=" << check_vector_type(x);
+    }
+    ss << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -166,7 +223,15 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
                                                    const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << stringify_object(A) << ")";
+    ss << "advanced_apply(";
+    if (log_apply_precision_) {
+        ss << check_vector_type(alpha) << "*" << stringify_object(A) << "*"
+           << check_vector_type(b) << "+" << check_vector_type(beta) << "*"
+           << check_vector_type(x);
+    } else {
+        ss << stringify_object(A);
+    }
+    ss << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -181,7 +246,15 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
                                                      const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << stringify_object(A) << ")";
+    ss << "advanced_apply(";
+    if (log_apply_precision_) {
+        ss << check_vector_type(alpha) << "*" << stringify_object(A) << "*"
+           << check_vector_type(b) << "+" << check_vector_type(beta) << "*"
+           << check_vector_type(x);
+    } else {
+        ss << stringify_object(A);
+    }
+    ss << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -303,6 +376,12 @@ void ProfilerHook::set_synchronization(bool synchronize)
 }
 
 
+void ProfilerHook::set_apply_precision_check(bool check)
+{
+    log_apply_precision_ = check;
+}
+
+
 void ProfilerHook::maybe_synchronize(const Executor* exec) const
 {
     if (synchronize_) {
@@ -328,7 +407,10 @@ std::string ProfilerHook::stringify_object(const PolymorphicObject* obj) const
 
 
 ProfilerHook::ProfilerHook(hook_function begin, hook_function end)
-    : synchronize_{false}, begin_hook_{begin}, end_hook_{end}
+    : synchronize_{false},
+      begin_hook_{begin},
+      end_hook_{end},
+      log_apply_precision_{false}
 {}
 
 
