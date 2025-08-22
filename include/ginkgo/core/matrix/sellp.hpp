@@ -318,6 +318,12 @@ public:
     const_device_view get_const_device_view() const;
 
     /**
+     * Throws gko::InvalidData exception if the data inside the arrays is
+     * invalid.
+     */
+    void validate_data() const override;
+
+    /**
      * Creates an uninitialized Sellp matrix of the specified size.
      * (The slice_size and stride_factor are set to the default values.)
      *
