@@ -96,59 +96,6 @@ bool is_within_bounds(const gko::array<IndexType>& col_idxs,
 }
 
 
-template <typename SizeType>
-bool sellp_has_consistent_slice_sets(const gko::array<SizeType>& slice_sets,
-                                     const gko::array<SizeType>& slice_lengths,
-                                     const size_type slice_size)
-{
-    const auto host_slice_sets = slice_sets.copy_to_host();
-    const auto host_slice_lengths = slice_lengths.copy_to_host();
-    const auto num_slices = host_slice_sets.size() - 1;
-    if (num_slices == 0) {
-        return true;
-    }
-    if (host_slice_sets.size() != host_slice_lengths.size() + 1) {
-        return false;
-    }
-    for (size_t i = 0; i < num_slices; ++i) {
-        if (host_slice_sets[i + 1] !=
-            host_slice_sets[i] + host_slice_lengths[i] * slice_size) {
-            return false;
-        }
-    }
-    return true;
-}
-
-template <typename IndexType, typename SizeType>
-bool sellp_is_within_bounds(const gko::array<IndexType>& col_idxs,
-                            const gko::array<SizeType>& slice_sets,
-                            const gko::array<SizeType>& slice_lengths,
-                            const size_type slice_size)
-{
-    const auto host_col_idxs = col_idxs.copy_to_host();
-    const auto host_slice_sets = slice_sets.copy_to_host();
-    const auto host_slice_lengths = slice_lengths.copy_to_host();
-    const auto num_slices = host_slice_sets.size() - 1;
-
-    for (size_t i = 0; i < num_slices; ++i) {
-        const auto offset = host_slice_sets[i];
-        const auto length = host_slice_lengths[i];
-        for (size_t j = 0; j < length; ++j) {
-            bool padding = false;
-            for (size_t k = 0; k < slice_size; ++k) {
-                const auto idx = host_col_idxs[offset + j * slice_size + k];
-                if (idx == -1) {
-                    padding = true;
-                } else if (padding) {
-                    return false;
-                }
-            }
-        }
-    }
-    return true;
-}
-
-
 template <typename ValueType>
 bool is_finite(const gko::array<ValueType>& values)
 {

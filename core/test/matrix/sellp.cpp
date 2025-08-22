@@ -266,37 +266,3 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixAssemblyDataWithSliceSizeAndStrideFactor)
     this->assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
         m.get());
 }
-
-
-// Tests are bugged, always passing
-TYPED_TEST(Sellp, RecognizesInfiniteValue)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec);
-    m->read(
-        {{2, 3}, {{0, 0, INFINITY}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
-
-    ASSERT_THROW(m->validate_data(), gko::InvalidData);
-}
-
-TYPED_TEST(Sellp, RecognizesUnorderedSets)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
-
-    // m->get_col_idxs()[0] = 1;
-
-    ASSERT_THROW(m->validate_data(), gko::InvalidData);
-}
-
-TYPED_TEST(Sellp, RecognizesUnboundedColumnIndexes)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
-
-    // m->get_col_idxs()[0] = 1;
-
-    ASSERT_THROW(m->validate_data(), gko::InvalidData);
-}
