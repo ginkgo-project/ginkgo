@@ -41,7 +41,17 @@ template <typename IndexType>
 bool is_sorted(const gko::array<IndexType>& row_ptrs)
 {
     const auto host_row_ptrs = row_ptrs.copy_to_host();
-    return std::is_sorted(host_row_ptrs.begin(), host_row_ptrs.end());
+    for (size_t i = 0; i + 1 < host_row_ptrs.size(); ++i) {
+        if (host_row_ptrs[i] > host_row_ptrs[i + 1]) {
+            std::printf(
+                "row_ptrs not sorted at row %zu : row_ptrs[%zu] = %lld > "
+                "row_ptrs[%zu] = %lld\n",
+                i, i, static_cast<long long>(host_row_ptrs[i]), i + 1,
+                static_cast<long long>(host_row_ptrs[i + 1]));
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -50,10 +60,39 @@ bool is_within_bounds(const gko::array<IndexType>& col_idxs,
                       const IndexType upper_bound)
 {
     const auto host_col_idxs = col_idxs.copy_to_host();
-    const auto [min, max] =
-        std::minmax_element(host_col_idxs.begin(), host_col_idxs.end());
+    auto min_pos = 0;
+    auto max_pos = 0;
 
-    return *min >= 0 && *max < upper_bound;
+    for (size_t i = 1; i < host_col_idxs.size(); ++i) {
+        if (host_col_idxs[i] < host_col_idxs[min_pos]) {
+            min_pos = i;
+        }
+        if (host_col_idxs[i] > host_col_idxs[max_pos]) {
+            max_pos = i;
+        }
+    }
+    if (host_col_idxs[min_pos] < 0) {
+        std::printf("position %d is out of bounds with negative value %lld\n",
+                    min_pos, static_cast<long long>(host_col_idxs[min_pos]));
+        return false;
+    }
+    if (host_col_idxs[max_pos] >= upper_bound) {
+        std::printf(
+            "position %d is out of bounds with value %lld larger than upper "
+            "bound %lld\n",
+            max_pos, static_cast<long long>(host_col_idxs[max_pos]),
+            static_cast<long long>(upper_bound));
+        return false;
+    } else if (host_col_idxs[max_pos] == upper_bound) {
+        std::printf(
+            "position %d is out of bounds with value %lld equal to upper bound "
+            "%lld\n",
+            max_pos, static_cast<long long>(host_col_idxs[max_pos]),
+            static_cast<long long>(upper_bound));
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -116,6 +155,8 @@ bool is_finite(const gko::array<ValueType>& values)
     const auto host_values = values.copy_to_host();
     for (size_t i = 0; i < host_values.size(); ++i) {
         if (!is_finite_scalar(host_values[i])) {
+            // throw std::invalid_argument("matrix must contain only finite
+            // values");
             return false;
         }
     }

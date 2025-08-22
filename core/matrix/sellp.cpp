@@ -15,6 +15,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -48,6 +49,21 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace sellp
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::is_finite(values_),
+                 "Sellp matrix has non-finite values");
+    GKO_VALIDATE(validation::sellp_has_consistent_slice_sets(
+                     slice_sets_, slice_lengths_, slice_size_),
+                 "Sellp matrix has inconsistent slice sets");
+    GKO_VALIDATE(validation::is_sorted(slice_sets_),
+                 "Sellp matrix has unsorted slice sets");
+    GKO_VALIDATE(validation::sellp_is_within_bounds(
+                     col_idxs_, slice_sets_, slice_lengths_, slice_size_),
+                 "Sellp matrix has column indices that are out of bounds");
+}
 
 
 template <typename ValueType, typename IndexType>
