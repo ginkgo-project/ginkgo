@@ -10,18 +10,36 @@
 #include <map>
 #include <string>
 
+#include <csl/cerebras_interface.hpp>
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
 
+class CslExecutor::CerebrasImpl {
+public:
+    CerebrasImpl()
+    {
+        cerebras_device_ = std::make_unique<CerebrasInterface>(true);
+    }
+
+private:
+    std::unique_ptr<CerebrasInterface> cerebras_device_;
+};
+
+
+CslExecutor::CslExecutor(int device_id, std::shared_ptr<Executor> master)
+    : master_(master), cerebras_(new CerebrasImpl())
+{}
+
+CslExecutor::~CslExecutor() { delete cerebras_; }
 
 void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     // TODO
-    // Host to device copy
 }
 
 

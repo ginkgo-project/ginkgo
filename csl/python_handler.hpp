@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #pragma once
+
+#include <stdexcept>
+
 #include <Python.h>
 
 

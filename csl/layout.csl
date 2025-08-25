@@ -1,115 +1,70 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// Copyright 2025 Cerebras Systems.
 //
-// SPDX-License-Identifier: BSD-3-Clause
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// total matrix dimensions
-param M: u32;
-param grid_size: u16;
+// Color/ task ID map
+//
+//  ID var              ID var              ID var                ID var
+//   0 c2d_x_color_0     9 c2d_x_entrypt_1  18                    27 reserved (memcpy)
+//   1 c2d_x_color_1    10 c2d_y_entrypt_0  19                    28 reserved (memcpy)
+//   2                  11 c2d_y_entrypt_1  20                    29 reserved
+//   3                  12 EXIT             21 reserved (memcpy)  30 reserved (memcpy)
+//   4 c2d_y_color_0    13 compute_task_id  22 reserved (memcpy)  31 reserved
+//   5 c2d_y_color_1    14 x_task_id        23 reserved (memcpy)  32
+//   6                  15 y_task_id        24                    33
+//   7                  16                  25                    34
+//   8 c2d_x_entrypt_0  17                  26                    35
 
-// Colors
-const send_row_signal_color: color = @get_color(0);
-const horizontal_elimination_color: color = @get_color(1);
-const division_color: color = @get_color(2);
-const vertical_elimination_color: color = @get_color(3);
-const LAUNCH: color = @get_color(8); // Color used by memcpy for kernel launch
+// Program rectangle is P x P
+param PP: u16;
 
-
-// Task IDs
-const send_row_to_south_task_id: data_task_id = @get_data_task_id(send_row_signal_color);
-const division_step_task_id: data_task_id = @get_data_task_id(division_color);
-
+// Matrix dimensions on one PE
+param Mt: u16;
+param Kt: u16;
+param Nt: u16;
 
 const memcpy = @import_module("<memcpy/get_params>", .{
-  .width = grid_size,
-  .height = grid_size,
-  .LAUNCH = LAUNCH
+  .width = PP,
+  .height = PP
 });
 
+const c2d = @import_module("<collectives_2d/params>");
+
 layout {
-  // PE coordinates are (column, row)
-  @set_rectangle(grid_size, grid_size);
-  const M_per_pe: u16 = @as(u16, M/@as(u32, grid_size));
+  @set_rectangle(PP, PP);
 
-  const switch_TX_S = .{.pos1 = .{ .tx = SOUTH}, .ring_mode = true, .current_switch_pos = 1};
-  const switch_TX_E = .{.pos1 = .{ .tx = EAST}, .ring_mode = true, .current_switch_pos = 1};
-
-  for (@range(u16, grid_size)) |pe_x| {
-    for (@range(u16, grid_size)) |pe_y| {
-      @set_tile_code(pe_x, pe_y, "pe_program.csl", .{
-        .memcpy_params = memcpy.get_params(pe_x),
-        .M = M,
-        .N = M,
-        .M_per_pe = M_per_pe,
-        .N_per_pe = M_per_pe,
-        .grid_size = grid_size,
-        .send_row_signal_color = send_row_signal_color,
-        .horizontal_elimination_color = horizontal_elimination_color,
-        .division_color = division_color,
-        .vertical_elimination_color = vertical_elimination_color,
-        .send_row_to_south_task_id = send_row_to_south_task_id,
-        .division_step_task_id = division_step_task_id
+  var Px: u16 = 0;
+  while (Px < PP) : (Px += 1) {
+    var Py: u16 = 0;
+    const memcpy_params = memcpy.get_params(Px);
+    while (Py < PP) : (Py += 1) {
+      const c2d_params = c2d.get_params(Px, Py, .{
+        .x_colors      = .{ @get_color(0),         @get_color(1) },
+        .x_entrypoints = .{ @get_local_task_id(8), @get_local_task_id(9) },
+        .y_colors      = .{ @get_color(4),         @get_color(5) },
+        .y_entrypoints = .{ @get_local_task_id(10), @get_local_task_id(11) },
       });
-      const RX_W_TX_RE_or_R = .{ .rx = .{WEST}, .tx = if (pe_x < grid_size - 1) .{RAMP, EAST} else .{RAMP}};
-      const RX_N_TX_RS_or_R = .{ .rx = .{NORTH}, .tx = if (pe_y < grid_size - 1) .{RAMP, SOUTH} else .{RAMP}};
-      const RX_RW_TX_RE_or_R = .{ .rx = .{RAMP, WEST}, .tx = if (pe_x < grid_size - 1) .{RAMP, EAST} else .{RAMP}};
-      const RX_RN_TX_RS_or_R = .{ .rx = .{RAMP, NORTH}, .tx = if (pe_y < grid_size - 1) .{RAMP, SOUTH} else .{RAMP}};
-
-      if (pe_x == pe_y) {
-        @set_color_config(pe_x, pe_y, send_row_signal_color, .{.routes = .{ .rx = .{RAMP}, .tx = .{EAST}}});
-        @set_color_config(pe_x, pe_y, division_color, .{.routes = .{ .rx = .{RAMP}, .tx = .{SOUTH}}});
-        if (pe_x == 0) {
-          @set_color_config(pe_x, pe_y, horizontal_elimination_color, .{.routes = .{ .rx = .{RAMP}, .tx = .{EAST}}});
-          @set_color_config(pe_x, pe_y, vertical_elimination_color, .{.routes = .{ .rx = .{RAMP}, .tx = .{SOUTH}}});
-        }
-        else if (pe_x == grid_size - 1) {
-          @set_color_config(pe_x, pe_y, horizontal_elimination_color,.{.routes = RX_RW_TX_RE_or_R});
-          @set_color_config(pe_x, pe_y, vertical_elimination_color, .{.routes = RX_RN_TX_RS_or_R});
-        }
-        else {
-          @set_color_config(pe_x, pe_y, horizontal_elimination_color,.{
-            .routes = RX_RW_TX_RE_or_R,
-            .switches = switch_TX_E
-          });
-          @set_color_config(pe_x, pe_y, vertical_elimination_color, .{
-            .routes = RX_RN_TX_RS_or_R,
-            .switches = switch_TX_S
-            });
-        }
-      }
-      else if ( pe_x < pe_y) {
-        @set_color_config(pe_x, pe_y, division_color, .{.routes = RX_N_TX_RS_or_R});
-        if (pe_x == 0) {
-          @set_color_config(pe_x, pe_y, horizontal_elimination_color, .{
-            .routes = .{.rx = .{RAMP}, .tx = .{EAST}}
-          });
-        }
-        else {
-          @set_color_config(pe_x, pe_y, horizontal_elimination_color, .{
-            .routes = RX_RW_TX_RE_or_R,
-            .switches = switch_TX_E
-          });
-        }
-        @set_color_config(pe_x, pe_y, vertical_elimination_color, .{.routes = RX_N_TX_RS_or_R});
-      }
-      else {
-        @set_color_config(pe_x, pe_y, send_row_signal_color, .{.routes = RX_W_TX_RE_or_R});
-        @set_color_config(pe_x, pe_y, horizontal_elimination_color, .{.routes = RX_W_TX_RE_or_R});
-        if (pe_y == 0) {
-          @set_color_config(pe_x, pe_y, vertical_elimination_color, .{
-            .routes = .{.rx = .{RAMP}, .tx = .{SOUTH}}
-          });
-        }
-        else {
-          @set_color_config(pe_x, pe_y, vertical_elimination_color, .{
-            .routes = RX_RN_TX_RS_or_R,
-            .switches = switch_TX_S
-          });
-        }
-      }
+      @set_tile_code(Px, Py, "pe.csl", .{
+        .memcpy_params = memcpy_params,
+        .c2d_params = c2d_params,
+        .Mt = Mt, .Kt = Kt, .Nt = Nt,
+      });
     }
   }
 
   // export symbol names
   @export_name("A", [*]f32, true);
-  @export_name("start", fn()void);
+  @export_name("B", [*]f32, true);
+  @export_name("C", [*]f32, true);
+  @export_name("main", fn()void);
 }
