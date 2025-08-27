@@ -19,9 +19,7 @@
  * construction by removing the repetitive typing of array's name.
  *
  * @param _ctype  Type name of the element type in C
- *
  * @param _cpptype  Type name of the element type in C++
- *
  * @param _name  Name of the datatype of the array
  *
  */
@@ -76,9 +74,7 @@
  * its construction by removing the repetitive typing of array's name.
  *
  * @param _ctype  Type name of the element type in C
- *
  * @param _cpptype  Type name of the element type in C++
- *
  * @param _name  Name of the datatype of the dense matrix
  *
  */
@@ -253,15 +249,10 @@
  * its construction by removing the repetitive typing of array's name.
  *
  * @param _ctype_value  Type name of the element type in C
- *
  * @param _ctype_index  Type name of the index type in C
- *
  * @param _cpptype_value  Type name of the element type in C++
- *
  * @param _cpptype_index  Type name of the index type in C++
- *
  * @param _name  Name of the datatype of the sparse CSR matrix
- *
  * @param _name_dense Name of the datatype of the dense matrix for apply
  * function
  */
