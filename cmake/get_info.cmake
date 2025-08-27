@@ -45,7 +45,28 @@ function(ginkgo_print_module_footer log_type optional_string)
     file(APPEND ${log_type} "${upd_string}")
 endfunction()
 
+function(ginkgo_print_variable log_type var_name)
+    string(
+        SUBSTRING
+        "
+--        ${var_name}:                                                          "
+        0
+        60
+        upd_string
+    )
+    if(${var_name} STREQUAL "")
+        set(str_value "<empty>")
+    else()
+        set(str_value "${${var_name}}")
+    endif()
+    string(APPEND upd_string "${str_value}")
+    file(APPEND ${log_type} "${upd_string}")
+endfunction()
+
 function(ginkgo_print_flags log_type var_name)
+    if(DEFINED ${var_name})
+        ginkgo_print_variable(${log_type} ${var_name})
+    endif()
     string(TOUPPER "${CMAKE_BUILD_TYPE}" suff)
     set(var_string "${var_name}_${suff}")
     if(${var_string} STREQUAL "")
@@ -63,24 +84,6 @@ function(ginkgo_print_flags log_type var_name)
     )
     string(APPEND upd_string "${str_value}")
     file(APPEND ${log_type} ${upd_string})
-endfunction()
-
-function(ginkgo_print_variable log_type var_name)
-    string(
-        SUBSTRING
-        "
---        ${var_name}:                                                          "
-        0
-        60
-        upd_string
-    )
-    if(${var_name} STREQUAL "")
-        set(str_value "<empty>")
-    else()
-        set(str_value "${${var_name}}")
-    endif()
-    string(APPEND upd_string "${str_value}")
-    file(APPEND ${log_type} "${upd_string}")
 endfunction()
 
 function(ginkgo_print_env_variable log_type var_name)
