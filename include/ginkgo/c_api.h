@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,19 +9,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-/* ----------------------------------------------------------------------
- * Data type constants in GINKGO
- * ---------------------------------------------------------------------- */
-enum _GKO_DATATYPE_CONST {
-    GKO_NONE = -1,
-    GKO_SHORT = 0,
-    GKO_INT = 1,
-    GKO_LONG_LONG = 2,
-    GKO_FLOAT = 3,
-    GKO_DOUBLE = 4,
-    GKO_COMPLEX_FLOAT = 5,
-    GKO_COMPLEX_DOUBLE = 6,
-};
 
 /* ----------------------------------------------------------------------
  * MACROS for generating structs for wrapping

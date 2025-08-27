@@ -1,8 +1,7 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/c_api.h>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -12,6 +11,7 @@
 #include <string>
 
 
+#include <ginkgo/c_api.h>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
