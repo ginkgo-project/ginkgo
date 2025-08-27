@@ -152,7 +152,7 @@ build/cuda118/nompi/gcc/cuda/debug/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
@@ -165,7 +165,7 @@ build/cuda120/openmpi/gcc/cuda/release/static:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
@@ -180,20 +180,20 @@ build/cuda122/openmpi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
     BUILD_HWLOC: "OFF"
     ENABLE_HALF: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.20.6 cuda/12.4.1 gcc/12.4.0"
+    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0 openmpi/5.0.7"
 
 build/cuda124/mpich/gcc/cuda/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
@@ -208,7 +208,7 @@ build/cuda126/nompi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
@@ -303,7 +303,7 @@ build/amd/openmpi/gcc/rocm600/release/static:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-amd
   variables:
     BUILD_HIP: "ON"
@@ -317,7 +317,7 @@ build/amd/nompi/gcc/rocm573/debug/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-amd
   variables:
     BUILD_HIP: "ON"
@@ -332,7 +332,7 @@ build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-amd
   variables:
     BUILD_HIP: "ON"
@@ -465,7 +465,7 @@ build/nogpu/nompi/gcc/omp/debug/static:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-cpu
   variables:
     BUILD_OMP: "ON"
@@ -479,7 +479,7 @@ build/nogpu/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-cpu
   variables:
     BUILD_OMP: "ON"
@@ -494,7 +494,7 @@ build/nogpu/nompi/gcc/noomp/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-cpu
   variables:
     BUILD_TYPE: "Release"
@@ -505,14 +505,14 @@ build/nogpu/nompi/gcc12/noomp/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-cpu
   variables:
     BUILD_TYPE: "Release"
     BUILD_HWLOC: "OFF"
     MODULE_LOAD: "cmake/3.18.6 gcc/12.4.0"
 
-build/nogpu/nompi/gcc13/noomp/release/shared:
+build/nogpu/mpi/gcc13/noomp/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -521,7 +521,8 @@ build/nogpu/nompi/gcc13/noomp/release/shared:
   variables:
     BUILD_TYPE: "Release"
     BUILD_HWLOC: "OFF"
-    MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0"
+    BUILD_MPI: "ON"
+    MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi"
 
 # spack oneapi 2023.1
 build/icpx20231/gpu/release/shared:
@@ -544,7 +545,7 @@ build/dpcpp20231/gpu/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-intel-fp32
   variables:
     CXX_COMPILER: "dpcpp"
@@ -561,7 +562,7 @@ build/icpx202402/gpu/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-intel
   variables:
     CXX_COMPILER: "icpx"
@@ -578,7 +579,7 @@ build/icpx202421/gpu/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-intel
   variables:
     CXX_COMPILER: "icpx"

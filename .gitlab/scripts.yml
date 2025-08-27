@@ -200,9 +200,9 @@
     - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
     - ninja test_exportbuild
     # cuda module from spack does not add LD_LIBRARY_PATH
-    # - if [[ "${BUILD_CUDA}" == "ON" ]]; then
-    #   export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
-    #   fi
+    - if [[ "${BUILD_CUDA}" == "ON" ]]; then
+      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
+      fi
     - ninja test_install
     - pushd test/test_install
     - ninja install
