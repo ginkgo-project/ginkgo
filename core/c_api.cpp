@@ -329,22 +329,22 @@ size_t ginkgo_executor_gpu_item_get_num_computing_units(
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
  * ---------------------------------------------------------------------- */
-DEFINE_ARRAY_OVERLOAD(int16_t, int16_t, i16)
-DEFINE_ARRAY_OVERLOAD(int, int, i32)
-DEFINE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
-DEFINE_ARRAY_OVERLOAD(float, float, f32)
-DEFINE_ARRAY_OVERLOAD(double, double, f64)
+GKO_DEFINE_ARRAY_OVERLOAD(int16_t, int16_t, i16)
+GKO_DEFINE_ARRAY_OVERLOAD(int, int, i32)
+GKO_DEFINE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
+GKO_DEFINE_ARRAY_OVERLOAD(float, float, f32)
+GKO_DEFINE_ARRAY_OVERLOAD(double, double, f64)
 
 /* ----------------------------------------------------------------------
  * Library functions for creating matrices and matrix operations in GINKGO
  * ---------------------------------------------------------------------- */
-DEFINE_DENSE_OVERLOAD(float, float, f32)
-DEFINE_DENSE_OVERLOAD(double, double, f64)
+GKO_DEFINE_DENSE_OVERLOAD(float, float, f32)
+GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
 
-DEFINE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
-DEFINE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
-DEFINE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
-DEFINE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
+GKO_DEFINE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
+GKO_DEFINE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
+GKO_DEFINE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
+GKO_DEFINE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
 
 /* ----------------------------------------------------------------------
  * Library functions for deferred factory parameters in GINKGO

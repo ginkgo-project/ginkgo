@@ -23,7 +23,7 @@
  * @param _name  Name of the datatype of the array
  *
  */
-#define DEFINE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                         \
+#define GKO_DEFINE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                     \
     struct gko_array_##_name##_st {                                            \
         gko::array<_cpptype> arr;                                              \
     };                                                                         \
@@ -58,7 +58,7 @@
  * @brief A build instruction for declaring gko::array<T> in the C API header
  * file
  */
-#define DECLARE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                       \
+#define GKO_DECLARE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                   \
     struct gko_array_##_name##_st;                                            \
     typedef struct gko_array_##_name##_st* gko_array_##_name;                 \
     gko_array_##_name ginkgo_array_##_name##_create(gko_executor exec_st_ptr, \
@@ -78,7 +78,7 @@
  * @param _name  Name of the datatype of the dense matrix
  *
  */
-#define DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                      \
+#define GKO_DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                  \
     struct gko_matrix_dense_##_name##_st {                                  \
         std::shared_ptr<gko::matrix::Dense<_cpptype>> mat;                  \
     };                                                                      \
@@ -205,7 +205,7 @@
  * @brief A build instruction for declaring gko::matrix::Dense<T> in the C API
  * header file
  */
-#define DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                      \
+#define GKO_DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                  \
     struct gko_matrix_dense_##_name##_st;                                    \
     typedef struct gko_matrix_dense_##_name##_st* gko_matrix_dense_##_name;  \
     gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(           \
@@ -256,8 +256,8 @@
  * @param _name_dense Name of the datatype of the dense matrix for apply
  * function
  */
-#define DEFINE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,        \
-                            _cpptype_index, _name, _name_dense)                \
+#define GKO_DEFINE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,    \
+                                _cpptype_index, _name, _name_dense)            \
     struct gko_matrix_csr_##_name##_st {                                       \
         std::shared_ptr<gko::matrix::Csr<_cpptype_value, _cpptype_index>> mat; \
     };                                                                         \
@@ -367,8 +367,8 @@
  * @brief A build instruction for declaring gko::matrix::Csr<Tv,Ti> in the C API
  * header file
  */
-#define DECLARE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,       \
-                             _cpptype_index, _name, _name_dense)               \
+#define GKO_DECLARE_CSR_OVERLOAD(_ctype_value, _ctype_index, _cpptype_value,   \
+                                 _cpptype_index, _name, _name_dense)           \
     struct gko_matrix_csr_##_name##_st;                                        \
     typedef struct gko_matrix_csr_##_name##_st* gko_matrix_csr_##_name;        \
     gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create(                 \
@@ -723,22 +723,22 @@ size_t ginkgo_executor_gpu_item_get_num_computing_units(
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
  * ---------------------------------------------------------------------- */
-DECLARE_ARRAY_OVERLOAD(int16_t, int16_t, i16)
-DECLARE_ARRAY_OVERLOAD(int, int, i32)
-DECLARE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
-DECLARE_ARRAY_OVERLOAD(float, float, f32)
-DECLARE_ARRAY_OVERLOAD(double, double, f64)
+GKO_DECLARE_ARRAY_OVERLOAD(int16_t, int16_t, i16)
+GKO_DECLARE_ARRAY_OVERLOAD(int, int, i32)
+GKO_DECLARE_ARRAY_OVERLOAD(int64_t, std::int64_t, i64)
+GKO_DECLARE_ARRAY_OVERLOAD(float, float, f32)
+GKO_DECLARE_ARRAY_OVERLOAD(double, double, f64)
 
 /* ----------------------------------------------------------------------
  * Library functions for creating matrices and matrix operations in GINKGO
  * ---------------------------------------------------------------------- */
-DECLARE_DENSE_OVERLOAD(float, float, f32)
-DECLARE_DENSE_OVERLOAD(double, double, f64)
+GKO_DECLARE_DENSE_OVERLOAD(float, float, f32)
+GKO_DECLARE_DENSE_OVERLOAD(double, double, f64)
 
-DECLARE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
-DECLARE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
-DECLARE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
-DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
+GKO_DECLARE_CSR_OVERLOAD(float, int, float, int, f32_i32, f32)
+GKO_DECLARE_CSR_OVERLOAD(float, int64_t, float, std::int64_t, f32_i64, f32)
+GKO_DECLARE_CSR_OVERLOAD(double, int, double, int, f64_i32, f64)
+GKO_DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
 
 /* ----------------------------------------------------------------------
  * Library functions for deferred factory parameters in GINKGO
