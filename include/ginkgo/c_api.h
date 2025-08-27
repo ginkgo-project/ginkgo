@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef C_API_H
-#define C_API_H
+#ifndef GKO_C_API_H
+#define GKO_C_API_H
 
 #include <stdbool.h>
 #include <stddef.h>
