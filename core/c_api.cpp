@@ -336,7 +336,6 @@ size_t ginkgo_executor_gpu_item_get_num_computing_units(
  * @param _ctype  Type name of the element type in C
  * @param _cpptype  Type name of the element type in C++
  * @param _name  Name of the datatype of the array
- *
  */
 #define GKO_DEFINE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                     \
     struct gko_array_##_name##_st {                                            \
@@ -385,7 +384,6 @@ GKO_DEFINE_ARRAY_OVERLOAD(double, double, f64)
  * @param _ctype  Type name of the element type in C
  * @param _cpptype  Type name of the element type in C++
  * @param _name  Name of the datatype of the dense matrix
- *
  */
 #define GKO_DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                  \
     struct gko_matrix_dense_##_name##_st {                                  \

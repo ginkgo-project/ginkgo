@@ -123,7 +123,6 @@ void ginkgo_c_char_ptr_free(char* ptr);
 /**
  * @brief This function is a wrapper for printing the version of the ginkgo
  * library
- *
  */
 void ginkgo_version_print();
 
@@ -132,7 +131,6 @@ void ginkgo_version_print();
  * ---------------------------------------------------------------------- */
 /**
  * @brief Struct implements the gko::dim<2> type
- *
  */
 typedef struct {
     size_t rows;
@@ -173,13 +171,11 @@ size_t ginkgo_dim2_cols_get(gko_dim2_st dim);
  * ---------------------------------------------------------------------- */
 /**
  * @brief Struct containing the shared pointer to a ginkgo executor
- *
  */
 struct gko_executor_st;
 
 /**
  * @brief Type of the pointer to the wrapped `gko_executor_st` struct
- *
  */
 typedef struct gko_executor_st* gko_executor;
 
@@ -453,7 +449,6 @@ GKO_DECLARE_CSR_OVERLOAD(double, int64_t, double, std::int64_t, f64_i64, f64)
 /**
  * @brief Struct containing the shared pointer to a ginkgo deferred factory
  * parameter
- *
  */
 struct gko_deferred_factory_parameter_st;
 
@@ -496,13 +491,11 @@ gko_deferred_factory_parameter ginkgo_factorization_parilu_f64_i32_create(
  * ---------------------------------------------------------------------- */
 /**
  * @brief Struct containing the shared pointer to a ginkgo LinOp object
- *
  */
 struct gko_linop_st;
 
 /**
  * @brief Type of the pointer to the wrapped `gko_linop_st` struct
- *
  */
 typedef struct gko_linop_st* gko_linop;
 
