@@ -1,7 +1,6 @@
 ginkgo_print_module_header(${detailed_log} "HIP")
 ginkgo_print_variable(${detailed_log} "GINKGO_HIP_CUSTOM_THRUST_NAMESPACE")
 ginkgo_print_module_footer(${detailed_log} "HIP variables:")
-ginkgo_print_variable(${detailed_log} "CMAKE_HIP_FLAGS")
 ginkgo_print_flags(${detailed_log} "CMAKE_HIP_FLAGS")
 ginkgo_print_flags(${detailed_log} "CMAKE_HIP_COMPILER")
 ginkgo_print_variable(${detailed_log} "CMAKE_HIP_COMPILER_VERSION")
