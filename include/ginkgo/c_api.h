@@ -414,11 +414,11 @@ void ginkgo_c_char_ptr_free(char* ptr);
  * Library functions for retrieving configuration information in GINKGO
  * ---------------------------------------------------------------------- */
 /**
- * @brief This function is a wrapper for obtaining the version of the ginkgo
+ * @brief This function is a wrapper for printing the version of the ginkgo
  * library
  *
  */
-void ginkgo_version_get();
+void ginkgo_version_print();
 
 /* ----------------------------------------------------------------------
  * Library functions for some basic types in GINKGO

@@ -38,7 +38,7 @@ void ginkgo_c_char_ptr_free(char* ptr) { delete[] ptr; }
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
  * ---------------------------------------------------------------------- */
-void ginkgo_version_get()
+void ginkgo_version_print()
 {
     std::cout << gko::version_info::get() << std::endl;
 }
