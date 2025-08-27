@@ -438,6 +438,7 @@ typedef struct {
  *
  * @param rows First dimension
  * @param cols Second dimension
+ *
  * @return gko_dim2_st C struct that contains members of the gko::dim<2> type
  */
 gko_dim2_st ginkgo_dim2_create(size_t rows, size_t cols);
@@ -446,6 +447,7 @@ gko_dim2_st ginkgo_dim2_create(size_t rows, size_t cols);
  * @brief Obtains the value of the first element of a gko::dim<2> type
  *
  * @param dim An object of gko_dim2_st type
+ *
  * @return size_t First dimension
  */
 size_t ginkgo_dim2_rows_get(gko_dim2_st dim);
@@ -454,6 +456,7 @@ size_t ginkgo_dim2_rows_get(gko_dim2_st dim);
  * @brief Obtains the value of the second element of a gko::dim<2> type
  *
  * @param dim An object of gko_dim2_st type
+ *
  * @return size_t Second dimension
  */
 size_t ginkgo_dim2_cols_get(gko_dim2_st dim);
@@ -485,6 +488,7 @@ void ginkgo_executor_delete(gko_executor exec_st_ptr);
  * @brief Returns the master OmpExecutor of this Executor.
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the current executor
+ *
  * @return gko_executor Raw pointer to the shared pointer of the master executor
  */
 gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
@@ -527,6 +531,7 @@ gko_executor ginkgo_executor_reference_create();
  * @brief Get the number of cores of the CPU associated to this executor.
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ *
  * @return size_t No. of cores
  */
 size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
@@ -536,6 +541,7 @@ size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
  * executor.
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ *
  * @return size_t No. of threads per core
  */
 size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
@@ -545,6 +551,7 @@ size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
  * @brief Get the device id of the device associated to this executor.
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the executor
+ *
  * @return size_t Device id
  */
 size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
@@ -555,6 +562,7 @@ size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
  *
  * @param device_id Device id
  * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ *
  * @return gko_executor Raw pointer to the shared pointer of the CUDA executor
  * created
  */
@@ -573,6 +581,7 @@ size_t ginkgo_executor_cuda_get_num_devices();
  *
  * @param device_id Device id
  * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ *
  * @return gko_executor Raw pointer to the shared pointer of the HIP executor
  * created
  */
@@ -591,6 +600,7 @@ size_t ginkgo_executor_hip_get_num_devices();
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t No. multiprocessors
  */
 size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
@@ -601,6 +611,7 @@ size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t No. of warps per SM
  */
 size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
@@ -611,6 +622,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t No. of warps
  */
 size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
@@ -620,6 +632,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t The warp size of this executor
  */
 size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
@@ -629,6 +642,7 @@ size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t The major version of compute capability
  */
 size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
@@ -638,6 +652,7 @@ size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t The minor version of compute capability
  */
 size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
@@ -647,6 +662,7 @@ size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the thread-based
  * executor
+ *
  * @return size_t No. of the closest NUMA node
  */
 size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
@@ -658,6 +674,7 @@ size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
  *
  * @param device_id Device id
  * @param exec_st_ptr Raw pointer to the shared pointer of the master executor
+ *
  * @return gko_executor Raw pointer to the shared pointer of the DPCPP executor
  * created
  */
@@ -676,6 +693,7 @@ size_t ginkgo_executor_dpcpp_get_num_devices();
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
  * executor
+ *
  * @return size_t No. of subgroups
  */
 size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
@@ -685,6 +703,7 @@ size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
  * executor
+ *
  * @return size_t No. of workgroups
  */
 size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
@@ -695,6 +714,7 @@ size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the item-based
  * executor
+ *
  * @return size_t No. of computing units
  */
 size_t ginkgo_executor_gpu_item_get_num_computing_units(
@@ -825,4 +845,4 @@ gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
 }
 #endif /* language linkage */
 
-#endif /* C_API_H */
+#endif /* GKO_C_API_H */
