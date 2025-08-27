@@ -33,7 +33,7 @@
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
-void c_char_ptr_free(char* ptr) { delete[] ptr; }
+void ginkgo_c_char_ptr_free(char* ptr) { delete[] ptr; }
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO

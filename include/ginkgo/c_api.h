@@ -408,7 +408,7 @@ extern "C" {
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
-void c_char_ptr_free(char* ptr);
+void ginkgo_c_char_ptr_free(char* ptr);
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
