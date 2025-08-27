@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <../include/ginkgo/c_api.h>
+#include <ginkgo/c_api.h>
 #include <cstring>
 #include <fstream>
 #include <iostream>
