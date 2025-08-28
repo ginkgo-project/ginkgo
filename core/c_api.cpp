@@ -794,6 +794,7 @@ gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
             ->generate(A_st_ptr->shared_ptr)};
 }
 
+//-------------------- Loggers -----------------------------
 gko_log_convergence_f32 ginkgo_logger_convergence_f32_create()
 {
     return new gko_log_convergence_f32_st{
