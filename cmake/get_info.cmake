@@ -67,23 +67,8 @@ function(ginkgo_print_flags log_type var_name)
     if(DEFINED ${var_name})
         ginkgo_print_variable(${log_type} ${var_name})
     endif()
-    string(TOUPPER "${CMAKE_BUILD_TYPE}" suff)
-    set(var_string "${var_name}_${suff}")
-    if(${var_string} STREQUAL "")
-        set(str_value "<empty>")
-    else()
-        set(str_value "${${var_string}}")
-    endif()
-    string(
-        SUBSTRING
-        "
---        ${var_string}:                                                        "
-        0
-        60
-        upd_string
-    )
-    string(APPEND upd_string "${str_value}")
-    file(APPEND ${log_type} ${upd_string})
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" suffix)
+    ginkgo_print_variable(${log_type} ${var_name}_${suffix})
 endfunction()
 
 function(ginkgo_print_env_variable log_type var_name)
