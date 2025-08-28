@@ -31,6 +31,7 @@ target_sources(
         base/timer.cpp
         base/version.cpp
         base/device_hooks.cpp # TODO: remove this later
+        matrix/dense_kernels.cpp
 )
 
 ginkgo_compile_features(ginkgo_csl)
@@ -41,6 +42,8 @@ target_compile_definitions(
         G=${GRID_SIZE}
         EXECDIR=\"${CMAKE_INSTALL_PREFIX}/${LIBFOLDER}\"
         CSLFILENAME=\"${CSL_FILENAME}\"
+        GKO_COMPILING_CSL
+        GKO_DEVICE_NAMESPACE=csl
 )
 
 target_link_libraries(ginkgo_csl PUBLIC ginkgo_device ${Python3_LIBRARIES})
@@ -57,7 +60,7 @@ ginkgo_install_library(ginkgo_csl)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
     # FIXME
-    # ginkgo_check_headers(ginkgo_csl "GKO_COMPILING_CSL;GKO_DEVICE_NAMESPACE=csl")
+    ginkgo_check_headers(ginkgo_csl "GKO_COMPILING_CSL;GKO_DEVICE_NAMESPACE=csl")
 endif()
 
 if(GINKGO_BUILD_TESTS)

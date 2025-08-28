@@ -2226,12 +2226,8 @@ class CslExecutor : public detail::ExecutorBase<CslExecutor>,
                     public std::enable_shared_from_this<CslExecutor> {
     friend class detail::ExecutorBase<CslExecutor>;
 
-    class CerebrasImpl;
-
 public:
     using Executor::run;
-
-    ~CslExecutor();
 
     /**
      * Creates a new CslExecutor.
@@ -2272,9 +2268,15 @@ public:
      */
     static int get_num_devices(std::string device_type);
 
+    CerebrasContext* get_handle() const;
+
 
 protected:
-    CslExecutor(int device_id, std::shared_ptr<Executor> master);
+    CslExecutor(int device_id, std::shared_ptr<Executor> master)
+        : master_(master)
+    {
+        this->init_handle();
+    }
 
     void populate_exec_info(const machine_topology* mach_topo) override;
 
@@ -2296,13 +2298,17 @@ protected:
 
     bool verify_memory_to(const CslExecutor* dest_exec) const override;
 
-private:
-    std::shared_ptr<Executor> master_;
+    void init_handle();
 
     // Using PIMPL pattern to hide CerebrasInterface class
     // from this header to reduce dependencies and simplify
     // compilation flow.
-    CerebrasImpl* cerebras_;
+
+private:
+    std::shared_ptr<Executor> master_;
+    template <typename T>
+    using handle_manager = std::unique_ptr<T>;
+    handle_manager<CerebrasContext> cerebras_handle_;
 };
 
 

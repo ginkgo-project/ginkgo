@@ -6,11 +6,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
 
 #include <csl/cerebras_interface.hpp>
+#include <csl/cerebras_layout.hpp>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -18,28 +21,59 @@
 
 namespace gko {
 
-class CslExecutor::CerebrasImpl {
-public:
-    CerebrasImpl()
-    {
-        cerebras_device_ = std::make_unique<CerebrasInterface>(true);
-    }
+// class CerebrasImpl
+//{
+// public:
+//     CerebrasImpl()
+//     {
+//         cerebras_device_ = std::make_unique<CerebrasInterface>(true);
+//     }
+//
+//     void copy_h2d(std::string target_var, float* vec, size_t vec_size, int
+//     offset1,
+//         int offset2, int size1, int size2, int elements_per_pe, bool
+//         streaming, bool nonblocking)
+//     {
+//         cerebras_device_->copy_h2d(target_var, vec, vec_size, offset1,
+//         offset2,
+//             size1, size2, elements_per_pe, streaming, nonblocking);
+//     }
+//
+//     void copy_d2h(std::string target_var, float* vec, size_t vec_size, int
+//     offset1,
+//         int offset2, int size1, int size2, int elements_per_pe, bool
+//         streaming, bool nonblocking)
+//     {
+//         cerebras_device_->copy_d2h(target_var, vec, vec_size, offset1,
+//         offset2,
+//             size1, size2, elements_per_pe, streaming, nonblocking);
+//     }
+//
+//     void call_func(std::string func_name, bool nonblocking = false)
+//     {
+//         cerebras_device_->call_func(func_name, nonblocking);
+//     }
+//
+// private:
+//     std::unique_ptr<CerebrasInterface> cerebras_device_;
+// };
 
-private:
-    std::unique_ptr<CerebrasInterface> cerebras_device_;
-};
+
+void CslExecutor::init_handle()
+{
+    this->cerebras_handle_ =
+        handle_manager<CerebrasContext>(CerebrasInterface(true));
+}
 
 
-CslExecutor::CslExecutor(int device_id, std::shared_ptr<Executor> master)
-    : master_(master), cerebras_(new CerebrasImpl())
-{}
-
-CslExecutor::~CslExecutor() { delete cerebras_; }
+CerebrasContext* CslExecutor::get_handle() const { return cerebras_context_; }
 
 void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
-    // TODO
+    std::cout << "copying " << num_bytes << "bytes from Omp to Csl!"
+              << std::endl;
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
 }
 
 
@@ -67,9 +101,6 @@ void HipExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
 std::shared_ptr<CslExecutor> CslExecutor::create(
     int device_id, std::shared_ptr<Executor> master)
 {
-    // TODO
-    // Device creation (CerebrasInterface class instance creation and store a
-    // handle to it.)
     return std::shared_ptr<CslExecutor>(
         new CslExecutor(device_id, std::move(master)));
 }
@@ -84,23 +115,24 @@ void CslExecutor::populate_exec_info(const machine_topology* mach_topo)
 
 void CslExecutor::raw_free(void* ptr) const noexcept
 {
-    // TODO
+    std::cout << "freeing memory on csl!" << std::endl;
+    std::free(ptr);
 }
 
 
 void* CslExecutor::raw_alloc(size_type num_bytes) const
 {
-    // TODO
-    void* dev_ptr;
-    return dev_ptr;
+    std::cout << "allocating " << num_bytes << "memory on csl!" << std::endl;
+    return malloc(num_bytes);
 }
 
 
 void CslExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
-    // TODO
-    // Device to Host copy.
+    std::cout << "copying " << num_bytes << "bytes from csl to omp!"
+              << std::endl;
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
 }
 
 
@@ -121,8 +153,7 @@ void CslExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
 void CslExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
-    // TODO
-    // Device to device copy. May not be needed?
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
 }
 
 
