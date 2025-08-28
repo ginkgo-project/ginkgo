@@ -522,48 +522,48 @@ void ginkgo_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
                         gko_linop x_st_ptr);
 
 //-------------------- Iterative solvers -----------------------------
-gko_linop ginkgo_linop_cg_preconditioned_f64_create(
+gko_linop ginkgo_solver_cg_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_linop_bicgstab_preconditioned_f64_create(
+gko_linop ginkgo_solver_bicgstab_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_linop_gmres_preconditioned_f64_create(
+gko_linop ginkgo_solver_gmres_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim);
 
-gko_linop ginkgo_linop_cg_preconditioned_f32_create(
+gko_linop ginkgo_solver_cg_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_linop_bicgstab_preconditioned_f32_create(
+gko_linop ginkgo_solver_bicgstab_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_linop_gmres_preconditioned_f32_create(
+gko_linop ginkgo_solver_gmres_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim);
 
 //-------------------- Direct solvers -----------------------------
-gko_linop ginkgo_linop_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
+gko_linop ginkgo_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                                  gko_linop A_st_ptr);
+
+gko_linop ginkgo_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
                                                  gko_linop A_st_ptr);
 
-gko_linop ginkgo_linop_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
-                                                gko_linop A_st_ptr);
+gko_linop ginkgo_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
+                                                 gko_linop A_st_ptr);
 
-gko_linop ginkgo_linop_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
-                                                gko_linop A_st_ptr);
-
-gko_linop ginkgo_linop_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
-                                                gko_linop A_st_ptr);
+gko_linop ginkgo_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
+                                                 gko_linop A_st_ptr);
 
 //-------------------- Loggers -----------------------------
 /**
