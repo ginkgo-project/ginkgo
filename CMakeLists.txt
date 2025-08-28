@@ -266,6 +266,16 @@ if(MINGW OR CYGWIN)
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
     endif()
+else()
+    # using 16 because we pass that during apple clang 15 but not 16. The version leading this issue is not clear from the bug report.
+    if(
+        CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16
+    )
+        # Similar to MINGW/CYGWIN clang issue. LLVM includes the fix from 17 for Itanium ABI but not MS ABI.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-assume-unique-vtables")
+    endif()
 endif()
 
 # For now, PGI/NVHPC nvc++ compiler doesn't seem to support
