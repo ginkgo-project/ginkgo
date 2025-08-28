@@ -139,13 +139,9 @@ size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr)
 gko_executor ginkgo_executor_cuda_create(size_t device_id,
                                          gko_executor exec_st_ptr)
 {
-    if (auto omp_exec = std::dynamic_pointer_cast<gko::OmpExecutor>(
+    if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
+        std::dynamic_pointer_cast<gko::ReferenceExecutor>(
             exec_st_ptr->shared_ptr)) {
-        return new gko_executor_st{
-            gko::CudaExecutor::create(device_id, exec_st_ptr->shared_ptr)};
-    } else if (auto reference_exec =
-                   std::dynamic_pointer_cast<gko::ReferenceExecutor>(
-                       exec_st_ptr->shared_ptr)) {
         return new gko_executor_st{
             gko::CudaExecutor::create(device_id, exec_st_ptr->shared_ptr)};
     } else {
@@ -161,13 +157,9 @@ size_t ginkgo_executor_cuda_get_num_devices()
 gko_executor ginkgo_executor_hip_create(size_t device_id,
                                         gko_executor exec_st_ptr)
 {
-    if (auto omp_exec = std::dynamic_pointer_cast<gko::OmpExecutor>(
+    if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
+        std::dynamic_pointer_cast<gko::ReferenceExecutor>(
             exec_st_ptr->shared_ptr)) {
-        return new gko_executor_st{
-            gko::HipExecutor::create(device_id, exec_st_ptr->shared_ptr)};
-    } else if (auto reference_exec =
-                   std::dynamic_pointer_cast<gko::ReferenceExecutor>(
-                       exec_st_ptr->shared_ptr)) {
         return new gko_executor_st{
             gko::HipExecutor::create(device_id, exec_st_ptr->shared_ptr)};
     } else {
@@ -276,13 +268,9 @@ size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr)
 gko_executor ginkgo_executor_dpcpp_create(size_t device_id,
                                           gko_executor exec_st_ptr)
 {
-    if (auto omp_exec = std::dynamic_pointer_cast<gko::OmpExecutor>(
+    if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
+        std::dynamic_pointer_cast<gko::ReferenceExecutor>(
             exec_st_ptr->shared_ptr)) {
-        return new gko_executor_st{
-            gko::DpcppExecutor::create(device_id, exec_st_ptr->shared_ptr)};
-    } else if (auto reference_exec =
-                   std::dynamic_pointer_cast<gko::ReferenceExecutor>(
-                       exec_st_ptr->shared_ptr)) {
         return new gko_executor_st{
             gko::DpcppExecutor::create(device_id, exec_st_ptr->shared_ptr)};
     } else {
