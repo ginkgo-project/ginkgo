@@ -195,4 +195,44 @@ TEST(HalfToFloat, ExtendsLargeNumber)
 }
 
 
+TEST(HalfToFloat, ConvertsPositiveRandomDenormal)
+{
+    float x = create_from_bits<half>("0" "00000" "1110101100");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01110000" "11010110000000000000000"));
+}
+
+
+TEST(HalfToFloat, ConvertsNegativeRandomDenormal)
+{
+    float x = create_from_bits<half>("1" "00000" "0010111101");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "01101110" "01111010000000000000000"));
+}
+
+
+TEST(HalfToFloat, ConvertsSmallestPositiveDenormal)
+{
+    float x = create_from_bits<half>("0" "00000" "0000000001");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01100111" "00000000000000000000000"));
+}
+
+
+TEST(HalfToFloat, ConvertsSmallestDenormal)
+{
+    float x = create_from_bits<half>("1" "00000" "1111111111");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "01110000" "11111111100000000000000"));
+}
+
+
+TEST(HalfToFloat, ConvertsLargestDenormal)
+{
+    float x = create_from_bits<half>("0" "00000" "1111111111");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01110000" "11111111100000000000000"));
+}
+
+
 // clang-format on

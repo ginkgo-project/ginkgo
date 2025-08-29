@@ -442,8 +442,26 @@ private:
             return conv::shift_sign(data_) | f32_traits::exponent_mask |
                    f32_traits::significand_mask;
         } else if (f16_traits::is_denom(data_)) {
-            // TODO: handle denormals
-            return conv::shift_sign(data_);
+            if (!(data_ & f16_traits::significand_mask)) {
+                return conv::shift_sign(data_);
+            }
+
+            auto leading_zeros =
+                __builtin_clz(f16_traits::significand_mask & data_) -
+                f16_traits::exponent_bits - f16_traits::sign_bits -
+                8 * (sizeof(conv::result_bits) - sizeof(conv::source_bits));
+
+            auto new_exponent =
+                ((conv::bias_change >> f32_traits::significand_bits) -
+                 leading_zeros)
+                << f32_traits::significand_bits;
+
+            auto new_significand =
+                (static_cast<f32_traits::bits_type>(data_)
+                 << (conv::significand_offset + leading_zeros + 1)) &
+                f32_traits::significand_mask;
+
+            return conv::shift_sign(data_) | new_exponent | new_significand;
         } else {
             return conv::shift_sign(data_) | conv::shift_exponent(data_) |
                    conv::shift_significand(data_);
