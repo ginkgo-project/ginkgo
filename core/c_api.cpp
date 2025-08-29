@@ -35,25 +35,22 @@
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
-void ginkgo_c_char_ptr_free(char* ptr) { delete[] ptr; }
+void gko_c_char_ptr_free(char* ptr) { delete[] ptr; }
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
  * ---------------------------------------------------------------------- */
-void ginkgo_version_print()
-{
-    std::cout << gko::version_info::get() << std::endl;
-}
+void gko_version_print() { std::cout << gko::version_info::get() << std::endl; }
 
 /* ----------------------------------------------------------------------
  * Library functions for other types in GINKGO
  * ---------------------------------------------------------------------- */
-gko_dim2_st ginkgo_dim2_create(size_t rows, size_t cols)
+gko_dim2_st gko_dim2_create(size_t rows, size_t cols)
 {
     return gko_dim2_st{rows, cols};
 }
-size_t ginkgo_dim2_rows_get(gko_dim2_st dim) { return dim.rows; }
-size_t ginkgo_dim2_cols_get(gko_dim2_st dim) { return dim.cols; }
+size_t gko_dim2_rows_get(gko_dim2_st dim) { return dim.rows; }
+size_t gko_dim2_cols_get(gko_dim2_st dim) { return dim.cols; }
 
 /* ----------------------------------------------------------------------
  * Library functions for executors (Creation, Getters) in GINKGO
@@ -62,37 +59,37 @@ struct gko_executor_st {
     std::shared_ptr<gko::Executor> shared_ptr;
 };
 
-void ginkgo_executor_delete(gko_executor exec_st_ptr) { delete exec_st_ptr; }
+void gko_executor_delete(gko_executor exec_st_ptr) { delete exec_st_ptr; }
 
-gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr)
+gko_executor gko_executor_get_master(gko_executor exec_st_ptr)
 {
     return new gko_executor_st{exec_st_ptr->shared_ptr->get_master()};
 }
 
-bool ginkgo_executor_memory_accessible(gko_executor exec_st_ptr,
-                                       gko_executor other_exec_st_ptr)
+bool gko_executor_memory_accessible(gko_executor exec_st_ptr,
+                                    gko_executor other_exec_st_ptr)
 {
     return exec_st_ptr->shared_ptr->memory_accessible(
         other_exec_st_ptr->shared_ptr);
 }
 
-void ginkgo_executor_synchronize(gko_executor exec_st_ptr)
+void gko_executor_synchronize(gko_executor exec_st_ptr)
 {
     exec_st_ptr->shared_ptr->synchronize();
 }
 
 //---------------------------- CPU -----------------------------
-gko_executor ginkgo_executor_omp_create()
+gko_executor gko_executor_omp_create()
 {
     return new gko_executor_st{gko::OmpExecutor::create()};
 }
 
-gko_executor ginkgo_executor_reference_create()
+gko_executor gko_executor_reference_create()
 {
     return new gko_executor_st{gko::ReferenceExecutor::create()};
 }
 
-size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr)
+size_t gko_executor_cpu_get_num_cores(gko_executor exec_st_ptr)
 {
     if (auto omp_exec = std::dynamic_pointer_cast<gko::OmpExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -106,7 +103,7 @@ size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr)
+size_t gko_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr)
 {
     if (auto omp_exec = std::dynamic_pointer_cast<gko::OmpExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -121,7 +118,7 @@ size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr)
 }
 
 //---------------------------- GPU -----------------------------
-size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_get_device_id(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -138,8 +135,8 @@ size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr)
 }
 
 // CUDA/HIP
-gko_executor ginkgo_executor_cuda_create(size_t device_id,
-                                         gko_executor exec_st_ptr)
+gko_executor gko_executor_cuda_create(size_t device_id,
+                                      gko_executor exec_st_ptr)
 {
     if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
         std::dynamic_pointer_cast<gko::ReferenceExecutor>(
@@ -151,13 +148,12 @@ gko_executor ginkgo_executor_cuda_create(size_t device_id,
     }
 }
 
-size_t ginkgo_executor_cuda_get_num_devices()
+size_t gko_executor_cuda_get_num_devices()
 {
     return gko::CudaExecutor::get_num_devices();
 }
 
-gko_executor ginkgo_executor_hip_create(size_t device_id,
-                                        gko_executor exec_st_ptr)
+gko_executor gko_executor_hip_create(size_t device_id, gko_executor exec_st_ptr)
 {
     if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
         std::dynamic_pointer_cast<gko::ReferenceExecutor>(
@@ -169,13 +165,12 @@ gko_executor ginkgo_executor_hip_create(size_t device_id,
     }
 }
 
-size_t ginkgo_executor_hip_get_num_devices()
+size_t gko_executor_hip_get_num_devices()
 {
     return gko::HipExecutor::get_num_devices();
 }
 
-size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
-    gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_num_multiprocessor(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -188,7 +183,7 @@ size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_num_warps_per_sm(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -201,7 +196,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -214,7 +209,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -227,7 +222,7 @@ size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -240,7 +235,7 @@ size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -253,7 +248,7 @@ size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr)
 {
     if (auto cuda_exec = std::dynamic_pointer_cast<gko::CudaExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -267,8 +262,8 @@ size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr)
 }
 
 // DPCPP/SYCL
-gko_executor ginkgo_executor_dpcpp_create(size_t device_id,
-                                          gko_executor exec_st_ptr)
+gko_executor gko_executor_dpcpp_create(size_t device_id,
+                                       gko_executor exec_st_ptr)
 {
     if (std::dynamic_pointer_cast<gko::OmpExecutor>(exec_st_ptr->shared_ptr) ||
         std::dynamic_pointer_cast<gko::ReferenceExecutor>(
@@ -280,12 +275,12 @@ gko_executor ginkgo_executor_dpcpp_create(size_t device_id,
     }
 }
 
-size_t ginkgo_executor_dpcpp_get_num_devices()
+size_t gko_executor_dpcpp_get_num_devices()
 {
     return gko::DpcppExecutor::get_num_devices("gpu");
 }
 
-size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr)
 {
     if (auto dpcpp_exec = std::dynamic_pointer_cast<gko::DpcppExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -295,7 +290,7 @@ size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_item_get_max_workgroup_size(gko_executor exec_st_ptr)
+size_t gko_executor_gpu_item_get_max_workgroup_size(gko_executor exec_st_ptr)
 {
     if (auto dpcpp_exec = std::dynamic_pointer_cast<gko::DpcppExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -305,8 +300,7 @@ size_t ginkgo_executor_gpu_item_get_max_workgroup_size(gko_executor exec_st_ptr)
     }
 }
 
-size_t ginkgo_executor_gpu_item_get_num_computing_units(
-    gko_executor exec_st_ptr)
+size_t gko_executor_gpu_item_get_num_computing_units(gko_executor exec_st_ptr)
 {
     if (auto dpcpp_exec = std::dynamic_pointer_cast<gko::DpcppExecutor>(
             exec_st_ptr->shared_ptr)) {
@@ -334,26 +328,26 @@ size_t ginkgo_executor_gpu_item_get_num_computing_units(
                                                                                \
     typedef gko_array_##_name##_st* gko_array_##_name;                         \
                                                                                \
-    gko_array_##_name ginkgo_array_##_name##_create(gko_executor exec_st_ptr,  \
-                                                    size_t size)               \
+    gko_array_##_name gko_array_##_name##_create(gko_executor exec_st_ptr,     \
+                                                 size_t size)                  \
     {                                                                          \
         return new gko_array_##_name##_st{                                     \
             gko::array<_cpptype>{exec_st_ptr->shared_ptr, size}};              \
     }                                                                          \
                                                                                \
-    gko_array_##_name ginkgo_array_##_name##_create_view(                      \
+    gko_array_##_name gko_array_##_name##_create_view(                         \
         gko_executor exec_st_ptr, size_t size, _ctype* data_ptr)               \
     {                                                                          \
         return new gko_array_##_name##_st{gko::make_array_view(                \
             exec_st_ptr->shared_ptr, size, static_cast<_cpptype*>(data_ptr))}; \
     }                                                                          \
                                                                                \
-    void ginkgo_array_##_name##_delete(gko_array_##_name array_st_ptr)         \
+    void gko_array_##_name##_delete(gko_array_##_name array_st_ptr)            \
     {                                                                          \
         delete array_st_ptr;                                                   \
     }                                                                          \
                                                                                \
-    size_t ginkgo_array_##_name##_get_size(gko_array_##_name array_st_ptr)     \
+    size_t gko_array_##_name##_get_size(gko_array_##_name array_st_ptr)        \
     {                                                                          \
         return (*array_st_ptr).arr.get_size();                                 \
     }
@@ -375,127 +369,127 @@ GKO_DEFINE_ARRAY_OVERLOAD(double, double, f64)
  * @param _cpptype  Type name of the element type in C++
  * @param _name  Name of the datatype of the dense matrix
  */
-#define GKO_DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                  \
-    struct gko_matrix_dense_##_name##_st {                                  \
-        std::shared_ptr<gko::matrix::Dense<_cpptype>> mat;                  \
-    };                                                                      \
-                                                                            \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(          \
-        gko_executor exec, gko_dim2_st size)                                \
-    {                                                                       \
-        return new gko_matrix_dense_##_name##_st{                           \
-            gko::matrix::Dense<_cpptype>::create(                           \
-                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols})};    \
-    }                                                                       \
-                                                                            \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create_view(     \
-        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride) \
-    {                                                                       \
-        return new gko_matrix_dense_##_name##_st{                           \
-            gko::matrix::Dense<_ctype>::create(                             \
-                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols},      \
-                gko::array<_ctype>::view((*exec).shared_ptr,                \
-                                         size.rows * stride, values),       \
-                stride)};                                                   \
-    }                                                                       \
-                                                                            \
-    void ginkgo_matrix_dense_##_name##_delete(                              \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        delete mat_st_ptr;                                                  \
-    }                                                                       \
-                                                                            \
-    void ginkgo_matrix_dense_##_name##_fill(                                \
-        gko_matrix_dense_##_name mat_st_ptr, _ctype value)                  \
-    {                                                                       \
-        (*mat_st_ptr).mat->fill(value);                                     \
-    }                                                                       \
-                                                                            \
-    _ctype ginkgo_matrix_dense_##_name##_at(                                \
-        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col)        \
-    {                                                                       \
-        return (*mat_st_ptr).mat->at(row, col);                             \
-    }                                                                       \
-                                                                            \
-    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                     \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        auto dim = (*mat_st_ptr).mat->get_size();                           \
-        return gko_dim2_st{dim[0], dim[1]};                                 \
-    }                                                                       \
-                                                                            \
-    _ctype* ginkgo_matrix_dense_##_name##_get_values(                       \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        return (*mat_st_ptr).mat->get_values();                             \
-    }                                                                       \
-                                                                            \
-    const _ctype* ginkgo_matrix_dense_##_name##_get_const_values(           \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        return (*mat_st_ptr).mat->get_const_values();                       \
-    }                                                                       \
-                                                                            \
-    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(           \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        return (*mat_st_ptr).mat->get_num_stored_elements();                \
-    }                                                                       \
-                                                                            \
-    size_t ginkgo_matrix_dense_##_name##_get_stride(                        \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        return (*mat_st_ptr).mat->get_stride();                             \
-    }                                                                       \
-                                                                            \
-    void ginkgo_matrix_dense_##_name##_compute_dot(                         \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2,                               \
-        gko_matrix_dense_##_name mat_st_ptr_res)                            \
-    {                                                                       \
-        (*mat_st_ptr1)                                                      \
-            .mat->compute_dot((*mat_st_ptr2).mat, (*mat_st_ptr_res).mat);   \
-    }                                                                       \
-    void ginkgo_matrix_dense_##_name##_compute_norm1(                       \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2)                               \
-    {                                                                       \
-        (*mat_st_ptr1).mat->compute_norm1((*mat_st_ptr2).mat);              \
-    }                                                                       \
-                                                                            \
-    void ginkgo_matrix_dense_##_name##_compute_norm2(                       \
-        gko_matrix_dense_##_name mat_st_ptr1,                               \
-        gko_matrix_dense_##_name mat_st_ptr2)                               \
-    {                                                                       \
-        (*mat_st_ptr1).mat->compute_norm2((*mat_st_ptr2).mat);              \
-    }                                                                       \
-                                                                            \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(            \
-        const char* str_ptr, gko_executor exec)                             \
-    {                                                                       \
-        std::string filename(str_ptr);                                      \
-        std::ifstream ifs(filename, std::ifstream::in);                     \
-                                                                            \
-        return new gko_matrix_dense_##_name##_st{                           \
-            gko::read<gko::matrix::Dense<_cpptype>>(std::move(ifs),         \
-                                                    (*exec).shared_ptr)};   \
-    }                                                                       \
-                                                                            \
-    char* ginkgo_matrix_dense_##_name##_write_mtx(                          \
-        gko_matrix_dense_##_name mat_st_ptr)                                \
-    {                                                                       \
-        auto cout_buff = std::cout.rdbuf();                                 \
-                                                                            \
-        std::ostringstream local;                                           \
-        std::cout.rdbuf(local.rdbuf());                                     \
-        gko::write(std::cout, (*mat_st_ptr).mat);                           \
-                                                                            \
-        std::cout.rdbuf(cout_buff);                                         \
-                                                                            \
-        std::string str = local.str();                                      \
-        char* cstr = new char[str.length() + 1];                            \
-        std::strcpy(cstr, str.c_str());                                     \
-        return cstr;                                                        \
+#define GKO_DEFINE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                    \
+    struct gko_matrix_dense_##_name##_st {                                    \
+        std::shared_ptr<gko::matrix::Dense<_cpptype>> mat;                    \
+    };                                                                        \
+                                                                              \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_create(               \
+        gko_executor exec, gko_dim2_st size)                                  \
+    {                                                                         \
+        return new gko_matrix_dense_##_name##_st{                             \
+            gko::matrix::Dense<_cpptype>::create(                             \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols})};      \
+    }                                                                         \
+                                                                              \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_create_view(          \
+        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride)   \
+    {                                                                         \
+        return new gko_matrix_dense_##_name##_st{                             \
+            gko::matrix::Dense<_ctype>::create(                               \
+                (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols},        \
+                gko::array<_ctype>::view((*exec).shared_ptr,                  \
+                                         size.rows * stride, values),         \
+                stride)};                                                     \
+    }                                                                         \
+                                                                              \
+    void gko_matrix_dense_##_name##_delete(                                   \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        delete mat_st_ptr;                                                    \
+    }                                                                         \
+                                                                              \
+    void gko_matrix_dense_##_name##_fill(gko_matrix_dense_##_name mat_st_ptr, \
+                                         _ctype value)                        \
+    {                                                                         \
+        (*mat_st_ptr).mat->fill(value);                                       \
+    }                                                                         \
+                                                                              \
+    _ctype gko_matrix_dense_##_name##_at(gko_matrix_dense_##_name mat_st_ptr, \
+                                         size_t row, size_t col)              \
+    {                                                                         \
+        return (*mat_st_ptr).mat->at(row, col);                               \
+    }                                                                         \
+                                                                              \
+    gko_dim2_st gko_matrix_dense_##_name##_get_size(                          \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        auto dim = (*mat_st_ptr).mat->get_size();                             \
+        return gko_dim2_st{dim[0], dim[1]};                                   \
+    }                                                                         \
+                                                                              \
+    _ctype* gko_matrix_dense_##_name##_get_values(                            \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        return (*mat_st_ptr).mat->get_values();                               \
+    }                                                                         \
+                                                                              \
+    const _ctype* gko_matrix_dense_##_name##_get_const_values(                \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        return (*mat_st_ptr).mat->get_const_values();                         \
+    }                                                                         \
+                                                                              \
+    size_t gko_matrix_dense_##_name##_get_num_stored_elements(                \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        return (*mat_st_ptr).mat->get_num_stored_elements();                  \
+    }                                                                         \
+                                                                              \
+    size_t gko_matrix_dense_##_name##_get_stride(                             \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        return (*mat_st_ptr).mat->get_stride();                               \
+    }                                                                         \
+                                                                              \
+    void gko_matrix_dense_##_name##_compute_dot(                              \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2,                                 \
+        gko_matrix_dense_##_name mat_st_ptr_res)                              \
+    {                                                                         \
+        (*mat_st_ptr1)                                                        \
+            .mat->compute_dot((*mat_st_ptr2).mat, (*mat_st_ptr_res).mat);     \
+    }                                                                         \
+    void gko_matrix_dense_##_name##_compute_norm1(                            \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2)                                 \
+    {                                                                         \
+        (*mat_st_ptr1).mat->compute_norm1((*mat_st_ptr2).mat);                \
+    }                                                                         \
+                                                                              \
+    void gko_matrix_dense_##_name##_compute_norm2(                            \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2)                                 \
+    {                                                                         \
+        (*mat_st_ptr1).mat->compute_norm2((*mat_st_ptr2).mat);                \
+    }                                                                         \
+                                                                              \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_read(                 \
+        const char* str_ptr, gko_executor exec)                               \
+    {                                                                         \
+        std::string filename(str_ptr);                                        \
+        std::ifstream ifs(filename, std::ifstream::in);                       \
+                                                                              \
+        return new gko_matrix_dense_##_name##_st{                             \
+            gko::read<gko::matrix::Dense<_cpptype>>(std::move(ifs),           \
+                                                    (*exec).shared_ptr)};     \
+    }                                                                         \
+                                                                              \
+    char* gko_matrix_dense_##_name##_write_mtx(                               \
+        gko_matrix_dense_##_name mat_st_ptr)                                  \
+    {                                                                         \
+        auto cout_buff = std::cout.rdbuf();                                   \
+                                                                              \
+        std::ostringstream local;                                             \
+        std::cout.rdbuf(local.rdbuf());                                       \
+        gko::write(std::cout, (*mat_st_ptr).mat);                             \
+                                                                              \
+        std::cout.rdbuf(cout_buff);                                           \
+                                                                              \
+        std::string str = local.str();                                        \
+        char* cstr = new char[str.length() + 1];                              \
+        std::strcpy(cstr, str.c_str());                                       \
+        return cstr;                                                          \
     }
 
 GKO_DEFINE_DENSE_OVERLOAD(float, float, f32)
@@ -519,7 +513,7 @@ GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
         std::shared_ptr<gko::matrix::Csr<_cpptype_value, _cpptype_index>> mat; \
     };                                                                         \
                                                                                \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create(                 \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_create(                    \
         gko_executor exec, gko_dim2_st size, size_t nnz)                       \
     {                                                                          \
         return new gko_matrix_csr_##_name##_st{                                \
@@ -527,7 +521,7 @@ GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
                 (*exec).shared_ptr, gko::dim<2>{size.rows, size.cols}, nnz)};  \
     }                                                                          \
                                                                                \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create_view(            \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_create_view(               \
         gko_executor exec, gko_dim2_st size, size_t nnz,                       \
         _ctype_index* row_ptrs, _ctype_index* col_idxs, _ctype_value* values)  \
     {                                                                          \
@@ -542,13 +536,13 @@ GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
                                                  size.rows + 1, row_ptrs))};   \
     }                                                                          \
                                                                                \
-    void ginkgo_matrix_csr_##_name##_delete(gko_matrix_csr_##_name mat_st_ptr) \
+    void gko_matrix_csr_##_name##_delete(gko_matrix_csr_##_name mat_st_ptr)    \
     {                                                                          \
         delete mat_st_ptr;                                                     \
     }                                                                          \
                                                                                \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_read(                   \
-        const char* str_ptr, gko_executor exec)                                \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_read(const char* str_ptr,  \
+                                                         gko_executor exec)    \
     {                                                                          \
         std::string filename(str_ptr);                                         \
         std::ifstream ifs(filename, std::ifstream::in);                        \
@@ -558,8 +552,8 @@ GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
                 std::move(ifs), (*exec).shared_ptr)};                          \
     }                                                                          \
                                                                                \
-    void ginkgo_write_csr_##_name##_in_coo(const char* str_ptr,                \
-                                           gko_matrix_csr_##_name mat_st_ptr)  \
+    void gko_write_csr_##_name##_in_coo(const char* str_ptr,                   \
+                                        gko_matrix_csr_##_name mat_st_ptr)     \
     {                                                                          \
         std::string filename(str_ptr);                                         \
         std::ofstream stream{filename};                                        \
@@ -567,54 +561,54 @@ GKO_DEFINE_DENSE_OVERLOAD(double, double, f64)
         gko::write(stream, (*mat_st_ptr).mat, gko::layout_type::coordinate);   \
     }                                                                          \
                                                                                \
-    size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
+    size_t gko_matrix_csr_##_name##_get_num_stored_elements(                   \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_num_stored_elements();                   \
     }                                                                          \
                                                                                \
-    size_t ginkgo_matrix_csr_##_name##_get_num_srow_elements(                  \
+    size_t gko_matrix_csr_##_name##_get_num_srow_elements(                     \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_num_srow_elements();                     \
     }                                                                          \
                                                                                \
-    gko_dim2_st ginkgo_matrix_csr_##_name##_get_size(                          \
+    gko_dim2_st gko_matrix_csr_##_name##_get_size(                             \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         auto dim = (*mat_st_ptr).mat->get_size();                              \
         return gko_dim2_st{dim[0], dim[1]};                                    \
     }                                                                          \
                                                                                \
-    const _ctype_value* ginkgo_matrix_csr_##_name##_get_const_values(          \
+    const _ctype_value* gko_matrix_csr_##_name##_get_const_values(             \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_const_values();                          \
     }                                                                          \
                                                                                \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_col_idxs(        \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_col_idxs(           \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_const_col_idxs();                        \
     }                                                                          \
                                                                                \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_row_ptrs(        \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_row_ptrs(           \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_const_row_ptrs();                        \
     }                                                                          \
                                                                                \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_srow(            \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_srow(               \
         gko_matrix_csr_##_name mat_st_ptr)                                     \
     {                                                                          \
         return (*mat_st_ptr).mat->get_const_srow();                            \
     }                                                                          \
                                                                                \
-    void ginkgo_matrix_csr_##_name##_apply(                                    \
-        gko_matrix_csr_##_name mat_st_ptr,                                     \
-        gko_matrix_dense_##_name_dense alpha,                                  \
-        gko_matrix_dense_##_name_dense x, gko_matrix_dense_##_name_dense beta, \
-        gko_matrix_dense_##_name_dense y)                                      \
+    void gko_matrix_csr_##_name##_apply(gko_matrix_csr_##_name mat_st_ptr,     \
+                                        gko_matrix_dense_##_name_dense alpha,  \
+                                        gko_matrix_dense_##_name_dense x,      \
+                                        gko_matrix_dense_##_name_dense beta,   \
+                                        gko_matrix_dense_##_name_dense y)      \
     {                                                                          \
         mat_st_ptr->mat->apply(alpha->mat, x->mat, beta->mat, y->mat);         \
     }
@@ -631,19 +625,19 @@ struct gko_deferred_factory_parameter_st {
     gko::deferred_factory_parameter<const gko::LinOpFactory> parameter;
 };
 
-void ginkgo_deferred_factory_parameter_delete(
+void gko_deferred_factory_parameter_delete(
     gko_deferred_factory_parameter dfp_st_ptr)
 {
     delete dfp_st_ptr;
 }
 
 //-------------------- Preconditioner -----------------------------
-gko_deferred_factory_parameter ginkgo_preconditioner_none_create()
+gko_deferred_factory_parameter gko_preconditioner_none_create()
 {
     return new gko_deferred_factory_parameter_st{};
 }
 
-gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_jacobi_f64_i32_create(
     int blocksize)
 {
     return new gko_deferred_factory_parameter_st{
@@ -651,7 +645,7 @@ gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
             static_cast<gko::uint32>(blocksize))};
 }
 
-gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f32_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_jacobi_f32_i32_create(
     int blocksize)
 {
     return new gko_deferred_factory_parameter_st{
@@ -659,7 +653,7 @@ gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f32_i32_create(
             static_cast<gko::uint32>(blocksize))};
 }
 
-gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_ilu_f64_i32_create(
     gko_deferred_factory_parameter dfp_st_ptr)
 {
     // Generate an ILU preconditioner factory by setting lower and upper
@@ -672,7 +666,7 @@ gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
 }
 
 //-------------------- Factorization ------------------------------
-gko_deferred_factory_parameter ginkgo_factorization_parilu_f64_i32_create(
+gko_deferred_factory_parameter gko_factorization_parilu_f64_i32_create(
     int iteration, bool skip_sorting)
 {
     // Generate factors using ParILU
@@ -689,14 +683,14 @@ struct gko_linop_st {
     std::shared_ptr<gko::LinOp> shared_ptr;
 };
 
-void ginkgo_linop_delete(gko_linop linop_st_ptr) { delete linop_st_ptr; }
+void gko_linop_delete(gko_linop linop_st_ptr) { delete linop_st_ptr; }
 
 
 struct gko_log_convergence_f32_st {
     std::shared_ptr<gko::log::Convergence<float>> shared_ptr;
 };
 
-void ginkgo_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_st_ptr)
+void gko_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_st_ptr)
 {
     delete log_conv_st_ptr;
 }
@@ -705,19 +699,18 @@ struct gko_log_convergence_f64_st {
     std::shared_ptr<gko::log::Convergence<double>> shared_ptr;
 };
 
-void ginkgo_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_st_ptr)
+void gko_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_st_ptr)
 {
     delete log_conv_st_ptr;
 }
 
-void ginkgo_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
-                        gko_linop x_st_ptr)
+void gko_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr, gko_linop x_st_ptr)
 {
     (A_st_ptr->shared_ptr)->apply(b_st_ptr->shared_ptr, x_st_ptr->shared_ptr);
 }
 
 //-------------------- Iterative solvers -----------------------------
-gko_linop ginkgo_solver_cg_f64_create(
+gko_linop gko_solver_cg_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter)
@@ -734,7 +727,7 @@ gko_linop ginkgo_solver_cg_f64_create(
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_bicgstab_f64_create(
+gko_linop gko_solver_bicgstab_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter)
@@ -751,7 +744,7 @@ gko_linop ginkgo_solver_bicgstab_f64_create(
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_gmres_f64_create(
+gko_linop gko_solver_gmres_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim)
@@ -769,7 +762,7 @@ gko_linop ginkgo_solver_gmres_f64_create(
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_cg_f32_create(
+gko_linop gko_solver_cg_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter)
@@ -786,7 +779,7 @@ gko_linop ginkgo_solver_cg_f32_create(
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_bicgstab_f32_create(
+gko_linop gko_solver_bicgstab_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter)
@@ -803,7 +796,7 @@ gko_linop ginkgo_solver_bicgstab_f32_create(
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_gmres_f32_create(
+gko_linop gko_solver_gmres_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim)
@@ -822,8 +815,8 @@ gko_linop ginkgo_solver_gmres_f32_create(
 }
 
 //-------------------- Direct solvers -----------------------------
-gko_linop ginkgo_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
-                                                  gko_linop A_st_ptr)
+gko_linop gko_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                               gko_linop A_st_ptr)
 {
     return new gko_linop_st{
         gko::experimental::solver::Direct<double, long>::build()
@@ -834,8 +827,8 @@ gko_linop ginkgo_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr)
+gko_linop gko_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr)
 {
     return new gko_linop_st{
         gko::experimental::solver::Direct<double, long>::build()
@@ -845,8 +838,8 @@ gko_linop ginkgo_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr)
+gko_linop gko_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr)
 {
     return new gko_linop_st{
         gko::experimental::solver::Direct<double, int>::build()
@@ -856,8 +849,8 @@ gko_linop ginkgo_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
             ->generate(A_st_ptr->shared_ptr)};
 }
 
-gko_linop ginkgo_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr)
+gko_linop gko_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr)
 {
     return new gko_linop_st{
         gko::experimental::solver::Direct<float, int>::build()
@@ -868,37 +861,37 @@ gko_linop ginkgo_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
 }
 
 //-------------------- Loggers -----------------------------
-gko_log_convergence_f32 ginkgo_logger_convergence_f32_create()
+gko_log_convergence_f32 gko_logger_convergence_f32_create()
 {
     return new gko_log_convergence_f32_st{
         gko::log::Convergence<float>::create()};
 }
 
-gko_log_convergence_f64 ginkgo_logger_convergence_f64_create()
+gko_log_convergence_f64 gko_logger_convergence_f64_create()
 {
     return new gko_log_convergence_f64_st{
         gko::log::Convergence<double>::create()};
 }
 
-void ginkgo_logger_convergence_f32_solver_add(
+void gko_logger_convergence_f32_solver_add(
     gko_linop solver_st_ptr, gko_log_convergence_f32 logger_st_ptr)
 {
     solver_st_ptr->shared_ptr->add_logger(logger_st_ptr->shared_ptr);
 }
 
-void ginkgo_logger_convergence_f64_solver_add(
+void gko_logger_convergence_f64_solver_add(
     gko_linop solver_st_ptr, gko_log_convergence_f64 logger_st_ptr)
 {
     solver_st_ptr->shared_ptr->add_logger(logger_st_ptr->shared_ptr);
 }
 
-int ginkgo_logger_convergence_f64_get_num_iterations(
+int gko_logger_convergence_f64_get_num_iterations(
     gko_log_convergence_f64 logger_st_ptr)
 {
     return logger_st_ptr->shared_ptr->get_num_iterations();
 }
 
-int ginkgo_logger_convergence_f32_get_num_iterations(
+int gko_logger_convergence_f32_get_num_iterations(
     gko_log_convergence_f32 logger_st_ptr)
 {
     return logger_st_ptr->shared_ptr->get_num_iterations();

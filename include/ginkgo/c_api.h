@@ -18,56 +18,56 @@
  * @brief A build instruction for declaring gko::array<T> in the C API header
  * file
  */
-#define GKO_DECLARE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                   \
-    struct gko_array_##_name##_st;                                            \
-    typedef struct gko_array_##_name##_st* gko_array_##_name;                 \
-    gko_array_##_name ginkgo_array_##_name##_create(gko_executor exec_st_ptr, \
-                                                    size_t size);             \
-    gko_array_##_name ginkgo_array_##_name##_create_view(                     \
-        gko_executor exec_st_ptr, size_t size, _ctype* data_ptr);             \
-    void ginkgo_array_##_name##_delete(gko_array_##_name array_st_ptr);       \
-    size_t ginkgo_array_##_name##_get_size(gko_array_##_name array_st_ptr);
+#define GKO_DECLARE_ARRAY_OVERLOAD(_ctype, _cpptype, _name)                \
+    struct gko_array_##_name##_st;                                         \
+    typedef struct gko_array_##_name##_st* gko_array_##_name;              \
+    gko_array_##_name gko_array_##_name##_create(gko_executor exec_st_ptr, \
+                                                 size_t size);             \
+    gko_array_##_name gko_array_##_name##_create_view(                     \
+        gko_executor exec_st_ptr, size_t size, _ctype* data_ptr);          \
+    void gko_array_##_name##_delete(gko_array_##_name array_st_ptr);       \
+    size_t gko_array_##_name##_get_size(gko_array_##_name array_st_ptr);
 
 /**
  * @brief A build instruction for declaring gko::matrix::Dense<T> in the C API
  * header file
  */
-#define GKO_DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                  \
-    struct gko_matrix_dense_##_name##_st;                                    \
-    typedef struct gko_matrix_dense_##_name##_st* gko_matrix_dense_##_name;  \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create(           \
-        gko_executor exec, gko_dim2_st size);                                \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_create_view(      \
-        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride); \
-    void ginkgo_matrix_dense_##_name##_delete(                               \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    void ginkgo_matrix_dense_##_name##_fill(                                 \
-        gko_matrix_dense_##_name mat_st_ptr, _ctype value);                  \
-    _ctype ginkgo_matrix_dense_##_name##_at(                                 \
-        gko_matrix_dense_##_name mat_st_ptr, size_t row, size_t col);        \
-    gko_dim2_st ginkgo_matrix_dense_##_name##_get_size(                      \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    _ctype* ginkgo_matrix_dense_##_name##_get_values(                        \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    const _ctype* ginkgo_matrix_dense_##_name##_get_const_values(            \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    size_t ginkgo_matrix_dense_##_name##_get_num_stored_elements(            \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    size_t ginkgo_matrix_dense_##_name##_get_stride(                         \
-        gko_matrix_dense_##_name mat_st_ptr);                                \
-    void ginkgo_matrix_dense_##_name##_compute_dot(                          \
-        gko_matrix_dense_##_name mat_st_ptr1,                                \
-        gko_matrix_dense_##_name mat_st_ptr2,                                \
-        gko_matrix_dense_##_name mat_st_ptr_res);                            \
-    void ginkgo_matrix_dense_##_name##_compute_norm1(                        \
-        gko_matrix_dense_##_name mat_st_ptr1,                                \
-        gko_matrix_dense_##_name mat_st_ptr2);                               \
-    void ginkgo_matrix_dense_##_name##_compute_norm2(                        \
-        gko_matrix_dense_##_name mat_st_ptr1,                                \
-        gko_matrix_dense_##_name mat_st_ptr2);                               \
-    gko_matrix_dense_##_name ginkgo_matrix_dense_##_name##_read(             \
-        const char* str_ptr, gko_executor exec);                             \
-    char* ginkgo_matrix_dense_##_name##_write_mtx(                           \
+#define GKO_DECLARE_DENSE_OVERLOAD(_ctype, _cpptype, _name)                   \
+    struct gko_matrix_dense_##_name##_st;                                     \
+    typedef struct gko_matrix_dense_##_name##_st* gko_matrix_dense_##_name;   \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_create(               \
+        gko_executor exec, gko_dim2_st size);                                 \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_create_view(          \
+        gko_executor exec, gko_dim2_st size, _ctype* values, size_t stride);  \
+    void gko_matrix_dense_##_name##_delete(                                   \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    void gko_matrix_dense_##_name##_fill(gko_matrix_dense_##_name mat_st_ptr, \
+                                         _ctype value);                       \
+    _ctype gko_matrix_dense_##_name##_at(gko_matrix_dense_##_name mat_st_ptr, \
+                                         size_t row, size_t col);             \
+    gko_dim2_st gko_matrix_dense_##_name##_get_size(                          \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    _ctype* gko_matrix_dense_##_name##_get_values(                            \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    const _ctype* gko_matrix_dense_##_name##_get_const_values(                \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    size_t gko_matrix_dense_##_name##_get_num_stored_elements(                \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    size_t gko_matrix_dense_##_name##_get_stride(                             \
+        gko_matrix_dense_##_name mat_st_ptr);                                 \
+    void gko_matrix_dense_##_name##_compute_dot(                              \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2,                                 \
+        gko_matrix_dense_##_name mat_st_ptr_res);                             \
+    void gko_matrix_dense_##_name##_compute_norm1(                            \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2);                                \
+    void gko_matrix_dense_##_name##_compute_norm2(                            \
+        gko_matrix_dense_##_name mat_st_ptr1,                                 \
+        gko_matrix_dense_##_name mat_st_ptr2);                                \
+    gko_matrix_dense_##_name gko_matrix_dense_##_name##_read(                 \
+        const char* str_ptr, gko_executor exec);                              \
+    char* gko_matrix_dense_##_name##_write_mtx(                               \
         gko_matrix_dense_##_name mat_st_ptr);
 
 /**
@@ -78,36 +78,35 @@
                                  _cpptype_index, _name, _name_dense)           \
     struct gko_matrix_csr_##_name##_st;                                        \
     typedef struct gko_matrix_csr_##_name##_st* gko_matrix_csr_##_name;        \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create(                 \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_create(                    \
         gko_executor exec, gko_dim2_st size, size_t nnz);                      \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_create_view(            \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_create_view(               \
         gko_executor exec, gko_dim2_st size, size_t nnz,                       \
         _ctype_index* row_ptrs, _ctype_index* col_idxs, _ctype_value* values); \
-    void ginkgo_matrix_csr_##_name##_delete(                                   \
+    void gko_matrix_csr_##_name##_delete(gko_matrix_csr_##_name mat_st_ptr);   \
+    gko_matrix_csr_##_name gko_matrix_csr_##_name##_read(const char* str_ptr,  \
+                                                         gko_executor exec);   \
+    void gko_write_csr_##_name##_in_coo(const char* str_ptr,                   \
+                                        gko_matrix_csr_##_name mat_st_ptr);    \
+    size_t gko_matrix_csr_##_name##_get_num_stored_elements(                   \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    gko_matrix_csr_##_name ginkgo_matrix_csr_##_name##_read(                   \
-        const char* str_ptr, gko_executor exec);                               \
-    void ginkgo_write_csr_##_name##_in_coo(const char* str_ptr,                \
-                                           gko_matrix_csr_##_name mat_st_ptr); \
-    size_t ginkgo_matrix_csr_##_name##_get_num_stored_elements(                \
+    size_t gko_matrix_csr_##_name##_get_num_srow_elements(                     \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    size_t ginkgo_matrix_csr_##_name##_get_num_srow_elements(                  \
+    gko_dim2_st gko_matrix_csr_##_name##_get_size(                             \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    gko_dim2_st ginkgo_matrix_csr_##_name##_get_size(                          \
+    const _ctype_value* gko_matrix_csr_##_name##_get_const_values(             \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    const _ctype_value* ginkgo_matrix_csr_##_name##_get_const_values(          \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_col_idxs(           \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_col_idxs(        \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_row_ptrs(           \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_row_ptrs(        \
+    const _ctype_index* gko_matrix_csr_##_name##_get_const_srow(               \
         gko_matrix_csr_##_name mat_st_ptr);                                    \
-    const _ctype_index* ginkgo_matrix_csr_##_name##_get_const_srow(            \
-        gko_matrix_csr_##_name mat_st_ptr);                                    \
-    void ginkgo_matrix_csr_##_name##_apply(                                    \
-        gko_matrix_csr_##_name mat_st_ptr,                                     \
-        gko_matrix_dense_##_name_dense alpha,                                  \
-        gko_matrix_dense_##_name_dense x, gko_matrix_dense_##_name_dense beta, \
-        gko_matrix_dense_##_name_dense y);
+    void gko_matrix_csr_##_name##_apply(gko_matrix_csr_##_name mat_st_ptr,     \
+                                        gko_matrix_dense_##_name_dense alpha,  \
+                                        gko_matrix_dense_##_name_dense x,      \
+                                        gko_matrix_dense_##_name_dense beta,   \
+                                        gko_matrix_dense_##_name_dense y);
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,7 +114,7 @@ extern "C" {
 /* ----------------------------------------------------------------------
  * C memory management
  * ---------------------------------------------------------------------- */
-void ginkgo_c_char_ptr_free(char* ptr);
+void gko_c_char_ptr_free(char* ptr);
 
 /* ----------------------------------------------------------------------
  * Library functions for retrieving configuration information in GINKGO
@@ -124,7 +123,7 @@ void ginkgo_c_char_ptr_free(char* ptr);
  * @brief This function is a wrapper for printing the version of the ginkgo
  * library
  */
-void ginkgo_version_print();
+void gko_version_print();
 
 /* ----------------------------------------------------------------------
  * Library functions for some basic types in GINKGO
@@ -146,7 +145,7 @@ typedef struct {
  *
  * @return gko_dim2_st C struct that contains members of the gko::dim<2> type
  */
-gko_dim2_st ginkgo_dim2_create(size_t rows, size_t cols);
+gko_dim2_st gko_dim2_create(size_t rows, size_t cols);
 
 /**
  * @brief Obtains the value of the first element of a gko::dim<2> type
@@ -155,7 +154,7 @@ gko_dim2_st ginkgo_dim2_create(size_t rows, size_t cols);
  *
  * @return size_t First dimension
  */
-size_t ginkgo_dim2_rows_get(gko_dim2_st dim);
+size_t gko_dim2_rows_get(gko_dim2_st dim);
 
 /**
  * @brief Obtains the value of the second element of a gko::dim<2> type
@@ -164,7 +163,7 @@ size_t ginkgo_dim2_rows_get(gko_dim2_st dim);
  *
  * @return size_t Second dimension
  */
-size_t ginkgo_dim2_cols_get(gko_dim2_st dim);
+size_t gko_dim2_cols_get(gko_dim2_st dim);
 
 /* ----------------------------------------------------------------------
  * Library functions for executors (Creation, Getters) in GINKGO
@@ -185,7 +184,7 @@ typedef struct gko_executor_st* gko_executor;
  * @param exec_st_ptr Raw pointer to the shared pointer of the executor to be
  * deleted
  */
-void ginkgo_executor_delete(gko_executor exec_st_ptr);
+void gko_executor_delete(gko_executor exec_st_ptr);
 
 /**
  * @brief Returns the master OmpExecutor of this Executor.
@@ -194,7 +193,7 @@ void ginkgo_executor_delete(gko_executor exec_st_ptr);
  *
  * @return gko_executor Raw pointer to the shared pointer of the master executor
  */
-gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
+gko_executor gko_executor_get_master(gko_executor exec_st_ptr);
 
 /**
  * @brief Verifies whether the executors share the same memory.
@@ -203,15 +202,15 @@ gko_executor ginkgo_executor_get_master(gko_executor exec_st_ptr);
  * @param other_exec_st_ptr Raw pointer to the shared pointer of the other
  * executor
  */
-bool ginkgo_executor_memory_accessible(gko_executor exec_st_ptr,
-                                       gko_executor other_exec_st_ptr);
+bool gko_executor_memory_accessible(gko_executor exec_st_ptr,
+                                    gko_executor other_exec_st_ptr);
 
 /**
  * @brief Synchronize the operations launched on the executor with its master.
  *
  * @param exec_st_ptr Raw pointer to the shared pointer of the current executor
  */
-void ginkgo_executor_synchronize(gko_executor exec_st_ptr);
+void gko_executor_synchronize(gko_executor exec_st_ptr);
 
 //---------------------------- CPU -----------------------------
 /**
@@ -220,7 +219,7 @@ void ginkgo_executor_synchronize(gko_executor exec_st_ptr);
  * @return gko_executor Raw pointer to the shared pointer of the OMP executor
  * created
  */
-gko_executor ginkgo_executor_omp_create();
+gko_executor gko_executor_omp_create();
 
 /**
  * @brief Create a reference executor
@@ -228,7 +227,7 @@ gko_executor ginkgo_executor_omp_create();
  * @return gko_executor Raw pointer to the shared pointer of the reference
  * executor created
  */
-gko_executor ginkgo_executor_reference_create();
+gko_executor gko_executor_reference_create();
 
 /**
  * @brief Get the number of cores of the CPU associated to this executor.
@@ -237,7 +236,7 @@ gko_executor ginkgo_executor_reference_create();
  *
  * @return size_t No. of cores
  */
-size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
+size_t gko_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of threads per core of the CPU associated to this
@@ -247,7 +246,7 @@ size_t ginkgo_executor_cpu_get_num_cores(gko_executor exec_st_ptr);
  *
  * @return size_t No. of threads per core
  */
-size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
+size_t gko_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
 
 //---------------------------- GPU -----------------------------
 /**
@@ -257,7 +256,7 @@ size_t ginkgo_executor_cpu_get_num_threads_per_core(gko_executor exec_st_ptr);
  *
  * @return size_t Device id
  */
-size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_get_device_id(gko_executor exec_st_ptr);
 
 // CUDA/HIP
 /**
@@ -269,15 +268,15 @@ size_t ginkgo_executor_gpu_get_device_id(gko_executor exec_st_ptr);
  * @return gko_executor Raw pointer to the shared pointer of the CUDA executor
  * created
  */
-gko_executor ginkgo_executor_cuda_create(size_t device_id,
-                                         gko_executor exec_st_ptr);
+gko_executor gko_executor_cuda_create(size_t device_id,
+                                      gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of devices of this CUDA executor.
  *
  * @return size_t No. of devices
  */
-size_t ginkgo_executor_cuda_get_num_devices();
+size_t gko_executor_cuda_get_num_devices();
 
 /**
  * @brief Create a HIP executor
@@ -288,15 +287,15 @@ size_t ginkgo_executor_cuda_get_num_devices();
  * @return gko_executor Raw pointer to the shared pointer of the HIP executor
  * created
  */
-gko_executor ginkgo_executor_hip_create(size_t device_id,
-                                        gko_executor exec_st_ptr);
+gko_executor gko_executor_hip_create(size_t device_id,
+                                     gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of devices of this HIP executor.
  *
  * @return size_t No. of devices
  */
-size_t ginkgo_executor_hip_get_num_devices();
+size_t gko_executor_hip_get_num_devices();
 
 /**
  * @brief Get the number of multiprocessors of this thread-based executor.
@@ -306,8 +305,7 @@ size_t ginkgo_executor_hip_get_num_devices();
  *
  * @return size_t No. multiprocessors
  */
-size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
-    gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_num_multiprocessor(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of warps per SM of this thread-based executor.
@@ -317,8 +315,7 @@ size_t ginkgo_executor_gpu_thread_get_num_multiprocessor(
  *
  * @return size_t No. of warps per SM
  */
-size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
-    gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_num_warps_per_sm(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of warps of this thread-based executor.
@@ -328,7 +325,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps_per_sm(
  *
  * @return size_t No. of warps
  */
-size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the warp size of this thread-based executor.
@@ -338,7 +335,7 @@ size_t ginkgo_executor_gpu_thread_get_num_warps(gko_executor exec_st_ptr);
  *
  * @return size_t The warp size of this executor
  */
-size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the major version of compute capability.
@@ -348,7 +345,7 @@ size_t ginkgo_executor_gpu_thread_get_warp_size(gko_executor exec_st_ptr);
  *
  * @return size_t The major version of compute capability
  */
-size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the minor version of compute capability.
@@ -358,7 +355,7 @@ size_t ginkgo_executor_gpu_thread_get_major_version(gko_executor exec_st_ptr);
  *
  * @return size_t The minor version of compute capability
  */
-size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the closest NUMA node.
@@ -368,7 +365,7 @@ size_t ginkgo_executor_gpu_thread_get_minor_version(gko_executor exec_st_ptr);
  *
  * @return size_t No. of the closest NUMA node
  */
-size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
 
 // DPCPP
 
@@ -381,15 +378,15 @@ size_t ginkgo_executor_gpu_thread_get_closest_numa(gko_executor exec_st_ptr);
  * @return gko_executor Raw pointer to the shared pointer of the DPCPP executor
  * created
  */
-gko_executor ginkgo_executor_dpcpp_create(size_t device_id,
-                                          gko_executor exec_st_ptr);
+gko_executor gko_executor_dpcpp_create(size_t device_id,
+                                       gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of devices of this DPCPP executor.
  *
  * @return size_t No. of devices
  */
-size_t ginkgo_executor_dpcpp_get_num_devices();
+size_t gko_executor_dpcpp_get_num_devices();
 
 /**
  * @brief Get the number of subgroups of this item-based executor.
@@ -399,7 +396,7 @@ size_t ginkgo_executor_dpcpp_get_num_devices();
  *
  * @return size_t No. of subgroups
  */
-size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
+size_t gko_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of workgroups of this item-based executor.
@@ -409,8 +406,7 @@ size_t ginkgo_executor_gpu_item_get_max_subgroup_size(gko_executor exec_st_ptr);
  *
  * @return size_t No. of workgroups
  */
-size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
-    gko_executor exec_st_ptr);
+size_t gko_executor_gpu_item_get_max_workgroup_size(gko_executor exec_st_ptr);
 
 /**
  * @brief Get the number of computing units of this item-based executor.
@@ -420,8 +416,7 @@ size_t ginkgo_executor_gpu_item_get_max_workgroup_size(
  *
  * @return size_t No. of computing units
  */
-size_t ginkgo_executor_gpu_item_get_num_computing_units(
-    gko_executor exec_st_ptr);
+size_t gko_executor_gpu_item_get_num_computing_units(gko_executor exec_st_ptr);
 
 /* ----------------------------------------------------------------------
  * Library functions for creating arrays and array operations in GINKGO
@@ -465,7 +460,7 @@ typedef struct gko_deferred_factory_parameter_st*
  * @param dfp_st_ptr Raw pointer to the shared pointer of the deferred factory
  * parameter object to be deleted
  */
-void ginkgo_deferred_factory_parameter_delete(
+void gko_deferred_factory_parameter_delete(
     gko_deferred_factory_parameter dfp_st_ptr);
 
 //-------------------- Preconditioner -----------------------------
@@ -475,17 +470,17 @@ void ginkgo_deferred_factory_parameter_delete(
  * @return gko_deferred_factory_parameter Raw pointer to the shared pointer of
  * the none preconditioner created
  */
-gko_deferred_factory_parameter ginkgo_preconditioner_none_create();
+gko_deferred_factory_parameter gko_preconditioner_none_create();
 
-gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f64_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_jacobi_f64_i32_create(
     int blocksize);
-gko_deferred_factory_parameter ginkgo_preconditioner_jacobi_f32_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_jacobi_f32_i32_create(
     int blocksize);
-gko_deferred_factory_parameter ginkgo_preconditioner_ilu_f64_i32_create(
+gko_deferred_factory_parameter gko_preconditioner_ilu_f64_i32_create(
     gko_deferred_factory_parameter dfp_st_ptr);
 
 //-------------------- Factorization ------------------------------
-gko_deferred_factory_parameter ginkgo_factorization_parilu_f64_i32_create(
+gko_deferred_factory_parameter gko_factorization_parilu_f64_i32_create(
     int iteration, bool skip_sorting);
 
 /* ----------------------------------------------------------------------
@@ -507,7 +502,7 @@ typedef struct gko_linop_st* gko_linop;
  * @param linop_st_ptr Raw pointer to the shared pointer of the LinOp object to
  * be deleted
  */
-void ginkgo_linop_delete(gko_linop linop_st_ptr);
+void gko_linop_delete(gko_linop linop_st_ptr);
 
 /**
  * @brief Applies a linear operator to a vector (or a sequence of vectors).
@@ -518,52 +513,52 @@ void ginkgo_linop_delete(gko_linop linop_st_ptr);
  * @param x_st_ptr Raw pointer to the shared pointer of the output vector where
  * the result is stored
  */
-void ginkgo_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
-                        gko_linop x_st_ptr);
+void gko_linop_apply(gko_linop A_st_ptr, gko_linop b_st_ptr,
+                     gko_linop x_st_ptr);
 
 //-------------------- Iterative solvers -----------------------------
-gko_linop ginkgo_solver_cg_f64_create(
+gko_linop gko_solver_cg_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_solver_bicgstab_f64_create(
+gko_linop gko_solver_bicgstab_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_solver_gmres_f64_create(
+gko_linop gko_solver_gmres_f64_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim);
 
-gko_linop ginkgo_solver_cg_f32_create(
+gko_linop gko_solver_cg_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_solver_bicgstab_f32_create(
+gko_linop gko_solver_bicgstab_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter);
 
-gko_linop ginkgo_solver_gmres_f32_create(
+gko_linop gko_solver_gmres_f32_create(
     gko_executor exec_st_ptr, gko_linop A_st_ptr,
     gko_deferred_factory_parameter preconditioner_dfp_st_ptr, double reduction,
     int maxiter, int krylov_dim);
 
 //-------------------- Direct solvers -----------------------------
-gko_linop ginkgo_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
-                                                  gko_linop A_st_ptr);
+gko_linop gko_solver_spd_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                               gko_linop A_st_ptr);
 
-gko_linop ginkgo_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr);
+gko_linop gko_solver_lu_direct_f64_i64_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr);
 
-gko_linop ginkgo_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr);
+gko_linop gko_solver_lu_direct_f64_i32_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr);
 
-gko_linop ginkgo_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
-                                                 gko_linop A_st_ptr);
+gko_linop gko_solver_lu_direct_f32_i32_create(gko_executor exec_st_ptr,
+                                              gko_linop A_st_ptr);
 
 //-------------------- Loggers -----------------------------
 /**
@@ -584,23 +579,23 @@ typedef struct gko_log_convergence_f64_st* gko_log_convergence_f64;
  * @param log_conv_st_ptr Raw pointer to the shared pointer of the logger object
  * to be deleted
  */
-void ginkgo_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_st_ptr);
-void ginkgo_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_st_ptr);
+void gko_log_convergence_f32_delete(gko_log_convergence_f32 log_conv_st_ptr);
+void gko_log_convergence_f64_delete(gko_log_convergence_f64 log_conv_st_ptr);
 
-gko_log_convergence_f32 ginkgo_logger_convergence_f32_create();
+gko_log_convergence_f32 gko_logger_convergence_f32_create();
 
-void ginkgo_logger_convergence_f32_solver_add(
+void gko_logger_convergence_f32_solver_add(
     gko_linop solver_st_ptr, gko_log_convergence_f32 logger_st_ptr);
 
-gko_log_convergence_f64 ginkgo_logger_convergence_f64_create();
+gko_log_convergence_f64 gko_logger_convergence_f64_create();
 
-void ginkgo_logger_convergence_f64_solver_add(
+void gko_logger_convergence_f64_solver_add(
     gko_linop solver_st_ptr, gko_log_convergence_f64 logger_st_ptr);
 
-int ginkgo_logger_convergence_f64_get_num_iterations(
+int gko_logger_convergence_f64_get_num_iterations(
     gko_log_convergence_f64 logger_st_ptr);
 
-int ginkgo_logger_convergence_f32_get_num_iterations(
+int gko_logger_convergence_f32_get_num_iterations(
     gko_log_convergence_f32 logger_st_ptr);
 
 #ifdef __cplusplus
