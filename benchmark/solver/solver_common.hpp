@@ -492,9 +492,9 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             for (auto _ : ic.warmup_run()) {
                 auto x_clone = clone(state.x);
                 auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_warmup_max_iters)
-                             ->generate(state.system_matrix);
+                auto solver = generate_solver(exec, give(precond), solver_name,
+                                              FLAGS_warmup_max_iters)
+                                  ->generate(state.system_matrix);
                 solver->apply(state.b, x_clone);
                 exec->synchronize();
             }
