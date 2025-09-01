@@ -13,8 +13,6 @@ class CerebrasInterface {
 public:
     CerebrasInterface(bool use_simulator = false);
 
-    ~CerebrasInterface();
-
     void copy_h2d(std::string target_var, float* vec, size_t vec_size,
                   int offset1, int offset2, int size1, int size2,
                   int elements_per_pe, bool streaming, bool nonblocking);
@@ -24,6 +22,8 @@ public:
                   int elements_per_pe, bool streaming, bool nonblocking);
 
     void call_func(std::string func_name, bool nonblocking = false);
+
+    void destroy();
 
 private:
     std::unique_ptr<PythonObject> pFuncDict_;

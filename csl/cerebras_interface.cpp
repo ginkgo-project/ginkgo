@@ -42,7 +42,7 @@ CerebrasInterface::CerebrasInterface(bool use_simulator)
     PyErr_Print();
 }
 
-CerebrasInterface::~CerebrasInterface()
+void CerebrasInterface::destroy()
 {
     stop_device();
     PyErr_Print();

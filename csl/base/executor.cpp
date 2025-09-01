@@ -21,52 +21,20 @@
 
 namespace gko {
 
-// class CerebrasImpl
-//{
-// public:
-//     CerebrasImpl()
-//     {
-//         cerebras_device_ = std::make_unique<CerebrasInterface>(true);
-//     }
-//
-//     void copy_h2d(std::string target_var, float* vec, size_t vec_size, int
-//     offset1,
-//         int offset2, int size1, int size2, int elements_per_pe, bool
-//         streaming, bool nonblocking)
-//     {
-//         cerebras_device_->copy_h2d(target_var, vec, vec_size, offset1,
-//         offset2,
-//             size1, size2, elements_per_pe, streaming, nonblocking);
-//     }
-//
-//     void copy_d2h(std::string target_var, float* vec, size_t vec_size, int
-//     offset1,
-//         int offset2, int size1, int size2, int elements_per_pe, bool
-//         streaming, bool nonblocking)
-//     {
-//         cerebras_device_->copy_d2h(target_var, vec, vec_size, offset1,
-//         offset2,
-//             size1, size2, elements_per_pe, streaming, nonblocking);
-//     }
-//
-//     void call_func(std::string func_name, bool nonblocking = false)
-//     {
-//         cerebras_device_->call_func(func_name, nonblocking);
-//     }
-//
-// private:
-//     std::unique_ptr<CerebrasInterface> cerebras_device_;
-// };
 
-
-void CslExecutor::init_handle()
+inline CerebrasInterface init_interface(bool use_simulator = true)
 {
-    this->cerebras_handle_ =
-        handle_manager<CerebrasContext>(CerebrasInterface(true));
+    CerebrasInterface handle(use_simulator);
+    return handle;
 }
 
 
-CerebrasContext* CslExecutor::get_handle() const { return cerebras_context_; }
+void CslExecutor::init_context(bool use_simulator)
+{
+    this->cerebras_context_ = handle_manager<CerebrasContext>(
+        init_interface(use_simulator),
+        [](CerebrasInterface context) { context.destroy(); });
+}
 
 void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const

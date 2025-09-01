@@ -2268,14 +2268,15 @@ public:
      */
     static int get_num_devices(std::string device_type);
 
-    CerebrasContext* get_handle() const;
+    CerebrasContext* get_context() const { return cerebras_context_.get(); }
 
 
 protected:
     CslExecutor(int device_id, std::shared_ptr<Executor> master)
         : master_(master)
     {
-        this->init_handle();
+        this->get_exec_info().device_id = device_id;
+        this->init_context(true);
     }
 
     void populate_exec_info(const machine_topology* mach_topo) override;
@@ -2298,17 +2299,14 @@ protected:
 
     bool verify_memory_to(const CslExecutor* dest_exec) const override;
 
-    void init_handle();
-
-    // Using PIMPL pattern to hide CerebrasInterface class
-    // from this header to reduce dependencies and simplify
-    // compilation flow.
+    void init_context(bool use_simulator);
 
 private:
     std::shared_ptr<Executor> master_;
+
     template <typename T>
-    using handle_manager = std::unique_ptr<T>;
-    handle_manager<CerebrasContext> cerebras_handle_;
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
+    handle_manager<CerebrasContext> cerebras_context_;
 };
 
 
