@@ -27,11 +27,14 @@
 # ``NVTX_FOUND``
 #   If false, do not try to use the NVTX library.
 
-find_path(
-    NVTX3_INCLUDE_DIR
-    NAMES nvToolsExt.h
-    HINTS ${CUDAToolkit_INCLUDE_DIRS}/nvtx3
+# In some platforms, CUDAToolkit_INCLUDE_DIRS can contain more than one directory.
+# ${list}/suffix will only add suffix to the last one
+list(
+    TRANSFORM CUDAToolkit_INCLUDE_DIRS
+    APPEND "/nvtx3"
+    OUTPUT_VARIABLE NVTX3_INCLUDE_HINTS
 )
+find_path(NVTX3_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${NVTX3_INCLUDE_HINTS})
 find_path(NVTX_INCLUDE_DIR NAMES nvToolsExt.h HINTS ${CUDAToolkit_INCLUDE_DIRS})
 mark_as_advanced(NVTX3_INCLUDE_DIR)
 mark_as_advanced(NVTX_INCLUDE_DIR)
