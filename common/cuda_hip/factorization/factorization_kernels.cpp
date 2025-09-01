@@ -588,12 +588,23 @@ void symbolic_validate(
             factors_lookup.storage.get_const_data(), found.get_data(),
             missing.get_data());
     }
+    auto get_bool_identity = []() {
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 13000
+        // CUDA 13 remove thrust::identity<T>.
+        // Note. ::cuda::std::identity does not contain conversion like
+        // thrust::identity<T>. If conversion is required, we need to
+        // provide function for that.
+        return ::cuda::std::identity{};
+#else
+        return thrust::identity<bool>{};
+#endif
+    };
     valid = thrust::all_of(thrust_policy(exec), found.get_const_data(),
                            found.get_const_data() + found.get_size(),
-                           thrust::identity<bool>{}) &&
+                           get_bool_identity()) &&
             !thrust::any_of(thrust_policy(exec), missing.get_const_data(),
                             missing.get_const_data() + missing.get_size(),
-                            thrust::identity<bool>{});
+                            get_bool_identity());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
