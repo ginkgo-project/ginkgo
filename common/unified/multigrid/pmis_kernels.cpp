@@ -13,6 +13,8 @@
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
+#include <random>
+
 
 namespace gko {
 namespace kernels {
@@ -31,7 +33,34 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
                             remove_complex<ValueType> strength_threshold,
                             IndexType* sparsity_rows)
 {
-    GKO_NOT_IMPLEMENTED;
+    std::vector<IndexType> max_values(csr->get_size()[1]);
+
+    for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
+        remove_complex<ValueType> max_val = 0;
+        for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
+            for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
+                if (csr->get_const_col_idxs()[idx] == col && row != col) {
+                    max_val = std::max(max_val, gko::abs(csr->get_const_values()[idx]));
+                }
+            }
+        }
+        max_values[col] = max_val;
+    }
+
+    for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
+        for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
+            sparsity_rows[row] = 0;
+            for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
+                if (gko::abs(csr->get_const_values()[idx]) > strength_threshold * max_values[col] && row != col) {
+                    sparsity_rows[row] += 1;
+                }
+            }
+        }
+    }
+    for(int i=1; i < csr->get_size()[0] + 1; i++) {
+        sparsity_rows[i] += sparsity_rows[i-1];
+    }
+
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -44,7 +73,30 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
                         remove_complex<ValueType> strength_threshold,
                         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 {
-    GKO_NOT_IMPLEMENTED;
+    
+    std::vector<IndexType> max_values(csr->get_size()[1]);
+
+    for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
+        remove_complex<ValueType> max_val = 0;
+        for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
+            for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
+                if (csr->get_const_col_idxs()[idx] == col && row != col) {
+                    max_val = std::max(max_val, gko::abs(csr->get_const_values()[idx]));
+                }
+            }
+        }
+        max_values[col] = max_val;
+    }
+
+    for (IndexType col = 0; col < csr->get_size()[1]; ++col) {
+        for (IndexType row = 0; row < csr->get_size()[0]; ++row) {
+            for (auto idx = csr->get_const_row_ptrs()[row]; idx < csr->get_const_row_ptrs()[row + 1]; ++idx) {
+                if (gko::abs(csr->get_const_values()[idx]) > strength_threshold * max_values[col] && row != col) {
+                    strong_dep->get_col_idxs()[strong_dep->get_row_ptrs()[row]++] = col;
+                }
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -57,7 +109,20 @@ void initialize_weight_and_status(
     const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
-    GKO_NOT_IMPLEMENTED;
+    std::mt19937 gen(42);
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    for(int i=0; i< strong_dep->get_num_nonzeros(); i++){
+        weight[strong_dep->get_const_col_idxs()[i]] +=1;
+    }
+    for(int i=0; i<strong_dep->get_size()[0]; i++){
+        if(weight[i] > 0){
+            double rnd = dist(gen);
+            weight[i] += static_cast<remove_complex<ValueType>>(rnd);
+            status[i] = 0;
+        }else{
+            status[i] = 1;
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -71,6 +136,7 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
               int* status)
 {
     GKO_NOT_IMPLEMENTED;
+    
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
@@ -79,7 +145,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
 void count(std::shared_ptr<const DefaultExecutor> exec,
            const array<int>& status, size_type* num)
 {
-    GKO_NOT_IMPLEMENTED;
+    for(int i=0; i< status.get_size(); i++){
+        if(status.get_const_data()[i] == 0){
+            (*num)++;
+        }
+    }
 }
 
 
