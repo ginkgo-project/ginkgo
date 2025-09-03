@@ -47,7 +47,7 @@ protected:
         b = gen_mtx(size_m, size_n, size_n + 2);
         r = gen_mtx(size_m, size_n, size_n + 2);
         z1 = gen_mtx(size_m, size_n, size_n + 2);
-        z2 = gen_mtx(size_m, size_n, size_n + 2);
+        z2 = gko::clone(z1);
         w = gen_mtx(size_m, size_n, size_n + 2);
         m = gen_mtx(size_m, size_n, size_n + 2);
         n = gen_mtx(size_m, size_n, size_n + 2);
