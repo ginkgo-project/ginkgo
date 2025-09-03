@@ -18,6 +18,7 @@
 #include "core/distributed/helpers.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
+#include "ginkgo/core/base/range.hpp"
 
 
 namespace gko {
@@ -112,32 +113,25 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     LocalVector* rw = this->template create_workspace_op<LocalVector>(
         GKO_SOLVER_TRAITS::rw, conjoined_size);
-    auto r_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * b_stride * 2,
-                        rw->get_values()),
-        b_stride * 2);
+    auto r_unique =
+        rw->create_submatrix(local_span{0, original_size[0]},
+                             local_span{0, original_size[1]}, original_size);
     auto* r = r_unique.get();
-    auto w_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * b_stride * 2,
-                        rw->get_values() + b_stride),
-        b_stride * 2);
+    auto w_unique = rw->create_submatrix(
+        local_span{0, original_size[0]},
+        local_span{b_stride, b_stride + original_size[1]}, original_size);
     auto* w = w_unique.get();
 
     // z now consists of two identical repeating parts: z1 and z2, again, for
     // the same reason
     GKO_SOLVER_VECTOR(z, rw);
-    auto z1_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * b_stride * 2, z->get_values()),
-        b_stride * 2);
+    auto z1_unique =
+        z->create_submatrix(local_span{0, original_size[0]},
+                            local_span{0, original_size[1]}, original_size);
     auto* z1 = z1_unique.get();
-    auto z2_unique = LocalVector::create(
-        exec, original_size,
-        make_array_view(exec, original_size[0] * b_stride * 2,
-                        z->get_values() + b_stride),
-        b_stride * 2);
+    auto z2_unique = z->create_submatrix(
+        local_span{0, original_size[0]},
+        local_span{b_stride, b_stride + original_size[1]}, original_size);
     auto* z2 = z2_unique.get();
 
     GKO_SOLVER_VECTOR(p, dense_b);
@@ -149,15 +143,13 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // rho and delta become combined as well
     GKO_SOLVER_SCALAR(rhodelta, rw);
-    auto rho_unique = LocalVector::create(
-        exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, b_stride, rhodelta->get_values()), b_stride * 2);
+    auto rho_unique = rhodelta->create_submatrix(
+        local_span{0, 1}, local_span{0, original_size[1]},
+        dim<2>{1, original_size[1]});
     auto* rho = rho_unique.get();
-
-    auto delta_unique = LocalVector::create(
-        exec, dim<2>{1, original_size[1]},
-        make_array_view(exec, b_stride, rhodelta->get_values() + b_stride),
-        b_stride * 2);
+    auto delta_unique = rhodelta->create_submatrix(
+        local_span{0, 1}, local_span{b_stride, b_stride + original_size[1]},
+        dim<2>{1, original_size[1]});
     auto* delta = delta_unique.get();
 
     GKO_SOLVER_SCALAR(beta, dense_b);
