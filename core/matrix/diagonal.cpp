@@ -39,7 +39,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType>
 void Diagonal<ValueType>::validate_data() const
 {
-    GKO_VALIDATE(validation::is_finite(values_),
+    GKO_VALIDATE(validation::array_is_finite(values_),
                  "matrix must contain only finite values");
 }
 

@@ -63,7 +63,7 @@ void Coo<ValueType, IndexType>::validate_data() const
     GKO_VALIDATE(validation::is_within_bounds(
                      col_idxs_, static_cast<IndexType>(this->get_size()[1])),
                  "col_idxs must be within bounds");
-    GKO_VALIDATE(validation::is_finite(values_),
+    GKO_VALIDATE(validation::array_is_finite(values_),
                  "matrix must contain only finite values");
 }
 
