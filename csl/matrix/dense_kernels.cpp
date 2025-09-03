@@ -28,11 +28,11 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 namespace dense {
 
-
+template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<gko::float32>* a,
-                  const matrix::Dense<gko::float32>* b,
-                  matrix::Dense<gko::float32>* c)
+                  const matrix::Dense<ValueType>* a,
+                  const matrix::Dense<ValueType>* b,
+                  matrix::Dense<ValueType>* c)
 {
     int size1 = a->get_size()[0];
     int size2 = a->get_size()[1];
@@ -53,6 +53,11 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
         GKO_NOT_IMPLEMENTED;
     }
 }
+
+template void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Dense<float>* a,
+                           const matrix::Dense<float>* b,
+                           matrix::Dense<float>* c);
 
 
 }  // namespace dense
