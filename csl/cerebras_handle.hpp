@@ -14,11 +14,11 @@ class CerebrasHandle {
 public:
     CerebrasHandle(bool use_simulator = false);
 
-    void copy_h2d(std::string target_var, float* vec, size_t vec_size,
+    void copy_h2d(std::string target_var, const float* vec, size_t vec_size,
                   int offset1, int offset2, int size1, int size2,
                   int elements_per_pe, bool streaming, bool nonblocking);
 
-    void copy_d2h(std::string target_var, float* vec, size_t vec_size,
+    void copy_d2h(std::string target_var, const float* vec, size_t vec_size,
                   int offset1, int offset2, int size1, int size2,
                   int elements_per_pe, bool streaming, bool nonblocking);
 
@@ -35,7 +35,7 @@ private:
 
     // TODO: does this return a view on the array or a copy of the array?
     // I believe view, but not sure...
-    PythonObject array_to_numpy(float* vec, size_t length);
+    PythonObject array_to_numpy(const float* vec, size_t length);
 
     void start_device(bool use_simulator);
 

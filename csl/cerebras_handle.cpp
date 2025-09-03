@@ -50,7 +50,7 @@ void CerebrasHandle::destroy()
     Py_Finalize();
 }
 
-void CerebrasHandle::copy_h2d(std::string target_var, float* vec,
+void CerebrasHandle::copy_h2d(std::string target_var, const float* vec,
                               size_t vec_size, int offset1, int offset2,
                               int size1, int size2, int elements_per_pe,
                               bool streaming, bool nonblocking)
@@ -71,7 +71,7 @@ void CerebrasHandle::copy_h2d(std::string target_var, float* vec,
     PyErr_Print();
 }
 
-void CerebrasHandle::copy_d2h(std::string target_var, float* vec,
+void CerebrasHandle::copy_d2h(std::string target_var, const float* vec,
                               size_t vec_size, int offset1, int offset2,
                               int size1, int size2, int elements_per_pe,
                               bool streaming, bool nonblocking)
@@ -116,7 +116,7 @@ void* CerebrasHandle::init_numpy(void)
 
 // TODO: does this return a view on the array or a copy of the array?
 // I believe view, but not sure...
-PythonObject CerebrasHandle::array_to_numpy(float* vec, size_t length)
+PythonObject CerebrasHandle::array_to_numpy(const float* vec, size_t length)
 {
     npy_intp dims[1] = {static_cast<npy_intp>(length)};
     return PythonObject(
