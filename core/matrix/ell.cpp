@@ -58,7 +58,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE(validation::is_finite(values_),
+    GKO_VALIDATE(validation::array_is_finite(values_),
                  "matrix must contain only finite values");
     GKO_VALIDATE(
         has_unique_idxs(col_idxs_, static_cast<IndexType>(this->get_size()[0]),

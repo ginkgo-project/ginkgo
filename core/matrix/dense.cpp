@@ -111,7 +111,7 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 template <typename ValueType>
 void Dense<ValueType>::validate_data() const
 {
-    GKO_VALIDATE(validation::is_finite(values_),
+    GKO_VALIDATE(validation::array_is_finite(values_),
                  "matrix must contain only finite values");
 }
 
