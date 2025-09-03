@@ -58,6 +58,11 @@ option(
     "Compile Csl kernels for Cerebras chip"
     ${GINKGO_HAS_CSL}
 )
+option(
+    GINKGO_BUILD_CSL_DUMMY
+    "Compile Csl kernels for Cerebras chip, but with dummy device"
+    OFF
+)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(
     GINKGO_FAST_TESTS

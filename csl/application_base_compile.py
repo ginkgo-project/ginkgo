@@ -29,6 +29,6 @@ with SdkCompiler() as compiler:
     if params is not None:
         flags += f"--params={params} "
     flags += "--memcpy --channels=1 --max-inlined-iterations=200"
-        
+
     artifact_path = compiler.compile(source_path, "layout.csl", flags, lib_path)
         # Compiler arguments --params=M:{m},grid_size:{n}

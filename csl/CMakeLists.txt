@@ -1,9 +1,16 @@
+if(GINKGO_BUILD_CSL_DUMMY)
+    set(CSL_PY_COMPILE
+        "${CMAKE_SOURCE_DIR}/csl/application_base_compile_dummy.py"
+    )
+else()
+    set(CSL_PY_COMPILE "${CMAKE_SOURCE_DIR}/csl/application_base_compile.py")
+endif()
+
 add_custom_target(
     csl
     COMMAND
-        ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/csl/application_base_compile.py
-        ${CMAKE_SOURCE_DIR}/csl ${PROJECT_BINARY_DIR}/lib
+        ${Python3_EXECUTABLE} ${CSL_PY_COMPILE} ${CMAKE_SOURCE_DIR}/csl
+        ${PROJECT_BINARY_DIR}/lib
         "PP:${GRID_SIZE},Mt:${MATRIX_SIZE},Nt:${MATRIX_SIZE},Kt:${MATRIX_SIZE}"
     COMMENT "Compiling .csl files"
     VERBATIM
@@ -24,7 +31,7 @@ add_library(ginkgo_csl $<TARGET_OBJECTS:ginkgo_csl_device> "")
 target_sources(
     ginkgo_csl
     PRIVATE
-        cerebras_interface.cpp
+        cerebras_handle.cpp
         base/device.cpp
         base/executor.cpp
         base/scoped_device_id.cpp

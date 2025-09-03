@@ -4,7 +4,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include "cerebras_interface.hpp"
+#include "cerebras_handle.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -18,7 +18,7 @@
 #include "python_inner_functions.hpp"
 
 
-CerebrasInterface::CerebrasInterface(bool use_simulator)
+CerebrasHandle::CerebrasHandle(bool use_simulator)
 {
     // start the interpreter
     Py_Initialize();
@@ -42,7 +42,7 @@ CerebrasInterface::CerebrasInterface(bool use_simulator)
     PyErr_Print();
 }
 
-void CerebrasInterface::destroy()
+void CerebrasHandle::destroy()
 {
     stop_device();
     PyErr_Print();
@@ -50,10 +50,10 @@ void CerebrasInterface::destroy()
     Py_Finalize();
 }
 
-void CerebrasInterface::copy_h2d(std::string target_var, float* vec,
-                                 size_t vec_size, int offset1, int offset2,
-                                 int size1, int size2, int elements_per_pe,
-                                 bool streaming, bool nonblocking)
+void CerebrasHandle::copy_h2d(std::string target_var, float* vec,
+                              size_t vec_size, int offset1, int offset2,
+                              int size1, int size2, int elements_per_pe,
+                              bool streaming, bool nonblocking)
 {
     auto npy_array = array_to_numpy(vec, vec_size);
     PythonObject pFunc(PyDict_GetItemString(pFuncDict_->get(), "copy_h2d_f32"));
@@ -71,10 +71,10 @@ void CerebrasInterface::copy_h2d(std::string target_var, float* vec,
     PyErr_Print();
 }
 
-void CerebrasInterface::copy_d2h(std::string target_var, float* vec,
-                                 size_t vec_size, int offset1, int offset2,
-                                 int size1, int size2, int elements_per_pe,
-                                 bool streaming, bool nonblocking)
+void CerebrasHandle::copy_d2h(std::string target_var, float* vec,
+                              size_t vec_size, int offset1, int offset2,
+                              int size1, int size2, int elements_per_pe,
+                              bool streaming, bool nonblocking)
 {
     auto npy_array = array_to_numpy(vec, vec_size);
     PythonObject pFunc(PyDict_GetItemString(pFuncDict_->get(), "copy_d2h_f32"));
@@ -92,7 +92,7 @@ void CerebrasInterface::copy_d2h(std::string target_var, float* vec,
     PyErr_Print();
 }
 
-void CerebrasInterface::call_func(std::string func_name, bool nonblocking)
+void CerebrasHandle::call_func(std::string func_name, bool nonblocking)
 {
     PythonObject pFunc(
         PyDict_GetItemString(pFuncDict_->get(), "call_cerebras_func"));
@@ -108,7 +108,7 @@ void CerebrasInterface::call_func(std::string func_name, bool nonblocking)
 
 // hacky numpy stuff - cannot be inlined as this is a macro that in
 // some cases expands to "return NULL;"
-void* CerebrasInterface::init_numpy(void)
+void* CerebrasHandle::init_numpy(void)
 {
     import_array();
     return NULL;
@@ -116,21 +116,21 @@ void* CerebrasInterface::init_numpy(void)
 
 // TODO: does this return a view on the array or a copy of the array?
 // I believe view, but not sure...
-PythonObject CerebrasInterface::array_to_numpy(float* vec, size_t length)
+PythonObject CerebrasHandle::array_to_numpy(float* vec, size_t length)
 {
     npy_intp dims[1] = {static_cast<npy_intp>(length)};
     return PythonObject(
         PyArray_SimpleNewFromData(1, dims, NPY_FLOAT, const_cast<float*>(vec)));
 }
 
-void CerebrasInterface::start_device(bool use_simulator)
+void CerebrasHandle::start_device(bool use_simulator)
 {
     PythonObject pFunc(PyDict_GetItemString(pFuncDict_->get(), "start_device"));
     PythonObject pArgs(PyTuple_Pack(1, PyBool_FromLong(use_simulator)));
     PyObject_CallObject(pFunc.get(), pArgs.get());
 }
 
-void CerebrasInterface::stop_device()
+void CerebrasHandle::stop_device()
 {
     PythonObject pFunc(PyDict_GetItemString(pFuncDict_->get(), "stop_device"));
     PythonObject pArgs(PyTuple_Pack(0));

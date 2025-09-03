@@ -2268,7 +2268,7 @@ public:
      */
     static int get_num_devices(std::string device_type);
 
-    CerebrasContext* get_context() const { return cerebras_context_.get(); }
+    CerebrasHandle* get_handle() const { return cerebras_handle_.get(); }
 
 
 protected:
@@ -2306,7 +2306,7 @@ private:
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
-    handle_manager<CerebrasContext> cerebras_context_;
+    handle_manager<CerebrasHandle> cerebras_handle_;
 };
 
 

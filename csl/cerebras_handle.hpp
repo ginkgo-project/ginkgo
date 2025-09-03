@@ -9,9 +9,10 @@
 
 #include "python_handler.hpp"
 
-class CerebrasInterface {
+
+class CerebrasHandle {
 public:
-    CerebrasInterface(bool use_simulator = false);
+    CerebrasHandle(bool use_simulator = false);
 
     void copy_h2d(std::string target_var, float* vec, size_t vec_size,
                   int offset1, int offset2, int size1, int size2,
@@ -40,3 +41,6 @@ private:
 
     void stop_device();
 };
+
+
+typedef struct CerebrasHandle* CerebrasContext;

@@ -21,7 +21,7 @@ struct hipblasContext;
 
 struct hipsparseContext;
 
-struct CerebrasContext;
+struct CerebrasHandle;
 
 #if GINKGO_HIP_PLATFORM_HCC
 struct ihipStream_t;

@@ -442,11 +442,20 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(double)
 #endif
 
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE_EXCEPT_FLOAT( \
+    _macro)                                                                \
+    template _macro(double)
+
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
     GKO_ADAPT_HF(template _macro(float16));                     \
     GKO_ADAPT_BF(template _macro(bfloat16));                    \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro)
 
+
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_EXCEPT_FLOAT(_macro) \
+    GKO_ADAPT_HF(template _macro(float16));                                  \
+    GKO_ADAPT_BF(template _macro(bfloat16));                                 \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE_EXCEPT_FLOAT(_macro)
 
 /**
  * Instantiates a template for each value type compiled by Ginkgo.
@@ -469,12 +478,27 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>)
 #endif
 
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE_EXCEPT_FLOAT(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE_EXCEPT_FLOAT(_macro); \
+    template _macro(std::complex<float>);                                      \
+    template _macro(std::complex<double>)
+
+
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)        \
     GKO_ADAPT_HF(template _macro(float16));                \
     GKO_ADAPT_HF(template _macro(std::complex<float16>));  \
     GKO_ADAPT_BF(template _macro(bfloat16));               \
     GKO_ADAPT_BF(template _macro(std::complex<bfloat16>)); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(_macro)
+
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_EXCEPT_FLOAT(_macro) \
+    GKO_ADAPT_HF(template _macro(float16));                      \
+    GKO_ADAPT_HF(template _macro(std::complex<float16>));        \
+    GKO_ADAPT_BF(template _macro(bfloat16));                     \
+    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>));       \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE_EXCEPT_FLOAT(_macro)
 
 
 // Helper macro to make Windows builds work

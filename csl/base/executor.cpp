@@ -12,7 +12,7 @@
 #include <map>
 #include <string>
 
-#include <csl/cerebras_interface.hpp>
+#include <csl/cerebras_handle.hpp>
 #include <csl/cerebras_layout.hpp>
 
 #include <ginkgo/config.hpp>
@@ -22,18 +22,11 @@
 namespace gko {
 
 
-inline CerebrasInterface init_interface(bool use_simulator = true)
-{
-    CerebrasInterface handle(use_simulator);
-    return handle;
-}
-
-
 void CslExecutor::init_context(bool use_simulator)
 {
-    this->cerebras_context_ = handle_manager<CerebrasContext>(
-        init_interface(use_simulator),
-        [](CerebrasInterface context) { context.destroy(); });
+    this->cerebras_handle_ = handle_manager<CerebrasHandle>(
+        new CerebrasHandle(use_simulator),
+        [](CerebrasHandle handle) { handle.destroy(); });
 }
 
 void OmpExecutor::raw_copy_to(const CslExecutor* dest, size_type num_bytes,
