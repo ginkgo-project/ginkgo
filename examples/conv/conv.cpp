@@ -39,9 +39,11 @@ int main()
     conv_op->apply(gko::lend(input), gko::lend(output));
 
     // Output the results
+    auto host_output = output->clone(exec->get_master());
+
     std::cout << "Convolution result: ";
     for (gko::size_type i = 0; i < output_length; ++i) {
-        std::cout << output->at(i, 0) << " ";
+        std::cout << host_output->at(i, 0) << " ";
     }
     std::cout << std::endl;
 }
