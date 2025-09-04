@@ -14,7 +14,9 @@ int main()
     using Vec = gko::matrix::Dense<ValueType>;
 
     // Executor setup
-    auto exec = gko::ReferenceExecutor::create();
+    // auto exec = gko::OmpExecutor::create();
+    auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+
 
     // Convolution kernel (length K) as a gko::array on the executor
     std::vector<ValueType> kernel_vals{1.0, 2.0, 3.0};
