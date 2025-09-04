@@ -492,9 +492,9 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             for (auto _ : ic.warmup_run()) {
                 auto x_clone = clone(state.x);
                 auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_warmup_max_iters)
-                             ->generate(state.system_matrix);
+                auto solver = generate_solver(exec, give(precond), solver_name,
+                                              FLAGS_warmup_max_iters)
+                                  ->generate(state.system_matrix);
                 solver->apply(state.b, x_clone);
                 exec->synchronize();
             }
@@ -580,10 +580,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
         auto x_clone = clone(state.x);
-        // if we benchmark from scratch, we generate it here and do operations
-        // once. we can not rely on the warmup one because it use different
-        // iteration criterion.
-        if (FLAGS_benchmark_from_scratch) {
+        // if we do not benchmark from scratch, we generate it here and do
+        // operations once. we can not rely on the warmup one because it uses
+        // different iteration criterion.
+        if (!FLAGS_benchmark_from_scratch) {
             auto precond = precond_factory.at(precond_name)(exec);
             solver = gko::share(generate_solver(exec, give(precond),
                                                 solver_name, FLAGS_max_iters)
@@ -603,7 +603,9 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                                                FLAGS_max_iters)
                                    ->generate(state.system_matrix));
                 generate_timer->toc();
-                if (FLAGS_benchmark_from_scratch || !solver) {
+                // when it is not from scratch, we always generate it explicitly
+                // before for-loop
+                if (FLAGS_benchmark_from_scratch) {
                     solver = generated_solver;
                 }
             }
