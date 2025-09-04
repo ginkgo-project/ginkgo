@@ -446,16 +446,22 @@ private:
                 return conv::shift_sign(data_);
             }
 
+            // Counts leading zeros in the significand to determine the
+            // normalization shift
             auto leading_zeros =
-                __builtin_clz(f16_traits::significand_mask & data_) -
+                __builtin_clz(static_cast<std::uint32_t>(
+                    f16_traits::significand_mask & data_)) -
                 f16_traits::exponent_bits - f16_traits::sign_bits -
                 8 * (sizeof(conv::result_bits) - sizeof(conv::source_bits));
 
+            // Computes the new exponent, 0xxxxxxxx000...00
             auto new_exponent =
                 ((conv::bias_change >> f32_traits::significand_bits) -
                  leading_zeros)
                 << f32_traits::significand_bits;
 
+            // Shifts the original significand to normalize it, remove the
+            // implicit '1', and align it in the new 23-bit field
             auto new_significand =
                 (static_cast<f32_traits::bits_type>(data_)
                  << (conv::significand_offset + leading_zeros + 1)) &

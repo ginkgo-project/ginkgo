@@ -219,7 +219,7 @@ TEST(HalfToFloat, ConvertsSmallestPositiveDenormal)
 }
 
 
-TEST(HalfToFloat, ConvertsSmallestDenormal)
+TEST(HalfToFloat, ConvertsSmallestNegativeDenormal)
 {
     float x = create_from_bits<half>("1" "00000" "1111111111");
 
@@ -227,11 +227,19 @@ TEST(HalfToFloat, ConvertsSmallestDenormal)
 }
 
 
-TEST(HalfToFloat, ConvertsLargestDenormal)
+TEST(HalfToFloat, ConvertsLargestPositiveDenormal)
 {
     float x = create_from_bits<half>("0" "00000" "1111111111");
 
     ASSERT_EQ(get_bits(x), get_bits("0" "01110000" "11111111100000000000000"));
+}
+
+
+TEST(HalfToFloat, ConvertsLargestNegativeDenormal)
+{
+    float x = create_from_bits<half>("1" "00000" "0000000001");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "01100111" "00000000000000000000000"));
 }
 
 
