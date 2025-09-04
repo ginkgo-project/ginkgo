@@ -57,7 +57,6 @@ target_sources(
         base/stream.cpp
         base/timer.cpp
         base/version.cpp
-        matrix/conv_kernels.cu
         matrix/fft_kernels.cu
         preconditioner/batch_jacobi_kernels.cu
         solver/batch_bicgstab_kernels.cu

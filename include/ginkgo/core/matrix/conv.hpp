@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_MATRIX_FFT_HPP_
-#define GKO_PUBLIC_CORE_MATRIX_FFT_HPP_
+#ifndef GKO_PUBLIC_CORE_MATRIX_CONV_HPP_
+#define GKO_PUBLIC_CORE_MATRIX_CONV_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>

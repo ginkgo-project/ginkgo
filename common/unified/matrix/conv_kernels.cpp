@@ -29,21 +29,21 @@ void conv(std::shared_ptr<const DefaultExecutor> exec,
 {
     int stride = 1;
     int padding = 0;
-
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x_values, auto kernel_values,
-                      auto stride, auto padding, auto kernel_size, auto b_size,
-                      auto b_values) {
-            int start = i * stride - padding;
-            for (gko::size_type j = 0; j < kernel_size; ++j) {
-                if (start + j >= 0 && start + j < b_size[0]) {
-                    x_values[i] += kernel_values[j] * b_values[start + j];
+        [] GKO_KERNEL(auto i, auto out_nrows, auto kernel_values, auto stride,
+                      auto padding, auto kernel_size, auto b, auto x) {
+            gko::int64 start = i * stride - padding;
+            auto value = zero(kernel_values[0]);
+            for (gko::int64 j = 0; j < kernel_size; ++j) {
+                if (start + j >= 0 && start + j < out_nrows) {
+                    value += kernel_values[j] * b(start + j, 0);
                 }
             }
+            x(i, 0) = value;
         },
-        x->get_size()[0], 1, x->get_values(), kernel.get_const_data(), stride,
-        padding, kernel.get_size(), b->get_size(), b->get_const_values());
+        x->get_size()[0], b->get_size()[0], kernel.get_const_data(), stride,
+        padding, kernel.get_size(), b, x);
 }
 
 
