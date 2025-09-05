@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -64,6 +65,52 @@ protected:
 
 private:
     array<ValueType> kernel_;
+};
+
+
+template <typename ValueType>
+class Conv2d : public EnableLinOp<Conv2d<ValueType>> {
+    friend class EnablePolymorphicObject<Conv2d<ValueType>, LinOp>;
+
+public:
+    using EnableLinOp<Conv2d>::convert_to;
+    using EnableLinOp<Conv2d>::move_to;
+    using value_type = ValueType;
+    /**
+     * Creates an empty Convolution kernel matrix.
+     *
+     * @param exec  Executor associated to the matrix
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+
+    static std::unique_ptr<Conv2d> create(std::shared_ptr<const Executor> exec);
+    /**
+     * Creates an Convolution kernel matrix.
+     *
+     * @param array  kernel used by convolution
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+
+    static std::unique_ptr<Conv2d> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const Dense<ValueType>> kernel);
+
+protected:
+    Conv2d(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<const Dense<ValueType>> kernel);
+    Conv2d(std::shared_ptr<const Executor> exec);
+
+    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x) const override;
+
+    void validate_application_parameters(const LinOp* b,
+                                         const LinOp* x) const override;
+
+private:
+    std::shared_ptr<const Dense<ValueType>> kernel_;
 };
 
 
