@@ -85,15 +85,18 @@ bool is_within_bounds(const gko::array<IndexType>& idxs_array,
 
 
 template <typename ValueType>
-bool array_is_finite(const gko::array<ValueType>& values)
+void assert_array_is_finite(const gko::array<ValueType>& values)
 {
     const auto host_values = values.copy_to_host();
     for (size_t i = 0; i < host_values.size(); ++i) {
-        if (!is_finite(host_values[i])) {
-            return false;
+        if (!gko::is_finite(host_values[i])) {
+            throw gko::InvalidData(
+                __FILE__, __LINE__, typeid(gko::array<ValueType>),
+                "matrix contains infinite value at index " + std::to_string(i));
+            // throw std::invalid_argument("matrix contains infinite value at
+            // index " + std::to_string(i));
         }
     }
-    return true;
 }
 
 
