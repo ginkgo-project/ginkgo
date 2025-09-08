@@ -23,6 +23,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -46,6 +47,8 @@ GKO_REGISTER_OPERATION(hessenberg_qr, common_gmres::hessenberg_qr);
 GKO_REGISTER_OPERATION(solve_krylov, common_gmres::solve_krylov);
 GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
 GKO_REGISTER_OPERATION(multi_dot, gmres::multi_dot);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 
 
 }  // anonymous namespace
@@ -94,6 +97,8 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
             ortho = gmres::ortho_method::cgs;
         } else if (str == "cgs2") {
             ortho = gmres::ortho_method::cgs2;
+        } else if (str == "rgs") {
+            ortho = gmres::ortho_method::rgs;
         } else {
             GKO_INVALID_CONFIG_VALUE("ortho_method", str);
         }
@@ -315,29 +320,147 @@ template <typename ValueType, typename VectorType>
 void orthogonalize_rgs(matrix::Dense<ValueType>* hessenberg_iter,
                        VectorType* krylov_bases, VectorType* next_krylov,
                        VectorType* sketched_krylov_bases,
-                       VectorType* d_hessenberg_iter,
+                       matrix::Dense<ValueType>* d_hessenberg_iter,
                        VectorType* sketched_next_krylov2,
+                       const matrix::Dense<ValueType>* one_op,
                        size_type restart_iter, size_type num_rows,
                        size_type num_rhs, size_type local_num_rows,
-                       size_type k_rows)
+                       size_type local_k_rows, size_type k_rows)
 {
     auto exec = hessenberg_iter->get_executor();
-    exec->run(gmres::make_richardson_lsq(
-        sketched_krylov_bases, hessenberg_iter, d_hessenberg_iter,
-        sketched_next_krylov2, restart_iter, k_rows));
+
+    auto sketched_krylov_bases_view = sketched_krylov_bases->create_submatrix(
+        local_span{local_k_rows * (restart_iter + 1),
+                   local_k_rows * (restart_iter + 2)},
+        local_span{0, num_rhs}, dim<2>{k_rows, num_rhs});
+    sketched_next_krylov2->copy_from(sketched_krylov_bases_view);
+
+    auto hessenberg_iter_view = hessenberg_iter->create_submatrix(
+        span{0, restart_iter + 2}, span{0, num_rhs});
+    hessenberg_iter_view->fill(zero<ValueType>());
+
+    auto d_hessenberg_iter_view = d_hessenberg_iter->create_submatrix(
+        span{0, restart_iter + 2}, span{0, num_rhs});
+
+    auto sketched_krylov_bases_view2 = sketched_krylov_bases->create_submatrix(
+        local_span{0, local_k_rows * (restart_iter + 1)},
+        local_span{0, num_rhs}, dim<2>{k_rows * (restart_iter + 1), num_rhs});
+
+    for (size_type ell = 0; ell < 3; ell++) {
+        d_hessenberg_iter_view->fill(zero<ValueType>());
+        exec->run(gmres::make_multi_dot(
+            gko::detail::get_local(sketched_krylov_bases_view2.get()),
+            gko::detail::get_local(sketched_next_krylov2),
+            d_hessenberg_iter_view.get()));
+        finish_reduce(d_hessenberg_iter_view.get(), sketched_next_krylov2,
+                      num_rhs, restart_iter);
+        for (size_type i = 0; i <= restart_iter; i++) {
+            auto hessenberg_entry = d_hessenberg_iter->create_submatrix(
+                span{i, i + 1}, span{0, num_rhs});
+            auto sketched_krylov_col = sketched_krylov_bases->create_submatrix(
+                local_span{local_k_rows * i, local_k_rows * (i + 1)},
+                local_span{0, num_rhs}, dim<2>{k_rows, num_rhs});
+            sketched_next_krylov2->sub_scaled(hessenberg_entry,
+                                              sketched_krylov_col);
+        }
+        hessenberg_iter_view->add_scaled(one_op, d_hessenberg_iter_view);
+    }
 
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
         auto hessenberg_entry =
             hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = ::gko::detail::create_submatrix_helper(
-            krylov_bases, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * i, local_num_rows * (i + 1)},
-            span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_submatrix(
+            local_span{local_num_rows * i, local_num_rows * (i + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
     }
 }
+
+
+template <typename ValueType, typename IndexType>
+auto setup_theta(std::shared_ptr<const Executor> exec, size_type k_rows,
+                 size_type num_cols)
+{
+    using matrix_data = gko::matrix_data<ValueType, IndexType>;
+    using Mtx = matrix::Csr<ValueType, IndexType>;
+    auto mat_size = dim<2>{k_rows, num_cols};
+    auto theta = Mtx::create(exec, mat_size);
+    matrix_data data{mat_size};
+
+    // Random number generator setup
+    std::mt19937 gen(123);
+
+    for (int i = 0; i < num_cols; i++) {
+        remove_complex<ValueType> v = 1.;
+        if (std::uniform_real_distribution<>(0.0, 1.0)(gen) < .5) v = -1.;
+        data.nonzeros.emplace_back(
+            std::uniform_int_distribution<>(0, k_rows - 1)(gen), i, v);
+    }
+    as<ReadableFromMatrixData<ValueType, IndexType>>(theta.get())->read(data);
+    return std::move(theta);
+}
+
+
+#if GINKGO_BUILD_MPI
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+auto setup_theta(std::shared_ptr<const experimental::distributed::Matrix<
+                     ValueType, LocalIndexType, GlobalIndexType>>
+                     system_matrix,
+                 size_type local_k_rows)
+{
+    using dist_mtx =
+        experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                          GlobalIndexType>;
+    using matrix_data = gko::matrix_data<ValueType, GlobalIndexType>;
+    using part_type =
+        gko::experimental::distributed::Partition<LocalIndexType,
+                                                  GlobalIndexType>;
+
+    auto exec = system_matrix->get_executor();
+    auto comm = system_matrix->get_communicator();
+    size_type k_rows = local_k_rows;
+    auto num_cols = system_matrix->get_size()[1];
+    auto local_num_cols = system_matrix->get_local_matrix()->get_size()[1];
+
+    comm.all_reduce(exec->get_master(), &k_rows, 1, MPI_SUM);
+
+    // TODO: Move to generate
+    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
+    auto local_part = comm.rank();
+    size_type num_parts = comm.size();
+    auto row_partition = gko::share(part_type::build_from_global_size_uniform(
+        exec->get_master(), comm.size(), static_cast<GlobalIndexType>(k_rows)));
+    auto col_partition = gko::share(part_type::build_from_global_size_uniform(
+        exec->get_master(), comm.size(),
+        static_cast<GlobalIndexType>(num_cols)));
+
+    std::mt19937 gen(123);
+    array<GlobalIndexType> row_idxs{exec->get_master(), num_cols};
+    array<GlobalIndexType> col_idxs{exec->get_master(), num_cols};
+    array<ValueType> values{exec->get_master(), num_cols};
+
+    for (int i = 0; i < num_cols; i++) {
+        values.get_data()[i] = 1.;
+        if (std::uniform_real_distribution<>(0.0, 1.0)(gen) < .5)
+            values.get_data()[i] = -1.;
+        row_idxs.get_data()[i] = std::uniform_int_distribution<>(
+            row_partition->get_range_bounds()[comm.rank()],
+            row_partition->get_range_bounds()[comm.rank() + 1])(gen);
+        col_idxs.get_data()[i] = i;
+    }
+    auto mat_data = device_matrix_data<ValueType, GlobalIndexType>(
+        exec->get_master(), dim<2>{k_rows, num_cols}, row_idxs, col_idxs,
+        values);
+
+    auto theta =
+        experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                          GlobalIndexType>::create(exec, comm);
+    theta->read_distributed(mat_data, row_partition, col_partition);
+    return std::move(theta);
+}
+#endif
 
 
 template <typename ValueType>
@@ -407,52 +530,71 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // iteration of data at a time, we store it in the "logical" layout
     // from the start.
 
-    using theta_index_type = int32;
-    using SparseMtx = matrix::Csr<ValueType, theta_index_type>;
-    std::unique_ptr<SparseMtx> theta{};
-    LocalVector* sketched_krylov_bases{};
-    LocalVector* d_hessenberg_iter{};
-    LocalVector* sketched_next_krylov2{};
-
-    size_type k_rows = 0;
+    std::shared_ptr<LinOp> theta;
+    VectorType* sketched_krylov_bases = nullptr;
+    VectorType* sketched_next_krylov2 = nullptr;
+    LocalVector* d_hessenberg_iter = nullptr;
+    size_type local_k_rows =
+        std::ceil(local_num_rows / std::log(static_cast<double>(num_rows)));
+    size_type k_rows = local_k_rows;
+    int rank = 0;
     LocalVector* hessenberg_aux = nullptr;
     if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
         hessenberg_aux = this->template create_workspace_op<LocalVector>(
             ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
     } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
-        theta = SparseMtx::create(exec);
-        // No distributed support yet
-        if (num_rows != local_num_rows || is_flexible) {
+        // Flexible GMRES not supported yet
+        if (is_flexible) {
             GKO_NOT_IMPLEMENTED;
         }
-        k_rows = std::ceil(num_rows / std::log(static_cast<double>(num_rows)));
-        using matrix_data = gko::matrix_data<ValueType, theta_index_type>;
 
-        matrix_data data{dim<2>{k_rows, num_rows}};
-
-        // Random number generator setup
-        std::mt19937 gen(123);
-
-        for (size_type i = 0; i < num_rows; i++) {
-            remove_complex<ValueType> v = 1.;
-            if (std::uniform_real_distribution<>(0.0, 1.0)(gen) < .5) v = -1.;
-            data.nonzeros.emplace_back(
-                std::uniform_int_distribution<theta_index_type>(
-                    0, k_rows - 1)(gen),
-                i, v);
+#if GINKGO_BUILD_MPI
+        using fst_mtx_type =
+            experimental::distributed::Matrix<ValueType, int32, int32>;
+        using snd_mtx_type =
+            experimental::distributed::Matrix<ValueType, int32, int64>;
+        using third_mtx_type =
+            experimental::distributed::Matrix<ValueType, int64, int64>;
+        if (auto obj = std::dynamic_pointer_cast<const fst_mtx_type>(
+                this->get_system_matrix())) {
+            rank = obj->get_communicator().rank();
+            theta = setup_theta(obj, local_k_rows);
+        } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
+                       this->get_system_matrix())) {
+            rank = obj->get_communicator().rank();
+            theta = setup_theta(obj, local_k_rows);
+        } else if (auto obj = std::dynamic_pointer_cast<const third_mtx_type>(
+                       this->get_system_matrix())) {
+            rank = obj->get_communicator().rank();
+            theta = setup_theta(obj, local_k_rows);
+        } else
+#endif
+        {
+            theta =
+                setup_theta<ValueType, int>(exec, local_k_rows, local_num_rows);
         }
-        theta->read(data);
+        k_rows = theta->get_size()[0];
 
         // each vector is stored contiguously in memory:
         // For the ith vector (i <= krylov_dim), the kth element is at:
         //  k + i * (k_rows)
-        sketched_krylov_bases = this->template create_workspace_op<LocalVector>(
-            ws::sketched_krylov_bases,
-            dim<2>{k_rows * (krylov_dim + 1), num_rhs});
+        // sketched_krylov_bases = VectorType::create(
+        //     exec, dim<2>{k_rows * (krylov_dim + 1), num_rhs});
+        sketched_krylov_bases = this->create_workspace_op_with_type_of(
+            ws::sketched_krylov_bases, dense_b,
+            dim<2>{k_rows * (krylov_dim + 1), num_rhs},
+            dim<2>{local_k_rows * (krylov_dim + 1), num_rhs});
+
+        // d_hessenberg_iter =
+        //     VectorType::create(exec, dim<2>{krylov_dim + 1, num_rhs});
         d_hessenberg_iter = this->template create_workspace_op<LocalVector>(
             ws::d_hessenberg_iter, dim<2>{krylov_dim + 1, num_rhs});
-        sketched_next_krylov2 = this->template create_workspace_op<LocalVector>(
-            ws::sketched_next_krylov2, dim<2>{k_rows, num_rhs});
+
+        // sketched_next_krylov2 =
+        //     VectorType::create(exec, dim<2>{k_rows, num_rhs});
+        sketched_next_krylov2 = this->create_workspace_op_with_type_of(
+            ws::sketched_next_krylov2, dense_b, dim<2>{k_rows, num_rhs},
+            dim<2>{local_k_rows, num_rhs});
     }
     auto givens_sin = this->template create_workspace_op<LocalVector>(
         ws::givens_sin, dim<2>{krylov_dim, num_rhs});
@@ -491,18 +633,19 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     if (is_rgs) {
-        auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-            sketched_krylov_bases, dim<2>{k_rows, num_rhs}, span{0, k_rows},
-            span{0, num_rhs});
+        auto sketched_next_krylov = sketched_krylov_bases->create_submatrix(
+            local_span{0, local_k_rows}, local_span{0, num_rhs},
+            dim<2>{k_rows, num_rhs});
 
         theta->apply(residual, sketched_next_krylov);
 
+        // residual->compute_norm2(residual_norm, reduction_tmp);
         sketched_next_krylov->compute_norm2(residual_norm, reduction_tmp);
-
         exec->run(gmres::make_restart_rgs(
             gko::detail::get_local(residual), residual_norm,
             residual_norm_collection, gko::detail::get_local(krylov_bases),
-            sketched_krylov_bases, final_iter_nums.get_data(), k_rows));
+            gko::detail::get_local(sketched_krylov_bases),
+            final_iter_nums.get_data(), local_k_rows));
     } else {
         // residual_norm = norm(residual)
         residual->compute_norm2(residual_norm, reduction_tmp);
@@ -545,6 +688,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     while (true) {
         ++total_iter;
+
         bool all_stopped =
             stop_criterion->update()
                 .num_iterations(total_iter)
@@ -593,8 +737,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 exec->run(gmres::make_restart_rgs(
                     gko::detail::get_local(residual), residual_norm,
                     residual_norm_collection,
-                    gko::detail::get_local(krylov_bases), sketched_krylov_bases,
-                    final_iter_nums.get_data(), k_rows));
+                    gko::detail::get_local(krylov_bases),
+                    gko::detail::get_local(sketched_krylov_bases),
+                    final_iter_nums.get_data(), local_k_rows));
             } else {
                 exec->run(
                     gmres::make_restart(gko::detail::get_local(residual),
@@ -657,21 +802,22 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
         } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
-            auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-                sketched_krylov_bases, dim<2>{k_rows, num_rhs},
-                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
-                span{0, num_rhs});
+            auto sketched_next_krylov = sketched_krylov_bases->create_submatrix(
+                local_span{local_k_rows * (restart_iter + 1),
+                           local_k_rows * (restart_iter + 2)},
+                local_span{0, num_rhs}, dim<2>{k_rows, num_rhs});
             theta->apply(next_krylov, sketched_next_krylov);
-            orthogonalize_rgs(
-                hessenberg_iter.get(), krylov_bases, next_krylov.get(),
-                sketched_krylov_bases, d_hessenberg_iter, sketched_next_krylov2,
-                restart_iter, num_rows, num_rhs, local_num_rows, k_rows);
+            orthogonalize_rgs(hessenberg_iter.get(), krylov_bases,
+                              next_krylov.get(), sketched_krylov_bases,
+                              d_hessenberg_iter, sketched_next_krylov2, one_op,
+                              restart_iter, num_rows, num_rhs, local_num_rows,
+                              local_k_rows, k_rows);
         }
         if (is_rgs) {
-            auto sketched_next_krylov = ::gko::detail::create_submatrix_helper(
-                sketched_krylov_bases, dim<2>{k_rows, num_rhs},
-                span{k_rows * (restart_iter + 1), k_rows * (restart_iter + 2)},
-                span{0, num_rhs});
+            auto sketched_next_krylov = sketched_krylov_bases->create_submatrix(
+                local_span{local_k_rows * (restart_iter + 1),
+                           local_k_rows * (restart_iter + 2)},
+                local_span{0, num_rhs}, dim<2>{k_rows, num_rhs});
 
             theta->apply(next_krylov, sketched_next_krylov);
 
