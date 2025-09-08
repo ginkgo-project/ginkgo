@@ -416,7 +416,41 @@ private:
                 return conv::shift_sign(data_) | exp;
             } else if (f16_traits::is_denom(exp)) {
                 // TODO: handle denormals
-                return conv::shift_sign(data_);
+
+                // This can not be negative if f16_traits::is_denom(exp) is true
+                const auto tail_length =
+                    ((f32_traits::bias_mask -
+                      (data_ & f32_traits::exponent_mask)) >>
+                     f32_traits::significand_bits) -
+                    1;
+                if (tail_length > f32_traits::significand_bits + 1) {
+                    return conv::shift_sign(data_);
+                }
+
+                // It would be better if defined with const?
+                auto tail =
+                    (data_ & f32_traits::significand_mask) &
+                    static_cast<f32_traits::bits_type>((1 << tail_length) - 1);
+
+                // Handle if the tail_length is 24. It means half precision will
+                // be the smallest possible number it can represent(or zero)
+                if (tail_length == f32_traits::significand_bits + 1) {
+                    tail |= 1 << f32_traits::significand_bits;
+                }
+
+                auto new_significand =
+                    ((data_ & f32_traits::significand_mask) >> tail_length) |
+                    (1 << (f32_traits::significand_bits - tail_length));
+
+                const auto result =
+                    conv::shift_sign(data_) | exp | new_significand;
+
+                // It would be better if defined with constexpr
+                const auto half =
+                    static_cast<f32_traits::bits_type>(1 << (tail_length - 1));
+
+                return result +
+                       (tail > half || ((tail == half) && (result & 1)));
             } else {
                 // Rounding to even
                 const auto result = conv::shift_sign(data_) | exp |

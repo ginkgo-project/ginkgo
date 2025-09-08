@@ -130,6 +130,13 @@ TEST(FloatToHalf, TruncatesLargeNumberRoundToEven)
     EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
 }
 
+TEST(FloatToHalf, ConvertsRandomPositiveDenormal)
+{
+    half x = create_from_bits<float>("0" "01101011" "00011011000001011110010");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000010010"));
+}
+
 
 TEST(HalfToFloat, ConvertsOne)
 {
@@ -239,7 +246,7 @@ TEST(HalfToFloat, ConvertsLargestNegativeDenormal)
 {
     float x = create_from_bits<half>("1" "00000" "0000000001");
 
-    ASSERT_EQ(get_bits(x), get_bits("0" "01100111" "00000000000000000000000"));
+    ASSERT_EQ(get_bits(x), get_bits("1" "01100111" "00000000000000000000000"));
 }
 
 
