@@ -145,7 +145,8 @@ from_sorted_indices(
 // We pre-compile the routine for test in library to avoid thrust issue before
 // CUDA 12.4
 #ifdef EXEC_TYPE
-    static_assert(false, "must only compile this kernel in ginkgo library");
+    static_assert(std::is_same_v<IndexIterator, void>,
+                  "must only compile this kernel in ginkgo library");
 #else
     using index_type = typename std::iterator_traits<IndexIterator>::value_type;
     using storage_type = typename device_bitvector<index_type>::storage_type;
@@ -187,7 +188,7 @@ from_sorted_indices(
         typename std::iterator_traits<IndexIterator>::value_type size)
 
 // Before CUDA 12.4 (or NCCL 2.3), THRUST_CUB_WRAPPED_NAMESPACE is required for
-// seperating the thrust implementation in different shared library. The test
+// separating the thrust implementation in different shared library. The test
 // also compiles thrust kernel, so it leads the thrust issue between test and
 // ginkgo library. Compiling the kernel used by the test in the library to
 // work around this issue.
