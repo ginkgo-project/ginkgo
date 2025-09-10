@@ -215,6 +215,8 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             ortho_method = gko::solver::gmres::ortho_method::cgs;
         } else if (FLAGS_gmres_ortho_method == "cgs2") {
             ortho_method = gko::solver::gmres::ortho_method::cgs2;
+        } else if (FLAGS_gmres_ortho_method == "rgs") {
+            ortho_method = gko::solver::gmres::ortho_method::rgs;
         } else {
             throw std::range_error(
                 std::string(
