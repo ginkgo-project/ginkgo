@@ -16,6 +16,8 @@ build
 __pycache__
 
 ### IDE
+.cache
+
 # Clion
 .idea
 
