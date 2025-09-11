@@ -112,8 +112,6 @@ template <typename ValueType>
 void Dense<ValueType>::validate_data() const
 {
     validation::assert_array_is_finite(values_);
-    // GKO_VALIDATE(validation::assert_array_is_finite(values_),
-    //              "matrix must contain only finite values");
 }
 
 
