@@ -54,18 +54,12 @@ GKO_REGISTER_OPERATION(conj_array, coo::conj_array);
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::validate_data() const
 {
-    // using namespace validation;
-    GKO_VALIDATE(validation::is_sorted(row_idxs_),
-                 "row_idxs must be non-decending");
-    GKO_VALIDATE(validation::is_within_bounds(
-                     row_idxs_, static_cast<IndexType>(this->get_size()[0])),
-                 "row_idxs must be within bounds");
-    GKO_VALIDATE(validation::is_within_bounds(
-                     col_idxs_, static_cast<IndexType>(this->get_size()[1])),
-                 "col_idxs must be within bounds");
+    validation::is_sorted(row_idxs_);
+    validation::is_within_bounds(row_idxs_,
+                                 static_cast<IndexType>(this->get_size()[0]));
+    validation::is_within_bounds(col_idxs_,
+                                 static_cast<IndexType>(this->get_size()[1]));
     validation::assert_array_is_finite(values_);
-    // GKO_VALIDATE(validation::assert_array_is_finite(values_),
-    //              "matrix must contain only finite values");
 }
 
 
