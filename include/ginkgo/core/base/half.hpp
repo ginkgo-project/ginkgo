@@ -480,13 +480,23 @@ private:
                 return conv::shift_sign(data_);
             }
 
-            // Counts leading zeros in the significand to determine the
-            // normalization shift
-            auto leading_zeros =
+            int leading_zeros{};
+
+// Counts leading zeros in the significand to determine the
+// normalization shift
+#if defined(_MSC_VER)
+            unsigned long index{};
+            _BitScanReverse(&index, static_cast<std::uint32_t>(
+                                        f16_traits::significand_mask & data_));
+
+            leading_zeros = f16_traits::significand_bits - index - 1;
+#else
+            leading_zeros =
                 __builtin_clz(static_cast<std::uint32_t>(
                     f16_traits::significand_mask & data_)) -
                 f16_traits::exponent_bits - f16_traits::sign_bits -
                 8 * (sizeof(conv::result_bits) - sizeof(conv::source_bits));
+#endif
 
             // Computes the new exponent, 0xxxxxxxx000...00
             auto new_exponent =
