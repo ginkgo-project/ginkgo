@@ -263,6 +263,7 @@ TYPED_TEST(Ell, RecognizesDupplicateIndex)
     ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
 }
 
+
 TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
 {
     using value_type = typename TestFixture::value_type;

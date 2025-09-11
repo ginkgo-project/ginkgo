@@ -29,8 +29,7 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 template <typename IndexType>
 void Permutation<IndexType>::validate_data() const
 {
-    GKO_VALIDATE(has_unique_idxs(permutation_),
-                 "Permutation indices must be unique");
+    has_unique_idxs(permutation_);
 }
 
 
@@ -194,15 +193,15 @@ bool Permutation<IndexType>::has_unique_idxs(
 {
     const auto host_perm_idxs = permutation_.copy_to_host();
     const auto size = host_perm_idxs.size();
-    std::unordered_set<IndexType> unique_ptrs(host_perm_idxs.begin(),
+    std::unordered_set<IndexType> unique_idxs(host_perm_idxs.begin(),
                                               host_perm_idxs.end());
 
-    if (unique_ptrs.size() < size) {
+    if (unique_idxs.size() < size) {
         return false;
     }
 
     for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
-        if (unique_ptrs.find(i) == unique_ptrs.end()) {
+        if (unique_idxs.find(i) == unique_idxs.end()) {
             return false;
         }
     }

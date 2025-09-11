@@ -265,6 +265,7 @@ public:
         gko::detail::const_array_view<IndexType>&& perm_idxs);
     /**
      * Check if the permutation indices are unique.
+     *
      * @param permutation_  the permutation indices
      */
     static bool has_unique_idxs(const gko::array<IndexType>& permutation_);

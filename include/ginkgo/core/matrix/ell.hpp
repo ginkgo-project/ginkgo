@@ -140,10 +140,6 @@ public:
 
     void compute_absolute_inplace() override;
 
-    // bool has_unique_idxs(const array<index_type>& col_idxs, index_type
-    // num_rows,
-    //     size_type num_non_zero_per_row, size_type stride) const;
-
     /**
      * Returns the values of the matrix.
      *
@@ -343,6 +339,7 @@ public:
 
     /**
      * Checks if all column indices in the given array are unique.
+     *
      * @param col_idxs  the column index array of the matrix
      * @param num_rows  the number of rows in the matrix
      * @param num_non_zero_per_row  the number of nonzeros per row
@@ -355,6 +352,7 @@ public:
 
     /**
      * Checks if all column indices in the given array are unique.
+     *
      * @param col_idxs  the column index array of the matrix
      * @param num_rows  the number of rows in the matrix
      * @param num_non_zero_per_row  the number of nonzeros per row

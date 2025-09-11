@@ -154,6 +154,7 @@ TYPED_TEST(Permutation, CanBeCleared)
     this->assert_empty(this->mtx.get());
 }
 
+
 TYPED_TEST(Permutation, RecognizesDuplicatePermutationIndices)
 {
     using index_type = typename TestFixture::index_type;

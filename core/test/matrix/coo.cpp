@@ -414,6 +414,7 @@ TYPED_TEST(Coo, RecognizesInfiniteValue)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
 TYPED_TEST(Coo, RecognizesUnboundedRowIndex)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -430,6 +431,7 @@ TYPED_TEST(Coo, RecognizesUnboundedRowIndex)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
 TYPED_TEST(Coo, RecognizesUnboundedColumnIndex)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -445,6 +447,7 @@ TYPED_TEST(Coo, RecognizesUnboundedColumnIndex)
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
+
 
 TYPED_TEST(Coo, RecognizesUnorderedRowIndex)
 {

@@ -437,6 +437,7 @@ TYPED_TEST(Csr, RecognizesInfiniteValue)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
 TYPED_TEST(Csr, RecognizesUnboundedRowIndex)
 {
     using value_type = typename TestFixture::value_type;
@@ -456,6 +457,7 @@ TYPED_TEST(Csr, RecognizesUnboundedRowIndex)
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
+
 
 TYPED_TEST(Csr, RecognizesUnboundedColumnIndex)
 {
@@ -477,6 +479,7 @@ TYPED_TEST(Csr, RecognizesUnboundedColumnIndex)
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
+
 
 TYPED_TEST(Csr, RecognizesUnorderedRowPointer)
 {
