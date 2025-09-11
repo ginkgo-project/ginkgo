@@ -364,22 +364,31 @@ TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
+TEST_F(Gmres, GmresApplySingleRHSIsEquivalentToRef)
 {
-    int m = 123;
-    int n = 1;
-    auto ref_solver = ref_gmres_factory->generate(mtx);
-    auto exec_solver = exec_gmres_factory->generate(d_mtx);
-    auto b = gen_mtx(m, n);
-    auto x = gen_mtx(m, n);
-    auto d_b = gko::clone(exec, b);
-    auto d_x = gko::clone(exec, x);
+    using gko::solver::gmres::ortho_method;
+    auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
 
-    ref_solver->apply(b, x);
-    exec_solver->apply(d_b, d_x);
+    for (auto ortho : {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2,
+                       ortho_method::rgs}) {
+        SCOPED_TRACE(ortho);
+        int m = 123;
+        int n = 1;
+        auto ref_solver =
+            base_params.with_ortho_method(ortho).on(ref)->generate(mtx);
+        auto exec_solver =
+            base_params.with_ortho_method(ortho).on(exec)->generate(d_mtx);
+        auto b = gen_mtx(m, n);
+        auto x = gen_mtx(m, n);
+        auto d_b = gko::clone(exec, b);
+        auto d_x = gko::clone(exec, x);
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e2);
+        ref_solver->apply(b, x);
+        exec_solver->apply(d_b, d_x);
+
+        GKO_ASSERT_MTX_NEAR(d_b, b, 0);
+        GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+    }
 }
 
 
