@@ -5,6 +5,15 @@
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
 
+.before_script_tum_template:
+  before_script:
+    - export NUM_CORES=${CI_PARALLELISM}
+    - export OMP_NUM_THREADS=${NUM_CORES}
+    - export CCACHE_DIR=${CCACHE_DIR}
+    - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
+    - source /storage/apps/opt/spack/share/spack/setup-env.sh
+    - export MODULEPATH=/storage/apps/opt/rocm-modules:/storage/apps/opt/spack/share/spack/lmod/linux-rocky9-x86_64/Core
+
 .before_script_git_template:
   before_script:
     - eval $(ssh-agent -s)
@@ -112,6 +121,96 @@
     - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
+      fi
+  dependencies: []
+
+.build_and_test_tum_template:
+  stage: build
+  extends:
+    - .before_script_tum_template
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - mkdir install_prefix
+    - export INSTALL_PREFIX=`pwd`/install_prefix
+    # get system version before loading module
+    - if [[ "${CXX_COMPILER}" = "g++" ]]; then export SYSTEM_VERSION=$(${CXX_COMPILER} -dumpfullversion); fi
+    - if [ -n "${MODULE_LOAD}" ]; then module load ${MODULE_LOAD}; fi
+    - if [ -n "${SPACK_LOAD}" ]; then spack load ${SPACK_LOAD}; fi
+    - if [ -n "${CUDA_ARCH}" ]; then
+      export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
+      fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
+    - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
+    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
+      export OMPI_ALLOW_RUN_AS_ROOT=1;
+      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+      fi
+    - if [[ "${BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX};
+      fi
+    - export CXX=${CXX_COMPILER} CUDAHOSTCXX=${CXX_COMPILER} CUDACXX=${CUDA_COMPILER}
+    - export CXX_COMPILER_PATH=$(which ${CXX_COMPILER})
+    # rocm is built on the system not the spack gcc it only raise issue when linking test_install_hip due to different compiler
+    # LIBRARY_PATH only helps the compilation search not the linking search
+    # It requires cmake 3.21
+    # spack does not add LD_LIBRARY_PATH now. Compiling Ginkgo without omp, it might take the system libstdc++.
+    # only load it when the current gcc is newer than the system one
+    - |
+      if [[ "${CXX_COMPILER_PATH}" =~ ^/storage.*g\+\+ ]] && [[ "${BUILD_HIP}" == "ON" ]] && [[ "${CXX_COMPILER}" = "g++" ]]; then
+        export CXX_SOURCE=${CXX_COMPILER_PATH%/*/*}
+        export HIPFLAGS="--gcc-toolchain=${CXX_SOURCE}"
+        export CURRENT_VERSION=$(${CXX_COMPILER} -dumpfullversion)
+        echo "SYSTEM ${SYSTEM_VERSION} CURRENT ${CURRENT_VERSION}"
+        if printf '%s\n%s\n' "$CURRENT_VERSION" "$SYSTEM_VERSION" | sort --check=quiet --version-sort; then
+          echo "CURRENT ${CURRENT_VERSION} <= SYSTEM ${SYSTEM_VERSION}, so we do not do anything"
+        else
+          echo "CURRENT ${CURRENT_VERSION} > SYSTEM ${SYSTEM_VERSION}, so we add path to LD_LIBRARY_PATH"
+          export LD_LIBRARY_PATH=${CXX_SOURCE}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+        fi
+      fi 
+    # RPATH_USE_LINK_PATH helps loading newer g++ than system's
+    - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+        -GNinja -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
+        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_FAST_TESTS=${FAST_TESTS}
+        -DGINKGO_ENABLE_HALF=${ENABLE_HALF}
+        -DGINKGO_ENABLE_BFLOAT16=${ENABLE_BFLOAT16}
+        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
+        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+    # just set a lower value of parallel for sycl too many file open
+    - if [[ "${BUILD_SYCL}" == "ON" ]]; then
+        export NUM_CORES=16;
+      fi
+    - echo "-j${NUM_CORES} -l${CI_LOAD_LIMIT}"
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
+    - |
+        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
+    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
+    - ninja test_exportbuild
+    # cuda module from spack does not add LD_LIBRARY_PATH
+    - if [[ "${BUILD_CUDA}" == "ON" ]]; then
+      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH};
+      fi
+    - ninja test_install
+    - pushd test/test_install
+    - ninja install
+    - popd
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
+    - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
+      PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib64/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib64:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
   dependencies: []
 
