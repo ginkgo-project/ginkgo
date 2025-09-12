@@ -29,7 +29,8 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 template <typename IndexType>
 void Permutation<IndexType>::validate_data() const
 {
-    has_unique_idxs(permutation_);
+    GKO_VALIDATE(has_unique_idxs(permutation_),
+                 "Permutation indices must be unique");
 }
 
 
