@@ -419,10 +419,11 @@ private:
 
                 // This can not be negative if f16_traits::is_denom(exp) is true
                 const auto tail_length =
-                    ((f32_traits::bias_mask -
-                      (data_ & f32_traits::exponent_mask)) >>
-                     f32_traits::significand_bits) -
-                    1;
+                    (conv::bias_change - ((data_ & f32_traits::exponent_mask) >>
+                                          conv::significand_offset) >>
+                     f16_traits::significand_bits) +
+                    f32_traits::significand_bits -
+                    f16_traits::significand_bits + 1;
                 if (tail_length > f32_traits::significand_bits + 1) {
                     return conv::shift_sign(data_);
                 }
