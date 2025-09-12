@@ -430,6 +430,9 @@ private:
                     return conv::shift_sign(data_);
                 }
 
+                // all significant (including implicitly leading 1) will be
+                // moved after representation field more than one digit (less
+                // than half) such that it will rounding to zero.
                 const auto explicit_significand =
                     (data_ & f32_traits::significand_mask) |
                     (1 << f32_traits::significand_bits);
