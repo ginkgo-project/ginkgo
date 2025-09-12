@@ -130,12 +130,14 @@ TEST(FloatToHalf, TruncatesLargeNumberRoundToEven)
     EXPECT_EQ(get_bits(neg_x2), get_bits("1" "11110" "1001001111"));
 }
 
+
 TEST(FloatToHalf, ConvertsRandomPositiveNumber)
 {
     half x = create_from_bits<float>("0" "01101011" "00011011000001011110010");
 
     ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000010010"));
 }
+
 
 TEST(FloatToHalf, RoundsUpToEvenNumber)
 {
@@ -144,12 +146,14 @@ TEST(FloatToHalf, RoundsUpToEvenNumber)
     ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000001000"));
 }
 
+
 TEST(FloatToHalf, RoundsDownToEvenNumber)
 {
     half x = create_from_bits<float>("1" "01101100" "11010100000000000000000");
 
     ASSERT_EQ(get_bits(x), get_bits("1" "00000" "0000111010"));
 }
+
 
 TEST(FloatToHalf, LargestNumberThatConvertsToZero)
 {
@@ -158,12 +162,14 @@ TEST(FloatToHalf, LargestNumberThatConvertsToZero)
     ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000000000"));
 }
 
+
 TEST(FloatToHalf, SmallestNumberThatDoesntConvertToZero)
 {
     half x = create_from_bits<float>("0" "01100110" "00000000000000000000001");
 
     ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000000001"));
 }
+
 
 TEST(FloatToHalf, RandomNumberThatConvertsToPositiveZero)
 {
@@ -172,12 +178,22 @@ TEST(FloatToHalf, RandomNumberThatConvertsToPositiveZero)
     ASSERT_EQ(get_bits(x), get_bits("0" "00000" "0000000000"));
 }
 
+
 TEST(FloatToHalf, RandomNumberThatConvertsToNegativeZero)
 {
     half x = create_from_bits<float>("1" "01001000" "10000010110100001010001");
 
     ASSERT_EQ(get_bits(x), get_bits("1" "00000" "0000000000"));
 }
+
+
+TEST(FloatToHalf, BoundaryTest)
+{
+    half x = create_from_bits<float>("0" "01110000" "11111111110000000000000");
+
+    ASSERT_EQ(get_bits(x), get_bits("0" "00001" "0000000000"));
+}
+
 
 TEST(HalfToFloat, ConvertsOne)
 {

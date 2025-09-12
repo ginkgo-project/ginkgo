@@ -415,40 +415,36 @@ private:
             if (f16_traits::is_inf(exp)) {
                 return conv::shift_sign(data_) | exp;
             } else if (f16_traits::is_denom(exp)) {
-                // TODO: handle denormals
-
-                // This can not be negative if f16_traits::is_denom(exp) is true
-                const auto tail_length =
+                // gap to fp16 denormal exponents (+1 from normal to denormal
+                // exponent base)
+                const auto gap_to_fp16 =
                     (conv::bias_change - ((data_ & f32_traits::exponent_mask) >>
                                           conv::significand_offset) >>
                      f16_traits::significand_bits) +
-                    f32_traits::significand_bits -
-                    f16_traits::significand_bits + 1;
-                if (tail_length > f32_traits::significand_bits + 1) {
+                    1;
+
+                // get the tail length which will be rounding
+                const auto tail_len = gap_to_fp16 + conv::significand_offset;
+
+                if (tail_len > f32_traits::significand_bits + 1) {
                     return conv::shift_sign(data_);
                 }
 
-                // It would be better if defined with const?
-                auto tail =
-                    (data_ & f32_traits::significand_mask) &
-                    static_cast<f32_traits::bits_type>((1 << tail_length) - 1);
+                const auto explicit_significand =
+                    (data_ & f32_traits::significand_mask) |
+                    (1 << f32_traits::significand_bits);
 
-                // Handle if the tail_length is 24. It means half precision will
-                // be the smallest possible number it can represent(or zero)
-                if (tail_length == f32_traits::significand_bits + 1) {
-                    tail |= 1 << f32_traits::significand_bits;
-                }
+                const auto tail =
+                    explicit_significand &
+                    static_cast<f32_traits::bits_type>((1 << tail_len) - 1);
 
-                auto new_significand =
-                    ((data_ & f32_traits::significand_mask) >> tail_length) |
-                    (1 << (f32_traits::significand_bits - tail_length));
+                auto new_significand = explicit_significand >> tail_len;
 
                 const auto result =
                     conv::shift_sign(data_) | exp | new_significand;
 
-                // It would be better if defined with constexpr
                 const auto half =
-                    static_cast<f32_traits::bits_type>(1 << (tail_length - 1));
+                    static_cast<f32_traits::bits_type>(1 << (tail_len - 1));
 
                 return result +
                        (tail > half || ((tail == half) && (result & 1)));
