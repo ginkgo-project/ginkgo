@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     // We can use here the same solver type as you would use in a
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
-    using solver = gko::solver::Gmres<ValueType>;
+    using solver = gko::solver::Cg<ValueType>;
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         ValueType, LocalIndexType, GlobalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
@@ -237,33 +237,14 @@ int main(int argc, char* argv[])
     } else if (schw_type == "one-level") {
         Ainv =
             solver::build()
-                // .with_preconditioner(
-                //     schwarz::build().with_local_solver(local_solver).on(exec))
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(num_iters).on(
-                        exec),
-                    gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
-                        // .with_baseline(gko::stop::mode::absolute)
-                        .on(exec))
-                .with_krylov_dim(100)
-                .with_ortho_method(gko::solver::gmres::ortho_method::cgs)
-                .on(exec)
-                ->generate(A);
-    } else if (schw_type == "one-level-rgs") {
-        Ainv =
-            solver::build()
-                // .with_preconditioner(
-                //     schwarz::build().with_local_solver(local_solver).on(exec))
+                .with_preconditioner(
+                    schwarz::build().with_local_solver(local_solver).on(exec))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(num_iters).on(
                         exec),
                     gko::stop::ResidualNorm<ValueType>::build()
                         .with_reduction_factor(reduction_factor)
                         .on(exec))
-                // .with_baseline(gko::stop::mode::absolute)
-                .with_krylov_dim(100)
-                .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
                 .on(exec)
                 ->generate(A);
     } else {
