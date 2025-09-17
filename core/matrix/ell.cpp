@@ -65,9 +65,9 @@ void Ell<ValueType, IndexType>::validate_data() const
                         num_stored_elements_per_row_, stride_),
         "col_idxs must contain unique indices");
     GKO_VALIDATE(
-        is_within_bounds(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
-                         num_stored_elements_per_row_, stride_),
-        "col_idxs must be within bounds");
+        is_well_padded(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                       num_stored_elements_per_row_, stride_),
+        "col_idxs must only be before padding");
 }
 
 
@@ -440,9 +440,6 @@ bool Ell<ValueType, IndexType>::has_unique_idxs(
         std::unordered_set<IndexType> unique_idxs;
         for (size_type j = 0; j < num_non_zero_per_row; ++j) {
             const auto idx = host_col_idxs[i + stride * j];
-            if (idx == -1) {
-                continue;
-            }
             if (idx != -1 && idx < num_rows) {
                 if (!unique_idxs.insert(idx).second) {
                     return false;
@@ -455,7 +452,7 @@ bool Ell<ValueType, IndexType>::has_unique_idxs(
 
 
 template <typename ValueType, typename IndexType>
-bool Ell<ValueType, IndexType>::is_within_bounds(
+bool Ell<ValueType, IndexType>::is_well_padded(
     const gko::array<IndexType>& col_idxs, const IndexType num_rows,
     const size_type num_non_zero_per_row, const size_type stride)
 {
