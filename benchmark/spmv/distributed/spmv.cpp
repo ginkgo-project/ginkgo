@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     auto schema = json::parse(
         std::ifstream(GKO_ROOT "/benchmark/schema/spmv-distributed.json"));
 
-    initialize_argument_parsing(&argc, &argv, header, schema["examples"],
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"], "",
                                 do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());

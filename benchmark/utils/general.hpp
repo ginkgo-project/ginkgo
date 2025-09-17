@@ -119,8 +119,11 @@ std::unique_ptr<std::istream> input_stream;
  * @param header  a header which describes the benchmark
  * @param examples  the format of the benchmark input data
  */
-void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
-                                 const json& examples, bool do_print = true)
+void initialize_argument_parsing(int* argc, char** argv[],
+                                 const std::string& header,
+                                 const json& examples,
+                                 const std::string& extra_help = "",
+                                 bool do_print = true)
 {
     if (do_print) {
         std::ostringstream doc;
@@ -137,7 +140,8 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
             << "  to a file in the same format. The backup file can be used as "
                "\n"
             << "  input to this test suite, and the benchmarking will \n"
-            << "  continue from the point where the backup file was created.";
+            << "  continue from the point where the backup file was created.\n"
+            << extra_help;
 
         gflags::SetUsageMessage(doc.str());
         std::ostringstream ver;

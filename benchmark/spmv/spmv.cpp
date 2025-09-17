@@ -25,7 +25,8 @@ int main(int argc, char* argv[])
     auto schema =
         json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/spmv.json"));
 
-    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"],
+                                formats::format_description);
 
     std::string extra_information =
         "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
