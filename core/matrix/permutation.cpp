@@ -197,10 +197,6 @@ bool Permutation<IndexType>::has_unique_idxs(
     std::unordered_set<IndexType> unique_idxs(host_perm_idxs.begin(),
                                               host_perm_idxs.end());
 
-    if (unique_idxs.size() < size) {
-        return false;
-    }
-
     for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
         if (unique_idxs.find(i) == unique_idxs.end()) {
             return false;
