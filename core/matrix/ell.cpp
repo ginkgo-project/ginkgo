@@ -60,10 +60,10 @@ void Ell<ValueType, IndexType>::validate_data() const
 {
     GKO_VALIDATE(validation::assert_array_is_finite(values_),
                  "matrix must contain only finite values");
-    GKO_VALIDATE(
-        has_unique_idxs(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
-                        num_stored_elements_per_row_, stride_),
-        "col_idxs must contain unique indices");
+    GKO_VALIDATE(ell_has_unique_idxs(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                     num_stored_elements_per_row_, stride_),
+                 "col_idxs must contain unique indices");
     GKO_VALIDATE(
         is_well_padded(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
                        num_stored_elements_per_row_, stride_),
@@ -431,7 +431,7 @@ Ell<ValueType, IndexType>::create_const(
 
 
 template <typename ValueType, typename IndexType>
-bool Ell<ValueType, IndexType>::has_unique_idxs(
+bool Ell<ValueType, IndexType>::ell_has_unique_idxs(
     const array<IndexType>& col_idxs, const IndexType num_rows,
     const size_type num_non_zero_per_row, const size_type stride)
 {
