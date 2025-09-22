@@ -57,6 +57,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV_KERNEL);
 
 
 }  // namespace conv
+
+namespace conv2d {
+
+template <typename ValueType>
+void conv2d(std::shared_ptr<const DefaultExecutor> exec,
+            const gko::matrix::Dense<ValueType>* kernel,
+            const gko::matrix::Dense<ValueType>* b,
+            gko::matrix::Dense<ValueType>* x)
+{
+    // implement convolution here
+    GKO_NOT_IMPLEMENTED;
+}
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
+}  // namespace conv2d
+
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
