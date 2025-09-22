@@ -36,6 +36,7 @@ set(GINKGO_HIP_SOURCES
     base/stream.hip.cpp
     base/timer.hip.cpp
     base/version.hip.cpp
+    matrix/conv_kernels.hip.cpp
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     preconditioner/batch_jacobi_kernels.hip.cpp
