@@ -27,6 +27,11 @@ GKO_REGISTER_OPERATION(conv, conv::conv);
 }  // namespace
 }  // namespace conv
 
+namespace conv2d {
+namespace {
+GKO_REGISTER_OPERATION(conv2d, conv2d::conv2d);
+}  // namespace
+}  // namespace conv2d
 
 template <typename ValueType>
 void Conv<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
@@ -40,8 +45,27 @@ void Conv<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 template <typename ValueType>
+void Conv2d<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(
+                conv2d::make_conv2d(kernel_.get(), dense_b, dense_x));
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
 void Conv<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                  const LinOp* beta, LinOp* x) const
+{
+    // implmement
+}
+
+template <typename ValueType>
+void Conv2d<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                   const LinOp* beta, LinOp* x) const
 {
     // implmement
 }
@@ -71,9 +95,19 @@ void Conv<ValueType>::validate_application_parameters(const LinOp* b,
 
 
 template <typename ValueType>
+void Conv2d<ValueType>::validate_application_parameters(const LinOp* b,
+                                                        const LinOp* x) const
+{
+    // implement
+    GKO_ASSERT_EQUAL_COLS(b, x);
+}
+
+
+template <typename ValueType>
 Conv<ValueType>::Conv(std::shared_ptr<const Executor> exec)
     : EnableLinOp<Conv>(exec), kernel_{exec}
 {}
+
 
 template <typename ValueType>
 Conv<ValueType>::Conv(std::shared_ptr<const Executor> exec,
@@ -85,11 +119,33 @@ Conv<ValueType>::Conv(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+Conv2d<ValueType>::Conv2d(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Conv2d>(exec),
+      kernel_{Dense<ValueType>::create(exec, dim<2>{}, 0)}
+// create empty Dense
+{}
+
+template <typename ValueType>
+Conv2d<ValueType>::Conv2d(std::shared_ptr<const Executor> exec,
+                          std::shared_ptr<const Dense<ValueType>> kernel)
+    : EnableLinOp<Conv2d>(exec), kernel_{std::move(kernel)}
+{}
+
+
+template <typename ValueType>
 std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
     std::shared_ptr<const Executor> exec)
 {
     return std::unique_ptr<Conv>{new Conv{exec}};
 }
+
+template <typename ValueType>
+std::unique_ptr<Conv2d<ValueType>> Conv2d<ValueType>::create(
+    std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Conv2d>{new Conv2d{exec}};
+}
+
 
 template <typename ValueType>
 std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
@@ -99,8 +155,21 @@ std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<Conv2d<ValueType>> Conv2d<ValueType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const Dense<ValueType>> kernel)
+{
+    return std::unique_ptr<Conv2d>{new Conv2d{exec, kernel}};
+}
+
+
 #define GKO_DECLARE_CONV(ValueType) class Conv<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV);
+
+
+#define GKO_DECLARE_CONV2D(ValueType) class Conv2d<ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D);
 
 
 }  // namespace matrix
