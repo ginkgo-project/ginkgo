@@ -849,7 +849,11 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_CONV_KERNEL);
 
 }  // namespace conv
 
+namespace conv2d {
 
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
+
+}
 namespace ell {
 
 
