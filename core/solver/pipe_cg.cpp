@@ -108,30 +108,37 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // GKO_SOLVER_VECTOR(w, dense_b);
     // into rw that we later slice for efficient dot product computation
     auto b_stride = dense_b->get_stride();
-    dim<2> original_size = dense_b->get_size();
-    dim<2> conjoined_size = {original_size[0], b_stride * 2};
 
-    LocalVector* rw = this->template create_workspace_op<LocalVector>(
-        GKO_SOLVER_TRAITS::rw, conjoined_size);
-    auto r_unique =
-        rw->create_submatrix(local_span{0, original_size[0]},
-                             local_span{0, original_size[1]}, original_size);
+    auto local_original_size = ::gko::detail::get_local(dense_b)->get_size();
+    auto global_original_size = dense_b->get_size();
+    dim<2> local_conjoined_size = {local_original_size[0], b_stride * 2};
+    dim<2> global_conjoined_size = {global_original_size[0], b_stride * 2};
+
+    VectorType* rw =
+        this->template create_workspace_op_with_type_of<VectorType>(
+            GKO_SOLVER_TRAITS::rw, dense_b, global_conjoined_size,
+            local_conjoined_size);
+    auto r_unique = rw->create_submatrix(local_span{0, local_original_size[0]},
+                                         local_span{0, local_original_size[1]},
+                                         global_original_size);
     auto* r = r_unique.get();
     auto w_unique = rw->create_submatrix(
-        local_span{0, original_size[0]},
-        local_span{b_stride, b_stride + original_size[1]}, original_size);
+        local_span{0, local_original_size[0]},
+        local_span{b_stride, b_stride + local_original_size[1]},
+        global_original_size);
     auto* w = w_unique.get();
 
     // z now consists of two identical repeating parts: z1 and z2, again, for
     // the same reason
     GKO_SOLVER_VECTOR(z, rw);
-    auto z1_unique =
-        z->create_submatrix(local_span{0, original_size[0]},
-                            local_span{0, original_size[1]}, original_size);
+    auto z1_unique = z->create_submatrix(local_span{0, local_original_size[0]},
+                                         local_span{0, local_original_size[1]},
+                                         global_original_size);
     auto* z1 = z1_unique.get();
     auto z2_unique = z->create_submatrix(
-        local_span{0, original_size[0]},
-        local_span{b_stride, b_stride + original_size[1]}, original_size);
+        local_span{0, local_original_size[0]},
+        local_span{b_stride, b_stride + local_original_size[1]},
+        global_original_size);
     auto* z2 = z2_unique.get();
 
     GKO_SOLVER_VECTOR(p, dense_b);
@@ -144,12 +151,13 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rho and delta become combined as well
     GKO_SOLVER_SCALAR(rhodelta, rw);
     auto rho_unique = rhodelta->create_submatrix(
-        local_span{0, 1}, local_span{0, original_size[1]},
-        dim<2>{1, original_size[1]});
+        local_span{0, 1}, local_span{0, local_original_size[1]},
+        dim<2>{1, global_original_size[1]});
     auto* rho = rho_unique.get();
     auto delta_unique = rhodelta->create_submatrix(
-        local_span{0, 1}, local_span{b_stride, b_stride + original_size[1]},
-        dim<2>{1, original_size[1]});
+        local_span{0, 1},
+        local_span{b_stride, b_stride + local_original_size[1]},
+        dim<2>{1, global_original_size[1]});
     auto* delta = delta_unique.get();
 
     GKO_SOLVER_SCALAR(beta, dense_b);
@@ -161,9 +169,9 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // needs to match the size of the combined rhodelta
     auto& stop_status = this->template create_workspace_array<stopping_status>(
-        GKO_SOLVER_TRAITS::stop, original_size[1]);
+        GKO_SOLVER_TRAITS::stop, global_original_size[1]);
     auto& reduction_tmp = this->template create_workspace_array<char>(
-        GKO_SOLVER_TRAITS::tmp, 2 * original_size[1]);
+        GKO_SOLVER_TRAITS::tmp, 2 * global_original_size[1]);
 
     // r = b
     // prev_rho = 1.0
