@@ -69,53 +69,6 @@ void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
-void richardson_lsq(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Dense<ValueType>* sketched_krylov_bases,
-                    matrix::Dense<ValueType>* hessenberg_iter,
-                    matrix::Dense<ValueType>* d_hessenberg_iter,
-                    matrix::Dense<ValueType>* sketched_next_krylov2,
-                    size_type iter, size_type k_rows)
-{
-    auto num_rhs = sketched_krylov_bases->get_size()[1];
-    // iter = hessenberg_iter.get_size()[0] - 1;
-    for (size_type k = 0; k < num_rhs; k++) {
-        for (size_type j = 0; j < k_rows; j++)
-            sketched_next_krylov2->at(j, k) =
-                sketched_krylov_bases->at(j + (iter + 1) * k_rows, k);
-    }
-    for (size_type i = 0; i <= iter; i++) {
-        for (size_type k = 0; k < num_rhs; k++) {
-            hessenberg_iter->at(i, k) = zero<ValueType>();
-        }
-    }
-
-    for (size_type ell = 0; ell < 3; ell++) {
-        for (size_type i = 0; i <= iter; i++) {
-            for (size_type k = 0; k < num_rhs; k++) {
-                d_hessenberg_iter->at(i, k) = zero<ValueType>();
-                for (size_type j = 0; j < k_rows; j++) {
-                    d_hessenberg_iter->at(i, k) +=
-                        sketched_krylov_bases->at(j + i * k_rows, k) *
-                        sketched_next_krylov2->at(j, k);
-                }
-            }
-        }
-        for (size_type i = 0; i <= iter; i++) {
-            for (size_type k = 0; k < num_rhs; k++) {
-                for (size_type j = 0; j < k_rows; j++) {
-                    sketched_next_krylov2->at(j, k) -=
-                        sketched_krylov_bases->at(j + i * k_rows, k) *
-                        d_hessenberg_iter->at(i, k);
-                }
-                hessenberg_iter->at(i, k) += d_hessenberg_iter->at(i, k);
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RICHARDSON_LSQ_KERNEL);
-
-template <typename ValueType>
 void multi_axpy(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType>* krylov_bases,
                 const matrix::Dense<ValueType>* y,

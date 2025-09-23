@@ -42,7 +42,6 @@ namespace {
 GKO_REGISTER_OPERATION(initialize, common_gmres::initialize);
 GKO_REGISTER_OPERATION(restart, gmres::restart);
 GKO_REGISTER_OPERATION(restart_rgs, gmres::restart_rgs);
-GKO_REGISTER_OPERATION(richardson_lsq, gmres::richardson_lsq);
 GKO_REGISTER_OPERATION(hessenberg_qr, common_gmres::hessenberg_qr);
 GKO_REGISTER_OPERATION(solve_krylov, common_gmres::solve_krylov);
 GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
@@ -315,7 +314,6 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
 }
 
 
-// TODO modify this function!
 template <typename ValueType, typename VectorType>
 void orthogonalize_rgs(matrix::Dense<ValueType>* hessenberg_iter,
                        VectorType* krylov_bases, VectorType* next_krylov,

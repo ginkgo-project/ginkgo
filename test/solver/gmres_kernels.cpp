@@ -228,30 +228,6 @@ TEST_F(Gmres, GmresKernelRestartRgsIsEquivalentToRef)
 }
 
 
-TEST_F(Gmres, GmresKernelRichardsonLsqIsEquivalentToRef)
-{
-    initialize_data();
-    int iter = 5;
-    ASSERT_LE(iter, this->krylov_dim);
-
-    gko::kernels::reference::gmres::richardson_lsq(
-        ref, sketched_krylov_bases.get(), hessenberg_iter.get(),
-        sketched_hessenberg_iter.get(), sketched_next_krylov2.get(), iter,
-        k_rows);
-    gko::kernels::GKO_DEVICE_NAMESPACE::gmres::richardson_lsq(
-        exec, d_sketched_krylov_bases.get(), d_hessenberg_iter.get(),
-        d_sketched_hessenberg_iter.get(), d_sketched_next_krylov2.get(), iter,
-        k_rows);
-
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
-                        r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_sketched_hessenberg_iter, sketched_hessenberg_iter,
-                        r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_sketched_next_krylov2, sketched_next_krylov2,
-                        r<value_type>::value);
-}
-
-
 TEST_F(Gmres, GmresKernelHessenbergQRIsEquivalentToRef)
 {
     initialize_data();
