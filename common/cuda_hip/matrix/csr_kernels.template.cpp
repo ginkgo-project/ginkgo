@@ -5,6 +5,8 @@
 #include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
+#include <exception>
+#include <stdexcept>
 
 #include <thrust/copy.h>
 #include <thrust/count.h>
@@ -1397,6 +1399,12 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
 {
+    // check the sorting
+    if (!a->is_sorted_by_column_index())
+        throw std::invalid_argument("spgeam: a is not sorted by column index");
+    if (!b->is_sorted_by_column_index())
+        throw std::invalid_argument("spgeam: b is not sorted by column index");
+
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
     auto nnz_per_row = a->get_size()[0] ? total_nnz / a->get_size()[0] : 0;

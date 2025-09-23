@@ -287,6 +287,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(
+            // this here requires sorted diagonal matrix for some backends
             csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
                              as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
     } else {
