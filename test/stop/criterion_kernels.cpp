@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,8 @@ protected:
 
 TEST_F(Criterion, SetsOneStopStatus)
 {
-    bool one_changed{};
+    gko::array<bool> stop_indicators(ref, 2);
+    stop_indicators.get_data()[0] = false;
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory->generate(nullptr, nullptr, nullptr);
     gko::array<gko::stopping_status> stop_status(ref, 1);
@@ -39,7 +40,8 @@ TEST_F(Criterion, SetsOneStopStatus)
     stop_status.set_executor(exec);
     criterion->update()
         .num_iterations(test_iterations)
-        .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        .check(RelativeStoppingId, true, &stop_status,
+               stop_indicators.get_data());
     stop_status.set_executor(ref);
 
     ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);
@@ -48,7 +50,8 @@ TEST_F(Criterion, SetsOneStopStatus)
 
 TEST_F(Criterion, SetsMultipleStopStatuses)
 {
-    bool one_changed{};
+    gko::array<bool> stop_indicators(ref, 2);
+    stop_indicators.get_data()[0] = false;
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory->generate(nullptr, nullptr, nullptr);
     gko::array<gko::stopping_status> stop_status(ref, 3);
@@ -59,7 +62,8 @@ TEST_F(Criterion, SetsMultipleStopStatuses)
     stop_status.set_executor(exec);
     criterion->update()
         .num_iterations(test_iterations)
-        .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        .check(RelativeStoppingId, true, &stop_status,
+               stop_indicators.get_data());
     stop_status.set_executor(ref);
 
     ASSERT_EQ(stop_status.get_data()[0].has_stopped(), true);

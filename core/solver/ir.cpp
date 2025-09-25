@@ -208,6 +208,10 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
+    auto& stop_indicators =
+        this->template create_workspace_array<bool>(ws::indicators, 2);
+    stop_indicators.set_executor(this->get_executor()->get_master());
+    stop_indicators.get_data()[0] = false;
     if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -235,7 +239,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         };
         bool all_stopped = update_residual(
             this, iter, dense_b, dense_x, residual, residual_ptr,
-            stop_criterion, stop_status, log_func);
+            stop_criterion, stop_status, &stop_indicators, log_func);
         if (all_stopped) {
             break;
         }
@@ -289,7 +293,7 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
 template <typename ValueType>
 int workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
 {
-    return 1;
+    return 2;
 }
 
 

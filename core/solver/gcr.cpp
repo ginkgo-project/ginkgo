@@ -136,8 +136,6 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& final_iter_nums = this->template create_workspace_array<size_type>(
         ws::final_iter_nums, num_rhs);
 
-    // indicates if the status of a vector has changed
-    bool one_changed{};
     GKO_SOLVER_ONE_MINUS_ONE();
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
@@ -196,13 +194,13 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual->compute_norm2(residual_norm, reduction_tmp);
 
         // Should the iteration stop?
-        auto all_stopped =
-            stop_criterion->update()
-                .num_iterations(total_iter)
-                .residual(residual)
-                .residual_norm(residual_norm)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        auto all_stopped = stop_criterion->update()
+                               .num_iterations(total_iter)
+                               .residual(residual)
+                               .residual_norm(residual_norm)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, true, &stop_status,
+                                      stop_indicators.get_data());
 
         // Log current iteration
         this->template log<log::Logger::iteration_complete>(
@@ -314,7 +312,7 @@ void Gcr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 int workspace_traits<Gcr<ValueType>>::num_arrays(const Solver&)
 {
-    return 3;
+    return 4;
 }
 
 

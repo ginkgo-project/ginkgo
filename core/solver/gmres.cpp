@@ -391,7 +391,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
     auto& final_iter_nums = this->template create_workspace_array<size_type>(
         ws::final_iter_nums, num_rhs);
@@ -444,13 +443,13 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         ++total_iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(total_iter)
-                .residual(residual)
-                .residual_norm(residual_norm)
-                .solution(dense_x)
-                .check(RelativeStoppingId, false, &stop_status, &one_changed);
+        bool all_stopped = stop_criterion->update()
+                               .num_iterations(total_iter)
+                               .residual(residual)
+                               .residual_norm(residual_norm)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, false, &stop_status,
+                                      stop_indicators.get_data());
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, total_iter, residual, residual_norm,
             nullptr, &stop_status, all_stopped);
@@ -646,7 +645,7 @@ void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 {
-    return 3;
+    return 4;
 }
 
 

@@ -268,7 +268,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         array<size_type> final_iter_nums(this->get_executor(), num_rhs);
         auto y = Vector::create(exec, dim<2>{krylov_dim, num_rhs});
 
-        bool one_changed{};
+        array<bool> stop_indicators(this->get_executor()->get_master(), 2);
+        stop_indicators.get_data()[0] = false;
         array<char> reduction_tmp{this->get_executor()};
         array<stopping_status> stop_status(this->get_executor(), num_rhs);
         // reorth_status and num_reorth are both helper variables for GPU
@@ -341,17 +342,18 @@ void CbGmres<ValueType>::apply_dense_impl(
                     residual_norm.get(), nullptr, &stop_status, false);
                 ++forced_iterations;
             } else {
-                bool all_changed = stop_criterion->update()
-                                       .num_iterations(total_iter)
-                                       .residual(residual)
-                                       .residual_norm(residual_norm)
-                                       .solution(dense_x)
-                                       .check(RelativeStoppingId, true,
-                                              &stop_status, &one_changed);
+                bool all_changed =
+                    stop_criterion->update()
+                        .num_iterations(total_iter)
+                        .residual(residual)
+                        .residual_norm(residual_norm)
+                        .solution(dense_x)
+                        .check(RelativeStoppingId, true, &stop_status,
+                               stop_indicators.get_data());
                 this->template log<log::Logger::iteration_complete>(
                     this, dense_b, dense_x, total_iter, residual.get(),
                     residual_norm.get(), nullptr, &stop_status, all_changed);
-                if (one_changed || all_changed) {
+                if (stop_indicators.get_const_data()[0] || all_changed) {
                     host_stop_status = stop_status;
                     bool host_array_changed{false};
                     for (size_type i = 0; i < host_stop_status.get_size();

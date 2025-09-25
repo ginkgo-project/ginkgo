@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -503,6 +503,8 @@ struct workspace_traits<Multigrid> {
 
     // stopping status array
     constexpr static int stop = 0;
+    // stopping indicator array
+    constexpr static int indicators = 1;
 };
 
 

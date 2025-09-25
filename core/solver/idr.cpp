@@ -157,7 +157,6 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             ws::subspace_minus_one, 1);
     subspace_neg_one_op->fill(-one<SubspaceType>());
 
-    bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // Initialization
@@ -212,13 +211,13 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     while (true) {
         ++total_iter;
 
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(total_iter)
-                .residual(residual)
-                .residual_norm(residual_norm)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
+        bool all_stopped = stop_criterion->update()
+                               .num_iterations(total_iter)
+                               .residual(residual)
+                               .residual_norm(residual_norm)
+                               .solution(dense_x)
+                               .check(RelativeStoppingId, true, &stop_status,
+                                      stop_indicators.get_data());
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, total_iter, residual, nullptr, nullptr,
             &stop_status, all_stopped);
@@ -348,7 +347,7 @@ void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 int workspace_traits<Idr<ValueType>>::num_arrays(const Solver&)
 {
-    return 2;
+    return 3;
 }
 
 
