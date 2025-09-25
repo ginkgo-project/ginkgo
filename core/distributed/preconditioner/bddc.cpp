@@ -6,9 +6,11 @@
 
 #include <cstddef>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -31,6 +33,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/reorder/amd.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -185,101 +188,92 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Bddc<ValueType, LocalIndexType, GlobalIndexType>::solve_inner(
-    std::shared_ptr<local_vec> b, std::shared_ptr<local_vec> x,
-    bool ignore_nsp) const
-{
-    if (parameters_.reordering) {
-        b->permute(reorder_II_, x, matrix::permute_mode::rows);
-        if (parameters_.constant_nullspace && !ignore_nsp) {
-            x->compute_dot(II_nsp_1, II_scal_2);
-            II_scal_2->inv_scale(II_scal_1);
-            II_scal_3->copy_from(II_scal_2);
-            II_scal_2->scale(neg_one_);
-            x->add_scaled(II_scal_2, II_nsp_2);
+template <typename ValueType, typename IndexType>
+class NSPSolver
+    : public gko::EnableLinOp<NSPSolver<ValueType, IndexType>>,
+      public gko::EnableCreateMethod<NSPSolver<ValueType, IndexType>> {
+public:
+    using local_vec = gko::matrix::Dense<ValueType>;
+    using perm_type = gko::matrix::Permutation<IndexType>;
+    NSPSolver(std::shared_ptr<const gko::Executor> exec,
+              std::shared_ptr<const LinOp> solver = nullptr,
+              std::shared_ptr<const local_vec> nsp_1 = nullptr,
+              std::shared_ptr<const local_vec> nsp_2 = nullptr,
+              std::shared_ptr<const local_vec> scale_1 = nullptr,
+              std::shared_ptr<const perm_type> permutation = nullptr)
+        : gko::EnableLinOp<NSPSolver>(
+              exec, dim<2>{solver->get_size()[0], solver->get_size()[0]}),
+          nsp_1_{nsp_1},
+          nsp_2_{nsp_2},
+          scale_1_{scale_1},
+          solver_{solver},
+          permutation_{permutation}
+    {
+        buf_ = local_vec::create(exec, gko::dim<2>{solver->get_size()[0], 1});
+        if (scale_1 != nullptr) {
+            scale_2_ = clone(scale_1_);
+            scale_3_ = clone(scale_1_);
         }
-        if (inner_solver_->apply_uses_initial_guess()) {
-            b->fill(zero<ValueType>());
+        one_ = gko::initialize<local_vec>({1.0}, exec);
+        neg_one_ = gko::initialize<local_vec>({-1.0}, exec);
+    }
+
+    void add_scaling(std::shared_ptr<const LinOp> scaling) const
+    {
+        solver_ = Composition<ValueType>::create(scaling, solver_);
+    }
+
+protected:
+    void apply_impl(const LinOp* b, LinOp* x) const override
+    {
+        auto dense_x = as<local_vec>(x);
+        auto dense_b = as<local_vec>(b);
+        if (permutation_ == nullptr) {
+            buf_->copy_from(dense_b);
+        } else {
+            dense_b->permute(permutation_, buf_, matrix::permute_mode::rows);
         }
-        inner_solver_->apply(x, b);
-        if (parameters_.constant_nullspace && !ignore_nsp) {
-            b->compute_dot(II_nsp_2, II_scal_2);
-            II_scal_2->inv_scale(II_scal_1);
-            II_scal_2->scale(neg_one_);
-            b->add_scaled(II_scal_2, II_nsp_1);
-            b->add_scaled(II_scal_3, II_nsp_1);
+        if (nsp_1_ != nullptr) {
+            buf_->compute_dot(nsp_1_, scale_2_);
+            scale_2_->inv_scale(scale_1_);
+            scale_3_->copy_from(scale_2_);
+            scale_2_->scale(neg_one_);
+            buf_->add_scaled(scale_2_, nsp_2_);
         }
-        b->permute(reorder_II_, x, matrix::permute_mode::inverse_rows);
-    } else {
-        if (parameters_.constant_nullspace && !ignore_nsp) {
-            b->compute_dot(II_nsp_1, II_scal_2);
-            II_scal_2->inv_scale(II_scal_1);
-            II_scal_3->copy_from(II_scal_2);
-            II_scal_2->scale(neg_one_);
-            b->add_scaled(II_scal_2, II_nsp_2);
+        if (solver_->apply_uses_initial_guess()) {
+            dense_x->fill(zero<ValueType>());
         }
-        if (inner_solver_->apply_uses_initial_guess()) {
-            x->fill(zero<ValueType>());
+        solver_->apply(buf_, dense_x);
+        if (nsp_1_ != nullptr) {
+            dense_x->compute_dot(nsp_2_, scale_2_);
+            scale_2_->inv_scale(scale_1_);
+            scale_2_->scale(neg_one_);
+            dense_x->add_scaled(scale_2_, nsp_1_);
+            dense_x->add_scaled(scale_3_, nsp_1_);
         }
-        inner_solver_->apply(b, x);
-        if (parameters_.constant_nullspace && !ignore_nsp) {
-            x->compute_dot(II_nsp_2, II_scal_2);
-            II_scal_2->inv_scale(II_scal_1);
-            II_scal_2->scale(neg_one_);
-            x->add_scaled(II_scal_2, II_nsp_1);
-            x->add_scaled(II_scal_3, II_nsp_1);
+        if (permutation_ != nullptr) {
+            dense_x->permute(permutation_, buf_,
+                             matrix::permute_mode::inverse_rows);
+            dense_x->copy_from(buf_);
         }
     }
-}
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, LinOp* x) const override
+    {}
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Bddc<ValueType, LocalIndexType, GlobalIndexType>::solve_local(
-    std::shared_ptr<local_vec> b, std::shared_ptr<local_vec> x) const
-{
-    if (parameters_.reordering) {
-        b->permute(reorder_LL_, x, matrix::permute_mode::rows);
-        if (parameters_.constant_nullspace) {
-            x->compute_dot(LL_nsp_1, LL_scal_2);
-            LL_scal_2->inv_scale(LL_scal_1);
-            LL_scal_3->copy_from(LL_scal_2);
-            LL_scal_2->scale(neg_one_);
-            x->add_scaled(LL_scal_2, LL_nsp_2);
-        }
-        if (local_solver_->apply_uses_initial_guess()) {
-            b->fill(zero<ValueType>());
-        }
-        local_solver_->apply(x, b);
-        if (parameters_.constant_nullspace) {
-            b->compute_dot(LL_nsp_2, LL_scal_2);
-            LL_scal_2->inv_scale(LL_scal_1);
-            LL_scal_2->scale(neg_one_);
-            b->add_scaled(LL_scal_2, LL_nsp_1);
-            b->add_scaled(LL_scal_3, LL_nsp_1);
-        }
-        b->permute(reorder_LL_, x, matrix::permute_mode::inverse_rows);
-    } else {
-        if (parameters_.constant_nullspace) {
-            b->compute_dot(LL_nsp_1, LL_scal_2);
-            LL_scal_2->inv_scale(LL_scal_1);
-            LL_scal_3->copy_from(LL_scal_2);
-            LL_scal_2->scale(neg_one_);
-            b->add_scaled(LL_scal_2, LL_nsp_2);
-        }
-        if (local_solver_->apply_uses_initial_guess()) {
-            x->fill(zero<ValueType>());
-        }
-        local_solver_->apply(b, x);
-        if (parameters_.constant_nullspace) {
-            x->compute_dot(LL_nsp_2, LL_scal_2);
-            LL_scal_2->inv_scale(LL_scal_1);
-            LL_scal_2->scale(neg_one_);
-            x->add_scaled(LL_scal_2, LL_nsp_1);
-            x->add_scaled(LL_scal_3, LL_nsp_1);
-        }
-    }
-}
+private:
+    std::shared_ptr<local_vec> buf_;
+    std::shared_ptr<const local_vec> nsp_1_;
+    std::shared_ptr<const local_vec> nsp_2_;
+    std::shared_ptr<local_vec> one_;
+    std::shared_ptr<local_vec> neg_one_;
+    std::shared_ptr<const local_vec> scale_1_;
+    std::shared_ptr<local_vec> scale_2_;
+    std::shared_ptr<local_vec> scale_3_;
+    mutable std::shared_ptr<const LinOp> solver_;
+    std::shared_ptr<const perm_type> permutation_;
+};
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -292,26 +286,34 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     auto comm = buf_1_->get_communicator();
 
     restriction_->apply(dense_b, buf_2_);
-
     if (active) {
         local_buf_2_->permute(permutation_, local_buf_1_,
                               matrix::permute_mode::rows);
         local_buf_4_->copy_from(local_buf_1_);
-
-        // Static condensation 1
-        solve_inner(interior_1_, interior_2_);
-
-        A_BI->apply(interior_2_, bndry_3_);
-        interior_3_->fill(zero<ValueType>());
-        local_buf_3_->permute(permutation_, local_buf_2_,
-                              matrix::permute_mode::inverse_rows);
     }
-    prolongation_->apply(buf_2_, dense_x);
-    restriction_->apply(dense_x, buf_2_);
-    if (active) {
-        local_buf_2_->permute(permutation_, local_buf_3_,
-                              matrix::permute_mode::rows);
+
+    if (!pre_solved) {
+        if (active) {
+            // Static condensation 1
+            inner_solver_->apply(interior_1_, interior_2_);
+            A_BI->apply(interior_2_, bndry_3_);
+            interior_3_->fill(zero<ValueType>());
+            local_buf_3_->permute(permutation_, local_buf_2_,
+                                  matrix::permute_mode::inverse_rows);
+        }
+        prolongation_->apply(buf_2_, dense_x);
+        restriction_->apply(dense_x, buf_2_);
+        if (active) {
+            local_buf_2_->permute(permutation_, local_buf_3_,
+                                  matrix::permute_mode::rows);
+        }
         bndry_1_->add_scaled(neg_one_, bndry_3_);
+    }
+
+    if (active) {
+        // interior_1_->compute_norm2(norm_op);
+        // std::cout << "RANK " << comm.rank() << ": " << norm_op->at(0,0) << ",
+        // " << pre_solved << std::endl;
         interior_1_->fill(zero<ValueType>());
         weights_->apply(local_buf_1_, local_buf_2_);
 
@@ -329,7 +331,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         phi_->apply(local_coarse_buf_1_, bndry_1_);
 
         // Substructure correction
-        solve_local(dual_2_, dual_3_);
+        local_solver_->apply(dual_2_, dual_3_);
         constraints_->apply(dual_3_, schur_buf_1_);
         if (schur_solver_->apply_uses_initial_guess()) {
             schur_buf_2_->fill(zero<ValueType>());
@@ -352,7 +354,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         // Static condensation 2
         local_buf_1_->copy_from(local_buf_4_);
         A_IB->apply(neg_one_, bndry_2_, one_, interior_1_);
-        solve_inner(interior_1_, interior_2_);
+
+        inner_solver_->apply(interior_1_, interior_2_);
         bndry_2_->fill(zero<ValueType>());
         local_buf_2_->permute(permutation_, local_buf_1_,
                               matrix::permute_mode::inverse_rows);
@@ -364,6 +367,55 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         LL_scal_3->inv_scale(n_op);
         dense_x->add_scaled(LL_scal_3, nsp);
     }
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Bddc<ValueType, LocalIndexType, GlobalIndexType>::pre_solve(const LinOp* b,
+                                                                 LinOp* b_buf,
+                                                                 LinOp* x)
+{
+    auto dense_b = as<vec>(b);
+    auto dense_b_buf = as<vec>(b_buf);
+    auto dense_x = as<vec>(x);
+    auto exec = this->get_executor();
+    auto comm = buf_1_->get_communicator();
+
+    dense_b_buf->copy_from(dense_b);
+    dd_system_matrix->apply(neg_one_, dense_x, one_, dense_b_buf);
+    pre_solve_buf_->copy_from(dense_x);
+    dense_x->fill(zero<ValueType>());
+
+    restriction_->apply(dense_b_buf, buf_2_);
+
+    if (active) {
+        local_buf_2_->permute(permutation_, local_buf_1_,
+                              matrix::permute_mode::rows);
+        // Static condensation 1
+        interior_3_->copy_from(interior_1_);
+        inner_solver_->apply(interior_1_, interior_2_);
+        bndry_2_->fill(zero<ValueType>());
+        local_buf_5_->copy_from(local_buf_2_);
+        A_BI->apply(interior_2_, bndry_3_);
+        local_buf_3_->permute(permutation_, local_buf_2_,
+                              matrix::permute_mode::inverse_rows);
+    }
+    prolongation_->apply(neg_one_, buf_2_, one_, dense_b_buf);
+    pre_solved = true;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Bddc<ValueType, LocalIndexType, GlobalIndexType>::post_solve(LinOp* x)
+{
+    auto dense_x = as<vec>(x);
+    if (active) {
+        local_buf_5_->permute(permutation_, local_buf_2_,
+                              matrix::permute_mode::inverse_rows);
+    }
+    prolongation_->apply(one_, buf_2_, one_, dense_x);
+    dense_x->add_scaled(one_, pre_solve_buf_);
+    pre_solved = false;
 }
 
 
@@ -403,7 +455,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto exec = this->get_executor();
     auto host_exec = exec->get_master();
 
-    auto dd_system_matrix =
+    dd_system_matrix =
         as<DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
 
     restriction_ = clone(dd_system_matrix->get_restriction());
@@ -419,6 +471,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     zero_ = gko::initialize<local_vec>({zero<ValueType>()}, exec);
     size_type local_size = dd_system_matrix->get_local_matrix()->get_size()[0];
     array<LocalIndexType> tags{host_exec, local_size};
+    norm_op = local_real_vec::create(host_exec, gko::dim<2>{1, 1});
 
     // A processor can be inactive if the local problem has size 0, this happens
     // in particular on lower levels of a multilevel BDDC.
@@ -522,6 +575,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         auto n_rows = reordered_system_matrix->get_size()[0];
         auto A_II = share(reordered_system_matrix->create_submatrix(
             span{0, n_inner_idxs}, span{0, n_inner_idxs}));
+        auto A_II_backup = share(reordered_system_matrix->create_submatrix(
+            span{0, n_inner_idxs}, span{0, n_inner_idxs}));
         A_IB = share(reordered_system_matrix->create_submatrix(
             span{0, n_inner_idxs},
             span{n_inner_idxs,
@@ -560,23 +615,66 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             std::swap(A_II, A_II_reordered);
         }
         A_II_ = clone(A_II);
-        if (A_II->get_size()[0] > 0) {
-            if (parameters_.inner_solver) {
-                inner_solver_ = parameters_.inner_solver->generate(A_II);
-            } else {
-                inner_solver_ = parameters_.local_solver->generate(A_II);
-            }
-        } else {
-            inner_solver_ = gko::matrix::Identity<ValueType>::create(
-                exec, A_II->get_size()[0]);
-        }
         if (A_LL->get_size()[0] > 0) {
-            local_solver_ = parameters_.local_solver->generate(A_LL);
+            if (n_vertices == 0) {
+                std::cout << "RANK " << comm.rank() << " HAS NO VERTICES"
+                          << std::endl;
+                auto minor = share(A_LL->create_submatrix(
+                    span{0, n_inner_idxs + n_face_idxs + n_edge_idxs - 1},
+                    span{0, n_inner_idxs + n_face_idxs + n_edge_idxs - 1}));
+                auto minor_solver =
+                    share(parameters_.local_solver->generate(minor));
+                gko::matrix_data<ValueType, LocalIndexType> r_data(
+                    gko::dim<2>{n_inner_idxs + n_face_idxs + n_edge_idxs,
+                                n_inner_idxs + n_face_idxs + n_edge_idxs - 1});
+                gko::matrix_data<ValueType, LocalIndexType> rt_data(
+                    gko::dim<2>{n_inner_idxs + n_face_idxs + n_edge_idxs - 1,
+                                n_inner_idxs + n_face_idxs + n_edge_idxs});
+                for (size_type i = 0;
+                     i < n_inner_idxs + n_face_idxs + n_edge_idxs - 1; i++) {
+                    r_data.nonzeros.emplace_back(i, i, one<ValueType>());
+                    rt_data.nonzeros.emplace_back(i, i, one<ValueType>());
+                }
+                auto r = share(local_mtx::create(exec));
+                r->read(r_data);
+                auto rt = share(local_mtx::create(exec));
+                rt->read(rt_data);
+                local_solver_ =
+                    gko::Composition<ValueType>::create(r, minor_solver, rt);
+                local_nsp = true;
+            } else {
+                local_solver_ = parameters_.local_solver->generate(A_LL);
+            }
         } else {
             local_solver_ = gko::matrix::Identity<ValueType>::create(
                 exec, A_LL->get_size()[0]);
         }
 
+        if (A_II->get_size()[0] > 0) {
+            if (A_II->get_size() == A_LL->get_size()) {
+                inner_solver_ = local_solver_;
+            } else {
+                if (parameters_.inner_solver) {
+                    inner_solver_ = parameters_.inner_solver->generate(A_II);
+                } else {
+                    inner_solver_ = parameters_.local_solver->generate(A_II);
+                }
+            }
+        } else {
+            inner_solver_ = gko::matrix::Identity<ValueType>::create(
+                exec, A_II->get_size()[0]);
+        }
+
+        matrix_data<ValueType, LocalIndexType> condest_LL_data(
+            gko::dim<2>{A_LL->get_size()[0], 1},
+            std::normal_distribution<>(0.0, 1.0), std::default_random_engine());
+        auto condest_rhs_LL = local_vec::create(exec);
+        condest_rhs_LL->read(condest_LL_data);
+        matrix_data<ValueType, LocalIndexType> condest_II_data(
+            gko::dim<2>{A_II->get_size()[0], 1},
+            std::normal_distribution<>(0.0, 1.0), std::default_random_engine());
+        auto condest_rhs_II = local_vec::create(exec);
+        condest_rhs_II->read(condest_II_data);
         if (parameters_.constant_nullspace) {
             II_nsp_1 = local_vec::create(exec, dim<2>{A_II->get_size()[0], 1});
             II_nsp_2 = clone(II_nsp_1);
@@ -586,6 +684,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             II_nsp_1->fill(one<ValueType>());
             A_II->apply(II_nsp_1, II_nsp_2);
             II_nsp_1->compute_dot(II_nsp_2, II_scal_1);
+            if (parameters_.reordering) {
+                inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1,
+                    reorder_II_);
+            } else {
+                inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1);
+            }
+            condest_rhs_II->compute_dot(II_nsp_1, II_scal_3);
+            II_scal_3->inv_scale(II_scal_1);
+            II_scal_3->scale(neg_one_);
+            condest_rhs_II->add_scaled(II_scal_3, II_nsp_2);
+
             LL_nsp_1 = local_vec::create(exec, dim<2>{A_LL->get_size()[0], 1});
             LL_nsp_2 = clone(LL_nsp_1);
             LL_scal_1 = gko::initialize<local_vec>({one<ValueType>()}, exec);
@@ -593,8 +704,97 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             LL_nsp_1->fill(one<ValueType>());
             A_LL->apply(LL_nsp_1, LL_nsp_2);
             LL_nsp_1->compute_dot(LL_nsp_2, LL_scal_1);
+            if (parameters_.reordering) {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1,
+                    reorder_LL_);
+            } else {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1);
+            }
+            condest_rhs_LL->compute_dot(LL_nsp_1, LL_scal_3);
+            LL_scal_3->inv_scale(LL_scal_1);
+            LL_scal_3->scale(neg_one_);
+            condest_rhs_LL->add_scaled(LL_scal_3, LL_nsp_2);
+        } else {
+            if (parameters_.reordering) {
+                inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, inner_solver_, nullptr, nullptr, nullptr,
+                    reorder_II_);
+            } else {
+                inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, inner_solver_);
+            }
+            if (parameters_.reordering) {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_, nullptr, nullptr, nullptr,
+                    reorder_LL_);
+            } else {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_);
+            }
         }
-
+        // if (comm.rank() == 4) {
+        //     std::ofstream out{"LL.mtx"};
+        //     gko::write(out, A_LL);
+        //     out.close();
+        // }
+        auto condest_LL = share(
+            gko::solver::Cg<ValueType>::build()
+                .with_criteria(
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(1e-4)
+                        .with_baseline(gko::stop::mode::initial_resnorm)
+                        .on(exec),
+                    gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+                .with_generated_preconditioner(local_solver_)
+                .on(exec)
+                ->generate(A_LL_backup));
+        auto eigs_LL = share(local_vec::create(host_exec, dim<2>{2, 1}));
+        condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
+        // auto prec_scaling_LL = share(diag::create(exec,
+        // A_LL->get_size()[0])); auto vals_LL = make_array_view(exec,
+        // A_LL->get_size()[0], prec_scaling_LL->get_values());
+        // vals_LL.fill(one<ValueType>() / eigs_LL->at(1, 0));
+        // as<NSPSolver<ValueType,
+        // LocalIndexType>>(local_solver_)->add_scaling(prec_scaling_LL);
+        // condest_LL = share(gko::solver::Cg<ValueType>::build()
+        //     .with_criteria(gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(1e-4).with_baseline(gko::stop::mode::initial_resnorm).on(exec),
+        //     gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+        //     .with_generated_preconditioner(local_solver_)
+        //     .on(exec)->generate(A_LL));
+        // auto eigs_LL_2 = clone(eigs_LL);
+        // condest_LL->condest(condest_rhs_LL.get(), eigs_LL_2.get());
+        auto condest_II = share(
+            gko::solver::Cg<ValueType>::build()
+                .with_criteria(
+                    gko::stop::ResidualNorm<ValueType>::build()
+                        .with_reduction_factor(1e-4)
+                        .with_baseline(gko::stop::mode::initial_resnorm)
+                        .on(exec),
+                    gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+                .with_generated_preconditioner(inner_solver_)
+                .on(exec)
+                ->generate(A_II_backup));
+        auto eigs_II = share(local_vec::create(host_exec, dim<2>{2, 1}));
+        condest_II->condest(condest_rhs_II.get(), eigs_II.get());
+        // auto prec_scaling_II = share(diag::create(exec,
+        // A_II->get_size()[0])); auto vals_II = make_array_view(exec,
+        // A_II->get_size()[0], prec_scaling_II->get_values());
+        // vals_II.fill(one<ValueType>() / eigs_II->at(1, 0));
+        // as<NSPSolver<ValueType,
+        // LocalIndexType>>(inner_solver_)->add_scaling(prec_scaling_II);
+        // condest_II = share(gko::solver::Cg<ValueType>::build()
+        //     .with_criteria(gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(1e-4).with_baseline(gko::stop::mode::initial_resnorm).on(exec),
+        //     gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+        //     .with_generated_preconditioner(inner_solver_)
+        //     .on(exec)->generate(A_II));
+        // auto eigs_II_2 = clone(eigs_II);
+        // condest_II->condest(condest_rhs_II.get(), eigs_II_2.get());
+        std::cout << "RANK " << comm.rank() << ": "
+                  << "LL COND: " << eigs_LL->at(1, 0) / eigs_LL->at(0, 0)
+                  << ", II COND: " << eigs_II->at(1, 0) / eigs_II->at(0, 0)
+                  << std::endl;
 
         // Set up constraints for faces and edges.
         // One row per constraint, one column per degree of freedom that is not
@@ -621,7 +821,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             auto sol = share(schur_interm->create_submatrix(
                 span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
                 span{i, i + 1}));
-            solve_local(rhs, sol);
+            local_solver_->apply(rhs, sol);
         }
         schur_interm_ = clone(schur_interm);
         auto schur_complement =
@@ -680,7 +880,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             auto sol = share(buffer_2->create_submatrix(
                 span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
                 span{i, i + 1}));
-            solve_local(rhs, sol);
+            local_solver_->apply(rhs, sol);
         }
         constraints_->apply(neg_one_, buffer_2, neg_one_, lambda_rhs);
         for (size_type i = 0; i < n_constraints; i++) {
@@ -698,7 +898,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             auto sol = share(phi_D->create_submatrix(
                 span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
                 span{i, i + 1}));
-            solve_local(rhs, sol);
+            local_solver_->apply(rhs, sol);
         }
         A_PP->apply(phi_P, lambda_P);
         A_PL->apply(neg_one_, phi_D, neg_one_, lambda_P);
@@ -785,6 +985,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
     // std::cout << "ORIGINAL COARSE MATRIX READ" << std::endl;
 
+    comm.synchronize();
     if (parameters_.repartition_coarse) {
         // Go through host with ParMETIS
         auto host_coarse = coarse_contribution.copy_to_host();
@@ -962,6 +1163,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         map_from_new->read_distributed(id_data, coarse_partition,
                                        new_partition);
 
+        // if (comm.rank() == 0) {
+        //     std::ofstream out_coarse{"coarse.mtx"};
+        //     gko::write_raw(out_coarse, complete_coarse_data);
+        // }
+
         // Read coarse matrix with new partition and set up coarse solver
         bool multilevel =
             dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
@@ -1107,6 +1313,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     dual_3_ = local_buf_3_->create_submatrix(
         span{0, n_inner_idxs + n_edge_idxs + n_face_idxs}, span{0, 1});
     local_buf_4_ = local_vec::create_with_config_of(local_buf_1_);
+    local_buf_5_ = local_vec::create_with_config_of(local_buf_1_);
     dual_4_ = clone(dual_3_);
     primal_3_ = local_buf_3_->create_submatrix(
         span{n_inner_idxs + n_edge_idxs + n_face_idxs,
@@ -1213,7 +1420,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                         span{0, n_inner_idxs}, span{j, j + 1}));
                     auto sol_col = share(sol->create_submatrix(
                         span{0, n_inner_idxs}, span{j, j + 1}));
-                    solve_inner(rhs, sol_col, true);
+                    inner_solver_->apply(rhs, sol_col);
                     local_idxs.get_data()[j] =
                         permutation_array.get_const_data()[start + j];
                 }
@@ -1335,6 +1542,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     n_op = gko::initialize<local_vec>(
         {-static_cast<ValueType>(nsp->get_size()[0])}, exec);
     nsp->fill(one<ValueType>());
+    pre_solve_buf_ = clone(nsp);
 }
 
 
