@@ -338,32 +338,6 @@ public:
         size_type num_stored_elements_per_row, size_type stride);
 
     /**
-     * Checks if all column indices in the given array are unique.
-     *
-     * @param col_idxs  the column index array of the matrix
-     * @param num_rows  the number of rows in the matrix
-     * @param num_non_zero_per_row  the number of nonzeros per row
-     * @param stride  the column-stride of the value and column index array
-     */
-    static bool ell_has_unique_idxs(const array<IndexType>& col_idxs,
-                                    const IndexType num_rows,
-                                    const size_type num_non_zero_per_row,
-                                    const size_type stride);
-
-    /**
-     * Checks if all column indices in the given array are unique.
-     *
-     * @param col_idxs  the column index array of the matrix
-     * @param num_rows  the number of rows in the matrix
-     * @param num_non_zero_per_row  the number of nonzeros per row
-     * @param stride  the column-stride of the value and column index array
-     */
-    static bool is_well_padded(const array<IndexType>& col_idxs,
-                               const IndexType num_rows,
-                               const size_type num_non_zero_per_row,
-                               const size_type stride);
-
-    /**
      * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
      * matrix with minimal stride if the dimensions don't match, then copies the
      * data over, ignoring padding.

@@ -18,10 +18,13 @@ namespace gko {
 namespace validation {
 
 
-#define GKO_VALIDATE(_expression, _message)                                 \
-    if (!(_expression)) {                                                   \
-        throw gko::InvalidData(__FILE__, __LINE__, typeid(decltype(*this)), \
-                               _message " (" #_expression ")");             \
+#define GKO_VALIDATE(_expression, _message)                  \
+    if (!(_expression)) {                                    \
+        throw gko::InvalidData(                              \
+            __FILE__, __LINE__, typeid(decltype(*this)),     \
+            "Exception occurs at index " +                   \
+                std::to_string(_expression.exceptionIndex) + \
+                ". " _message " (" #_expression ")");        \
     }
 
 
