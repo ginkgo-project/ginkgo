@@ -79,6 +79,7 @@ public:
     using local_real_vec = matrix::Dense<real_type>;
     using vec = Vector<value_type>;
     using diag = matrix::Diagonal<value_type>;
+    using dd_mtx = DdMatrix<ValueType, LocalIndexType, GlobalIndexType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -154,6 +155,10 @@ public:
             config::make_type_descriptor<ValueType, LocalIndexType,
                                          GlobalIndexType>());
 
+    void pre_solve(const LinOp* b, LinOp* b_buf, LinOp* x);
+
+    void post_solve(LinOp* x);
+
 protected:
     /**
      * Creates an empty Bddc preconditioner.
@@ -209,6 +214,7 @@ private:
 
     std::shared_ptr<const LinOp> restriction_;
     std::shared_ptr<const LinOp> prolongation_;
+    std::shared_ptr<const dd_mtx> dd_system_matrix;
     std::shared_ptr<const LinOp> coarse_restriction_;
     std::shared_ptr<const LinOp> coarse_prolongation_;
     std::shared_ptr<const LinOp> inner_solver_;
@@ -223,6 +229,7 @@ private:
     std::shared_ptr<LinOp> weights_;
     std::shared_ptr<vec> buf_1_;
     std::shared_ptr<vec> buf_2_;
+    std::shared_ptr<vec> pre_solve_buf_;
     std::shared_ptr<vec> coarse_buf_1_;
     std::shared_ptr<vec> coarse_buf_2_;
     std::shared_ptr<local_vec> local_buf_1_;
@@ -242,6 +249,7 @@ private:
     std::shared_ptr<local_vec> dual_4_;
     std::shared_ptr<local_vec> primal_3_;
     std::shared_ptr<local_vec> local_buf_4_;
+    std::shared_ptr<local_vec> local_buf_5_;
     std::shared_ptr<local_vec> schur_buf_1_;
     std::shared_ptr<local_vec> schur_buf_2_;
     std::shared_ptr<vec> broken_coarse_buf_1_;
@@ -274,7 +282,10 @@ private:
     std::shared_ptr<local_vec> LL_scal_3;
     std::shared_ptr<vec> nsp;
     std::shared_ptr<local_vec> n_op;
+    std::shared_ptr<local_real_vec> norm_op;
     bool active;
+    mutable bool pre_solved = false;
+    bool local_nsp = false;
 };
 
 

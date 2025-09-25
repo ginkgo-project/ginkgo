@@ -9,8 +9,6 @@
 #include <cstring>
 #include <string>
 
-#include "ginkgo/core/base/half.hpp"
-#include "ginkgo/core/base/types.hpp"
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
 
 
@@ -131,15 +129,15 @@ void classify_dofs(
             } else if (!use_edges) {
                 dof_types.get_data()[i] = experimental::distributed::
                     preconditioner::dof_type::inactive;
-            } else if (occurences[keypair] > 2) {
-                n_vertices++;
-                n_edge_idxs--;
-                dof_types.get_data()[i] =
-                    experimental::distributed::preconditioner::dof_type::vertex;
-                occurences[keypair] *= -1;
-                for (size_type j = 0; j < n_cols; j++) {
-                    labels->at(i, j) *= -1;
-                }
+                // } else if (occurences[keypair] > 2) {
+                //     n_vertices++;
+                //     n_edge_idxs--;
+                //     dof_types.get_data()[i] =
+                //         experimental::distributed::preconditioner::dof_type::vertex;
+                //     occurences[keypair] *= -1;
+                //     for (size_type j = 0; j < n_cols; j++) {
+                //         labels->at(i, j) *= -1;
+                //     }
             }
         }
         if (dof_types.get_data()[i] ==
@@ -227,22 +225,25 @@ void classify_dofs(
             n_owning_interfaces++;
             owning_label_idxs.emplace_back(row);
         }
-        while (
-            labels_eq(
-                n_cols, local_labels + row * n_cols,
-                local_labels +
-                    permutation_array.get_const_data()[start_idx] * n_cols) &&
-            tags.get_const_data()[row] ==
-                tags.get_const_data()[permutation_array
-                                          .get_const_data()[start_idx]] &&
-            dof_types.get_const_data()[row] ==
-                dof_types.get_const_data()[permutation_array
-                                               .get_const_data()[start_idx]]) {
-            start_idx++;
-            if (start_idx == n_rows) {
-                break;
-            }
-        }
+        start_idx += interface_sizes.get_const_data()[i];
+        // while (
+        //     labels_eq(
+        //         n_cols, local_labels + row * n_cols,
+        //         local_labels +
+        //             permutation_array.get_const_data()[start_idx] * n_cols)
+        //             &&
+        //     tags.get_const_data()[row] ==
+        //         tags.get_const_data()[permutation_array
+        //                                   .get_const_data()[start_idx]] &&
+        //     dof_types.get_const_data()[row] ==
+        //         dof_types.get_const_data()[permutation_array
+        //                                        .get_const_data()[start_idx]])
+        //                                        {
+        //     start_idx++;
+        //     if (start_idx == n_rows) {
+        //         break;
+        //     }
+        // }
     }
 
     unique_labels.resize_and_reset(n_constraints * n_cols);

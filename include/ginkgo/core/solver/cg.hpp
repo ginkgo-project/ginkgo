@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,6 +59,8 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    void condest(const LinOp* b, LinOp* eigs) const;
+
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
      *
@@ -101,6 +103,9 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    template <typename VectorType>
+    void condest_impl(const VectorType* b, VectorType* eigs) const;
 
     explicit Cg(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Cg>(std::move(exec))
