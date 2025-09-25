@@ -1400,9 +1400,12 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Csr<ValueType, IndexType>* c)
 {
     // check the sorting
-    if (!a->is_sorted_by_column_index())
+    bool sorted;
+    is_sorted_by_column_index(exec, a, &sorted);
+    if (!sorted)
         throw std::invalid_argument("spgeam: a is not sorted by column index");
-    if (!b->is_sorted_by_column_index())
+    is_sorted_by_column_index(exec, b, &sorted);
+    if (!sorted)
         throw std::invalid_argument("spgeam: b is not sorted by column index");
 
     auto total_nnz =
