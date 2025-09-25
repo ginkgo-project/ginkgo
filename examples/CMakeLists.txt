@@ -19,8 +19,8 @@ set(EXAMPLES_EXEC_LIST
     poisson-solver
     preconditioned-solver
     simple-solver
-    three-pt-stencil-solver
-)
+    rand-gmres
+    three-pt-stencil-solver)
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}

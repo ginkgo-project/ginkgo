@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,6 +58,49 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
+template <typename ValueType>
+void restart_rgs(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::Dense<ValueType>* residual,
+                 const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                 matrix::Dense<ValueType>* residual_norm_collection,
+                 matrix::Dense<ValueType>* krylov_bases,
+                 matrix::Dense<ValueType>* sketched_krylov_bases,
+                 size_type* final_iter_nums, size_type k_rows)
+{
+    if (residual->get_size()[0] == 0) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto j, auto residual_norm,
+                          auto residual_norm_collection, auto final_iter_nums) {
+                residual_norm_collection(0, j) = residual_norm(0, j);
+                final_iter_nums[j] = 0;
+            },
+            residual->get_size()[1], residual_norm, residual_norm_collection,
+            final_iter_nums);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto i, auto j, auto residual, auto residual_norm,
+                          auto residual_norm_collection, auto krylov_bases,
+                          auto sketched_krylov_bases, auto final_iter_nums,
+                          auto k_rows, auto num_rows) {
+                if (i == 0) {
+                    residual_norm_collection(0, j) = residual_norm(0, j);
+                    final_iter_nums[j] = 0;
+                }
+                krylov_bases(i, j) = residual(i, j) / residual_norm(0, j);
+                if (i < k_rows) {
+                    sketched_krylov_bases(i, j) =
+                        sketched_krylov_bases(i, j) / residual_norm(0, j);
+                }
+            },
+            residual->get_size(), residual, residual_norm,
+            residual_norm_collection, krylov_bases, sketched_krylov_bases,
+            final_iter_nums, k_rows, residual->get_size()[0]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
 void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,

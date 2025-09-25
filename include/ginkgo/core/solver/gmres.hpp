@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,7 +47,11 @@ enum class ortho_method {
     /**
      * Classical Gram-Schmidt with re-orthogonalization
      */
-    cgs2
+    cgs2,
+    /**
+     * Randomized Gram-Schmidt
+     */
+    rgs
 };
 
 /** Prints an orthogonalization method. */
@@ -218,6 +222,13 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int next_krylov_norm_tmp = 14;
     // preconditioned krylov basis multivector
     constexpr static int preconditioned_krylov_bases = 15;
+    // sketched krylov bases for RGS
+    constexpr static int sketched_krylov_bases = 16;
+    // separate sketched next krylov basis for RGS
+    constexpr static int sketched_next_krylov2 = 17;
+    // sketched hessenberg matrix for RGS
+    constexpr static int d_hessenberg_iter = 18;
+
 
     // stopping status array
     constexpr static int stop = 0;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
@@ -42,6 +43,30 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
+template <typename ValueType>
+void restart_rgs(std::shared_ptr<const ReferenceExecutor> exec,
+                 const matrix::Dense<ValueType>* residual,
+                 const matrix::Dense<remove_complex<ValueType>>* residual_norm,
+                 matrix::Dense<ValueType>* residual_norm_collection,
+                 matrix::Dense<ValueType>* krylov_bases,
+                 matrix::Dense<ValueType>* sketched_krylov_bases,
+                 size_type* final_iter_nums, size_type k_rows)
+{
+    for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        residual_norm_collection->at(0, j) = residual_norm->at(0, j);
+        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
+            krylov_bases->at(i, j) =
+                residual->at(i, j) / residual_norm->at(0, j);
+        }
+        for (size_type i = 0; i < k_rows; ++i) {
+            sketched_krylov_bases->at(i, j) =
+                sketched_krylov_bases->at(i, j) / residual_norm->at(0, j);
+        }
+        final_iter_nums[j] = 0;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_RGS_KERNEL);
 
 template <typename ValueType>
 void multi_axpy(std::shared_ptr<const ReferenceExecutor> exec,

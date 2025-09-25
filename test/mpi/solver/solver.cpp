@@ -529,7 +529,9 @@ using SolverTypes =
                      Gmres<10u, gko::solver::gmres::ortho_method::mgs>,
                      Gmres<10u, gko::solver::gmres::ortho_method::cgs>,
                      Gmres<10u, gko::solver::gmres::ortho_method::cgs2>,
-                     Gmres<100u, gko::solver::gmres::ortho_method::mgs>>;
+                     Gmres<100u, gko::solver::gmres::ortho_method::mgs>,
+                     Gmres<100u, gko::solver::gmres::ortho_method::rgs>>;
+
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
