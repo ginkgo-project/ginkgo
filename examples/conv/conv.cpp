@@ -14,9 +14,9 @@ int main()
     using Vec = gko::matrix::Dense<ValueType>;
 
     // Executor setup
-    // auto exec = gko::OmpExecutor::create();
-    auto exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto exec = gko::ReferenceExecutor::create();
 
+    // 1D Convolution //
 
     // Convolution kernel (length K) as a gko::array on the executor
     std::vector<ValueType> kernel_vals{1.0, 2.0, 3.0};
@@ -42,8 +42,57 @@ int main()
     auto host_output = output->clone(exec->get_master());
 
     std::cout << "Convolution result: ";
+    std::cout << std::endl;
+
     for (gko::size_type i = 0; i < output_length; ++i) {
         std::cout << host_output->at(i, 0) << " ";
+    }
+    std::cout << std::endl;
+
+    // 2D Convolution //
+    // Convolution kernel on the executor
+    std::vector<ValueType> kernel_vals_2d{1.0, 2.0, 3.0, 4.0, 5.0,
+                                          6.0, 7.0, 8.0, 9.0};
+
+    auto kernel_2d = gko::share(
+        gko::matrix::Dense<ValueType>::create(exec, gko::dim<2>{3, 3}));
+    std::copy(kernel_vals_2d.begin(), kernel_vals_2d.end(),
+              kernel_2d->get_values());
+    auto conv_op_2d = gko::matrix::Conv2d<ValueType>::create(exec, kernel_2d);
+
+    // Input signal on the executor
+    std::vector<ValueType> input_vals_2d{
+        1.0,  2.0,  3.0,  4.0,  5.0,  6.0,  7.0,  8.0,  9.0,  10.0,
+        11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0};
+
+    auto input_2d = gko::share(
+        gko::matrix::Dense<ValueType>::create(exec, gko::dim<2>{5, 4}));
+    std::copy(input_vals_2d.begin(), input_vals_2d.end(),
+              input_2d->get_values());
+
+    // Allocate output Dense matrix: floor((N + 2*padding - K) / stride) + 1
+    const gko::size_type output_length_2d_rows =
+        (input_2d->get_size()[0] + 2 * 0 - kernel_2d->get_size()[0]) / 1 + 1;
+    const gko::size_type output_length_2d_cols =
+        (input_2d->get_size()[1] + 2 * 0 - kernel_2d->get_size()[1]) / 1 + 1;
+    std::cout << "Output length (rows): " << output_length_2d_rows << std::endl;
+    std::cout << "Output length (cols): " << output_length_2d_cols << std::endl;
+    auto output_2d = gko::matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{output_length_2d_rows, output_length_2d_cols});
+    output_2d->fill(0.0);
+
+    // Apply convolution: conv_op_2d * input_2d -> output_2d
+    conv_op_2d->apply(gko::lend(input_2d), gko::lend(output_2d));
+
+    // Output the results (2D)
+    auto host_output_2d = output_2d->clone(exec->get_master());
+    std::cout << "Convolution result (2D): ";
+    std::cout << std::endl;
+    for (gko::size_type i = 0; i < output_length_2d_rows; ++i) {
+        for (gko::size_type j = 0; j < output_length_2d_cols; ++j) {
+            std::cout << host_output_2d->at(i, j) << " ";
+        }
+        std::cout << std::endl;
     }
     std::cout << std::endl;
 }
