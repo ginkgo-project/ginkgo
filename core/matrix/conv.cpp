@@ -98,8 +98,28 @@ template <typename ValueType>
 void Conv2d<ValueType>::validate_application_parameters(const LinOp* b,
                                                         const LinOp* x) const
 {
-    // implement
-    GKO_ASSERT_EQUAL_COLS(b, x);
+    using gko::detail::get_size;
+    const auto b_rows = get_size(b)[0];
+    const auto b_cols = get_size(b)[1];
+    const auto x_rows = get_size(x)[0];
+    const auto x_cols = get_size(x)[1];
+    const auto kernel_rows = kernel_->get_size()[0];
+    const auto kernel_cols = kernel_->get_size()[1];
+
+    if (x_rows != (b_rows + 2 * 0 - kernel_rows) / 1 + 1) {
+        throw DimensionMismatch(
+            __FILE__, __LINE__, __func__, "x", x_rows, 1,
+            "(b + 2*padding - kernel)/stride + 1",
+            (b_rows + 2 * 0 - kernel_rows) / 1 + 1, 1,
+            "x must have size = (b + 2*padding - kernel)/stride + 1");
+    }
+    if (x_cols != (b_cols + 2 * 0 - kernel_cols) / 1 + 1) {
+        throw DimensionMismatch(
+            __FILE__, __LINE__, __func__, "x", x_cols, 1,
+            "(b + 2*padding - kernel)/stride + 1",
+            (b_cols + 2 * 0 - kernel_cols) / 1 + 1, 1,
+            "x must have size = (b + 2*padding - kernel)/stride + 1");
+    }
 }
 
 
