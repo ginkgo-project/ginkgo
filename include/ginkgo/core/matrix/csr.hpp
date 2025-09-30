@@ -768,6 +768,64 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    class multiply_reuse_info {
+        friend class Csr;
+
+    public:
+        explicit multiply_reuse_info();
+
+        ~multiply_reuse_info();
+
+        multiply_reuse_info(const multiply_reuse_info&) = delete;
+
+        multiply_reuse_info(multiply_reuse_info&&);
+
+        multiply_reuse_info& operator=(const multiply_reuse_info&) = delete;
+
+        multiply_reuse_info& operator=(multiply_reuse_info&&);
+
+        void update_values(ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
+                           ptr_param<Csr> out) const;
+
+    private:
+        struct lookup_data;
+
+        explicit multiply_reuse_info(std::unique_ptr<lookup_data> data);
+
+        std::unique_ptr<lookup_data> internal;
+    };
+
+    /**
+     * Computes the sparse matrix product `this * other` on the executor of this
+     * matrix.
+     *
+     * @param other  the matrix with which the product will be computed.
+     *               It needs to be sorted by column indices when using
+     *               OmpExecutor or DpcppExecutor for `this`.
+     * @return  the product of the two matrices, stored on the same executor as
+     *          this matrix.
+     */
+    std::unique_ptr<Csr> multiply(ptr_param<const Csr> other) const;
+
+    /**
+     * Computes the sparse matrix product `this * other` on the executor of this
+     * matrix, and necessary data for value updates:
+     * ```
+     * auto [C, reuse] = A->multiply_reuse(B);
+     * change_values(A, B);
+     * reuse->update_values(A, B, C);
+     * ```
+     *
+     * @param other  the matrix with which the product will be computed.
+     *               It needs to be sorted by column indices when using
+     *               OmpExecutor or DpcppExecutor for `this`.
+     * @return  std::pair containing the product of the two matrices, stored on
+     *          the same executor as this matrix, and a multiply_reuse_info
+     *          object allowing value updates to the output matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, multiply_reuse_info> multiply_reuse(
+        ptr_param<const Csr> other) const;
+
     /**
      * A struct describing a transformation of the matrix that reorders the
      * values of the matrix into the transformed matrix.
@@ -777,7 +835,7 @@ public:
         explicit permuting_reuse_info();
 
         /** Creates a reuse info structure from its value permutation. */
-        permuting_reuse_info(
+        explicit permuting_reuse_info(
             std::unique_ptr<Permutation<index_type>> value_permutation);
 
         /**
@@ -801,8 +859,9 @@ public:
      * change_values(matrix);
      * reuse->update_values(matrix, transposed);
      * ```
-     * @return the reuse info struct that can be used to update values in the
-     *         transposed matrix.
+     * @return an std::pair consisting of the transposed matrix and a reuse info
+     *         struct that can be used to update values in the transposed
+     *         matrix.
      */
     std::pair<std::unique_ptr<Csr>, permuting_reuse_info> transpose_reuse()
         const;

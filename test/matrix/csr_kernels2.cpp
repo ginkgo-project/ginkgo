@@ -483,8 +483,8 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
     mtx->apply(alpha, trans, beta, square_mtx);
     dmtx->apply(dalpha, dtrans, dbeta, dsquare_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
     ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
 }
 
@@ -498,22 +498,35 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     mtx->apply(trans, square_mtx);
     dmtx->apply(dtrans, dsquare_mtx);
 
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
     ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
 }
 
 
-TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, MultiplyIsEquivalentToRefCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+
+    auto result = mtx->multiply(trans);
+    auto dresult = dmtx->multiply(trans);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, MultiplyWithSparseIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
-    auto dmtx2 = Mtx::create(exec, mtx2->get_size());
-    dmtx2->copy_from(mtx2);
+    auto dmtx2 = gko::clone(exec, mtx2);
 
-    mtx->apply(mtx2, square_mtx);
-    dmtx->apply(dmtx2, dsquare_mtx);
+    auto result = mtx->multiply(mtx2);
+    auto dresult = dmtx->multiply(dmtx2);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
     GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
@@ -521,7 +534,7 @@ TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, MultiplySparseWithSparseIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     auto mtx1 = gen_mtx<Mtx>(mtx->get_size()[0], mtx->get_size()[1], 0, 10);
@@ -530,11 +543,11 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
     auto dmtx1 = gko::clone(exec, mtx1);
     auto dmtx2 = gko::clone(exec, mtx2);
 
-    mtx1->apply(mtx2, square_mtx);
-    dmtx1->apply(dmtx2, dsquare_mtx);
+    auto result = mtx1->multiply(mtx2);
+    auto dresult = dmtx1->multiply(dmtx2);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
     ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
 }
 
@@ -543,24 +556,50 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
 #ifndef GKO_COMPILING_HIP
 
 
-TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
+TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
-    auto dmtx2 = Mtx::create(exec, mtx2->get_size());
-    dmtx2->copy_from(mtx2);
+    auto dmtx2 = gko::clone(exec, mtx2);
 
-    mtx->apply(mtx2, square_mtx);
-    dmtx->apply(dmtx2, dsquare_mtx);
+    auto result = mtx->multiply(mtx2);
+    auto dresult = dmtx->multiply(dmtx2);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
+    GKO_ASSERT_MTX_NEAR(dresult, result, 0);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
 }
 
 
 #endif
+
+
+TEST_F(Csr, MultiplyReuseIsEquivalentToRef)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto dtrans = gko::clone(exec, trans);
+
+    auto [result, reuse] = mtx->multiply_reuse(trans);
+    auto [dresult, dreuse] = dmtx->multiply_reuse(dtrans);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
+
+    mtx->scale(alpha);
+    trans->scale(beta);
+    dmtx->scale(alpha);
+    dtrans->scale(beta);
+
+    reuse.update_values(mtx, trans, result);
+    dreuse.update_values(dmtx, dtrans, dresult);
+
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(mtx->multiply(trans), result, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dmtx->multiply(dtrans), dresult, r<value_type>::value);
+}
 
 
 TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)

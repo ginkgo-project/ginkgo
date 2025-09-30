@@ -703,6 +703,75 @@ TYPED_TEST(Csr, AppliesToCsrMatrix)
 }
 
 
+TYPED_TEST(Csr, MultipliesWithCsrMatrix)
+{
+    using T = typename TestFixture::value_type;
+    auto result = this->mtx->multiply(this->mtx3_unsorted);
+
+    ASSERT_EQ(result->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(result->get_num_stored_elements(), 6);
+    ASSERT_TRUE(result->is_sorted_by_column_index());
+    auto r = result->get_const_row_ptrs();
+    auto c = result->get_const_col_idxs();
+    auto v = result->get_const_values();
+    // 13  5 31
+    // 15  5 40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], T{13});
+    EXPECT_EQ(v[1], T{5});
+    EXPECT_EQ(v[2], T{31});
+    EXPECT_EQ(v[3], T{15});
+    EXPECT_EQ(v[4], T{5});
+    EXPECT_EQ(v[5], T{40});
+}
+
+
+TYPED_TEST(Csr, MultipliesReuseWithCsrMatrix)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto [result, reuse] = this->mtx->multiply_reuse(this->mtx3_unsorted);
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    this->mtx->scale(alpha);
+    this->mtx3_unsorted->scale(beta);
+
+    reuse.update_values(this->mtx, this->mtx3_unsorted, result);
+
+    ASSERT_EQ(result->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(result->get_num_stored_elements(), 6);
+    ASSERT_TRUE(result->is_sorted_by_column_index());
+    auto r = result->get_const_row_ptrs();
+    auto c = result->get_const_col_idxs();
+    auto v = result->get_const_values();
+    // 13  5 31
+    // 15  5 40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], T{-26});
+    EXPECT_EQ(v[1], T{-10});
+    EXPECT_EQ(v[2], T{-62});
+    EXPECT_EQ(v[3], T{-30});
+    EXPECT_EQ(v[4], T{-10});
+    EXPECT_EQ(v[5], T{-80});
+}
+
+
 TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 {
     using Vec = typename TestFixture::Vec;
