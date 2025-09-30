@@ -115,15 +115,16 @@ std::unique_ptr<std::istream> input_stream;
  * @param argc  the number of arguments given to the main function
  * @param argv  the arguments given to the main function
  * @param header  a header which describes the benchmark
- * @param format  the format of the benchmark input data
+ * @param examples  the format of the benchmark input data
  */
 void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
-                                 std::string& format, bool do_print = true)
+                                 const json& examples, bool do_print = true)
 {
     if (do_print) {
         std::ostringstream doc;
         doc << header << "Usage: " << (*argv)[0] << " [options]\n"
-            << format
+            << "Example JSON input:\n"
+            << std::setw(4) << examples << "\n"
             << "  The results are written on standard output, in the same "
                "format,\n"
             << "  but with test cases extended to include an additional member "
@@ -144,7 +145,10 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
         gflags::SetUsageMessage("");
         gflags::SetVersionString("");
     }
-    gflags::ParseCommandLineFlags(argc, argv, true);
+    gflags::ParseCommandLineNonHelpFlags(argc, argv, true);
+    if (do_print) {
+        gflags::HandleCommandLineHelpFlags();
+    }
     if (FLAGS_profile) {
         FLAGS_repetitions = "1";
         FLAGS_warmup = 0;
@@ -189,7 +193,7 @@ void print_general_information(const std::string& extra,
 
 
 std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
-    std::shared_ptr<const gko::Executor> exec)
+    std::shared_ptr<const gko::Executor> exec, bool do_print = true)
 {
     using gko::log::ProfilerHook;
     std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
@@ -200,13 +204,19 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
             {"roctx", [] { return ProfilerHook::create_roctx(); }},
             {"tau", [] { return ProfilerHook::create_tau(); }},
             {"vtune", [] { return ProfilerHook::create_vtune(); }},
-            {"debug", [] {
+            {"debug", [do_print] {
                  return ProfilerHook::create_custom(
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: begin " << name << '\n';
+                     [do_print](const char* name,
+                                gko::log::profile_event_category) {
+                         if (do_print) {
+                             std::clog << "DEBUG: begin " << name << '\n';
+                         }
                      },
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: end   " << name << '\n';
+                     [do_print](const char* name,
+                                gko::log::profile_event_category) {
+                         if (do_print) {
+                             std::clog << "DEBUG: end   " << name << '\n';
+                         }
                      });
              }}};
     return hook_map.at(FLAGS_profiler_hook)();

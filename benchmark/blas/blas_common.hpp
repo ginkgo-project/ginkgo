@@ -24,7 +24,7 @@
 // Command-line arguments
 DEFINE_string(
     operations, "copy,axpy,scal",
-    "A comma-separated list of operations to benchmark.\nCandidates are"
+    "A comma-separated list of operations to benchmark.\nCandidates are\n"
     "BLAS algorithms:\n"
     "   copy (y = x),\n"
     "   axpy (y = y + a * x),\n"
@@ -437,56 +437,18 @@ struct BlasBenchmark : Benchmark<dimensions> {
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return operations;
-    }
 
     bool should_print() const override { return do_print; }
-
-    std::string get_example_config() const override
-    {
-        return json::parse(R"([{"n": 100}, {"n": 200, "m": 200, "k": 200}])")
-            .dump(4);
-    }
-
-    bool validate_config(const json& value) const override
-    {
-        return value.contains("n") && value["n"].is_number_integer();
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        std::stringstream ss;
-        auto optional_output = [&](const char* name) {
-            if (test_case.contains(name) &&
-                test_case[name].is_number_integer()) {
-                ss << name << " = " << test_case[name].get<gko::int64>() << " ";
-            }
-        };
-        optional_output("n");
-        optional_output("k");
-        optional_output("m");
-        optional_output("r");
-        optional_output("stride");
-        optional_output("stride_x");
-        optional_output("stride_y");
-        optional_output("stride_A");
-        optional_output("stride_B");
-        optional_output("stride_C");
-        return ss.str();
-    }
 
     dimensions setup(std::shared_ptr<gko::Executor> exec,
                      json& test_case) const override
     {
         auto get_optional = [](json& obj, const char* name,
                                gko::size_type default_value) -> gko::size_type {
-            if (obj.contains(name)) {
-                return obj[name].get<gko::uint64>();
-            } else {
-                return default_value;
+            if (!obj.contains(name)) {
+                obj[name] = default_value;
             }
+            return obj[name].get<gko::uint64>();
         };
 
         dimensions result;
@@ -507,40 +469,43 @@ struct BlasBenchmark : Benchmark<dimensions> {
         return result;
     }
 
-
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate, dimensions& dims,
-             const std::string& operation_name,
-             json& operation_case) const override
+             const json& operation_case, json& result_case) const override
     {
-        auto op = operation_map.at(operation_name)(exec, dims);
+        for (auto& operation_name : operations) {
+            result_case[operation_name] = json::object();
+            auto& op_result_case = result_case[operation_name];
 
-        IterationControl ic(timer);
+            auto op = operation_map.at(operation_name)(exec, dims);
 
-        // warm run
-        {
-            auto range = annotate("warmup", FLAGS_warmup > 0);
-            for (auto _ : ic.warmup_run()) {
-                op->prepare();
-                exec->synchronize();
-                op->run();
-                exec->synchronize();
+            IterationControl ic(timer);
+
+            // warm run
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic.warmup_run()) {
+                    op->prepare();
+                    exec->synchronize();
+                    op->run();
+                    exec->synchronize();
+                }
             }
-        }
 
-        // timed run
-        op->prepare();
-        for (auto _ : ic.run()) {
-            auto range = annotate("repetition");
-            op->run();
+            // timed run
+            op->prepare();
+            for (auto _ : ic.run()) {
+                auto range = annotate("repetition");
+                op->run();
+            }
+            const auto runtime = ic.compute_time(FLAGS_timer_method);
+            const auto flops = static_cast<double>(op->get_flops());
+            const auto mem = static_cast<double>(op->get_memory());
+            const auto repetitions = ic.get_num_repetitions();
+            op_result_case["time"] = runtime;
+            op_result_case["flops"] = flops / runtime;
+            op_result_case["bandwidth"] = mem / runtime;
+            op_result_case["repetitions"] = repetitions;
         }
-        const auto runtime = ic.compute_time(FLAGS_timer_method);
-        const auto flops = static_cast<double>(op->get_flops());
-        const auto mem = static_cast<double>(op->get_memory());
-        const auto repetitions = ic.get_num_repetitions();
-        operation_case["time"] = runtime;
-        operation_case["flops"] = flops / runtime;
-        operation_case["bandwidth"] = mem / runtime;
-        operation_case["repetitions"] = repetitions;
     }
 };

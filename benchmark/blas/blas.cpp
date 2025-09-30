@@ -106,8 +106,10 @@ Parameters for a benchmark case are:
     stride_B: stride for B matrix in gemm (optional, default m)
     stride_C: stride for C matrix in gemm (optional, default m)
 )";
-    std::string format = Generator::get_example_config();
-    initialize_argument_parsing(&argc, &argv, header, format);
+    auto schema =
+        json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/blas.json"));
+
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
     std::string extra_information = "The operations are " + FLAGS_operations;
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
@@ -115,8 +117,9 @@ Parameters for a benchmark case are:
 
     auto test_cases = json::parse(get_input_stream());
 
-    run_test_cases(BlasBenchmark{operation_map}, exec,
-                   get_timer(exec, FLAGS_gpu_timer), test_cases);
+    auto results =
+        run_test_cases(BlasBenchmark{operation_map}, exec,
+                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
 
-    std::cout << std::setw(4) << test_cases << std::endl;
+    std::cout << std::setw(4) << results << std::endl;
 }

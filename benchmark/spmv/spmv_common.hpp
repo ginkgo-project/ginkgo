@@ -38,41 +38,16 @@ template <typename Generator>
 struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
     using Vec = typename Generator::Vec;
     std::string name;
-    std::vector<std::string> formats;
     bool do_print;
     Generator generator;
 
-    SpmvBenchmark(Generator generator, std::vector<std::string> formats,
-                  bool do_print = true)
-        : name{"spmv"},
-          formats{std::move(formats)},
-          do_print{do_print},
-          generator{generator}
+    SpmvBenchmark(Generator generator, bool do_print = true)
+        : name{"spmv"}, do_print{do_print}, generator{generator}
     {}
 
     const std::string& get_name() const override { return name; }
 
-    const std::vector<std::string>& get_operations() const override
-    {
-        return formats;
-    }
-
     bool should_print() const override { return do_print; }
-
-    std::string get_example_config() const override
-    {
-        return generator.get_example_config();
-    }
-
-    bool validate_config(const json& test_case) const override
-    {
-        return generator.validate_config(test_case);
-    }
-
-    std::string describe_config(const json& test_case) const override
-    {
-        return generator.describe_config(test_case);
-    }
 
     spmv_benchmark_state<Generator> setup(std::shared_ptr<gko::Executor> exec,
                                           json& test_case) const override
@@ -89,13 +64,14 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec, gko::dim<2>{state.data.first.size[0], nrhs},
             gko::dim<2>{state.data.second[0], nrhs});
         if (do_print) {
-            std::clog << "Matrix is of size (" << state.data.first.size[0]
+            std::clog << "    "
+                      << "Matrix is of size (" << state.data.first.size[0]
                       << ", " << state.data.first.size[1] << "), "
                       << state.data.first.nonzeros.size() << std::endl;
         }
-        test_case["rows"] = state.data.first.size[0];
-        test_case["cols"] = state.data.first.size[1];
-        test_case["nonzeros"] = state.data.first.nonzeros.size();
+        test_case["operator"]["rows"] = state.data.first.size[0];
+        test_case["operator"]["cols"] = state.data.first.size[1];
+        test_case["operator"]["nonzeros"] = state.data.first.nonzeros.size();
         if (FLAGS_detailed) {
             state.answer = gko::clone(state.x);
             auto system_matrix = generator.generate_matrix_with_default_format(
@@ -109,11 +85,11 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
 
     void run(std::shared_ptr<gko::Executor> exec, std::shared_ptr<Timer> timer,
              annotate_functor annotate, spmv_benchmark_state<Generator>& state,
-             const std::string& format_name, json& format_case) const override
+             const json& operation_case, json& result_case) const override
     {
         auto system_matrix = generator.generate_matrix_with_format(
-            exec, format_name, state.data.first, state.data.second,
-            &format_case);
+            exec, operation_case["format"].get<std::string>(), state.data.first,
+            state.data.second, &result_case);
 
         // check the residual
         if (FLAGS_detailed) {
@@ -123,7 +99,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec->synchronize();
             auto max_relative_norm2 =
                 compute_max_relative_norm2(x_clone.get(), state.answer.get());
-            format_case["max_relative_norm2"] = max_relative_norm2;
+            result_case["max_relative_norm2"] = max_relative_norm2;
         }
 
         IterationControl ic{timer};
@@ -177,32 +153,46 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
-        format_case["time"] = ic.compute_time(FLAGS_timer_method);
-        format_case["repetitions"] = ic.get_num_repetitions();
+        result_case["time"] = ic.compute_time(FLAGS_timer_method);
+        result_case["repetitions"] = ic.get_num_repetitions();
     }
 
-    void postprocess(json& test_case) const override
+    void postprocess(json& test_cases) const override
     {
-        if (!test_case.contains("optimal")) {
-            test_case["optimal"] = json::object();
+        std::map<json, json> same_operators;
+        for (const auto& test_case : test_cases) {
+            auto case_operator =
+                json::object({{"operator", test_case["operator"]}});
+            same_operators.try_emplace(case_operator, json::array());
+            auto case_variant = test_case;
+            case_variant.erase("operator");
+            case_variant.erase(name);
+            auto case_result = test_case[name];
+            case_result["variant"] = case_variant;
+            same_operators[case_operator].push_back(case_result);
         }
-        auto best_time = std::numeric_limits<double>::max();
-        std::string best_format;
-        // find the fastest among all formats we tested
-        for (const auto& format : formats) {
-            auto& format_case = test_case[name][format];
-            if (format_case.contains("completed") &&
-                format_case["completed"].template get<bool>()) {
-                auto time = format_case["time"];
-                if (time < best_time) {
-                    best_time = time;
-                    best_format = format;
+        auto merged_cases = json::array();
+        for (const auto& [test_case, results] : same_operators) {
+            auto best_time = std::numeric_limits<double>::max();
+            json best_variant;
+            for (const auto& result : results) {
+                if (result.contains("completed") &&
+                    result["completed"].template get<bool>()) {
+                    auto time = result["time"];
+                    if (time < best_time) {
+                        best_time = time;
+                        best_variant = result["variant"];
+                    }
                 }
             }
+
+            merged_cases.push_back(test_case);
+            merged_cases.back()[name] = results;
+            if (!best_variant.empty()) {
+                merged_cases.back()["optimal"][name] = best_variant;
+            }
         }
-        if (!best_format.empty()) {
-            test_case["optimal"][name] = best_format;
-        }
+        test_cases = std::move(merged_cases);
     }
 };
 
