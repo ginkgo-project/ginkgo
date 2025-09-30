@@ -80,7 +80,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
 
-        auto context = gko::config::registry{};
+        auto context = create_default_registry();
         auto td = gko::config::make_type_descriptor<etype, itype>();
         auto preconditioner_config =
             gko::ext::config::parse_json(operation_case["preconditioner"]);
@@ -184,9 +184,9 @@ int main(int argc, char* argv[])
 
     auto test_cases = json::parse(get_input_stream());
 
-    auto results =
-        run_test_cases(PreconditionerBenchmark{}, exec,
-                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
+    auto results = run_test_cases(PreconditionerBenchmark{}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), schema,
+                                  std::move(test_cases));
 
     std::cout << std::setw(4) << results << std::endl;
 }

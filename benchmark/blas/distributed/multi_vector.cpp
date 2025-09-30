@@ -51,7 +51,7 @@ BLAS algorithms:
     auto schema = json::parse(
         std::ifstream(GKO_ROOT "/benchmark/schema/blas-distributed.json"));
 
-    initialize_argument_parsing(&argc, &argv, header, schema["examples"],
+    initialize_argument_parsing(&argc, &argv, header, schema["examples"], "",
                                 do_print);
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
@@ -112,7 +112,7 @@ BLAS algorithms:
 
     auto results = run_test_cases(BlasBenchmark{operation_map, do_print}, exec,
                                   get_mpi_timer(exec, comm, FLAGS_gpu_timer),
-                                  schema, test_cases);
+                                  schema, std::move(test_cases));
 
     if (do_print) {
         std::cout << std::setw(4) << results << std::endl;

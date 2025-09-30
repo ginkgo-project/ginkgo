@@ -30,7 +30,9 @@
 #include "benchmark/utils/json.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
+#include "overhead_linop.hpp"
 
 
 // Global command-line arguments
@@ -117,8 +119,11 @@ std::unique_ptr<std::istream> input_stream;
  * @param header  a header which describes the benchmark
  * @param examples  the format of the benchmark input data
  */
-void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
-                                 const json& examples, bool do_print = true)
+void initialize_argument_parsing(int* argc, char** argv[],
+                                 const std::string& header,
+                                 const json& examples,
+                                 const std::string& extra_help = "",
+                                 bool do_print = true)
 {
     if (do_print) {
         std::ostringstream doc;
@@ -135,7 +140,8 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
             << "  to a file in the same format. The backup file can be used as "
                "\n"
             << "  input to this test suite, and the benchmarking will \n"
-            << "  continue from the point where the backup file was created.";
+            << "  continue from the point where the backup file was created.\n"
+            << extra_help;
 
         gflags::SetUsageMessage(doc.str());
         std::ostringstream ver;
@@ -159,7 +165,7 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     }
     std::string input_str(FLAGS_input);
     if (!input_str.empty()) {
-        if (input_str.back() == ']') {
+        if (input_str.back() == ']' || input_str.back() == '}') {
             input_stream = std::make_unique<std::stringstream>(input_str);
         } else {
             input_stream = std::make_unique<std::ifstream>(input_str);
@@ -562,6 +568,23 @@ std::unique_ptr<VectorType> create_normalized_manufactured_rhs(
     system_matrix->apply(scaled_solution, rhs);
 
     return rhs;
+}
+
+
+inline gko::config::registry create_default_registry()
+{
+    return {{{"overhead",
+              [](const gko::config::pnode& config,
+                 const gko::config::registry& context,
+                 gko::config::type_descriptor td_for_child)
+                  -> gko::deferred_factory_parameter<gko::LinOpFactory> {
+                  auto params = gko::Overhead<etype>::build();
+                  if (auto& obj = config.get("criteria")) {
+                      params.with_criteria(gko::config::parse_or_get_criteria(
+                          obj, context, td_for_child));
+                  }
+                  return params;
+              }}}};
 }
 
 

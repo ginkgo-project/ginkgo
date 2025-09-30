@@ -18,6 +18,41 @@ DEBUG: end   copy
 DEBUG: end   repetition
 DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"coo"}
 Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+Matrix is of size (125, 125), 725
+DEBUG: begin components::aos_to_soa
+DEBUG: end   components::aos_to_soa
+DEBUG: begin {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+DEBUG: begin components::fill_array
+DEBUG: end   components::fill_array
+DEBUG: begin copy(<typename>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::convert_ptrs_to_idxs
+DEBUG: end   components::convert_ptrs_to_idxs
+DEBUG: end   copy(<typename>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::convert_idxs_to_ptrs
+DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin repetition
+DEBUG: begin copy(<typename>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: begin components::convert_ptrs_to_idxs
+DEBUG: end   components::convert_ptrs_to_idxs
+DEBUG: end   copy(<typename>)
+DEBUG: end   repetition
+DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+Running test case 
     {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"coo"}
 Matrix is of size (125, 125), 725
 DEBUG: begin components::aos_to_soa
@@ -71,38 +106,3 @@ DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: end   repetition
 DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"csr"}
-Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
-Matrix is of size (125, 125), 725
-DEBUG: begin components::aos_to_soa
-DEBUG: end   components::aos_to_soa
-DEBUG: begin {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
-DEBUG: begin components::fill_array
-DEBUG: end   components::fill_array
-DEBUG: begin copy(<typename>)
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin components::convert_ptrs_to_idxs
-DEBUG: end   components::convert_ptrs_to_idxs
-DEBUG: end   copy(<typename>)
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin components::convert_idxs_to_ptrs
-DEBUG: end   components::convert_idxs_to_ptrs
-DEBUG: begin repetition
-DEBUG: begin copy(<typename>)
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin copy
-DEBUG: end   copy
-DEBUG: begin components::convert_ptrs_to_idxs
-DEBUG: end   components::convert_ptrs_to_idxs
-DEBUG: end   copy(<typename>)
-DEBUG: end   repetition
-DEBUG: end   {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}

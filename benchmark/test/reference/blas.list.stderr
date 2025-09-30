@@ -1,0 +1,10 @@
+Running on ReferenceExecutor
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+
+Running test case 
+    {"operation":"copy","n":100}
+Running test case 
+    {"operation":"axpy","n":100}
+Running test case 
+    {"operation":"scal","n":100}

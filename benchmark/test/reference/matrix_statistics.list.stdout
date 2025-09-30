@@ -1,0 +1,88 @@
+[
+    {
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "size": 100
+            }
+        },
+        "problem": {
+            "rows": 125,
+            "columns": 125,
+            "nonzeros": 725,
+            "row_distribution": {
+                "min": 4,
+                "q1": 5.0,
+                "median": 6.0,
+                "q3": 6.0,
+                "max": 7,
+                "mean": 5.8,
+                "variance": 0.7199999999999992,
+                "skewness": -0.23570226039551892,
+                "kurtosis": 2.388888888888889,
+                "hyperskewness": -1.741577812922432,
+                "hyperflatness": 7.762345679012379
+            },
+            "col_distribution": {
+                "min": 4,
+                "q1": 5.0,
+                "median": 6.0,
+                "q3": 6.0,
+                "max": 7,
+                "mean": 5.8,
+                "variance": 0.7199999999999992,
+                "skewness": -0.23570226039551892,
+                "kurtosis": 2.388888888888889,
+                "hyperskewness": -1.741577812922432,
+                "hyperflatness": 7.762345679012379
+            },
+            "completed": true
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725
+    },
+    {
+        "operator": {
+            "stencil": {
+                "kind": "27pt",
+                "size": 100
+            }
+        },
+        "problem": {
+            "rows": 125,
+            "columns": 125,
+            "nonzeros": 2197,
+            "row_distribution": {
+                "min": 8,
+                "q1": 12.0,
+                "median": 18.0,
+                "q3": 18.0,
+                "max": 27,
+                "mean": 17.576,
+                "variance": 34.08422399999997,
+                "skewness": 0.3753331990626134,
+                "kurtosis": 2.169425686439577,
+                "hyperskewness": 1.3785453296462502,
+                "hyperflatness": 5.2861627651252086
+            },
+            "col_distribution": {
+                "min": 8,
+                "q1": 12.0,
+                "median": 18.0,
+                "q3": 18.0,
+                "max": 27,
+                "mean": 17.576,
+                "variance": 34.08422399999997,
+                "skewness": 0.3753331990626134,
+                "kurtosis": 2.169425686439577,
+                "hyperskewness": 1.3785453296462502,
+                "hyperflatness": 5.2861627651252086
+            },
+            "completed": true
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 2197
+    }
+]

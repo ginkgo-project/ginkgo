@@ -4,26 +4,11 @@ from typing import List, Tuple
 import json
 
 
-def generate_input(operations: List[Tuple[str]]):
-    input = [{"operator": {"stencil": {"kind": "7pt", "size": 100}}, "to": to_, "from": from_} for from_, to_ in
-             operations]
-    return json.dumps(input)
+def generate_input(formats: List[str]):
+    return json.dumps({"operator": {"stencil": {"kind": "7pt", "size": 100}}, "to": formats, "from": formats})
 
 
-stencil_input = generate_input([("coo", "coo"), ("coo", "csr"), ("csr", "csr"), ("csr", "coo")])
-stencil_input_all = generate_input([("coo", "coo"),
-                                    ("coo", "csr"),
-                                    ("csr", "csr"),
-                                    ("csr", "coo"),
-                                    ("csr", "ell"),
-                                    ("csr", "sellp"),
-                                    ("csr", "hybrid"),
-                                    ("ell", "ell"),
-                                    ("ell", "csr"),
-                                    ("sellp", "sellp"),
-                                    ("sellp", "csr"),
-                                    ("hybrid", "hybrid"),
-                                    ("hybrid", "csr")])
+stencil_input = generate_input(["coo", "csr"])
 
 # check that all input modes work:
 # parameter
@@ -41,6 +26,14 @@ test_framework.compare_output(
     stdin=stencil_input,
 )
 
+# list input
+test_framework.compare_output(
+    ["-input", json.dumps(test_framework.config_dict_to_list(json.loads(stencil_input)))],
+    expected_stdout="conversion.list.stdout",
+    expected_stderr="conversion.list.stderr",
+    stdin=stencil_input,
+)
+
 # input file
 test_framework.compare_output(
     [
@@ -55,7 +48,7 @@ test_framework.compare_output(
 test_framework.compare_output(
     [
         "-input",
-        stencil_input_all
+        str(test_framework.sourcepath / "input.conversion.all.json")
     ],
     expected_stdout="conversion.all.stdout",
     expected_stderr="conversion.all.stderr",

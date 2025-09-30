@@ -8,7 +8,10 @@
 
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <set>
+
+#include <core/base/index_range.hpp>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -43,10 +46,55 @@ struct Benchmark {
 };
 
 
+namespace detail {
+
+
+inline void expand(const json& elem,
+                   const std::vector<std::pair<std::string, json>>& lists,
+                   int depth, json& result)
+{
+    if (depth == lists.size()) {
+        result.push_back(elem);
+    } else {
+        auto [name, next_list] = lists[depth];
+        for (const auto& next_elem : next_list) {
+            json combined_elem = elem;
+            combined_elem[name] = next_elem;
+            expand(combined_elem, lists, depth + 1, result);
+        }
+    }
+}
+
+
+}  // namespace detail
+
+
+/**
+ * Creates a new JSON array object by taking the cartesian product of all
+ * values of the input dict. Any value that isn't a list will be converted into
+ * a list of a single item.
+ */
+inline json expand_cartesian_product(const json& cases)
+{
+    json result = json::array();
+    std::vector<std::pair<std::string, json>> lists;
+    for (const auto& [name, list] : cases.items()) {
+        if (!list.is_array()) {
+            lists.emplace_back(name, json::array({list}));
+        } else {
+            lists.emplace_back(name, list);
+        }
+    }
+
+    detail::expand(json::object(), lists, 0, result);
+    return result;
+}
+
+
 /**
  * By default, add `skip_sorting=true` to all types that support it.
  */
-void add_skip_sorting(json& schema)
+inline void add_skip_sorting(json& schema)
 {
     static const std::set<std::string> skip_sorting{
         "factorization::Cholesky",
@@ -90,7 +138,7 @@ template <typename State>
 json run_test_cases(const Benchmark<State>& benchmark,
                     std::shared_ptr<gko::Executor> exec,
                     std::shared_ptr<Timer> timer, const json& schema,
-                    const json& test_cases)
+                    json test_cases)
 {
     json_schema::json_validator validator(json_loader);
     validator.set_root_schema(schema);
@@ -100,6 +148,10 @@ json run_test_cases(const Benchmark<State>& benchmark,
         exec->add_logger(profiler_hook);
     }
     auto annotate = annotate_functor(profiler_hook);
+
+    if (test_cases.is_object()) {
+        test_cases = expand_cartesian_product(test_cases);
+    }
 
     auto benchmark_cases = json::array();
 

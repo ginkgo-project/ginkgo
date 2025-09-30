@@ -1,11 +1,9 @@
-[
-  {
-    "operator": {
-      "stencil": {
-        "local_size": 100,
-        "kind": "7pt"
-      }
-    },
-    "format": "csr-csr"
-  }
-]
+{
+  "operator": {
+    "stencil": {
+      "local_size": 100,
+      "kind": "7pt"
+    }
+  },
+  "format": "csr-csr"
+}

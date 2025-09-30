@@ -1,14 +1,8 @@
-[
-    {
-        "n": 100,
-        "operation": "copy"
-    },
-    {
-        "n": 100,
-        "operation": "axpy"
-    },
-    {
-        "n": 100,
-        "operation": "scal"
-    }
-]
+{
+  "n": 100,
+  "operation": [
+    "copy",
+    "axpy",
+    "scal"
+  ]
+}

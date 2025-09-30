@@ -6,11 +6,11 @@ Running test case
     {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"coo"}
 Matrix is of size (125, 125), 725
 Running test case 
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
+Matrix is of size (125, 125), 725
+Running test case 
     {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"coo"}
 Matrix is of size (125, 125), 725
 Running test case 
     {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"csr","from":"csr"}
-Matrix is of size (125, 125), 725
-Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"to":"coo","from":"csr"}
 Matrix is of size (125, 125), 725

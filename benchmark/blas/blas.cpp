@@ -134,9 +134,9 @@ C has dimensions n x m and x and y have dimensions n x r
 
     auto test_cases = json::parse(get_input_stream());
 
-    auto results =
-        run_test_cases(BlasBenchmark{operation_map}, exec,
-                       get_timer(exec, FLAGS_gpu_timer), schema, test_cases);
+    auto results = run_test_cases(BlasBenchmark{operation_map}, exec,
+                                  get_timer(exec, FLAGS_gpu_timer), schema,
+                                  std::move(test_cases));
 
     std::cout << std::setw(4) << results << std::endl;
 }

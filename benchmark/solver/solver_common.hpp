@@ -226,7 +226,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         auto warmup_config =
             gko::ext::config::parse_json(warmup_case["solver"]);
 
-        auto registry = gko::config::registry{};
+        auto registry = create_default_registry();
         auto td = gko::config::make_type_descriptor<etype>();
 
         IterationControl ic{timer};

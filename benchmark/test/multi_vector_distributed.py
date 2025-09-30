@@ -2,7 +2,7 @@
 import test_framework
 import json
 
-case = json.dumps([{"n": 100, "operation": op} for op in ["copy", "axpy", "scal"]])
+case = json.dumps({"n": 100, "operation": ["copy", "axpy", "scal"]})
 
 # check that all input modes work:
 # parameter
@@ -20,6 +20,13 @@ test_framework.compare_output_distributed(
     expected_stderr="multi_vector_distributed.simple.stderr",
     stdin=case,
     num_procs=3,
+)
+
+# list input
+test_framework.compare_output(
+    ["-input", json.dumps(test_framework.config_dict_to_list(json.loads(case)))],
+    expected_stdout="multi_vector_distributed.list.stdout",
+    expected_stderr="multi_vector_distributed.list.stderr",
 )
 
 # file
