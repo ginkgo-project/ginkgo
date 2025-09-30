@@ -105,13 +105,30 @@ Parameters for a benchmark case are:
     stride_A: stride for A matrix in gemm (optional, default k)
     stride_B: stride for B matrix in gemm (optional, default m)
     stride_C: stride for C matrix in gemm (optional, default m)
+The supported operations are defined as:
+BLAS algorithms:
+   copy (y = x),
+   axpy (y = y + a * x),
+   sub_scaled (y = y - a * x),
+   multiaxpy (like axpy, but a has one entry per column),
+   scal (y = a * y),
+   multiscal (like scal, but a has one entry per column),
+   dot (a = x' * y),"
+   norm (a = sqrt(x' * x)),
+   mm (C = A * B),
+   gemm (C = a * A * B + b * C)
+Non-numerical algorithms:
+   prefix_sum32 (x_i <- sum_{j=0}^{i-1} x_i, 32 bit indices)
+   prefix_sum64 (                            64 bit indices)
+where A has dimensions n x k, B has dimensions k x m,
+C has dimensions n x m and x and y have dimensions n x r
 )";
     auto schema =
         json::parse(std::ifstream(GKO_ROOT "/benchmark/schema/blas.json"));
 
     initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
+    std::string extra_information;
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
 

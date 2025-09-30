@@ -51,20 +51,28 @@
   ],
   "examples": [
     {
-      "n": 1000
+      "n": 1000,
+      "operation": "axpy"
     },
     {
       "n": 1000,
-      "r": 1000
+      "operation": "dot"
     },
     {
       "n": 1000,
-      "stride": 1024
+      "r": 1000,
+      "operation": "copy"
+    },
+    {
+      "n": 1000,
+      "stride": 1024,
+      "operation": "scal"
     },
     {
       "n": 1000,
       "stride_x": 1024,
-      "stride_y": 2048
+      "stride_y": 2048,
+      "operation": "multiscal"
     }
   ]
 }

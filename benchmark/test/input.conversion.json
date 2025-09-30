@@ -1,0 +1,42 @@
+[
+  {
+    "operator": {
+      "stencil": {
+        "name": "7pt",
+        "size": 100
+      }
+    },
+    "to": "coo",
+    "from": "coo"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "name": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "coo"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "name": "7pt",
+        "size": 100
+      }
+    },
+    "to": "csr",
+    "from": "csr"
+  },
+  {
+    "operator": {
+      "stencil": {
+        "name": "7pt",
+        "size": 100
+      }
+    },
+    "to": "coo",
+    "from": "csr"
+  }
+]

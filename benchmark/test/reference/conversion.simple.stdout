@@ -2,32 +2,29 @@
     {
         "operator": {
             "stencil": {
-                "size": 100,
-                "kind": "7pt"
+                "name": "7pt",
+                "size": 100
             }
         },
-        "format": "coo",
-        "conversion": {
-            "coo-read": {
-                "time": 1.0,
-                "repetitions": 10
+        "error_type": "std::invalid_argument",
+        "error": "At /operator/stencil of {\"name\":\"7pt\",\"size\":100} - required property 'kind' not found in object\n",
+        "conversion": [
+            {
+                "to": "coo",
+                "from": "coo"
             },
-            "coo-csr": {
-                "time": 1.0,
-                "repetitions": 10
+            {
+                "to": "csr",
+                "from": "coo"
             },
-            "csr-read": {
-                "time": 1.0,
-                "repetitions": 10
+            {
+                "to": "csr",
+                "from": "csr"
             },
-            "csr-coo": {
-                "time": 1.0,
-                "repetitions": 10
-            },
-            "completed": true
-        },
-        "rows": 125,
-        "cols": 125,
-        "nonzeros": 725
+            {
+                "to": "coo",
+                "from": "csr"
+            }
+        ]
     }
 ]

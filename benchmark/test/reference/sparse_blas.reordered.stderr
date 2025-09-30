@@ -1,7 +1,7 @@
 Running on ReferenceExecutor
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-The operations are symbolic_cholesky
+
 Running test case 
-    {"operator":{"stencil":{"kind":"7pt","size":100}},"reorder":"amd"}
+    {"operator":{"stencil":{"kind":"7pt","size":100}},"operation":"symbolic_cholesky","reorder":"amd"}
 Matrix is of size (125, 125), 725

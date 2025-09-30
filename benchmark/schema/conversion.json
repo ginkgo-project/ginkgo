@@ -6,6 +6,14 @@
   "properties": {
     "operator": {
       "$ref": "operator.reuse.json"
+    },
+    "to": {
+      "type": "string",
+      "default": "coo"
+    },
+    "from": {
+      "type": "string",
+      "default": "csr"
     }
   },
   "required": [
@@ -29,7 +37,19 @@
           "name": "5pt",
           "size": 100
         }
-      }
+      },
+      "to": "coo",
+      "from": "coo"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "to": "csr",
+      "from": "coo"
     }
   ]
 }

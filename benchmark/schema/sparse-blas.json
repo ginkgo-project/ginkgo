@@ -7,6 +7,100 @@
     "operator": {
       "$ref": "operator.reuse.json"
     },
+    "operation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "enum": [
+                "transpose",
+                "sort",
+                "is_sorted",
+                "symbolic_lu",
+                "symbolic_lu_near_symm",
+                "symbolic_cholesky",
+                "symbolic_cholesky_symmetric",
+                "reorder_rcm",
+                "reorder_nd",
+                "reorder_amd"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "spgeam"
+            },
+            "swap_distance": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 100
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "spgemm"
+            },
+            "mode": {
+              "enum": [
+                "normal",
+                "sparse",
+                "dense"
+              ],
+              "default": "normal"
+            },
+            "rowlength": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 10
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "generate_lookup"
+            },
+            "no_full": {
+              "type": "boolean",
+              "default": false
+            },
+            "no_bitmap": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "lookup"
+            },
+            "no_full": {
+              "type": "boolean",
+              "default": false
+            },
+            "no_bitmap": {
+              "type": "boolean",
+              "default": false
+            },
+            "sample_size": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 10
+            }
+          }
+        }
+      ]
+    },
     "reorder": {
       "enum": [
         "amd",
@@ -28,7 +122,8 @@
     {
       "operator": {
         "filename": "my_file.mtx"
-      }
+      },
+      "operation": "spgemm"
     },
     {
       "operator": {
@@ -36,6 +131,19 @@
           "name": "5pt",
           "size": 100
         }
+      },
+      "operation": "spgeam"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "operation": {
+        "name": "spgemm",
+        "mode": "sparse"
       }
     }
   ]

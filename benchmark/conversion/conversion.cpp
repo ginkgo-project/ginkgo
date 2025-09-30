@@ -33,31 +33,8 @@ using Generator = DefaultSystemGenerator<>;
 
 struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
     std::string name;
-    std::vector<std::string> operations;
 
-    ConversionBenchmark() : name{"conversion"}
-    {
-        auto ref_exec = gko::ReferenceExecutor::create();
-        auto formats = split(FLAGS_formats);
-        for (const auto& from_format : formats) {
-            operations.push_back(from_format + "-read");
-            auto from_mtx =
-                formats::matrix_type_factory.at(from_format)(ref_exec);
-            // all pairs of conversions that are supported by Ginkgo
-            for (const auto& to_format : formats) {
-                if (from_format == to_format) {
-                    continue;
-                }
-                auto to_mtx =
-                    formats::matrix_type_factory.at(to_format)(ref_exec);
-                try {
-                    to_mtx->copy_from(from_mtx);
-                    operations.push_back(from_format + "-" + to_format);
-                } catch (const std::exception& e) {
-                }
-            }
-        }
-    }
+    ConversionBenchmark() : name{"conversion"} {}
 
     const std::string& get_name() const override { return name; }
 
@@ -83,55 +60,80 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
              gko::device_matrix_data<etype, itype>& data,
              const json& operation_case, json& result_case) const override
     {
-        for (const auto& operation_name : operations) {
-            result_case[operation_name] = json::object();
-            auto& op_result_case = result_case[operation_name];
+        std::string from_name = operation_case["from"].get<std::string>();
+        std::string to_name = operation_case["to"].get<std::string>();
+        auto mtx_from = formats::matrix_type_factory.at(from_name)(exec);
+        auto readable =
+            gko::as<gko::ReadableFromMatrixData<etype, itype>>(mtx_from.get());
 
-            auto split_it =
-                std::find(operation_name.begin(), operation_name.end(), '-');
-            std::string from_name{operation_name.begin(), split_it};
-            std::string to_name{split_it + 1, operation_name.end()};
-            auto mtx_from = formats::matrix_type_factory.at(from_name)(exec);
-            auto readable = gko::as<gko::ReadableFromMatrixData<etype, itype>>(
-                mtx_from.get());
-            IterationControl ic{timer};
-            if (to_name == "read") {
-                // warm run
-                {
-                    auto range = annotate("warmup", FLAGS_warmup > 0);
-                    for (auto _ : ic.warmup_run()) {
-                        exec->synchronize();
-                        readable->read(data);
-                        exec->synchronize();
-                    }
-                }
-                // timed run
-                for (auto _ : ic.run()) {
-                    auto range = annotate("repetition");
+        // check if conversion is supported on empty matrix first
+        if (from_name != to_name) {
+            auto to_mtx = formats::matrix_type_factory.at(to_name)(exec);
+            to_mtx->copy_from(mtx_from);
+        }
+
+        IterationControl ic{timer};
+        if (to_name == from_name) {
+            // warm run
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic.warmup_run()) {
+                    exec->synchronize();
                     readable->read(data);
-                }
-            } else {
-                readable->read(data);
-                auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
-
-                // warm run
-                {
-                    auto range = annotate("warmup", FLAGS_warmup > 0);
-                    for (auto _ : ic.warmup_run()) {
-                        exec->synchronize();
-                        mtx_to->copy_from(mtx_from);
-                        exec->synchronize();
-                    }
-                }
-                // timed run
-                for (auto _ : ic.run()) {
-                    auto range = annotate("repetition");
-                    mtx_to->copy_from(mtx_from);
+                    exec->synchronize();
                 }
             }
-            op_result_case["time"] = ic.compute_time(FLAGS_timer_method);
-            op_result_case["repetitions"] = ic.get_num_repetitions();
+            // timed run
+            for (auto _ : ic.run()) {
+                auto range = annotate("repetition");
+                readable->read(data);
+            }
+        } else {
+            readable->read(data);
+            auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
+
+            // warm run
+            {
+                auto range = annotate("warmup", FLAGS_warmup > 0);
+                for (auto _ : ic.warmup_run()) {
+                    exec->synchronize();
+                    mtx_to->copy_from(mtx_from);
+                    exec->synchronize();
+                }
+            }
+            // timed run
+            for (auto _ : ic.run()) {
+                auto range = annotate("repetition");
+                mtx_to->copy_from(mtx_from);
+            }
         }
+        result_case["time"] = ic.compute_time(FLAGS_timer_method);
+        result_case["repetitions"] = ic.get_num_repetitions();
+    }
+
+    void postprocess(json& test_cases) const override
+    {
+        std::map<json, json> same_operators;
+        for (const auto& test_case : test_cases) {
+            if (test_case[name].contains("error_type") &&
+                test_case[name]["error_type"] == "gko::NotSupported") {
+                continue;
+            }
+            auto case_operator = test_case;
+            case_operator.erase("to");
+            case_operator.erase("from");
+            case_operator.erase(name);
+            same_operators.try_emplace(case_operator, json::array());
+            same_operators[case_operator].push_back(test_case[name]);
+            same_operators[case_operator].back()["to"] = test_case["to"];
+            same_operators[case_operator].back()["from"] = test_case["from"];
+        }
+        auto merged_cases = json::array();
+        for (auto& [case_operator, results] : same_operators) {
+            merged_cases.push_back(case_operator);
+            merged_cases.back()[name] = results;
+        }
+        test_cases = std::move(merged_cases);
     }
 };
 
@@ -146,12 +148,8 @@ int main(int argc, char* argv[])
 
     initialize_argument_parsing(&argc, &argv, header, schema["examples"]);
 
-    std::string extra_information =
-        std::string() + "The formats are " + FLAGS_formats;
-
     auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
-    print_general_information(extra_information, exec);
-    auto formats = split(FLAGS_formats, ',');
+    print_general_information("", exec);
 
     auto test_cases = json::parse(get_input_stream());
 

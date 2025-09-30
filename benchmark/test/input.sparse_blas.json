@@ -5,6 +5,7 @@
         "size": 100,
         "kind": "7pt"
       }
-    }
+    },
+    "operation": "transpose"
   }
 ]

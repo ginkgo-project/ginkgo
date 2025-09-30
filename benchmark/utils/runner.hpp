@@ -25,6 +25,9 @@ struct Benchmark {
     /** Should we write logging output? */
     virtual bool should_print() const = 0;
 
+    /** Normalizes JSON input before validation */
+    virtual void normalize_json(json& test_case) const {}
+
     /** Sets up shared state and test case info */
     virtual State setup(std::shared_ptr<gko::Executor> exec,
                         json& test_case) const = 0;
@@ -115,6 +118,7 @@ json run_test_cases(const Benchmark<State>& benchmark,
             if (!current_case.contains(benchmark.get_name())) {
                 current_case[benchmark.get_name()] = json::object();
             }
+            benchmark.normalize_json(current_case);
 
             auto default_patch = validator.validate(current_case);
             current_case = current_case.patch(default_patch);

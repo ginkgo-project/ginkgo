@@ -21,28 +21,6 @@
 #include "core/components/prefix_sum_kernels.hpp"
 
 
-// Command-line arguments
-DEFINE_string(
-    operations, "copy,axpy,scal",
-    "A comma-separated list of operations to benchmark.\nCandidates are\n"
-    "BLAS algorithms:\n"
-    "   copy (y = x),\n"
-    "   axpy (y = y + a * x),\n"
-    "   sub_scaled (y = y - a * x),\n"
-    "   multiaxpy (like axpy, but a has one entry per column),\n"
-    "   scal (y = a * y),\n"
-    "   multiscal (like scal, but a has one entry per column),\n"
-    "   dot (a = x' * y),"
-    "   norm (a = sqrt(x' * x)),\n"
-    "   mm (C = A * B),\n"
-    "   gemm (C = a * A * B + b * C)\n"
-    "Non-numerical algorithms:\n"
-    "   prefix_sum32 (x_i <- sum_{j=0}^{i-1} x_i, 32 bit indices)\n"
-    "   prefix_sum64 (                            64 bit indices)\n"
-    "where A has dimensions n x k, B has dimensions k x m,\n"
-    "C has dimensions n x m and x and y have dimensions n x r");
-
-
 class BenchmarkOperation {
 public:
     virtual ~BenchmarkOperation() = default;
@@ -424,14 +402,12 @@ struct BlasBenchmark : Benchmark<dimensions> {
                  std::function<std::unique_ptr<BenchmarkOperation>(
                      std::shared_ptr<const gko::Executor>, dimensions)>>;
     map_type operation_map;
-    std::vector<std::string> operations;
     std::string name;
     bool do_print;
 
     BlasBenchmark(map_type operation_map, bool do_print = true)
         : operation_map{std::move(operation_map)},
           name{"blas"},
-          operations{split(FLAGS_operations)},
           do_print{do_print}
     {}
 
@@ -473,39 +449,54 @@ struct BlasBenchmark : Benchmark<dimensions> {
              annotate_functor annotate, dimensions& dims,
              const json& operation_case, json& result_case) const override
     {
-        for (auto& operation_name : operations) {
-            result_case[operation_name] = json::object();
-            auto& op_result_case = result_case[operation_name];
+        auto op = operation_map.at(
+            operation_case["operation"].get<std::string>())(exec, dims);
 
-            auto op = operation_map.at(operation_name)(exec, dims);
+        IterationControl ic(timer);
 
-            IterationControl ic(timer);
-
-            // warm run
-            {
-                auto range = annotate("warmup", FLAGS_warmup > 0);
-                for (auto _ : ic.warmup_run()) {
-                    op->prepare();
-                    exec->synchronize();
-                    op->run();
-                    exec->synchronize();
-                }
-            }
-
-            // timed run
-            op->prepare();
-            for (auto _ : ic.run()) {
-                auto range = annotate("repetition");
+        // warm run
+        {
+            auto range = annotate("warmup", FLAGS_warmup > 0);
+            for (auto _ : ic.warmup_run()) {
+                op->prepare();
+                exec->synchronize();
                 op->run();
+                exec->synchronize();
             }
-            const auto runtime = ic.compute_time(FLAGS_timer_method);
-            const auto flops = static_cast<double>(op->get_flops());
-            const auto mem = static_cast<double>(op->get_memory());
-            const auto repetitions = ic.get_num_repetitions();
-            op_result_case["time"] = runtime;
-            op_result_case["flops"] = flops / runtime;
-            op_result_case["bandwidth"] = mem / runtime;
-            op_result_case["repetitions"] = repetitions;
         }
+
+        // timed run
+        op->prepare();
+        for (auto _ : ic.run()) {
+            auto range = annotate("repetition");
+            op->run();
+        }
+        const auto runtime = ic.compute_time(FLAGS_timer_method);
+        const auto flops = static_cast<double>(op->get_flops());
+        const auto mem = static_cast<double>(op->get_memory());
+        const auto repetitions = ic.get_num_repetitions();
+        result_case["time"] = runtime;
+        result_case["flops"] = flops / runtime;
+        result_case["bandwidth"] = mem / runtime;
+        result_case["repetitions"] = repetitions;
+    }
+
+    void postprocess(json& test_cases) const override
+    {
+        std::map<json, json> same_operators;
+        for (const auto& test_case : test_cases) {
+            auto case_operator = test_case;
+            case_operator.erase("operation");
+            case_operator.erase(name);
+            same_operators.try_emplace(case_operator, json::object());
+            same_operators[case_operator][test_case["operation"]] =
+                test_case[name];
+        }
+        auto merged_cases = json::array();
+        for (const auto& [test_case, results] : same_operators) {
+            merged_cases.push_back(test_case);
+            merged_cases.back()[name] = results;
+        }
+        test_cases = std::move(merged_cases);
     }
 };

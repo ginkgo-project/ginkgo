@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import test_framework
+import json
+
+case = json.dumps([{"n": 100, "operation": op} for op in ["copy", "axpy", "scal"]])
 
 # check that all input modes work:
 # parameter
 test_framework.compare_output_distributed(
-    ["-input", '[{"n": 100}]'],
+    ["-input", case],
     expected_stdout="multi_vector_distributed.simple.stdout",
     expected_stderr="multi_vector_distributed.simple.stderr",
     num_procs=3,
@@ -15,7 +18,7 @@ test_framework.compare_output_distributed(
     [],
     expected_stdout="multi_vector_distributed.simple.stdout",
     expected_stderr="multi_vector_distributed.simple.stderr",
-    stdin='[{"n": 100}]',
+    stdin=case,
     num_procs=3,
 )
 
@@ -29,7 +32,7 @@ test_framework.compare_output_distributed(
 
 # profiler annotations
 test_framework.compare_output_distributed(
-    ["-input", '[{"n": 100}]', "-profile", "-profiler_hook", "debug"],
+    ["-input", case, "-profile", "-profiler_hook", "debug"],
     expected_stdout="multi_vector_distributed.profile.stdout",
     expected_stderr="multi_vector_distributed.profile.stderr",
     num_procs=3,
@@ -37,7 +40,7 @@ test_framework.compare_output_distributed(
 
 # complex
 test_framework.compare_output_distributed(
-    ["-input", '[{"n": 100}]'],
+    ["-input", case],
     expected_stdout="multi_vector_distributed_dcomplex.simple.stdout",
     expected_stderr="multi_vector_distributed_dcomplex.simple.stderr",
     num_procs=3,

@@ -6,8 +6,12 @@
                 "size": 100
             }
         },
-        "sparse_blas": {
-            "transpose": {
+        "reorder": "natural",
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725,
+        "sparse_blas": [
+            {
                 "time": 1.0,
                 "flops": 1.0,
                 "bandwidth": 1.0,
@@ -18,13 +22,12 @@
                     "csr::transpose": 1.0,
                     "free": 1.0,
                     "overhead": 1.0
+                },
+                "completed": true,
+                "operation": {
+                    "name": "transpose"
                 }
-            },
-            "completed": true
-        },
-        "reorder": "natural",
-        "rows": 125,
-        "cols": 125,
-        "nonzeros": 725
+            }
+        ]
     }
 ]
