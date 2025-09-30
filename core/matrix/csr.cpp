@@ -33,6 +33,7 @@
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/permutation.hpp"
 #include "core/matrix/sellp_kernels.hpp"
+#include "ginkgo/core/base/temporary_clone.hpp"
 
 
 namespace gko {
@@ -45,6 +46,7 @@ GKO_REGISTER_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
+GKO_REGISTER_OPERATION(spgemm_reuse, csr::spgemm_reuse);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
@@ -640,6 +642,91 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
             data.nonzeros.emplace_back(row, col, val);
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
+    ptr_param<const Csr> other) const
+{
+    GKO_ASSERT_CONFORMANT(this, other);
+    auto result_size = gko::dim<2>{this->get_size()[0], other->get_size()[1]};
+    auto exec = this->get_executor();
+    auto local_other = make_temporary_clone(exec, other);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+struct Csr<ValueType, IndexType>::multiply_reuse_info::lookup_data {
+    dim<2> size;
+    size_type nnz;
+    csr::lookup_data<IndexType> data;
+};
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::~multiply_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
+    multiply_reuse_info&&) = default;
+
+
+template <typename ValueType, typename IndexType>
+typename Csr<ValueType, IndexType>::multiply_reuse_info&
+Csr<ValueType, IndexType>::multiply_reuse_info::operator=(
+    multiply_reuse_info&&) = default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
+    std::unique_ptr<lookup_data> data)
+    : internal{std::move(data)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::multiply_reuse_info::update_values(
+    ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
+    ptr_param<Csr> out) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size);
+    GKO_ASSERT_CONFORMANT(mtx1, mtx2);
+    GKO_ASSERT_EQUAL_ROWS(mtx1, out);
+    GKO_ASSERT_EQUAL_COLS(mtx2, out);
+    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz);
+    auto exec = internal->data.storage.get_executor();
+    auto local_mtx1 = make_temporary_clone(exec, mtx1);
+    auto local_mtx2 = make_temporary_clone(exec, mtx2);
+    auto local_out = make_temporary_clone(exec, out);
+    exec->run(csr::make_spgemm_reuse(local_mtx1.get(), local_mtx2.get(),
+                                     internal->data, local_out.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
+          typename Csr<ValueType, IndexType>::multiply_reuse_info>
+Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
+{
+    GKO_ASSERT_CONFORMANT(this, other);
+    auto result_size = gko::dim<2>{this->get_size()[0], other->get_size()[1]};
+    auto exec = this->get_executor();
+    auto local_other = make_temporary_clone(exec, other);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    auto lookup = csr::build_lookup(result.get());
+    auto reuse_info = multiply_reuse_info{
+        std::make_unique<typename multiply_reuse_info::lookup_data>(
+            typename multiply_reuse_info::lookup_data{
+                result_size, result->get_num_stored_elements(),
+                std::move(lookup)})};
+    return std::make_pair(std::move(result), std::move(reuse_info));
 }
 
 

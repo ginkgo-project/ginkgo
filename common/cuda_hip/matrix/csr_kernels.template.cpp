@@ -43,6 +43,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/array_access.hpp"
+#include "core/base/index_range.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -2732,6 +2733,94 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         c_tmp_vals_array.get_const_data(), beta->get_const_values(), d_row_ptrs,
         d_col_idxs, d_vals, c);
 #endif  // GKO_COMPILING_CUDA
+}
+
+
+namespace kernel {
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void spgemm_reuse(
+    const IndexType* __restrict__ a_row_ptrs,
+    const IndexType* __restrict__ a_cols, const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ b_row_ptrs,
+    const IndexType* __restrict__ b_cols, const ValueType* __restrict__ b_vals,
+    const IndexType* __restrict__ c_row_ptrs,
+    const IndexType* __restrict__ c_cols, ValueType* __restrict__ c_vals,
+    const IndexType* __restrict__ lookup_storage_offsets,
+    const int32* __restrict__ lookup_storage,
+    const int64* __restrict__ lookup_descs, IndexType num_rows)
+{
+    constexpr auto subwarp_size = config::warp_size;
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto lane = static_cast<IndexType>(subwarp.thread_rank());
+    if (row >= num_rows) {
+        return;
+    }
+    const auto a_begin = a_row_ptrs[row];
+    const auto a_end = a_row_ptrs[row + 1];
+    const auto c_begin = c_row_ptrs[row];
+    const auto c_end = c_row_ptrs[row + 1];
+    const auto c_row_lookup = matrix::csr::device_sparsity_lookup<IndexType>{
+        c_row_ptrs,     c_cols,       lookup_storage_offsets,
+        lookup_storage, lookup_descs, static_cast<size_type>(row)};
+    for (auto i = c_begin + lane; i < c_end; i += subwarp_size) {
+        c_vals[i] = zero<ValueType>();
+    }
+    for (const auto a_nz : irange{a_begin, a_end}) {
+        const auto a_col = a_cols[a_nz];
+        const auto a_val = a_vals[a_nz];
+        const auto b_begin = b_row_ptrs[a_col];
+        const auto b_end = b_row_ptrs[a_col + 1];
+        for (auto b_nz = b_begin + lane; b_nz < b_end; b_nz += subwarp_size) {
+            const auto b_col = b_cols[b_nz];
+            const auto b_val = b_vals[b_nz];
+            const auto rel_nz = c_row_lookup[b_col];
+            GKO_ASSERT(rel_nz != invalid_index<IndexType>());
+            c_vals[c_begin + rel_nz] += a_val * b_val;
+        }
+        // this is necessary to avoid data races between two rows of B
+        // sharing the same column index
+        subwarp.sync();
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  const matrix::csr::lookup_data<IndexType>& c_lookup,
+                  matrix::Csr<ValueType, IndexType>* c)
+{
+    const auto num_rows = static_cast<IndexType>(c->get_size()[0]);
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto c_row_ptrs = c->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto c_cols = c->get_const_col_idxs();
+    const auto a_vals = as_device_type(a->get_const_values());
+    const auto b_vals = as_device_type(b->get_const_values());
+    const auto c_vals = as_device_type(c->get_values());
+    const auto lookup_storage_offsets =
+        c_lookup.storage_offsets.get_const_data();
+    const auto lookup_storage = c_lookup.storage.get_const_data();
+    const auto lookup_descs = c_lookup.row_descs.get_const_data();
+    if (num_rows > 0) {
+        const auto num_blocks =
+            ceildiv(num_rows, default_block_size / config::warp_size);
+        kernel::spgemm_reuse<<<num_blocks, default_block_size, 0,
+                               exec->get_stream()>>>(
+            a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals, c_row_ptrs,
+            c_cols, c_vals, lookup_storage_offsets, lookup_storage,
+            lookup_descs, num_rows);
+    }
 }
 
 

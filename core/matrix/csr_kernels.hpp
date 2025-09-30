@@ -57,6 +57,13 @@ namespace kernels {
                          const matrix::Csr<ValueType, IndexType>* d,  \
                          matrix::Csr<ValueType, IndexType>* c)
 
+#define GKO_DECLARE_CSR_SPGEMM_REUSE_KERNEL(ValueType, IndexType)          \
+    void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,         \
+                      const matrix::Csr<ValueType, IndexType>* a,          \
+                      const matrix::Csr<ValueType, IndexType>* b,          \
+                      const matrix::csr::lookup_data<IndexType>& c_lookup, \
+                      matrix::Csr<ValueType, IndexType>* c)
+
 #define GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType)  \
     void spgeam(std::shared_ptr<const DefaultExecutor> exec, \
                 const matrix::Dense<ValueType>* alpha,       \
@@ -277,6 +284,8 @@ namespace kernels {
     GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_CSR_SPGEMM_REUSE_KERNEL(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                       \
