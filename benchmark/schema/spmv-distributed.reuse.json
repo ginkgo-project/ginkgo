@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "spmv-distributed.reuse.json",
+  "title": "Distributed SpMV",
+  "description": "Reusable distributed SpMV definition",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+-[a-z0-9_]+"
+    },
+    "reorder": {
+      "enum": [
+        "natural"
+      ],
+      "default": "natural"
+    }
+  },
+  "required": [
+    "format"
+  ]
+}

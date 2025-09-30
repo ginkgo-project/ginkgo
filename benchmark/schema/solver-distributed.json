@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Solver",
+  "description": "Input for a single distributed solver operation",
+  "type": "object",
+  "properties": {
+    "operator": {
+      "$ref": "operator-distributed.reuse.json"
+    },
+    "solver": {
+      "type": "object",
+      "not": {
+        "required": [
+          "criteria"
+        ]
+      }
+    },
+    "optimal": {
+      "type": "object",
+      "properties": {
+        "spmv": {
+          "$ref": "spmv-distributed.reuse.json"
+        }
+      },
+      "required": [
+        "spmv"
+      ]
+    }
+  },
+  "required": [
+    "operator",
+    "solver",
+    "optimal"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "solver": {
+        "type": "solver::Cg",
+        "preconditioner": {
+          "type": "preconditioner::Schwarz",
+          "local_solver": {
+            "type": "preconditioner::Jacobi"
+          }
+        }
+      },
+      "optimal": {
+        "spmv": {
+          "format": "csr-coo"
+        }
+      }
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "local_size": 100
+        }
+      },
+      "solver": {
+        "type": "solver::Gmres",
+        "krylov_dim": 10
+      },
+      "optimal": {
+        "spmv": {
+          "format": "coo-coo"
+        }
+      }
+    }
+  ]
+}

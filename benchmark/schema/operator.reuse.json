@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "operator.reuse.json",
+  "title": "Operator",
+  "description": "Reusable operator definition",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "stencil": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "5pt",
+            "7pt",
+            "9pt",
+            "27pt"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "kind",
+        "size"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": [
+        "filename"
+      ]
+    },
+    {
+      "required": [
+        "stencil"
+      ]
+    }
+  ]
+}

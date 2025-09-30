@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Distributed BLAS",
+  "description": "Input for a single BLAS operation with distributed vectors",
+  "type": "object",
+  "properties": {
+    "n": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "r": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stride": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stride_x": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stride_y": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "if": {
+    "required": [
+      "stride"
+    ]
+  },
+  "then": {
+    "not": {
+      "anyOf": [
+        {
+          "required": [
+            "stride_x"
+          ]
+        },
+        {
+          "required": [
+            "stride_y"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "n"
+  ],
+  "examples": [
+    {
+      "n": 1000
+    },
+    {
+      "n": 1000,
+      "r": 1000
+    },
+    {
+      "n": 1000,
+      "stride": 1024
+    },
+    {
+      "n": 1000,
+      "stride_x": 1024,
+      "stride_y": 2048
+    }
+  ]
+}

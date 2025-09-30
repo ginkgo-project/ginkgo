@@ -9,6 +9,12 @@ if(GINKGO_BUILD_BENCHMARKS)
     endif()
 endif()
 
+if(GINKGO_BUILD_BENCHMARKS)
+    if(NOT nlohmann_json_schema_validator_FOUND)
+        add_subdirectory(json_scheme_validator)
+    endif()
+endif()
+
 if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS OR GINKGO_BUILD_EXAMPLES)
     if(NOT nlohmann_json_FOUND)
         add_subdirectory(nlohmann_json)

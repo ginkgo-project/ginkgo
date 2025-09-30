@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpMV",
+  "description": "Input for a single SpMV operation",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "spmv.reuse.json"
+    },
+    {
+      "properties": {
+        "operator": {
+          "$ref": "operator.reuse.json"
+        }
+      }
+    }
+  ],
+  "required": [
+    "operator",
+    "format"
+  ],
+  "examples": [
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo"
+    },
+    {
+      "operator": {
+        "filename": "my_file.mtx"
+      },
+      "format": "coo",
+      "reorder": "nd"
+    },
+    {
+      "operator": {
+        "stencil": {
+          "name": "5pt",
+          "size": 100
+        }
+      },
+      "format": "coo",
+      "reorder": "nd"
+    }
+  ]
+}
