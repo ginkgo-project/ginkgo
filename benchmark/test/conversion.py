@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import test_framework
 
+stencil_input = '[{"operator": {"stencil": {"kind": "7pt", "size": 100}}}]'
+
+
 # check that all input modes work:
 # parameter
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt"}]', "-formats", "coo,csr"],
+    ["-input", stencil_input],
     expected_stdout="conversion.simple.stdout",
     expected_stderr="conversion.simple.stderr",
 )
@@ -14,7 +17,7 @@ test_framework.compare_output(
     ["-formats", "coo,csr"],
     expected_stdout="conversion.simple.stdout",
     expected_stderr="conversion.simple.stderr",
-    stdin='[{"size": 100, "stencil": "7pt"}]',
+    stdin=stencil_input,
 )
 
 # input file
@@ -29,23 +32,11 @@ test_framework.compare_output(
     expected_stderr="conversion.simple.stderr",
 )
 
-# input matrixfile
-test_framework.compare_output(
-    [
-        "-input_matrix",
-        str(test_framework.matrixpath),
-        "-formats",
-        "coo,csr",
-    ],
-    expected_stdout="conversion.matrix.stdout",
-    expected_stderr="conversion.matrix.stderr",
-)
-
 # check that all conversions work
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt"}]',
+        stencil_input,
         "-formats",
         "coo,csr,ell,sellp,hybrid",
     ],
@@ -57,7 +48,7 @@ test_framework.compare_output(
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt"}]',
+        stencil_input,
         "-formats",
         "coo,csr",
         "-profile",
@@ -70,7 +61,7 @@ test_framework.compare_output(
 
 # complex
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt"}]', "-formats", "coo,csr"],
+    ["-input", stencil_input, "-formats", "coo,csr"],
     expected_stdout="conversion_dcomplex.simple.stdout",
     expected_stderr="conversion_dcomplex.simple.stderr",
     use_complex=True

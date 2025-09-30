@@ -1,7 +1,12 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "size": 100
+            }
+        },
+        "reorder": "amd",
         "sparse_blas": {
             "symbolic_cholesky": {
                 "time": 1.0,
@@ -20,11 +25,10 @@
                     "csr::sort_by_column_index": 1.0,
                     "overhead": 1.0
                 },
-                "factor_nonzeros": 1324,
-                "completed": true
-            }
+                "factor_nonzeros": 1324
+            },
+            "completed": true
         },
-        "reordered": "amd",
         "rows": 125,
         "cols": 125,
         "nonzeros": 725

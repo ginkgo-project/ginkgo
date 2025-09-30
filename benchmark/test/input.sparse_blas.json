@@ -2,10 +2,9 @@
   {
     "operator": {
       "stencil": {
-        "local_size": 100,
+        "size": 100,
         "kind": "7pt"
       }
-    },
-    "format": "csr-csr"
+    }
   }
 ]

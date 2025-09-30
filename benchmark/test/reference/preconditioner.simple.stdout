@@ -1,30 +1,37 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
-        "preconditioner": {
-            "none": {
-                "generate": {
-                    "components": {
-                        "generate(<typename>)": 1.0,
-                        "overhead": 1.0
-                    },
-                    "time": 1.0,
-                    "repetitions": 10
-                },
-                "apply": {
-                    "components": {
-                        "apply(<typename>)": 1.0,
-                        "copy(<typename>)": 1.0,
-                        "dense::copy": 1.0,
-                        "overhead": 1.0
-                    },
-                    "time": 1.0,
-                    "repetitions": 10
-                },
-                "completed": true
+        "operator": {
+            "stencil": {
+                "size": 100,
+                "kind": "7pt"
             }
         },
+        "preconditioner": {
+            "type": "matrix::Identity"
+        },
+        "format": "csr",
+        "precondition": {
+            "generate": {
+                "components": {
+                    "generate(<typename>)": 1.0,
+                    "overhead": 1.0
+                },
+                "time": 1.0,
+                "repetitions": 10
+            },
+            "apply": {
+                "components": {
+                    "apply(<typename>)": 1.0,
+                    "copy(<typename>)": 1.0,
+                    "dense::copy": 1.0,
+                    "overhead": 1.0
+                },
+                "time": 1.0,
+                "repetitions": 10
+            },
+            "completed": true
+        },
+        "reorder": "natural",
         "rows": 125,
         "cols": 125,
         "nonzeros": 725

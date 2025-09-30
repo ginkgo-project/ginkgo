@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 import test_framework
+import json
+
+stencil_input = [{"operator": {"stencil": {"kind": "7pt", "size": 100}},
+                  "solver": {"type": "solver::Cg"},
+                  "optimal": {"spmv": {"format": "csr"}}}]
 
 # check that all input modes work:
 # parameter
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]'],
+    ["-input", json.dumps(stencil_input)],
     expected_stdout="solver.simple.stdout",
     expected_stderr="solver.simple.stderr",
 )
@@ -14,7 +19,7 @@ test_framework.compare_output(
     [],
     expected_stdout="solver.simple.stdout",
     expected_stderr="solver.simple.stderr",
-    stdin='[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    stdin=json.dumps(stencil_input),
 )
 
 # input file
@@ -24,18 +29,11 @@ test_framework.compare_output(
     expected_stderr="solver.simple.stderr",
 )
 
-# input matrix file
-test_framework.compare_output(
-    ["-input_matrix", str(test_framework.matrixpath)],
-    expected_stdout="solver.matrix.stdout",
-    expected_stderr="solver.matrix.stderr",
-)
-
 # profiler annotations
 test_framework.compare_output(
     [
         "-input",
-        '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+        json.dumps(stencil_input),
         "-profile",
         "-profiler_hook",
         "debug",
@@ -46,15 +44,15 @@ test_framework.compare_output(
 
 # reordering
 test_framework.compare_output(
-    ["-reorder", "amd"],
+    [],
     expected_stdout="solver.reordered.stdout",
     expected_stderr="solver.reordered.stderr",
-    stdin='[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    stdin=json.dumps([stencil_input[0] | {"optimal": {"spmv": {"format": "csr", "reorder": "amd"}}}]),
 )
 
 # complex input
 test_framework.compare_output(
-    ["-input", '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]'],
+    ["-input", json.dumps(stencil_input)],
     expected_stdout="solver_dcomplex.simple.stdout",
     expected_stderr="solver_dcomplex.simple.stderr",
     use_complex=True

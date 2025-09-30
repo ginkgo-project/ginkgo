@@ -1,6 +1,11 @@
 [
-    {
+  {
+    "operator": {
+      "stencil": {
         "size": 100,
-        "stencil": "7pt"
-    }
+        "kind": "7pt"
+      }
+    },
+    "format": "coo"
+  }
 ]

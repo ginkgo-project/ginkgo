@@ -1,33 +1,41 @@
 [
     {
-        "size": 100,
-        "stencil": "7pt",
-        "comm_pattern": "stencil",
-        "optimal": {
-            "spmv": "csr-csr"
+        "operator": {
+            "stencil": {
+                "kind": "7pt",
+                "local_size": 100,
+                "comm_pattern": "stencil"
+            },
+            "rows": 125,
+            "cols": 125
         },
         "solver": {
-            "cg": {
-                "recurrent_residuals": [],
-                "true_residuals": [],
-                "implicit_residuals": [],
-                "iteration_timestamps": [],
-                "rhs_norm": 1.0,
-                "generate": {
-                    "components": {},
-                    "time": 1.0
-                },
-                "apply": {
-                    "components": {},
-                    "iterations": 7,
-                    "time": 1.0
-                },
-                "residual_norm": 1.0,
-                "repetitions": 1,
-                "completed": true
+            "type": "solver::Cg"
+        },
+        "optimal": {
+            "spmv": {
+                "format": "csr-csr",
+                "reorder": "natural"
             }
         },
-        "rows": 125,
-        "cols": 125
+        "solve": {
+            "recurrent_residuals": [],
+            "true_residuals": [],
+            "implicit_residuals": [],
+            "iteration_timestamps": [],
+            "rhs_norm": 1.0,
+            "generate": {
+                "components": {},
+                "time": 1.0
+            },
+            "apply": {
+                "components": {},
+                "iterations": 7,
+                "time": 1.0
+            },
+            "residual_norm": 1.0,
+            "repetitions": 1,
+            "completed": true
+        }
     }
 ]

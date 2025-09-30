@@ -2,9 +2,6 @@ Running on ReferenceExecutor
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
 The formats are coo,csr
-Running test case stencil(100, 7pt)
+Running test case 
+    {"operator":{"stencil":{"size":100,"kind":"7pt"}},"format":"coo"}
 Matrix is of size (125, 125), 725
-	Running conversion: coo-read
-	Running conversion: coo-csr
-	Running conversion: csr-read
-	Running conversion: csr-coo

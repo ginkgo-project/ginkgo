@@ -1,9 +1,10 @@
 Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
-Running cg with 1000 iterations and residual goal of 1.000000e-06
+Running solvers with 1000 iterations and residual goal of 1.000000e-06
 The number of right hand sides is 1
-Running test case stencil(100, 7pt, stencil)
+Running test case 
+    {"operator":{"stencil":{"kind":"7pt","local_size":100}},"solver":{"type":"solver::Cg"},"optimal":{"spmv":{"format":"csr-csr"}}}
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
@@ -109,9 +110,7 @@ DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 Matrix is of size (125, 125)
-DEBUG: begin stencil(100, 7pt, stencil)
-	Running solver: cg
-DEBUG: begin cg
+DEBUG: begin {"operator":{"stencil":{"kind":"7pt","local_size":100}},"solver":{"type":"solver::Cg"},"optimal":{"spmv":{"format":"csr-csr"}}}
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
@@ -128,8 +127,6 @@ DEBUG: begin dense::copy
 DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 DEBUG: begin generate(<typename>)
-DEBUG: begin generate(<typename>)
-DEBUG: end   generate(<typename>)
 DEBUG: end   generate(<typename>)
 DEBUG: begin apply(<typename>)
 DEBUG: begin iteration
@@ -167,14 +164,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: begin cg::step_1
@@ -205,14 +202,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -245,14 +242,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -285,14 +282,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -325,14 +322,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -365,14 +362,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -405,14 +402,14 @@ DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
 DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
+DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
 DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin residual_norm::residual_norm
 DEBUG: end   residual_norm::residual_norm
-DEBUG: end   check(<typename>)
-DEBUG: begin check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   check(<typename>)
 DEBUG: end   iteration
@@ -444,6 +441,8 @@ DEBUG: end   apply(<typename>)
 DEBUG: begin dense::compute_conj_dot_dispatch
 DEBUG: end   dense::compute_conj_dot_dispatch
 DEBUG: begin check(<typename>)
+DEBUG: begin check(<typename>)
+DEBUG: end   check(<typename>)
 DEBUG: begin check(<typename>)
 DEBUG: begin dense::compute_squared_norm2
 DEBUG: end   dense::compute_squared_norm2
@@ -478,5 +477,4 @@ DEBUG: begin dense::compute_sqrt
 DEBUG: end   dense::compute_sqrt
 DEBUG: begin copy
 DEBUG: end   copy
-DEBUG: end   cg
-DEBUG: end   stencil(100, 7pt, stencil)
+DEBUG: end   {"operator":{"stencil":{"kind":"7pt","local_size":100}},"solver":{"type":"solver::Cg"},"optimal":{"spmv":{"format":"csr-csr"}}}
