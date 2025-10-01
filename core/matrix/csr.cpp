@@ -5,11 +5,13 @@
 #include "ginkgo/core/matrix/csr.hpp"
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -33,7 +35,6 @@
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/permutation.hpp"
 #include "core/matrix/sellp_kernels.hpp"
-#include "ginkgo/core/base/temporary_clone.hpp"
 
 
 namespace gko {
@@ -688,6 +689,11 @@ Csr<ValueType, IndexType>::multiply_reuse_info::operator=(
 
 
 template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info()
+{}
+
+
+template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
     std::unique_ptr<lookup_data> data)
     : internal{std::move(data)}
@@ -699,6 +705,11 @@ void Csr<ValueType, IndexType>::multiply_reuse_info::update_values(
     ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
     ptr_param<Csr> out) const
 {
+    if (!internal) {
+        throw InvalidStateError{
+            __FILE__, __LINE__, __func__,
+            "Attempting to use uninitialized multiply_reuse_info"};
+    }
     GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size1);
     GKO_ASSERT_EQUAL_DIMENSIONS(mtx2, internal->size2);
     GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size_out);
