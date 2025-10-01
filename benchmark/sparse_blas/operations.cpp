@@ -179,14 +179,9 @@ public:
                (sizeof(etype) + sizeof(itype));
     }
 
-    void prepare() override
-    {
-        mtx_out_ =
-            Mtx::create(mtx_->get_executor(),
-                        gko::dim<2>{mtx_->get_size()[0], mtx2_->get_size()[1]});
-    }
+    void prepare() override {}
 
-    void run() override { mtx_->apply(mtx2_, mtx_out_); }
+    void run() override { mtx_out_ = mtx_->multiply(mtx2_); }
 
 private:
     const Mtx* mtx_;

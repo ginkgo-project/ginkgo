@@ -68,7 +68,6 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         return {std::move(mtx->clone())};
     }
     auto id_power = mtx->clone();
-    auto tmp = Csr::create(exec, mtx->get_size());
     // accumulates mtx * the remainder from odd powers
     auto acc = mtx->clone();
     // compute id^(n-1) using square-and-multiply
@@ -77,18 +76,15 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         if (i % 2 != 0) {
             // store one power in acc:
             // i^(2n+1) -> i*i^2n
-            id_power->apply(acc, tmp);
-            std::swap(acc, tmp);
+            acc = id_power->multiply(acc);
             i--;
         }
         // square id_power: i^2n -> (i^2)^n
-        id_power->apply(id_power, tmp);
-        std::swap(id_power, tmp);
+        id_power = id_power->multiply(id_power);
         i /= 2;
     }
     // combine acc and id_power again
-    id_power->apply(acc, tmp);
-    return {std::move(tmp)};
+    return id_power->multiply(acc);
 }
 
 
