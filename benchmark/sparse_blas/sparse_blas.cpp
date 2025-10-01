@@ -30,7 +30,8 @@ using mat_data = gko::matrix_data<etype, itype>;
 
 const char* operations_string =
     "Comma-separated list of operations to be benchmarked. Can be "
-    "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, "
+    "spgemm, spgemm_reuse, spgeam, transpose, sort, is_sorted, "
+    "generate_lookup, "
     "lookup, symbolic_lu, symbolic_lu_near_symm, symbolic_cholesky, "
     "symbolic_cholesky_symmetric, reorder_rcm, "
 #if GKO_HAVE_METIS
