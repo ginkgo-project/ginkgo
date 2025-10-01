@@ -768,6 +768,11 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Class describing the internal lookup structures created by
+     * multiply_reuse(const Csr*) to recompute a sparse matrix-matrix product
+     * with updated values.
+     */
     class multiply_reuse_info {
         friend class Csr;
 
@@ -784,6 +789,11 @@ public:
 
         multiply_reuse_info& operator=(multiply_reuse_info&&);
 
+        /**
+         * Recomputes the sparse matrix-matrix product when only the values of
+         * mtx1 and mtx2 changed, but the sparsity patterns of mtx1, mtx2 and
+         * out are unchanged.
+         */
         void update_values(ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
                            ptr_param<Csr> out) const;
 
