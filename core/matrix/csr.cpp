@@ -661,8 +661,12 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
 
 template <typename ValueType, typename IndexType>
 struct Csr<ValueType, IndexType>::multiply_reuse_info::lookup_data {
-    dim<2> size;
-    size_type nnz;
+    dim<2> size1;
+    dim<2> size2;
+    dim<2> size_out;
+    size_type nnz1;
+    size_type nnz2;
+    size_type nnz_out;
     csr::lookup_data<IndexType> data;
 };
 
@@ -695,11 +699,12 @@ void Csr<ValueType, IndexType>::multiply_reuse_info::update_values(
     ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
     ptr_param<Csr> out) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size);
-    GKO_ASSERT_CONFORMANT(mtx1, mtx2);
-    GKO_ASSERT_EQUAL_ROWS(mtx1, out);
-    GKO_ASSERT_EQUAL_COLS(mtx2, out);
-    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size1);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx2, internal->size2);
+    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size_out);
+    GKO_ASSERT_EQ(mtx1->get_num_stored_elements(), internal->nnz1);
+    GKO_ASSERT_EQ(mtx2->get_num_stored_elements(), internal->nnz2);
+    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz_out);
     auto exec = internal->data.storage.get_executor();
     auto local_mtx1 = make_temporary_clone(exec, mtx1);
     auto local_mtx2 = make_temporary_clone(exec, mtx2);
@@ -724,8 +729,10 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
     auto reuse_info = multiply_reuse_info{
         std::make_unique<typename multiply_reuse_info::lookup_data>(
             typename multiply_reuse_info::lookup_data{
-                result_size, result->get_num_stored_elements(),
-                std::move(lookup)})};
+                this->get_size(), other->get_size(), result_size,
+                this->get_num_stored_elements(),
+                other->get_num_stored_elements(),
+                result->get_num_stored_elements(), std::move(lookup)})};
     return std::make_pair(std::move(result), std::move(reuse_info));
 }
 

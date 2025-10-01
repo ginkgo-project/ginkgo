@@ -752,8 +752,8 @@ TYPED_TEST(Csr, MultipliesReuseWithCsrMatrix)
     auto r = result->get_const_row_ptrs();
     auto c = result->get_const_col_idxs();
     auto v = result->get_const_values();
-    // 13  5 31
-    // 15  5 40
+    // -26  -10  -62
+    // -30  -10  -80
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 6);
