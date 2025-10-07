@@ -790,9 +790,9 @@ public:
         multiply_reuse_info& operator=(multiply_reuse_info&&);
 
         /**
-         * Recomputes the sparse matrix-matrix product when only the values of
-         * mtx1 and mtx2 changed, but the sparsity patterns of mtx1, mtx2 and
-         * out are unchanged.
+         * Recomputes the sparse matrix-matrix product `out = mtx1 * mtx2` when
+         * only the values of mtx1 and mtx2 changed, but the sparsity patterns
+         * of mtx1, mtx2 and out are unchanged.
          */
         void update_values(ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
                            ptr_param<Csr> out) const;
@@ -835,6 +835,183 @@ public:
      */
     std::pair<std::unique_ptr<Csr>, multiply_reuse_info> multiply_reuse(
         ptr_param<const Csr> other) const;
+
+    /**
+     * Class describing the internal lookup structures created by
+     * multiply_add_reuse to recompute a sparse matrix-matrix product
+     * with updated values.
+     */
+    class multiply_add_reuse_info {
+        friend class Csr;
+
+    public:
+        explicit multiply_add_reuse_info();
+
+        ~multiply_add_reuse_info();
+
+        multiply_add_reuse_info(const multiply_add_reuse_info&) = delete;
+
+        multiply_add_reuse_info(multiply_add_reuse_info&&);
+
+        multiply_add_reuse_info& operator=(const multiply_add_reuse_info&) =
+            delete;
+
+        multiply_add_reuse_info& operator=(multiply_add_reuse_info&&);
+
+        /**
+         * Recomputes the sparse matrix-matrix product
+         * `out = scale_mult * mtx * mtx_mult + scale_add * mtx_add` when only
+         * the values of mtx, scale_mult, mtx_mult, scale_add, mtx_add changed,
+         * but the sparsity patterns of mtx, mtx_mult, mtx_add and out are
+         * unchanged.
+         */
+        void update_values(ptr_param<const Csr> mtx,
+                           ptr_param<const Dense<value_type>> scale_mult,
+                           ptr_param<const Csr> mtx_mult,
+                           ptr_param<const Dense<value_type>> scale_add,
+                           ptr_param<const Csr> mtx_add,
+                           ptr_param<Csr> out) const;
+
+    private:
+        struct lookup_data;
+
+        explicit multiply_add_reuse_info(std::unique_ptr<lookup_data> data);
+
+        std::unique_ptr<lookup_data> internal;
+    };
+
+    /**
+     * Computes the sparse matrix product
+     * `scale_mult * this * mtx_mult + scale_add * mtx_add` on the executor of
+     * this matrix.
+     *
+     * @param scale_mult  the scalar by which the matrix product will be scaled.
+     * @param mtx_mult    the matrix with which the product will be computed. It
+     *                    needs to be sorted by column indices when using
+     *                    OmpExecutor or DpcppExecutor for `this`.
+     * @param scale_add   the scalar by which the matrix mtx_add will be scaled.
+     * @param mtx_add     the matrix which will be added to the product, scaled
+     *                    by scale_add.
+     * @return  the result of the computation, stored on the same executor as
+     *          this matrix.
+     */
+    std::unique_ptr<Csr> multiply_add(
+        ptr_param<const Dense<value_type>> scale_mult,
+        ptr_param<const Csr> mtx_mult,
+        ptr_param<const Dense<value_type>> scale_add,
+        ptr_param<const Csr> mtx_add) const;
+
+    /**
+     * Computes the sparse matrix product
+     * `scale_mult * this * mtx_mult + scale_add * mtx_add` on the executor of
+     * this matrix, and necessary data for value updates:
+     * ```
+     * auto [result, reuse] = mtx->multiply_add_reuse(sm, mm, sa, ma);
+     * change_values(mtx, sm, mm, sa, ma);
+     * reuse->update_values(mtx, sm, mm, sa, ma, result);
+     * ```
+     *
+     * @param scale_mult  the scalar by which the matrix product will be scaled.
+     * @param mtx_mult    the matrix with which the product will be computed. It
+     *                    needs to be sorted by column indices when using
+     *                    OmpExecutor or DpcppExecutor for `this`.
+     * @param scale_add   the scalar by which the matrix mtx_add will be scaled.
+     * @param mtx_add     the matrix which will be added to the product, scaled
+     *                    by scale_add.
+     * @return  std::pair containing the result of the computation, stored on
+     *          the same executor as this matrix, and a multiply_add_reuse_info
+     *          object allowing value updates to the output matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, multiply_add_reuse_info> multiply_add_reuse(
+        ptr_param<const Dense<value_type>> scale_mult,
+        ptr_param<const Csr> mtx_mult,
+        ptr_param<const Dense<value_type>> scale_add,
+        ptr_param<const Csr> mtx_add) const;
+
+    /**
+     * Computes the sparse matrix sum
+     * `scale_this * this + scale_other * mtx_add` on the executor of this
+     * matrix. This matrix needs to be sorted by column index, otherwise the
+     * result will be incorrect.
+     *
+     * @param scale_this   the scalar by which this matrix will be scaled.
+     * @param scale_other  the scalar by which this matrix will be scaled.
+     * @param mtx_other    the matrix which will be added to this, scaled by
+     *                     scale_other. It needs to be sorted by column index,
+     *                     otherwise the result will be incorrect.
+     * @return  the result of the computation, stored on the same executor as
+     *          this matrix.
+     */
+    std::unique_ptr<Csr> add_scale(
+        ptr_param<const Dense<value_type>> scale_this,
+        ptr_param<const Dense<value_type>> scale_other,
+        ptr_param<const Csr> mtx_other) const;
+
+    /**
+     * Class describing the internal lookup structures created by
+     * add_reuse to recompute a sparse matrix-matrix sum
+     * with updated values.
+     */
+    class add_scale_reuse_info {
+        friend class Csr;
+
+    public:
+        explicit add_scale_reuse_info();
+
+        ~add_scale_reuse_info();
+
+        add_scale_reuse_info(const add_scale_reuse_info&) = delete;
+
+        add_scale_reuse_info(add_scale_reuse_info&&);
+
+        add_scale_reuse_info& operator=(const add_scale_reuse_info&) = delete;
+
+        add_scale_reuse_info& operator=(add_scale_reuse_info&&);
+
+        /**
+         * Recomputes the sparse matrix-matrix sum
+         * `out = scale1 * mtx1 + scale2 * mtx2` when only the values of
+         * mtx1, scale1, mtx2, scale2 changed, but the sparsity patterns of
+         * mtx1, mtx2 and out are unchanged.
+         */
+        void update_values(ptr_param<const Dense<value_type>> scale1,
+                           ptr_param<const Csr> mtx1,
+                           ptr_param<const Dense<value_type>> scale2,
+                           ptr_param<const Csr> mtx2, ptr_param<Csr> out) const;
+
+    private:
+        struct lookup_data;
+
+        explicit add_scale_reuse_info(std::unique_ptr<lookup_data> data);
+
+        std::unique_ptr<lookup_data> internal;
+    };
+
+    /**
+     * Computes the sparse matrix sum
+     * `scale_this * this + scale_other * mtx_add` on the executor of this
+     * matrix, and necessary data for value updates:
+     * ```
+     * auto [result, reuse] = mtx->add_scale_reuse(alpha, beta, mtx2);
+     * change_values(alpha, mtx, beta, mtx2);
+     * reuse->update_values(alpha, mtx, beta, mtx2, result);
+     * ```
+     * This matrix needs to be sorted by column index, otherwise the
+     * result will be incorrect.
+     *
+     * @param scale_this   the scalar by which this matrix will be scaled.
+     * @param scale_other  the scalar by which this matrix will be scaled.
+     * @param mtx_other    the matrix which will be added to this, scaled by
+     *                     scale_other. It needs to be sorted by column index,
+     *                     otherwise the result will be incorrect.
+     * @return  std::pair containing the result of the computation, stored on
+     *          the same executor as this matrix, and a add_scale_reuse_info
+     *          object allowing value updates to the output matrix.
+     */
+    std::pair<std::unique_ptr<Csr>, add_scale_reuse_info> add_scale_reuse(
+        ptr_param<const Dense<value_type>> scale_this,
+        ptr_param<const Dense<value_type>> scale_other,
+        ptr_param<const Csr> mtx_other) const;
 
     /**
      * A struct describing a transformation of the matrix that reorders the
