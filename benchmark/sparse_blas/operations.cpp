@@ -189,6 +189,22 @@ protected:
 };
 
 
+class SpgemmReuseSetupOperation : public SpgemmOperation {
+public:
+    using SpgemmOperation::SpgemmOperation;
+
+    void prepare() override {}
+
+    void run() override
+    {
+        std::tie(mtx_out_, reuse_) = mtx_->multiply_reuse(mtx2_);
+    }
+
+protected:
+    Mtx::multiply_reuse_info reuse_;
+};
+
+
 class SpgemmReuseOperation : public SpgemmOperation {
 public:
     using SpgemmOperation::SpgemmOperation;
@@ -254,9 +270,9 @@ public:
                (sizeof(etype) + sizeof(itype));
     }
 
-    void prepare() override { mtx_out_ = mtx2_->clone(); }
+    void prepare() override {}
 
-    void run() override { mtx_->apply(scalar_, id_, scalar_, mtx_out_); }
+    void run() override { mtx_out_ = mtx_->add_scale(scalar_, scalar_, mtx2_); }
 
 private:
     const Mtx* mtx_;
@@ -785,6 +801,10 @@ const std::map<std::string,
         {"spgemm_reuse",
          [](const Mtx* mtx) {
              return std::make_unique<SpgemmReuseOperation>(mtx);
+         }},
+        {"spgemm_reuse_setup",
+         [](const Mtx* mtx) {
+             return std::make_unique<SpgemmReuseSetupOperation>(mtx);
          }},
         {"spgeam",
          [](const Mtx* mtx) { return std::make_unique<SpgeamOperation>(mtx); }},
