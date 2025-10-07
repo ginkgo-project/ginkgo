@@ -489,6 +489,67 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, MultiplyAddIsEquivalentToRef)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto dtrans = gko::as<Mtx>(dmtx->transpose());
+
+    auto result = mtx->multiply_add(alpha, trans, beta, square_mtx);
+    auto dresult = dmtx->multiply_add(dalpha, dtrans, dbeta, dsquare_mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, dresult);
+    GKO_ASSERT_MTX_NEAR(result, dresult, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, MultiplyAddIsEquivalentToRefCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+
+    auto result = mtx->multiply_add(alpha, trans, beta, square_mtx);
+    auto dresult = dmtx->multiply_add(alpha, trans, beta, square_mtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, dresult);
+    GKO_ASSERT_MTX_NEAR(result, dresult, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
+}
+
+
+TEST_F(Csr, MultiplyAddReuseCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+
+    auto [dresult, reuse] =
+        dmtx->multiply_add_reuse(alpha, trans, beta, square_mtx);
+    auto ref_result = mtx->multiply_add(alpha, trans, beta, square_mtx);
+    auto result = ref_result->clone();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, ref_result);
+    GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
+
+    // modify all involved matrices and scalars
+    trans->scale(alpha);
+    dmtx->scale(beta);
+    square_mtx->scale(alpha);
+    alpha->scale(alpha);
+    beta->scale(beta);
+
+    // and recompute
+    ref_result = dmtx->multiply_add(alpha, trans, beta, square_mtx);
+    mtx = gko::clone(ref, dmtx);
+    reuse.update_values(mtx, alpha, trans, beta, square_mtx, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
+}
+
+
 TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
@@ -515,6 +576,7 @@ TEST_F(Csr, MultiplyIsEquivalentToRefCrossExecutor)
     GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
     GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
     ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
 }
 
 
@@ -575,30 +637,27 @@ TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
 #endif
 
 
-TEST_F(Csr, MultiplyReuseIsEquivalentToRef)
+TEST_F(Csr, MultiplyReuseCrossExecutor)
 {
     set_up_apply_data<Mtx::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
-    auto dtrans = gko::clone(exec, trans);
 
-    auto [result, reuse] = mtx->multiply_reuse(trans);
-    auto [dresult, dreuse] = dmtx->multiply_reuse(dtrans);
+    auto [dresult, reuse] = dmtx->multiply_reuse(trans);
+    auto ref_result = mtx->multiply(trans);
+    auto result = ref_result->clone();
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
-    ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, ref_result);
+    GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
 
     mtx->scale(alpha);
     trans->scale(beta);
-    dmtx->scale(alpha);
-    dtrans->scale(beta);
 
     reuse.update_values(mtx, trans, result);
-    dreuse.update_values(dmtx, dtrans, dresult);
+    ref_result = mtx->multiply(trans);
 
-    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(mtx->multiply(trans), result, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(dmtx->multiply(dtrans), dresult, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
 }
 
 
@@ -622,20 +681,66 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AdvancedApplyZeroToIdentityMatrixIsEquivalentToRef)
+TEST_F(Csr, AddScaleZeroIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     auto a = Mtx::create(ref);
     auto b = Mtx::create(ref);
     auto da = gko::clone(exec, a);
     auto db = gko::clone(exec, b);
-    auto id = gko::matrix::Identity<Mtx::value_type>::create(ref);
-    auto did = gko::matrix::Identity<Mtx::value_type>::create(exec);
 
-    a->apply(alpha, id, beta, b);
-    da->apply(dalpha, did, dbeta, db);
+    auto result = a->add_scale(alpha, beta, b);
+    auto dresult = da->add_scale(dalpha, dbeta, db);
 
-    GKO_ASSERT_MTX_NEAR(b, db, 0);
+    GKO_ASSERT_MTX_NEAR(result, dresult, 0);
+}
+
+
+TEST_F(Csr, AddScaleIsEquivalentToRefCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto da = gko::clone(exec, a);
+
+    auto result = a->add_scale(alpha, beta, b);
+    auto dresult = da->add_scale(alpha, beta, b);
+
+    GKO_ASSERT_MTX_NEAR(result, dresult, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, dresult);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
+}
+
+
+TEST_F(Csr, AddScaleReuseCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    dmtx = gko::clone(exec, mtx);
+
+    auto [dresult, reuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
+    auto ref_result = dmtx->add_scale(alpha, beta, mtx2);
+    auto result = ref_result->clone();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, ref_result);
+    GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
+    ASSERT_TRUE(dresult->is_sorted_by_column_index());
+    ASSERT_EQ(dresult->get_executor(), exec);
+
+    // modify all involved matrices and scalars
+    dmtx->scale(beta);
+    mtx2->scale(alpha);
+    alpha->scale(alpha);
+    beta->scale(beta);
+
+    // and recompute
+    ref_result = dmtx->add_scale(alpha, beta, mtx2);
+    mtx = gko::clone(ref, dmtx);
+    reuse.update_values(alpha, mtx, beta, mtx2, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
 }
 
 
