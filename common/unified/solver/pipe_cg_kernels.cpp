@@ -83,8 +83,10 @@ void initialize_2(std::shared_ptr<const DefaultExecutor> exec,
                 f(row, col) = m(row, col);
                 g(row, col) = n(row, col);
             },
-            p->get_size(), p->get_stride(), p, q, f, g, row_vector(beta), z, w,
-            default_stride(m), default_stride(n), row_vector(delta));
+            p->get_size(), p->get_stride(), default_stride(p),
+            default_stride(q), default_stride(f), default_stride(g),
+            row_vector(beta), z, w, default_stride(m), default_stride(n),
+            row_vector(delta));
     } else {
         run_kernel(
             exec,
