@@ -26,6 +26,9 @@ __pycache__
 # Visual studio code
 .vscode
 
+# Other
+.cache
+
 ### Generated header file
 include/ginkgo/config.hpp
 include/ginkgo/ginkgo.hpp
