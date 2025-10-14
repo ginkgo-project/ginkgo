@@ -170,8 +170,8 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // needs to match the size of the combined rhodelta
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         GKO_SOLVER_TRAITS::stop, global_original_size[1]);
-    auto& reduction_tmp = this->template create_workspace_array<char>(
-        GKO_SOLVER_TRAITS::tmp, 2 * global_original_size[1]);
+    auto& reduction_tmp =
+        this->template create_workspace_array<char>(GKO_SOLVER_TRAITS::tmp);
 
     // r = b
     // prev_rho = 1.0
