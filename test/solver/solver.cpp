@@ -128,8 +128,6 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 
 struct PipeCg : SimpleSolverTest<gko::solver::PipeCg<solver_value_type>> {
     static double tolerance() { return 1e7 * r<value_type>::value; }
-
-    static constexpr bool will_not_allocate() { return false; }
 };
 
 
