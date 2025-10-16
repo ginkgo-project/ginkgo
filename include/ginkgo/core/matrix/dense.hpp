@@ -289,6 +289,16 @@ public:
 
     void move_to(Dense<next_precision<ValueType>>* result) override;
 
+    layout_type get_default_layout() const override
+    {
+        return layout_type::array;
+    }
+
+    void write(std::ostream& os) const override
+    {
+        WritableToMatrixData<ValueType, int64>::write(os);
+    }
+
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Dense<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::convert_to;

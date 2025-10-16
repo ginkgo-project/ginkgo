@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -651,13 +652,40 @@ public:
 
 
 /**
+ * A LinOp implmenting this interface can write its data to output stream.
+ *
+ * @ingroup LinOp
+ */
+class WritableToStream {
+public:
+    virtual ~WritableToStream() = default;
+
+    /**
+     * Get the default layout type. If it is not override by class, it will be
+     * coordinate layout
+     */
+    virtual layout_type get_default_layout() const
+    {
+        return layout_type::coordinate;
+    }
+
+    /**
+     * Writes a matrix to output stream
+     *
+     * @param os  output stream
+     */
+    virtual void write(std::ostream& os) const = 0;
+};
+
+
+/**
  * A LinOp implementing this interface can write its data to a matrix_data
  * structure.
  *
  * @ingroup LinOp
  */
 template <typename ValueType, typename IndexType>
-class WritableToMatrixData {
+class WritableToMatrixData : public virtual WritableToStream {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -670,6 +698,13 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void write(matrix_data<ValueType, IndexType>& data) const = 0;
+
+    void write(std::ostream& os) const override
+    {
+        matrix_data<ValueType, IndexType> data;
+        this->write(data);
+        write_raw(os, data, this->get_default_layout());
+    }
 };
 
 
