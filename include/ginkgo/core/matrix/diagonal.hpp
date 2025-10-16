@@ -88,6 +88,11 @@ public:
 
     void move_to(Diagonal<next_precision<ValueType>>* result) override;
 
+    void write(std::ostream& os) const override
+    {
+        WritableToMatrixData<ValueType, int64>::write(os);
+    }
+
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Diagonal<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Diagonal<next_precision<ValueType, 2>>>::convert_to;

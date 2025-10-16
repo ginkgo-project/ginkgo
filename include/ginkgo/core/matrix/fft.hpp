@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,6 +69,16 @@ public:
     void write(matrix_data<std::complex<double>, int32>& data) const override;
 
     void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    layout_type get_default_layout() const override
+    {
+        return layout_type::array;
+    }
+
+    void write(std::ostream& os) const override
+    {
+        WritableToMatrixData<value_type, int64>::write(os);
+    }
 
     dim<1> get_fft_size() const;
 
@@ -167,6 +177,16 @@ public:
     void write(matrix_data<std::complex<double>, int32>& data) const override;
 
     void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    layout_type get_default_layout() const override
+    {
+        return layout_type::array;
+    }
+
+    void write(std::ostream& os) const override
+    {
+        WritableToMatrixData<value_type, int64>::write(os);
+    }
 
     dim<2> get_fft_size() const;
 
@@ -279,6 +299,16 @@ public:
     void write(matrix_data<std::complex<double>, int32>& data) const override;
 
     void write(matrix_data<std::complex<double>, int64>& data) const override;
+
+    layout_type get_default_layout() const override
+    {
+        return layout_type::array;
+    }
+
+    void write(std::ostream& os) const override
+    {
+        WritableToMatrixData<value_type, int64>::write(os);
+    }
 
     dim<3> get_fft_size() const;
 

@@ -1156,6 +1156,39 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamDefault)
 }
 
 
+TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamDefaultFromLinOpPtr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    std::unique_ptr<gko::LinOp> lin_op =
+        gko::read<DummyLinOp<value_type, index_type>>(
+            iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+    std::ostringstream oss_const{};
+
+    gko::as<gko::WritableToStream>(lin_op.get())->write(oss);
+    auto layout =
+        gko::as<gko::WritableToStream>(lin_op.get())->get_default_layout();
+    auto const_lin_op = std::unique_ptr<const gko::LinOp>(std::move(lin_op));
+    gko::as<const gko::WritableToStream>(const_lin_op.get())->write(oss_const);
+
+    ASSERT_EQ(layout, gko::layout_type::coordinate);
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
+              "2 3\n1 3 2\n2 1 0\n2 2 5\n2 3 0\n");
+    ASSERT_EQ(oss_const.str(), oss.str());
+}
+
+
 TYPED_TEST(RealDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
 {
     using value_type = typename TestFixture::value_type;
@@ -1213,6 +1246,41 @@ TYPED_TEST(DenseTest, WritesToStreamDefault)
 
     write(oss, lin_op);
 
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array real general\n"
+              "2 3\n"
+              "1\n"
+              "0\n"
+              "3\n"
+              "5\n"
+              "2\n"
+              "0\n");
+}
+
+
+TYPED_TEST(DenseTest, WritesToStreamDefaultFromLinOpPtr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    std::unique_ptr<gko::LinOp> lin_op =
+        gko::read<gko::matrix::Dense<value_type>>(
+            iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    gko::as<gko::WritableToStream>(lin_op.get())->write(oss);
+
+    ASSERT_EQ(
+        gko::as<gko::WritableToStream>(lin_op.get())->get_default_layout(),
+        gko::layout_type::array);
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array real general\n"
               "2 3\n"
