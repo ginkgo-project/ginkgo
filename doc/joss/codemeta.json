@@ -5,54 +5,52 @@
     {
       "@id": "",
       "@type": "Person",
-      "email": "terry.cojean@kit.edu",
       "name": "Terry Cojean",
       "affiliation": "Karlsruhe Institute of Technology"
     },
     {
       "@id": "",
       "@type": "Person",
-      "email": "pratik.nayak@kit.edu",
+      "email": "pratik.nayak@tum.de",
       "name": "Pratik Nayak",
-      "affiliation": "Karlsruhe Institute of Technology"
+      "affiliation": "Technical University of Munich"
     },
     {
       "@id": "",
       "@type": "Person",
-      "email": "thomas.gruetzmacher@kit.edu",
       "name": "Thomas Grützmacher",
-      "affiliation": "Karlsruhe Institute of Technology"
+      "affiliation": "Technical University of Munich"
     },
     {
       "@id": "",
       "@type": "Person",
-      "email": "ribizel@kit.edu",
+      "email": "tobias.ribizel@tum.de",
       "name": "Tobias Ribizel",
-      "affiliation": "Karlsruhe Institute of Technology"
+      "affiliation": "Technical University of Munich"
     },
     {
       "@id": "",
       "@type": "Person",
-      "email": "yu-hsiang.tsai@kit.edu",
-      "name": "Yuhsiang M. Tsai",
-      "affiliation": "Karlsruhe Institute of Technology"
+      "email": "yu-hsiang.tsai@tum.de",
+      "name": "Yu-Hsiang M. Tsai",
+      "affiliation": "Technical University of Munich"
     },
     {
       "@id": "",
       "@type": "Person",
-      "email": "hartwig.anzt@kit.edu",
+      "email": "hartwig.anzt@tum.de",
       "name": "Hartwig Anzt",
-      "affiliation": "Karlsruhe Institute of Technology"
+      "affiliation": "Technical University of Munich"
     }
   ],
   "identifier": "",
   "codeRepository": "https://github.com/ginkgo-project/ginkgo",
   "datePublished": "2020-03-06",
-  "dateModified": "2020-03-06",
+  "dateModified": "2025-10-20",
   "dateCreated": "2020-03-06",
   "description": "A high performance numerical linear algebra library.",
-  "keywords": "hpc,linear-algebra,cuda,hip,modern-c++,spmv",
+  "keywords": "hpc,linear-algebra,cuda,hip,sycl,modern-c++,spmv",
   "license": "BSD 3-Clause",
   "title": "Ginkgo",
-  "version": "v1.1.1"
+  "version": "v1.10.0"
 }
