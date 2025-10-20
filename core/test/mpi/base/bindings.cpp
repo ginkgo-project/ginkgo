@@ -393,7 +393,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
 
 TYPED_TEST(MpiBindings, CanAccumulateValues)
 {
-    // one-side accumlation only supports native type
+    // one-side accumulation only supports native type
     SKIP_IF_HALF(TypeParam);
     SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
@@ -444,7 +444,7 @@ TYPED_TEST(MpiBindings, CanAccumulateValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
 {
-    // one-side accumlation only supports native type
+    // one-side accumulation only supports native type
     SKIP_IF_HALF(TypeParam);
     SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
@@ -624,7 +624,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
 
 TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 {
-    // one-side accumlation only supports native type
+    // one-side accumulation only supports native type
     SKIP_IF_HALF(TypeParam);
     SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
@@ -673,7 +673,7 @@ TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 
 TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 {
-    // one-side accumlation only supports native type
+    // one-side accumulation only supports native type
     SKIP_IF_HALF(TypeParam);
     SKIP_IF_BFLOAT16(TypeParam);
     using window = gko::experimental::mpi::window<TypeParam>;
