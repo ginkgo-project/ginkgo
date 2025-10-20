@@ -14,7 +14,7 @@
       "@type": "Person",
       "email": "pratik.nayak@kit.edu",
       "name": "Pratik Nayak",
-      "affiliation": "Karlsruhe Insitute of Technology"
+      "affiliation": "Karlsruhe Institute of Technology"
     },
     {
       "@id": "",
@@ -28,21 +28,21 @@
       "@type": "Person",
       "email": "ribizel@kit.edu",
       "name": "Tobias Ribizel",
-      "affiliation": "Karlsruhe Insitute of Technology"
+      "affiliation": "Karlsruhe Institute of Technology"
     },
     {
       "@id": "",
       "@type": "Person",
       "email": "yu-hsiang.tsai@kit.edu",
       "name": "Yuhsiang M. Tsai",
-      "affiliation": "Karlsruhe Insitute of Technology"
+      "affiliation": "Karlsruhe Institute of Technology"
     },
     {
       "@id": "",
       "@type": "Person",
       "email": "hartwig.anzt@kit.edu",
       "name": "Hartwig Anzt",
-      "affiliation": "Karlsruhe Insitute of Technology"
+      "affiliation": "Karlsruhe Institute of Technology"
     }
   ],
   "identifier": "",
