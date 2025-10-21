@@ -707,6 +707,84 @@ private:
 };
 
 
+/* @brief create a distributed Matrix from a local matrix by scattering it
+ * to ranks
+ *
+ */
+template <typename ValueType = default_precision,
+          typename LocalIndexType = int32, typename GlobalIndexType = int64>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+create_from_super_rank(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const matrix::Coo<ValueType, GlobalIndexType>> local_linop,
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
+{
+    auto rank = comm.rank();
+
+    // count number of nnzs and communicate with other ranks
+    const ValueType* matrix_data_value_ptr = nullptr;
+    const GlobalIndexType* matrix_col_idx_ptr = nullptr;
+    const GlobalIndexType* matrix_row_ptr_ptr = nullptr;
+    auto send_counts_nnz = std::vector<int>(comm.size(), 0);
+    auto send_displ_nnz = std::vector<int>(comm.size() + 1, 0);
+    auto recv_counts_nnz = std::vector<int>(comm.size(), 0);
+    if (rank == 0) {
+        auto num_elements = local_linop->get_num_stored_elements();
+        auto mtx_data = matrix_data<ValueType, GlobalIndexType>();
+        // TODO find a way not to use matrix_data
+        local_linop->write(mtx_data);
+        mtx_data.sort_row_major();
+        auto dev_mtx_data =
+            device_matrix_data<ValueType, GlobalIndexType>::create_from_host(
+                exec, mtx_data);
+        // TODO:
+        // - add skip sorting flag
+        // - copy to host
+        matrix_data_value_ptr = dev_mtx_data.get_const_values();
+        matrix_row_ptr_ptr = dev_mtx_data.get_const_row_idxs();
+        matrix_col_idx_ptr = dev_mtx_data.get_const_col_idxs();
+
+        for (auto i = 0; i < comm.size(); i++) {
+            // TODO range bounds might be on device
+            auto rank_start = partition->get_range_bounds()[i];
+            auto rank_end = partition->get_range_bounds()[i + 1];
+            send_counts_nnz[i] = rank_end - rank_start;
+            send_displ_nnz[i + 1] = rank_end;
+        }
+    }
+
+    int recv_counts = 0;
+    comm.scatter(exec, send_counts_nnz.data(), 1, &recv_counts, 1, 0);
+    recv_counts_nnz[0] = recv_counts;
+
+    std::cout << __FILE__ << ":" << __LINE__ << " recv_rows " << recv_counts
+              << "\n";
+
+    gko::array<ValueType> repart_values(exec, recv_counts);
+    comm.scatter_v(exec, matrix_data_value_ptr, send_counts_nnz.data(),
+                   send_displ_nnz.data(), repart_values.get_data(), recv_counts,
+                   0);
+
+    gko::array<GlobalIndexType> repart_col_idxs(exec, recv_counts);
+    comm.scatter_v(exec, matrix_col_idx_ptr, send_counts_nnz.data(),
+                   send_displ_nnz.data(), repart_col_idxs.get_data(),
+                   recv_counts, 0);
+
+    gko::array<GlobalIndexType> repart_row_ptr(exec, recv_counts);
+    comm.scatter_v(exec, matrix_row_ptr_ptr, send_counts_nnz.data(),
+                   send_displ_nnz.data(), repart_row_ptr.get_data(),
+                   recv_counts, 0);
+
+    auto mtx =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
+
+    auto repart_mtx_data = device_matrix_data<ValueType, GlobalIndexType>(
+        exec, gko::dim<2>{recv_counts, partition.size}, repart_row_ptr,
+        repart_col_idxs, repart_values);
+    mtx->read_distributed(repart_mtx_data, partition);
+    return mtx;
+}
+
 }  // namespace distributed
 }  // namespace experimental
 }  // namespace gko
