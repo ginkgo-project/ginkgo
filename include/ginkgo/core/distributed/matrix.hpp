@@ -779,7 +779,7 @@ create_from_super_rank(
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
 
     auto repart_mtx_data = device_matrix_data<ValueType, GlobalIndexType>(
-        exec, gko::dim<2>{recv_counts, partition.size}, repart_row_ptr,
+        exec, gko::dim<2>{recv_counts, partition->get_size()}, repart_row_ptr,
         repart_col_idxs, repart_values);
     mtx->read_distributed(repart_mtx_data, partition);
     return mtx;
