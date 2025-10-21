@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
         // Create an OperationLogger to analyze the apply step
         auto apply_logger = std::make_shared<loggers::OperationLogger>();
         exec->add_logger(apply_logger);
-        // Create a ResidualLogger to log the recurent residual
+        // Create a ResidualLogger to log the recurrent residual
         auto res_logger = std::make_shared<loggers::ResidualLogger<ValueType>>(
             A.get(), b.get());
         generated_solver->add_logger(res_logger);

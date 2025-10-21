@@ -679,7 +679,7 @@ public:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
-     * @param num_stored_elements_per_row   the number of stroed elements per
+     * @param num_stored_elements_per_row   the number of stored elements per
      *                                      row
      * @param strategy  strategy of deciding the Hybrid config
      *
