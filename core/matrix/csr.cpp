@@ -681,18 +681,17 @@ Csr<ValueType, IndexType>::multiply_reuse_info::~multiply_reuse_info() =
 
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
-    multiply_reuse_info&&) = default;
+    multiply_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
 typename Csr<ValueType, IndexType>::multiply_reuse_info&
 Csr<ValueType, IndexType>::multiply_reuse_info::operator=(
-    multiply_reuse_info&&) = default;
+    multiply_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info()
-{}
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info() = default;
 
 
 template <typename ValueType, typename IndexType>
@@ -796,18 +795,18 @@ Csr<ValueType, IndexType>::multiply_add_reuse_info::~multiply_add_reuse_info() =
 
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info(
-    multiply_add_reuse_info&&) = default;
+    multiply_add_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
 typename Csr<ValueType, IndexType>::multiply_add_reuse_info&
 Csr<ValueType, IndexType>::multiply_add_reuse_info::operator=(
-    multiply_add_reuse_info&&) = default;
+    multiply_add_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info()
-{}
+Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info() =
+    default;
 
 
 template <typename ValueType, typename IndexType>
@@ -927,13 +926,13 @@ Csr<ValueType, IndexType>::add_scale_reuse_info::~add_scale_reuse_info() =
 
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::add_scale_reuse_info::add_scale_reuse_info(
-    add_scale_reuse_info&&) = default;
+    add_scale_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
 typename Csr<ValueType, IndexType>::add_scale_reuse_info&
 Csr<ValueType, IndexType>::add_scale_reuse_info::operator=(
-    add_scale_reuse_info&&) = default;
+    add_scale_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
@@ -974,7 +973,7 @@ struct Csr<ValueType, IndexType>::add_scale_reuse_info::lookup_data {
     size_type nnz1;
     size_type nnz2;
     size_type nnz_out;
-    // no other data yet
+    // any potential future optimization data for repeated SpGEAM goes here
 };
 
 
