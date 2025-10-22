@@ -524,16 +524,24 @@ TEST_F(Csr, MultiplyAddReuseCrossExecutor)
     set_up_apply_data<Mtx::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
-    auto [dresult, reuse] =
+    auto [dresult, _dreuse] =
         dmtx->multiply_add_reuse(alpha, trans, beta, square_mtx);
-    auto ref_result = mtx->multiply_add(alpha, trans, beta, square_mtx);
-    auto result = ref_result->clone();
+    auto result = mtx->multiply_add(alpha, trans, beta, square_mtx);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, ref_result);
-    GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(dresult, result);
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
     ASSERT_TRUE(dresult->is_sorted_by_column_index());
     ASSERT_EQ(dresult->get_executor(), exec);
+}
 
+
+TEST_F(Csr, MultiplyAddReuseUpdateCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto [dresult, dreuse] =
+        dmtx->multiply_add_reuse(alpha, trans, beta, square_mtx);
+    auto result = mtx->multiply_add(alpha, trans, beta, square_mtx);
     // modify all involved matrices and scalars
     trans->scale(alpha);
     dmtx->scale(beta);
@@ -541,10 +549,9 @@ TEST_F(Csr, MultiplyAddReuseCrossExecutor)
     alpha->scale(alpha);
     beta->scale(beta);
 
-    // and recompute
-    ref_result = dmtx->multiply_add(alpha, trans, beta, square_mtx);
+    auto ref_result = dmtx->multiply_add(alpha, trans, beta, square_mtx);
     mtx = gko::clone(ref, dmtx);
-    reuse.update_values(mtx, alpha, trans, beta, square_mtx, result);
+    dreuse.update_values(mtx, alpha, trans, beta, square_mtx, result);
 
     GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
 }
@@ -642,19 +649,28 @@ TEST_F(Csr, MultiplyReuseCrossExecutor)
     set_up_apply_data<Mtx::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
-    auto [dresult, reuse] = dmtx->multiply_reuse(trans);
+    auto [dresult, _dreuse] = dmtx->multiply_reuse(trans);
     auto ref_result = mtx->multiply(trans);
-    auto result = ref_result->clone();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(dresult, ref_result);
     GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
     ASSERT_TRUE(dresult->is_sorted_by_column_index());
     ASSERT_EQ(dresult->get_executor(), exec);
+}
 
+
+TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto trans = gko::as<Mtx>(mtx->transpose());
+    auto [dresult, dreuse] = dmtx->multiply_reuse(trans);
+    auto ref_result = mtx->multiply(trans);
+    auto result = ref_result->clone();
+    // modify all involved matrices and scalars
     mtx->scale(alpha);
     trans->scale(beta);
 
-    reuse.update_values(mtx, trans, result);
+    dreuse.update_values(mtx, trans, result);
     ref_result = mtx->multiply(trans);
 
     GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
@@ -720,7 +736,7 @@ TEST_F(Csr, AddScaleReuseCrossExecutor)
     mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     dmtx = gko::clone(exec, mtx);
 
-    auto [dresult, reuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
+    auto [dresult, _dreuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
     auto ref_result = dmtx->add_scale(alpha, beta, mtx2);
     auto result = ref_result->clone();
 
@@ -728,17 +744,27 @@ TEST_F(Csr, AddScaleReuseCrossExecutor)
     GKO_ASSERT_MTX_NEAR(dresult, ref_result, r<value_type>::value);
     ASSERT_TRUE(dresult->is_sorted_by_column_index());
     ASSERT_EQ(dresult->get_executor(), exec);
+}
 
+
+TEST_F(Csr, AddScaleReuseUpdateCrossExecutor)
+{
+    set_up_apply_data<Mtx::classical>();
+    mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    dmtx = gko::clone(exec, mtx);
+    auto [dresult, dreuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
+    auto ref_result = dmtx->add_scale(alpha, beta, mtx2);
+    auto result = ref_result->clone();
     // modify all involved matrices and scalars
     dmtx->scale(beta);
     mtx2->scale(alpha);
     alpha->scale(alpha);
     beta->scale(beta);
 
-    // and recompute
     ref_result = dmtx->add_scale(alpha, beta, mtx2);
     mtx = gko::clone(ref, dmtx);
-    reuse.update_values(alpha, mtx, beta, mtx2, result);
+    dreuse.update_values(alpha, mtx, beta, mtx2, result);
 
     GKO_ASSERT_MTX_NEAR(result, ref_result, r<value_type>::value);
 }
@@ -811,11 +837,21 @@ TEST_F(Csr, TransposeReuseIsEquivalentToRef)
     ASSERT_TRUE(dtrans->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(dreuse.value_permutation,
                                reuse.value_permutation);
+}
+
+
+TEST_F(Csr, TransposeReuseUpdateIsEquivalentToRef)
+{
+    set_up_apply_data<Mtx::classical>();
+    auto [trans, reuse] = mtx->transpose_reuse();
+    auto [dtrans, dreuse] = dmtx->transpose_reuse();
     // test that the value permutation works: modify input values
     mtx->create_value_view()->scale(alpha);
     dmtx->create_value_view()->scale(dalpha);
+
     reuse.update_values(mtx, trans);
     dreuse.update_values(dmtx, dtrans);
+
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(mtx->transpose()), trans, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(dmtx->transpose()), dtrans, 0);
 }
@@ -836,11 +872,25 @@ TEST_F(Csr, TransposeReuse64IsEquivalentToRef)
     ASSERT_TRUE(dtrans->is_sorted_by_column_index());
     GKO_ASSERT_MTX_EQ_SPARSITY(dreuse.value_permutation,
                                reuse.value_permutation);
+}
+
+
+TEST_F(Csr, TransposeReuse64UpdateIsEquivalentToRef)
+{
+    SKIP_IF_SINGLE_MODE;
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
+    set_up_apply_data<Mtx::classical>();
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(exec, mtx);
+    auto [trans, reuse] = mtx->transpose_reuse();
+    auto [dtrans, dreuse] = dmtx->transpose_reuse();
     // test that the value permutation works: modify input values
     mtx->create_value_view()->scale(alpha);
     dmtx->create_value_view()->scale(dalpha);
+
     reuse.update_values(mtx, trans);
     dreuse.update_values(dmtx, dtrans);
+
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx64>(mtx->transpose()), trans, 0);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx64>(dmtx->transpose()), dtrans, 0);
 }
@@ -1085,11 +1135,30 @@ TEST_F(Csr, IsGenericReusePermutable)
         ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
         GKO_ASSERT_MTX_EQ_SPARSITY(reuse.value_permutation,
                                    dreuse.value_permutation);
+    }
+}
+
+
+TEST_F(Csr, IsGenericReusePermuteUpdatable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data<Mtx::classical>();
+
+    for (auto mode :
+         {permute_mode::none, permute_mode::rows, permute_mode::columns,
+          permute_mode::symmetric, permute_mode::inverse_rows,
+          permute_mode::inverse_columns, permute_mode::inverse_symmetric}) {
+        SCOPED_TRACE(mode);
+        auto [permuted, reuse] = square_mtx->permute_reuse(rpermutation, mode);
+        auto [dpermuted, dreuse] =
+            dsquare_mtx->permute_reuse(rpermutation, mode);
         // test that the value permutation works: modify input values
         square_mtx->create_value_view()->scale(alpha);
         dsquare_mtx->create_value_view()->scale(dalpha);
+
         reuse.update_values(square_mtx, permuted);
         dreuse.update_values(dsquare_mtx, dpermuted);
+
         GKO_ASSERT_MTX_NEAR(square_mtx->permute(rpermutation, mode), permuted,
                             0);
         GKO_ASSERT_MTX_NEAR(dsquare_mtx->permute(rpermutation, mode), dpermuted,
@@ -1174,11 +1243,28 @@ TEST_F(Csr, IsNonsymmReusePermutable)
         ASSERT_TRUE(dpermuted->is_sorted_by_column_index());
         GKO_ASSERT_MTX_EQ_SPARSITY(reuse.value_permutation,
                                    dreuse.value_permutation);
+    }
+}
+
+
+TEST_F(Csr, IsNonsymmReusePermuteUpdatable)
+{
+    using gko::matrix::permute_mode;
+    set_up_apply_data<Mtx::classical>();
+
+    for (auto invert : {false, true}) {
+        SCOPED_TRACE(invert);
+        auto [permuted, reuse] =
+            mtx->permute_reuse(rpermutation, cpermutation, invert);
+        auto [dpermuted, dreuse] =
+            dmtx->permute_reuse(rpermutation, cpermutation, invert);
         // test that the value permutation works: modify input values
         mtx->create_value_view()->scale(alpha);
         dmtx->create_value_view()->scale(dalpha);
+
         reuse.update_values(mtx, permuted);
         dreuse.update_values(dmtx, dpermuted);
+
         GKO_ASSERT_MTX_NEAR(mtx->permute(rpermutation, cpermutation, invert),
                             permuted, 0);
         GKO_ASSERT_MTX_NEAR(dmtx->permute(rpermutation, cpermutation, invert),
