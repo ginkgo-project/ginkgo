@@ -71,6 +71,7 @@ GSYMS
 GTAGS
 GPATH
 .gitignore
+.cache
 
 ### OS
 # temporary and backup files
