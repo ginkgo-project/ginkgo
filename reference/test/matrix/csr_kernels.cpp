@@ -755,7 +755,6 @@ TYPED_TEST(Csr, MultipliesReuseUpdateWithCsrMatrix)
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
     auto [result, reuse] = this->mtx->multiply_reuse(this->mtx3_unsorted);
-    auto orig_result = result->clone();
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     this->mtx->scale(alpha);
@@ -921,7 +920,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
 }
 
 
-TYPED_TEST(Csr, AddsScaleCsrMatrices)
+TYPED_TEST(Csr, ScaleAddCsrMatrices)
 {
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
@@ -944,7 +943,7 @@ TYPED_TEST(Csr, AddsScaleCsrMatrices)
          I<T>{0.0, 0.0, 0.0}},
         this->exec);
 
-    auto result = a->add_scale(alpha, beta, b);
+    auto result = a->scale_add(alpha, beta, b);
 
     GKO_ASSERT_MTX_NEAR(result, expect, r<T>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(expect, result);
@@ -952,7 +951,7 @@ TYPED_TEST(Csr, AddsScaleCsrMatrices)
 }
 
 
-TYPED_TEST(Csr, AddsScaleReuseCsrMatrices)
+TYPED_TEST(Csr, ScaleAddReuseCsrMatrices)
 {
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
@@ -972,13 +971,13 @@ TYPED_TEST(Csr, AddsScaleReuseCsrMatrices)
 
     auto [result, reuse] = a->add_scale_reuse(alpha, beta, b);
 
-    auto expected = a->add_scale(alpha, beta, b);
+    auto expected = a->scale_add(alpha, beta, b);
     GKO_ASSERT_MTX_EQ_SPARSITY(expected, result);
     ASSERT_TRUE(result->is_sorted_by_column_index());
 }
 
 
-TYPED_TEST(Csr, AddsScaleReuseUpdateCsrMatrices)
+TYPED_TEST(Csr, ScaleAddReuseUpdateCsrMatrices)
 {
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
@@ -1000,7 +999,7 @@ TYPED_TEST(Csr, AddsScaleReuseUpdateCsrMatrices)
     auto zero = gko::initialize<Vec>({0.0}, this->exec);
     std::fill_n(zero_a->get_values(), a->get_num_stored_elements(), T{});
     std::fill_n(zero_b->get_values(), b->get_num_stored_elements(), T{});
-    auto expected = a->add_scale(alpha, beta, b);
+    auto expected = a->scale_add(alpha, beta, b);
     auto [result, reuse] = zero_a->add_scale_reuse(zero, zero, zero_b);
 
     reuse.update_values(alpha, a, beta, b, result);
@@ -1079,7 +1078,7 @@ TYPED_TEST(Csr, MultiplyAddReuseFailsOnWrongDimensions)
 }
 
 
-TYPED_TEST(Csr, AddScaleFailsOnWrongDimensions)
+TYPED_TEST(Csr, ScaleAddFailsOnWrongDimensions)
 {
     using Vec = typename TestFixture::Vec;
     auto s = gko::initialize<Vec>({0.0}, this->exec);
@@ -1088,13 +1087,13 @@ TYPED_TEST(Csr, AddScaleFailsOnWrongDimensions)
     auto& m2 = this->mtx2;
     auto& m3 = this->mtx3_sorted;
 
-    ASSERT_THROW(m1->add_scale(v, s, m2), gko::DimensionMismatch);
-    ASSERT_THROW(m1->add_scale(s, v, m2), gko::DimensionMismatch);
-    ASSERT_THROW(m1->add_scale(s, s, m3), gko::DimensionMismatch);
+    ASSERT_THROW(m1->scale_add(v, s, m2), gko::DimensionMismatch);
+    ASSERT_THROW(m1->scale_add(s, v, m2), gko::DimensionMismatch);
+    ASSERT_THROW(m1->scale_add(s, s, m3), gko::DimensionMismatch);
 }
 
 
-TYPED_TEST(Csr, AddScaleReuseFailsOnWrongDimensions)
+TYPED_TEST(Csr, ScaleAddReuseFailsOnWrongDimensions)
 {
     using Vec = typename TestFixture::Vec;
     using Mtx = typename TestFixture::Mtx;

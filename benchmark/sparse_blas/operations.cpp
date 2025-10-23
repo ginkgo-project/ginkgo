@@ -272,7 +272,7 @@ public:
 
     void prepare() override {}
 
-    void run() override { mtx_out_ = mtx_->add_scale(scalar_, scalar_, mtx2_); }
+    void run() override { mtx_out_ = mtx_->scale_add(scalar_, scalar_, mtx2_); }
 
 private:
     const Mtx* mtx_;

@@ -697,7 +697,7 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AddScaleZeroIsEquivalentToRef)
+TEST_F(Csr, ScaleAddZeroIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
     auto a = Mtx::create(ref);
@@ -705,22 +705,22 @@ TEST_F(Csr, AddScaleZeroIsEquivalentToRef)
     auto da = gko::clone(exec, a);
     auto db = gko::clone(exec, b);
 
-    auto result = a->add_scale(alpha, beta, b);
-    auto dresult = da->add_scale(dalpha, dbeta, db);
+    auto result = a->scale_add(alpha, beta, b);
+    auto dresult = da->scale_add(dalpha, dbeta, db);
 
     GKO_ASSERT_MTX_NEAR(result, dresult, 0);
 }
 
 
-TEST_F(Csr, AddScaleIsEquivalentToRefCrossExecutor)
+TEST_F(Csr, ScaleAddIsEquivalentToRefCrossExecutor)
 {
     set_up_apply_data<Mtx::classical>();
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto da = gko::clone(exec, a);
 
-    auto result = a->add_scale(alpha, beta, b);
-    auto dresult = da->add_scale(alpha, beta, b);
+    auto result = a->scale_add(alpha, beta, b);
+    auto dresult = da->scale_add(alpha, beta, b);
 
     GKO_ASSERT_MTX_NEAR(result, dresult, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, dresult);
@@ -729,7 +729,7 @@ TEST_F(Csr, AddScaleIsEquivalentToRefCrossExecutor)
 }
 
 
-TEST_F(Csr, AddScaleReuseCrossExecutor)
+TEST_F(Csr, ScaleAddReuseCrossExecutor)
 {
     set_up_apply_data<Mtx::classical>();
     mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
@@ -737,7 +737,7 @@ TEST_F(Csr, AddScaleReuseCrossExecutor)
     dmtx = gko::clone(exec, mtx);
 
     auto [dresult, _dreuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
-    auto expected = dmtx->add_scale(alpha, beta, mtx2);
+    auto expected = dmtx->scale_add(alpha, beta, mtx2);
     auto result = expected->clone();
 
     GKO_ASSERT_MTX_EQ_SPARSITY(dresult, expected);
@@ -747,14 +747,14 @@ TEST_F(Csr, AddScaleReuseCrossExecutor)
 }
 
 
-TEST_F(Csr, AddScaleReuseUpdateCrossExecutor)
+TEST_F(Csr, ScaleAddReuseUpdateCrossExecutor)
 {
     set_up_apply_data<Mtx::classical>();
     mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     dmtx = gko::clone(exec, mtx);
     auto [dresult, dreuse] = dmtx->add_scale_reuse(alpha, beta, mtx2);
-    auto expected = dmtx->add_scale(alpha, beta, mtx2);
+    auto expected = dmtx->scale_add(alpha, beta, mtx2);
     auto result = expected->clone();
     // modify all involved matrices and scalars
     dmtx->scale(beta);
@@ -762,7 +762,7 @@ TEST_F(Csr, AddScaleReuseUpdateCrossExecutor)
     alpha->scale(alpha);
     beta->scale(beta);
 
-    expected = dmtx->add_scale(alpha, beta, mtx2);
+    expected = dmtx->scale_add(alpha, beta, mtx2);
     mtx = gko::clone(ref, dmtx);
     dreuse.update_values(alpha, mtx, beta, mtx2, result);
 
