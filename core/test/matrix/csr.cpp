@@ -429,7 +429,8 @@ TYPED_TEST(Csr, RecognizesInfiniteValue)
     auto values = gko::array<value_type>(this->exec, 4);
     row_ptrs.fill(0);
     col_idxs.fill(0);
-    values.fill(INFINITY);
+    values.fill(1.0);
+    values.get_data()[2] = INFINITY;
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
                          std::make_shared<typename Mtx::load_balance>(2));
