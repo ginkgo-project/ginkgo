@@ -18,14 +18,22 @@ namespace gko {
 namespace validation {
 
 
-#define GKO_VALIDATE(_expression, _message)                  \
-    if (!(_expression)) {                                    \
-        throw gko::InvalidData(                              \
-            __FILE__, __LINE__, typeid(decltype(*this)),     \
-            "Exception occurs at index " +                   \
-                std::to_string(_expression.exceptionIndex) + \
-                ". " _message " (" #_expression ")");        \
+#define GKO_VALIDATE(_expression, _message)                                    \
+    {                                                                          \
+        auto result = (_expression);                                           \
+        if (!result.isValid) {                                                 \
+            throw gko::InvalidData(__FILE__, __LINE__,                         \
+                                   typeid(decltype(*this)),                    \
+                                   "Exception occurs at index " +              \
+                                       std::to_string(result.exceptionIndex) + \
+                                       ". " _message " (" #_expression ")");   \
+        }                                                                      \
     }
+
+// Now I have these questions, first i am a little bit stuck at how to print the
+// exception location through the new custom type, and do i print it or throw it
+// with exception message? Also, in the comment, why shoudln't i check the
+// padding area for dense?
 
 
 struct ValidationResult {
