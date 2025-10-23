@@ -192,7 +192,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
     if (!parameters_.local_solver && !parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
-            "Requires either a generated solver or an solver factory");
+            "Requires either a generated solver or a solver factory");
     }
     if (parameters_.generated_local_solver) {
         this->set_solver(parameters_.generated_local_solver);
