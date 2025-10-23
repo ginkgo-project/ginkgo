@@ -930,24 +930,24 @@ public:
 
     /**
      * Class describing the internal lookup structures created by
-     * add_reuse to recompute a sparse matrix-matrix sum
+     * scale_add_reuse to recompute a sparse matrix-matrix sum
      * with updated values.
      */
-    class add_scale_reuse_info {
+    class scale_add_reuse_info {
         friend class Csr;
 
     public:
-        explicit add_scale_reuse_info();
+        explicit scale_add_reuse_info();
 
-        ~add_scale_reuse_info();
+        ~scale_add_reuse_info();
 
-        add_scale_reuse_info(const add_scale_reuse_info&) = delete;
+        scale_add_reuse_info(const scale_add_reuse_info&) = delete;
 
-        add_scale_reuse_info(add_scale_reuse_info&&) noexcept;
+        scale_add_reuse_info(scale_add_reuse_info&&) noexcept;
 
-        add_scale_reuse_info& operator=(const add_scale_reuse_info&) = delete;
+        scale_add_reuse_info& operator=(const scale_add_reuse_info&) = delete;
 
-        add_scale_reuse_info& operator=(add_scale_reuse_info&&) noexcept;
+        scale_add_reuse_info& operator=(scale_add_reuse_info&&) noexcept;
 
         /**
          * Recomputes the sparse matrix-matrix sum
@@ -963,7 +963,7 @@ public:
     private:
         struct lookup_data;
 
-        explicit add_scale_reuse_info(std::unique_ptr<lookup_data> data);
+        explicit scale_add_reuse_info(std::unique_ptr<lookup_data> data);
 
         std::unique_ptr<lookup_data> internal;
     };
@@ -982,7 +982,7 @@ public:
      * @return  the result of the computation, stored on the same executor as
      *          this matrix.
      */
-    std::unique_ptr<Csr> add_scale(
+    std::unique_ptr<Csr> scale_add(
         ptr_param<const Dense<value_type>> scale_this,
         ptr_param<const Dense<value_type>> scale_other,
         ptr_param<const Csr> mtx_other) const;
@@ -1005,10 +1005,10 @@ public:
      *                     scale_other. It needs to be sorted by column index,
      *                     otherwise the result will be incorrect.
      * @return  std::pair containing the result of the computation, stored on
-     *          the same executor as this matrix, and a add_scale_reuse_info
+     *          the same executor as this matrix, and a scale_add_reuse_info
      *          object allowing value updates to the output matrix.
      */
-    std::pair<std::unique_ptr<Csr>, add_scale_reuse_info> add_scale_reuse(
+    std::pair<std::unique_ptr<Csr>, scale_add_reuse_info> add_scale_reuse(
         ptr_param<const Dense<value_type>> scale_this,
         ptr_param<const Dense<value_type>> scale_other,
         ptr_param<const Csr> mtx_other) const;

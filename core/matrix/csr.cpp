@@ -887,7 +887,7 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::add_scale(
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     ptr_param<const Dense<value_type>> scale_this,
     ptr_param<const Dense<value_type>> scale_other,
     ptr_param<const Csr> mtx_other) const
@@ -908,35 +908,35 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::add_scale(
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::add_scale_reuse_info::add_scale_reuse_info() =
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info() =
     default;
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::add_scale_reuse_info::add_scale_reuse_info(
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info(
     std::unique_ptr<lookup_data> data)
     : internal{std::move(data)}
 {}
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::add_scale_reuse_info::~add_scale_reuse_info() =
+Csr<ValueType, IndexType>::scale_add_reuse_info::~scale_add_reuse_info() =
     default;
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::add_scale_reuse_info::add_scale_reuse_info(
-    add_scale_reuse_info&&) noexcept = default;
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info(
+    scale_add_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
-typename Csr<ValueType, IndexType>::add_scale_reuse_info&
-Csr<ValueType, IndexType>::add_scale_reuse_info::operator=(
-    add_scale_reuse_info&&) noexcept = default;
+typename Csr<ValueType, IndexType>::scale_add_reuse_info&
+Csr<ValueType, IndexType>::scale_add_reuse_info::operator=(
+    scale_add_reuse_info&&) noexcept = default;
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::add_scale_reuse_info::update_values(
+void Csr<ValueType, IndexType>::scale_add_reuse_info::update_values(
     ptr_param<const Dense<value_type>> scale1, ptr_param<const Csr> mtx1,
     ptr_param<const Dense<value_type>> scale2, ptr_param<const Csr> mtx2,
     ptr_param<Csr> out) const
@@ -944,7 +944,7 @@ void Csr<ValueType, IndexType>::add_scale_reuse_info::update_values(
     if (!internal) {
         throw InvalidStateError{
             __FILE__, __LINE__, __func__,
-            "Attempting to use uninitialized add_scale_reuse_info"};
+            "Attempting to use uninitialized scale_add_reuse_info"};
     }
     auto exec = internal->exec;
     GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size);
@@ -967,7 +967,7 @@ void Csr<ValueType, IndexType>::add_scale_reuse_info::update_values(
 
 
 template <typename ValueType, typename IndexType>
-struct Csr<ValueType, IndexType>::add_scale_reuse_info::lookup_data {
+struct Csr<ValueType, IndexType>::scale_add_reuse_info::lookup_data {
     std::shared_ptr<const Executor> exec;
     dim<2> size;
     size_type nnz1;
@@ -979,7 +979,7 @@ struct Csr<ValueType, IndexType>::add_scale_reuse_info::lookup_data {
 
 template <typename ValueType, typename IndexType>
 std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
-          typename Csr<ValueType, IndexType>::add_scale_reuse_info>
+          typename Csr<ValueType, IndexType>::scale_add_reuse_info>
 Csr<ValueType, IndexType>::add_scale_reuse(
     ptr_param<const Dense<value_type>> scale_this,
     ptr_param<const Dense<value_type>> scale_other,
@@ -998,9 +998,9 @@ Csr<ValueType, IndexType>::add_scale_reuse(
                                result.get()));
     return std::make_pair(
         std::move(result),
-        add_scale_reuse_info{
-            std::make_unique<typename add_scale_reuse_info::lookup_data>(
-                typename add_scale_reuse_info::lookup_data{
+        scale_add_reuse_info{
+            std::make_unique<typename scale_add_reuse_info::lookup_data>(
+                typename scale_add_reuse_info::lookup_data{
                     exec, this->get_size(), this->get_num_stored_elements(),
                     mtx_other->get_num_stored_elements(),
                     result->get_num_stored_elements()})});
