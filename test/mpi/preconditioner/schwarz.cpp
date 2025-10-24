@@ -388,14 +388,19 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
     using csr = typename TestFixture::local_matrix_type;
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
     constexpr double tolerance = 1e-20;
     auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
+        gko::stop::Iteration::build().with_max_iters(400u).on(this->exec));
     auto tol_stop = gko::share(
         gko::stop::ResidualNorm<value_type>::build()
             .with_reduction_factor(
                 static_cast<gko::remove_complex<value_type>>(tolerance))
             .on(this->exec));
+    auto non_dist_diag_with_l1 =
+        gko::share(gko::matrix::Diagonal<value_type>::create(
+            this->exec, 8u,
+            gko::array<value_type>(this->exec, {2, 3, 3, 3, 3, 2, 2, 2})));
     this->dist_solver_factory =
         cg::build()
             .with_preconditioner(
@@ -408,7 +413,9 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
     auto dist_solver = this->dist_solver_factory->generate(this->dist_mat);
     this->non_dist_solver_factory =
         cg::build()
-            .with_preconditioner(this->local_solver_factory)
+            .with_generated_preconditioner(this->local_solver_factory->generate(
+                gko::copy_and_convert_to<local_matrix_type>(
+                    this->exec, non_dist_diag_with_l1)))
             .with_criteria(iter_stop, tol_stop)
             .on(this->exec);
     auto non_dist_solver =
