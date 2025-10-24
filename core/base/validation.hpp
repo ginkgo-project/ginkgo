@@ -30,11 +30,6 @@ namespace validation {
         }                                                                      \
     }
 
-// Now I have these questions, first i am a little bit stuck at how to print the
-// exception location through the new custom type, and do i print it or throw it
-// with exception message? Also, in the comment, why shoudln't i check the
-// padding area for dense?
-
 
 struct ValidationResult {
     bool isValid;
