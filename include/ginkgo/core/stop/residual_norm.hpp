@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,6 @@
 
 
 #include <limits>
-#include <type_traits>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -121,9 +120,15 @@ public:
         /**
          * Residual norm reduction factor
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor,
-            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+        remove_complex<ValueType> reduction_factor{
+            5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
+
+        auto with_reduction_factor(remove_complex<ValueType> value)
+            ->parameters_type&
+        {
+            this->reduction_factor = value;
+            return *this;
+        }
 
         /**
          * The quantity the reduction is relative to. Choices include
@@ -178,9 +183,15 @@ public:
         /**
          * Implicit Residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor,
-            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+        remove_complex<ValueType> reduction_factor{
+            5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
+
+        auto with_reduction_factor(remove_complex<ValueType> value)
+            ->parameters_type&
+        {
+            this->reduction_factor = value;
+            return *this;
+        }
 
         /**
          * The quantity the reduction is relative to. Choices include
@@ -254,9 +265,15 @@ public:
         /**
          * Factor by which the residual norm will be reduced
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            reduction_factor,
-            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+        remove_complex<ValueType> reduction_factor{
+            5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
+
+        auto with_reduction_factor(remove_complex<ValueType> value)
+            ->parameters_type&
+        {
+            this->reduction_factor = value;
+            return *this;
+        }
     };
     GKO_ENABLE_CRITERION_FACTORY(ResidualNormReduction<ValueType>, parameters,
                                  Factory);
@@ -311,9 +328,14 @@ public:
         /**
          * Relative residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            tolerance,
-            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+        remove_complex<ValueType> tolerance{
+            5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
+        template <typename... Args>
+        auto with_tolerance(remove_complex<ValueType> value)->parameters_type&
+        {
+            this->tolerance = value;
+            return *this;
+        }
     };
     GKO_ENABLE_CRITERION_FACTORY(RelativeResidualNorm<ValueType>, parameters,
                                  Factory);
@@ -365,9 +387,14 @@ public:
         /**
          * Absolute residual norm goal
          */
-        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(
-            tolerance,
-            5 * std::numeric_limits<remove_complex<ValueType>>::epsilon());
+        remove_complex<ValueType> tolerance{
+            5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
+
+        auto with_tolerance(remove_complex<ValueType> value)->parameters_type&
+        {
+            this->tolerance = value;
+            return *this;
+        }
     };
     GKO_ENABLE_CRITERION_FACTORY(AbsoluteResidualNorm<ValueType>, parameters,
                                  Factory);
