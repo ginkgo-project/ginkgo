@@ -32,10 +32,10 @@ public:
          */
         size_type max_iters{0};
 
-        auto with_max_iters(size_type value)->parameters_type&
+        parameters_type& with_max_iters(size_type value)
         {
             this->max_iters = value;
-            return *(this->self());
+            return *this;
         }
     };
     GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
