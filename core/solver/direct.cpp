@@ -41,16 +41,6 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Direct<ValueType, IndexType>::transpose() const
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
     : EnableLinOp<Direct>{other.get_executor()}
 {

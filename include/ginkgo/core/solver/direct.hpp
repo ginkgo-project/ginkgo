@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,8 +33,7 @@ template <typename ValueType, typename IndexType>
 class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                public gko::solver::EnableSolverBase<
                    Direct<ValueType, IndexType>,
-                   factorization::Factorization<ValueType, IndexType>>,
-               public Transposable {
+                   factorization::Factorization<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Direct, LinOp>;
 
 public:
@@ -43,10 +42,6 @@ public:
     using factorization_type =
         factorization::Factorization<value_type, index_type>;
     using transposed_type = Direct;
-
-    std::unique_ptr<LinOp> transpose() const override;
-
-    std::unique_ptr<LinOp> conj_transpose() const override;
 
     class Factory;
 
