@@ -123,8 +123,7 @@ public:
         remove_complex<ValueType> reduction_factor{
             5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
 
-        auto with_reduction_factor(remove_complex<ValueType> value)
-            ->parameters_type&
+        parameters_type& with_reduction_factor(remove_complex<ValueType> value)
         {
             this->reduction_factor = value;
             return *this;
@@ -186,8 +185,7 @@ public:
         remove_complex<ValueType> reduction_factor{
             5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
 
-        auto with_reduction_factor(remove_complex<ValueType> value)
-            ->parameters_type&
+        parameters_type& with_reduction_factor(remove_complex<ValueType> value)
         {
             this->reduction_factor = value;
             return *this;
@@ -268,8 +266,7 @@ public:
         remove_complex<ValueType> reduction_factor{
             5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
 
-        auto with_reduction_factor(remove_complex<ValueType> value)
-            ->parameters_type&
+        parameters_type& with_reduction_factor(remove_complex<ValueType> value)
         {
             this->reduction_factor = value;
             return *this;
@@ -330,8 +327,9 @@ public:
          */
         remove_complex<ValueType> tolerance{
             5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
-        template <typename... Args>
-        auto with_tolerance(remove_complex<ValueType> value)->parameters_type&
+
+
+        parameters_type& with_tolerance(remove_complex<ValueType> value)
         {
             this->tolerance = value;
             return *this;
@@ -390,7 +388,7 @@ public:
         remove_complex<ValueType> tolerance{
             5 * std ::numeric_limits<remove_complex<ValueType>>::epsilon()};
 
-        auto with_tolerance(remove_complex<ValueType> value)->parameters_type&
+        parameters_type& with_tolerance(remove_complex<ValueType> value)
         {
             this->tolerance = value;
             return *this;
