@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -126,34 +126,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-        return this;
-    }
+    LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-        return this;
-    }
+    const LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -166,41 +144,13 @@ public:
      * @return this
      */
     LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                 ptr_param<const LinOp> beta, ptr_param<LinOp> x)
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
-    }
+                 ptr_param<const LinOp> beta, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
     const LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                       ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
-    }
+                       ptr_param<const LinOp> beta, ptr_param<LinOp> x) const;
 
     /**
      * Returns the size of the operator.
@@ -212,6 +162,7 @@ public:
     /**
      * Returns true if the linear operator uses the data given in x as
      * an initial guess. Returns false otherwise.
+     * Unless overridden, this returns false by default.
      *
      * @return true if the linear operator uses the data given in x as
      *         an initial guess. Returns false otherwise.
@@ -219,34 +170,23 @@ public:
     virtual bool apply_uses_initial_guess() const { return false; }
 
     /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
-    LinOp& operator=(const LinOp&) = default;
+    LinOp& operator=(const LinOp&);
 
     /**
      * Move-assigns a LinOp. Preserves the executor and moves the size.
      * The moved-from object has size 0x0 afterwards, but its executor is
      * unchanged.
      */
-    LinOp& operator=(LinOp&& other)
-    {
-        if (this != &other) {
-            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
-            this->set_size(other.get_size());
-            other.set_size({});
-        }
-        return *this;
-    }
+    LinOp& operator=(LinOp&& other);
 
     /** Copy-constructs a LinOp. Inherits executor and size from the input. */
-    LinOp(const LinOp&) = default;
+    LinOp(const LinOp&);
 
     /**
      * Move-constructs a LinOp. Inherits executor and size from the input,
      * which will have size 0x0 and unchanged executor afterwards.
      */
-    LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
-          size_{std::exchange(other.size_, dim<2>{})}
-    {}
+    LinOp(LinOp&& other);
 
 protected:
     /**
@@ -256,16 +196,14 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
-    {}
+                   const dim<2>& size = dim<2>{});
 
     /**
      * Sets the size of the operator.
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2>& value) noexcept { size_ = value; }
+    void set_size(const dim<2>& value) noexcept;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -297,12 +235,7 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp* b, const LinOp* x) const
-    {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
-    }
+    void validate_application_parameters(const LinOp* b, const LinOp* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -315,12 +248,7 @@ protected:
      */
     void validate_application_parameters(const LinOp* alpha, const LinOp* b,
                                          const LinOp* beta,
-                                         const LinOp* x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
-    }
+                                         const LinOp* x) const;
 
 private:
     dim<2> size_{};
@@ -386,22 +314,70 @@ class LinOpFactory
 public:
     using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
-    {
-        this->template log<log::Logger::linop_factory_generate_started>(
-            this, input.get());
-        const auto exec = this->get_executor();
-        std::unique_ptr<LinOp> generated;
-        if (input->get_executor() == exec) {
-            generated = this->AbstractFactory::generate(input);
-        } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
-        }
-        this->template log<log::Logger::linop_factory_generate_completed>(
-            this, input.get(), generated.get());
-        return generated;
-    }
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
+
+    /**
+     * Opaque container for any internal data stored for value updates in
+     * conjunction with generate_reuse.
+     */
+    class ReuseData {
+    public:
+        ReuseData();
+        virtual ~ReuseData();
+        ReuseData& operator=(const ReuseData&) = delete;
+        ReuseData& operator=(ReuseData&&) = delete;
+        ReuseData(const ReuseData&) = delete;
+        ReuseData(ReuseData&&) = delete;
+    };
+
+    /**
+     * Creates an empty ReuseData object for a specific LinOpFactory instance.
+     * @note The ReuseData usage is split into initialization and (re-)use, so
+     *       we don't restrict users to storing the ReuseData object in a
+     *       unique_ptr, but we allow them to handle the lifetime, and only pass
+     *       a reference to it to the generate_reuse.
+     */
+    virtual std::unique_ptr<ReuseData> create_empty_reuse_data() const;
+
+    /**
+     * Generates a LinOp from this input LinOp with the provided ReuseData.
+     * When called on an empty ReuseData object created using
+     * create_empty_reuse_data(), it will execute the generation normally,
+     * similar to LinOpFactory::generate(). When called with an already
+     * initialized ReuseData object, it assumes that the input matrix has the
+     * same sparsity pattern as the matrix the ReuseData object has been
+     * initialized with, only recomputing the necessary numerical operations,
+     * and reusing structural computations as far as supported by the
+     * LinOpFactory.
+     * Please note that the returned LinOp may point to data stored inside the
+     * ReuseData object, so its lifetime must end before the ReuseData object's
+     * lifetime, otherwise using the LinOp will lead to use-after-free errors.
+     * The function can thus be used as follows for repeated value updates:
+     * ```
+     * auto reuse_data = solver_factory->create_empty_reuse_data();
+     * while (true) {
+     *     change_values(matrix);
+     *     auto solver = solver_factory->generate_reuse(matrix, *reuse_data);
+     *     // use the solver, e.g. solver->apply(b, x);
+     * }
+     * ```
+     * generate_reuse can also be used to generate multiple solvers for
+     * different matrices that share the same sparsity pattern:
+     * ```
+     * auto reuse_data = solver_factory->create_empty_reuse_data();
+     * auto solver1 = solver_factory->generate_reuse(matrix1, *reuse_data);
+     * auto solver2 = solver_factory->generate_reuse(matrix2, *reuse_data);
+     * ```
+     */
+    std::unique_ptr<LinOp> generate_reuse(std::shared_ptr<const LinOp> input,
+                                          ReuseData& reuse_data) const;
+
+protected:
+    virtual void check_reuse_consistent(const LinOp* input,
+                                        ReuseData& reuse_data) const;
+
+    virtual std::unique_ptr<LinOp> generate_reuse_impl(
+        std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const;
 };
 
 
