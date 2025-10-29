@@ -854,6 +854,13 @@ namespace conv2d {
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 
 }
+
+namespace conv2dsparse {
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
+
+}
+
 namespace ell {
 
 
