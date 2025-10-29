@@ -105,8 +105,8 @@ int main(int argc, char* argv[])
         print_general_information(extra_information, exec);
     }
 
-    std::set<std::string> supported_solvers = {"cg", "fcg", "cgs", "bicgstab",
-                                               "gmres"};
+    std::set<std::string> supported_solvers = {"cg",       "fcg",   "cgs",
+                                               "bicgstab", "gmres", "pipe_cg"};
     auto solvers = split(FLAGS_solvers, ',');
     for (const auto& solver : solvers) {
         if (supported_solvers.find(solver) == supported_solvers.end()) {
