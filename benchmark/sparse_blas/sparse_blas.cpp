@@ -85,7 +85,7 @@ struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
     {
         auto [data, local_size] = Generator::generate_matrix_data(test_case);
         reorder(data, test_case);
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
+        std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];
         test_case["cols"] = data.size[1];

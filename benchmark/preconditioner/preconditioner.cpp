@@ -161,7 +161,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         state.x = Generator::create_multi_vector(
             exec, gko::dim<2>{data.size[0]}, local_size, gko::zero<etype>());
 
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
+        std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];
         test_case["cols"] = data.size[1];

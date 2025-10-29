@@ -759,7 +759,7 @@ public:
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
             // Unoptimized copy. Try to go through the masters.
             // output to log when verbose >= 1 and debug build
-            std::clog << "Not direct copy. Try to copy data from the masters."
+            std::cerr << "Not direct copy. Try to copy data from the masters."
                       << std::endl;
 #endif
             auto src_master = src_exec->get_master().get();
