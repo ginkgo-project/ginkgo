@@ -14,6 +14,7 @@
 namespace gko {
 namespace kernels {
 namespace cuda {
+
 namespace conv2d {
 
 template <typename ValueType>
@@ -27,6 +28,21 @@ void conv2d(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 
 }  // namespace conv2d
+
+namespace conv2dsparse {
+
+template <typename ValueType, typename IndexType>
+void conv2dsparse(std::shared_ptr<const CudaExecutor> exec,
+                  const gko::matrix::Csr<ValueType, IndexType>* kernel,
+                  const gko::matrix::Dense<ValueType>* b,
+                  gko::matrix::Dense<ValueType>* x)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
+
+}  // namespace conv2dsparse
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
