@@ -135,6 +135,55 @@ GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D;
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D
 
+/* Declarations for conv2dsparse */
+#define GKO_DECLARE_CONV2DSPARSE_KERNEL(ValueType, IndexType)               \
+    void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,          \
+                      const gko::matrix::Csr<ValueType, IndexType>* kernel, \
+                      const gko::matrix::Dense<ValueType>* b,               \
+                      gko::matrix::Dense<ValueType>* x)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE     \
+    template <typename ValueType, typename IndexType> \
+    GKO_DECLARE_CONV2DSPARSE_KERNEL(ValueType, IndexType)
+
+
+namespace omp {
+namespace conv2dsparse {
+
+GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE;
+
+}  // namespace conv2dsparse
+}  // namespace omp
+
+
+namespace cuda {
+namespace conv2dsparse {
+GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE;
+}  // namespace conv2dsparse
+}  // namespace cuda
+
+
+namespace reference {
+namespace conv2dsparse {
+GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE;
+}  // namespace conv2dsparse
+}  // namespace reference
+
+namespace hip {
+namespace conv2dsparse {
+GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE;
+}  // namespace conv2dsparse
+}  // namespace hip
+
+namespace dpcpp {
+namespace conv2dsparse {
+GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE;
+}  // namespace conv2dsparse
+}  // namespace dpcpp
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE
+
 
 }  // namespace kernels
 }  // namespace gko
