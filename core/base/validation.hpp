@@ -18,22 +18,22 @@ namespace gko {
 namespace validation {
 
 
-#define GKO_VALIDATE(_expression, _message)                                    \
-    {                                                                          \
-        auto result = (_expression);                                           \
-        if (!result.isValid) {                                                 \
-            throw gko::InvalidData(__FILE__, __LINE__,                         \
-                                   typeid(decltype(*this)),                    \
-                                   "Exception occurs at index " +              \
-                                       std::to_string(result.exceptionIndex) + \
-                                       ". " _message " (" #_expression ")");   \
-        }                                                                      \
+#define GKO_VALIDATE(_expression, _message)                    \
+    {                                                          \
+        auto result = (_expression);                           \
+        if (!result.isValid) {                                 \
+            throw gko::InvalidData(                            \
+                __FILE__, __LINE__, typeid(decltype(*this)),   \
+                "Exception occurs at index " +                 \
+                    std::to_string(result.exception_message) + \
+                    ". " _message " (" #_expression ")");      \
+        }                                                      \
     }
 
 
 struct ValidationResult {
     bool isValid;
-    size_t exceptionIndex;
+    size_t exception_message;
 
     operator bool() const noexcept { return isValid; }
 };
@@ -53,8 +53,8 @@ ValidationResult is_sorted(const gko::array<IndexType>& idxs_array)
 
 
 template <typename IndexType>
-ValidationResult is_within_bounds(const gko::array<IndexType>& idxs_array,
-                                  const IndexType upper_bound)
+ValidationResult is_within_nonegative_bounds(
+    const gko::array<IndexType>& idxs_array, const IndexType upper_bound)
 {
     const auto host_idxs_array = idxs_array.copy_to_host();
     auto min_pos = 0;
@@ -114,6 +114,7 @@ ValidationResult has_unique_idxs(const gko::array<IndexType>& row_ptrs,
     }
     return {true, 0};
 }
+
 
 }  // namespace validation
 }  // namespace gko
