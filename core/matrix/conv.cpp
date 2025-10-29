@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/matrix/conv_kernels.hpp"
@@ -33,6 +34,13 @@ GKO_REGISTER_OPERATION(conv2d, conv2d::conv2d);
 }  // namespace
 }  // namespace conv2d
 
+namespace conv2dsparse {
+namespace {
+GKO_REGISTER_OPERATION(conv2dsparse, conv2dsparse::conv2dsparse);
+}  // namespace
+}  // namespace conv2dsparse
+
+
 template <typename ValueType>
 void Conv<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
@@ -55,6 +63,18 @@ void Conv2d<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         b, x);
 }
 
+template <typename ValueType, typename IndexType>
+void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                    LinOp* x) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(conv2dsparse::make_conv2dsparse(
+                kernel_.get(), dense_b, dense_x));
+        },
+        b, x);
+}
+
 
 template <typename ValueType>
 void Conv<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
@@ -70,6 +90,14 @@ void Conv2d<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     // implmement
 }
 
+template <typename ValueType, typename IndexType>
+void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                    const LinOp* b,
+                                                    const LinOp* beta,
+                                                    LinOp* x) const
+{
+    // implmement
+}
 
 template <typename ValueType>
 void Conv<ValueType>::validate_application_parameters(const LinOp* b,
@@ -122,6 +150,12 @@ void Conv2d<ValueType>::validate_application_parameters(const LinOp* b,
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Conv2dsparse<ValueType, IndexType>::validate_application_parameters(
+    const LinOp* b, const LinOp* x) const
+{
+    // implementation
+}
 
 template <typename ValueType>
 Conv<ValueType>::Conv(std::shared_ptr<const Executor> exec)
@@ -151,6 +185,20 @@ Conv2d<ValueType>::Conv2d(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Conv2d>(exec), kernel_{std::move(kernel)}
 {}
 
+template <typename ValueType, typename IndexType>
+Conv2dsparse<ValueType, IndexType>::Conv2dsparse(
+    std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Conv2dsparse>(exec),
+      kernel_{std::move(Csr<ValueType, IndexType>::create(exec, dim<2>{}, 0))}
+// create empty Dense
+{}
+
+template <typename ValueType, typename IndexType>
+Conv2dsparse<ValueType, IndexType>::Conv2dsparse(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const Csr<ValueType, IndexType>> kernel)
+    : EnableLinOp<Conv2dsparse>(exec), kernel_{std::move(kernel)}
+{}
 
 template <typename ValueType>
 std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
@@ -166,6 +214,13 @@ std::unique_ptr<Conv2d<ValueType>> Conv2d<ValueType>::create(
     return std::unique_ptr<Conv2d>{new Conv2d{exec}};
 }
 
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Conv2dsparse<ValueType, IndexType>>
+Conv2dsparse<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<Conv2dsparse>{new Conv2dsparse{exec}};
+}
 
 template <typename ValueType>
 std::unique_ptr<Conv<ValueType>> Conv<ValueType>::create(
@@ -183,6 +238,14 @@ std::unique_ptr<Conv2d<ValueType>> Conv2d<ValueType>::create(
     return std::unique_ptr<Conv2d>{new Conv2d{exec, kernel}};
 }
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Conv2dsparse<ValueType, IndexType>>
+Conv2dsparse<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const Csr<ValueType, IndexType>> kernel)
+{
+    return std::unique_ptr<Conv2dsparse>{new Conv2dsparse{exec, kernel}};
+}
 
 #define GKO_DECLARE_CONV(ValueType) class Conv<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV);
@@ -190,6 +253,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV);
 
 #define GKO_DECLARE_CONV2D(ValueType) class Conv2d<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D);
+
+#define GKO_DECLARE_CONV2DSPARSE(ValueType, IndexType) \
+    class Conv2dsparse<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE);
 
 
 }  // namespace matrix
