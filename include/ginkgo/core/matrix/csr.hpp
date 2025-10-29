@@ -1110,10 +1110,6 @@ public:
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
     void validate_data() const override;
 
     /**

@@ -251,10 +251,6 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
     void validate_data() const override;
 
     /**

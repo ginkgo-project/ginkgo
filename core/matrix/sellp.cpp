@@ -49,6 +49,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 }  // anonymous namespace
 }  // namespace sellp
 
+
 template <typename ValueType, typename IndexType>
 Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
     const Sellp& other)

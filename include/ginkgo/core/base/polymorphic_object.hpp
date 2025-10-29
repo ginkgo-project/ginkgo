@@ -57,6 +57,10 @@ public:
                                                                     this);
     }
 
+    /**
+     * Throws gko::InvalidData exception if the data inside the arrays is
+     * invalid.
+     */
     virtual void validate_data() const {}
 
     // preserve the executor of the object

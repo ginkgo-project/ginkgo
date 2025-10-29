@@ -247,10 +247,7 @@ public:
     const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
                         ptr_param<LinOp> x) const;
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
+
     void validate_data() const override;
 
     /**

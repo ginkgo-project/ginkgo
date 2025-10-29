@@ -190,10 +190,6 @@ public:
 
     void write(mat_data32& data) const override;
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
     void validate_data() const override;
 
 

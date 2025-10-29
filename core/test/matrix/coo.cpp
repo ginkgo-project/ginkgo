@@ -465,4 +465,5 @@ TYPED_TEST(Coo, RecognizesUnorderedRowIndex)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
 }  // namespace

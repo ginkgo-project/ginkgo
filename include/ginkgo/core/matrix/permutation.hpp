@@ -176,10 +176,6 @@ public:
 
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
     void validate_data() const override;
 
     /**

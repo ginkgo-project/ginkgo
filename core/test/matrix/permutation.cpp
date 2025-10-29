@@ -166,4 +166,5 @@ TYPED_TEST(Permutation, RecognizesDuplicatePermutationIndices)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
 }  // namespace

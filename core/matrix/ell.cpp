@@ -484,7 +484,7 @@ validation::ValidationResult ell_has_unique_idxs(
             const auto idx = host_col_idxs[i + stride * j];
             if (idx != -1 && idx < num_rows) {
                 if (!unique_idxs.insert(idx).second) {
-                    return {false, static_cast<size_t>(idx)};
+                    return {false, static_cast<size_t>(i + stride * j)};
                 }
             }
         }

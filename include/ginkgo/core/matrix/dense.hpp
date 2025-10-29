@@ -960,10 +960,6 @@ public:
      */
     void inv_scale(ptr_param<const LinOp> alpha);
 
-    /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
-     */
     void validate_data() const override;
 
     /**
