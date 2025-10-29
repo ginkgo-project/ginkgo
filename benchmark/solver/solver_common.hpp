@@ -452,7 +452,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 exec, state.system_matrix.get(), state.b.get());
         }
 
-        std::clog << "Matrix is of size (" << state.system_matrix->get_size()[0]
+        std::cerr << "Matrix is of size (" << state.system_matrix->get_size()[0]
                   << ", " << state.system_matrix->get_size()[1] << ")"
                   << std::endl;
         test_case["rows"] = state.system_matrix->get_size()[0];
