@@ -202,6 +202,8 @@ def compare_output_impl(
                 difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
             )
         )
+        print("original stdout:")
+        print(result.stdout.decode())
         failed = True
     if result_stderr_processed != expected_stderr_processed:
         print("FAIL: stderr differs")
@@ -210,6 +212,8 @@ def compare_output_impl(
                 difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
             )
         )
+        print("original stderr:")
+        print(result.stderr.decode())
         failed = True
     if failed:
         exit(1)
