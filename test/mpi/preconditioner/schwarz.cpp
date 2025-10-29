@@ -147,7 +147,8 @@ protected:
     void assert_equal_to_non_distributed_vector(
         std::shared_ptr<dist_vec_type> dist_vec,
         std::shared_ptr<local_vec_type> local_vec,
-        gko::remove_complex<value_type> mult = gko::one<value_type>())
+        gko::remove_complex<value_type> mult =
+            gko::one<gko::remove_complex<value_type>>())
     {
         auto host_row_part = row_part->clone(ref);
         auto l_dist_vec = dist_vec->get_local_vector();
