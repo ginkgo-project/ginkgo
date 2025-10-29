@@ -110,6 +110,24 @@ void conv2d(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 }  // namespace conv2d
 
+namespace conv2dsparse {
+// implement convolution here
+template <typename ValueType, typename IndexType>
+void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,
+                  const gko::matrix::Csr<ValueType, IndexType>* kernel,
+                  const gko::matrix::Dense<ValueType>* b,
+                  gko::matrix::Dense<ValueType>* x)
+{
+    // implement convolution here
+
+
+    // int output_size_row = (b_size_row + 2 * padding_row - kernel_size_row) /
+}
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
+
+}  // namespace conv2dsparse
+
+
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko
