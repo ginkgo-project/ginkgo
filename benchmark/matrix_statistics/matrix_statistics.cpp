@@ -156,7 +156,7 @@ struct MatrixStatistics : Benchmark<empty_state> {
     {
         auto [data, local_size] = Generator::generate_matrix_data(test_case);
         // no reordering here, as it doesn't change statistics
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
+        std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];
         test_case["cols"] = data.size[1];
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
     std::string format = Generator::get_example_config();
     initialize_argument_parsing_matrix(&argc, &argv, header, format);
 
-    std::clog << gko::version_info::get() << std::endl;
+    std::cerr << gko::version_info::get() << std::endl;
 
     auto test_cases = json::parse(get_input_stream());
     auto exec = gko::ReferenceExecutor::create();
