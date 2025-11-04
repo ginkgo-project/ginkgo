@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -386,49 +386,75 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionerWithL1Smoother)
                                                  this->non_dist_x);
 }
 
-TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
+
+TYPED_TEST(SchwarzPreconditioner, UnsortedMatrixSolverWithL1Smoother)
 {
     using value_type = typename TestFixture::value_type;
-    using csr = typename TestFixture::local_matrix_type;
-    using cg = typename TestFixture::solver_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using prec = typename TestFixture::dist_prec_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
-    constexpr double tolerance = 1e-20;
-    auto iter_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
-    auto tol_stop = gko::share(
-        gko::stop::ResidualNorm<value_type>::build()
-            .with_reduction_factor(
-                static_cast<gko::remove_complex<value_type>>(tolerance))
-            .on(this->exec));
-    auto non_dist_diag_with_l1 =
-        gko::share(gko::matrix::Diagonal<value_type>::create(
-            this->exec, 8u,
-            gko::array<value_type>(this->exec, {2, 3, 3, 3, 3, 2, 2, 2})));
-    this->dist_solver_factory =
-        cg::build()
-            .with_preconditioner(
-                prec::build()
-                    .with_local_solver(this->local_solver_factory)
-                    .with_l1_smoother(true)
-                    .on(this->exec))
-            .with_criteria(iter_stop, tol_stop)
-            .on(this->exec);
-    auto dist_solver = this->dist_solver_factory->generate(this->dist_mat);
-    this->non_dist_solver_factory =
-        cg::build()
-            .with_generated_preconditioner(this->local_solver_factory->generate(
-                gko::copy_and_convert_to<local_matrix_type>(
-                    this->exec, non_dist_diag_with_l1)))
-            .with_criteria(iter_stop, tol_stop)
-            .on(this->exec);
-    auto non_dist_solver =
-        this->non_dist_solver_factory->generate(this->non_dist_mat);
 
-    dist_solver->apply(this->dist_b.get(), this->dist_x.get());
-    non_dist_solver->apply(this->non_dist_b.get(), this->non_dist_x.get());
+    gko::matrix_data<value_type, global_index_type> unsorted_data({8, 8});
+    auto rank = this->comm.rank();
 
-    this->assert_equal_to_non_distributed_vector(
-        this->dist_x, this->non_dist_x,
-        2);  // mult = 2 is needed for the gko::half to work
+    if (rank == 0) {
+        unsorted_data.nonzeros = {
+            {0, 1, -1.0}, {0, 0, 2.0}, {1, 2, -1.0}, {1, 0, -1.0}, {1, 1, 2.0}};
+    } else if (rank == 1) {
+        unsorted_data.nonzeros = {{2, 3, -1.0}, {2, 1, -1.0}, {2, 2, 2.0},
+                                  {3, 4, -1.0}, {3, 2, -1.0}, {3, 3, 2.0}};
+    } else if (rank == 2) {
+        unsorted_data.nonzeros = {{4, 5, -1.0}, {4, 3, -1.0}, {4, 4, 2.0},
+                                  {5, 6, -1.0}, {5, 4, -1.0}, {5, 5, 2.0},
+                                  {6, 7, -1.0}, {6, 5, -1.0}, {6, 6, 2.0},
+                                  {7, 6, -1.0}, {7, 7, 2.0}};
+    }
+
+    auto dist_mat_unsorted =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    dist_mat_unsorted->read_distributed(unsorted_data, this->row_part);
+
+
+    auto sorted_data = unsorted_data;
+    sorted_data.sort_row_major();
+
+    auto dist_mat_sorted =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    dist_mat_sorted->read_distributed(sorted_data, this->row_part);
+
+    // ensure the unsorted matrix is actually unsorted
+    auto local_mtx =
+        gko::as<local_matrix_type>(dist_mat_unsorted->get_local_matrix());
+    auto host_local_mtx = gko::clone(this->exec->get_master(), local_mtx);
+    bool is_sorted = true;
+    for (gko::size_type i = 0; i < host_local_mtx->get_size()[0]; ++i) {
+        for (auto j = host_local_mtx->get_const_row_ptrs()[i];
+             j < host_local_mtx->get_const_row_ptrs()[i + 1] - 1; ++j) {
+            if (host_local_mtx->get_const_col_idxs()[j] >
+                host_local_mtx->get_const_col_idxs()[j + 1]) {
+                is_sorted = false;
+                break;
+            }
+        }
+    }
+    ASSERT_FALSE(is_sorted) << "The matrix was unexpectedly sorted.";
+
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_l1_smoother(true)
+                               .on(this->exec);
+
+    auto precond_unsorted = precond_factory->generate(dist_mat_unsorted);
+    auto precond_sorted = precond_factory->generate(dist_mat_sorted);
+
+    auto dist_x_unsorted = gko::clone(this->dist_x);
+    auto dist_x_sorted = gko::clone(this->dist_x);
+
+    precond_unsorted->apply(this->dist_b.get(), dist_x_unsorted.get());
+    precond_sorted->apply(this->dist_b.get(), dist_x_sorted.get());
+
+    GKO_ASSERT_MTX_NEAR(dist_x_unsorted->get_local_vector(),
+                        dist_x_sorted->get_local_vector(),
+                        r<value_type>::value);
 }
