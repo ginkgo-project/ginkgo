@@ -4,7 +4,6 @@
 
 #include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
-#include <cmath>
 #include <memory>
 
 #include <ginkgo/core/base/exception_helpers.hpp>

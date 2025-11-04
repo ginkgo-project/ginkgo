@@ -386,6 +386,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionerWithL1Smoother)
                                                  this->non_dist_x);
 }
 
+
 TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
 {
     using value_type = typename TestFixture::value_type;
