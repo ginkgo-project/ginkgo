@@ -231,12 +231,12 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             exec, local_matrix->get_size()[0], std::move(l1_diag_arr));
         auto l1_diag_csr = Csr::create(exec);
         l1_diag->move_to(l1_diag_csr);
-        l1_diag_csr->sort_by_column_index();  // spgeam requires sorting for
-                                              // some backends
         auto id = matrix::Identity<ValueType>::create(
             exec, local_matrix->get_size()[0]);
         auto one = initialize<matrix::Dense<ValueType>>(
             {::gko::one<ValueType>()}, exec);
+        local_matrix_copy->sort_by_column_index();  // spgeam requires sorting
+                                                    // for some backends
         l1_diag_csr->apply(one, id, one, local_matrix_copy);
 
         this->set_solver(
