@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/allocator.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 
 
 namespace gko {
@@ -119,9 +120,52 @@ void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,
                   gko::matrix::Dense<ValueType>* x)
 {
     // implement convolution here
+    const int b_size_row = b->get_size()[0];
+    const int b_size_col = b->get_size()[1];
+    const int x_size_row = x->get_size()[0];
+    const int x_size_col = x->get_size()[1];
+    const int kernel_size_row = kernel->get_size()[0];
+    const int kernel_size_col = kernel->get_size()[1];
+    int stride_row = 1;
+    int stride_col = 1;
+    int padding_row = 0;
+    int padding_col = 0;
+    // int output_size_col = (b_size_col + 2 * padding_col - kernel_size_col) /
+    // stride_col + 1;
 
 
     // int output_size_row = (b_size_row + 2 * padding_row - kernel_size_row) /
+    // stride_row + 1;
+
+    auto row_ptrs = kernel->get_const_row_ptrs();
+    auto col_idxs = kernel->get_const_col_idxs();
+    // using arithmetic_type = kernel->get_value_type();
+    const auto kernel_vals =
+        acc::helper::build_const_rrm_accessor<ValueType>(kernel);
+
+    // convolution loop
+    for (gko::size_type i = 0; i < x_size_row; ++i) {
+        for (gko::size_type j = 0; j < x_size_col; ++j) {
+            ValueType sum = zero<ValueType>();
+            gko::int64 start_row =
+                static_cast<gko::int64>(i * stride_row) - padding_row;
+            gko::int64 start_col =
+                static_cast<gko::int64>(j * stride_col) - padding_col;
+            for (gko::size_type k = 0; k < kernel_vals.length(0); ++k) {
+                gko::int64 b_idx_row =
+                    start_row + static_cast<gko::int64>(row_ptrs[k]);
+                if (b_idx_row >= 0 &&
+                    b_idx_row < static_cast<gko::int64>(b_size_row)) {
+                    gko::int64 b_idx_col = static_cast<gko::int64>(col_idxs[k]);
+                    if (b_idx_col >= 0 &&
+                        b_idx_col < static_cast<gko::int64>(b_size_col)) {
+                        sum += kernel_vals(k) * b->at(b_idx_row, b_idx_col);
+                    }
+                }
+            }
+            x->at(i, j) = sum;
+        }
+    }
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
 
