@@ -63,52 +63,61 @@ namespace conv2d {
 
 template <typename ValueType>
 void conv2d(std::shared_ptr<const DefaultExecutor> exec,
-            const gko::matrix::Dense<ValueType>* kernel,
+            const std::vector<const gko::matrix::Dense<ValueType>*>& kernels,
             const gko::matrix::Dense<ValueType>* b,
-            gko::matrix::Dense<ValueType>* x)
+            std::vector<gko::matrix::Dense<ValueType>*>& outputs)
 {
-    // implement convolution here
     const auto b_size_row = b->get_size()[0];
     const auto b_size_col = b->get_size()[1];
-    const auto x_size_row = x->get_size()[0];
-    const auto x_size_col = x->get_size()[1];
-    const auto kernel_size_row = kernel->get_size()[0];
-    const auto kernel_size_col = kernel->get_size()[1];
-    int stride_row = 1;
-    int stride_col = 1;
-    int padding_row = 0;
-    int padding_col = 0;
+    const int stride_row = 1;
+    const int stride_col = 1;
+    const int padding_row = 0;
+    const int padding_col = 0;
 
-    // int output_size_row = (b_size_row + 2 * padding_row - kernel_size_row) /
-    // stride_row + 1; int output_size_col = (b_size_col + 2 * padding_col -
-    // kernel_size_col) / stride_col + 1;
-    for (gko::size_type i = 0; i < x_size_row; ++i) {
-        for (gko::size_type j = 0; j < x_size_col; ++j) {
-            ValueType sum = zero<ValueType>();
-            gko::int64 start_row =
-                static_cast<gko::int64>(i * stride_row) - padding_row;
-            gko::int64 start_col =
-                static_cast<gko::int64>(j * stride_col) - padding_col;
-            for (gko::size_type k = 0; k < kernel_size_row; ++k) {
-                gko::int64 b_idx_row = start_row + static_cast<gko::int64>(k);
-                if (b_idx_row >= 0 &&
-                    b_idx_row < static_cast<gko::int64>(b_size_row)) {
-                    for (gko::size_type l = 0; l < kernel_size_col; ++l) {
-                        gko::int64 b_idx_col =
-                            start_col + static_cast<gko::int64>(l);
-                        if (b_idx_col >= 0 &&
-                            b_idx_col < static_cast<gko::int64>(b_size_col)) {
-                            sum +=
-                                kernel->at(k, l) * b->at(b_idx_row, b_idx_col);
+    for (std::size_t f = 0; f < kernels.size(); ++f) {
+        const auto* kernel = kernels[f];
+        auto* x = outputs[f];
+
+        const auto x_size_row = x->get_size()[0];
+        const auto x_size_col = x->get_size()[1];
+        const auto kernel_size_row = kernel->get_size()[0];
+        const auto kernel_size_col = kernel->get_size()[1];
+
+        for (gko::size_type i = 0; i < x_size_row; ++i) {
+            for (gko::size_type j = 0; j < x_size_col; ++j) {
+                ValueType sum = zero<ValueType>();
+
+                gko::int64 start_row =
+                    static_cast<gko::int64>(i * stride_row) - padding_row;
+                gko::int64 start_col =
+                    static_cast<gko::int64>(j * stride_col) - padding_col;
+
+                for (gko::size_type k = 0; k < kernel_size_row; ++k) {
+                    gko::int64 b_idx_row =
+                        start_row + static_cast<gko::int64>(k);
+                    if (b_idx_row >= 0 &&
+                        b_idx_row < static_cast<gko::int64>(b_size_row)) {
+                        for (gko::size_type l = 0; l < kernel_size_col; ++l) {
+                            gko::int64 b_idx_col =
+                                start_col + static_cast<gko::int64>(l);
+                            if (b_idx_col >= 0 &&
+                                b_idx_col <
+                                    static_cast<gko::int64>(b_size_col)) {
+                                sum += kernel->at(k, l) *
+                                       b->at(b_idx_row, b_idx_col);
+                            }
                         }
                     }
                 }
+                x->at(i, j) = sum;
             }
-            x->at(i, j) = sum;
         }
     }
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
+// GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_CONV2D_KERNEL);
+
 }  // namespace conv2d
 
 namespace conv2dsparse {

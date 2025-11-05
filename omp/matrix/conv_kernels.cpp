@@ -13,13 +13,14 @@
 namespace gko {
 namespace kernels {
 namespace omp {
-
+/*
 namespace conv2d {
 
 template <typename ValueType>
 void conv2d(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType>* kernel,
-            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+            const std::vector<const gko::matrix::Dense<ValueType>*>& kernels,
+            const gko::matrix::Dense<ValueType>* b,
+            std::vector<gko::matrix::Dense<ValueType>*>& outputs)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -27,7 +28,7 @@ void conv2d(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 
 }  // namespace conv2d
-
+*/
 namespace conv2dsparse {
 
 template <typename ValueType, typename IndexType>

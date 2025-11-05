@@ -1,0 +1,17 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+Output length: 2
+Convolution result: 
+32 38 
+
+Output length (rows): 3
+Output length (cols): 2
+Convolution result (2D): 
+348 393 
+528 573 
+708 753 
+@endcode
+
+<h3> Comments about programming and debugging </h3>

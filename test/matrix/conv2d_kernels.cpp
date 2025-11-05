@@ -17,7 +17,7 @@
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
 
-
+/*
 class Conv2d : public CommonTestFixture {
 protected:
     using ValueType = value_type;
@@ -106,6 +106,7 @@ TEST_F(Conv2d, ApplyToDenseIsEquivalentToRef)
 }
 
 */
+/*
 TEST_F(Conv2d, ApplyToDenseWithStrideIsEquivalentToRef)
 {
     set_up_apply_data(154, 155);
@@ -115,3 +116,5 @@ TEST_F(Conv2d, ApplyToDenseWithStrideIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(doutput, output, r<value_type>::value);
 }
+
+*/

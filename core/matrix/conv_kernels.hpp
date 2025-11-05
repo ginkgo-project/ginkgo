@@ -76,11 +76,12 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 /*Declarations for conv2d */
 
-#define GKO_DECLARE_CONV2D_KERNEL(ValueType)                 \
-    void conv2d(std::shared_ptr<const DefaultExecutor> exec, \
-                const matrix::Dense<ValueType>* kernel,      \
-                const matrix::Dense<ValueType>* b,           \
-                matrix::Dense<ValueType>* x)
+#define GKO_DECLARE_CONV2D_KERNEL(ValueType)                              \
+    void conv2d(                                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const std::vector<const gko::matrix::Dense<ValueType>*>& kernels, \
+        const gko::matrix::Dense<ValueType>* b,                           \
+        std::vector<gko::matrix::Dense<ValueType>*>& outputs)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D \

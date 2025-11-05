@@ -81,42 +81,41 @@ public:
     using EnableLinOp<Conv2d>::convert_to;
     using EnableLinOp<Conv2d>::move_to;
     using value_type = ValueType;
-    /**
-     * Creates an empty Convolution kernel matrix.
-     *
-     * @param exec  Executor associated to the matrix
-     *
-     * @return A smart pointer to the newly created matrix.
-     */
 
     static std::unique_ptr<Conv2d> create(std::shared_ptr<const Executor> exec);
-    /**
-     * Creates an Convolution kernel matrix.
-     *
-     * @param array  kernel used by convolution
-     *
-     * @return A smart pointer to the newly created matrix.
-     */
 
     static std::unique_ptr<Conv2d> create(
         std::shared_ptr<const Executor> exec,
+        const std::vector<std::shared_ptr<const Dense<ValueType>>>& kernels);
+    static std::unique_ptr<Conv2d> create(
+        std::shared_ptr<const Executor> exec,
         std::shared_ptr<const Dense<ValueType>> kernel);
+    std::vector<std::shared_ptr<const Dense<ValueType>>> kernels_;
+    void apply(const std::shared_ptr<const LinOp>& b,
+               const std::vector<std::shared_ptr<LinOp>>& xs) const
+    {
+        std::vector<LinOp*> raw_ptrs;
+        raw_ptrs.reserve(xs.size());
+        for (auto& x : xs) raw_ptrs.push_back(x.get());
+        this->apply_impl(b.get(), raw_ptrs);
+    }
 
 protected:
     Conv2d(std::shared_ptr<const Executor> exec,
-           std::shared_ptr<const Dense<ValueType>> kernel);
+           const std::vector<std::shared_ptr<const Dense<ValueType>>>& kernels);
     Conv2d(std::shared_ptr<const Executor> exec);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+    void apply_impl(const LinOp* b, const std::vector<LinOp*>& xs) const;
 
     void validate_application_parameters(const LinOp* b,
                                          const LinOp* x) const override;
 
 private:
-    std::shared_ptr<const Dense<ValueType>> kernel_;
 };
+
 
 /**
  * This LinOp implements a 2D Sparse Convolution
