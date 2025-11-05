@@ -14,7 +14,7 @@
 namespace gko {
 namespace kernels {
 namespace cuda {
-
+/*
 namespace conv2d {
 
 template <typename ValueType>
@@ -28,6 +28,7 @@ void conv2d(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 
 }  // namespace conv2d
+*/
 
 namespace conv2dsparse {
 
