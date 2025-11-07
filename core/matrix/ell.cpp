@@ -70,7 +70,7 @@ validation::ValidationResult is_well_padded(
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE(validation::assert_array_is_finite(values_),
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
                  "matrix must contain only finite values");
     GKO_VALIDATE(ell_has_unique_idxs(
                      col_idxs_, static_cast<IndexType>(this->get_size()[0]),
@@ -475,12 +475,12 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
 template <typename IndexType>
 validation::ValidationResult ell_has_unique_idxs(
     const array<IndexType>& col_idxs, const IndexType num_rows,
-    const size_type num_non_zero_per_row, const size_type stride)
+    const size_type num_stored_elements_per_row, const size_type stride)
 {
     const auto host_col_idxs = col_idxs.copy_to_host();
     for (size_type i = 0; i < num_rows; ++i) {
         std::unordered_set<IndexType> unique_idxs;
-        for (size_type j = 0; j < num_non_zero_per_row; ++j) {
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
             const auto idx = host_col_idxs[i + stride * j];
             if (idx != -1 && idx < num_rows) {
                 if (!unique_idxs.insert(idx).second) {
@@ -496,12 +496,12 @@ validation::ValidationResult ell_has_unique_idxs(
 template <typename IndexType>
 validation::ValidationResult is_well_padded(
     const gko::array<IndexType>& col_idxs, const IndexType num_rows,
-    const size_type num_non_zero_per_row, const size_type stride)
+    const size_type num_stored_elements_per_row, const size_type stride)
 {
     const auto host_col_idxs = col_idxs.copy_to_host();
     for (size_type i = 0; i < num_rows; ++i) {
         bool padding = false;
-        for (size_type j = 0; j < num_non_zero_per_row; ++j) {
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
             const auto idx = host_col_idxs[i + stride * j];
             if (idx == invalid_index<IndexType>()) {
                 padding = true;
