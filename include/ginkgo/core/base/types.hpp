@@ -1043,6 +1043,7 @@ template <typename ValueType>
 struct is_supported_index_type : std::false_type {};
 
 // the <> here is necessary for partial specializations
+// TODO20: Replace this by concepts
 #define GKO_DECLARE_SUPPORTED_VALUE_TYPE(ValueType) \
     <> struct is_supported_value_type<ValueType> : std::true_type {}
 #define GKO_DECLARE_SUPPORTED_INDEX_TYPE(IndexType) \
