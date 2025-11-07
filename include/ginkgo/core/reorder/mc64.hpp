@@ -77,6 +77,8 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Mc64 final
     : public EnablePolymorphicObject<Mc64<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<Mc64<ValueType, IndexType>,

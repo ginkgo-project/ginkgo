@@ -57,6 +57,8 @@ struct symbolic_nonzero_hash {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class matrix_assembly_data {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;

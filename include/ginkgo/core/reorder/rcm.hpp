@@ -72,6 +72,7 @@ class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
                                            ReorderingBase<IndexType>>,
             public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;

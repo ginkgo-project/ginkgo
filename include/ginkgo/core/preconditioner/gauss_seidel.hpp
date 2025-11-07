@@ -35,6 +35,7 @@ class GaussSeidel
                                      LinOpFactory>,
       public EnablePolymorphicAssignment<GaussSeidel<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<GaussSeidel, LinOpFactory>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;

@@ -62,6 +62,7 @@ class MultiVector
     friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<previous_precision<ValueType>>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnablePolymorphicAssignment<MultiVector>::convert_to;

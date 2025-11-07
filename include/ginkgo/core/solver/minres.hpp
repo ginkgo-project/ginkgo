@@ -60,6 +60,7 @@ class Minres
       public Transposable {
     friend class EnableLinOp<Minres>;
     friend class EnablePolymorphicObject<Minres, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

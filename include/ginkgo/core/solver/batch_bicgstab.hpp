@@ -51,6 +51,7 @@ class Bicgstab final
     : public EnableBatchSolver<Bicgstab<ValueType>, ValueType> {
     friend class EnableBatchLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, BatchLinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

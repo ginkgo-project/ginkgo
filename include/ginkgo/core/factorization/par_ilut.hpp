@@ -70,6 +70,8 @@ namespace factorization {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ParIlut : public Composition<ValueType> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;

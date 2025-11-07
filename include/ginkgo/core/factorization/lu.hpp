@@ -54,6 +54,8 @@ template <typename ValueType, typename IndexType>
 class Lu
     : public EnablePolymorphicObject<Lu<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Lu<ValueType, IndexType>> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<Lu, LinOpFactory>;

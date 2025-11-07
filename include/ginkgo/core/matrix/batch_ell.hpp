@@ -61,6 +61,7 @@ class Ell final
     friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<previous_precision<ValueType>, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
 

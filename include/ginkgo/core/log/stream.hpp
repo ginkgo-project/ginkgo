@@ -28,6 +28,8 @@ namespace log {
  */
 template <typename ValueType = default_precision>
 class Stream : public Logger {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     /* Executor events */
     void on_allocation_started(const Executor* exec,

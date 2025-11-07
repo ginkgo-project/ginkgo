@@ -50,6 +50,7 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

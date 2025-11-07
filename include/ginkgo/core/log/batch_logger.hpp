@@ -68,6 +68,8 @@ struct log_data final {
  */
 template <typename ValueType = default_precision>
 class BatchConvergence final : public gko::log::Logger {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     using real_type = remove_complex<ValueType>;
     using index_type = int;

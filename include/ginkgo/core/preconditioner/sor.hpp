@@ -52,6 +52,7 @@ class Sor
     : public EnablePolymorphicObject<Sor<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Sor<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Sor, LinOpFactory>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;

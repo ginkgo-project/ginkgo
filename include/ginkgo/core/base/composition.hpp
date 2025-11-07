@@ -41,6 +41,7 @@ class Composition : public EnableLinOp<Composition<ValueType>>,
                     public Transposable {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

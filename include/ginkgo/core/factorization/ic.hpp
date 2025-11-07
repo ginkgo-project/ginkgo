@@ -43,6 +43,8 @@ namespace factorization {
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class Ic : public Composition<ValueType> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;

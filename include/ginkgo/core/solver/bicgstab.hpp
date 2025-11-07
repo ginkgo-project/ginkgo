@@ -55,6 +55,7 @@ class Bicgstab
       public Transposable {
     friend class EnableLinOp<Bicgstab>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

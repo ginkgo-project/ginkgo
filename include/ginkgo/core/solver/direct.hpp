@@ -36,6 +36,7 @@ class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                    factorization::Factorization<ValueType, IndexType>>,
                public Transposable {
     friend class EnablePolymorphicObject<Direct, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

@@ -34,6 +34,8 @@ namespace gko {
  */
 template <typename ValueType, typename IndexType>
 class device_matrix_data {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;
