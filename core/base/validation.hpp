@@ -35,7 +35,7 @@ struct ValidationResult {
     bool isValid;
     size_t exception_message;
 
-    operator bool() const noexcept { return isValid; }
+    explicit operator bool() const noexcept { return isValid; }
 };
 
 
@@ -80,7 +80,8 @@ ValidationResult is_within_nonegative_bounds(
 
 
 template <typename ValueType>
-ValidationResult assert_array_is_finite(const gko::array<ValueType>& values)
+ValidationResult sparse_matrix_values_are_finite(
+    const gko::array<ValueType>& values)
 {
     const auto host_values = values.copy_to_host();
     for (size_t i = 0; i < host_values.size(); ++i) {
