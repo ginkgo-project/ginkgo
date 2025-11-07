@@ -59,7 +59,7 @@ class Hybrid
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Hybrid<to_complex<ValueType>, IndexType>;
-
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Hybrid>::convert_to;

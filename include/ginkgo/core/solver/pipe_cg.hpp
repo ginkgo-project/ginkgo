@@ -64,6 +64,7 @@ class PipeCg
       public Transposable {
     friend class EnableLinOp<PipeCg>;
     friend class EnablePolymorphicObject<PipeCg, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

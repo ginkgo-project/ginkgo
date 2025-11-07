@@ -47,6 +47,7 @@ class Cgs
       public Transposable {
     friend class EnableLinOp<Cgs>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

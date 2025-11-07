@@ -52,6 +52,7 @@ class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
             public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<Pgm>;
     friend class EnablePolymorphicObject<Pgm, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

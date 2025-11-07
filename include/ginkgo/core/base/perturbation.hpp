@@ -39,6 +39,7 @@ class Perturbation : public EnableLinOp<Perturbation<ValueType>>,
                      public EnableCreateMethod<Perturbation<ValueType>> {
     friend class EnablePolymorphicObject<Perturbation, LinOp>;
     friend class EnableCreateMethod<Perturbation>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

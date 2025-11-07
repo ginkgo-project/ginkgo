@@ -135,6 +135,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Fbcsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<to_complex<ValueType>, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Csr>::convert_to;

@@ -190,6 +190,7 @@ class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
                public Transposable {
     friend class EnableLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Jacobi>::convert_to;

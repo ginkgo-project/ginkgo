@@ -58,6 +58,7 @@ class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<SparsityCsr>::convert_to;

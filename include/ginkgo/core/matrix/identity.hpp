@@ -34,6 +34,7 @@ namespace matrix {
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>, public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableLinOp<Identity>::convert_to;

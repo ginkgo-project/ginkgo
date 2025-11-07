@@ -86,6 +86,7 @@ class Ir : public EnableLinOp<Ir<ValueType>>,
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnableApplyWithInitialGuess<Ir>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

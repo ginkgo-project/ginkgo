@@ -37,6 +37,7 @@ class ScaledPermutation final
     : public EnableLinOp<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
     friend class EnablePolymorphicObject<ScaledPermutation, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

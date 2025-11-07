@@ -49,6 +49,8 @@ class NestedDissection
                                      LinOpFactory>,
       public EnablePolymorphicAssignment<
           NestedDissection<ValueType, IndexType>> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<NestedDissection<ValueType, IndexType>,

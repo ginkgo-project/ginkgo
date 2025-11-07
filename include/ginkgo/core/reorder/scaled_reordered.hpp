@@ -45,6 +45,7 @@ class ScaledReordered
     : public EnableLinOp<ScaledReordered<ValueType, IndexType>> {
     friend class EnableLinOp<ScaledReordered, LinOp>;
     friend class EnablePolymorphicObject<ScaledReordered, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

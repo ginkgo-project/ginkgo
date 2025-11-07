@@ -44,6 +44,7 @@ class FixedCoarsening
       public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<FixedCoarsening>;
     friend class EnablePolymorphicObject<FixedCoarsening, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

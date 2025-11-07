@@ -137,6 +137,7 @@ class Dense
     friend class Dense<to_complex<ValueType>>;
     friend class experimental::distributed::Vector<ValueType>;
     friend class experimental::distributed::detail::VectorCache<ValueType>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableLinOp<Dense>::convert_to;

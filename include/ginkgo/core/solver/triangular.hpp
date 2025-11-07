@@ -69,6 +69,7 @@ class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
     friend class EnableLinOp<LowerTrs>;
     friend class EnablePolymorphicObject<LowerTrs, LinOp>;
     friend class UpperTrs<ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;
@@ -237,6 +238,7 @@ class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

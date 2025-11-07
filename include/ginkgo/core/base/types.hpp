@@ -1036,6 +1036,47 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_INT32_TYPE(_macro) template _macro(int32)
 
 
+template <typename ValueType>
+struct is_supported_value_type : std::false_type {};
+
+template <typename ValueType>
+struct is_supported_index_type : std::false_type {};
+
+// the <> here is necessary for partial specializations
+#define GKO_DECLARE_SUPPORTED_VALUE_TYPE(ValueType) \
+    <> struct is_supported_value_type<ValueType> : std::true_type {}
+#define GKO_DECLARE_SUPPORTED_INDEX_TYPE(IndexType) \
+    <> struct is_supported_index_type<IndexType> : std::true_type {}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SUPPORTED_VALUE_TYPE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SUPPORTED_INDEX_TYPE);
+
+#undef GKO_DECLARE_SUPPORTED_VALUE_TYPE
+#undef GKO_DECLARE_SUPPORTED_INDEX_TYPE
+
+#define GKO_ASSERT_SUPPORTED_VALUE_TYPE                      \
+    static_assert(is_supported_value_type<ValueType>::value, \
+                  "Unsupported value type")
+
+#define GKO_ASSERT_SUPPORTED_INDEX_TYPE                      \
+    static_assert(is_supported_index_type<IndexType>::value, \
+                  "Unsupported index type")
+
+#define GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE \
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;              \
+    GKO_ASSERT_SUPPORTED_INDEX_TYPE
+
+#define GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE             \
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;                               \
+    static_assert(is_supported_index_type<GlobalIndexType>::value, \
+                  "Unsupported global index type");                \
+    static_assert(is_supported_index_type<LocalIndexType>::value,  \
+                  "Unsupported local index type");                 \
+    static_assert(                                                 \
+        sizeof(GlobalIndexType) >= sizeof(LocalIndexType),         \
+        "global index type must not be smaller than local index type")
+
+
 /**
  * Value for an invalid signed index type.
  */

@@ -50,6 +50,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi final : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
     friend class EnableBatchLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, BatchLinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableBatchLinOp<Jacobi>::convert_to;

@@ -84,6 +84,7 @@ class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;
     friend class Isai<isai_type::spd, ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

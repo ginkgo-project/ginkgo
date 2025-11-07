@@ -50,6 +50,7 @@ template <typename ValueType = default_precision>
 class Cg final : public EnableBatchSolver<Cg<ValueType>, ValueType> {
     friend class EnableBatchLinOp<Cg>;
     friend class EnablePolymorphicObject<Cg, BatchLinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;
