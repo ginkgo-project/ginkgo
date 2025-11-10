@@ -224,6 +224,25 @@ protected:
 };
 
 
+deferred_factory_parameter<CriterionFactory> abs_residual_norm(
+    double tolerance);
+
+deferred_factory_parameter<CriterionFactory> rel_residual_norm(
+    double tolerance);
+
+deferred_factory_parameter<CriterionFactory> residual_norm_reduction(
+    double tolerance);
+
+deferred_factory_parameter<CriterionFactory> implicit_abs_residual_norm(
+    double tolerance);
+
+deferred_factory_parameter<CriterionFactory> implicit_rel_residual_norm(
+    double tolerance);
+
+deferred_factory_parameter<CriterionFactory> implicit_residual_norm_reduction(
+    double tolerance);
+
+
 // The following classes are deprecated, but they internally reference
 // themselves. To reduce unnecessary warnings, we disable deprecation warnings
 // for the definition of these classes.

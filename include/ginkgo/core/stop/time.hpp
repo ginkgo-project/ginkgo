@@ -10,6 +10,8 @@
 
 #include <ginkgo/core/stop/criterion.hpp>
 
+#include "ginkgo/core/base/abstract_factory.hpp"
+
 
 namespace gko {
 namespace stop {
@@ -65,6 +67,10 @@ private:
     std::chrono::duration<double> time_limit_;
     clock::time_point start_;
 };
+
+
+deferred_factory_parameter<Time::Factory> time_sec(double time);
+deferred_factory_parameter<Time::Factory> time_ms(double time);
 
 
 }  // namespace stop

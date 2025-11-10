@@ -8,6 +8,8 @@
 
 #include <ginkgo/core/stop/criterion.hpp>
 
+#include "ginkgo/core/base/abstract_factory.hpp"
+
 
 namespace gko {
 namespace stop {
@@ -56,6 +58,9 @@ protected:
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+deferred_factory_parameter<Iteration::Factory> iteration(size_type count);
 
 
 }  // namespace stop

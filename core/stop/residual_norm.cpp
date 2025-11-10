@@ -4,7 +4,9 @@
 
 #include "ginkgo/core/stop/residual_norm.hpp"
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -233,6 +235,210 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
     class ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
+
+class ResidualNormFactory;
+
+struct residual_norm_factory_parameters
+    : public enable_parameters_type<residual_norm_factory_parameters,
+                                    ResidualNormFactory> {
+    double GKO_FACTORY_PARAMETER_SCALAR(threshold, 0.0);
+
+    mode GKO_FACTORY_PARAMETER_SCALAR(baseline, mode::rhs_norm);
+};
+
+
+class ResidualNormFactory
+    : public EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>,
+      public EnablePolymorphicAssignment<ResidualNormFactory> {
+    friend class EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>;
+    friend class enable_parameters_type<residual_norm_factory_parameters,
+                                        ResidualNormFactory>;
+    friend EnableDefaultCriterionFactory<ResidualNormFactory, Criterion,
+                                         residual_norm_factory_parameters>;
+
+    explicit ResidualNormFactory(
+        std::shared_ptr<const Executor> exec,
+        const residual_norm_factory_parameters& parameters = {})
+        : EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>(
+              std::move(exec)),
+          parameters_{parameters}
+    {}
+
+    std::unique_ptr<Criterion> generate_impl(CriterionArgs args) const override
+    {
+        std::unique_ptr<Criterion> result;
+        auto exec = this->get_executor();
+        run<matrix::Dense<double>, matrix::Dense<float>, matrix::Dense<half>,
+            matrix::Dense<bfloat16>, matrix::Dense<std::complex<double>>,
+            matrix::Dense<std::complex<float>>,
+            matrix::Dense<std::complex<half>>,
+            matrix::Dense<std::complex<bfloat16>>
+#if GINKGO_BUILD_MPI
+            ,
+            experimental::distributed::Vector<double>,
+            experimental::distributed::Vector<float>,
+            experimental::distributed::Vector<half>,
+            experimental::distributed::Vector<bfloat16>,
+            experimental::distributed::Vector<std::complex<double>>,
+            experimental::distributed::Vector<std::complex<float>>,
+            experimental::distributed::Vector<std::complex<half>>,
+            experimental::distributed::Vector<std::complex<bfloat16>>
+#endif
+            >(args.b, [&](auto dense_b) {
+            using value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            auto dense_x = as<matrix::Dense<value_type>>(args.x);
+            auto dense_r = as<matrix::Dense<value_type>>(args.initial_residual);
+            auto cast_threshold = static_cast<remove_complex<value_type>>(
+                this->parameters_.threshold);
+            auto cast_args =
+                CriterionArgs{args.system_matrix, dense_b, dense_x, dense_r};
+            if (static_cast<double>(cast_threshold) <= 0.0) {
+                GKO_INVALID_STATE(
+                    "stopping criterion threshold is zero or negative when "
+                    "cast to ValueType");
+            }
+            result = ResidualNorm<value_type>::build()
+                         .with_baseline(this->parameters_.baseline)
+                         .with_reduction_factor(this->parameters_.threshold)
+                         .on(exec)
+                         ->generate(cast_args);
+        });
+        return result;
+    }
+
+    residual_norm_factory_parameters parameters_;
+};
+
+
+deferred_factory_parameter<CriterionFactory> abs_residual_norm(double tolerance)
+{
+    return residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::absolute);
+}
+
+
+deferred_factory_parameter<CriterionFactory> rel_residual_norm(double tolerance)
+{
+    return residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::rhs_norm);
+}
+
+
+deferred_factory_parameter<CriterionFactory> residual_norm_reduction(
+    double tolerance)
+{
+    return residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::initial_resnorm);
+}
+
+
+class ImplicitResidualNormFactory;
+
+struct implicit_residual_norm_factory_parameters
+    : public enable_parameters_type<implicit_residual_norm_factory_parameters,
+                                    ImplicitResidualNormFactory> {
+    double GKO_FACTORY_PARAMETER_SCALAR(threshold, 0.0);
+
+    mode GKO_FACTORY_PARAMETER_SCALAR(baseline, mode::rhs_norm);
+};
+
+
+class ImplicitResidualNormFactory
+    : public EnablePolymorphicObject<ImplicitResidualNormFactory,
+                                     CriterionFactory>,
+      public EnablePolymorphicAssignment<ImplicitResidualNormFactory> {
+    friend class EnablePolymorphicObject<ImplicitResidualNormFactory,
+                                         CriterionFactory>;
+    friend class enable_parameters_type<
+        implicit_residual_norm_factory_parameters, ImplicitResidualNormFactory>;
+    friend EnableDefaultCriterionFactory<
+        ImplicitResidualNormFactory, Criterion,
+        implicit_residual_norm_factory_parameters>;
+
+    explicit ImplicitResidualNormFactory(
+        std::shared_ptr<const Executor> exec,
+        const implicit_residual_norm_factory_parameters& parameters = {})
+        : EnablePolymorphicObject<ImplicitResidualNormFactory,
+                                  CriterionFactory>(std::move(exec)),
+          parameters_{parameters}
+    {}
+
+    std::unique_ptr<Criterion> generate_impl(CriterionArgs args) const override
+    {
+        std::unique_ptr<Criterion> result;
+        auto exec = this->get_executor();
+        run<matrix::Dense<double>, matrix::Dense<float>, matrix::Dense<half>,
+            matrix::Dense<bfloat16>, matrix::Dense<std::complex<double>>,
+            matrix::Dense<std::complex<float>>,
+            matrix::Dense<std::complex<half>>,
+            matrix::Dense<std::complex<bfloat16>>
+#if GINKGO_BUILD_MPI
+            ,
+            experimental::distributed::Vector<double>,
+            experimental::distributed::Vector<float>,
+            experimental::distributed::Vector<half>,
+            experimental::distributed::Vector<bfloat16>,
+            experimental::distributed::Vector<std::complex<double>>,
+            experimental::distributed::Vector<std::complex<float>>,
+            experimental::distributed::Vector<std::complex<half>>,
+            experimental::distributed::Vector<std::complex<bfloat16>>
+#endif
+            >(args.b, [&](auto dense_b) {
+            using value_type =
+                typename std::decay_t<decltype(*dense_b)>::value_type;
+            auto dense_x = as<matrix::Dense<value_type>>(args.x);
+            auto dense_r = as<matrix::Dense<value_type>>(args.initial_residual);
+            auto cast_threshold = static_cast<remove_complex<value_type>>(
+                this->parameters_.threshold);
+            auto cast_args =
+                CriterionArgs{args.system_matrix, dense_b, dense_x, dense_r};
+            if (static_cast<double>(cast_threshold) <= 0.0) {
+                GKO_INVALID_STATE(
+                    "stopping criterion threshold is zero or negative when "
+                    "cast to ValueType");
+            }
+            result = ImplicitResidualNorm<value_type>::build()
+                         .with_baseline(this->parameters_.baseline)
+                         .with_reduction_factor(this->parameters_.threshold)
+                         .on(exec)
+                         ->generate(cast_args);
+        });
+        return result;
+    }
+
+    implicit_residual_norm_factory_parameters parameters_;
+};
+
+
+deferred_factory_parameter<CriterionFactory> implicit_abs_residual_norm(
+    double tolerance)
+{
+    return implicit_residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::absolute);
+}
+
+
+deferred_factory_parameter<CriterionFactory> implicit_rel_residual_norm(
+    double tolerance)
+{
+    return implicit_residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::rhs_norm);
+}
+
+
+deferred_factory_parameter<CriterionFactory> implicit_residual_norm_reduction(
+    double tolerance)
+{
+    return implicit_residual_norm_factory_parameters{}
+        .with_threshold(tolerance)
+        .with_baseline(mode::initial_resnorm);
+}
 
 
 }  // namespace stop

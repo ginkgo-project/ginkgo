@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/stop/time.hpp"
 
+#include <ginkgo/core/base/abstract_factory.hpp>
+
 
 namespace gko {
 namespace stop {
@@ -19,6 +21,20 @@ bool Time::check_impl(uint8 stoppingId, bool setFinalized,
         *one_changed = true;
     }
     return result;
+}
+
+
+deferred_factory_parameter<Time::Factory> time_sec(double time)
+{
+    return Time::build().with_time_limit(
+        std::chrono::nanoseconds{static_cast<long>(time * 1e9)});
+}
+
+
+deferred_factory_parameter<Time::Factory> time_ms(double time)
+{
+    return Time::build().with_time_limit(
+        std::chrono::nanoseconds{static_cast<long>(time * 1e6)});
 }
 
 

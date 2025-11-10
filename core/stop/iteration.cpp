@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/stop/iteration.hpp"
 
+#include "ginkgo/core/base/abstract_factory.hpp"
+
 
 namespace gko {
 namespace stop {
@@ -19,6 +21,12 @@ bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
         *one_changed = true;
     }
     return result;
+}
+
+
+deferred_factory_parameter<Iteration::Factory> iteration(size_type count)
+{
+    return Iteration::build().with_max_iters(count);
 }
 
 
