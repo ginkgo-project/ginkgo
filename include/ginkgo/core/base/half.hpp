@@ -418,8 +418,9 @@ private:
                 // gap to fp16 denormal exponents (+1 from normal to denormal
                 // exponent base)
                 const auto gap_to_fp16 =
-                    (conv::bias_change - ((data_ & f32_traits::exponent_mask) >>
-                                          conv::significand_offset) >>
+                    ((conv::bias_change -
+                      ((data_ & f32_traits::exponent_mask) >>
+                       conv::significand_offset)) >>
                      f16_traits::significand_bits) +
                     1;
 
@@ -491,11 +492,11 @@ private:
 
             leading_zeros = f16_traits::significand_bits - index - 1;
 #else
-            leading_zeros =
-                __builtin_clz(static_cast<std::uint32_t>(
-                    f16_traits::significand_mask & data_)) -
-                f16_traits::exponent_bits - f16_traits::sign_bits -
-                8 * (sizeof(conv::result_bits) - sizeof(conv::source_bits));
+            leading_zeros = __builtin_clz(static_cast<std::uint32_t>(
+                                f16_traits::significand_mask & data_)) -
+                            f16_traits::exponent_bits - f16_traits::sign_bits -
+                            CHAR_BIT * (sizeof(conv::result_bits) -
+                                        sizeof(conv::source_bits));
 #endif
 
             // Computes the new exponent, 0xxxxxxxx000...00

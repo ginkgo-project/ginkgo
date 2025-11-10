@@ -154,6 +154,13 @@ TEST(FloatToHalf, RoundsDownToEvenNumber)
     ASSERT_EQ(get_bits(x), get_bits("1" "00000" "0000111010"));
 }
 
+TEST(FloatToHalf, RoundsDownToEvenNumber2)
+{
+    half x = create_from_bits<float>("1" "01101100" "11010100000000000000001");
+
+    ASSERT_EQ(get_bits(x), get_bits("1" "00000" "0000111011"));
+}
+
 
 TEST(FloatToHalf, LargestNumberThatConvertsToZero)
 {
