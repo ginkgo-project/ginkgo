@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <istream>
 
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/utils_helper.hpp>
 
 
 namespace gko {
@@ -291,7 +292,10 @@ struct mtx_io_traits<gko::matrix::Fft3> {
  * @param matrix  the matrix to write
  * @param layout  the layout used in the output
  */
-template <typename MatrixPtrType, typename StreamType>
+template <
+    typename MatrixPtrType, typename StreamType,
+    std::enable_if_t<!std::is_same_v<
+        std::remove_cv_t<detail::pointee<MatrixPtrType>>, LinOp>>* = nullptr>
 inline void write(
     StreamType&& os, MatrixPtrType&& matrix,
     layout_type layout = detail::mtx_io_traits<
@@ -304,6 +308,16 @@ inline void write(
     matrix->write(data);
     write_raw(os, data, layout);
 }
+
+/**
+ * Writes a LinOp into an output stream in matrix market format. The matrix
+ * market format use coordinate format if the sparsity is less than 25%.
+ * Otherwise, use array format.
+ *
+ * @param os  output stream where the data is to be written
+ * @param matrix  the matrix to write
+ */
+void write(std::ostream& os, ptr_param<const LinOp> matrix);
 
 
 /**
