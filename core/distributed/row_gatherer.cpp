@@ -17,7 +17,7 @@ namespace experimental {
 namespace distributed {
 
 
-#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X || GINKGO_HAVE_FORCED_MPI_DENSE_COMM
 using DefaultCollComm = mpi::DenseCommunicator;
 #else
 using DefaultCollComm = mpi::NeighborhoodCommunicator;
