@@ -192,7 +192,7 @@ int main()
 
     // core/base/combination.hpp
     {
-        using type1 = int;
+        using type1 = float;
         static_assert(
             std::is_same<gko::Combination<type1>::value_type, type1>::value,
             "combination.hpp not included properly!");
@@ -200,7 +200,7 @@ int main()
 
     // core/base/composition.hpp
     {
-        using type1 = int;
+        using type1 = float;
         static_assert(
             std::is_same<gko::Composition<type1>::value_type, type1>::value,
             "composition.hpp not included properly");
@@ -277,7 +277,7 @@ int main()
 
     // core/base/perturbation.hpp
     {
-        using type1 = int;
+        using type1 = float;
         static_assert(
             std::is_same<gko::Perturbation<type1>::value_type, type1>::value,
             "perturbation.hpp not included properly");
