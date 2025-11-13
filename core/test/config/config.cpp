@@ -124,6 +124,15 @@ TEST_F(Config, GenerateObjectWithCustomBuild)
 }
 
 
+TEST_F(Config, ThrowWhenKeyIsInvalidInType)
+{
+    auto reg = registry();
+    pnode p{{{"type", pnode{"Invalid"}}}};
+
+    ASSERT_THROW(parse(p, reg), gko::InvalidStateError);
+}
+
+
 TEST_F(Config, ThrowWhenKeyIsInvalidInCriterion)
 {
     auto reg = registry();
