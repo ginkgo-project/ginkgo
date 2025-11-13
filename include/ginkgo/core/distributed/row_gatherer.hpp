@@ -158,6 +158,26 @@ public:
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
+    /*
+     * Create method for an empty RowGatherer with an template for the
+     * collective communicator.
+     *
+     * This is mainly used for creating a new RowGatherer with the same runtime
+     * type for the collective communicator, e.g.:
+     * ```c++
+     * auto rg = RowGatherer<>::create(
+     *   exec, std::make_shared<mpi::NeighborhoodCommunicator>(comm));
+     * ...
+     * rg = RowGatherer<>::create(
+     *   exec,
+     *   rg->get_collective_communicator()->create_with_same_type(comm, &imap),
+     *   imap);
+     * ```
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
+
     RowGatherer(const RowGatherer& o);
 
     RowGatherer(RowGatherer&& o) noexcept;
@@ -182,6 +202,14 @@ private:
      *          Executor>, mpi::communicator)
      */
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
+
+    /**
+     * @copydoc RowGatherer::create(std::shared_ptr<const
+     *          Executor>, std::shared_ptr<const mpi::CollectiveCommunicator>)
+     */
+    RowGatherer(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
 
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
