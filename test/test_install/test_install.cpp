@@ -389,7 +389,7 @@ int main()
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        auto test = Mtx::create(exec, gko::dim<2>{2, 2});
+        auto test = Mtx::create(exec, 2);
     }
 
     // core/matrix/row_gatherer.hpp
