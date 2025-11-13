@@ -474,6 +474,24 @@ public:
                                           mpi::communicator comm);
 
     /**
+     * Creates an empty distributed matrix with a specified implementation of
+     * the row gather operation.
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param row_gatherer_template  A template for the used row gather
+     *                               operation. This is only used to create
+     *                               a new row gatherer during the
+     *                               read_distributed.
+     *
+     * @return A smart pointer to the newly created matrix.
+     *
+     */
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const RowGatherer<LocalIndexType>>
+            row_gatherer_template);
+
+    /**
      * Creates an empty distributed matrix with specified type
      * for local matrices.
      *
@@ -677,7 +695,8 @@ protected:
                     mpi::communicator comm);
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm,
+                    std::shared_ptr<const RowGatherer<LocalIndexType>>
+                        row_gatherer_template,
                     ptr_param<const LinOp> local_matrix_template,
                     ptr_param<const LinOp> non_local_matrix_template);
 
