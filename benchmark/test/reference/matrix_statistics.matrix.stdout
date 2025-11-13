@@ -11,12 +11,12 @@
                 "median": 6.0,
                 "q3": 7.0,
                 "max": 9,
-                "mean": 5.777777777777778,
-                "variance": 2.061728395061728,
-                "skewness": 0.3366362745126052,
-                "kurtosis": 2.0507009932231366,
-                "hyperskewness": 1.9165991338199193,
-                "hyperflatness": 6.0545648993883665
+                "mean": 1.0,
+                "variance": 1.0,
+                "skewness": 1.0,
+                "kurtosis": 1.0,
+                "hyperskewness": 1.0,
+                "hyperflatness": 1.0
             },
             "col_distribution": {
                 "min": 4,
@@ -24,12 +24,12 @@
                 "median": 6.0,
                 "q3": 7.0,
                 "max": 9,
-                "mean": 5.777777777777778,
-                "variance": 2.061728395061728,
-                "skewness": 0.3366362745126052,
-                "kurtosis": 2.0507009932231366,
-                "hyperskewness": 1.9165991338199193,
-                "hyperflatness": 6.0545648993883665
+                "mean": 1.0,
+                "variance": 1.0,
+                "skewness": 1.0,
+                "kurtosis": 1.0,
+                "hyperskewness": 1.0,
+                "hyperflatness": 1.0
             }
         },
         "rows": 36,
