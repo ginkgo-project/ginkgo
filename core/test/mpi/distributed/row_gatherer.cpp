@@ -76,6 +76,19 @@ TYPED_TEST(RowGatherer, CanDefaultConstruct)
 }
 
 
+TYPED_TEST(RowGatherer, HasDefaultCollectiveCommunicator)
+{
+    using RowGatherer = typename TestFixture::row_gatherer_type;
+
+    auto rg = RowGatherer::create(this->ref, this->comm);
+
+    auto coll_comm = rg->get_collective_communicator();
+    ASSERT_NE(std::dynamic_pointer_cast<
+                  const gko::experimental::mpi::DenseCommunicator>(coll_comm),
+              nullptr);
+}
+
+
 TYPED_TEST(RowGatherer, CanConstructWithEmptyCollectiveCommAndIndexMap)
 {
     using RowGatherer = typename TestFixture::row_gatherer_type;
