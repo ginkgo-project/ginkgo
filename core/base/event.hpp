@@ -12,7 +12,7 @@
 
 
 namespace gko {
-
+namespace detail {
 
 /**
  * NotAsyncEvent is to provide an Event implementation on unsupported executor
@@ -30,6 +30,7 @@ public:
 };
 
 
+}  // namespace detail
 }  // namespace gko
 
 

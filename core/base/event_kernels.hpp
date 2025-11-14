@@ -20,7 +20,7 @@ namespace kernels {
 
 #define GKO_DECLARE_EVENT_RECORD_EVENT                             \
     void record_event(std::shared_ptr<const DefaultExecutor> exec, \
-                      std::shared_ptr<const Event>& event)
+                      std::shared_ptr<const detail::Event>& event)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_EVENT_RECORD_EVENT

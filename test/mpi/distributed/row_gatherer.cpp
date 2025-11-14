@@ -28,6 +28,10 @@ using CollCommType = gko::experimental::mpi::NeighborhoodCommunicator;
 #endif
 
 
+using gko::experimental::distributed::detail::apply_finalize;
+using gko::experimental::distributed::detail::apply_prepare;
+
+
 template <typename IndexType>
 class RowGatherer : public CommonMpiTestFixture {
 protected:
@@ -241,8 +245,8 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithEvent)
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
 
-    auto ev = this->rg->apply_prepare(b, x);
-    auto req = this->rg->apply_finalize(b, x, ev);
+    auto ev = apply_prepare(this->rg.get(), b, x);
+    auto req = apply_finalize(this->rg.get(), b, x, ev);
     req.wait();
 
     auto expected_vec = Vector::create(
@@ -268,8 +272,10 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithEventConsequetively)
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
 
-    this->rg->apply_finalize(b, x, this->rg->apply_prepare(b, x)).wait();
-    this->rg->apply_finalize(b, x, this->rg->apply_prepare(b, x)).wait();
+    apply_finalize(this->rg.get(), b, x, apply_prepare(this->rg.get(), b, x))
+        .wait();
+    apply_finalize(this->rg.get(), b, x, apply_prepare(this->rg.get(), b, x))
+        .wait();
 
     auto expected_vec = Vector::create(
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
@@ -295,8 +301,8 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithEventAndWorkspace)
                             gko::dim<2>{expected.get_size(), 1});
     gko::array<char> workspace;
 
-    auto ev = this->rg->apply_prepare(b, x, workspace);
-    auto req = this->rg->apply_finalize(b, x, ev, workspace);
+    auto ev = apply_prepare(this->rg.get(), b, x, workspace);
+    auto req = apply_finalize(this->rg.get(), b, x, ev, workspace);
     req.wait();
 
     auto expected_vec = Vector::create(
@@ -328,10 +334,10 @@ TYPED_TEST(RowGatherer, CanApplyAsyncMultipleTimesWithEventAndWorkspace)
     gko::array<char> workspace1;
     gko::array<char> workspace2;
 
-    auto ev1 = this->rg->apply_prepare(b1, x1, workspace1);
-    auto ev2 = this->rg->apply_prepare(b2, x2, workspace2);
-    auto req1 = this->rg->apply_finalize(b1, x1, ev1, workspace1);
-    auto req2 = this->rg->apply_finalize(b2, x2, ev2, workspace2);
+    auto ev1 = apply_prepare(this->rg.get(), b1, x1, workspace1);
+    auto ev2 = apply_prepare(this->rg.get(), b2, x2, workspace2);
+    auto req1 = apply_finalize(this->rg.get(), b1, x1, ev1, workspace1);
+    auto req2 = apply_finalize(this->rg.get(), b2, x2, ev2, workspace2);
     req1.wait();
     req2.wait();
 
@@ -368,11 +374,11 @@ TYPED_TEST(
                             gko::dim<2>{expected.get_size(), 1});
     gko::array<char> workspace;
 
-    auto ev = this->rg->apply_prepare(b, x, workspace);
+    auto ev = apply_prepare(this->rg.get(), b, x, workspace);
     // we modify the workspace to all 0
     workspace.fill(static_cast<char>(0));
     this->exec->synchronize();
-    auto req = this->rg->apply_finalize(b, x, ev, workspace);
+    auto req = apply_finalize(this->rg.get(), b, x, ev, workspace);
     req.wait();
 
     auto expected_vec = Vector::create(

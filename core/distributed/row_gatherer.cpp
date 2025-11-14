@@ -43,17 +43,20 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 }
 
 template <typename LocalIndexType>
-std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
-    ptr_param<const LinOp> b, ptr_param<LinOp> x) const
+std::shared_ptr<const gko::detail::Event>
+RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x) const
 {
     return apply_prepare(b, x, send_workspace_);
 }
 
 template <typename LocalIndexType>
-std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
-    ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
+std::shared_ptr<const gko::detail::Event>
+RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x,
+                                           array<char>& workspace) const
 {
-    std::shared_ptr<const Event> ev = nullptr;
+    std::shared_ptr<const gko::detail::Event> ev = nullptr;
     auto exec = this->get_executor();
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
@@ -117,7 +120,7 @@ std::shared_ptr<const Event> RowGatherer<LocalIndexType>::apply_prepare(
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
     ptr_param<const LinOp> b, ptr_param<LinOp> x,
-    std::shared_ptr<const Event> ev) const
+    std::shared_ptr<const gko::detail::Event> ev) const
 {
     auto req = apply_finalize(b, x, ev, send_workspace_);
     return req;
@@ -126,7 +129,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
     ptr_param<const LinOp> b, ptr_param<LinOp> x,
-    std::shared_ptr<const Event> ev, array<char>& workspace) const
+    std::shared_ptr<const gko::detail::Event> ev, array<char>& workspace) const
 {
     mpi::request req;
 
@@ -182,6 +185,80 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         });
     return req;
 }
+
+
+namespace detail {
+
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    ptr_param<LinOp> x)
+{
+    return rg->apply_prepare(b, x);
+}
+
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    ptr_param<LinOp> x, array<char>& workspace)
+{
+    return rg->apply_prepare(b, x, workspace);
+}
+
+
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event> ev)
+{
+    return rg->apply_finalize(b, x, ev);
+}
+
+
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event> ev,
+                            array<char>& workspace)
+{
+    return rg->apply_finalize(b, x, ev, workspace);
+}
+
+
+#define GKO_DECLARE_TEST_APPLY_PREPARE(_itype)               \
+    std::shared_ptr<const gko::detail::Event> apply_prepare( \
+        const RowGatherer<_itype>*, ptr_param<const LinOp>, ptr_param<LinOp>)
+
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(_itype)                      \
+    std::shared_ptr<const gko::detail::Event> apply_prepare(                  \
+        const RowGatherer<_itype>*, ptr_param<const LinOp>, ptr_param<LinOp>, \
+        array<char>&)
+
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(_itype)                               \
+    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+                                std::shared_ptr<const gko::detail::Event> ev)
+
+#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(_itype)                     \
+    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+                                std::shared_ptr<const gko::detail::Event> ev, \
+                                array<char>&)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_FINALIZE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE);
+
+#undef GKO_DECLARE_TEST_APPLY_PREPARE
+#undef GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE
+#undef GKO_DECLARE_TEST_APPLY_FINALIZE
+#undef GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE
+
+
+}  // namespace detail
 
 
 template <typename LocalIndexType>

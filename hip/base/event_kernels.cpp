@@ -14,6 +14,7 @@
 
 
 namespace gko {
+namespace detail {
 
 
 /**
@@ -47,15 +48,18 @@ private:
 };
 
 
+}  // namespace detail
+
+
 namespace kernels {
 namespace hip {
 namespace event {
 
 
 void record_event(std::shared_ptr<const DefaultExecutor> exec,
-                  std::shared_ptr<const Event>& event)
+                  std::shared_ptr<const detail::Event>& event)
 {
-    event = std::make_shared<HipEvent>(exec);
+    event = std::make_shared<detail::HipEvent>(exec);
 }
 
 
